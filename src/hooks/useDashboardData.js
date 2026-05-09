@@ -134,7 +134,7 @@ export function useDashboardData() {
     } catch (err) {
       alert('Błąd synchronizacji: ' + err.message);
     } finally {
-      setIsSyncing(false);
+      setSyncing(false);
     }
   };
 

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Fingerprint, LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin, BookOpen, Activity, Zap } from 'lucide-react';
+import { 
+  Fingerprint, LogOut, Play, Dumbbell, BarChart2, 
+  Camera, Compass, Activity, Zap, Target, 
+  Clock, Shield, Brain, Sparkles, Layout, RotateCw, Database, Calendar
+} from 'lucide-react';
 import WorkoutExecution from './WorkoutExecution';
 import ProgressionTable from './ProgressionTable';
 import Stats from './Stats';
@@ -8,8 +12,8 @@ import Photos from './Photos';
 import Direction from './Direction';
 import MentorChat from './MentorChat';
 import Fundament from './Fundament';
+import DataHub from './DataHub';
 import OuraWidget from './OuraWidget';
-import LocationTracker from './LocationTracker';
 import AIInsight from './AIInsight';
 import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
@@ -20,17 +24,90 @@ import { format, parseISO } from 'date-fns';
 export default function Dashboard({ session }) {
   const [view, setView] = useState('workout');
   const [selectedDay, setSelectedDay] = useState(null);
-  const [showProgression, setShowProgression] = useState(false);
-  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, syncYazio, loading, nextSuggestedDay, refresh } = useDashboardData();
-  const { isSyncing } = useStore();
-  const weeklyBudget = 12600; // 1800 * 7
+  const { 
+    lastDayASession, weeklyCalories, todayWin, 
+    syncYazio, loading, nextSuggestedDay, refresh 
+  } = useDashboardData();
+  const { isSyncing, setSyncing } = useStore();
+  const weeklyBudget = 12600;
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code && session) {
+      handleGoogleCallback(code);
+    }
+  }, [session]);
+
+  async function handleGoogleCallback(code) {
+    setSyncing(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          userId: session.user.id, 
+          code, 
+          redirectUri: window.location.origin 
+        })
+      });
+      const res = await response.json();
+      if (res.success) {
+        window.history.replaceState({}, document.title, "/");
+        await syncCalendar();
+      }
+    } catch (err) {
+      console.error('Google Auth Error:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function syncCalendar() {
+    setSyncing(true);
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ userId: session.user.id })
+      });
+      refresh();
+    } catch (err) {
+      console.error('Calendar Sync Error:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  function startGoogleAuth() {
+    const root = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const options = {
+      redirect_uri: window.location.origin,
+      client_id: '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com',
+      access_type: 'offline',
+      response_type: 'code',
+      prompt: 'consent',
+      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    };
+    const qs = new URLSearchParams(options);
+    window.location.href = `${root}?${qs.toString()}`;
+  }
 
   if (view === 'fundament') return <Fundament onBack={() => setView('workout')} />;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+        </div>
       </div>
     );
   }
@@ -39,239 +116,162 @@ export default function Dashboard({ session }) {
     return <WorkoutExecution dayKey={selectedDay} session={session} onBack={() => setSelectedDay(null)} />;
   }
 
-  const getDaySuggestion = (dayKey) => {
-    const lastA = lastDayASession;
-    if (dayKey === 'A' && lastA?.benchLogs) {
-      const avgMsp = lastA.benchLogs.reduce((acc, l) => acc + (l.rpe || 0), 0) / lastA.benchLogs.length;
-      if (avgMsp < 0.5) return '+2,5 kg (Brak MSP)';
-      if (avgMsp > 1.5) return 'Zostań / Deload (Za ciężko)';
-      return '+1-2 kg (Idealne MSP)';
-    }
-
-    const lastMsp = mspFeedbackMap[dayKey];
-    switch(dayKey) {
-      case 'A': return lastMsp === true ? '+2,5 kg' : lastMsp === false ? 'Szlifuj MSP' : 'Ciężka Góra';
-      case 'B': return '6 serii – tył barku';
-      case 'C': return 'Pamiętaj o podwinięciu miednicy';
-      case 'D': return 'LEKKO – zostaw 1-2 powt.';
-      default: return '';
-    }
-  };
-
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto relative bg-background border-x border-neutral-900 shadow-2xl">
-      <LocationTracker session={session} />
-      
-      {/* Header */}
-      <header className="p-4 border-b border-neutral-800 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-md z-20">
-        <div>
-          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">DIGITAL TWIN 2.0</h1>
-          <p className="text-[10px] text-primary font-black uppercase tracking-widest italic">OPERATOR: {session.user.email}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setView('fundament')} className="p-2 text-primary hover:text-white transition-colors">
-            <Fingerprint size={20} />
-          </button>
-          <button onClick={() => supabase.auth.signOut()} className="p-2 text-neutral-500 hover:text-white transition-colors">
-            <LogOut size={20} />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto pb-24">
-        {view === 'workout' && (
-          <div className="p-6 space-y-8">
-            <OuraWidget session={session} />
-
-            {/* POWER LIST - THE CORE OF EXECUTION */}
-            <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
-
-            <div className="grid gap-6">
-              {/* Weekly Calorie Budget */}
-              <section className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Calorie Budget</h3>
-                    <p className="text-xl font-black text-white uppercase italic">
-                      {weeklyCalories.toLocaleString()} <span className="text-xs text-neutral-500">/ {weeklyBudget.toLocaleString()} kcal</span>
-                    </p>
-                  </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      syncYazio();
-                    }} 
-                    disabled={isSyncing} 
-                    className={`p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-primary hover:border-primary/50 hover:bg-neutral-900 active:scale-95 transition-all shadow-lg ${isSyncing ? 'animate-spin opacity-50' : ''}`}
-                    title="Synchronizuj Yazio"
-                  >
-                    <RotateCw size={18} />
-                  </button>
-                </div>
-                
-                <div className="w-full h-2 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${weeklyCalories > weeklyBudget ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
-                    style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[8px] font-black uppercase text-neutral-600">
-                  <span>{(weeklyBudget - weeklyCalories).toLocaleString()} kcal Left</span>
-                  <span>Target: 1800/Day</span>
-                </div>
-              </section>
-
-              {/* Today's Workout Focus */}
-              <section className="space-y-3">
-                <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                  <Dumbbell size={12} className="text-primary" /> Next Protocol Entry
-                </h3>
-                {(() => {
-                  const dayData = [
-                    { key: 'A', title: 'Dzień A', sub: 'Góra Ciężka / Bench', color: 'dayA' },
-                    { key: 'B', title: 'Dzień B', sub: 'Plecy / Tył Barku', color: 'dayB' },
-                    { key: 'C', title: 'Dzień C', sub: 'Nogi / ATP / Core', color: 'dayC' },
-                    { key: 'D', title: 'Dzień D', sub: 'Lekki Bench / Ramiona', color: 'dayD' },
-                  ].find(d => d.key === nextSuggestedDay);
-
-                  return (
-                    <button 
-                      onClick={() => setSelectedDay(dayData.key)}
-                      className={`w-full bg-neutral-900 border border-neutral-800 rounded-lg p-6 flex items-center justify-between group hover:bg-neutral-800/50 transition-all border-l-4 border-l-${dayData.color} ${!hasWorkoutToday ? 'ring-1 ring-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'opacity-60'}`}
-                    >
-                      <div>
-                        <h3 className="font-black text-white uppercase italic text-xl">{dayData.title}</h3>
-                        <p className="text-[10px] text-neutral-500 font-bold uppercase mb-1">{dayData.sub}</p>
-                        <div className="text-[10px] font-black text-primary uppercase tracking-widest">
-                          {getDaySuggestion(dayData.key)}
-                        </div>
-                      </div>
-                      <div className="w-12 h-12 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
-                        <Play size={18} fill="currentColor" />
-                      </div>
-                    </button>
-                  );
-                })()}
-              </section>
-            </div>
-
-            {/* AI Insight */}
-            <AIInsight session={session} />
-
-            {/* Ostatni Trening A Widget */}
-            {lastDayASession && (
-              <section className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                    <History size={12} /> Last Matrix Entry ({format(parseISO(lastDayASession.created_at), 'dd.MM')})
-                  </h3>
-                  <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${lastDayASession.msp_passed ? 'bg-dayC text-white' : 'bg-neutral-800 text-neutral-400'}`}>
-                    MSP: {lastDayASession.msp_passed ? 'PASSED' : 'FAILED'}
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {lastDayASession.benchLogs.map((l, i) => (
-                    <div key={i} className="bg-neutral-950 px-2 py-1 rounded border border-neutral-900 text-[10px] font-bold text-white">
-                      {l.weight}kg x {l.reps}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Progresja */}
-            <section className="space-y-3">
-              <button 
-                onClick={() => setShowProgression(!showProgression)}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg flex items-center justify-between p-4 hover:bg-neutral-800/30 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <Trophy className="text-primary" size={20} />
-                  <div className="text-left">
-                    <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Planned Matrix Progression</h3>
-                    <p className="text-[8px] text-neutral-500 font-bold uppercase">Target: 100 kg Bench Press</p>
-                  </div>
-                </div>
-                {showProgression ? <ChevronUp size={16} className="text-neutral-500" /> : <ChevronDown size={16} className="text-neutral-500" />}
-              </button>
-              
-              {showProgression && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <ProgressionTable session={session} />
-                </div>
-              )}
-            </section>
-
-            {/* StayFree Sync Button */}
-            <button 
-              onClick={() => setView('stayfree')}
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex items-center justify-between group hover:bg-neutral-800 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <Activity size={18} className="text-neutral-500 group-hover:text-primary" />
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Synchronizacja StayFree</span>
-              </div>
-              <div className="w-6 h-6 rounded-full border border-neutral-800 flex items-center justify-center text-neutral-500 group-hover:text-primary group-hover:border-primary transition-all">
-                <span className="text-lg font-light leading-none">+</span>
-              </div>
-            </button>
-
-            {/* Zasady 2.1 */}
-            <section className="card bg-neutral-900/20 border-neutral-800 p-5 space-y-4">
-              <h2 className="text-[10px] font-bold text-neutral-500 tracking-widest uppercase flex items-center gap-2">
-                <Shield size={12} className="text-primary" /> Zasady Grande Finale 2.1
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <p className="text-[8px] text-neutral-500 font-bold uppercase">Białko</p>
-                  <p className="text-[12px] font-black text-white uppercase italic">2.0-2.2g / KG</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[8px] text-neutral-500 font-bold uppercase">Deficyt</p>
-                  <p className="text-[12px] font-black text-white uppercase italic">300-500 KCAL</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[8px] text-neutral-500 font-bold uppercase">Kroki</p>
-                  <p className="text-[12px] font-black text-white uppercase italic">8-10K Dziennie</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[8px] text-neutral-500 font-bold uppercase">Sen</p>
-                  <p className="text-[12px] font-black text-white uppercase italic">Min. 7.5 H</p>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-neutral-800/50">
-                <p className="text-[9px] font-black text-primary uppercase italic text-center italic tracking-widest">
-                  16 tygodni bez wymówek. Rób swoje.
-                </p>
-              </div>
-            </section>
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30">
+      <div className="max-w-md mx-auto min-h-screen flex flex-col relative pb-24 border-x border-white/5">
+        
+        {/* TOP STATUS BAR (PREMIUM HUD) */}
+        <header className="sticky top-0 z-30 px-6 py-4 bg-black/60 backdrop-blur-xl border-b border-white/5 flex justify-between items-center">
+          <div>
+            <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">Digital Twin 2.0</h1>
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">{format(new Date(), 'EEEE, d MMMM')}</p>
           </div>
-        )}
-        {view === 'stats' && <Stats session={session} />}
-        {view === 'photos' && <Photos session={session} />}
-        {view === 'direction' && <Direction session={session} />}
-        {view === 'mentor' && <MentorChat session={session} />}
-        {view === 'stayfree' && <StayFreeDashboard session={session} />}
-      </main>
+          <div className="flex items-center gap-2">
+            <button onClick={startGoogleAuth} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5">
+              <Calendar size={16} className="text-white/40" />
+            </button>
+            <button onClick={() => setView('fundament')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5">
+              <Fingerprint size={16} className="text-primary" />
+            </button>
+            <button onClick={() => supabase.auth.signOut()} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5">
+              <LogOut size={16} className="text-white/40" />
+            </button>
+          </div>
+        </header>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full max-w-md bg-background/90 backdrop-blur-xl border-t border-neutral-800 p-3 flex justify-around items-center z-30">
-        <button onClick={() => setView('workout')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'workout' ? 'text-primary' : 'text-neutral-500'}`}>
-          <Dumbbell size={24} /><span className="text-[8px] font-bold uppercase">Trening</span>
-        </button>
-        <button onClick={() => setView('direction')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'direction' ? 'text-primary' : 'text-neutral-500'}`}>
-          <Compass size={24} /><span className="text-[8px] font-bold uppercase">Kierunek</span>
-        </button>
-        <button onClick={() => setView('mentor')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'mentor' ? 'text-primary' : 'text-neutral-500'}`}>
-          <Compass size={24} /><span className="text-[8px] font-bold uppercase">Mentor</span>
-        </button>
-        <button onClick={() => setView('stats')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'stats' ? 'text-primary' : 'text-neutral-500'}`}>
-          <BarChart2 size={24} /><span className="text-[8px] font-bold uppercase">Statystyki</span>
-        </button>
-        <button onClick={() => setView('photos')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'photos' ? 'text-primary' : 'text-neutral-500'}`}>
-          <Camera size={24} /><span className="text-[8px] font-bold uppercase">Zdjęcia</span>
-        </button>
-      </nav>
+        <main className="flex-1 p-6 space-y-8 animate-in fade-in duration-700">
+          
+          {/* SYSTEM STATE HUB */}
+          {view === 'workout' && (
+            <>
+              <section className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                <div className="relative bg-neutral-900/40 border border-white/10 rounded-3xl p-6 backdrop-blur-sm overflow-hidden">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Operational State</p>
+                      <h2 className="text-2xl font-black italic tracking-tighter uppercase">
+                        {todayWin?.result === 'Z' ? 'System Locked' : 'Analysis Pending'}
+                      </h2>
+                    </div>
+                    <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
+                      <Brain size={20} className="text-primary" />
+                    </div>
+                  </div>
+                  
+                  {/* Quick Vitals */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-bold text-white/30 uppercase">Focus</p>
+                      <p className="text-xs font-black text-white italic">High</p>
+                    </div>
+                    <div className="space-y-1 text-center border-x border-white/5">
+                      <p className="text-[8px] font-bold text-white/30 uppercase">Recovery</p>
+                      <p className="text-xs font-black text-white italic">Stable</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-[8px] font-bold text-white/30 uppercase">Stability</p>
+                      <p className="text-xs font-black text-white italic">94%</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* CORE ACTIONS: POWER LIST */}
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+
+              {/* AI INSIGHT LAYER */}
+              <AIInsight session={session} />
+
+              {/* PROTOCOL MODULES GRID */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Physical Protocol (Trening) */}
+                <button 
+                  onClick={() => setSelectedDay(nextSuggestedDay)}
+                  className="col-span-2 bg-gradient-to-br from-neutral-900 to-black border border-white/10 rounded-2xl p-5 flex items-center justify-between group hover:border-primary/40 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Dumbbell size={24} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Physical Protocol</p>
+                      <p className="text-sm font-black text-white uppercase italic">Dzień {nextSuggestedDay}</p>
+                    </div>
+                  </div>
+                  <Play size={16} className="text-primary opacity-0 group-hover:opacity-100 transition-all" fill="currentColor" />
+                </button>
+
+                {/* Nutrition Module */}
+                <div className="bg-neutral-900/40 border border-white/5 rounded-2xl p-5 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Zap size={16} className="text-orange-500" />
+                    <button onClick={syncYazio} disabled={isSyncing} className={`text-white/20 hover:text-white transition-all ${isSyncing ? 'animate-spin' : ''}`}>
+                      <RotateCw size={14} />
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-bold text-white/30 uppercase mb-1">Calories</p>
+                    <p className="text-sm font-black text-white italic">{weeklyCalories} <span className="text-[9px] text-white/20">/ 12.6k</span></p>
+                  </div>
+                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)] transition-all duration-1000"
+                      style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Biological Module (Oura/StayFree) */}
+                <button 
+                  onClick={() => setView('stayfree')}
+                  className="bg-neutral-900/40 border border-white/5 rounded-2xl p-5 space-y-4 hover:border-white/20 transition-all"
+                >
+                  <div className="flex justify-between items-center">
+                    <Activity size={16} className="text-primary" />
+                    <Compass size={14} className="text-white/20" />
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-bold text-white/30 uppercase mb-1">Digital Signal</p>
+                    <p className="text-sm font-black text-white italic">Sync Ready</p>
+                  </div>
+                  <p className="text-[7px] font-black text-primary uppercase tracking-widest">Mirror Mode Active</p>
+                </button>
+              </div>
+
+              {/* Biological History (Oura) */}
+              <OuraWidget session={session} />
+            </>
+          )}
+
+          {/* OTHER VIEWS */}
+          {view === 'stats' && <Stats session={session} />}
+          {view === 'photos' && <Photos session={session} />}
+          {view === 'direction' && <Direction session={session} />}
+          {view === 'mentor' && <MentorChat session={session} />}
+          {view === 'stayfree' && <StayFreeDashboard session={session} />}
+        </main>
+
+        {/* PREMIUM BOTTOM NAV */}
+        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[360px] bg-neutral-900/80 backdrop-blur-2xl border border-white/10 p-2 rounded-full flex justify-between items-center z-40 shadow-2xl">
+          {[
+            { id: 'workout', icon: Layout, label: 'Mirror' },
+            { id: 'direction', icon: Compass, label: 'Path' },
+            { id: 'stats', icon: BarChart2, label: 'Data' },
+            { id: 'mentor', icon: Sparkles, label: 'Oracle' },
+            { id: 'photos', icon: Camera, label: 'Visual' }
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-full transition-all ${view === item.id ? 'bg-white/5 text-primary scale-110' : 'text-white/40 hover:text-white'}`}
+            >
+              <item.icon size={18} />
+              <span className="text-[7px] font-black uppercase tracking-tighter">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }
