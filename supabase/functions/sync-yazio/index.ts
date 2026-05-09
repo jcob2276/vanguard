@@ -44,7 +44,6 @@ serve(async (req) => {
           let name = item.name || item.product?.name || item.recipe?.name || item.food?.name || item.title;
           let nutrients = item.nutrients || {};
 
-          // FIX: Manual fetch if product details are missing
           if ((!name || !nutrients["energy.energy"]) && item.product_id) {
             const cacheKey = `p_${item.product_id}`;
             if (productCache[cacheKey]) {
@@ -52,7 +51,6 @@ serve(async (req) => {
               name = cachedData.name; nutrients = cachedData.nutrients;
             } else {
               try {
-                console.log(`[Yazio] Manual fetch for product: ${item.product_id}`);
                 const pRes = await fetch(`https://yzapi.yazio.com/v15/products/${item.product_id}`, {
                     headers: { "Authorization": `Bearer ${yazioToken}`, "User-Agent": "YAZIO/Android" }
                 });
@@ -73,7 +71,6 @@ serve(async (req) => {
           let w = nutrients["nutrient.carb"] || 0;
           let t = nutrients["nutrient.fat"] || 0;
 
-          // If nutrients are per 1g/ml (standard in Yazio API for products), just multiply by amount
           if (item.product_id && amount > 0 && !nutrients._scaled) {
              c = Math.round(c * amount);
              p = p * amount;
@@ -84,12 +81,7 @@ serve(async (req) => {
           p = parseFloat(p.toFixed(2)); w = parseFloat(w.toFixed(2)); t = parseFloat(t.toFixed(2));
           totalCals += c; totalProt += p; totalCarbs += w; totalFat += t;
 
-          // Human-friendly amount string
-          const unitMap: any = {
-            'gram': 'g', 'milliliter': 'ml', 'portion': 'g/porcja', 
-            'package': 'opak.', 'cup': 'szt/opak', 'roll': 'szt',
-            'whole': 'szt/całość', 'piece': 'szt', 'bottle': 'but.'
-          };
+          const unitMap: any = { 'gram': 'g', 'milliliter': 'ml', 'portion': 'g/porcja', 'package': 'opak.', 'cup': 'szt/opak', 'roll': 'szt', 'whole': 'szt/całość', 'piece': 'szt', 'bottle': 'but.' };
           const unit = unitMap[item.serving] || item.serving || '';
           const amountStr = `${item.amount}${unit ? ' ' + unit : ''}`;
 
@@ -99,7 +91,6 @@ serve(async (req) => {
           });
         }
 
-        // Fallback for empty days
         if (foodEntries.length === 0) {
           const summary = await yazio.user.getDailySummary({ date: targetDate });
           Object.entries((summary as any).meals || {}).forEach(([mealType, mealData]: [string, any]) => {
@@ -114,15 +105,10 @@ serve(async (req) => {
           });
         }
 
-        if (foodEntries.length > 0) {
+        if (totalCals > 0 || totalProt > 0) {
           await supabase.from('daily_nutrition').upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' });
-          
-          // Używamy UPSERT zamiast DELETE+INSERT dla zachowania integralności
-          const { error: foodError } = await supabase.from('daily_food_entries').upsert(foodEntries, { 
-            onConflict: 'user_id,date,name,meal_type' 
-          });
-          
-          if (foodError) console.error(`[Yazio] Upsert error for ${dateStr}:`, foodError.message);
+          await supabase.from('daily_food_entries').delete().eq('user_id', userId).eq('date', dateStr);
+          await supabase.from('daily_food_entries').insert(foodEntries);
         }
         results.push({ date: dateStr, items: foodEntries.length });
       } catch (err) { console.log(`Error ${dateStr}:`, err.message); }

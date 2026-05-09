@@ -1,87 +1,57 @@
-import { format, subDays } from 'date-fns';
-import { detectState, calculateIdentityScore, discoverPatterns, OPERATING_STATES } from './stateEngine';
+import { calculateVanguardSignals, determineVanguardState } from './signalAnalytics';
 
-export async function gatherUserContext(supabase, userId) {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const weekAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-  
-  // 1. Fetch all relevant data in parallel (No Waterfalls)
-  const [
-    { data: oura },
-    { data: dailyWins },
-    { data: nutrition },
-    { data: workout },
-    { data: fundament },
-    { data: settings },
-    { data: screenTime }
-  ] = await Promise.all([
+/**
+ * GATHER USER CONTEXT (Warstwa 6 Interface)
+ * Aggregates raw events from various sources and translates them 
+ * into a deterministic State Vector for the AI Advisor.
+ */
+export const gatherUserContext = async (supabase, userId) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+  // Fetching data from multiple streams
+  const [stayfreeResponse, biometricsResponse, dailyWinsResponse, identityResponse] = await Promise.all([
+    supabase.from('stayfree_usage').select('*').eq('user_id', userId).gte('date', today),
     supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(7),
-    supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(14),
-    supabase.from('daily_nutrition').select('protein').eq('date', today).maybeSingle(),
-    supabase.from('workout_sessions').select('id').eq('date', today).maybeSingle(),
-    supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
-    supabase.from('user_settings').select('disciplined_streak').eq('user_id', userId).maybeSingle(),
-    supabase.from('screen_time_details').select('*').eq('user_id', userId).gte('date', weekAgo)
+    supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+    supabase.from('vanguard_identity').select('*').eq('user_id', userId).maybeSingle()
   ]);
 
-  const todayWin = dailyWins?.find(d => d.date === today);
-  const streak = settings?.disciplined_streak || 0;
+  // RAW DATA CHECK
+  const stayfree = stayfreeResponse.data || [];
+  const oura = biometricsResponse.data || [];
+  const todayWin = dailyWinsResponse.data;
+  const identity = identityResponse.data;
 
-  // 2. Run Interpretation Layer
-  const currentStateKey = detectState({
-    todayWin,
-    oura: oura?.[0],
-    workoutToday: !!workout,
-    streak,
-    protein: nutrition?.protein || 0
-  });
+  // WARSTWA 2: SIGNAL ENGINE (DETERMINISTIC)
+  const signals = calculateVanguardSignals({ stayfree, oura, todayWin });
 
-  const identityScore = calculateIdentityScore({
-    todayWin,
-    hasWorkoutToday: !!workout,
-    protein: nutrition?.protein || 0,
-    ouraToday: oura?.[0],
-    streak
-  });
+  // WARSTWA 4: STATE ENGINE (STATE MACHINE)
+  const operationalState = determineVanguardState(signals);
 
-  const patterns = discoverPatterns(dailyWins || [], [], oura || []);
-
-  // 3. Aggregate Screen Time by App (Across devices and days)
-  const aggregatedScreenTime = Object.values((screenTime || []).reduce((acc, curr) => {
-    if (!acc[curr.app_name]) {
-      acc[curr.app_name] = { app: curr.app_name, total_minutes: 0 };
-    }
-    acc[curr.app_name].total_minutes += Math.round(curr.duration_seconds / 60);
-    return acc;
-  }, {})).sort((a, b) => b.total_minutes - a.total_minutes).slice(0, 15);
-
-  // 4. Compress Context for AI
+  // THE STATE VECTOR - THE ONLY THING THE AI SEES
   return {
-    system_state: {
-      label: OPERATING_STATES[currentStateKey].label,
-      description: OPERATING_STATES[currentStateKey].description,
-      identity_score: identityScore,
-      streak: streak
+    operational_state: operationalState,
+    identity: identity, // Digital Twin Core
+    vector: {
+      exposure_load_min: signals.metrics.exposureLoad,
+      real_time_min: signals.metrics.realTimeEstimate,
+      overlap_factor: signals.metrics.overlapFactor,
+      fragmentation_index: signals.metrics.fragmentationIndex,
+      avoidance_index: signals.metrics.avoidanceIndex,
+      dopamine_load: signals.metrics.dopamineLoad,
+      recovery_debt: signals.metrics.recoveryDebt,
+      execution_ratio: signals.metrics.executionRatio
     },
-    user_philosophy: {
-      physical: fundament?.goal_cialo,
-      spiritual: fundament?.goal_duch,
-      financial: fundament?.goal_konto
+    context: {
+      top_apps: stayfree
+        .sort((a, b) => b.duration_seconds - a.duration_seconds)
+        .slice(0, 5)
+        .map(a => ({ name: a.app_name, min: Math.round(a.duration_seconds / 60) })),
+      latest_hrv: oura[0]?.hrv_average || 0,
+      confidence: signals.confidence
     },
-    detected_patterns: patterns.map(p => p.text),
-    top_apps_last_7_days: aggregatedScreenTime,
-    recent_performance: dailyWins?.slice(0, 7).map(w => ({
-      date: w.date,
-      result: w.result === 'Z' ? 'WIN' : 'LOSS',
-      tasks: [
-        { name: w.task_1, done: w.done_1 },
-        { name: w.task_2, done: w.done_2 },
-        { name: w.task_3, done: w.done_3 },
-        { name: w.task_4, done: w.done_4 },
-        { name: w.task_5, done: w.done_5 }
-      ].filter(t => t.name)
-    }))
+    timestamp: new Date().toISOString()
   };
-}
-
-
+};

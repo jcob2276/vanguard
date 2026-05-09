@@ -65,12 +65,12 @@ export default function StayFreeSync({ session }) {
         
         const jsonData = JSON.parse(sanitizedText);
         records = Array.isArray(jsonData) ? jsonData : [jsonData];
-        // Ensure user_id is set and handle nulls for required fields
         records = records.map(r => ({ 
           ...r, 
           user_id: session.user.id,
           app_name: r.app_name || 'Nieznana aplikacja',
-          device_name: r.device_name || 'Nieznane urządzenie'
+          device_name: r.device_name || 'Nieznane urządzenie',
+          unlocks: parseInt(r.unlocks || 0)
         }));
       } else {
         // More robust CSV Parsing logic for basic quoted strings
@@ -100,8 +100,11 @@ export default function StayFreeSync({ session }) {
           const row = parseCSVLine(rawLines[i]);
           if (row.length < 3) continue;
           const appName = row[0]?.replace(/^"|"$/g, '');
-          const deviceName = row[1]?.replace(/^"|"$/g, '');
-          if (!appName || !deviceName) continue;
+          const deviceName = row[1]?.replace(/^"|"$|Nieznane urządzenie/g, ''); // Clean up device names
+          
+          // EXCLUDE SUMMARY ROWS
+          const excludedNames = ['Zużycie łącznie', 'Łącznie', 'Total', 'Wybierz aplikację', 'System', 'Android System'];
+          if (!appName || !deviceName || excludedNames.includes(appName)) continue;
 
           dateColumns.forEach((dateLabel, colIdx) => {
             const timeRaw = row[colIdx + 2];
@@ -127,7 +130,7 @@ export default function StayFreeSync({ session }) {
       for (let i = 0; i < records.length; i += CHUNK_SIZE) {
         const chunk = records.slice(i, i + CHUNK_SIZE);
         const { error } = await supabase
-          .from('screen_time_details')
+          .from('stayfree_usage')
           .upsert(chunk, { 
             onConflict: 'user_id,date,app_name,device_name',
             ignoreDuplicates: false 

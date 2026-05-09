@@ -42,12 +42,21 @@ serve(async (req) => {
     const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     // 2. Fetch Data
-    const [readinessData, sleepData, sleepStagesData, activityData] = await Promise.all([
-      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json())
+    console.log(`[OURA DEBUG] Fetching for range: ${startDate} to ${tomorrow}`);
+    const [readinessRes, sleepRes, sleepStagesRes, activityRes] = await Promise.all([
+      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
+      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
+      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
+      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { headers })
     ])
+
+    const readinessData = await readinessRes.json();
+    const sleepData = await sleepRes.json();
+    const sleepStagesData = await sleepStagesRes.json();
+    const activityData = await activityRes.json();
+
+    console.log(`[OURA DEBUG] Raw Readiness Keys: ${Object.keys(readinessData.data?.[0] || {})}`);
+    console.log(`[OURA DEBUG] Raw Sleep Summary Keys: ${Object.keys(sleepData.data?.[0] || {})}`);
 
     // 3. Process
     const summaries: Record<string, any> = {}
@@ -57,7 +66,7 @@ serve(async (req) => {
       summaries[item.day] = { 
         ...summaries[item.day], 
         readiness_score: item.score, 
-        temp_deviation: item.temperature_deviation, // From OpenAPI spec
+        temp_deviation: item.temperature_deviation,
         date: item.day
       }
     })
@@ -72,25 +81,32 @@ serve(async (req) => {
       }
     })
 
-    // 3. Process Sleep Stages & Durations (from sleep)
+    // 3. Process Sleep Stages & Durations (from sleep) - OFTEN MORE ACCURATE
     sleepStagesData.data?.forEach((item: any) => {
-      summaries[item.day] = { 
-        ...summaries[item.day], 
+      const day = item.day || item.date;
+      summaries[day] = { 
+        ...summaries[day], 
         total_sleep_hours: item.total_sleep_duration / 3600,
         deep_sleep_hours: item.deep_sleep_duration / 3600,
         rem_sleep_hours: item.rem_sleep_duration / 3600,
         sleep_efficiency: item.efficiency,
         latency_minutes: item.latency / 60,
         bedtime_timestamp: item.bedtime_start,
-        // Backup for hrv/rhr if missing in daily_sleep
-        hrv_avg: summaries[item.day]?.hrv_avg ?? item.average_hrv,
-        rhr_avg: summaries[item.day]?.rhr_avg ?? item.average_heart_rate,
-        date: item.day 
+        // Fallback check: if summary was missing HRV, take it from detailed sleep
+        hrv_avg: summaries[day]?.hrv_avg ?? item.average_hrv,
+        rhr_avg: summaries[day]?.rhr_avg ?? item.average_heart_rate,
+        date: day 
       }
     })
 
     activityData.data?.forEach((item: any) => {
-      summaries[item.day] = { ...summaries[item.day], steps: item.steps, date: item.day }
+      summaries[item.day] = { 
+        ...summaries[item.day], 
+        steps: item.steps, 
+        active_calories: item.active_calories,
+        total_calories: item.total_calories,
+        date: item.day 
+      }
     })
 
     const upsertData = Object.values(summaries).map(s => {
@@ -104,6 +120,10 @@ serve(async (req) => {
           }
         }
       }
+      
+      // LOGGING FOR EACH DAY
+      console.log(`[OURA DEBUG] Day ${s.date}: Readiness=${s.readiness_score}, HRV=${s.hrv_avg}, ActiveCal=${s.active_calories}`);
+
       return {
         user_id: userId,
         date: s.date,
@@ -111,16 +131,20 @@ serve(async (req) => {
         total_sleep_hours: s.total_sleep_hours ? parseFloat(s.total_sleep_hours.toFixed(2)) : null,
         deep_sleep_hours: s.deep_sleep_hours ? parseFloat(s.deep_sleep_hours.toFixed(2)) : null,
         rem_sleep_hours: s.rem_sleep_hours ? parseFloat(s.rem_sleep_hours.toFixed(2)) : null,
-        hrv_avg: s.hrv_avg ?? null,
-        rhr_avg: s.rhr_avg ?? null,
+        hrv_avg: s.hrv_avg ? Math.round(s.hrv_avg) : null,
+        rhr_avg: s.rhr_avg ? parseFloat(s.rhr_avg.toFixed(1)) : null,
         temp_deviation: s.temp_deviation ?? null,
         sleep_efficiency: s.sleep_efficiency ?? null,
         latency_minutes: s.latency_minutes ? Math.round(s.latency_minutes) : null,
         steps: s.steps ?? null,
+        active_calories: s.active_calories ?? null,
+        total_calories: s.total_calories ?? null,
         bedtime_timestamp: s.bedtime_timestamp ?? null,
         is_disciplined: isDisciplined
       }
     })
+
+
 
     if (upsertData.length > 0) {
       const { error: upsertError } = await supabase

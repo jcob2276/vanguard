@@ -139,35 +139,134 @@ export function discoverPatterns(history, bodyMetrics, ouraData) {
     }
   }
 
+  // 4. StayFree Fragmentation Pattern
+  if (history && history.length > 0) {
+    const avgFrag = ouraData.reduce((acc, d) => acc + (d.fragmentation_index || 0), 0) / ouraData.length;
+    if (avgFrag > 1.2) {
+      patterns.push({
+        id: 'high-fragmentation',
+        icon: '📱',
+        text: 'Twoja uwaga jest pofragmentowana. Częste odblokowania telefonu niszczą Deep Work.'
+      });
+    }
+  }
+
   return patterns;
 }
 
 export function detectState(data) {
-  const { todayWin, oura, workoutToday, streak, protein } = data;
+  const { todayWin, oura, workoutToday, streak, protein, screenTime, stayfreeSignals } = data;
   
   const hasWin = todayWin?.result === 'Z';
+  const hasLoss = todayWin?.result === 'P';
   const goodReadiness = oura?.readiness_score >= 80;
   const lowReadiness = oura?.readiness_score < 70;
-  const goodSleep = oura?.total_sleep_hours >= 7;
+  const goodSleep = oura?.total_sleep_hours >= 7.2;
+  const poorSleep = oura?.total_sleep_hours < 6;
   const hasWorkout = workoutToday;
-  const hasProtein = protein >= 150;
   const highStreak = streak >= 3;
   const biometricStrain = oura?.hrv_avg < 35 || oura?.temp_deviation > 0.4 || oura?.rhr_avg > 62;
+  
+  // StayFree Signals
+  const highFragmentation = stayfreeSignals?.fragmentation > 1.2;
+  const dopamineSink = stayfreeSignals?.dopamine_sink > 60; // > 60 min social media
+  const highScreenTime = (screenTime?.total_minutes > 180) || dopamineSink;
 
-  // 1. LOCKED IN
-  if (hasWin && hasWorkout && hasProtein && goodSleep && !biometricStrain) return 'LOCKED_IN';
-
-  // 2. MOMENTUM
-  if (highStreak && hasWin && !biometricStrain) return 'MOMENTUM';
-
-  // 3. RECOVERY
+  if (hasWin && hasWorkout && goodSleep && !biometricStrain && !highFragmentation) return 'LOCKED_IN';
+  if (highStreak && hasWin && !biometricStrain && !dopamineSink) return 'MOMENTUM';
   if ((lowReadiness || biometricStrain) && !hasWorkout) return 'RECOVERY';
-
-  // 4. AVOIDANCE
-  if (goodReadiness && !hasWin && !hasWorkout && !biometricStrain) return 'AVOIDANCE';
-
-  // 5. CHAOS
-  if (!hasWin && (!goodSleep || biometricStrain) && streak === 0) return 'CHAOS';
+  if (hasLoss || (highScreenTime && !hasWin) || highFragmentation) return 'CHAOS';
+  if (goodReadiness && !hasWin && !hasWorkout) return 'AVOIDANCE';
 
   return 'STABLE';
+}
+
+export function generateAISignals(data) {
+  const { history, ouraHistory, stayfreeHistory, currentDay } = data;
+  const tags = [];
+  const signals = {};
+
+  // 1. BASELINE CALCULATION (Delta Detection)
+  const getAvg = (arr, key) => arr?.length ? arr.reduce((acc, d) => acc + (d[key] || 0), 0) / arr.length : 0;
+  
+  const baselines = {
+    hrv: getAvg(ouraHistory, 'hrv_avg'),
+    sleep: getAvg(ouraHistory, 'total_sleep_hours'),
+    fragmentation: getAvg(stayfreeHistory, 'fragmentation_index')
+  };
+
+  const currentST = currentDay.screenTime?.total_minutes || 0;
+  const hrvDelta = baselines.hrv ? ((currentDay.oura?.hrv_avg - baselines.hrv) / baselines.hrv) : 0;
+  const fragDelta = baselines.fragmentation ? ((currentDay.stayfreeSignals?.fragmentation - baselines.fragmentation) / baselines.fragmentation) : 0;
+
+  // 1.5 CONFIDENCE SCORING
+  const confidence = {
+    screen_time: currentST > 0 ? 0.95 : 0.1,
+    biometrics: currentDay.oura?.total_sleep_hours > 2 ? 0.9 : 0.2,
+    execution: currentDay.todayWin ? 1.0 : 0.5
+  };
+
+  // 2. STATE & TREND
+  const state = detectState(currentDay);
+  signals.operating_state = state;
+  signals.source_confidence = confidence;
+  
+  // 3. BEHAVIOR TAGS WITH METADATA
+  
+  // HIGH_FRAGMENTATION_SIGNAL
+  if (currentDay.stayfreeSignals?.fragmentation > 1.2) {
+    tags.push({
+      id: "HIGH_FRAGMENTATION",
+      severity: currentDay.stayfreeSignals.fragmentation / 2,
+      confidence: 0.95,
+      intervention: "DIGITAL_MINIMALISM_RESET"
+    });
+  }
+
+  // DOPAMINE_SINK_DETECTED
+  if (currentDay.stayfreeSignals?.dopamine_sink > 90) {
+    tags.push({
+      id: "DOPAMINE_SINK",
+      severity: 0.9,
+      confidence: 0.9,
+      intervention: "APP_LOCK_ENGAGEMENT"
+    });
+  }
+
+  // POST_WIN_COLLAPSE
+  if (history?.length >= 2) {
+    const yesterday = history[0];
+    const today = currentDay.todayWin;
+    if (yesterday.result === 'Z' && (today?.result === 'P' || state === 'CHAOS')) {
+      tags.push({
+        id: "POST_WIN_COLLAPSE",
+        severity: today?.result === 'P' ? 0.8 : 0.4,
+        confidence: 0.9,
+        intervention: "DISCIPLINE_REBOOT"
+      });
+    }
+  }
+
+  // 4. SIGNAL INTERPRETATION
+  signals.digital_focus = currentDay.stayfreeSignals?.attention_span < 40 ? "LOW_STAMINA" : (currentDay.stayfreeSignals?.attention_span > 120 ? "DEEP_WORK_READY" : "STABLE");
+  signals.nervous_system = hrvDelta < -0.15 ? "STRAINED" : (hrvDelta > 0.15 ? "OPTIMAL" : "STABLE");
+  signals.fragmentation_trend = fragDelta > 0.2 ? "DEGRADING" : "STABLE";
+  
+  signals.deltas = {
+    hrv_vs_baseline: `${Math.round(hrvDelta * 100)}%`,
+    fragmentation_vs_baseline: `${Math.round(fragDelta * 100)}%`
+  };
+
+  return {
+    state,
+    tags: tags.sort((a, b) => b.severity - a.severity).slice(0, 3),
+    signals,
+    raw_summary: {
+      readiness: currentDay.oura?.readiness_score,
+      sleep: currentDay.oura?.total_sleep_hours,
+      screen_time: currentST,
+      dopamine_sink: currentDay.stayfreeSignals?.dopamine_sink,
+      execution: currentDay.todayWin?.result
+    }
+  };
 }

@@ -123,7 +123,8 @@ export default function Direction({ session }) {
       }
     }
 
-    // Weekly/Monthly logic (skrócona dla czytelności bloku)
+    // Weekly/Monthly logic
+    const START_DATE_OBJ = parseISO('2026-05-03');
     const weeks = [];
     for (let i = 0; i < 4; i++) {
       const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
@@ -132,12 +133,30 @@ export default function Direction({ session }) {
         const dDate = parseISO(d.date);
         return dDate >= start && dDate <= end;
       });
-      let expectedDays = 7;
+      
       const today = startOfDay(new Date());
-      if (isWithinInterval(today, { start, end })) expectedDays = differenceInDays(today, start) + 1;
+      let expectedDays;
+      
+      if (isWithinInterval(today, { start, end })) {
+        expectedDays = differenceInDays(today, start) + 1;
+      } else {
+        expectedDays = 7;
+      }
+
+      // Ważne: Liczymy tylko dni, które są PO dacie startu aplikacji
+      let effectiveExpectedDays = 0;
+      for (let d = 0; d < expectedDays; d++) {
+        const currentCheckDate = subDays(today, (isWithinInterval(today, { start, end }) ? 0 : differenceInDays(today, end)) + (expectedDays - 1 - d));
+        // Simple way: if the day of this week we are checking is >= START_DATE
+        const checkDateObj = startOfDay(subDays(isWithinInterval(today, { start, end }) ? today : end, expectedDays - 1 - d));
+        if (checkDateObj >= START_DATE_OBJ) {
+          effectiveExpectedDays++;
+        }
+      }
+
       const zCount = weekDays.filter(d => d.result === 'Z').length;
-      const pCount = weekDays.filter(d => d.result === 'P').length + Math.max(0, expectedDays - weekDays.length);
-      weeks.push({ isWeekWin: pCount <= 2, pCount, zCount, start });
+      const pCount = weekDays.filter(d => d.result === 'P').length + Math.max(0, effectiveExpectedDays - weekDays.length);
+      weeks.push({ isWeekWin: pCount <= 2 && effectiveExpectedDays > 0, pCount, zCount, start });
     }
 
     return { streak, weeklyWin: weeks[0]?.isWeekWin, weeklyP: weeks[0]?.pCount, monthlyWin: weeks.filter(w => w.isWeekWin).length >= 3, weeks };
@@ -718,17 +737,29 @@ export default function Direction({ session }) {
         <div className="flex flex-wrap gap-2 justify-center">
           {Array.from({ length: 30 }).map((_, i) => {
             const date = format(subDays(new Date(), 29 - i), 'yyyy-MM-dd');
+            const today = format(new Date(), 'yyyy-MM-dd');
             const dayData = history.find(d => d.date === date);
-            const color = dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' ? 'bg-dayB' : 'bg-neutral-900';
-            const isActive = dayData?.result != null;
+            
+            // Logic: 
+            // 1. Z (Success) -> Green
+            // 2. P (Failure) -> Red
+            // 3. Missing & Past (After May 3rd) -> Red (Brak planu = Porażka)
+            // 4. Before May 3rd OR Today/Future -> Neutral
+            const START_DATE = '2026-05-03';
+            let color = 'bg-neutral-900';
+            if (dayData?.result === 'Z') color = 'bg-dayC';
+            else if (dayData?.result === 'P') color = 'bg-dayB';
+            else if (date < today && !dayData && date >= START_DATE) color = 'bg-dayB'; 
+
+            const isActive = dayData?.result != null || (date < today && !dayData && date >= START_DATE);
 
             return (
               <div 
                 key={i} 
-                className={`w-6 h-6 rounded-sm ${color} ${!isActive && 'border border-neutral-900'} relative group`}
+                className={`w-6 h-6 rounded-sm ${color} ${!isActive && 'border border-neutral-900'} relative group transition-colors duration-500`}
               >
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-950 px-2 py-1 rounded text-[8px] font-black text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                  {format(parseISO(date), 'dd.MM')} {dayData?.result === 'Z' ? '(W)' : dayData?.result === 'P' ? '(P)' : ''}
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-950 px-2 py-1 rounded text-[8px] font-black text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 border border-neutral-800">
+                  {format(parseISO(date), 'dd.MM')} {dayData?.result === 'Z' ? '(WIN)' : (dayData?.result === 'P' || (date < today && !dayData)) ? '(LOSS)' : '(EMPTY)'}
                 </div>
               </div>
             );
@@ -753,29 +784,6 @@ export default function Direction({ session }) {
             <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mt-1">{weeklyP} Porażek</p>
           </div>
         </div>
-      </section>
-      {/* StayFree Sync Toggle */}
-      <section className="pt-4 border-t border-neutral-900">
-        {!showStayFree ? (
-          <button 
-            onClick={() => setShowStayFree(true)}
-            className="w-full p-4 bg-neutral-900/30 border border-neutral-800 rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <Activity size={18} className="text-neutral-600 group-hover:text-primary transition-colors" />
-              <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Synchronizacja StayFree</span>
-            </div>
-            <Plus size={16} className="text-neutral-700" />
-          </button>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">StayFree Importer</h3>
-              <button onClick={() => setShowStayFree(false)} className="text-[10px] font-black text-dayB uppercase tracking-widest">Zamknij</button>
-            </div>
-            <StayFreeSync session={session} />
-          </div>
-        )}
       </section>
     </div>
   );

@@ -126,9 +126,9 @@ export default function OuraWidget({ session }) {
     );
   }
 
+  const activeOura = data?.today?.hrv_avg ? data.today : (data?.yesterday || {});
   const activeReadiness = data?.today?.readiness_score || data?.yesterday?.readiness_score;
-  const activeOura = data?.today?.readiness_score ? data.today : data?.yesterday;
-  const activeSteps = data?.yesterday;
+  const activeSteps = data?.today?.steps !== null ? data.today : data?.yesterday;
 
   const sleepHours = Math.floor(activeOura?.total_sleep_hours || 0);
   const sleepMinutes = Math.round(((activeOura?.total_sleep_hours || 0) % 1) * 60);
@@ -157,9 +157,18 @@ export default function OuraWidget({ session }) {
           </span>
           <div className="pb-1">
             {activeReadiness ? (
-              activeReadiness < 70 
-                ? <p className="text-[10px] font-black text-dayB uppercase italic tracking-tighter animate-pulse">⚠️ Sugeruję DELOAD / Recovery</p>
-                : <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">✅ Gotowy na 100% Performance</p>
+              (() => {
+                const isDownTrend = data?.today?.readiness_score < data?.yesterday?.readiness_score;
+                if (activeReadiness >= 85 && !isDownTrend) {
+                  return <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">🚀 Peak Performance Mode</p>;
+                } else if (activeReadiness >= 75 && !isDownTrend) {
+                  return <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">✅ Gotowy na Solidny Wysiłek</p>;
+                } else if (activeReadiness >= 70) {
+                  return <p className="text-[10px] font-black text-primary uppercase italic tracking-tighter">⚖️ Optimal Load / Monitor Trend</p>;
+                } else {
+                  return <p className="text-[10px] font-black text-dayB uppercase italic tracking-tighter animate-pulse">⚠️ Sugeruję DELOAD / Recovery</p>;
+                }
+              })()
             ) : <p className="text-[10px] text-neutral-600 uppercase">Brak danych</p>}
           </div>
         </div>
@@ -181,7 +190,7 @@ export default function OuraWidget({ session }) {
                 <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">HRV (Nervous System)</span>
               </div>
               <p className="text-xl font-black text-white italic">
-                {activeOura?.hrv_avg || '--'} ms
+                {activeOura?.hrv_avg || '--'} <span className="text-[10px] text-neutral-500 not-italic ml-1">ms</span>
                 <TrendArrow current={data?.today?.hrv_avg} previous={data?.yesterday?.hrv_avg} />
               </p>
            </div>
@@ -191,7 +200,7 @@ export default function OuraWidget({ session }) {
                 <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">RHR (Recovery Load)</span>
               </div>
               <p className="text-xl font-black text-white italic">
-                {activeOura?.rhr_avg || '--'} bpm
+                {activeOura?.rhr_avg || '--'} <span className="text-[10px] text-neutral-500 not-italic ml-1">bpm</span>
                 <TrendArrow current={data?.today?.rhr_avg} previous={data?.yesterday?.rhr_avg} better="down" />
               </p>
            </div>
@@ -199,7 +208,7 @@ export default function OuraWidget({ session }) {
 
         {/* Small Stats Row */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
+          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900 relative group">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <Moon size={10} className="text-dayB" />
@@ -209,6 +218,11 @@ export default function OuraWidget({ session }) {
             <p className="text-xs font-black text-white">
               {sleepHours}h {sleepMinutes}m
             </p>
+            {/* Deep/REM Overlay on hover */}
+            <div className="absolute inset-0 bg-neutral-950 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center items-center rounded-xl p-2">
+               <p className="text-[8px] text-dayA font-black">DEEP: {activeOura?.deep_sleep_hours || '--'}h</p>
+               <p className="text-[8px] text-primary font-black">REM: {activeOura?.rem_sleep_hours || '--'}h</p>
+            </div>
           </div>
 
           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
@@ -235,5 +249,6 @@ export default function OuraWidget({ session }) {
         </div>
       </section>
     </div>
+
   );
 }

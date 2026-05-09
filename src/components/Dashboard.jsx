@@ -1,7 +1,6 @@
-// V2.2.1
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Fingerprint, LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin, BookOpen, Activity, Calendar, Shield as ShieldIcon, Target, CheckSquare, Square, ChevronRight, Clock, Sparkles } from 'lucide-react';
+import { Fingerprint, LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin, BookOpen, Activity, Zap } from 'lucide-react';
 import WorkoutExecution from './WorkoutExecution';
 import ProgressionTable from './ProgressionTable';
 import Stats from './Stats';
@@ -12,55 +11,26 @@ import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
 import LocationTracker from './LocationTracker';
 import AIInsight from './AIInsight';
+import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
-import { detectState, OPERATING_STATES, calculateIdentityScore, discoverPatterns } from '../lib/stateEngine';
-
-const TrendArrow = ({ current, previous, better = 'up' }) => {
-  if (previous === undefined || previous === null || current === undefined || current === null) return null;
-  const diff = current - previous;
-  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
-  const isImproving = better === 'up' ? diff > 0 : diff < 0;
-  return <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>{diff > 0 ? '↑' : '↓'}</span>;
-};
 
 export default function Dashboard({ session }) {
-  console.log('--- DASHBOARD V2.2.1 ACTIVE ---');
   const [view, setView] = useState('workout');
   const [selectedDay, setSelectedDay] = useState(null);
   const [showProgression, setShowProgression] = useState(false);
-  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, streak, history, syncYazio, refresh, loading } = useDashboardData();
+  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, syncYazio, loading, nextSuggestedDay, refresh } = useDashboardData();
   const { isSyncing } = useStore();
   const weeklyBudget = 12600; // 1800 * 7
-
-  const currentStateKey = detectState({
-    todayWin,
-    oura: ouraToday?.[0],
-    workoutToday: hasWorkoutToday,
-    streak,
-    protein: proteinToday
-  });
-  const state = OPERATING_STATES[currentStateKey];
-
-  const identityScore = calculateIdentityScore({
-    todayWin,
-    hasWorkoutToday,
-    protein: proteinToday,
-    ouraToday: ouraToday?.[0],
-    streak
-  });
-
-  const patterns = discoverPatterns(history, [], ouraToday);
 
   if (view === 'fundament') return <Fundament onBack={() => setView('workout')} />;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">Ładowanie danych...</p>
       </div>
     );
   }
@@ -95,7 +65,7 @@ export default function Dashboard({ session }) {
       {/* Header */}
       <header className="p-4 border-b border-neutral-800 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-md z-20">
         <div>
-          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">VANGUARD PROTOCOL</h1>
+          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">DIGITAL TWIN 2.0</h1>
           <p className="text-[10px] text-primary font-black uppercase tracking-widest italic">OPERATOR: {session.user.email}</p>
         </div>
         <div className="flex items-center gap-1">
@@ -113,65 +83,56 @@ export default function Dashboard({ session }) {
           <div className="p-6 space-y-8">
             <OuraWidget session={session} />
 
-            {/* Operating State Widget */}
-            <section className="animate-in fade-in zoom-in duration-700">
-              <div className={`border-2 ${state.border} ${state.bg} rounded-lg p-6 relative overflow-hidden shadow-2xl`}>
-                <div className="flex justify-between items-start mb-2">
+            {/* POWER LIST - THE CORE OF EXECUTION */}
+            <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+
+            <div className="grid gap-6">
+              {/* Weekly Calorie Budget */}
+              <section className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-4">
+                <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Operating State</p>
-                    <h2 className={`text-3xl font-black ${state.color} italic tracking-tighter`}>{state.label}</h2>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Identity Score</p>
-                    <p className={`text-3xl font-black italic tracking-tighter ${identityScore > 80 ? 'text-dayC' : identityScore > 50 ? 'text-primary' : 'text-dayB'}`}>
-                      {identityScore}%
+                    <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Calorie Budget</h3>
+                    <p className="text-xl font-black text-white uppercase italic">
+                      {weeklyCalories.toLocaleString()} <span className="text-xs text-neutral-500">/ {weeklyBudget.toLocaleString()} kcal</span>
                     </p>
                   </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      syncYazio();
+                    }} 
+                    disabled={isSyncing} 
+                    className={`p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-primary hover:border-primary/50 hover:bg-neutral-900 active:scale-95 transition-all shadow-lg ${isSyncing ? 'animate-spin opacity-50' : ''}`}
+                    title="Synchronizuj Yazio"
+                  >
+                    <RotateCw size={18} />
+                  </button>
                 </div>
-                <p className="text-[11px] font-bold text-white uppercase italic leading-tight">
-                  {state.description}
-                </p>
-                <div className="mt-4 pt-4 border-t border-white/5 flex gap-4">
-                   <div className="flex-1">
-                      <p className="text-[8px] font-black text-neutral-600 uppercase">Power List</p>
-                      <p className={`text-[10px] font-black uppercase ${todayWin?.result === 'Z' ? 'text-dayC' : 'text-neutral-500'}`}>
-                        {todayWin?.result === 'Z' ? 'Executed' : 'Pending'}
-                      </p>
-                   </div>
-                   <div className="flex-1">
-                      <p className="text-[8px] font-black text-neutral-600 uppercase">Training</p>
-                      <p className={`text-[10px] font-black uppercase ${hasWorkoutToday ? 'text-primary' : 'text-neutral-500'}`}>
-                        {hasWorkoutToday ? 'Active' : 'Rest'}
-                      </p>
-                   </div>
-                   <div className="flex-1">
-                      <p className="text-[8px] font-black text-neutral-600 uppercase">Integrity</p>
-                      <p className="text-[10px] font-black text-white uppercase">{identityScore > 90 ? 'High' : 'At Risk'}</p>
-                   </div>
+                
+                <div className="w-full h-2 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${weeklyCalories > weeklyBudget ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
+                    style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
+                  />
                 </div>
-              </div>
-            </section>
+                <div className="flex justify-between text-[8px] font-black uppercase text-neutral-600">
+                  <span>{(weeklyBudget - weeklyCalories).toLocaleString()} kcal Left</span>
+                  <span>Target: 1800/Day</span>
+                </div>
+              </section>
 
-            {/* POWER LIST - MIGRATED FROM DIRECTION */}
-            <PowerList session={session} todayWin={todayWin} onUpdate={() => refresh()} />
-
-            {/* ACTION CENTER: CALORIES & TODAY'S WORKOUT */}
-            <div className="grid gap-6">
               {/* Today's Workout Focus */}
               <section className="space-y-3">
                 <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                  <Dumbbell size={12} className="text-primary" /> Today's Protocol
+                  <Dumbbell size={12} className="text-primary" /> Next Protocol Entry
                 </h3>
                 {(() => {
-                  const today = new Date().getDay();
-                  const map = { 1: 'A', 2: 'B', 4: 'C', 5: 'D' }; // Mon, Tue, Thu, Fri
-                  const dayKey = map[today] || 'A';
                   const dayData = [
                     { key: 'A', title: 'Dzień A', sub: 'Góra Ciężka / Bench', color: 'dayA' },
                     { key: 'B', title: 'Dzień B', sub: 'Plecy / Tył Barku', color: 'dayB' },
                     { key: 'C', title: 'Dzień C', sub: 'Nogi / ATP / Core', color: 'dayC' },
                     { key: 'D', title: 'Dzień D', sub: 'Lekki Bench / Ramiona', color: 'dayD' },
-                  ].find(d => d.key === dayKey);
+                  ].find(d => d.key === nextSuggestedDay);
 
                   return (
                     <button 
@@ -192,55 +153,10 @@ export default function Dashboard({ session }) {
                   );
                 })()}
               </section>
-
-              {/* Weekly Calorie Budget */}
-              <section className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Calorie Budget</h3>
-                    <p className="text-xl font-black text-white uppercase italic">
-                      {weeklyCalories.toLocaleString()} <span className="text-xs text-neutral-500">/ {weeklyBudget.toLocaleString()} kcal</span>
-                    </p>
-                  </div>
-                  <button onClick={syncYazio} disabled={isSyncing} className={`p-2 bg-neutral-950 border border-neutral-800 rounded-lg text-primary ${isSyncing ? 'animate-spin' : ''}`}>
-                    <RotateCw size={14} />
-                  </button>
-                </div>
-                
-                <div className="w-full h-2 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${weeklyCalories > weeklyBudget ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
-                    style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[8px] font-black uppercase text-neutral-600">
-                  <span>{(weeklyBudget - weeklyCalories).toLocaleString()} kcal Left</span>
-                  <span>Target: 1800/Day</span>
-                </div>
-              </section>
             </div>
 
-            {/* AI Insight moved to bottom for evening evaluation */}
-            <div className="pt-8 border-t border-white/5">
-              <AIInsight session={session} />
-            </div>
-
-            {/* Personal Operating Manual (Patterns) */}
-            <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <BookOpen size={12} className="text-primary" /> Patterns & Anomalies
-              </h3>
-              <div className="space-y-3">
-                {patterns.map(p => (
-                  <div key={p.id} className="bg-neutral-900 border border-neutral-800 p-4 rounded-lg flex gap-4 items-center">
-                    <span className="text-2xl">{p.icon}</span>
-                    <p className="text-[11px] font-bold text-white uppercase italic leading-tight tracking-tight">
-                      {p.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
+            {/* AI Insight */}
+            <AIInsight session={session} />
 
             {/* Ostatni Trening A Widget */}
             {lastDayASession && (
@@ -286,6 +202,20 @@ export default function Dashboard({ session }) {
               )}
             </section>
 
+            {/* StayFree Sync Button */}
+            <button 
+              onClick={() => setView('stayfree')}
+              className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex items-center justify-between group hover:bg-neutral-800 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Activity size={18} className="text-neutral-500 group-hover:text-primary" />
+                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Synchronizacja StayFree</span>
+              </div>
+              <div className="w-6 h-6 rounded-full border border-neutral-800 flex items-center justify-center text-neutral-500 group-hover:text-primary group-hover:border-primary transition-all">
+                <span className="text-lg font-light leading-none">+</span>
+              </div>
+            </button>
+
             {/* Zasady 2.1 */}
             <section className="card bg-neutral-900/20 border-neutral-800 p-5 space-y-4">
               <h2 className="text-[10px] font-bold text-neutral-500 tracking-widest uppercase flex items-center gap-2">
@@ -321,6 +251,7 @@ export default function Dashboard({ session }) {
         {view === 'photos' && <Photos session={session} />}
         {view === 'direction' && <Direction session={session} />}
         {view === 'mentor' && <MentorChat session={session} />}
+        {view === 'stayfree' && <StayFreeDashboard session={session} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -332,7 +263,7 @@ export default function Dashboard({ session }) {
           <Compass size={24} /><span className="text-[8px] font-bold uppercase">Kierunek</span>
         </button>
         <button onClick={() => setView('mentor')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'mentor' ? 'text-primary' : 'text-neutral-500'}`}>
-          <Sparkles size={24} /><span className="text-[8px] font-bold uppercase">Mentor</span>
+          <Compass size={24} /><span className="text-[8px] font-bold uppercase">Mentor</span>
         </button>
         <button onClick={() => setView('stats')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'stats' ? 'text-primary' : 'text-neutral-500'}`}>
           <BarChart2 size={24} /><span className="text-[8px] font-bold uppercase">Statystyki</span>

@@ -26,7 +26,7 @@ export default function AIInsight({ session }) {
       setInsight(data.insight);
     } catch (err) {
       console.error('AI Insight Error:', err);
-      setError('System interpretacji jest chwilowo niedostępny.');
+      setError(`Błąd: ${err.message || 'System interpretacji jest chwilowo niedostępny.'}`);
     } finally {
       setLoading(false);
     }
@@ -73,17 +73,22 @@ export default function AIInsight({ session }) {
         {error ? (
           <p className="text-[11px] font-bold text-neutral-600 uppercase italic">{error}</p>
         ) : (
-          <div className="space-y-4">
-            <p className="text-[14px] font-normal text-neutral-300 leading-relaxed">
-              {(() => {
-                if (!insight) return null;
-                const keywords = ['AVOIDANCE', 'LOSS', 'WIN', 'STABLE', 'CHAOS', 'DRIFT', 'SABOTAGE', 'INTEGRITY'];
-                const regex = new RegExp(`(${keywords.join('|')})`, 'g');
-                return insight.split(regex).map((part, i) => 
-                  keywords.includes(part) ? <span key={i} className="text-primary font-black">{part}</span> : part
-                );
-              })()}
-            </p>
+            <div className="space-y-4">
+              <div className="text-[14px] font-normal text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                {(() => {
+                  if (!insight) return null;
+                  const keywords = [
+                    'CO SIĘ DZIEJE', 'DLACZEGO', 'CO TO OZNACZA', 'ROZKAZ OPERACYJNY',
+                    'POST_WIN_COLLAPSE', 'NIGHT_DOPAMINE_LOOP', 'RECOVERY_DEBT', 'HIGH_FRAGMENTATION',
+                    'CHAOS', 'LOCKED_IN', 'AVOIDANCE', 'STABLE', 'MOMENTUM', 'RECOVERY',
+                    'Operational Drift', 'Biometric Strain', 'Signal Noise'
+                  ];
+                  const regex = new RegExp(`(${keywords.join('|')})`, 'g');
+                  return insight.split(regex).map((part, i) => 
+                    keywords.includes(part) ? <span key={i} className="text-primary font-black uppercase tracking-tight">{part}</span> : part
+                  );
+                })()}
+              </div>
             <div className="pt-4 border-t border-white/5">
                <p className="text-[8px] font-black text-neutral-600 uppercase tracking-[0.2em]">Strategiczny Obserwator v1.0</p>
             </div>
