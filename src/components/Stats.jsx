@@ -123,6 +123,10 @@ export default function Stats({ session }) {
   const [isExporting, setIsExporting] = useState(false);
   const [includeYazio, setIncludeYazio] = useState(true);
   const [includeJournal, setIncludeJournal] = useState(true);
+  const [includeOura, setIncludeOura] = useState(true);
+  const [includeHabits, setIncludeHabits] = useState(true);
+  const [includePhotos, setIncludePhotos] = useState(false);
+  const [includeLocation, setIncludeLocation] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncingFit, setIsSyncingFit] = useState(false);
   const [googleFitConnected, setGoogleFitConnected] = useState(false);
@@ -439,8 +443,10 @@ export default function Stats({ session }) {
         const dayOura = ouraData?.find(o => o.date === dateStr);
         const dayPhotos = photos?.filter(p => p.date === dateStr);
 
-        // If nothing was done and no Power List, mark as lost
-        if (daySessions.length === 0 && dayFood.length === 0 && !dayJournal && !dayBody && !dayOura && (!dayPhotos || dayPhotos.length === 0)) {
+        // Header and Lose Day Logic
+        const hasAnyData = daySessions.length > 0 || (includeYazio && dayFood.length > 0) || (includeJournal && dayJournal) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
+
+        if (!hasAnyData) {
           md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n`;
           md += `### ❌ DZIEŃ PRZEGRANY (Brak Celu)\n`;
           md += `*„Jeśli nie wypełniłem nawet nie dodałem pięciu zadań jakie są do zrobienia... to i tak wziąć się zalicza jako przegrany bo po prostu no nie zrobiłem niczego w kierunku swoich własnych marzeń więc tak naprawdę żyłem dzisiaj bez celu.”*\n\n`;
@@ -450,7 +456,7 @@ export default function Stats({ session }) {
 
         md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n\n`;
 
-        if (dayOura) {
+        if (includeOura && dayOura) {
           md += `### 💍 Oura Ring\n`;
           md += `- **Readiness:** ${dayOura.readiness_score || '--'}\n`;
           md += `- **Sen:** ${dayOura.total_sleep_hours || '--'}h\n`;
@@ -458,7 +464,7 @@ export default function Stats({ session }) {
           md += `- **Dyscyplina:** ${dayOura.is_disciplined ? 'TAK' : 'NIE'}\n\n`;
         }
 
-        if (dayPhotos && dayPhotos.length > 0) {
+        if (includePhotos && dayPhotos && dayPhotos.length > 0) {
           md += `### 📸 Zdjęcia Postępu\n`;
           dayPhotos.forEach((p, idx) => {
             md += `![Zdjęcie ${idx + 1}](${p.image_url})\n`;
@@ -492,7 +498,7 @@ export default function Stats({ session }) {
         // Wykryte inteligentnie przez API Google Maps
         const detectedPlaces = [...new Set(dayLocations?.filter(l => l.place_name).map(l => l.place_name))];
 
-        if (visitedPOIs.length > 0 || detectedPlaces.length > 0) {
+        if (includeLocation && (visitedPOIs.length > 0 || detectedPlaces.length > 0)) {
           md += `### 📍 Potwierdzone Lokalizacje\n`;
           visitedPOIs.forEach(poi => {
             md += `- ✅ Obecność w: **${poi.name}**\n`;
@@ -567,7 +573,7 @@ export default function Stats({ session }) {
 
         // Daily Habits
         const dayHabitLogs = habitLogs?.filter(l => l.date === dateStr);
-        if (dayHabitLogs?.length > 0) {
+        if (includeHabits && dayHabitLogs?.length > 0) {
           md += `### ✅ Nawyki Dnia\n`;
           dayHabitLogs.forEach(log => {
             const habit = habits?.find(h => h.id === log.habit_id);
@@ -789,7 +795,7 @@ export default function Stats({ session }) {
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <button onClick={() => setIncludeYazio(!includeYazio)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
             <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeYazio ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
               {includeYazio && <CheckSquare size={10} />}
@@ -802,6 +808,34 @@ export default function Stats({ session }) {
               {includeJournal && <CheckSquare size={10} />}
             </div>
             <span className="text-[10px] font-black uppercase">Notatnik (Journal)</span>
+          </button>
+
+          <button onClick={() => setIncludeOura(!includeOura)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeOura ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeOura && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Oura Ring</span>
+          </button>
+
+          <button onClick={() => setIncludeHabits(!includeHabits)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeHabits ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeHabits && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Nawyki</span>
+          </button>
+
+          <button onClick={() => setIncludePhotos(!includePhotos)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includePhotos ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includePhotos && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Zdjęcia</span>
+          </button>
+
+          <button onClick={() => setIncludeLocation(!includeLocation)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeLocation ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeLocation && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Lokalizacja</span>
           </button>
         </div>
 

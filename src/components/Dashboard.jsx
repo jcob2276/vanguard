@@ -17,6 +17,8 @@ import OuraWidget from './OuraWidget';
 import AIInsight from './AIInsight';
 import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
+import IntentionTracker from './IntentionTracker';
+import { syncActivityWatch } from '../lib/activityWatch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
@@ -24,6 +26,7 @@ import { format, parseISO } from 'date-fns';
 export default function Dashboard({ session }) {
   const [view, setView] = useState('workout');
   const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDataTab, setSelectedDataTab] = useState('charts');
   const { 
     lastDayASession, weeklyCalories, todayWin, 
     syncYazio, loading, nextSuggestedDay, refresh 
@@ -32,6 +35,7 @@ export default function Dashboard({ session }) {
   const weeklyBudget = 12600;
 
   useEffect(() => {
+    // 1. Google OAuth Handle
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code && session) {
@@ -93,7 +97,10 @@ export default function Dashboard({ session }) {
       access_type: 'offline',
       response_type: 'code',
       prompt: 'consent',
-      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+      scope: [
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/youtube.readonly'
+      ].join(' '),
     };
     const qs = new URLSearchParams(options);
     window.location.href = `${root}?${qs.toString()}`;
@@ -144,6 +151,20 @@ export default function Dashboard({ session }) {
           {/* SYSTEM STATE HUB */}
           {view === 'workout' && (
             <>
+              {/* PLANNING ALERT */}
+              {(() => {
+                const hour = new Date().getHours();
+                if (hour >= 22) {
+                  return (
+                    <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6 animate-pulse">
+                      <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">Shadow Protocol Alert</p>
+                      <p className="text-xs font-bold text-white italic">Jakub, nie zaplanowałeś jutra. Twój Cień będzie błądził w ciemnościach.</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <section className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
                 <div className="relative bg-neutral-900/40 border border-white/10 rounded-3xl p-6 backdrop-blur-sm overflow-hidden">
@@ -176,6 +197,9 @@ export default function Dashboard({ session }) {
                   </div>
                 </div>
               </section>
+
+              {/* INTENTION TRACKER (NEW) */}
+              <IntentionTracker session={session} />
 
               {/* CORE ACTIONS: POWER LIST */}
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
@@ -245,7 +269,27 @@ export default function Dashboard({ session }) {
           )}
 
           {/* OTHER VIEWS */}
-          {view === 'stats' && <Stats session={session} />}
+          {view === 'stats' && (
+            <div className="flex flex-col h-full">
+              <div className="flex gap-4 px-6 mb-4">
+                <button 
+                  onClick={() => setSelectedDataTab('charts')}
+                  className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedDataTab === 'charts' ? 'bg-primary/10 border-primary text-primary' : 'bg-neutral-900 border-white/5 text-white/30'}`}
+                >
+                  Analytics
+                </button>
+                <button 
+                  onClick={() => setSelectedDataTab('import')}
+                  className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedDataTab === 'import' ? 'bg-primary/10 border-primary text-primary' : 'bg-neutral-900 border-white/5 text-white/30'}`}
+                >
+                  Import
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {selectedDataTab === 'charts' ? <Stats session={session} /> : <DataHub session={session} />}
+              </div>
+            </div>
+          )}
           {view === 'photos' && <Photos session={session} />}
           {view === 'direction' && <Direction session={session} />}
           {view === 'mentor' && <MentorChat session={session} />}

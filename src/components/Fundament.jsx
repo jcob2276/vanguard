@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Shield, Target, Zap, ChevronLeft, Save, Brain, Fingerprint } from 'lucide-react';
+import { 
+  ArrowLeft, Target, Shield, Zap, Info, Database, Brain, Fingerprint, 
+  ChevronLeft, Save 
+} from 'lucide-react';
+import IdentityVault from './IdentityVault';
 
 export default function Fundament({ onBack }) {
   const [identity, setIdentity] = useState({
@@ -123,6 +127,15 @@ export default function Fundament({ onBack }) {
         >
           <Fingerprint size={18} /> {saving ? 'SYNCHRONIZACJA...' : 'Zapisz Fundament Tożsamości'}
         </button>
+        
+        <div className="pt-8 border-t border-white/5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Database className="text-primary" size={16} />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Identity Vault (Głęboki Kontekst)</h3>
+          </div>
+          <p className="text-[9px] text-neutral-500 font-bold uppercase">Wgraj tutaj swoje ankiety, wyniki testów i notatki o sobie. AI będzie ich używać do każdej analizy.</p>
+          <IdentityVault />
+        </div>
       </div>
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">

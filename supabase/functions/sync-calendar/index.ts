@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -19,9 +20,8 @@ serve(async (req) => {
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')
     const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')
 
-    // MODE 1: Exchange code for refresh_token (Initial Auth)
+    // 1. OAUTH EXCHANGE
     if (code) {
-      console.log("Exchanging code for tokens...")
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -44,19 +44,18 @@ serve(async (req) => {
           refresh_token: tokens.refresh_token
         })
       }
-      return new Response(JSON.stringify({ success: true, message: 'Auth success' }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
     }
 
-    // MODE 2: Sync Events (Normal Operation)
+    // 2. FETCH TOKEN
     const { data: tokenData } = await supabase
       .from('vanguard_tokens')
       .select('refresh_token')
       .eq('user_id', userId)
       .maybeSingle()
 
-    if (!tokenData) return new Response(JSON.stringify({ error: 'No google token' }), { status: 400, headers: corsHeaders })
+    if (!tokenData) return new Response(JSON.stringify({ error: 'No token' }), { status: 400, headers: corsHeaders })
 
-    // Get fresh access token
     const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -70,7 +69,7 @@ serve(async (req) => {
 
     const { access_token } = await refreshRes.json()
 
-    // Fetch Calendar Events
+    // 3. SYNC CALENDAR (INTENTIONS)
     const now = new Date()
     const startOfDay = new Date(now.setHours(0,0,0,0)).toISOString()
     const endOfDay = new Date(now.setHours(23,59,59,999)).toISOString()
@@ -78,11 +77,8 @@ serve(async (req) => {
     const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
-
-    const { items } = await calRes.json()
-    
-    // Save to vanguard_calendar
-    const events = items.map((e: any) => ({
+    const calData = await calRes.json()
+    const calendarEvents = (calData.items || []).map((e: any) => ({
       user_id: userId,
       event_id: e.id,
       summary: e.summary,
@@ -91,13 +87,36 @@ serve(async (req) => {
       category: 'google_sync'
     }))
 
-    if (events.length > 0) {
-      await supabase.from('vanguard_calendar').upsert(events, { onConflict: 'event_id' })
+    if (calendarEvents.length > 0) {
+      await supabase.from('vanguard_calendar').upsert(calendarEvents, { onConflict: 'event_id' })
     }
 
-    return new Response(JSON.stringify({ success: true, count: events.length }), {
+    // 4. SYNC YOUTUBE (BEHAVIOR)
+    const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/activities?part=snippet,contentDetails&mine=true&maxResults=10`, {
+      headers: { 'Authorization': `Bearer ${access_token}` }
+    })
+    const ytData = await ytRes.json()
+    const ytActivities = (ytData.items || [])
+      .filter((item: any) => item.snippet.type === 'playlistItem' || item.snippet.type === 'like')
+      .map((item: any) => ({
+        user_id: userId,
+        video_id: item.contentDetails?.playlistItem?.resourceId?.videoId || item.contentDetails?.like?.resourceId?.videoId,
+        title: item.snippet.title,
+        watched_at: item.snippet.publishedAt
+      }))
+
+    if (ytActivities.length > 0) {
+      await supabase.from('vanguard_youtube').upsert(ytActivities, { onConflict: 'user_id, video_id' })
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      calendarCount: calendarEvents.length,
+      youtubeCount: ytActivities.length 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
