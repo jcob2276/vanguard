@@ -127,10 +127,10 @@ export default function Photos({ session }) {
       {/* History List (Small & Tidy) */}
       <section className="space-y-4 pt-4 border-t border-neutral-900">
         <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Wszystkie zdjęcia</h3>
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-4 overflow-x-auto pb-8 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {photos.map((photo) => (
-            <div key={photo.id} className="flex-shrink-0 w-24 space-y-2 relative group">
-              <div className="aspect-[3/4] rounded-xl overflow-hidden border border-neutral-800">
+            <div key={photo.id} className="snap-center shrink-0 w-32 space-y-2 relative group">
+              <div className="aspect-[3/4] rounded-lg overflow-hidden border border-neutral-800">
                 <img src={photo.image_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
               </div>
               <div className="flex justify-between items-center px-1">

@@ -77,23 +77,67 @@ export function translateBiometrics(oura) {
 export function discoverPatterns(history, bodyMetrics, ouraData) {
   const patterns = [];
   
-  // Pattern 1: Sleep vs Workout Performance
-  // (Heurystyka na podstawie ostatnich danych)
-  if (ouraData?.length > 5) {
+  if (!ouraData || ouraData.length < 3) return patterns;
+
+  // 1. Sleep vs Readiness Correlation (Simplified)
+  const avgReadiness = ouraData.reduce((acc, d) => acc + (d.readiness_score || 0), 0) / ouraData.length;
+  const goodSleepDays = ouraData.filter(d => d.total_sleep_hours >= 7.5);
+  
+  if (goodSleepDays.length > 0) {
+    const avgReadinessAfterGoodSleep = goodSleepDays.reduce((acc, d) => acc + (d.readiness_score || 0), 0) / goodSleepDays.length;
+    const diff = ((avgReadinessAfterGoodSleep - avgReadiness) / avgReadiness) * 100;
+    
+    if (diff > 5) {
+      patterns.push({
+        id: 'sleep-performance',
+        icon: '🌙',
+        text: `Twoja gotowość (Readiness) jest średnio o ${Math.round(diff)}% wyższa po 7.5h+ snu.`
+      });
+    }
+  }
+
+  // 2. Discipline Streak Pattern
+  const disciplinedDays = ouraData.filter(d => d.is_disciplined).length;
+  const totalDays = ouraData.length;
+  const consistency = (disciplinedDays / totalDays) * 100;
+
+  if (consistency > 70) {
     patterns.push({
-      id: 'sleep-performance',
-      icon: '🌙',
-      text: 'Twoja gotowość do walki (Readiness) jest o 15% wyższa po 7.5h+ snu.'
+      id: 'high-discipline',
+      icon: '🔥',
+      text: `Utrzymujesz dyscyplinę kładzenia się spać w ${Math.round(consistency)}% dni. System jest stabilny.`
+    });
+  } else if (consistency < 30 && totalDays > 5) {
+    patterns.push({
+      id: 'low-discipline',
+      icon: '⚠️',
+      text: `Niska spójność pory snu (${Math.round(consistency)}%). Ryzyko dryfu systemu (Chaos) rośnie.`
     });
   }
 
-  // Pattern 2: Shadow Pattern - Post Win Collapse
-  // Sprawdzamy czy po serii 3 zwycięstw następuje spadek
-  patterns.push({
-    id: 'shadow-momentum',
-    icon: '🕵️',
-    text: 'Największe ryzyko sabotażu (Chaos) u Ciebie pojawia się w 4. dniu sukcesu.'
-  });
+  // 3. Shadow Pattern - Post Win Collapse (Real check)
+  if (history && history.length > 5) {
+    let winStreak = 0;
+    let sabotageAfterStreak = false;
+    
+    for (let i = history.length - 1; i >= 1; i--) {
+      if (history[i].result === 'Z') winStreak++;
+      else winStreak = 0;
+
+      if (winStreak >= 3 && history[i-1]?.result === 'P') {
+        sabotageAfterStreak = true;
+        break;
+      }
+    }
+
+    if (sabotageAfterStreak) {
+      patterns.push({
+        id: 'shadow-momentum',
+        icon: '🕵️',
+        text: 'Wykryto wzorzec sabotażu: Twoja czujność spada po serii 3+ zwycięstw.'
+      });
+    }
+  }
 
   return patterns;
 }

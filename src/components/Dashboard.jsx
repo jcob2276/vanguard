@@ -12,6 +12,7 @@ import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
 import LocationTracker from './LocationTracker';
 import AIInsight from './AIInsight';
+import PowerList from './PowerList';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
@@ -30,7 +31,7 @@ export default function Dashboard({ session }) {
   const [view, setView] = useState('workout');
   const [selectedDay, setSelectedDay] = useState(null);
   const [showProgression, setShowProgression] = useState(false);
-  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, streak, syncYazio, loading } = useDashboardData();
+  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, streak, history, syncYazio, refresh, loading } = useDashboardData();
   const { isSyncing } = useStore();
   const weeklyBudget = 12600; // 1800 * 7
 
@@ -51,7 +52,7 @@ export default function Dashboard({ session }) {
     streak
   });
 
-  const patterns = discoverPatterns([], [], ouraToday);
+  const patterns = discoverPatterns(history, [], ouraToday);
 
   if (view === 'fundament') return <Fundament onBack={() => setView('workout')} />;
 
@@ -94,8 +95,8 @@ export default function Dashboard({ session }) {
       {/* Header */}
       <header className="p-4 border-b border-neutral-800 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-md z-20">
         <div>
-          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">Kuba Tracker V2.2</h1>
-          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">{session.user.email}</p>
+          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">VANGUARD PROTOCOL</h1>
+          <p className="text-[10px] text-primary font-black uppercase tracking-widest italic">OPERATOR: {session.user.email}</p>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={() => setView('fundament')} className="p-2 text-primary hover:text-white transition-colors">
@@ -114,7 +115,7 @@ export default function Dashboard({ session }) {
 
             {/* Operating State Widget */}
             <section className="animate-in fade-in zoom-in duration-700">
-              <div className={`border-2 ${state.border} ${state.bg} rounded-2xl p-6 relative overflow-hidden shadow-2xl`}>
+              <div className={`border-2 ${state.border} ${state.bg} rounded-lg p-6 relative overflow-hidden shadow-2xl`}>
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Operating State</p>
@@ -151,16 +152,87 @@ export default function Dashboard({ session }) {
               </div>
             </section>
 
-            <AIInsight session={session} />
+            {/* POWER LIST - MIGRATED FROM DIRECTION */}
+            <PowerList session={session} todayWin={todayWin} onUpdate={() => refresh()} />
+
+            {/* ACTION CENTER: CALORIES & TODAY'S WORKOUT */}
+            <div className="grid gap-6">
+              {/* Today's Workout Focus */}
+              <section className="space-y-3">
+                <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                  <Dumbbell size={12} className="text-primary" /> Today's Protocol
+                </h3>
+                {(() => {
+                  const today = new Date().getDay();
+                  const map = { 1: 'A', 2: 'B', 4: 'C', 5: 'D' }; // Mon, Tue, Thu, Fri
+                  const dayKey = map[today] || 'A';
+                  const dayData = [
+                    { key: 'A', title: 'Dzień A', sub: 'Góra Ciężka / Bench', color: 'dayA' },
+                    { key: 'B', title: 'Dzień B', sub: 'Plecy / Tył Barku', color: 'dayB' },
+                    { key: 'C', title: 'Dzień C', sub: 'Nogi / ATP / Core', color: 'dayC' },
+                    { key: 'D', title: 'Dzień D', sub: 'Lekki Bench / Ramiona', color: 'dayD' },
+                  ].find(d => d.key === dayKey);
+
+                  return (
+                    <button 
+                      onClick={() => setSelectedDay(dayData.key)}
+                      className={`w-full bg-neutral-900 border border-neutral-800 rounded-lg p-6 flex items-center justify-between group hover:bg-neutral-800/50 transition-all border-l-4 border-l-${dayData.color} ${!hasWorkoutToday ? 'ring-1 ring-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'opacity-60'}`}
+                    >
+                      <div>
+                        <h3 className="font-black text-white uppercase italic text-xl">{dayData.title}</h3>
+                        <p className="text-[10px] text-neutral-500 font-bold uppercase mb-1">{dayData.sub}</p>
+                        <div className="text-[10px] font-black text-primary uppercase tracking-widest">
+                          {getDaySuggestion(dayData.key)}
+                        </div>
+                      </div>
+                      <div className="w-12 h-12 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                        <Play size={18} fill="currentColor" />
+                      </div>
+                    </button>
+                  );
+                })()}
+              </section>
+
+              {/* Weekly Calorie Budget */}
+              <section className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Calorie Budget</h3>
+                    <p className="text-xl font-black text-white uppercase italic">
+                      {weeklyCalories.toLocaleString()} <span className="text-xs text-neutral-500">/ {weeklyBudget.toLocaleString()} kcal</span>
+                    </p>
+                  </div>
+                  <button onClick={syncYazio} disabled={isSyncing} className={`p-2 bg-neutral-950 border border-neutral-800 rounded-lg text-primary ${isSyncing ? 'animate-spin' : ''}`}>
+                    <RotateCw size={14} />
+                  </button>
+                </div>
+                
+                <div className="w-full h-2 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${weeklyCalories > weeklyBudget ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
+                    style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[8px] font-black uppercase text-neutral-600">
+                  <span>{(weeklyBudget - weeklyCalories).toLocaleString()} kcal Left</span>
+                  <span>Target: 1800/Day</span>
+                </div>
+              </section>
+            </div>
+
+            {/* AI Insight moved to bottom for evening evaluation */}
+            <div className="pt-8 border-t border-white/5">
+              <AIInsight session={session} />
+            </div>
 
             {/* Personal Operating Manual (Patterns) */}
             <section className="space-y-4">
               <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <BookOpen size={12} className="text-primary" /> Personal Operating Manual
+                <BookOpen size={12} className="text-primary" /> Patterns & Anomalies
               </h3>
               <div className="space-y-3">
                 {patterns.map(p => (
-                  <div key={p.id} className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl flex gap-4 items-center">
+                  <div key={p.id} className="bg-neutral-900 border border-neutral-800 p-4 rounded-lg flex gap-4 items-center">
                     <span className="text-2xl">{p.icon}</span>
                     <p className="text-[11px] font-bold text-white uppercase italic leading-tight tracking-tight">
                       {p.text}
@@ -170,118 +242,15 @@ export default function Dashboard({ session }) {
               </div>
             </section>
 
-            {/* Power List Today - Quick View */}
-            {todayWin && (
-              <section className="space-y-3">
-                <div className="flex justify-between items-center px-1">
-                  <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                    <Compass size={12} className="text-primary" /> Power List na Dziś
-                  </h3>
-                  <button onClick={() => setView('direction')} className="text-[10px] font-black text-primary uppercase hover:underline">Szczegóły</button>
-                </div>
-                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 space-y-2">
-                  {todayWin && [1,2,3,4,5].map(i => {
-                    const task = todayWin[`task_${i}`];
-                    const done = todayWin[`done_${i}`];
-                    if (!task) return null;
-                    return (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${done ? 'bg-dayC border-dayC text-white' : 'border-neutral-700 text-transparent'}`}>
-                          {done && <Trophy size={10} />}
-                        </div>
-                        <p className={`text-[11px] font-bold uppercase italic transition-all ${done ? 'text-neutral-600 line-through' : 'text-white'}`}>
-                          {task}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Weekly Calorie Budget */}
-            <section className="card bg-neutral-900 border-neutral-800 p-5 space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Budżet Kaloryczny (Tydzień)</h3>
-                  <p className="text-xl font-black text-white uppercase italic">
-                    {weeklyCalories.toLocaleString()} <span className="text-xs text-neutral-500">/ {weeklyBudget.toLocaleString()} kcal</span>
-                  </p>
-                </div>
-                <button 
-                  onClick={syncYazio} 
-                  disabled={isSyncing}
-                  className={`p-2 bg-neutral-950 border border-neutral-800 rounded-lg text-primary hover:text-white transition-all ${isSyncing ? 'animate-spin' : ''}`}
-                >
-                  <RotateCw size={14} />
-                </button>
-              </div>
-
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mb-1">Status</p>
-                  <p className="text-[10px] font-black text-white uppercase italic">
-                    {weeklyCalories > weeklyBudget ? 'Przekroczono!' : 'W normie'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-primary uppercase">Zostało</p>
-                  <p className="text-sm font-black text-white italic">{(weeklyBudget - weeklyCalories).toLocaleString()} kcal</p>
-                </div>
-              </div>
-              
-              <div className="w-full h-3 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden p-0.5">
-                <div 
-                  className={`h-full rounded-full transition-all duration-1000 ${weeklyCalories > weeklyBudget ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
-                  style={{ width: `${Math.min((weeklyCalories / weeklyBudget) * 100, 100)}%` }}
-                />
-              </div>
-
-              <div className="flex justify-between text-[8px] font-black uppercase text-neutral-600">
-                <span>Reset w Poniedziałek</span>
-                <span>Cel: 1800 / Dzień Średnio</span>
-              </div>
-            </section>
-
-            {/* Treningi */}
-            <section>
-              <h2 className="text-[10px] font-bold text-neutral-500 tracking-widest uppercase mb-4">🏋️ Plan Treningowy</h2>
-              <div className="grid gap-3">
-                {[
-                  { key: 'A', title: 'Dzień A', sub: 'Góra Ciężka / Bench', color: 'dayA' },
-                  { key: 'B', title: 'Dzień B', sub: 'Plecy / Tył Barku', color: 'dayB' },
-                  { key: 'C', title: 'Dzień C', sub: 'Nogi / ATP / Core', color: 'dayC' },
-                  { key: 'D', title: 'Dzień D', sub: 'Lekki Bench / Ramiona', color: 'dayD' },
-                ].map((day) => (
-                  <button 
-                    key={day.key}
-                    onClick={() => setSelectedDay(day.key)}
-                    className={`card text-left p-5 flex items-center justify-between group hover:bg-neutral-900/50 transition-all border-l-4 border-l-${day.color} relative`}
-                  >
-                    <div>
-                      <h3 className="font-black text-white uppercase italic text-lg">{day.title}</h3>
-                      <p className="text-[10px] text-neutral-500 font-bold uppercase mb-1">{day.sub}</p>
-                      <div className="text-[10px] font-black text-primary uppercase tracking-widest">
-                        {getDaySuggestion(day.key)}
-                      </div>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                      <Play size={16} fill="currentColor" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </section>
-
             {/* Ostatni Trening A Widget */}
             {lastDayASession && (
-              <section className="card bg-primary/5 border-primary/20 p-5 space-y-3">
+              <section className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                    <History size={12} /> Ostatni Trening A ({format(parseISO(lastDayASession.created_at), 'dd.MM')})
+                    <History size={12} /> Last Matrix Entry ({format(parseISO(lastDayASession.created_at), 'dd.MM')})
                   </h3>
                   <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${lastDayASession.msp_passed ? 'bg-dayC text-white' : 'bg-neutral-800 text-neutral-400'}`}>
-                    MSP: {lastDayASession.msp_passed ? 'TAK' : 'NIE'}
+                    MSP: {lastDayASession.msp_passed ? 'PASSED' : 'FAILED'}
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -291,16 +260,6 @@ export default function Dashboard({ session }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] font-black text-white uppercase italic">
-                  Werdykt: <span className="text-primary">
-                    {(() => {
-                      const avgMsp = lastDayASession.benchLogs.reduce((acc, l) => acc + (l.rpe || 0), 0) / lastDayASession.benchLogs.length;
-                      if (avgMsp < 0.5) return 'Dołóż +2.5kg (Lekko)';
-                      if (avgMsp > 1.5) return 'Zostań (Za ciężko / Grind)';
-                      return 'Dołóż +1-2kg (MSP Trafione)';
-                    })()}
-                  </span>
-                </p>
               </section>
             )}
 
@@ -308,13 +267,13 @@ export default function Dashboard({ session }) {
             <section className="space-y-3">
               <button 
                 onClick={() => setShowProgression(!showProgression)}
-                className="w-full card flex items-center justify-between p-4 border-neutral-800 hover:bg-neutral-900/30 transition-all"
+                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg flex items-center justify-between p-4 hover:bg-neutral-800/30 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <Trophy className="text-primary" size={20} />
                   <div className="text-left">
-                    <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Planowana Progresja</h3>
-                    <p className="text-[8px] text-neutral-500 font-bold uppercase">Cel: 100 kg Bench Press</p>
+                    <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Planned Matrix Progression</h3>
+                    <p className="text-[8px] text-neutral-500 font-bold uppercase">Target: 100 kg Bench Press</p>
                   </div>
                 </div>
                 {showProgression ? <ChevronUp size={16} className="text-neutral-500" /> : <ChevronDown size={16} className="text-neutral-500" />}
@@ -322,7 +281,7 @@ export default function Dashboard({ session }) {
               
               {showProgression && (
                 <div className="animate-in fade-in slide-in-from-top-2">
-                  <ProgressionTable />
+                  <ProgressionTable session={session} />
                 </div>
               )}
             </section>

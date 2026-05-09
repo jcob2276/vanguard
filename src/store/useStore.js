@@ -13,13 +13,15 @@ export const useStore = create((set, get) => ({
     const { session } = get();
     if (!session) return;
     
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', session.user.id)
-      .single();
+      .maybeSingle();
     
-    set({ userSettings: data });
+    if (!error && data) {
+      set({ userSettings: data });
+    }
   },
 
   fetchTodayWin: async () => {

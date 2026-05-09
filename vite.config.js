@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Kuba Workout Tracker',
-        short_name: 'KubaWorkout',
-        description: 'Premium personal training and lifestyle tracker',
+        name: 'VANGUARD PROTOCOL',
+        short_name: 'VANGUARD',
+        description: 'Elite performance, discipline and identity tracking system',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',

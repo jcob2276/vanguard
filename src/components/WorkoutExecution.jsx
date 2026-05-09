@@ -121,39 +121,21 @@ export default function WorkoutExecution({ session, dayKey, onBack }) {
     setIsFinishing(true);
     try {
       const endTime = new Date();
-      const { data: sessionData } = await supabase.from('workout_sessions').insert([{ 
-        user_id: session.user.id, 
-        workout_day: dayKey,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        session_notes: sessionNotes,
-        msp_passed: exercises.some(ex => ex.name.toLowerCase().includes('wyciskanie płaskie') && ex.name.toLowerCase().includes('heavy') && ex.sets.some(s => s.rpe === '1'))
-      }]).select();
-
-      const sessionId = sessionData[0].id;
-      
       const logs = exercises.flatMap(ex => 
         ex.sets.filter(s => s.weight && s.reps).map((s, idx) => {
           let w = parseFloat(s.weight);
           let r = parseInt(s.reps);
 
-          // SAFEGUARD: Check for swapped weight/reps (e.g. 5kg x 85 reps)
-          // Threshold: Weight < 30 and Reps > 30 is suspicious for compound lifts
+          // SAFEGUARD: Check for swapped weight/reps
           const compoundLifts = ['Przysiad', 'Wyciskanie', 'RDL', 'OHP', 'Martwy'];
           const isCompound = compoundLifts.some(name => ex.name.includes(name));
           
           if (isCompound && w < 30 && r >= 30) {
-            const confirmSwap = window.confirm(
-              `⚠️ Podejrzany wpis w ${ex.name}: ${w}kg x ${r} powt.\n\nCzy na pewno nie zamieniłeś wagi z powtórzeniami? Kliknij OK, aby automatycznie ZAMIENIĆ te wartości.`
-            );
-            if (confirmSwap) {
-              const temp = w; w = r; r = temp;
-            }
+            const confirmSwap = window.confirm(`⚠️ Podejrzany wpis w ${ex.name}: ${w}kg x ${r} powt.\n\nCzy na pewno nie zamieniłeś wagi z powtórzeniami?`);
+            if (confirmSwap) { const temp = w; w = r; r = temp; }
           }
 
           return {
-            session_id: sessionId,
-            user_id: session.user.id,
             exercise_name: ex.name,
             set_number: idx + 1,
             weight: w,
@@ -163,7 +145,17 @@ export default function WorkoutExecution({ session, dayKey, onBack }) {
         })
       );
 
-      await supabase.from('exercise_logs').insert(logs);
+      const { error: rpcError } = await supabase.rpc('save_workout_atomic', {
+        p_user_id: session.user.id,
+        p_day_key: dayKey,
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+        p_notes: sessionNotes,
+        p_msp_passed: exercises.some(ex => ex.name.toLowerCase().includes('wyciskanie płaskie') && ex.name.toLowerCase().includes('heavy') && ex.sets.some(s => s.rpe === '1')),
+        p_logs: logs
+      });
+
+      if (rpcError) throw rpcError;
       localStorage.removeItem(`workout_draft_${dayKey}`);
       alert('Trening zapisany!');
       onBack();

@@ -73,17 +73,34 @@ export default function StayFreeSync({ session }) {
           device_name: r.device_name || 'Nieznane urządzenie'
         }));
       } else {
-        // CSV Parsing logic
-        const lines = csvText.trim().split('\n').map(l => l.split(','));
-        if (lines.length < 2) throw new Error('Nieprawidłowy format pliku CSV.');
-        const headers = lines[0];
+        // More robust CSV Parsing logic for basic quoted strings
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else current += char;
+          }
+          result.push(current.trim());
+          return result;
+        };
+
+        const rawLines = csvText.trim().split('\n');
+        if (rawLines.length < 2) throw new Error('Nieprawidłowy format pliku CSV.');
+        
+        const headers = parseCSVLine(rawLines[0]);
         const dateColumns = headers.slice(2).filter(h => h && h !== 'Zużycie łącznie');
 
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i];
+        for (let i = 1; i < rawLines.length; i++) {
+          const row = parseCSVLine(rawLines[i]);
           if (row.length < 3) continue;
-          const appName = row[0]?.trim();
-          const deviceName = row[1]?.trim();
+          const appName = row[0]?.replace(/^"|"$/g, '');
+          const deviceName = row[1]?.replace(/^"|"$/g, '');
           if (!appName || !deviceName) continue;
 
           dateColumns.forEach((dateLabel, colIdx) => {

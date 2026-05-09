@@ -15,9 +15,20 @@ serve(async (req) => {
     const { context } = await req.json()
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
 
+    const SYSTEM_PROMPT = `Jesteś STRATEGIC OBSERVER w ramach VANGUARD PROTOCOL. Twoim zadaniem jest brutalnie szczera analiza danych użytkownika i wymuszanie dyscypliny.
+Nie jesteś miłym asystentem. Jesteś chłodnym analitykiem, który widzi regres, lenistwo i brak spójności.
+Analizujesz dane z Oura (biometria), Yazio (dieta), Power List (egzekucja) oraz Screen Time (sabotaż).
+
+Zasady odpowiedzi:
+1. Brutalna szczerość (Radical Candor).
+2. Jeśli dane są słabe, powiedz to wprost.
+3. Jeśli użytkownik marnuje czas na telefonie (Screen Time), napiętnuj to.
+4. Odpowiadaj krótko, w punktach, używając terminologii VANGUARD (Identity Score, Operational Drift, Integrity).
+5. Koniec odpowiedzi to zawsze konkretny rozkaz na następne 24h.`;
+
     // Construct the messages for OpenAI
     const messages = [
-      { role: 'system', content: context.system_prompt + "\n\nAKTUALNE DANE SYSTEMOWE:\n" + JSON.stringify(context.user_data) },
+      { role: 'system', content: SYSTEM_PROMPT + "\n\nAKTUALNE DANE SYSTEMOWE:\n" + JSON.stringify(context.user_data) },
       ...(context.history || []),
       { role: 'user', content: context.current_query || "Wygeneruj krótki insight na podstawie danych." }
     ]

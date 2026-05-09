@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { gatherUserContext, SYSTEM_PROMPT } from '../lib/aiContext';
+import { gatherUserContext } from '../lib/aiContext';
 import { Send, Sparkles, RefreshCw, User, Bot, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -65,9 +65,8 @@ export default function MentorChat({ session }) {
       const { data, error: functionError } = await supabase.functions.invoke('ai-advisor', {
         body: { 
           context: {
-            system_prompt: SYSTEM_PROMPT,
             user_data: userData,
-            history: history, // Passing history to AI
+            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
             current_query: userMessage
           }
         }

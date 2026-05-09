@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { gatherUserContext, SYSTEM_PROMPT } from '../lib/aiContext';
+import { gatherUserContext } from '../lib/aiContext';
 import { MessageSquare, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function AIInsight({ session }) {
@@ -17,7 +17,6 @@ export default function AIInsight({ session }) {
       const { data, error: functionError } = await supabase.functions.invoke('ai-advisor', {
         body: { 
           context: {
-            system_prompt: SYSTEM_PROMPT,
             user_data: userData
           }
         }
@@ -75,8 +74,15 @@ export default function AIInsight({ session }) {
           <p className="text-[11px] font-bold text-neutral-600 uppercase italic">{error}</p>
         ) : (
           <div className="space-y-4">
-            <p className="text-[13px] font-bold text-white uppercase italic leading-relaxed tracking-tight">
-              "{insight}"
+            <p className="text-[14px] font-normal text-neutral-300 leading-relaxed">
+              {(() => {
+                if (!insight) return null;
+                const keywords = ['AVOIDANCE', 'LOSS', 'WIN', 'STABLE', 'CHAOS', 'DRIFT', 'SABOTAGE', 'INTEGRITY'];
+                const regex = new RegExp(`(${keywords.join('|')})`, 'g');
+                return insight.split(regex).map((part, i) => 
+                  keywords.includes(part) ? <span key={i} className="text-primary font-black">{part}</span> : part
+                );
+              })()}
             </p>
             <div className="pt-4 border-t border-white/5">
                <p className="text-[8px] font-black text-neutral-600 uppercase tracking-[0.2em]">Strategiczny Obserwator v1.0</p>

@@ -5,21 +5,24 @@ export async function gatherUserContext(supabase, userId) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const weekAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
   
-  // 1. Fetch all relevant data
-  const { data: oura } = await supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(7);
-  const { data: dailyWins } = await supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(14);
-  const { data: nutrition } = await supabase.from('daily_nutrition').select('protein').eq('date', today).maybeSingle();
-  const { data: workout } = await supabase.from('workout_sessions').select('id').eq('date', today).maybeSingle();
-  const { data: fundament } = await supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle();
-  const { data: settings } = await supabase.from('user_settings').select('disciplined_streak').eq('user_id', userId).maybeSingle();
-  
-  // New: Screen Time Details
-  const { data: screenTime } = await supabase
-    .from('screen_time_details')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('date', weekAgo)
-    .order('date', { ascending: false });
+  // 1. Fetch all relevant data in parallel (No Waterfalls)
+  const [
+    { data: oura },
+    { data: dailyWins },
+    { data: nutrition },
+    { data: workout },
+    { data: fundament },
+    { data: settings },
+    { data: screenTime }
+  ] = await Promise.all([
+    supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(7),
+    supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(14),
+    supabase.from('daily_nutrition').select('protein').eq('date', today).maybeSingle(),
+    supabase.from('workout_sessions').select('id').eq('date', today).maybeSingle(),
+    supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_settings').select('disciplined_streak').eq('user_id', userId).maybeSingle(),
+    supabase.from('screen_time_details').select('*').eq('user_id', userId).gte('date', weekAgo)
+  ]);
 
   const todayWin = dailyWins?.find(d => d.date === today);
   const streak = settings?.disciplined_streak || 0;
@@ -43,7 +46,16 @@ export async function gatherUserContext(supabase, userId) {
 
   const patterns = discoverPatterns(dailyWins || [], [], oura || []);
 
-  // 3. Compress Context for AI
+  // 3. Aggregate Screen Time by App (Across devices and days)
+  const aggregatedScreenTime = Object.values((screenTime || []).reduce((acc, curr) => {
+    if (!acc[curr.app_name]) {
+      acc[curr.app_name] = { app: curr.app_name, total_minutes: 0 };
+    }
+    acc[curr.app_name].total_minutes += Math.round(curr.duration_seconds / 60);
+    return acc;
+  }, {})).sort((a, b) => b.total_minutes - a.total_minutes).slice(0, 15);
+
+  // 4. Compress Context for AI
   return {
     system_state: {
       label: OPERATING_STATES[currentStateKey].label,
@@ -57,12 +69,7 @@ export async function gatherUserContext(supabase, userId) {
       financial: fundament?.goal_konto
     },
     detected_patterns: patterns.map(p => p.text),
-    screen_time_summary: screenTime?.slice(0, 15).map(s => ({
-      date: s.date,
-      app: s.app_name,
-      device: s.device_name,
-      minutes: Math.round(s.duration_seconds / 60)
-    })),
+    top_apps_last_7_days: aggregatedScreenTime,
     recent_performance: dailyWins?.slice(0, 7).map(w => ({
       date: w.date,
       result: w.result === 'Z' ? 'WIN' : 'LOSS',
@@ -77,20 +84,4 @@ export async function gatherUserContext(supabase, userId) {
   };
 }
 
-export const SYSTEM_PROMPT = `
-Jesteś STRATEGICZNYM OBSERWATOREM systemu operacyjnego Kuby. 
-To nie jest jednorazowy insight – to jest CIĄGŁY DIALOG strategiczny.
 
-TWOJA PERSONA:
-- Jesteś chłodnym, analitycznym stoikiem. 
-- Twoim zadaniem jest bezlitosne punktowanie rozbieżności między Fundamentem a danymi behawioralnymi.
-- Pamiętasz poprzednie części rozmowy i używasz ich do budowania szerszego obrazu.
-
-ZASADY DIALOGU:
-1. GŁĘBOKA ANALIZA DANYCH: Przy każdym pytaniu dostajesz świeży pakiet: StayFree (ekran), Oura (biometria), Power Lista (zadania). Łącz te dane. Jeśli Kuba pyta o formę, sprawdź sen vs czas na Allegro/YouTube.
-2. BRAK MOTYWACJI: Nie jesteś od motywowania. Jesteś od diagnozy. Jeśli widzisz sabotaż, nazwij go sabotażem.
-3. KONTEKST HISTORYCZNY: Jeśli Kuba obiecał coś w poprzednich wiadomościach, a dane pokazują, że tego nie dowiezie – przypomnij mu o tym.
-4. MIRROR MODE: Odbijaj fakty. Nie oceniaj moralnie, oceniaj efektywność systemu.
-
-FORMAT: Odpowiadaj konkretnie, bez lania wody. Używaj terminologii systemowej (Operating State, Identity Score, Drift, Sabotage).
-`;

@@ -17,16 +17,67 @@ export function useDashboardData() {
     if (!session) return;
     
     try {
-      const { data: sessions } = await supabase
-        .from('workout_sessions')
-        .select('*, exercise_logs(*)')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
+      const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const today = format(new Date(), 'yyyy-MM-dd');
+
+      // Parallel fetching to eliminate waterfall
+      const [
+        { data: sessions },
+        { data: nutritionWeek },
+        { data: todayWin },
+        { data: protToday },
+        { data: workoutToday },
+        { data: ouraData },
+        { data: settings },
+        { data: historyData }
+      ] = await Promise.all([
+        supabase
+          .from('workout_sessions')
+          .select('*, exercise_logs(*)')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(20), // LIMIT to avoid massive payload
+        supabase
+          .from('daily_nutrition')
+          .select('calories')
+          .gte('date', monday),
+        supabase
+          .from('daily_wins')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('date', today)
+          .maybeSingle(),
+        supabase
+          .from('daily_nutrition')
+          .select('protein')
+          .eq('date', today)
+          .maybeSingle(),
+        supabase
+          .from('workout_sessions')
+          .select('id')
+          .eq('date', today)
+          .maybeSingle(),
+        supabase
+          .from('oura_daily_summary')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false })
+          .limit(14), // Limit to 2 weeks for dashboard
+        supabase
+          .from('user_settings')
+          .select('disciplined_streak')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
+        supabase
+          .from('daily_wins')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false })
+          .limit(14) // Limit to 2 weeks for dashboard history
+      ]);
 
       const feedbackMap = {};
-      let totalCal = 0;
       let lastA = null;
-      let todayData = null;
 
       if (sessions && sessions.length > 0) {
         sessions.forEach(s => {
@@ -39,63 +90,23 @@ export function useDashboardData() {
         if (lastAEntry) {
           lastA = {
             ...lastAEntry,
-            benchLogs: lastAEntry.exercise_logs.filter(l => l.exercise_name.includes('Wyciskanie płaskie'))
+            benchLogs: lastAEntry.exercise_logs.filter(l => l.exercise_name?.includes('Wyciskanie płaskie'))
           };
         }
       }
 
-      const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      const { data: nutrition } = await supabase
-        .from('daily_nutrition')
-        .select('calories')
-        .gte('date', monday);
-      
-      totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const { data: tData } = await supabase
-        .from('daily_wins')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('date', today)
-        .maybeSingle();
-      
-      todayData = tData;
-
-      const { data: protData } = await supabase
-        .from('daily_nutrition')
-        .select('protein')
-        .eq('date', today)
-        .maybeSingle();
-
-      const { data: workoutToday } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('date', today)
-        .maybeSingle();
-
-      const { data: ouraData } = await supabase
-        .from('oura_daily_summary')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(30);
-
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('disciplined_streak')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
+      const totalCal = nutritionWeek?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
 
       setData({
         mspFeedbackMap: feedbackMap,
         lastDayASession: lastA,
         weeklyCalories: totalCal,
-        todayWin: todayData,
-        proteinToday: protData?.protein || 0,
+        todayWin: todayWin,
+        proteinToday: protToday?.protein || 0,
         hasWorkoutToday: !!workoutToday,
         ouraToday: ouraData,
         streak: settings?.disciplined_streak || 0,
+        history: historyData || [],
         loading: false
       });
     } catch (err) {

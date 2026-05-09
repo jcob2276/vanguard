@@ -114,10 +114,15 @@ serve(async (req) => {
           });
         }
 
-        if (totalCals > 0 || totalProt > 0) {
+        if (foodEntries.length > 0) {
           await supabase.from('daily_nutrition').upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' });
-          await supabase.from('daily_food_entries').delete().eq('user_id', userId).eq('date', dateStr);
-          await supabase.from('daily_food_entries').insert(foodEntries);
+          
+          // Używamy UPSERT zamiast DELETE+INSERT dla zachowania integralności
+          const { error: foodError } = await supabase.from('daily_food_entries').upsert(foodEntries, { 
+            onConflict: 'user_id,date,name,meal_type' 
+          });
+          
+          if (foodError) console.error(`[Yazio] Upsert error for ${dateStr}:`, foodError.message);
         }
         results.push({ date: dateStr, items: foodEntries.length });
       } catch (err) { console.log(`Error ${dateStr}:`, err.message); }

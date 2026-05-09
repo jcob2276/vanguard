@@ -104,7 +104,10 @@ const generateNarrative = (body, oura, sessions) => {
   return text;
 };
 
+import { useStore } from '../store/useStore';
+
 export default function Stats({ session }) {
+  const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
@@ -136,77 +139,93 @@ export default function Stats({ session }) {
 
   async function fetchStats() {
     setLoading(true);
-    const { data: logs } = await supabase.from('exercise_logs').select('*, workout_sessions(created_at, workout_day, msp_passed)').eq('user_id', session.user.id).order('created_at', { ascending: true });
-    const { data: body } = await supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true });
-    const { data: sessions } = await supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false });
-    const { data: oura } = await supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60);
-    const { data: nutrition } = await supabase.from('daily_nutrition').select('*').order('date', { ascending: false }).limit(60);
-    
-    if (logs) {
-      const now = new Date();
-      const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-      const thisWeekSessions = sessions?.filter(s => parseISO(s.created_at) >= thisWeekStart).length || 0;
-      setWeeklyStats({ compliance: thisWeekSessions });
-    }
+    try {
+      const [
+        { data: logs },
+        { data: body },
+        { data: sessions },
+        { data: oura },
+        { data: nutrition },
+        { data: settings }
+      ] = await Promise.all([
+        supabase.from('exercise_logs').select('*, workout_sessions(created_at, workout_day, msp_passed)').eq('user_id', session.user.id).order('created_at', { ascending: true }),
+        supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
+        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
+        supabase.from('daily_nutrition').select('*').order('date', { ascending: false }).limit(60),
+        supabase.from('user_settings').select('*').eq('user_id', session.user.id).maybeSingle()
+      ]);
+      
+      if (logs) {
+        const now = new Date();
+        const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+        const thisWeekSessions = sessions?.filter(s => parseISO(s.created_at) >= thisWeekStart).length || 0;
+        setWeeklyStats({ compliance: thisWeekSessions });
+      }
 
-    const { data: settings } = await supabase.from('user_settings').select('*').eq('user_id', session.user.id).single();
-    if (settings) {
-      setGoogleFitConnected(!!settings.google_fit_refresh_token);
-      setGoogleFitConfig({ id: settings.google_fit_client_id, secret: settings.google_fit_client_secret });
-    }
+      if (settings) {
+        setGoogleFitConnected(!!settings.google_fit_refresh_token);
+        setGoogleFitConfig({ id: settings.google_fit_client_id, secret: settings.google_fit_client_secret });
+      }
 
-    if (body) setBodyData(body);
-    
-    if (oura) {
-      setOuraTrend(oura.reverse().map(o => ({
-        date: format(parseISO(o.date), 'dd.MM'),
-        readiness: o.readiness_score,
-        sleep: o.total_sleep_hours
-      })));
-    }
+      if (body) setBodyData(body);
+      
+      if (oura) {
+        setOuraTrend(oura.reverse().map(o => ({
+          date: format(parseISO(o.date), 'dd.MM'),
+          readiness: o.readiness_score,
+          sleep: o.total_sleep_hours
+        })));
+      }
 
-    if (nutrition) {
-      setNutritionData(nutrition.reverse().map(n => ({
-        date: format(parseISO(n.date), 'dd.MM'),
-        protein: n.protein,
-        calories: n.calories
-      })));
-    }
+      if (nutrition) {
+        setNutritionData(nutrition.reverse().map(n => ({
+          date: format(parseISO(n.date), 'dd.MM'),
+          protein: n.protein,
+          calories: n.calories
+        })));
+      }
 
-    if (sessions) {
-      setRecentSessions(sessions.map(s => ({
-        ...s,
-        duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time) - new Date(s.start_time)) / 60000) : '--'
-      })));
-    }
+      if (sessions) {
+        setRecentSessions(sessions.map(s => ({
+          ...s,
+          duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time) - new Date(s.start_time)) / 60000) : '--'
+        })));
+      }
 
-    // Calculate Trends
-    const newTrends = {};
-    if (body && body.length >= 2) {
-      newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };
-      newTrends.waist = { cur: body[body.length - 1].waist, prev: body[body.length - 2].waist };
-    }
-    if (oura && oura.length >= 2) {
-      // oura was reversed for trend, so let's use the raw data which was ordered desc
-      newTrends.readiness = { cur: oura[0].readiness_score, prev: oura[1].readiness_score };
-      newTrends.sleep = { cur: oura[0].total_sleep_hours, prev: oura[1].total_sleep_hours };
-    }
-    if (nutrition && nutrition.length >= 2) {
-      newTrends.protein = { cur: nutrition[0].protein, prev: nutrition[1].protein };
-    }
-    setTrends(newTrends);
+      // Calculate Trends
+      const newTrends = {};
+      const ouraRaw = oura || [];
+      const nutrRaw = nutrition || [];
+      
+      if (body && body.length >= 2) {
+        newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };
+        newTrends.waist = { cur: body[body.length - 1].waist, prev: body[body.length - 2].waist };
+      }
+      if (ouraRaw.length >= 2) {
+        // oura was reversed for trend, but let's use the raw data which was ordered desc
+        newTrends.readiness = { cur: ouraRaw[0].readiness_score, prev: ouraRaw[1].readiness_score };
+        newTrends.sleep = { cur: ouraRaw[0].total_sleep_hours, prev: ouraRaw[1].total_sleep_hours };
+      }
+      if (nutrRaw.length >= 2) {
+        newTrends.protein = { cur: nutrRaw[0].protein, prev: nutrRaw[1].protein };
+      }
+      setTrends(newTrends);
 
-    // Calculate Projections (6 weeks)
-    if (body && body.length >= 3) {
-      setProjections({
-        weight: calculateProjection(body, 'weight'),
-        waist: calculateProjection(body, 'waist')
-      });
+      // Calculate Projections (6 weeks)
+      if (body && body.length >= 3) {
+        setProjections({
+          weight: calculateProjection(body, 'weight'),
+          waist: calculateProjection(body, 'waist')
+        });
+      }
+
+      setNarrative(generateNarrative(body, ouraRaw, sessions));
+    } catch (err) {
+      console.error('Fetch Stats Error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setNarrative(generateNarrative(body, oura, sessions));
-
-    setLoading(false);
   }
 
   async function saveMetrics(e) {
@@ -319,7 +338,6 @@ export default function Stats({ session }) {
       alert('Błąd podczas aktualizacji');
     }
   }
-
   async function deleteLog(id) {
     if (confirm('Usunąć tę serię?')) {
       await supabase.from('exercise_logs').delete().eq('id', id);
@@ -330,36 +348,42 @@ export default function Stats({ session }) {
   async function exportData() {
     setIsExporting(true);
     try {
-      const { data: sessions } = await supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true });
-      const { data: bodyMetrics } = await supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true });
-      
-      let foodEntries = [];
-      if (includeYazio) {
-        const { data: food } = await supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true });
-        foodEntries = food || [];
-      }
+      const [
+        { data: sessions },
+        { data: bodyMetrics },
+        { data: food },
+        { data: journal },
+        { data: reviews },
+        { data: goals },
+        { data: habits },
+        { data: habitLogs },
+        { data: ouraData },
+        { data: photos },
+        { data: locationHistory },
+        { data: fundament }
+      ] = await Promise.all([
+        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
+        supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
+        includeYazio ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
+        supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('habits').select('*').eq('user_id', session.user.id),
+        supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
+        supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
+        supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
+        supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle()
+      ]);
 
-      let journalEntries = [];
-      if (includeJournal) {
-        const { data: journal } = await supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true });
-        journalEntries = journal || [];
-      }
+      const foodEntries = food || [];
+      const journalEntries = journal || [];
+      const weeklyReviews = reviews || [];
 
-      let weeklyReviews = [];
-      const { data: reviews } = await supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to);
-      weeklyReviews = reviews || [];
-
-      const { data: goals } = await supabase.from('life_goals').select('*').eq('user_id', session.user.id).single();
-      const { data: habits } = await supabase.from('habits').select('*').eq('user_id', session.user.id);
-      const { data: habitLogs } = await supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to);
-      const { data: ouraData } = await supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to);
-      const { data: photos } = await supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to);
-      const { data: locationHistory } = await supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59');
-
-      const POIs = [
-        { name: 'Dom', lat: 49.6766, lng: 21.7147, radius: 150 },
-        { name: 'Rzeszów', lat: 50.0168, lng: 22.0070, radius: 300 }
-      ];
+      const userPOI = [
+        { name: 'Dom', lat: userSettings?.home_lat, lng: userSettings?.home_lng, radius: 150 },
+        { name: 'Rzeszów', lat: 50.0413, lng: 21.9990, radius: 5000 }
+      ].filter(p => p.lat && p.lng);
 
       function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
@@ -370,8 +394,6 @@ export default function Stats({ session }) {
         const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       }
-
-      const { data: fundament } = await supabase.from('user_fundament').select('*').eq('user_id', session.user.id).single();
 
       let md = `# ROZDZIAŁ 0: FUNDAMENT TOŻSAMOŚCI I WIZJA\n\n`;
       if (fundament) {
@@ -384,7 +406,6 @@ export default function Stats({ session }) {
       }
       md += `---\n\n`;
       md += `# RAPORT TRENINGOWY I LIFESTYLE\n`;
-      // ... rest of the setup
       md += `Okres: ${dateRange.from} do ${dateRange.to}\n\n`;
 
       if (goals) {
@@ -464,7 +485,7 @@ export default function Stats({ session }) {
         }
 
         const dayLocations = locationHistory?.filter(l => l.created_at.startsWith(dateStr));
-        const visitedPOIs = POIs.filter(poi => 
+        const visitedPOIs = userPOI.filter(poi => 
           dayLocations?.some(loc => getDistance(loc.latitude, loc.longitude, poi.lat, poi.lng) < poi.radius)
         );
         

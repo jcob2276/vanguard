@@ -50,99 +50,61 @@ export default function Direction({ session }) {
   async function fetchData() {
     setLoading(true);
     const today = format(new Date(), 'yyyy-MM-dd');
-
-    // Fetch Life Goals
-    const { data: goals } = await supabase
-      .from('life_goals')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single(); // life_goals can stay single if we assume it's created on sign up, but let's use maybeSingle to be safe
-    
-    if (goals) setLifeGoals(goals);
-
-    // Fetch Today's Win
-    const { data: todayData } = await supabase
-      .from('daily_wins')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .eq('date', today)
-      .maybeSingle();
-    
-    setTodayWin(todayData);
-
-    // Fetch Tomorrow's Win
     const tomorrow = format(subDays(new Date(), -1), 'yyyy-MM-dd');
-    const { data: tomorrowData } = await supabase
-      .from('daily_wins')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .eq('date', tomorrow)
-      .maybeSingle();
-    
-    setTomorrowWin(tomorrowData);
 
-    // Fetch History (last 60 days for stats)
-    const { data: historyData } = await supabase
-      .from('daily_wins')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('date', { ascending: false })
-      .limit(60);
-    
-    setHistory(historyData || []);
-
-    // Fetch Habits & Logs
-    const { data: habitsData } = await supabase.from('habits').select('*').eq('user_id', session.user.id);
-    setHabits(habitsData || []);
-
-    const { data: logsData } = await supabase
-      .from('habit_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('date', subDays(new Date(), 30).toISOString().split('T')[0]);
-    setHabitLogs(logsData || []);
-
-    // Fetch Weekly Review if Sunday
-    if (isSunday) {
-      const { data: reviewData, error: reviewError } = await supabase
-        .from('weekly_reviews')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('week_start', currentWeekStart)
-        .maybeSingle();
+    try {
+      const [
+        { data: goals },
+        { data: todayData },
+        { data: tomorrowData },
+        { data: historyData },
+        { data: habitsData },
+        { data: logsData },
+        { data: reviewData }
+      ] = await Promise.all([
+        supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
+        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', tomorrow).maybeSingle(),
+        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
+        supabase.from('habits').select('*').eq('user_id', session.user.id),
+        supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', subDays(new Date(), 30).toISOString().split('T')[0]),
+        isSunday ? supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).eq('week_start', currentWeekStart).maybeSingle() : Promise.resolve({ data: null })
+      ]);
       
-      if (reviewError) console.error('Error fetching weekly review:', reviewError);
-      if (reviewData) {
-        setCurrentReview(reviewData);
-      }
-    }
+      if (goals) setLifeGoals(goals);
+      setTodayWin(todayData);
+      setTomorrowWin(tomorrowData);
+      setHistory(historyData || []);
+      setHabits(habitsData || []);
+      setHabitLogs(logsData || []);
+      if (reviewData) setCurrentReview(reviewData);
 
-    // Auto-finalize unfinished days (past days or today after 23:00)
-    const now = new Date();
-    const isPastDeadline = now.getHours() >= 23;
-    const pastUnfinished = historyData?.filter(d => d.date < today && d.result === null);
-    const todayUnfinished = (todayData && todayData.result === null && isPastDeadline) ? [todayData] : [];
-    
-    const toFinalize = [...(pastUnfinished || []), ...todayUnfinished];
-
-    if (toFinalize.length > 0) {
-      for (const day of toFinalize) {
-        await supabase.from('daily_wins').update({ result: 'P' }).eq('id', day.id);
-      }
-      // Refresh history and today data after update
-      const { data: updatedHistory } = await supabase
-        .from('daily_wins')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(60);
-      setHistory(updatedHistory || []);
+      // Auto-finalize logic - only for PAST days
+      const pastUnfinished = historyData?.filter(d => d.date < today && d.result === null) || [];
       
-      const updatedToday = updatedHistory.find(d => d.date === today);
-      if (updatedToday) setTodayWin(updatedToday);
-    }
+      if (pastUnfinished.length > 0) {
+        const ids = pastUnfinished.map(d => d.id);
+        const { error: updateError } = await supabase
+          .from('daily_wins')
+          .update({ result: 'P' })
+          .in('id', ids);
 
-    setLoading(false);
+        if (!updateError) {
+          // Refresh history with a single efficient query
+          const { data: updatedHistory } = await supabase
+            .from('daily_wins')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('date', { ascending: false })
+            .limit(60);
+          setHistory(updatedHistory || []);
+        }
+      }
+    } catch (err) {
+      console.error('Fetch Data Error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const stats = useMemo(() => {
@@ -518,176 +480,6 @@ export default function Direction({ session }) {
           </p>
         </div>
       )}
-
-      {/* Main Section: Daily Wins */}
-      <section className="space-y-6">
-        <header className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-black uppercase italic text-white tracking-tighter">Power List</h1>
-            <p className="text-[8px] font-black text-primary uppercase tracking-widest">Wygraj Dzień. Wygraj Życie.</p>
-          </div>
-          {todayWin?.result === 'Z' && <div className="bg-dayC/20 text-dayC px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-dayC/30 animate-bounce">Dzień Wygrany!</div>}
-        </header>
-
-        {/* Quick Stats: Streak & Week Trend */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-center">
-            <div>
-              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Aktualny Streak</p>
-              <p className="text-xl font-black text-white italic">
-                {streak} dni
-                <TrendArrow current={streak} previous={history.length > 1 ? (history[1].result === 'Z' ? streak - 1 : 0) : 0} />
-              </p>
-            </div>
-            <TrendingUp size={20} className="text-primary opacity-20" />
-          </div>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-center">
-            <div>
-              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Status Tygodnia</p>
-              <p className="text-[12px] font-black text-white uppercase italic">
-                {weeklyWin ? 'WINNING' : 'AT RISK'}
-                <span className={`ml-2 ${weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>({weeklyP}P)</span>
-              </p>
-            </div>
-            <Shield size={20} className="text-primary opacity-20" />
-          </div>
-        </div>
-
-        {!todayWin ? (
-          /* Formularz Nowego Dnia (Dziś) */
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
-            <h3 className="text-[10px] font-black text-white uppercase tracking-widest text-center">Zdefiniuj 5 Zwycięstw na Dziś</h3>
-            <div className="space-y-4">
-              {newTaskForm.map((t, i) => (
-                <div key={i} className="flex gap-2">
-                  <select 
-                    value={t.category}
-                    onChange={(e) => {
-                      const n = [...newTaskForm]; n[i].category = e.target.value; setNewTaskForm(n);
-                    }}
-                    className="bg-neutral-950 border border-neutral-800 rounded-xl px-2 text-[10px] font-black text-primary outline-none uppercase"
-                  >
-                    <option value="cialo">Ciało</option>
-                    <option value="duch">Duch</option>
-                    <option value="konto">Konto</option>
-                  </select>
-                  <input 
-                    placeholder={`Zadanie ${i+1}`}
-                    value={t.task}
-                    onChange={(e) => {
-                      const n = [...newTaskForm]; n[i].task = e.target.value; setNewTaskForm(n);
-                    }}
-                    className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[12px] font-bold text-white outline-none focus:border-primary placeholder:text-neutral-700"
-                  />
-                </div>
-              ))}
-            </div>
-            <button onClick={startNewDay} className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-xl shadow-primary/20">Zatwierdź Listę</button>
-            <p className="text-[8px] text-neutral-500 font-bold uppercase text-center italic mt-2">Zaplanuj dzisiaj rano po raz ostatni – od jutra będziesz już tylko egzekwować.</p>
-          </div>
-        ) : (
-          /* Dzisiejsza Lista */
-          <div className="space-y-3">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Dzisiejsza Egzekucja</span>
-              <span className="text-[8px] font-black text-neutral-600 uppercase">{format(new Date(), 'dd.MM')}</span>
-            </div>
-            {[0,1,2,3,4].map((i) => {
-              const task = todayWin[`task_${i+1}`];
-              const category = todayWin[`category_${i+1}`];
-              const done = todayWin[`done_${i+1}`];
-              
-              const catIcons = {
-                cialo: <Shield size={14} className="text-dayC" />,
-                duch: <Zap size={14} className="text-dayA" />,
-                konto: <Wallet size={14} className="text-dayD" />
-              };
-
-              return (
-                <button 
-                  key={i} 
-                  onClick={() => toggleTask(i)}
-                  className={`w-full card p-5 flex items-center justify-between group transition-all ${done ? 'opacity-40 grayscale' : 'hover:bg-neutral-900/50'}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded border-2 flex items-center justify-center ${done ? 'bg-dayC border-dayC text-white' : 'border-neutral-800 text-neutral-700'}`}>
-                      {done ? <CheckSquare size={16} /> : <Target size={16} />}
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 mb-1">
-                        {catIcons[category]}
-                        <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">{category}</span>
-                      </div>
-                      <p className={`text-xs font-black uppercase italic ${done ? 'line-through text-neutral-600' : 'text-white'}`}>{task}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-            {/* JUTRO - Pojawia się tylko gdy dzisiejsza lista jest aktywna */}
-            <div className="pt-4 border-t border-neutral-900 space-y-4">
-              <div className="flex justify-between items-center px-1">
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Zap size={12} /> Plan na Jutro
-                </h3>
-              </div>
-
-              {tomorrowWin ? (
-                <div className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-4 space-y-2 opacity-60">
-                    {/* Mini preview jutra */}
-                    {[1,2,3,4,5].map(i => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase italic">{tomorrowWin[`task_${i}`]}</p>
-                      </div>
-                    ))}
-                </div>
-              ) : isPlanningTomorrow ? (
-                <div className="bg-neutral-900 border border-primary/50 rounded-2xl p-6 space-y-6 animate-in slide-in-from-bottom-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-[10px] font-black text-white uppercase tracking-widest">5 Zwycięstw na JUTRO</h3>
-                    <button onClick={() => setIsPlanningTomorrow(false)} className="text-neutral-500"><X size={16} /></button>
-                  </div>
-                  <div className="space-y-4">
-                    {newTaskForm.map((t, i) => (
-                      <div key={i} className="flex gap-2">
-                        <select 
-                          value={t.category}
-                          onChange={(e) => {
-                            const n = [...newTaskForm]; n[i].category = e.target.value; setNewTaskForm(n);
-                          }}
-                          className="bg-neutral-950 border border-neutral-800 rounded-xl px-2 text-[10px] font-black text-primary outline-none uppercase"
-                        >
-                          <option value="cialo">Ciało</option>
-                          <option value="duch">Duch</option>
-                          <option value="konto">Konto</option>
-                        </select>
-                        <input 
-                          placeholder={`Zadanie ${i+1}`}
-                          value={t.task}
-                          onChange={(e) => {
-                            const n = [...newTaskForm]; n[i].task = e.target.value; setNewTaskForm(n);
-                          }}
-                          className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[12px] font-bold text-white outline-none focus:border-primary placeholder:text-neutral-700"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={planTomorrow} className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20">Zatwierdź Plan na Jutro</button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setIsPlanningTomorrow(true)}
-                  className="w-full bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-neutral-800 transition-all group"
-                >
-                  <Plus size={14} className="text-primary" />
-                  <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest group-hover:text-white">Zaplanuj Jutrzejszy Dzień</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </section>
 
       {/* Habits Section */}
       <section className="space-y-6">

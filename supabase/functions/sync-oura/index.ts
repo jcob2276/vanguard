@@ -33,15 +33,20 @@ serve(async (req) => {
 
     const token = settings.oura_token
     const headers = { 'Authorization': `Bearer ${token}` }
-    const today = new Date().toISOString().split('T')[0]
-    const startDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    
+    // Zwiększamy okno synchronizacji dla pewności (7 dni zamiast 4)
+    // Używamy daty z lekkim wyprzedzeniem dla end_date, aby obsłużyć przesunięcia stref czasowych
+    const now = new Date()
+    const todayStr = now.toISOString().split('T')[0]
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     // 2. Fetch Data
     const [readinessData, sleepData, sleepStagesData, activityData] = await Promise.all([
-      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
-      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json())
+      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
+      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
+      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json()),
+      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { headers }).then(res => res.json())
     ])
 
     // 3. Process
@@ -123,28 +128,6 @@ serve(async (req) => {
         .upsert(upsertData, { onConflict: 'user_id,date' })
       
       if (upsertError) throw upsertError
-
-      // Update Streak
-      const { data: allSummaries } = await supabase
-        .from('oura_daily_summary')
-        .select('date, is_disciplined')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-
-      if (allSummaries) {
-        let streak = 0
-        const todayStr = new Date().toISOString().split('T')[0]
-        for (const s of allSummaries) {
-          if (s.is_disciplined) streak++
-          else if (s.date === todayStr) continue
-          else break
-        }
-        const total = allSummaries.filter((s: any) => s.is_disciplined).length
-
-        await supabase
-          .from('user_settings')
-          .upsert({ user_id: userId, disciplined_streak: streak, total_disciplined_days: total })
-      }
     }
 
     return new Response(JSON.stringify({ success: true }), { 

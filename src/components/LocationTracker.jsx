@@ -1,16 +1,22 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-
-// Definicja "Miejsc Mocy" - Zaktualizowane na podstawie rzeczywistych logów z bazy
-const POI = [
-  { name: 'Dom', lat: 49.6766, lng: 21.7147, radius: 150 },
-  { name: 'Rzeszów-Centrum', lat: 50.0168, lng: 22.0070, radius: 300 },
-];
+import { useStore } from '../store/useStore';
+import { format } from 'date-fns';
 
 export default function LocationTracker({ session }) {
+  const { userSettings, fetchUserSettings } = useStore();
   const watchId = useRef(null);
   const lastSync = useRef(0);
   const lastCoords = useRef(null);
+
+  useEffect(() => {
+    if (!userSettings) fetchUserSettings();
+  }, []);
+
+  const POI = [
+    { name: 'Dom', lat: userSettings?.home_lat, lng: userSettings?.home_lng, radius: 150 },
+    { name: 'Rzeszów-Centrum', lat: 50.0168, lng: 22.0070, radius: 300 },
+  ].filter(p => p.lat && p.lng);
 
   useEffect(() => {
     if (!session?.user?.id || !navigator.geolocation) return;
