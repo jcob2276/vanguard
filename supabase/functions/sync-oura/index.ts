@@ -51,21 +51,13 @@ serve(async (req) => {
       summaries[item.day] = { 
         ...summaries[item.day], 
         readiness_score: item.score, 
-        date: item.day, 
-        temp_deviation: item.contributors?.body_temperature // body_temperature is correct in readiness contributors
+        date: item.day
       }
     })
 
-    sleepData.data?.forEach((item: any) => {
-      summaries[item.day] = { 
-        ...summaries[item.day], 
-        hrv_avg: item.average_hrv,
-        rhr_avg: item.average_heart_rate,
-        date: item.day 
-      }
-    })
-
+    // Getting high-fidelity biometrics from the actual sleep session
     sleepStagesData.data?.forEach((item: any) => {
+      // Oura v2 'sleep' endpoint has 'average_hrv', 'average_heart_rate' and 'temperature_deviation'
       summaries[item.day] = { 
         ...summaries[item.day], 
         total_sleep_hours: item.total_sleep_duration / 3600,
@@ -74,6 +66,9 @@ serve(async (req) => {
         sleep_efficiency: item.efficiency,
         latency_minutes: item.latency / 60,
         bedtime_timestamp: item.bedtime_start,
+        hrv_avg: item.average_hrv,
+        rhr_avg: item.average_heart_rate,
+        temp_deviation: item.readiness?.temperature_deviation || item.temperature_deviation,
         date: item.day 
       }
     })
