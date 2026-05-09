@@ -47,17 +47,28 @@ serve(async (req) => {
     // 3. Process
     const summaries: Record<string, any> = {}
 
+    // 1. Process Readiness & Temp (from daily_readiness)
     readinessData.data?.forEach((item: any) => {
       summaries[item.day] = { 
         ...summaries[item.day], 
         readiness_score: item.score, 
+        temp_deviation: item.temperature_deviation, // From OpenAPI spec
         date: item.day
       }
     })
 
-    // Getting high-fidelity biometrics from the actual sleep session
+    // 2. Process HRV & RHR (from daily_sleep)
+    sleepData.data?.forEach((item: any) => {
+      summaries[item.day] = { 
+        ...summaries[item.day], 
+        hrv_avg: item.average_hrv,
+        rhr_avg: item.average_heart_rate,
+        date: item.day 
+      }
+    })
+
+    // 3. Process Sleep Stages & Durations (from sleep)
     sleepStagesData.data?.forEach((item: any) => {
-      // Oura v2 'sleep' endpoint has 'average_hrv', 'average_heart_rate' and 'temperature_deviation'
       summaries[item.day] = { 
         ...summaries[item.day], 
         total_sleep_hours: item.total_sleep_duration / 3600,
@@ -66,9 +77,9 @@ serve(async (req) => {
         sleep_efficiency: item.efficiency,
         latency_minutes: item.latency / 60,
         bedtime_timestamp: item.bedtime_start,
-        hrv_avg: item.average_hrv,
-        rhr_avg: item.average_heart_rate,
-        temp_deviation: item.readiness?.temperature_deviation || item.temperature_deviation,
+        // Backup for hrv/rhr if missing in daily_sleep
+        hrv_avg: summaries[item.day]?.hrv_avg ?? item.average_hrv,
+        rhr_avg: summaries[item.day]?.rhr_avg ?? item.average_heart_rate,
         date: item.day 
       }
     })
@@ -91,17 +102,17 @@ serve(async (req) => {
       return {
         user_id: userId,
         date: s.date,
-        readiness_score: s.readiness_score || null,
+        readiness_score: s.readiness_score ?? null,
         total_sleep_hours: s.total_sleep_hours ? parseFloat(s.total_sleep_hours.toFixed(2)) : null,
         deep_sleep_hours: s.deep_sleep_hours ? parseFloat(s.deep_sleep_hours.toFixed(2)) : null,
         rem_sleep_hours: s.rem_sleep_hours ? parseFloat(s.rem_sleep_hours.toFixed(2)) : null,
-        hrv_avg: s.hrv_avg || null,
-        rhr_avg: s.rhr_avg || null,
-        temp_deviation: s.temp_deviation || null,
-        sleep_efficiency: s.sleep_efficiency || null,
+        hrv_avg: s.hrv_avg ?? null,
+        rhr_avg: s.rhr_avg ?? null,
+        temp_deviation: s.temp_deviation ?? null,
+        sleep_efficiency: s.sleep_efficiency ?? null,
         latency_minutes: s.latency_minutes ? Math.round(s.latency_minutes) : null,
-        steps: s.steps || null,
-        bedtime_timestamp: s.bedtime_timestamp || null,
+        steps: s.steps ?? null,
+        bedtime_timestamp: s.bedtime_timestamp ?? null,
         is_disciplined: isDisciplined
       }
     })
