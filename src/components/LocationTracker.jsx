@@ -1,63 +1,82 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
-// Definicja "Miejsc Mocy" - możesz tu dodać swoje współrzędne
+// Definicja "Miejsc Mocy" - Zaktualizowane na podstawie rzeczywistych logów z bazy
 const POI = [
-  { name: 'Siłownia', lat: 52.2297, lng: 21.0122, radius: 200 }, // Przykładowe współrzędne (Warszawa Centrum)
-  { name: 'Dom', lat: 52.2396, lng: 21.0122, radius: 100 },
+  { name: 'Dom', lat: 49.6766, lng: 21.7147, radius: 150 },
+  { name: 'Rzeszów-Centrum', lat: 50.0168, lng: 22.0070, radius: 300 },
 ];
 
 export default function LocationTracker({ session }) {
-  const lastPos = useRef(null);
+  const watchId = useRef(null);
+  const lastSync = useRef(0);
+  const lastCoords = useRef(null);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !navigator.geolocation) return;
 
-    const trackLocation = () => {
-      if (!navigator.geolocation) return;
+    const handlePosition = async (position) => {
+      const { latitude, longitude, accuracy } = position.coords;
+      const now = Date.now();
 
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
+      // 1. Odrzuć bardzo słabą dokładność (oszczędność szumu w bazie)
+      if (accuracy > 150) return;
 
-          // Sprawdź czy pozycja zmieniła się znacząco (> 100m) lub minęło dużo czasu
-          const dist = lastPos.current ? getDistance(lastPos.current.lat, lastPos.current.lng, latitude, longitude) : 999;
+      // 2. Adaptive Logic: Oblicz dystans od ostatniego zapisu
+      const timeSinceLastSync = now - lastSync.current;
+      const distanceMoved = lastCoords.current 
+        ? getDistance(lastCoords.current.lat, lastCoords.current.lng, latitude, longitude)
+        : 999;
 
-          if (dist > 100) {
-            lastPos.current = { lat: latitude, lng: longitude };
+      // Zapisujemy tylko jeśli:
+      // - Minęło 20 minut (stay-still keep-alive)
+      // - LUB przesunęliśmy się o ponad 250 metrów (ruch)
+      if (timeSinceLastSync > 20 * 60 * 1000 || distanceMoved > 250) {
+        
+        // Rozpoznaj czy jesteśmy w POI
+        const currentPOI = POI.find(p => 
+          getDistance(p.lat, p.lng, latitude, longitude) < p.radius
+        );
 
-            // Rozpoznaj czy jesteśmy w POI
-            const currentPOI = POI.find(p => 
-              getDistance(p.lat, p.lng, latitude, longitude) < p.radius
-            );
+        // Zapisz do bazy
+        const { error } = await supabase.from('location_history').insert({
+          user_id: session.user.id,
+          latitude,
+          longitude,
+          accuracy,
+          place_name: currentPOI ? currentPOI.name : null
+        });
 
-            // Zapisz do bazy
-            await supabase.from('location_history').insert({
-              user_id: session.user.id,
-              latitude,
-              longitude,
-              accuracy,
-              place_name: currentPOI ? currentPOI.name : null
-            });
-            
-            console.log('📍 Pozycja zapisana:', currentPOI ? currentPOI.name : 'Nieznane miejsce');
-          }
-        },
-        (error) => console.warn('Błąd lokalizacji:', error.message),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+        if (!error) {
+          lastSync.current = now;
+          lastCoords.current = { lat: latitude, lng: longitude };
+          console.log('📍 Pozycja zaktualizowana:', currentPOI ? currentPOI.name : 'W ruchu');
+        }
+      }
     };
 
-    // Śledź co 5 minut, gdy aplikacja jest otwarta
-    const interval = setInterval(trackLocation, 5 * 60 * 1000);
-    trackLocation(); // Pierwszy pomiar od razu
+    // Używamy watchPosition - system operacyjny sam decyduje kiedy nas powiadomić o zmianie
+    // Jest to znacznie bardziej energooszczędne niż setInterval.
+    watchId.current = navigator.geolocation.watchPosition(
+      handlePosition,
+      (error) => console.warn('Błąd lokalizacji:', error.message),
+      { 
+        enableHighAccuracy: false, // FALSE = OS używa Wi-Fi/Cell (oszczędza baterię)
+        maximumAge: 60000, 
+        timeout: 15000 
+      }
+    );
 
-    return () => clearInterval(interval);
+    return () => {
+      if (watchId.current) {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+    };
   }, [session]);
 
   // Funkcja Haversine do liczenia dystansu w metrach
   function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // promień ziemi w metrach
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI/180;
     const φ2 = lat2 * Math.PI/180;
     const Δφ = (lat2-lat1) * Math.PI/180;
@@ -71,5 +90,5 @@ export default function LocationTracker({ session }) {
     return R * c;
   }
 
-  return null; // Komponent jest niewidoczny
+  return null;
 }

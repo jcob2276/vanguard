@@ -1,26 +1,57 @@
+// V2.2.1
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin } from 'lucide-react';
+import { Fingerprint, LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin, BookOpen, Activity, Calendar, Shield as ShieldIcon, Target, CheckSquare, Square, ChevronRight, Clock, Sparkles } from 'lucide-react';
 import WorkoutExecution from './WorkoutExecution';
 import ProgressionTable from './ProgressionTable';
 import Stats from './Stats';
 import Photos from './Photos';
 import Direction from './Direction';
+import MentorChat from './MentorChat';
 import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
 import LocationTracker from './LocationTracker';
+import AIInsight from './AIInsight';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
-import { Fingerprint, LogOut, Play, Dumbbell, BarChart2, Camera, ChevronDown, ChevronUp, Trophy, History, Compass, Shield, RotateCw, MapPin } from 'lucide-react';
+import { detectState, OPERATING_STATES, calculateIdentityScore, discoverPatterns } from '../lib/stateEngine';
+
+const TrendArrow = ({ current, previous, better = 'up' }) => {
+  if (previous === undefined || previous === null || current === undefined || current === null) return null;
+  const diff = current - previous;
+  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
+  const isImproving = better === 'up' ? diff > 0 : diff < 0;
+  return <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>{diff > 0 ? '↑' : '↓'}</span>;
+};
 
 export default function Dashboard({ session }) {
+  console.log('--- DASHBOARD V2.2.1 ACTIVE ---');
   const [view, setView] = useState('workout');
   const [selectedDay, setSelectedDay] = useState(null);
   const [showProgression, setShowProgression] = useState(false);
-  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, syncYazio, loading } = useDashboardData();
+  const { mspFeedbackMap, lastDayASession, weeklyCalories, todayWin, proteinToday, hasWorkoutToday, ouraToday, streak, syncYazio, loading } = useDashboardData();
   const { isSyncing } = useStore();
   const weeklyBudget = 12600; // 1800 * 7
+
+  const currentStateKey = detectState({
+    todayWin,
+    oura: ouraToday?.[0],
+    workoutToday: hasWorkoutToday,
+    streak,
+    protein: proteinToday
+  });
+  const state = OPERATING_STATES[currentStateKey];
+
+  const identityScore = calculateIdentityScore({
+    todayWin,
+    hasWorkoutToday,
+    protein: proteinToday,
+    ouraToday: ouraToday?.[0],
+    streak
+  });
+
+  const patterns = discoverPatterns([], [], ouraToday);
 
   if (view === 'fundament') return <Fundament onBack={() => setView('workout')} />;
 
@@ -63,7 +94,7 @@ export default function Dashboard({ session }) {
       {/* Header */}
       <header className="p-4 border-b border-neutral-800 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-md z-20">
         <div>
-          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">Kuba Tracker V2.1</h1>
+          <h1 className="font-black text-xl text-white uppercase tracking-tighter italic">Kuba Tracker V2.2</h1>
           <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">{session.user.email}</p>
         </div>
         <div className="flex items-center gap-1">
@@ -80,6 +111,64 @@ export default function Dashboard({ session }) {
         {view === 'workout' && (
           <div className="p-6 space-y-8">
             <OuraWidget session={session} />
+
+            {/* Operating State Widget */}
+            <section className="animate-in fade-in zoom-in duration-700">
+              <div className={`border-2 ${state.border} ${state.bg} rounded-2xl p-6 relative overflow-hidden shadow-2xl`}>
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Operating State</p>
+                    <h2 className={`text-3xl font-black ${state.color} italic tracking-tighter`}>{state.label}</h2>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Identity Score</p>
+                    <p className={`text-3xl font-black italic tracking-tighter ${identityScore > 80 ? 'text-dayC' : identityScore > 50 ? 'text-primary' : 'text-dayB'}`}>
+                      {identityScore}%
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] font-bold text-white uppercase italic leading-tight">
+                  {state.description}
+                </p>
+                <div className="mt-4 pt-4 border-t border-white/5 flex gap-4">
+                   <div className="flex-1">
+                      <p className="text-[8px] font-black text-neutral-600 uppercase">Power List</p>
+                      <p className={`text-[10px] font-black uppercase ${todayWin?.result === 'Z' ? 'text-dayC' : 'text-neutral-500'}`}>
+                        {todayWin?.result === 'Z' ? 'Executed' : 'Pending'}
+                      </p>
+                   </div>
+                   <div className="flex-1">
+                      <p className="text-[8px] font-black text-neutral-600 uppercase">Training</p>
+                      <p className={`text-[10px] font-black uppercase ${hasWorkoutToday ? 'text-primary' : 'text-neutral-500'}`}>
+                        {hasWorkoutToday ? 'Active' : 'Rest'}
+                      </p>
+                   </div>
+                   <div className="flex-1">
+                      <p className="text-[8px] font-black text-neutral-600 uppercase">Integrity</p>
+                      <p className="text-[10px] font-black text-white uppercase">{identityScore > 90 ? 'High' : 'At Risk'}</p>
+                   </div>
+                </div>
+              </div>
+            </section>
+
+            <AIInsight session={session} />
+
+            {/* Personal Operating Manual (Patterns) */}
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                <BookOpen size={12} className="text-primary" /> Personal Operating Manual
+              </h3>
+              <div className="space-y-3">
+                {patterns.map(p => (
+                  <div key={p.id} className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl flex gap-4 items-center">
+                    <span className="text-2xl">{p.icon}</span>
+                    <p className="text-[11px] font-bold text-white uppercase italic leading-tight tracking-tight">
+                      {p.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {/* Power List Today - Quick View */}
             {todayWin && (
@@ -272,6 +361,7 @@ export default function Dashboard({ session }) {
         {view === 'stats' && <Stats session={session} />}
         {view === 'photos' && <Photos session={session} />}
         {view === 'direction' && <Direction session={session} />}
+        {view === 'mentor' && <MentorChat session={session} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -281,6 +371,9 @@ export default function Dashboard({ session }) {
         </button>
         <button onClick={() => setView('direction')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'direction' ? 'text-primary' : 'text-neutral-500'}`}>
           <Compass size={24} /><span className="text-[8px] font-bold uppercase">Kierunek</span>
+        </button>
+        <button onClick={() => setView('mentor')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'mentor' ? 'text-primary' : 'text-neutral-500'}`}>
+          <Sparkles size={24} /><span className="text-[8px] font-bold uppercase">Mentor</span>
         </button>
         <button onClick={() => setView('stats')} className={`flex flex-col items-center gap-1 transition-colors ${view === 'stats' ? 'text-primary' : 'text-neutral-500'}`}>
           <BarChart2 size={24} /><span className="text-[8px] font-bold uppercase">Statystyki</span>

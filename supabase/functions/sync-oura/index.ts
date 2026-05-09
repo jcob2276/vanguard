@@ -37,8 +37,9 @@ serve(async (req) => {
     const startDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     // 2. Fetch Data
-    const [readinessData, sleepData, activityData] = await Promise.all([
+    const [readinessData, sleepData, sleepStagesData, activityData] = await Promise.all([
       fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
+      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
       fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json()),
       fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${today}`, { headers }).then(res => res.json())
     ])
@@ -47,13 +48,31 @@ serve(async (req) => {
     const summaries: Record<string, any> = {}
 
     readinessData.data?.forEach((item: any) => {
-      summaries[item.day] = { ...summaries[item.day], readiness_score: item.score, date: item.day }
+      summaries[item.day] = { 
+        ...summaries[item.day], 
+        readiness_score: item.score, 
+        date: item.day, 
+        temp_deviation: item.contributors?.body_temperature // body_temperature is correct in readiness contributors
+      }
     })
 
     sleepData.data?.forEach((item: any) => {
       summaries[item.day] = { 
         ...summaries[item.day], 
+        hrv_avg: item.average_hrv,
+        rhr_avg: item.average_heart_rate,
+        date: item.day 
+      }
+    })
+
+    sleepStagesData.data?.forEach((item: any) => {
+      summaries[item.day] = { 
+        ...summaries[item.day], 
         total_sleep_hours: item.total_sleep_duration / 3600,
+        deep_sleep_hours: item.deep_sleep_duration / 3600,
+        rem_sleep_hours: item.rem_sleep_duration / 3600,
+        sleep_efficiency: item.efficiency,
+        latency_minutes: item.latency / 60,
         bedtime_timestamp: item.bedtime_start,
         date: item.day 
       }
@@ -66,8 +85,6 @@ serve(async (req) => {
     const upsertData = Object.values(summaries).map(s => {
       let isDisciplined = false
       if (s.bedtime_timestamp) {
-        // Extract local time from ISO string (e.g., "2024-04-28T00:50:00+02:00")
-        // This ensures we check the hour in the user's local timezone
         const timePart = s.bedtime_timestamp.split('T')[1]
         if (timePart) {
           const [h, m] = timePart.split(':').map(Number)
@@ -81,6 +98,13 @@ serve(async (req) => {
         date: s.date,
         readiness_score: s.readiness_score || null,
         total_sleep_hours: s.total_sleep_hours ? parseFloat(s.total_sleep_hours.toFixed(2)) : null,
+        deep_sleep_hours: s.deep_sleep_hours ? parseFloat(s.deep_sleep_hours.toFixed(2)) : null,
+        rem_sleep_hours: s.rem_sleep_hours ? parseFloat(s.rem_sleep_hours.toFixed(2)) : null,
+        hrv_avg: s.hrv_avg || null,
+        rhr_avg: s.rhr_avg || null,
+        temp_deviation: s.temp_deviation || null,
+        sleep_efficiency: s.sleep_efficiency || null,
+        latency_minutes: s.latency_minutes ? Math.round(s.latency_minutes) : null,
         steps: s.steps || null,
         bedtime_timestamp: s.bedtime_timestamp || null,
         is_disciplined: isDisciplined

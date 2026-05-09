@@ -3,10 +3,13 @@ import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import { useNotifications } from './hooks/useNotifications';
 
 function App() {
   const { session, setSession } = useStore();
   const [loading, setLoading] = useState(true);
+
+  useNotifications();
 
   useEffect(() => {
     // Check active session

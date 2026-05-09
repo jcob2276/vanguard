@@ -58,15 +58,44 @@ export function useDashboardData() {
         .select('*')
         .eq('user_id', session.user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle();
       
       todayData = tData;
+
+      const { data: protData } = await supabase
+        .from('daily_nutrition')
+        .select('protein')
+        .eq('date', today)
+        .maybeSingle();
+
+      const { data: workoutToday } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('date', today)
+        .maybeSingle();
+
+      const { data: ouraData } = await supabase
+        .from('oura_daily_summary')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false })
+        .limit(30);
+
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('disciplined_streak')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
 
       setData({
         mspFeedbackMap: feedbackMap,
         lastDayASession: lastA,
         weeklyCalories: totalCal,
         todayWin: todayData,
+        proteinToday: protData?.protein || 0,
+        hasWorkoutToday: !!workoutToday,
+        ouraToday: ouraData,
+        streak: settings?.disciplined_streak || 0,
         loading: false
       });
     } catch (err) {

@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { syncOuraData } from '../lib/oura';
-import { Battery, Moon, Footprints, Star, RefreshCw, Key, Plus } from 'lucide-react';
+import { Battery, Moon, Footprints, Star, RefreshCw, Key, Plus, Activity, Thermometer, Zap } from 'lucide-react';
+import { translateBiometrics } from '../lib/stateEngine';
+
+const TrendArrow = ({ current, previous, better = 'up' }) => {
+  if (previous === undefined || previous === null || current === undefined || current === null) return null;
+  const diff = current - previous;
+  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
+  const isImproving = better === 'up' ? diff > 0 : diff < 0;
+  return <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>{diff > 0 ? '↑' : '↓'}</span>;
+};
 
 export default function OuraWidget({ session }) {
   const [loading, setLoading] = useState(true);
@@ -18,7 +27,6 @@ export default function OuraWidget({ session }) {
   async function fetchData() {
     setLoading(true);
     try {
-      // 1. Fetch settings
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('*')
@@ -29,7 +37,6 @@ export default function OuraWidget({ session }) {
         setSettings(userSettings);
       }
 
-      // 2. Fetch 2 most recent summaries
       const { data: summaries, error: summaryError } = await supabase
         .from('oura_daily_summary')
         .select('*')
@@ -120,39 +127,77 @@ export default function OuraWidget({ session }) {
   }
 
   const activeReadiness = data?.today?.readiness_score || data?.yesterday?.readiness_score;
-  const activeSleep = (data?.today?.total_sleep_hours > 0) ? data?.today : data?.yesterday;
-  const activeSteps = data?.yesterday; // Zawsze wczorajsze kroki jako pełny dzień
+  const activeOura = data?.today?.readiness_score ? data.today : data?.yesterday;
+  const activeSteps = data?.yesterday;
 
-  const sleepHours = Math.floor(activeSleep?.total_sleep_hours || 0);
-  const sleepMinutes = Math.round(((activeSleep?.total_sleep_hours || 0) % 1) * 60);
+  const sleepHours = Math.floor(activeOura?.total_sleep_hours || 0);
+  const sleepMinutes = Math.round(((activeOura?.total_sleep_hours || 0) % 1) * 60);
+
+  const insights = translateBiometrics(activeOura);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
       
       {/* Readiness Widget */}
-      <section className="card bg-gradient-to-br from-neutral-900 to-neutral-950 overflow-hidden relative border-primary/20 shadow-lg shadow-primary/5">
+      <section className="card bg-gradient-to-br from-neutral-900 to-neutral-950 overflow-hidden relative border-primary/20 shadow-lg shadow-primary/5 p-6">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-2">
             <Battery size={18} className={activeReadiness < 70 ? 'text-red-500' : 'text-primary'} />
-            <h3 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gotowość Oura</h3>
+            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Body Battery / Readiness</h3>
           </div>
           <button onClick={handleSync} disabled={syncing} className={`text-neutral-500 hover:text-white ${syncing ? 'animate-spin' : ''}`}>
             <RefreshCw size={14} />
           </button>
         </div>
 
-        <div className="flex items-end gap-4 mb-4">
-          <span className="text-4xl font-black text-white italic">{activeReadiness || '--'}</span>
+        <div className="flex items-end gap-4 mb-6">
+          <span className="text-5xl font-black text-white italic tracking-tighter">
+            {activeReadiness || '--'}
+            <TrendArrow current={data?.today?.readiness_score} previous={data?.yesterday?.readiness_score} />
+          </span>
           <div className="pb-1">
             {activeReadiness ? (
               activeReadiness < 70 
-                ? <p className="text-[10px] font-black text-red-500 uppercase tracking-tighter italic">⚠️ Niska. Sugeruję deload (70%)</p>
-                : <p className="text-[10px] font-black text-primary uppercase tracking-tighter italic">✅ Możesz trenować normalnie</p>
+                ? <p className="text-[10px] font-black text-dayB uppercase italic tracking-tighter animate-pulse">⚠️ Sugeruję DELOAD / Recovery</p>
+                : <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">✅ Gotowy na 100% Performance</p>
             ) : <p className="text-[10px] text-neutral-600 uppercase">Brak danych</p>}
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Natural Language Insight */}
+        {insights?.length > 0 && (
+          <div className="mb-6 p-3 bg-dayB/5 border-l-2 border-dayB rounded-r-lg">
+             <p className="text-[10px] font-bold text-dayB uppercase italic leading-tight">
+               {insights[0]}
+             </p>
+          </div>
+        )}
+
+        {/* High-Level Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+           <div className="bg-neutral-950/50 p-4 rounded-2xl border border-neutral-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap size={14} className="text-dayA" />
+                <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">HRV (Nervous System)</span>
+              </div>
+              <p className="text-xl font-black text-white italic">
+                {activeOura?.hrv_avg || '--'} ms
+                <TrendArrow current={data?.today?.hrv_avg} previous={data?.yesterday?.hrv_avg} />
+              </p>
+           </div>
+           <div className="bg-neutral-950/50 p-4 rounded-2xl border border-neutral-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity size={14} className="text-dayB" />
+                <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">RHR (Recovery Load)</span>
+              </div>
+              <p className="text-xl font-black text-white italic">
+                {activeOura?.rhr_avg || '--'} bpm
+                <TrendArrow current={data?.today?.rhr_avg} previous={data?.yesterday?.rhr_avg} better="down" />
+              </p>
+           </div>
+        </div>
+
+        {/* Small Stats Row */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
             <div className="flex items-center justify-between mb-1">
@@ -160,10 +205,22 @@ export default function OuraWidget({ session }) {
                 <Moon size={10} className="text-dayB" />
                 <span className="text-[7px] font-bold text-neutral-600 uppercase">Sen</span>
               </div>
-              <span className="text-[6px] text-neutral-700 font-bold uppercase">{activeSleep?.date === data?.today?.date ? 'Dziś' : 'Wczoraj'}</span>
             </div>
-            <p className="text-xs font-black text-white">{sleepHours}h {sleepMinutes}m</p>
-            {activeSleep?.total_sleep_hours < 7 && <p className="text-[7px] text-red-500 font-bold uppercase mt-0.5">Za krótko!</p>}
+            <p className="text-xs font-black text-white">
+              {sleepHours}h {sleepMinutes}m
+            </p>
+          </div>
+
+          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <Thermometer size={10} className="text-orange-500" />
+                <span className="text-[7px] font-bold text-neutral-600 uppercase">Temp</span>
+              </div>
+            </div>
+            <p className={`text-xs font-black ${Math.abs(activeOura?.temp_deviation || 0) > 0.5 ? 'text-dayB' : 'text-white'}`}>
+              {activeOura?.temp_deviation > 0 ? '+' : ''}{activeOura?.temp_deviation || '0.0'}°C
+            </p>
           </div>
 
           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
@@ -172,25 +229,11 @@ export default function OuraWidget({ session }) {
                 <Footprints size={10} className="text-dayC" />
                 <span className="text-[7px] font-bold text-neutral-600 uppercase">Kroki</span>
               </div>
-              <span className="text-[6px] text-neutral-700 font-bold uppercase">Wczoraj</span>
             </div>
             <p className="text-xs font-black text-white">{activeSteps?.steps?.toLocaleString() || '--'}</p>
-            {activeSteps?.steps < 10000 && <p className="text-[7px] text-orange-500 font-bold uppercase mt-0.5">Dołóż spacer</p>}
-          </div>
-
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1">
-                <Star size={10} className="text-dayD" />
-                <span className="text-[7px] font-bold text-neutral-600 uppercase">Streak</span>
-              </div>
-            </div>
-            <p className="text-xs font-black text-white">{settings?.disciplined_streak || 0} dni</p>
-            <p className="text-[6px] text-neutral-700 font-bold uppercase mt-0.5 truncate">Sen przed 23:30</p>
           </div>
         </div>
       </section>
-
     </div>
   );
 }

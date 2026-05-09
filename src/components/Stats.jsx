@@ -4,10 +4,105 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { Trophy, Clock, Trash2, FileText, ChevronDown, ChevronUp, Scale, Ruler, Activity, Zap, TrendingUp, Target, Battery, CheckSquare } from 'lucide-react';
-import { format, differenceInDays, parseISO, startOfWeek, addWeeks } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfWeek, addWeeks, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 const START_DATE = new Date('2026-04-26');
+
+const TrendArrow = ({ current, previous, better = 'up' }) => {
+  if (previous === undefined || previous === null || current === undefined || current === null) return null;
+  
+  const diff = current - previous;
+  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
+  
+  const isImproving = better === 'up' ? diff > 0 : diff < 0;
+  
+  return (
+    <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>
+      {diff > 0 ? '↑' : '↓'}
+    </span>
+  );
+};
+
+const calculateProjection = (data, field, daysIntoFuture = 42) => {
+  if (!data || data.length < 3) return null;
+  
+  // Use last 14 days for a more relevant trend
+  const recentData = data.slice(-14);
+  const n = recentData.length;
+  
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  const firstDay = new Date(recentData[0].date).getTime();
+  
+  recentData.forEach((d, i) => {
+    const x = i; // Days from start of sample
+    const val = Number(d[field]);
+    if (isNaN(val) || val === 0) return;
+    
+    sumX += x;
+    sumY += val;
+    sumXY += x * val;
+    sumXX += x * x;
+  });
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  
+  // Predict value at current day index + daysIntoFuture
+  const currentIndex = n - 1;
+  const projectedValue = slope * (currentIndex + daysIntoFuture) + intercept;
+  const currentActual = recentData[n - 1][field];
+  
+  return {
+    value: projectedValue.toFixed(1),
+    change: (projectedValue - currentActual).toFixed(1)
+  };
+};
+
+const generateNarrative = (body, oura, sessions) => {
+  if (!sessions || sessions.length === 0) return null;
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  // 1. Treningi
+  const lastWeekSessions = sessions.filter(s => new Date(s.date) >= sevenDaysAgo).length;
+  
+  // 2. Sen
+  const lastWeekSleep = oura?.filter(o => new Date(o.date) >= sevenDaysAgo && Number(o.total_sleep_hours) > 0);
+  const prevWeekSleep = oura?.filter(o => new Date(o.date) >= fourteenDaysAgo && new Date(o.date) < sevenDaysAgo && Number(o.total_sleep_hours) > 0);
+  
+  const avgSleepLast = lastWeekSleep?.length ? lastWeekSleep.reduce((acc, o) => acc + Number(o.total_sleep_hours), 0) / lastWeekSleep.length : 0;
+  const avgSleepPrev = prevWeekSleep?.length ? prevWeekSleep.reduce((acc, o) => acc + Number(o.total_sleep_hours), 0) / prevWeekSleep.length : 0;
+  
+  const sleepDiffMin = (lastWeekSleep?.length >= 2 && prevWeekSleep?.length >= 2) 
+    ? Math.round((avgSleepLast - avgSleepPrev) * 60) 
+    : 0;
+
+  // 3. Waga i Talia
+  const lastWeekBody = body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0);
+  const bodyDiffWeight = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
+  const bodyDiffWaist = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
+
+  let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
+  text += `Zrealizowałeś ${lastWeekSessions} treningi. `;
+  
+  if (sleepDiffMin !== 0) {
+    text += `Twój sen ${sleepDiffMin > 0 ? 'poprawił się' : 'pogorszył się'} średnio o ${Math.abs(sleepDiffMin)} min na dobę. `;
+  } else if (avgSleepLast > 0) {
+    text += `Średnio sypiałeś po ${Math.floor(avgSleepLast)}h ${Math.round((avgSleepLast % 1) * 60)}m. `;
+  }
+
+  if (bodyDiffWaist && bodyDiffWaist != 0) {
+    text += `W obwodzie pasa ${bodyDiffWaist < 0 ? 'zeszło' : 'przybyło'} ${Math.abs(bodyDiffWaist)} cm. `;
+  } else if (bodyDiffWeight && bodyDiffWeight != 0) {
+    text += `Waga ${bodyDiffWeight < 0 ? 'spadła' : 'wzrosła'} o ${Math.abs(bodyDiffWeight)} kg. `;
+  }
+
+  text += `Rób swoje, proces działa.`;
+  return text;
+};
 
 export default function Stats({ session }) {
   const [loading, setLoading] = useState(true);
@@ -31,6 +126,9 @@ export default function Stats({ session }) {
   const [googleFitConfig, setGoogleFitConfig] = useState({ id: '', secret: '' });
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
+  const [trends, setTrends] = useState({});
+  const [projections, setProjections] = useState(null);
+  const [narrative, setNarrative] = useState('');
 
   useEffect(() => {
     fetchStats();
@@ -81,6 +179,33 @@ export default function Stats({ session }) {
         duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time) - new Date(s.start_time)) / 60000) : '--'
       })));
     }
+
+    // Calculate Trends
+    const newTrends = {};
+    if (body && body.length >= 2) {
+      newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };
+      newTrends.waist = { cur: body[body.length - 1].waist, prev: body[body.length - 2].waist };
+    }
+    if (oura && oura.length >= 2) {
+      // oura was reversed for trend, so let's use the raw data which was ordered desc
+      newTrends.readiness = { cur: oura[0].readiness_score, prev: oura[1].readiness_score };
+      newTrends.sleep = { cur: oura[0].total_sleep_hours, prev: oura[1].total_sleep_hours };
+    }
+    if (nutrition && nutrition.length >= 2) {
+      newTrends.protein = { cur: nutrition[0].protein, prev: nutrition[1].protein };
+    }
+    setTrends(newTrends);
+
+    // Calculate Projections (6 weeks)
+    if (body && body.length >= 3) {
+      setProjections({
+        weight: calculateProjection(body, 'weight'),
+        waist: calculateProjection(body, 'waist')
+      });
+    }
+
+    setNarrative(generateNarrative(body, oura, sessions));
+
     setLoading(false);
   }
 
@@ -232,8 +357,8 @@ export default function Stats({ session }) {
       const { data: locationHistory } = await supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59');
 
       const POIs = [
-        { name: 'Siłownia', lat: 52.2297, lng: 21.0122, radius: 250 }, // PRZYKŁAD: Wpisz tu swoje współrzędne
-        { name: 'Dom', lat: 52.2396, lng: 21.0122, radius: 100 }
+        { name: 'Dom', lat: 49.6766, lng: 21.7147, radius: 150 },
+        { name: 'Rzeszów', lat: 50.0168, lng: 22.0070, radius: 300 }
       ];
 
       function getDistance(lat1, lon1, lat2, lon2) {
@@ -453,8 +578,24 @@ export default function Stats({ session }) {
   
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
+  const isSunday = new Date().getDay() === 0;
+
   return (
     <div className="flex-1 p-6 space-y-12 pb-24">
+      {/* Raport Psychologiczny - Tylko w Niedzielę */}
+      {narrative && isSunday && (
+        <section className="animate-in fade-in zoom-in duration-1000">
+          <div className="bg-neutral-900 border-l-4 border-primary p-6 rounded-r-2xl shadow-xl">
+            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <Zap size={12} className="text-primary" /> Analiza Behawioralna
+            </h3>
+            <p className="text-lg font-black text-white leading-tight uppercase italic tracking-tighter">
+              „{narrative}”
+            </p>
+          </div>
+        </section>
+      )}
+
       <section className="space-y-6">
         <header className="flex justify-between items-end">
           <div>
@@ -465,11 +606,15 @@ export default function Stats({ session }) {
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Waga (kg)</label>
+              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest flex items-center">
+                Waga (kg) <TrendArrow current={trends.weight?.cur} previous={trends.weight?.prev} better="down" />
+              </label>
               <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-primary" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Talia (cm)</label>
+              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest flex items-center">
+                Talia (cm) <TrendArrow current={trends.waist?.cur} previous={trends.waist?.prev} better="down" />
+              </label>
               <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-primary" />
             </div>
           </div>
@@ -498,7 +643,9 @@ export default function Stats({ session }) {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Oura Readiness</h2>
+        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter flex items-center gap-4">
+          Oura Readiness <TrendArrow current={trends.readiness?.cur} previous={trends.readiness?.prev} />
+        </h2>
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
           <div className="w-full h-full min-w-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -515,7 +662,9 @@ export default function Stats({ session }) {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Protein Intake (Goal: 150g)</h2>
+        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter flex items-center gap-4">
+          Protein Intake <TrendArrow current={trends.protein?.cur} previous={trends.protein?.prev} />
+        </h2>
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
           <div className="w-full h-full min-w-[300px]">
             <ResponsiveContainer width="100%" height="100%">

@@ -1,10 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, MessageSquare, Heart, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy } from 'lucide-react';
+import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, MessageSquare, Heart, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy, Activity } from 'lucide-react';
 import { format, subDays, startOfDay, parseISO, differenceInDays, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { detectState } from '../lib/stateEngine';
+import StayFreeSync from './StayFreeSync';
+
+const TrendArrow = ({ current, previous, better = 'up' }) => {
+  if (previous === undefined || previous === null || current === undefined || current === null) return null;
+  const diff = current - previous;
+  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
+  const isImproving = better === 'up' ? diff > 0 : diff < 0;
+  return <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>{diff > 0 ? '↑' : '↓'}</span>;
+};
 
 export default function Direction({ session }) {
+  console.log('--- DIRECTION V2.2.1 ACTIVE ---');
   const [loading, setLoading] = useState(true);
   const [lifeGoals, setLifeGoals] = useState({ goal_cialo: '', goal_duch: '', goal_konto: '' });
   const [isEditingGoals, setIsEditingGoals] = useState(false);
@@ -28,6 +39,7 @@ export default function Direction({ session }) {
   const [reviewForm, setReviewForm] = useState({ proud_of: '', sabotage: '', do_differently: '' });
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const [showStayFree, setShowStayFree] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -44,7 +56,7 @@ export default function Direction({ session }) {
       .from('life_goals')
       .select('*')
       .eq('user_id', session.user.id)
-      .single();
+      .single(); // life_goals can stay single if we assume it's created on sign up, but let's use maybeSingle to be safe
     
     if (goals) setLifeGoals(goals);
 
@@ -54,7 +66,7 @@ export default function Direction({ session }) {
       .select('*')
       .eq('user_id', session.user.id)
       .eq('date', today)
-      .single();
+      .maybeSingle();
     
     setTodayWin(todayData);
 
@@ -65,7 +77,7 @@ export default function Direction({ session }) {
       .select('*')
       .eq('user_id', session.user.id)
       .eq('date', tomorrow)
-      .single();
+      .maybeSingle();
     
     setTomorrowWin(tomorrowData);
 
@@ -132,6 +144,68 @@ export default function Direction({ session }) {
 
     setLoading(false);
   }
+
+  const stats = useMemo(() => {
+    if (!history.length) return { streak: 0, weeklyWin: false, monthlyWin: false, weeks: [] };
+
+    // Streak
+    let streak = 0;
+    const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    
+    if (sortedHistory[0]?.date === todayStr || sortedHistory[0]?.date === yesterdayStr) {
+      for (const day of sortedHistory) {
+        if (day.result === 'Z') streak++;
+        else if (day.date !== todayStr) break;
+      }
+    }
+
+    // Weekly/Monthly logic (skrócona dla czytelności bloku)
+    const weeks = [];
+    for (let i = 0; i < 4; i++) {
+      const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
+      const end = endOfWeek(start, { weekStartsOn: 1 });
+      const weekDays = history.filter(d => {
+        const dDate = parseISO(d.date);
+        return dDate >= start && dDate <= end;
+      });
+      let expectedDays = 7;
+      const today = startOfDay(new Date());
+      if (isWithinInterval(today, { start, end })) expectedDays = differenceInDays(today, start) + 1;
+      const zCount = weekDays.filter(d => d.result === 'Z').length;
+      const pCount = weekDays.filter(d => d.result === 'P').length + Math.max(0, expectedDays - weekDays.length);
+      weeks.push({ isWeekWin: pCount <= 2, pCount, zCount, start });
+    }
+
+    return { streak, weeklyWin: weeks[0]?.isWeekWin, weeklyP: weeks[0]?.pCount, monthlyWin: weeks.filter(w => w.isWeekWin).length >= 3, weeks };
+  }, [history]);
+
+  const { streak, weeklyWin, weeklyP, monthlyWin, weeks } = stats;
+
+  const [currentState, setCurrentState] = useState('STABLE');
+
+  useEffect(() => {
+    async function checkDrift() {
+      if (loading || !session?.user?.id) return;
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: oura } = await supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle();
+      const { data: prot } = await supabase.from('daily_nutrition').select('protein').eq('date', today).maybeSingle();
+      const { data: workout } = await supabase.from('workout_sessions').select('id').eq('date', today).maybeSingle();
+      
+      const state = detectState({
+        todayWin,
+        oura,
+        workoutToday: !!workout,
+        streak,
+        protein: prot?.protein || 0
+      });
+      setCurrentState(state);
+    }
+    checkDrift();
+  }, [loading, todayWin, streak, session?.user?.id]);
+
+  const isDrifting = ['CHAOS', 'AVOIDANCE'].includes(currentState);
 
   async function saveLifeGoals() {
     // Remove ID if present to avoid conflict, rely on user_id for upsert
@@ -316,63 +390,6 @@ export default function Direction({ session }) {
     }
   };
 
-  // Stats logic
-  const getStats = () => {
-    if (!history.length) return { streak: 0, weeklyWin: false, monthlyWin: false };
-
-    // Streak
-    let streak = 0;
-    const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // Start from today or yesterday
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-    
-    let currentIdx = 0;
-    if (sortedHistory[0]?.date === todayStr || sortedHistory[0]?.date === yesterdayStr) {
-      for (const day of sortedHistory) {
-        if (day.result === 'Z') streak++;
-        else if (day.date !== todayStr) break; // Break if not today and not Z
-      }
-    }
-
-    // Weekly Win (max 2P in current week)
-    const weeks = [];
-      // Group history into weeks starting from current
-      for (let i = 0; i < 4; i++) {
-        const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
-        const end = endOfWeek(start, { weekStartsOn: 1 });
-        const weekDays = history.filter(d => {
-          const dDate = parseISO(d.date);
-          return dDate >= start && dDate <= end;
-        });
-
-        // Calculate expected days in this week (up to today if current week)
-        let expectedDays = 7;
-        const today = startOfDay(new Date());
-        if (isWithinInterval(today, { start, end })) {
-          expectedDays = differenceInDays(today, start) + 1;
-        }
-
-        const zCount = weekDays.filter(d => d.result === 'Z').length;
-        const actualEntries = weekDays.length;
-        const missingDays = expectedDays - actualEntries;
-        
-        // P count is explicit P's plus missing days (days where no 5 tasks were added)
-        const pCount = weekDays.filter(d => d.result === 'P').length + Math.max(0, missingDays);
-        
-        // Week is won if P <= 2.
-        const isWeekWin = pCount <= 2;
-        weeks.push({ isWeekWin, pCount, zCount, start, isFull: actualEntries >= 7 });
-      }
-
-    const monthlyWin = weeks.filter(w => w.isWeekWin).length >= 3;
-
-    return { streak, weeklyWin: weeks[0]?.isWeekWin, weeklyP: weeks[0]?.pCount, monthlyWin, weeks };
-  };
-
-  const { streak, weeklyWin, weeklyP, monthlyWin, weeks } = getStats();
-
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
 
   return (
@@ -488,6 +505,20 @@ export default function Direction({ session }) {
         </section>
       )}
 
+      {/* Identity Drift Alert */}
+      {isDrifting && (
+        <div className="bg-dayB/20 border-2 border-dayB rounded-2xl p-6 animate-pulse mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertCircle className="text-dayB" size={24} />
+            <h3 className="text-lg font-black text-dayB uppercase italic tracking-tighter">Identity Alert: Drift Detected</h3>
+          </div>
+          <p className="text-[11px] font-bold text-white uppercase leading-tight italic">
+            Twoje obecne działania (Stan: {currentState}) przestają być zgodne z Twoim Fundamentem. 
+            Mówisz o dyscyplinie, ale system wykrywa regres. Wróć do bazy.
+          </p>
+        </div>
+      )}
+
       {/* Main Section: Daily Wins */}
       <section className="space-y-6">
         <header className="flex justify-between items-end">
@@ -497,6 +528,30 @@ export default function Direction({ session }) {
           </div>
           {todayWin?.result === 'Z' && <div className="bg-dayC/20 text-dayC px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-dayC/30 animate-bounce">Dzień Wygrany!</div>}
         </header>
+
+        {/* Quick Stats: Streak & Week Trend */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-center">
+            <div>
+              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Aktualny Streak</p>
+              <p className="text-xl font-black text-white italic">
+                {streak} dni
+                <TrendArrow current={streak} previous={history.length > 1 ? (history[1].result === 'Z' ? streak - 1 : 0) : 0} />
+              </p>
+            </div>
+            <TrendingUp size={20} className="text-primary opacity-20" />
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex justify-between items-center">
+            <div>
+              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Status Tygodnia</p>
+              <p className="text-[12px] font-black text-white uppercase italic">
+                {weeklyWin ? 'WINNING' : 'AT RISK'}
+                <span className={`ml-2 ${weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>({weeklyP}P)</span>
+              </p>
+            </div>
+            <Shield size={20} className="text-primary opacity-20" />
+          </div>
+        </div>
 
         {!todayWin ? (
           /* Formularz Nowego Dnia (Dziś) */
@@ -857,6 +912,7 @@ export default function Direction({ session }) {
               />
             </div>
           </div>
+
         </div>
       </section>
 
@@ -905,6 +961,29 @@ export default function Direction({ session }) {
             <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mt-1">{weeklyP} Porażek</p>
           </div>
         </div>
+      </section>
+      {/* StayFree Sync Toggle */}
+      <section className="pt-4 border-t border-neutral-900">
+        {!showStayFree ? (
+          <button 
+            onClick={() => setShowStayFree(true)}
+            className="w-full p-4 bg-neutral-900/30 border border-neutral-800 rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <Activity size={18} className="text-neutral-600 group-hover:text-primary transition-colors" />
+              <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Synchronizacja StayFree</span>
+            </div>
+            <Plus size={16} className="text-neutral-700" />
+          </button>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">StayFree Importer</h3>
+              <button onClick={() => setShowStayFree(false)} className="text-[10px] font-black text-dayB uppercase tracking-widest">Zamknij</button>
+            </div>
+            <StayFreeSync session={session} />
+          </div>
+        )}
       </section>
     </div>
   );
