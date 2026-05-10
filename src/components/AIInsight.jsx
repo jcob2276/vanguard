@@ -36,7 +36,12 @@ export default function AIInsight({ session }) {
         .order('timestamp', { ascending: false })
         .limit(3);
 
-      const behavior = awData?.[0]?.payload;
+      const latestActivity = awData?.[0];
+      const activityAgeMin = latestActivity ? (new Date() - new Date(latestActivity.timestamp)) / 1000 / 60 : Infinity;
+      
+      // Only treat as active behavior if data is fresher than 15 minutes
+      const behavior = activityAgeMin < 15 ? latestActivity?.payload : null;
+      const isStale = activityAgeMin >= 15 && latestActivity;
       
       // 3. Fetch Big Picture Context (Biometrics, Goals, Fundamentals, Habits)
       const { data: biometrics } = await supabase.from('oura_daily_summary').select('*').order('date', { ascending: false }).limit(1);
@@ -136,6 +141,10 @@ export default function AIInsight({ session }) {
       if (behavior) {
         const { window, afk, web } = behavior;
         systemMessage += `\n--- RZECZYWISTOŚĆ DESKTOP ---\n${afk === 'afk' ? 'AFK' : `Aplikacja: ${window?.app}, Okno: ${window?.title}`}\n`;
+      } else if (isStale) {
+        systemMessage += `\n--- RZECZYWISTOŚĆ DESKTOP ---\nSTATUS: POZA KOMPUTEREM (OFFLINE). Ostatnia aktywność: ${Math.round(activityAgeMin)} min temu. NIE zakładaj, że użytkownik siedzi przed monitorem.\n`;
+      } else {
+        systemMessage += `\n--- RZECZYWISTOŚĆ DESKTOP ---\nBrak danych (OFFLINE).\n`;
       }
 
       systemMessage += `\nZADANIE: Dokonaj brutalnej syntezy. Jest godzina ${now_dt.toLocaleTimeString('pl-PL')}. Biorąc pod uwagę, że użytkownik ostatnio spał ${latestOura?.total_sleep_hours || 'nieznaną ilość'} godzin i ma przed sobą cele [Wymień je], oceń jego obecne zachowanie. Czy siedzenie teraz przy komputerze to optymalizacja czy autodestrukcja? Bądź bezlitosny, ale logiczny.`;

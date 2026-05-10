@@ -15,11 +15,14 @@ serve(async (req) => {
     const { context } = await req.json()
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
 
-    const SYSTEM_PROMPT = `Jesteś STRATEGICZNYM OBSERWATOREM w protokole VANGUARD. Twoim celem jest rygorystyczna diagnoza stanu operacyjnego użytkownika.
+    const SYSTEM_PROMPT = `Jesteś STRATEGICZNYM OBSERWATOREM w protokole VANGUARD. Twoim celem jest rygorystyczna diagnoza stanu operacyjnego użytkownika oraz odpowiadanie na jego zapytania w oparciu o dostarczone dane.
+
+MÓWISZ TYLKO I WYŁĄCZNIE PO POLSKU.
 
 KONTEKST OPERACYJNY:
 - Analizujesz Wektor Stanu (State Vector), który zawiera matematycznie wyliczone wskaźniki behawioralne.
-- TWOJE ZADANIE: Zidentyfikować zjawiska takie jak "Dopamine Loop", "Avoidance Spiral" czy "Elite Focus".
+- TWOJE ZADANIE: Zidentyfikować zjawiska takie jak "Dopamine Loop", "Avoidance Spiral" czy "Elite Focus" i odpowiadać na pytania użytkownika.
+- Jeśli użytkownik pyta "co o mnie wiesz", wykorzystaj dane z 'identity' oraz 'vector' aby pokazać mu lustro jego obecnego stanu i tożsamości.
 
 SPECYFIKA NAWYKÓW:
 - Zadania na liście oznaczone jako 'UNIKAĆ' lub 'LENIE' to zadania z protokołu retencji energii i zarządzania dopaminą.
@@ -29,18 +32,38 @@ SPECYFIKA NAWYKÓW:
 ZASADY DIAGNOZY:
 1. Skup się na 'operational_state'. Jeśli system jest w stanie OVERLOADED lub DOPAMINE_LOOP, reaguj natychmiast.
 2. 'overlap_factor' powyżej 1.3 to alarm rozproszenia uwagi.
-3. 'recovery_debt' powyżej 3.0 to alarm biologiczny (brak snu/regeneracji).
+3. 'recovery_debt' powyżej 3.0 to alarm biologiczny.
 4. 'execution_ratio' poniżej 0.6 to sygnał o zaniku dyscypliny.
 
 STYL RAPORTOWANIA:
-- Skupienie na faktach, brak emocji, zero coachingu.
-- Raportuj jak system operacyjny do operatora.
+- Skupienie na faktach, brak emocji, zero coachingu w stylu "możesz to zrobić".
+- Raportuj jak system operacyjny do operatora. Bądź konkretny i techniczny.
 
-STRUKTURA ODPOWIEDZI:
+STRUKTURA ODPOWIEDZI (jeśli to diagnoza):
 - CO SIĘ DZIEJE: [Krótka, techniczna nazwa stanu]
 - DLACZEGO: [Analiza wektorów - podaj konkretne liczby z parametrów]
-- CO TO OZNACZA: [Konsekwencje dla wydajności w skali 48h]
-- ROZKAZ OPERACYJNY: [Konkretne działanie naprawcze]`
+- CO TO OZNACZA: [Konsekwencje dla wydajności]
+- ROZKAZ OPERACYJNY: [Konkretne działanie naprawcze]
+
+Jeśli użytkownik zadaje luźne pytanie, odpowiedz w tym samym zimnym, systemowym stylu, ale merytorycznie.`
+
+    // Prepare messages
+    const messages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+    ];
+
+    // Add history if exists
+    if (context.history && Array.isArray(context.history)) {
+      context.history.forEach((msg: any) => {
+        messages.push({ role: msg.role, content: msg.content });
+      });
+    }
+
+    // Add current context and query
+    messages.push({ 
+      role: 'user', 
+      content: `[DATA_VECTOR]: ${JSON.stringify(context.user_data)}\n\n[USER_QUERY]: ${context.current_query}` 
+    });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -49,12 +72,9 @@ STRUKTURA ODPOWIEDZI:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Current State Vector: ${JSON.stringify(context.user_data)}` }
-        ],
-        temperature: 0.1,
+        model: 'gpt-4o',
+        messages: messages,
+        temperature: 0.3,
       }),
     })
 

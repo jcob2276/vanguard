@@ -15,7 +15,7 @@ export const gatherUserContext = async (supabase, userId) => {
     supabase.from('stayfree_usage').select('*').eq('user_id', userId).gte('date', today),
     supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(7),
     supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
-    supabase.from('vanguard_identity').select('*').eq('user_id', userId).maybeSingle()
+    supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle()
   ]);
 
   // RAW DATA CHECK
