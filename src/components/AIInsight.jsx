@@ -40,7 +40,7 @@ export default function AIInsight({ session }) {
       // 2. CONSTRUCT STATE VECTOR (High Density)
       const stateVector = {
         state: vanguardState,
-        confidence: stayfreeToday.length > 0 && latestOura ? 0.9 : 0.6,
+        confidence: currentMetrics.confidence,
         now: new Date().toISOString(),
         metrics: {
           execution: currentMetrics.execution_ratio || 0,

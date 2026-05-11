@@ -321,7 +321,7 @@ STATUS: AKTYWNY BASELINE`;
 
     return {
       alignment_score: Math.round(alignmentScore),
-      drift_score: parseFloat((1.0 - (completed.length / 5)).toFixed(2)),
+      drift_score: parseFloat((1.0 - (categoriesCovered.size / 3)).toFixed(2)),
       gaps
     };
   }
