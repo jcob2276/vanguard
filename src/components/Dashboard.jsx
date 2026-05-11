@@ -33,7 +33,12 @@ export default function Dashboard({ session }) {
     localStorage.setItem('vanguard_view', view);
   }, [view]);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedDataTab, setSelectedDataTab] = useState('charts');
+  const [selectedDataTab, setSelectedDataTab] = useState(() => localStorage.getItem('vanguard_data_tab') || 'charts');
+
+  // Persist data tab to localStorage
+  useEffect(() => {
+    localStorage.setItem('vanguard_data_tab', selectedDataTab);
+  }, [selectedDataTab]);
   const { 
     lastDayASession, weeklyCalories, todayWin, 
     syncYazio, loading, nextSuggestedDay, refresh,
