@@ -364,7 +364,10 @@ STATUS: AKTYWNY BASELINE`;
         // i dzisiejszy sygnał jest słaby -> podbijamy ryzyko bazując na TWOJEJ historii
         if (Math.abs(c.r_value) > 0.4) {
           const signalVal = current[c.signal_name] || 0;
-          const isBadSignal = signalVal < baseline.means[c.signal_name];
+          const isBadSignal = c.r_value >= 0
+            ? signalVal < baseline.means[c.signal_name]   // Sygnał pozytywny (np. sen): niski = zły
+            : signalVal > baseline.means[c.signal_name];  // Sygnał negatywny (np. dopamina): wysoki = zły
+            
           if (isBadSignal) {
             statisticalRisk += Math.abs(c.r_value) * 0.2;
           }
