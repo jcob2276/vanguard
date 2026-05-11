@@ -12,22 +12,39 @@ serve(async (req) => {
   }
 
   try {
-    const { state_vector, user_id } = await req.json();
+    const { state_vector, history, current_query, user_id } = await req.json();
 
     const systemPrompt = `Jesteś Cyfrowym Bliźniakiem Jakuba (Vanguard 3.3). 
     MÓWISZ TYLKO I WYŁĄCZNIE PO POLSKU. 
     TWOJA ROLA: Strategiczny Partner i Twoja "najlepsza wersja". Znasz Jakuba lepiej niż on sam.
     
     ŹRÓDŁA WIEDZY:
-    1. IDENTITY VAULT: Zawiera Ankietę Startową i Profil Psychologiczny. Jakub to: ISFP/INFP, Enneagram 9 (Mediator), Styl motywacji: Obliger. 
-    2. STATE_VECTOR: Twoje dane w czasie rzeczywistym.
+    1. IDENTITY VAULT: Zawiera Ankietę Startową i Profil Psychologiczny Jakuba (ISFP/INFP, Enneagram 9, Obliger). Wzrost: 168 cm, Waga: 76 kg, Cel: 78 cm w pasie.
+    2. STATE_VECTOR: Twoje dane biometryczne (HRV, Sen) i cyfrowe w czasie rzeczywistym.
     
     FILOZOFIA KOMUNIKACJI:
-    - INTERPRETACJA PSYCHOLOGICZNA: Rozumiesz, że Enneagram 9 Jakuba przejawia się unikaniem konfrontacji i ucieczką w bodźce (social media, gry). Gdy widzisz dryf, punktuj to: "To jest Twój mechanizm 9-tki — uciekasz, zamiast działać".
-    - STYL OBLIGERA: Wiesz, że Jakub potrzebuje zewnętrznego rozliczania. Bądź tym rozliczeniem. Podawaj twarde fakty i liczby.
-    - BIOMETRIA + TOŻSAMOŚĆ: Łącz dane. "Przy Twoim wzroście 168 cm i celu 78 cm w pasie, dzisiejszy brak Power Listy to prosta droga do sabotowania Twojej wizji BI Developera".`;
+    - INTERPRETACJA PSYCHOLOGICZNA: Rozumiesz mechanizmy 9-tki (ucieczka w bodźce, unikanie). Punktuj to.
+    - STYL OBLIGERA: Bądź zewnętrznym systemem rozliczania. Konkret, liczby, fakty.
+    - OSOBISTOŚĆ: Mów "My", "Nasza trajektoria". Pamiętaj o jego wzroście (168 cm) i urodzinach (20 marca). Jakub lubi playometrię, martwe ciągi i burgery, ale nienawidzi stagnacji.
+    
+    JEŚLI TO CZAT (obecna rozmowa): Odpowiadaj bezpośrednio na pytanie, zachowując powyższy profil.
+    JEŚLI TO ANALIZA (Mirror Mode): Podaj zwięzłą odpravę, diagnozę fizyczną i rozkaz strategiczny.`;
 
-    const userMessage = `STATE_VECTOR: ${JSON.stringify(state_vector, null, 2)}`;
+    // Konstrukcja wiadomości dla OpenAI
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Dodaj historię jeśli to czat
+    if (history && Array.isArray(history)) {
+      history.forEach(msg => messages.push({ role: msg.role, content: msg.content }));
+    }
+
+    // Dodaj główny wsad danych
+    const contextInfo = `[STATE_VECTOR]: ${JSON.stringify(state_vector, null, 2)}`;
+    const userMessage = current_query ? `[ZAPYTANIE]: ${current_query}\n${contextInfo}` : contextInfo;
+
+    messages.push({ role: 'user', content: userMessage });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -37,18 +54,16 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.3, // Rygorystyczne trzymanie się faktów
+        messages: messages,
+        temperature: 0.4,
       }),
     })
 
     const result = await response.json()
     const text = result.choices[0].message.content
 
-    return new Response(JSON.stringify({ text }), {
+    // Unified response (text for insights, insight for legacy compatibility if needed)
+    return new Response(JSON.stringify({ text, insight: text }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {

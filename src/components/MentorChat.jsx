@@ -58,20 +58,19 @@ export default function MentorChat({ session }) {
       // 2. Gather Unified Vanguard Context (STATE_VECTOR 3.0)
       const vanguardContext = await gatherUserContext(session);
 
-      // 3. Call AI via Edge Function
-      const { data, error: functionError } = await supabase.functions.invoke('ai-advisor', {
+      // 3. Call AI via Unified Oracle
+      const { data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
         body: { 
-          context: {
-            vanguard_context: vanguardContext,
-            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
-            current_query: userMessage
-          }
+          state_vector: vanguardContext,
+          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          current_query: userMessage,
+          user_id: session.user.id
         }
       });
 
       if (functionError) throw functionError;
 
-      const assistantMsg = data.insight;
+      const assistantMsg = data.text;
 
       // 4. Save to DB
       await supabase.from('ai_chat_messages').insert([
