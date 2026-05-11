@@ -284,7 +284,7 @@ STATUS: AKTYWNY BASELINE`;
       this.db.from('user_fundament').select('*').eq('user_id', this.userId).maybeSingle(),
       this.db.from('vanguard_identity').select('*').eq('user_id', this.userId).maybeSingle(),
       this.db.from('daily_wins').select('journal_entry, gratitude_entry').eq('user_id', this.userId).eq('date', today).maybeSingle(),
-      this.db.from('vanguard_stream').select('content, classification, created_at').eq('user_id', this.userId).order('created_at', { ascending: false }).limit(5)
+      this.db.from('vanguard_stream').select('content, classification, timestamp').eq('user_id', this.userId).order('timestamp', { ascending: false }).limit(5)
     ]);
 
     return {
