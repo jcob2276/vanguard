@@ -276,20 +276,28 @@ STATUS: AKTYWNY BASELINE`;
    * POBIERA KONTEKST TOŻSAMOŚCI (Identity Vault)
    */
   async evaluateIdentityVault() {
-    const { data, error } = await this.db
+    // 1. Podstawowa tożsamość
+    const { data: vaultData } = await this.db
       .from('life_goals')
       .select('*')
       .eq('user_id', this.userId)
       .maybeSingle();
 
-    if (error || !data) return { philosophy: "Brak zdefiniowanego Fundamentu." };
+    // 2. Strumień świadomości (Telegram)
+    const { data: streamData } = await this.db
+      .from('vanguard_stream')
+      .select('content, classification, created_at')
+      .eq('user_id', this.userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
     
     return {
-      philosophy: data.vault_content || "Nieokreślona",
+      philosophy: vaultData?.vault_content || "Brak zdefiniowanego Fundamentu.",
+      stream: streamData || [],
       goals: {
-        cialo: data.goal_cialo,
-        duch: data.goal_duch,
-        konto: data.goal_konto
+        cialo: vaultData?.goal_cialo,
+        duch: vaultData?.goal_duch,
+        konto: vaultData?.goal_konto
       }
     };
   }
