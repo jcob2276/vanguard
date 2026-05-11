@@ -339,6 +339,16 @@ STATUS: AKTYWNY BASELINE`;
       .select('*')
       .eq('user_id', this.userId);
 
+    // 1. SIGNAL ONTOLOGY (Vanguard 3.3)
+    // Definiuje "kierunek destrukcyjny" dla każdego sygnału.
+    const ONTOLOGY = {
+      sleep: 'lower',
+      fragmentation: 'higher',
+      dopamine: 'higher',
+      hrv: 'lower',
+      execution: 'lower'
+    };
+
     // 2. Cliff Detection (Nieliniowe progi)
     const cliffFlags = [];
     if (current.sleep && current.sleep < 5.5) cliffFlags.push('CRITICAL_SLEEP_DEBT');
@@ -356,27 +366,29 @@ STATUS: AKTYWNY BASELINE`;
     const execTrend = this._mean(last7.map(d => d.execution_score));
     const isFalling = (current.execution_ratio || 0) < execTrend;
 
-    // 5. Statystyczny Kręgosłup (Dynamiczne wagi z Pearsona)
+    // 5. Statystyczny Kręgosłup (Pearson modulated by Ontology)
     let statisticalRisk = 0;
     if (corr && corr.length > 0) {
       corr.forEach(c => {
-        // Jeśli r jest silnie ujemne (np. sen skorelowany ujemnie z execution_score)
-        // i dzisiejszy sygnał jest słaby -> podbijamy ryzyko bazując na TWOJEJ historii
-        if (Math.abs(c.r_value) > 0.4) {
-          const signalVal = current[c.signal_name] || 0;
-          const isBadSignal = c.r_value >= 0
-            ? signalVal < baseline.means[c.signal_name]   // Sygnał pozytywny (np. sen): niski = zły
-            : signalVal > baseline.means[c.signal_name];  // Sygnał negatywny (np. dopamina): wysoki = zły
-            
-          if (isBadSignal) {
-            statisticalRisk += Math.abs(c.r_value) * 0.2;
-          }
+        const signalName = c.signal_name;
+        const direction = ONTOLOGY[signalName];
+        if (!direction) return;
+
+        const signalVal = current[signalName] || 0;
+        const mean = baseline.means[signalName];
+        
+        // Sprawdzamy czy sygnał idzie w stronę destrukcyjną zdefiniowaną w ontologii
+        const isInDestructiveZone = direction === 'lower' ? signalVal < mean : signalVal > mean;
+        
+        if (isInDestructiveZone && Math.abs(c.r_value) > 0.3) {
+          // Siła korelacji Pearsona określa wagę (magnitude) ryzyka
+          statisticalRisk += Math.abs(c.r_value) * 0.25;
         }
       });
     }
 
     // 6. Fusion (Statystyka + Refleks + Cliff)
-    const totalRiskScore = (0.2 + statisticalRisk + (synergyRisk - 1.0)) * (isFalling ? 1.3 : 1.0);
+    const totalRiskScore = (0.15 + statisticalRisk + (synergyRisk - 1.0)) * (isFalling ? 1.4 : 1.0);
     
     let prediction = {
       predicted_state: 'STABLE',
