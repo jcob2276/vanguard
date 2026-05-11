@@ -131,7 +131,7 @@ export default function Dashboard({ session }) {
         {/* TOP STATUS BAR (PREMIUM HUD) */}
         <header className="sticky top-0 z-30 px-6 py-4 bg-black/60 backdrop-blur-xl border-b border-white/5 flex justify-between items-center">
           <div>
-            <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">Digital Twin 2.0</h1>
+            <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">Digital Twin 3.0</h1>
             <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">{format(new Date(), 'EEEE, d MMMM')}</p>
           </div>
           <div className="flex items-center gap-2">
