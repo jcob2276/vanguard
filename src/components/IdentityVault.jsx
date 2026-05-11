@@ -17,7 +17,7 @@ export default function IdentityVault() {
         .from('life_goals')
         .select('vault_content')
         .maybeSingle();
-      
+
       if (data?.vault_content) {
         setContent(data.vault_content);
       }
@@ -29,21 +29,27 @@ export default function IdentityVault() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Pobieramy ID istniejącego wpisu
-      const { data: existing } = await supabase.from('life_goals').select('id').maybeSingle();
-      
-      if (existing?.id) {
-        await supabase
-          .from('life_goals')
-          .update({ vault_content: content })
-          .eq('id', existing.id);
-        
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      } else {
-        alert("Najpierw zdefiniuj swoje Cele w zakładce Path!");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Błąd: Nie jesteś zalogowany.");
+        return;
       }
+
+      // UPSERT - Zapisz lub zaktualizuj niezależnie od tego czy rekord istnieje
+      const { error } = await supabase
+        .from('life_goals')
+        .upsert({ 
+          user_id: user.id, 
+          vault_content: content,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      
+      if (error) throw error;
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (e) {
+      console.error("Vault save error:", e);
       alert("Błąd zapisu: " + e.message);
     }
     setLoading(false);
@@ -52,7 +58,7 @@ export default function IdentityVault() {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
@@ -86,9 +92,8 @@ export default function IdentityVault() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-[10px] transition-all ${
-          saved ? 'bg-emerald-500 text-white' : 'bg-primary text-white hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20'
-        }`}
+        className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-[10px] transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-primary text-white hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20'
+          }`}
       >
         {saved ? (
           <><CheckCircle2 size={16} /> Zapisano w Skarbcu</>
