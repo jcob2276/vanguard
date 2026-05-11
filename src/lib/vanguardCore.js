@@ -278,13 +278,51 @@ STATUS: AKTYWNY BASELINE`;
   async evaluateIdentityVault() {
     const { data, error } = await this.db
       .from('life_goals')
-      .select('vault_content')
+      .select('*')
       .eq('user_id', this.userId)
       .maybeSingle();
 
-    if (error || !data) return "Brak zdefiniowanego Fundamentu.";
+    if (error || !data) return { philosophy: "Brak zdefiniowanego Fundamentu." };
+    
     return {
-      philosophy: data.vault_content || "Nieokreślona"
+      philosophy: data.vault_content || "Nieokreślona",
+      goals: {
+        cialo: data.goal_cialo,
+        duch: data.goal_duch,
+        konto: data.goal_konto
+      }
+    };
+  }
+
+  /**
+   * GOAL ALIGNMENT ENGINE (Vanguard 3.2)
+   * Mapuje dzisiejsze zadania na cele i wykrywa dryf.
+   */
+  calculateGoalAlignment(todayWin) {
+    if (!todayWin) return { alignment_score: 0, drift_score: 1.0, gaps: ["Brak Power Listy na dziś."] };
+
+    const tasks = [
+      { t: todayWin.task_1, c: todayWin.category_1, d: todayWin.done_1 },
+      { t: todayWin.task_2, c: todayWin.category_2, d: todayWin.done_2 },
+      { t: todayWin.task_3, c: todayWin.category_3, d: todayWin.done_3 },
+      { t: todayWin.task_4, c: todayWin.category_4, d: todayWin.done_4 },
+      { t: todayWin.task_5, c: todayWin.category_5, d: todayWin.done_5 },
+    ];
+
+    const completed = tasks.filter(t => t.d);
+    const categoriesCovered = new Set(completed.map(t => t.c));
+    
+    // Prosty scoring: 3 kategorie = 100% alignment fundamentu
+    const alignmentScore = (categoriesCovered.size / 3) * 100;
+    const gaps = [];
+    if (!categoriesCovered.has('cialo')) gaps.push('Brak progresu w obszarze CIAŁO');
+    if (!categoriesCovered.has('duch')) gaps.push('Brak progresu w obszarze DUCH');
+    if (!categoriesCovered.has('konto')) gaps.push('Brak progresu w obszarze KONTO');
+
+    return {
+      alignment_score: Math.round(alignmentScore),
+      drift_score: parseFloat((1.0 - (completed.length / 5)).toFixed(2)),
+      gaps
     };
   }
 
@@ -318,19 +356,35 @@ STATUS: AKTYWNY BASELINE`;
     const execTrend = this._mean(last7.map(d => d.execution_score));
     const isFalling = (current.execution_ratio || 0) < execTrend;
 
-    // 5. Fusion (Statystyka + Refleks)
+    // 5. Statystyczny Kręgosłup (Dynamiczne wagi z Pearsona)
+    let statisticalRisk = 0;
+    if (corr && corr.length > 0) {
+      corr.forEach(c => {
+        // Jeśli r jest silnie ujemne (np. sen skorelowany ujemnie z execution_score)
+        // i dzisiejszy sygnał jest słaby -> podbijamy ryzyko bazując na TWOJEJ historii
+        if (Math.abs(c.r_value) > 0.4) {
+          const signalVal = current[c.signal_name] || 0;
+          const isBadSignal = signalVal < baseline.means[c.signal_name];
+          if (isBadSignal) {
+            statisticalRisk += Math.abs(c.r_value) * 0.2;
+          }
+        }
+      });
+    }
+
+    // 6. Fusion (Statystyka + Refleks + Cliff)
+    const totalRiskScore = (0.2 + statisticalRisk + (synergyRisk - 1.0)) * (isFalling ? 1.3 : 1.0);
+    
     let prediction = {
       predicted_state: 'STABLE',
-      risk_score: 0.2,
-      drivers: cliffFlags
+      risk_score: parseFloat(totalRiskScore.toFixed(2)),
+      drivers: [...cliffFlags]
     };
 
-    if (cliffFlags.length > 0 || (synergyRisk > 1.2 && isFalling)) {
+    if (cliffFlags.length > 0 || totalRiskScore > 0.6) {
       prediction.predicted_state = 'AVOIDANCE_RISK';
-      prediction.risk_score = 0.75 * synergyRisk;
-    } else if (isFalling) {
+    } else if (isFalling || totalRiskScore > 0.4) {
       prediction.predicted_state = 'MOMENTUM_LOSS';
-      prediction.risk_score = 0.4;
     }
 
     return prediction;

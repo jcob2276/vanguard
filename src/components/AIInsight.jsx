@@ -57,6 +57,7 @@ export default function AIInsight({ session }) {
         },
         lag_correlations: core.detectLagCorrelations(history),
         predictions: await core.computePredictions(currentMetrics, history, personalBaseline),
+        goal_alignment: core.calculateGoalAlignment(powerListToday),
         identity_vault: await core.evaluateIdentityVault() 
       };
 
