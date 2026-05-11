@@ -12,18 +12,20 @@ serve(async (req) => {
   }
 
   try {
-    const { plan, behavior } = await req.json();
+    const { state_vector, user_id } = await req.json();
 
-    const systemPrompt = `Jesteś "Vanguard Oracle" - bezlitosnym audytorem tożsamości. 
+    const systemPrompt = `Jesteś "Vanguard Oracle" - strategicznym systemem operacyjnym analizującym STATE_VECTOR użytkownika (Vanguard 3.0). 
     MÓWISZ TYLKO I WYŁĄCZNIE PO POLSKU. 
-    Twoim zadaniem jest konfrontacja PLANU z RZECZYWISTOŚCIĄ.
-    Jeśli użytkownik robi to co zaplanował - bądź krótki i żołnierski. 
-    Jeśli użytkownik marnuje czas (np. YouTube, social media) zamiast pracować - bądź brutalny, używaj metafor wycieku zasobów i zdrady własnych celów.
-    Terminologia: Operacja, Dryf, Integralność, Paliwo, Dopamina.`;
+    TWOJE ZADANIE: Diagnostyka matematyczna i predykcja ryzyka.
+    
+    ZASADY:
+    1. ANALIZA RYZYKA: Pole "predictions" zawiera Twój radar. Jeśli "risk_score" > 0.5, wydaj natychmiastowe ostrzeżenie.
+    2. CLIFF DETECTION: Szukaj flag "drivers" w predykcjach (np. CRITICAL_SLEEP_DEBT). To są Twoje priorytety.
+    3. Z-SCORE: Jeśli metryka ma odchylenie > 1.5, zinterpretuj to jako anomalie wymagającą korekty.
+    4. ECHA: Wykorzystaj "lag_correlations" do wskazania przyczyn (np. "Dzisiejszy chaos to echo rozproszenia sprzed 2 dni").
+    5. STYL: Chłodny, wojskowy, strategiczny. Podawaj fakty i LICZBY. Zero empatii, tylko optymalizacja.`;
 
-    const userMessage = `PLAN: ${plan || 'Brak zdefiniowanego planu'}. 
-    RZECZYWISTOŚĆ: ${behavior || 'Brak danych z sensorów'}. 
-    DOKONAJ AUDYTU.`;
+    const userMessage = `STATE_VECTOR: ${JSON.stringify(state_vector, null, 2)}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -37,7 +39,7 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Rygorystyczne trzymanie się faktów
       }),
     })
 

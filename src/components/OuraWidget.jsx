@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { syncOuraData } from '../lib/oura';
 import { Battery, Moon, Footprints, Star, RefreshCw, Key, Plus, Activity, Thermometer, Zap } from 'lucide-react';
-import { translateBiometrics } from '../lib/stateEngine';
+import { VanguardCore } from '../lib/vanguardCore';
 
 const TrendArrow = ({ current, previous, better = 'up' }) => {
   if (previous === undefined || previous === null || current === undefined || current === null) return null;
@@ -133,7 +133,7 @@ export default function OuraWidget({ session }) {
   const sleepHours = Math.floor(activeOura?.total_sleep_hours || 0);
   const sleepMinutes = Math.round(((activeOura?.total_sleep_hours || 0) % 1) * 60);
 
-  const insights = translateBiometrics(activeOura);
+  const insights = VanguardCore.translateBiometrics(activeOura);
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">

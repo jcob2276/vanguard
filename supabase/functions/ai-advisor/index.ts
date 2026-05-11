@@ -60,9 +60,15 @@ Jeśli użytkownik zadaje luźne pytanie, odpowiedz w tym samym zimnym, systemow
     }
 
     // Add current context and query
+    const userPrompt = `
+[VANGUARD_CONTEXT]: ${context.vanguard_context || 'Brak rozszerzonego kontekstu'}
+[DATA_VECTOR]: ${JSON.stringify(context.user_data)}
+[USER_QUERY]: ${context.current_query}
+    `;
+
     messages.push({ 
       role: 'user', 
-      content: `[DATA_VECTOR]: ${JSON.stringify(context.user_data)}\n\n[USER_QUERY]: ${context.current_query}` 
+      content: userPrompt
     });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

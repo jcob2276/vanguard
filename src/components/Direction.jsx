@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, MessageSquare, Heart, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy, Activity } from 'lucide-react';
 import { format, subDays, startOfDay, parseISO, differenceInDays, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { detectState } from '../lib/stateEngine';
+import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import StayFreeSync from './StayFreeSync';
 
 const TrendArrow = ({ current, previous, better = 'up' }) => {
@@ -164,27 +164,28 @@ export default function Direction({ session }) {
 
   const { streak, weeklyWin, weeklyP, monthlyWin, weeks } = stats;
 
-  const [currentState, setCurrentState] = useState('STABLE');
+  const [currentState, setCurrentState] = useState('CALIBRATING');
 
   useEffect(() => {
     async function checkDrift() {
       if (loading || !session?.user?.id) return;
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const { data: oura } = await supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle();
-      const { data: prot } = await supabase.from('daily_nutrition').select('protein').eq('date', today).maybeSingle();
-      const { data: workout } = await supabase.from('workout_sessions').select('id').eq('date', today).maybeSingle();
       
-      const state = detectState({
-        todayWin,
-        oura,
-        workoutToday: !!workout,
-        streak,
-        protein: prot?.protein || 0
-      });
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const core = new VanguardCore(session.user.id, supabase);
+
+      const [ouraRes, stayfreeRes] = await Promise.all([
+        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today)
+      ]);
+
+      const signals = computeSignals(stayfreeRes.data || [], ouraRes.data, todayWin);
+      const baseline = await core.getPersonalBaseline();
+      const state = await core.determineState(signals, baseline);
+      
       setCurrentState(state);
     }
     checkDrift();
-  }, [loading, todayWin, streak, session?.user?.id]);
+  }, [loading, todayWin, session?.user?.id]);
 
   const isDrifting = ['CHAOS', 'AVOIDANCE'].includes(currentState);
 

@@ -10,7 +10,8 @@ export default function Fundament({ onBack }) {
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
-    avoidance_triggers: ''
+    avoidance_triggers: '',
+    behavioral_baseline: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,7 +34,8 @@ export default function Fundament({ onBack }) {
       setIdentity({
         long_term_mission: data.long_term_mission || '',
         pillars: data.pillars || ['', '', ''],
-        avoidance_triggers: data.avoidance_triggers || ''
+        avoidance_triggers: data.avoidance_triggers || '',
+        behavioral_baseline: data.behavioral_baseline ? JSON.stringify(data.behavioral_baseline, null, 2) : ''
       });
     }
     setLoading(false);
@@ -41,22 +43,39 @@ export default function Fundament({ onBack }) {
 
   async function saveIdentity() {
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const { error } = await supabase
-      .from('vanguard_identity')
-      .upsert({
-        user_id: session.user.id,
-        long_term_mission: identity.long_term_mission,
-        pillars: identity.pillars,
-        avoidance_triggers: identity.avoidance_triggers,
-        updated_at: new Date().toISOString()
-      });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Brak aktywnej sesji.');
 
-    if (!error) {
+      let baselineJson = null;
+      if (identity.behavioral_baseline) {
+        try {
+          baselineJson = JSON.parse(identity.behavioral_baseline);
+        } catch (e) {
+          throw new Error('BŁĄD FORMATU JSON: Upewnij się, że wkleiłeś poprawny kod ze skryptu Python.');
+        }
+      }
+      
+      const { error } = await supabase
+        .from('vanguard_identity')
+        .upsert({
+          user_id: session.user.id,
+          long_term_mission: identity.long_term_mission,
+          pillars: identity.pillars,
+          avoidance_triggers: identity.avoidance_triggers,
+          behavioral_baseline: baselineJson,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
       alert('IDENTYFIKACJA ZAPISANA. Digital Twin zsynchronizowany.');
+    } catch (err) {
+      console.error('Save Identity Error:', err);
+      alert(`BŁĄD ZAPISU: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   if (loading) return null;
@@ -120,14 +139,7 @@ export default function Fundament({ onBack }) {
           />
         </section>
 
-        <button 
-          onClick={saveIdentity}
-          disabled={saving}
-          className="w-full bg-primary text-white py-4 rounded-xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          <Fingerprint size={18} /> {saving ? 'SYNCHRONIZACJA...' : 'Zapisz Fundament Tożsamości'}
-        </button>
-        
+        {/* Vault */}
         <div className="pt-8 border-t border-white/5 space-y-4">
           <div className="flex items-center gap-2">
             <Database className="text-primary" size={16} />
@@ -136,6 +148,29 @@ export default function Fundament({ onBack }) {
           <p className="text-[9px] text-neutral-500 font-bold uppercase">Wgraj tutaj swoje ankiety, wyniki testów i notatki o sobie. AI będzie ich używać do każdej analizy.</p>
           <IdentityVault />
         </div>
+
+        {/* Memory Ingest (NEW) */}
+        <div className="pt-8 border-t border-white/5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Zap className="text-primary" size={16} />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Behavioral Memory Ingest (Takeout JSON)</h3>
+          </div>
+          <p className="text-[9px] text-neutral-500 font-bold uppercase">Wklej tutaj wynik ze skryptu signal_engine.py. To zbuduje Twój statystyczny baseline.</p>
+          <textarea 
+            value={identity.behavioral_baseline}
+            onChange={(e) => setIdentity({...identity, behavioral_baseline: e.target.value})}
+            placeholder='{"baselineMode": "THE_BUILDER", ...}'
+            className="w-full bg-black border border-neutral-800 rounded-xl p-4 text-[10px] font-mono text-primary outline-none focus:border-primary min-h-[150px] transition-all"
+          />
+        </div>
+
+        <button 
+          onClick={saveIdentity}
+          disabled={saving}
+          className="w-full bg-primary text-white py-4 rounded-xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          <Fingerprint size={18} /> {saving ? 'SYNCHRONIZACJA...' : 'ZAPISZ CAŁY FUNDAMENT I MEMORY'}
+        </button>
       </div>
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">

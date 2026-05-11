@@ -35,6 +35,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "postcss": "^8.5.12",
+    "supabase": "^2.98.2",
     "vite": "^8.0.10",
     "vite-plugin-pwa": "^1.2.0"
   }

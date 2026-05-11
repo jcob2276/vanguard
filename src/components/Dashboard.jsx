@@ -18,6 +18,7 @@ import AIInsight from './AIInsight';
 import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
 import IntentionTracker from './IntentionTracker';
+import ThoughtStream from './ThoughtStream';
 import { syncActivityWatch } from '../lib/activityWatch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
@@ -206,6 +207,8 @@ export default function Dashboard({ session }) {
 
               {/* AI INSIGHT LAYER */}
               <AIInsight session={session} />
+
+
 
               {/* PROTOCOL MODULES GRID */}
               <div className="grid grid-cols-2 gap-4">

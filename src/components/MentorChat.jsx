@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { gatherUserContext } from '../lib/aiContext';
+import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import { Send, Sparkles, RefreshCw, User, Bot, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -54,18 +55,14 @@ export default function MentorChat({ session }) {
     setMessages(prev => [...prev, tempUserMsg]);
 
     try {
-      // 2. Gather fresh context
-      const userData = await gatherUserContext(supabase, session.user.id);
+      // 2. Gather Unified Vanguard Context (STATE_VECTOR 3.0)
+      const vanguardContext = await gatherUserContext(session);
 
-      // 3. Prepare full conversation for AI
-      // We take last 10 messages for context window
-      const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
-
-      // 4. Call AI via Edge Function
+      // 3. Call AI via Edge Function
       const { data, error: functionError } = await supabase.functions.invoke('ai-advisor', {
         body: { 
           context: {
-            user_data: userData,
+            vanguard_context: vanguardContext,
             history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
             current_query: userMessage
           }
@@ -76,7 +73,7 @@ export default function MentorChat({ session }) {
 
       const assistantMsg = data.insight;
 
-      // 5. Save to DB
+      // 4. Save to DB
       await supabase.from('ai_chat_messages').insert([
         { user_id: session.user.id, role: 'user', content: userMessage },
         { user_id: session.user.id, role: 'assistant', content: assistantMsg }
