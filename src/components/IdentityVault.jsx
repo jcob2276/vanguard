@@ -40,8 +40,7 @@ export default function IdentityVault() {
         .from('life_goals')
         .upsert({ 
           user_id: user.id, 
-          vault_content: content,
-          updated_at: new Date().toISOString()
+          vault_content: content
         }, { onConflict: 'user_id' });
       
       if (error) throw error;
