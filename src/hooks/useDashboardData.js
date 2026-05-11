@@ -94,6 +94,16 @@ export function useDashboardData() {
         .order('date', { ascending: false })
         .limit(30);
 
+      const { data: historyWins } = await supabase
+        .from('daily_wins')
+        .select('result')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false })
+        .limit(7);
+
+      const stableCount = historyWins?.filter(w => w.result === 'Z').length || 0;
+      const stability = Math.round((stableCount / 7) * 100);
+
       setData({
         mspFeedbackMap: feedbackMap,
         lastDayASession: lastA,
@@ -102,6 +112,8 @@ export function useDashboardData() {
         proteinToday: protData?.protein || 0,
         hasWorkoutToday: !!workoutToday,
         ouraToday: ouraData,
+        readiness: ouraData?.[0]?.readiness_score || 0,
+        stability: stability,
         nextSuggestedDay: nextDay,
         loading: false
       });

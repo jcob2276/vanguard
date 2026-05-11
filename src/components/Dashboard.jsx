@@ -30,8 +30,21 @@ export default function Dashboard({ session }) {
   const [selectedDataTab, setSelectedDataTab] = useState('charts');
   const { 
     lastDayASession, weeklyCalories, todayWin, 
-    syncYazio, loading, nextSuggestedDay, refresh 
+    syncYazio, loading, nextSuggestedDay, refresh,
+    readiness, stability
   } = useDashboardData();
+
+  // Logic for HUD values
+  const doneCount = todayWin ? [1,2,3,4,5].filter(i => todayWin[`done_${i}`]).length : 0;
+  const focusText = doneCount >= 4 ? 'High' : doneCount >= 2 ? 'Moderate' : 'Low';
+  
+  const recoveryText = readiness >= 85 ? 'Optimal' : readiness >= 70 ? 'Stable' : readiness >= 50 ? 'Fair' : readiness > 0 ? 'Critical' : 'No Data';
+  const stabilityText = `${stability}%`;
+
+  // Colors
+  const focusColor = doneCount >= 4 ? 'text-primary' : doneCount >= 2 ? 'text-orange-400' : 'text-red-500';
+  const recoveryColor = readiness >= 70 ? 'text-white' : 'text-red-500';
+  const stabilityColor = stability >= 80 ? 'text-white' : stability >= 50 ? 'text-orange-400' : 'text-red-500';
   const { isSyncing, setSyncing } = useStore();
   const weeklyBudget = 12600;
 
@@ -185,15 +198,15 @@ export default function Dashboard({ session }) {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <p className="text-[8px] font-bold text-white/30 uppercase">Focus</p>
-                      <p className="text-xs font-black text-white italic">High</p>
+                      <p className={`text-xs font-black italic uppercase ${focusColor}`}>{focusText}</p>
                     </div>
                     <div className="space-y-1 text-center border-x border-white/5">
                       <p className="text-[8px] font-bold text-white/30 uppercase">Recovery</p>
-                      <p className="text-xs font-black text-white italic">Stable</p>
+                      <p className={`text-xs font-black italic uppercase ${recoveryColor}`}>{recoveryText}</p>
                     </div>
                     <div className="space-y-1 text-right">
                       <p className="text-[8px] font-bold text-white/30 uppercase">Stability</p>
-                      <p className="text-xs font-black text-white italic">94%</p>
+                      <p className={`text-xs font-black italic uppercase ${stabilityColor}`}>{stabilityText}</p>
                     </div>
                   </div>
                 </div>
@@ -230,7 +243,7 @@ export default function Dashboard({ session }) {
                 </button>
 
                 {/* Nutrition Module */}
-                <div className="bg-neutral-900/40 border border-white/5 rounded-2xl p-5 space-y-4">
+                <div className="col-span-2 bg-neutral-900/40 border border-white/5 rounded-2xl p-5 space-y-4">
                   <div className="flex justify-between items-center">
                     <Zap size={16} className="text-orange-500" />
                     <button onClick={syncYazio} disabled={isSyncing} className={`text-white/20 hover:text-white transition-all ${isSyncing ? 'animate-spin' : ''}`}>
@@ -249,21 +262,7 @@ export default function Dashboard({ session }) {
                   </div>
                 </div>
 
-                {/* Biological Module (Oura/StayFree) */}
-                <button 
-                  onClick={() => setView('stayfree')}
-                  className="bg-neutral-900/40 border border-white/5 rounded-2xl p-5 space-y-4 hover:border-white/20 transition-all"
-                >
-                  <div className="flex justify-between items-center">
-                    <Activity size={16} className="text-primary" />
-                    <Compass size={14} className="text-white/20" />
-                  </div>
-                  <div>
-                    <p className="text-[8px] font-bold text-white/30 uppercase mb-1">Digital Signal</p>
-                    <p className="text-sm font-black text-white italic">Sync Ready</p>
-                  </div>
-                  <p className="text-[7px] font-black text-primary uppercase tracking-widest">Mirror Mode Active</p>
-                </button>
+
               </div>
 
               {/* Biological History (Oura) */}

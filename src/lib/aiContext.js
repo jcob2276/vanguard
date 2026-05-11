@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { VanguardCore, computeSignals } from './vanguardCore';
-import { format } from 'date-fns';
+import { format, startOfWeek, subDays } from 'date-fns';
 
 /**
  * AI CONTEXT 3.1 - Unified & Complete Bridge
@@ -14,11 +14,18 @@ export async function gatherUserContext(session) {
   const core = new VanguardCore(userId, supabase);
 
   try {
-    const [stayfreeRes, latestOuraRes, powerListRes, historyRes] = await Promise.all([
+    const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const lastWeekStart = format(startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    
+    const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes] = await Promise.all([
       supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today),
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
-      supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).order('date', { ascending: true })
+      supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).order('date', { ascending: true }),
+      supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
+      supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', lastWeekStart).maybeSingle(),
+      supabase.from('weekly_reviews').select('*').eq('user_id', userId).order('week_start', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('vanguard_footprint').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(20)
     ]);
 
     const currentMetrics = computeSignals(stayfreeRes.data || [], latestOuraRes.data, powerListRes.data);
@@ -47,7 +54,25 @@ export async function gatherUserContext(session) {
       lag_correlations: core.detectLagCorrelations(history),
       predictions: await core.computePredictions(currentMetrics, history, personalBaseline),
       goal_alignment: core.calculateGoalAlignment(powerListRes.data),
-      identity_vault: await core.evaluateIdentityVault() 
+      identity_vault: await core.evaluateIdentityVault(),
+      weekly_protocol: {
+        is_sunday: new Date().getDay() === 0,
+        current_week_review_done: !!currentReviewRes.data,
+        previous_week_review_missing: !lastWeekReviewRes.data,
+        last_review_insights: lastReviewRes.data ? {
+          date: lastReviewRes.data.week_start,
+          proud_of: lastReviewRes.data.proud_of,
+          sabotage: lastReviewRes.data.sabotage,
+          improvements: lastReviewRes.data.do_differently
+        } : null
+      },
+      active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
+      desktop_footprint: footprintRes.data?.map(f => ({
+        timestamp: f.timestamp,
+        app: f.payload?.window?.app,
+        title: f.payload?.window?.title,
+        web_url: f.payload?.web?.url
+      })) || []
     };
 
     return stateVector;

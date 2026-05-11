@@ -135,28 +135,31 @@ export default function Direction({ session }) {
       });
       
       const today = startOfDay(new Date());
-      let expectedDays;
+      let expectedPastDays;
       
       if (isWithinInterval(today, { start, end })) {
-        expectedDays = differenceInDays(today, start) + 1;
+        expectedPastDays = differenceInDays(today, start);
       } else {
-        expectedDays = 7;
+        expectedPastDays = 7;
       }
 
-      // Ważne: Liczymy tylko dni, które są PO dacie startu aplikacji
-      let effectiveExpectedDays = 0;
-      for (let d = 0; d < expectedDays; d++) {
-        const currentCheckDate = subDays(today, (isWithinInterval(today, { start, end }) ? 0 : differenceInDays(today, end)) + (expectedDays - 1 - d));
-        // Simple way: if the day of this week we are checking is >= START_DATE
-        const checkDateObj = startOfDay(subDays(isWithinInterval(today, { start, end }) ? today : end, expectedDays - 1 - d));
-        if (checkDateObj >= START_DATE_OBJ) {
-          effectiveExpectedDays++;
+      // Liczymy ile dni w historii tego tygodnia to porażki 'P' 
+      // ORAZ ile dni w przeszłości tego tygodnia w ogóle nie ma wpisu
+      const zCount = weekDays.filter(d => d.result === 'Z').length;
+      const explicitPCount = weekDays.filter(d => d.result === 'P').length;
+      
+      // Sprawdzamy brakujące dni TYLKO dla dat < dzisiaj
+      let missingDaysCount = 0;
+      for (let d = 0; d < expectedPastDays; d++) {
+        const checkDate = format(subDays(today, expectedPastDays - d), 'yyyy-MM-dd');
+        const hasEntry = weekDays.some(wd => wd.date === checkDate);
+        if (!hasEntry && checkDate >= '2026-05-03') {
+          missingDaysCount++;
         }
       }
 
-      const zCount = weekDays.filter(d => d.result === 'Z').length;
-      const pCount = weekDays.filter(d => d.result === 'P').length + Math.max(0, effectiveExpectedDays - weekDays.length);
-      weeks.push({ isWeekWin: pCount <= 2 && effectiveExpectedDays > 0, pCount, zCount, start });
+      const pCount = explicitPCount + missingDaysCount;
+      weeks.push({ isWeekWin: pCount <= 2 && (expectedPastDays > 0 || weekDays.length > 0), pCount, zCount, start });
     }
 
     return { streak, weeklyWin: weeks[0]?.isWeekWin, weeklyP: weeks[0]?.pCount, monthlyWin: weeks.filter(w => w.isWeekWin).length >= 3, weeks };
@@ -735,33 +738,37 @@ export default function Direction({ session }) {
         </h2>
 
         {/* Grid 30-dniowy */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {Array.from({ length: 30 }).map((_, i) => {
-            const date = format(subDays(new Date(), 29 - i), 'yyyy-MM-dd');
+        {/* Grid 28-dniowy (Wyrównany do Poniedziałków) */}
+        <div className="grid grid-cols-7 gap-2 w-fit mx-auto">
+          {Array.from({ length: 28 }).map((_, i) => {
+            // Grid zaczyna się 3 tygodnie temu w poniedziałek
+            const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
+            const dateObj = subDays(gridStart, -i);
+            const date = format(dateObj, 'yyyy-MM-dd');
             const today = format(new Date(), 'yyyy-MM-dd');
             const dayData = history.find(d => d.date === date);
+            const isFuture = dateObj > new Date();
             
-            // Logic: 
-            // 1. Z (Success) -> Green
-            // 2. P (Failure) -> Red
-            // 3. Missing & Past (After May 3rd) -> Red (Brak planu = Porażka)
-            // 4. Before May 3rd OR Today/Future -> Neutral
             const START_DATE = '2026-05-03';
             let color = 'bg-neutral-900';
-            if (dayData?.result === 'Z') color = 'bg-dayC';
+            if (isFuture) color = 'bg-transparent border border-white/5';
+            else if (dayData?.result === 'Z') color = 'bg-dayC';
             else if (dayData?.result === 'P') color = 'bg-dayB';
             else if (date < today && !dayData && date >= START_DATE) color = 'bg-dayB'; 
 
-            const isActive = dayData?.result != null || (date < today && !dayData && date >= START_DATE);
+            const isActive = !isFuture && (dayData?.result != null || (date < today && !dayData && date >= START_DATE));
 
             return (
               <div 
                 key={i} 
-                className={`w-6 h-6 rounded-sm ${color} ${!isActive && 'border border-neutral-900'} relative group transition-colors duration-500`}
+                className={`w-8 h-8 rounded-md ${color} ${!isActive && !isFuture && 'border border-neutral-900'} relative group transition-colors duration-500 flex items-center justify-center`}
               >
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-950 px-2 py-1 rounded text-[8px] font-black text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 border border-neutral-800">
-                  {format(parseISO(date), 'dd.MM')} {dayData?.result === 'Z' ? '(WIN)' : (dayData?.result === 'P' || (date < today && !dayData)) ? '(LOSS)' : '(EMPTY)'}
-                </div>
+                {!isFuture && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-950 px-2 py-1 rounded text-[8px] font-black text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 border border-neutral-800">
+                    {format(parseISO(date), 'dd.MM')} {dayData?.result === 'Z' ? '(WIN)' : (dayData?.result === 'P' || (date < today && !dayData)) ? '(LOSS)' : '(EMPTY)'}
+                  </div>
+                )}
+                {date === today && <div className="w-1 h-1 bg-white rounded-full absolute bottom-1" />}
               </div>
             );
           })}
@@ -779,8 +786,8 @@ export default function Direction({ session }) {
 
           <div className="card bg-neutral-900/30 p-5 text-center">
             <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mb-1">Tydzień Wygrany?</p>
-            <div className={`text-xl font-black italic uppercase ${weeklyWin ? 'text-dayC' : 'text-dayB'}`}>
-              {weeklyWin ? 'TAK' : 'NIE'}
+            <div className={`text-xl font-black italic uppercase ${weeklyP > 2 ? 'text-dayB' : (isSunday ? 'text-dayC' : 'text-blue-400')}`}>
+              {weeklyP > 2 ? 'NIE' : (isSunday ? 'TAK' : 'W TRAKCIE')}
             </div>
             <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mt-1">{weeklyP} Porażek</p>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Plus, Trash2, Camera } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 export default function Photos({ session }) {
@@ -9,6 +9,10 @@ export default function Photos({ session }) {
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [photoDate, setPhotoDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Selection logic for comparison
+  const [baseId, setBaseId] = useState(null);
+  const [targetId, setTargetId] = useState(null);
 
   useEffect(() => {
     fetchPhotos();
@@ -18,10 +22,31 @@ export default function Photos({ session }) {
     const { data } = await supabase
       .from('progress_photos')
       .select('*')
-      .eq('user_id', session.user.id)
-      .order('date', { ascending: true }); // Ascending to get oldest first
-    if (data) setPhotos(data);
+      .order('date', { ascending: true });
+    
+    if (data && data.length > 0) {
+      setPhotos(data);
+      // Domyślnie ustawiamy pierwsze i ostatnie
+      setBaseId(data[0].id);
+      setTargetId(data[data.length - 1].id);
+    }
     setLoading(false);
+  }
+
+  const basePhoto = photos.find(p => p.id === baseId);
+  const targetPhoto = photos.find(p => p.id === targetId);
+  
+  const daysDiff = (basePhoto && targetPhoto) 
+    ? Math.abs(differenceInDays(parseISO(targetPhoto.date), parseISO(basePhoto.date))) 
+    : 0;
+
+  function handleSelect(id) {
+    if (id === baseId) return; 
+    if (id === targetId) {
+      setTargetId(null);
+      return;
+    }
+    setTargetId(id);
   }
 
   async function uploadPhoto(e) {
@@ -51,98 +76,122 @@ export default function Photos({ session }) {
     fetchPhotos();
   }
 
-  if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black">Wczytywanie...</div>;
-
-  const oldest = photos.length > 0 ? photos[0] : null;
-  const newest = photos.length > 1 ? photos[photos.length - 1] : null;
+  if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse">Wczytywanie Analizy Wizualnej...</div>;
 
   return (
-    <div className="flex-1 p-6 space-y-10 pb-24">
+    <div className="flex-1 p-6 space-y-8 pb-24">
       
-      {/* Header & Upload */}
-      <header className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Transformacja</h2>
-          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Dzień 1 vs Dzisiaj</p>
+      {/* HEADER */}
+      <header className="flex justify-between items-start">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter leading-none">Visual Protocol</h2>
+          <p className="text-[9px] text-primary font-black uppercase tracking-[0.3em]">Transformacja Fizyczna</p>
         </div>
-        <div className="flex items-center gap-3">
-          <input 
-            type="date" 
-            value={photoDate} 
-            onChange={(e) => setPhotoDate(e.target.value)} 
-            className="bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-[10px] font-black text-white outline-none" 
-          />
-          <label className="cursor-pointer bg-primary text-white p-3 rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-            {uploading ? <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> : <Camera size={24} />}
-            <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
-          </label>
-        </div>
+        <label className="cursor-pointer bg-neutral-900 border border-white/10 text-white p-3 rounded-2xl hover:bg-primary hover:border-primary transition-all shadow-xl">
+          {uploading ? <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" /> : <Camera size={20} />}
+          <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
+        </label>
       </header>
 
-      {/* Main Comparison */}
-      <section className="space-y-4">
-        <div className="grid grid-cols-2 gap-2">
-          {/* Oldest Photo */}
-          <div className="space-y-2">
-            <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest ml-1">Tydzień 1</span>
-            <div className="aspect-[3/4] bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative">
-              {oldest ? (
+      {/* COMPARISON ENGINE */}
+      <section className="space-y-6">
+        <div className="relative aspect-[4/5] bg-neutral-950 rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+          {/* Comparison Layer */}
+          <div className="absolute inset-0 flex">
+            {/* Base (Left) */}
+            <div className="relative flex-1 border-r border-white/10 group overflow-hidden">
+              {basePhoto ? (
                 <>
-                  <img src={oldest.image_url} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                    <p className="text-[10px] font-black text-white uppercase">{format(parseISO(oldest.date), 'dd.MM.yyyy')}</p>
+                  <img src={basePhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                    <p className="text-[8px] font-black text-white/60 uppercase tracking-widest">Base: {format(parseISO(basePhoto.date), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-700 font-black uppercase">Brak zdjęcia</div>
+                <div className="flex items-center justify-center h-full text-[10px] font-black text-white/10 uppercase italic">Wybierz bazę</div>
+              )}
+            </div>
+
+            {/* Target (Right) */}
+            <div className="relative flex-1 group overflow-hidden">
+              {targetPhoto ? (
+                <>
+                  <img src={targetPhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute top-4 right-4 bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30">
+                    <p className="text-[8px] font-black text-primary uppercase tracking-widest">Target: {format(parseISO(targetPhoto.date), 'dd.MM.yy')}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full text-[10px] font-black text-white/10 uppercase italic">Wybierz cel</div>
               )}
             </div>
           </div>
 
-          {/* Newest Photo */}
-          <div className="space-y-2">
-            <span className="text-[8px] font-black text-primary uppercase tracking-widest ml-1">Aktualne</span>
-            <div className="aspect-[3/4] bg-neutral-900 rounded-2xl overflow-hidden border border-primary relative shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-              {newest ? (
-                <>
-                  <img src={newest.image_url} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                    <p className="text-[10px] font-black text-white uppercase">{format(parseISO(newest.date), 'dd.MM.yyyy')}</p>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-700 font-black uppercase italic">Dodaj nowe...</div>
-              )}
+          {/* Center Badge */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none">
+            <div className="bg-black/60 backdrop-blur-xl border border-white/10 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl">
+              <span className="text-[10px] font-black text-white italic">VS</span>
             </div>
           </div>
+
+          {/* Bottom Metric */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-2 rounded-full shadow-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">+{daysDiff} Dni Progresu</p>
+          </div>
+        </div>
+      </section>
+
+      {/* TIMELINE (Interactive Selection) */}
+      <section className="space-y-4">
+        <div className="flex justify-between items-center px-1">
+          <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Timeline Transformacji</h3>
+          <p className="text-[8px] font-bold text-neutral-600 uppercase">Kliknij aby zestawić</p>
         </div>
         
-        {(!oldest || !newest) && (
-          <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl text-center">
-            <p className="text-[10px] font-bold text-neutral-500 uppercase">Potrzebujesz min. 2 zdjęć, aby zobaczyć porównanie.</p>
-          </div>
-        )}
-      </section>
+        <div className="flex gap-4 overflow-x-auto pb-6 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {photos.map((photo) => {
+            const isBase = photo.id === baseId;
+            const isTarget = photo.id === targetId;
 
-      {/* History List (Small & Tidy) */}
-      <section className="space-y-4 pt-4 border-t border-neutral-900">
-        <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Wszystkie zdjęcia</h3>
-        <div className="flex gap-4 overflow-x-auto pb-8 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {photos.map((photo) => (
-            <div key={photo.id} className="snap-center shrink-0 w-32 space-y-2 relative group">
-              <div className="aspect-[3/4] rounded-lg overflow-hidden border border-neutral-800">
-                <img src={photo.image_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-              </div>
-              <div className="flex justify-between items-center px-1">
-                <span className="text-[8px] font-bold text-neutral-600">{format(parseISO(photo.date), 'dd.MM')}</span>
-                <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="text-neutral-700 hover:text-red-500 transition-colors">
-                  <Trash2 size={10} />
+            return (
+              <div key={photo.id} className="snap-start shrink-0 space-y-2">
+                <button 
+                  onClick={() => handleSelect(photo.id)}
+                  className={`relative w-24 aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-500 ${isBase ? 'border-white scale-105 z-10' : isTarget ? 'border-primary scale-105 z-10 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'border-white/5 opacity-40 hover:opacity-100'}`}
+                >
+                  <img src={photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget && 'grayscale hover:grayscale-0'}`} />
+                  {(isBase || isTarget) && (
+                    <div className={`absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]`}>
+                      <span className="text-[9px] font-black text-white uppercase bg-black/40 px-2 py-1 rounded border border-white/20">
+                        {isBase ? 'BASE' : 'TARGET'}
+                      </span>
+                    </div>
+                  )}
                 </button>
+                <div className="flex justify-between items-center px-1">
+                  <span className={`text-[8px] font-black ${isBase || isTarget ? 'text-white' : 'text-neutral-700'}`}>
+                    {format(parseISO(photo.date), 'dd.MM')}
+                  </span>
+                  <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="text-neutral-800 hover:text-red-500 transition-colors">
+                    <Trash2 size={10} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
+
+      {/* DATE PICKER FOR UPLOAD */}
+      <div className="bg-neutral-900/50 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Data nowego wpisu</p>
+        <input 
+          type="date" 
+          value={photoDate} 
+          onChange={(e) => setPhotoDate(e.target.value)} 
+          className="bg-transparent text-[11px] font-black text-primary uppercase outline-none" 
+        />
+      </div>
 
     </div>
   );

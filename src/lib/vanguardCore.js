@@ -200,6 +200,54 @@ export class VanguardCore {
   }
 
   /**
+   * GENERATOR SYGNATUR (Vanguard 4.0)
+   * Zamienia surowy footprint w deterministyczną sekwencję sygnałów.
+   * Zero psychologii, czysta statystyka przejść.
+   */
+  generateActiveSignature(footprint = [], metrics = {}) {
+    if (footprint.length < 5) return { sequence: [], state: 'INSUFFICIENT_DATA' };
+
+    const markers = [];
+    const recent = footprint.slice(0, 10);
+    
+    // 1. Analiza Fragmentacji (Switching)
+    const apps = recent.map(f => f.payload?.window?.app).filter(Boolean);
+    const uniqueApps = new Set(apps).size;
+    const switches = apps.reduce((acc, curr, i, arr) => (i > 0 && curr !== arr[i-1]) ? acc + 1 : acc, 0);
+    
+    if (switches > 7) markers.push('CRITICAL_SWITCHING');
+    else if (switches > 4) markers.push('HIGH_FRAGMENTATION');
+    
+    if (uniqueApps > 5) markers.push('CONTEXT_DIVERSITY_OVERLOAD');
+
+    // 2. Analiza Bezczynności (Idle)
+    const timestamps = recent.map(f => new Date(f.timestamp).getTime());
+    const avgGap = (timestamps[0] - timestamps[timestamps.length-1]) / (recent.length - 1);
+    
+    if (avgGap > 300000) markers.push('EXTENDED_IDLE_BURSTS'); // > 5min gap
+    
+    // 3. Integracja z Biometrią
+    if (metrics.hrv < 35) markers.push('BIOMETRIC_STRESS_BASE');
+    if (metrics.readiness < 65) markers.push('LOW_ENERGY_VULNERABILITY');
+    if (metrics.dopamine_load > 1.5) markers.push('DOPAMINE_SATURATION');
+
+    // 4. Detekcja Kierunku (Trajectory)
+    let predictedOutcome = 'STABLE';
+    if (markers.includes('CRITICAL_SWITCHING') && markers.includes('DOPAMINE_SATURATION')) {
+      predictedOutcome = 'PRE-COLLAPSE-SIG';
+    } else if (markers.includes('HIGH_FRAGMENTATION') || markers.includes('EXTENDED_IDLE_BURSTS')) {
+      predictedOutcome = 'DRIFT_VULNERABILITY';
+    }
+
+    return {
+      sequence: markers,
+      trajectory: predictedOutcome,
+      confidence: (recent.length / 10) * 0.9,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
    * INTERPRETACJA BIOMETRII (Tłumacz sygnałów)
    * Zastępuje stare translateBiometrics ze stateEngine.js
    */
@@ -279,13 +327,20 @@ STATUS: AKTYWNY BASELINE`;
     const today = new Date().toISOString().split('T')[0];
     
     // Pobieramy dane równolegle dla maksymalnej prędkości
-    const [vaultRes, fundamentRes, identityRes, journalRes, streamRes] = await Promise.all([
+    const resArray = await Promise.all([
       this.db.from('life_goals').select('*').eq('user_id', this.userId).maybeSingle(),
       this.db.from('user_fundament').select('*').eq('user_id', this.userId).maybeSingle(),
       this.db.from('vanguard_identity').select('*').eq('user_id', this.userId).maybeSingle(),
       this.db.from('daily_wins').select('journal_entry, gratitude_entry').eq('user_id', this.userId).eq('date', today).maybeSingle(),
-      this.db.from('vanguard_stream').select('content, classification, timestamp').eq('user_id', this.userId).order('timestamp', { ascending: false }).limit(5)
+      this.db.from('vanguard_stream').select('content, classification, timestamp').eq('user_id', this.userId).order('timestamp', { ascending: false }).limit(5),
+      this.db.from('vanguard_knowledge').select('*').eq('user_id', this.userId).order('importance_score', { ascending: false }).limit(5),
+      this.db.from('vanguard_knowledge').select('*').eq('user_id', this.userId).order('created_at', { ascending: false }).limit(5)
     ]);
+
+    const [vaultRes, fundamentRes, identityRes, journalRes, streamRes] = resArray;
+    const kHigh = resArray[5]?.data || [];
+    const kRecent = resArray[6]?.data || [];
+    const uniqueKnowledge = Array.from(new Map([...kHigh, ...kRecent].map(k => [k.id, k])).values());
 
     return {
       // 1. Warstwa Narracyjna & Filozoficzna
@@ -306,7 +361,10 @@ STATUS: AKTYWNY BASELINE`;
       // 4. Strumień (Telegram)
       recent_thoughts: streamRes.data || [],
 
-      // 5. Cele Operacyjne
+      // 5. Skarbiec Wiedzy (Książki/Szkolenia)
+      knowledge_vault: uniqueKnowledge,
+
+      // 6. Cele Operacyjne
       goals: {
         cialo: vaultRes.data?.goal_cialo,
         duch: vaultRes.data?.goal_duch,
