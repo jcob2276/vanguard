@@ -1,109 +1,180 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Save, Shield, Brain, CheckCircle2, Database } from 'lucide-react';
+import { Shield, Save, FileText, Brain, Heart, Zap, Ghost, BookOpen } from 'lucide-react';
 
-export default function IdentityVault() {
-  const [content, setContent] = useState('');
+export default function IdentityVault({ session }) {
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+  
+  // State for different vault sections
+  const [vault, setVault] = useState({
+    vision: '', // Misja & Cele długoterminowe
+    identity: '', // Filary (Kim jesteś)
+    knowledge: '', // Wiedza, umiejętności, przeczytane książki
+    relationships: '', // Relacje, ludzie, problemy społeczne
+    philosophy: '', // Skarbiec głęboki (Zmagania, gnębiące myśli, fetysze, prawda)
+    finances: '' // Sytuacja finansowa, Net Worth, cele pieniężne
+  });
 
   useEffect(() => {
     fetchVault();
-  }, []);
+  }, [session?.user?.id]);
 
   const fetchVault = async () => {
+    if (!session?.user?.id) return;
     try {
       const { data } = await supabase
-        .from('life_goals')
-        .select('vault_content')
+        .from('user_fundament')
+        .select('*')
+        .eq('user_id', session.user.id)
         .maybeSingle();
-
-      if (data?.vault_content) {
-        setContent(data.vault_content);
+      
+      if (data) {
+        setVault({
+          vision: data.vision || '',
+          identity: data.identity || '',
+          knowledge: data.knowledge || '',
+          relationships: data.relationships || '',
+          philosophy: data.philosophy || '',
+          finances: data.finances || ''
+        });
       }
-    } catch (e) {
-      console.error("Vault fetch error:", e);
+    } catch (err) {
+      console.error('Fetch error:', err);
     }
   };
 
   const handleSave = async () => {
     setLoading(true);
+    setSaveStatus(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("Błąd: Nie jesteś zalogowany.");
-        return;
-      }
-
-      // UPSERT - Zapisz lub zaktualizuj niezależnie od tego czy rekord istnieje
       const { error } = await supabase
-        .from('life_goals')
-        .upsert({ 
-          user_id: user.id, 
-          vault_content: content
+        .from('user_fundament')
+        .upsert({
+          user_id: session.user.id,
+          ...vault,
+          updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
-      
+
       if (error) throw error;
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      console.error("Vault save error:", e);
-      alert("Błąd zapisu: " + e.message);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err) {
+      console.error('Save error:', err);
+      setSaveStatus('error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
-      setContent(prev => prev ? prev + "\n\n--- IMPORTOWANY PLIK: " + file.name + " ---\n" + text : text);
-    };
-    reader.readAsText(file);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <label className="flex-1 cursor-pointer bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3 flex items-center justify-center gap-2 transition-all">
-          <Database size={14} className="text-primary" />
-          <span className="text-[10px] font-black uppercase text-neutral-400">Importuj Plik (.txt, .md)</span>
-          <input type="file" className="hidden" accept=".txt,.md,.json" onChange={handleFileUpload} />
-        </label>
-      </div>
-
-      <div className="relative">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Wklej tutaj swoją ankietę lub wgraj pliki powyżej..."
-          className="w-full h-96 bg-black/60 border border-white/10 rounded-2xl p-4 text-xs text-neutral-300 font-mono focus:border-primary/50 outline-none transition-all resize-none"
-        />
-        <div className="absolute top-4 right-4 opacity-10">
-          <Brain size={40} className="text-primary" />
+  const Section = ({ title, icon: Icon, field, placeholder, description, color }) => (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 space-y-4 hover:border-neutral-700 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg bg-${color}/10 border border-${color}/20`}>
+          <Icon size={18} className={`text-${color}`} />
+        </div>
+        <div>
+          <h3 className="text-sm font-black text-white uppercase tracking-tight">{title}</h3>
+          <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{description}</p>
         </div>
       </div>
+      <textarea
+        value={vault[field]}
+        onChange={(e) => setVault(prev => ({ ...prev, [field]: e.target.value }))}
+        placeholder={placeholder}
+        className="w-full bg-black border border-neutral-800 rounded-xl p-4 text-xs text-neutral-300 min-h-[120px] focus:border-primary/30 outline-none transition-all placeholder:text-neutral-800"
+      />
+    </div>
+  );
 
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-[10px] transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-primary text-white hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20'
-          }`}
-      >
-        {saved ? (
-          <><CheckCircle2 size={16} /> Zapisano w Skarbcu</>
-        ) : (
-          <><Save size={16} /> {loading ? 'Synchronizacja...' : 'Zapisz Skarbiec Tożsamości'}</>
-        )}
-      </button>
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header */}
+      <div className="flex justify-between items-end">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Shield size={16} className="text-primary animate-pulse" />
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Identity Vault v3.0</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter italic">FUNDAMENT TOŻSAMOŚCI</h1>
+          <p className="text-neutral-500 text-sm mt-2 font-medium">To jest baza danych Twojego Bliźniaka. Im więcej tu wpiszesz, tym potężniejsza będzie Wyrocznia.</p>
+        </div>
+        
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="bg-primary text-black px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+        >
+          {loading ? 'Synchronizacja...' : <><Save size={16} /> Zapisz Fundament</>}
+        </button>
+      </div>
 
-      <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5">
-        <Shield size={12} className="text-emerald-500" />
-        <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider">Dane są szyfrowane i dostępne tylko dla Twojego AI Oracle.</span>
+      {saveStatus === 'success' && (
+        <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-xs font-black uppercase text-center animate-in zoom-in-95">
+          Fundament Zaktualizowany. Wyrocznia właśnie wchłonęła Twoje nowe dane.
+        </div>
+      )}
+
+      {/* Grid of Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Section 
+          title="Misja & Wizja"
+          icon={Zap}
+          field="vision"
+          color="yellow-500"
+          description="Twoje ostateczne 'Dlaczego'"
+          placeholder="Jaki jest Twój ostateczny cel? Co chcesz po sobie zostawić? Czego chcesz się nauczyć w najbliższym czasie?"
+        />
+        <Section 
+          title="Filary Tożsamości"
+          icon={Brain}
+          field="identity"
+          color="blue-500"
+          description="Kim jesteś w swojej najlepszej wersji"
+          placeholder="Np. High-Stakes Entrepreneur, Świadomy Partner, Elitarny Deweloper..."
+        />
+        <Section 
+          title="Wiedza & Skille"
+          icon={BookOpen}
+          field="knowledge"
+          color="emerald-500"
+          description="Twój intelektualny arsenał"
+          placeholder="Co potrafisz? Jakie książki przeczytałeś? Co wiesz o świecie, czego inni nie wiedzą?"
+        />
+        <Section 
+          title="Relacje & Ludzie"
+          icon={Heart}
+          field="relationships"
+          color="rose-500"
+          description="Twoja sieć społeczna"
+          placeholder="Z kim trzymasz? Kto Cię inspiruje? Jakie masz problemy w relacjach? Z czym się zmagasz?"
+        />
+        <Section 
+          title="Cienie & Prawda"
+          icon={Ghost}
+          field="philosophy"
+          color="purple-500"
+          description="To, o czym nie mówisz nikomu"
+          placeholder="Co Cię gnębi? Co powtarzasz (nałogi, wzorce)? Twoje lęki, fetysze, mroczne strony. Wyrocznia Cię nie oceni."
+        />
+        <Section 
+          title="Finanse & Zasoby"
+          icon={FileText}
+          field="finances"
+          color="orange-500"
+          description="Twoja siła materialna"
+          placeholder="Twoja obecna sytuacja finansowa, Net Worth, cele pieniężne i stosunek do pieniędzy."
+        />
+      </div>
+
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-start gap-4">
+        <Shield size={24} className="text-primary shrink-0" />
+        <div>
+          <h4 className="text-xs font-black text-white uppercase mb-1">Pełna Prywatność</h4>
+          <p className="text-[10px] text-neutral-400 leading-relaxed uppercase tracking-widest">
+            Dane te są przesyłane bezpośrednio do Twojego modelu AI w celu personalizacji analiz. Nikt poza Tobą i Twoim Bliźniakiem nie ma do nich wglądu.
+          </p>
+        </div>
       </div>
     </div>
   );
