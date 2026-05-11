@@ -25,7 +25,13 @@ import { useStore } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
 
 export default function Dashboard({ session }) {
-  const [view, setView] = useState('workout');
+  // Initialize view from localStorage if available
+  const [view, setView] = useState(() => localStorage.getItem('vanguard_view') || 'workout');
+
+  // Persist view to localStorage
+  useEffect(() => {
+    localStorage.setItem('vanguard_view', view);
+  }, [view]);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedDataTab, setSelectedDataTab] = useState('charts');
   const { 
