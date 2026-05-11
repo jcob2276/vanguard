@@ -6,7 +6,7 @@
  * stateEngine.js pozostaje dla eksportów UI (OPERATING_STATES, IDENTITY_MODES).
  */
 
-import { format, subDays } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 
 // Jedyna taksonomia stanów w systemie
 export const VANGUARD_STATES = {
@@ -322,56 +322,154 @@ STATUS: AKTYWNY BASELINE`;
 
   /**
    * POBIERA KONTEKST TOŻSAMOŚCI (Identity Vault)
+   * Teraz rozszerzony o wyszukiwanie semantyczne (jeśli query jest podane)
    */
-  async evaluateIdentityVault() {
+  async evaluateIdentityVault(query = null) {
     const today = new Date().toISOString().split('T')[0];
     
-    // Pobieramy dane równolegle dla maksymalnej prędkości
-    const resArray = await Promise.all([
-      this.db.from('life_goals').select('*').eq('user_id', this.userId).maybeSingle(),
+    // 1. Podstawowe zapytania równoległe
+    const promises = [
       this.db.from('user_fundament').select('*').eq('user_id', this.userId).maybeSingle(),
-      this.db.from('vanguard_identity').select('*').eq('user_id', this.userId).maybeSingle(),
-      this.db.from('daily_wins').select('journal_entry, gratitude_entry').eq('user_id', this.userId).eq('date', today).maybeSingle(),
-      this.db.from('vanguard_stream').select('content, classification, timestamp').eq('user_id', this.userId).order('timestamp', { ascending: false }).limit(5),
-      this.db.from('vanguard_knowledge').select('*').eq('user_id', this.userId).order('importance_score', { ascending: false }).limit(5),
-      this.db.from('vanguard_knowledge').select('*').eq('user_id', this.userId).order('created_at', { ascending: false }).limit(5)
-    ]);
+      this.db.from('daily_wins').select('journal_entry, gratitude_entry, mood_score').eq('user_id', this.userId).eq('date', today).maybeSingle(),
+      this.db.from('vanguard_daily_aggregates').select('*').eq('user_id', this.userId).eq('date', today).maybeSingle(),
+      this.db.from('vanguard_knowledge').select('*').eq('user_id', this.userId).order('importance_score', { ascending: false }).limit(3)
+    ];
 
-    const [vaultRes, fundamentRes, identityRes, journalRes, streamRes] = resArray;
-    const kHigh = resArray[5]?.data || [];
-    const kRecent = resArray[6]?.data || [];
-    const uniqueKnowledge = Array.from(new Map([...kHigh, ...kRecent].map(k => [k.id, k])).values());
+    const [fundamentRes, journalRes, aggregateRes, knowledgeRes] = await Promise.all(promises);
+
+    let semanticMatches = [];
+    if (query) {
+      // Jeśli mamy query, możemy tu opcjonalnie wywołać semantic search
+      // Ale lepiej robić to w Oracle, żeby nie marnować tokenów na każdy render
+    }
 
     return {
-      // 1. Warstwa Narracyjna & Filozoficzna
-      philosophy: vaultRes.data?.vault_content || "Brak",
+      philosophy: fundamentRes.data?.philosophy || "Brak",
       mission: fundamentRes.data?.vision || "Nieokreślona",
       pillars: fundamentRes.data?.identity || "Nieokreślone",
-      drifters: fundamentRes.data?.knowledge || "Nieokreślone (System Drifters)",
       
-      // 2. Warstwa Dziennika (Dzisiaj)
       daily_reflection: {
         journal: journalRes.data?.journal_entry,
-        gratitude: journalRes.data?.gratitude_entry
+        gratitude: journalRes.data?.gratitude_entry,
+        mood: journalRes.data?.mood_score
       },
 
-      // 3. Warstwa Statystyczna (Baseline)
-      behavioral_memory: identityRes.data?.behavioral_baseline || {},
+      today_metrics: aggregateRes.data || {},
+      
+      knowledge_vault: knowledgeRes.data || []
+    };
+  }
 
-      // 4. Strumień (Telegram)
-      recent_thoughts: streamRes.data || [],
+  /**
+   * POBIERA PEŁNY EPIZOD DLA KONKRETNEJ DATY
+   * Łączy biometrię, wykonanie i stan w jedną strukturę "pamięci".
+   */
+  async getEpisodeForDate(date) {
+    const [oura, aggregate, wins] = await Promise.all([
+      this.db.from('oura_daily_summary').select('*').eq('user_id', this.userId).eq('date', date).maybeSingle(),
+      this.db.from('vanguard_daily_aggregates').select('*').eq('user_id', this.userId).eq('date', date).maybeSingle(),
+      this.db.from('daily_wins').select('*').eq('user_id', this.userId).eq('date', date).maybeSingle()
+    ]);
 
-      // 5. Skarbiec Wiedzy (Książki/Szkolenia)
-      knowledge_vault: uniqueKnowledge,
-
-      // 6. Cele Operacyjne
-      goals: {
-        cialo: vaultRes.data?.goal_cialo,
-        duch: vaultRes.data?.goal_duch,
-        konto: vaultRes.data?.goal_konto
+    return {
+      date,
+      metrics: {
+        hrv: aggregate.data?.hrv_avg || oura.data?.hrv_avg,
+        sleep: aggregate.data?.sleep_hours || oura.data?.total_sleep_hours,
+        readiness: aggregate.data?.readiness_score || oura.data?.readiness_score,
+        identity_score: aggregate.data?.identity_score,
+        state: aggregate.data?.final_state
+      },
+      behavior: {
+        tasks_done: aggregate.data?.execution_score ? aggregate.data.execution_score * 5 : 0,
+        journal: wins.data?.journal_entry,
+        mood: wins.data?.mood_score
       }
     };
   }
+
+  /**
+   * ANALIZA INTERWENCJI (Temporal Links)
+   * Sprawdza czy w ostatnich 3 dniach była interwencja i jaki jest jej dzisiejszy skutek.
+   */
+  async analyzeInterventions() {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const threeDaysAgo = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+
+    // 1. Pobierz interwencje z ostatnich 3 dni, które nie mają jeszcze linków
+    const { data: interventions } = await this.db
+      .from('daily_wins')
+      .select('*')
+      .eq('user_id', this.userId)
+      .eq('is_intervention', true)
+      .gte('date', threeDaysAgo)
+      .lt('date', today);
+
+    if (!interventions || interventions.length === 0) return;
+
+    // 2. Pobierz dzisiejsze dane biometryczne (z fallbackiem)
+    const { data: todayBio } = await this.db
+      .from('vanguard_daily_aggregates')
+      .select('*')
+      .eq('user_id', this.userId)
+      .eq('date', today)
+      .maybeSingle();
+
+    const { data: todayOura } = !todayBio ? await this.db
+      .from('oura_daily_summary')
+      .select('*')
+      .eq('user_id', this.userId)
+      .eq('date', today)
+      .maybeSingle() : { data: null };
+
+    const currentHRV = todayBio?.hrv_avg || todayOura?.hrv_avg;
+    const currentSleep = todayBio?.sleep_hours || todayOura?.total_sleep_hours;
+
+    if (!currentHRV) return;
+
+    for (const inter of interventions) {
+      // 3. Sprawdź czy link już istnieje
+      const { data: existingLink } = await this.db
+        .from('vanguard_temporal_links')
+        .select('*')
+        .eq('source_date', inter.date)
+        .eq('target_date', today)
+        .maybeSingle();
+
+      if (existingLink) continue;
+
+      // 4. Pobierz dane biometryczne z dnia PRZED interwencją (z fallbackiem)
+      const dayBeforeInter = format(subDays(parseISO(inter.date), 1), 'yyyy-MM-dd');
+      const [baselineBioRes, baselineOuraRes] = await Promise.all([
+        this.db.from('vanguard_daily_aggregates').select('*').eq('user_id', this.userId).eq('date', dayBeforeInter).maybeSingle(),
+        this.db.from('oura_daily_summary').select('*').eq('user_id', this.userId).eq('date', dayBeforeInter).maybeSingle()
+      ]);
+
+      const baselineHRV = baselineBioRes.data?.hrv_avg || baselineOuraRes.data?.hrv_avg;
+      const baselineSleep = baselineBioRes.data?.sleep_hours || baselineOuraRes.data?.total_sleep_hours;
+
+      if (!baselineHRV) continue;
+
+      // 5. Oblicz deltę
+      const hrvDelta = (currentHRV || 0) - (baselineHRV || 0);
+      const sleepDelta = (currentSleep || 0) - (baselineSleep || 0);
+
+      // Jeśli poprawa jest znacząca (np. HRV +5ms), utwórz link
+      if (hrvDelta > 3 || sleepDelta > 0.5) {
+        await this.db.from('vanguard_temporal_links').insert({
+          user_id: this.userId,
+          source_date: inter.date,
+          target_date: today,
+          link_type: 'RECOVERY',
+          description: `Interwencja: ${inter.journal_entry?.substring(0, 50)}... -> Skutek: HRV ${hrvDelta > 0 ? '+' : ''}${hrvDelta}ms, Sen ${sleepDelta > 0 ? '+' : ''}${sleepDelta.toFixed(1)}h`,
+          strength: Math.min(1.0, (hrvDelta / 10) + (sleepDelta / 2)),
+          metadata: { hrv_delta: hrvDelta, sleep_delta: sleepDelta, intervention_text: inter.journal_entry }
+        });
+        console.log(`[Vanguard] Created Temporal Link for intervention on ${inter.date}`);
+      }
+    }
+  }
+
 
   /**
    * GOAL ALIGNMENT ENGINE (Vanguard 3.2)

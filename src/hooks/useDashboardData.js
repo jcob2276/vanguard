@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { format, startOfWeek } from 'date-fns';
+import { VanguardCore } from '../lib/vanguardCore';
 
 export function useDashboardData() {
   const [data, setData] = useState({
@@ -117,6 +118,11 @@ export function useDashboardData() {
         nextSuggestedDay: nextDay,
         loading: false
       });
+
+      // 4. Trigger Temporal Link Analysis (Asynchronicznie)
+      const core = new VanguardCore(session.user.id, supabase);
+      core.analyzeInterventions().catch(err => console.error('Intervention analysis error:', err));
+
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }

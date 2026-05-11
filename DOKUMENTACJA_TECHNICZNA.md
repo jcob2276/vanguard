@@ -452,7 +452,27 @@ Dane biometryczne + treningowe + behawioralne są wystarczająco bogate. Możliw
 
 ---
 
-## 10. Bezpieczeństwo
+## 11. Warstwa Semantyczna (Semantic Layer) — NOWE V5/V6
+
+### 11.1 Architektura pamięci semantycznej
+System przeszedł z modelu "baza danych" na model "pamięć epizodyczna" wykorzystujący:
+- **pgvector**: Przechowywanie wektorów znaczeniowych (1536 wymiarów) dla wszystkich treści tekstowych.
+- **Hybrid Retrieval**: Algorytm rankingu łączący podobieństwo semantyczne (50%), ważność (30%) i świeżość (20%).
+- **Episodic Memory**: Każdy dopasowany semantycznie rekord automatycznie dociąga pełny kontekst biometryczny (HRV, Sen, Stan) z danego dnia.
+
+### 11.2 Kluczowe tabele semantyczne
+- `vanguard_knowledge`: Skarbiec wiedzy (książki, kursy) z embeddingami.
+- `vanguard_temporal_links`: Tabela przyczynowości, łącząca zdarzenia w czasie (np. Stan Chaosu -> Interwencja -> Poprawa Bio).
+
+### 11.3 Silnik wyszukiwania (`match_vanguard_content`)
+Funkcja SQL RPC realizująca hybrydowy ranking:
+```sql
+score = (similarity * 0.5) + (importance * 0.3) + (recency_decay * 0.2)
+```
+
+---
+
+## 12. Bezpieczeństwo
 
 - **RLS** włączone na wszystkich tabelach — `auth.uid() = user_id`
 - Tokeny API przechowywane w `user_settings` (po stronie serwera)
@@ -471,16 +491,34 @@ VITE_SUPABASE_ANON_KEY=
 ```
 
 ### Supabase Secrets (Edge Functions)
+Wymagane do poprawnego działania warstwy semantycznej i integracji:
+```bash
+npx supabase secrets set OPENAI_API_KEY=sk-...
+npx supabase secrets set TELEGRAM_BOT_TOKEN=...
+npx supabase secrets set TELEGRAM_CHAT_ID=...
+npx supabase secrets set VANGUARD_USER_ID=...
 ```
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-GOOGLE_MAPS_API_KEY=
-RESEND_API_KEY=
-```
+
+### Zmienne środowiskowe Edge Functions
+- `SUPABASE_URL` (auto)
+- `SUPABASE_SERVICE_ROLE_KEY` (auto)
+- `GOOGLE_MAPS_API_KEY`
+- `RESEND_API_KEY`
+- `OPENAI_API_KEY` (Vanguard Oracle & Backfill)
 
 ---
 
-## 12. Struktura plików
+## 13. Procedura wdrożenia warstwy semantycznej
+
+1. **Baza danych**: Wykonaj migracje `migration_v6_*.sql` w SQL Editorze Supabase.
+2. **Sekrety**: Ustaw klucze API za pomocą `supabase secrets set`.
+3. **Funkcje**: Zdeployuj funkcje `vanguard-oracle` i `save-daily-aggregate`.
+4. **Backfill**: Uruchom `node scratch/backfill_embeddings.js` (wymaga lokalnego ustawienia kluczy w pliku lub env).
+5. **Automatyzacja**: Skonfiguruj `pg_cron` dla `save-daily-aggregate`, aby budować historię baseline.
+
+---
+
+## 14. Struktura plików
 
 ```
 kuba-workout/
@@ -558,11 +596,12 @@ kuba-workout/
 
 | Priorytet | Zadanie | Złożoność | Wpływ |
 |---|---|---|---|
+| 🔵 Gotowe | Warstwa Semantyczna (pgvector + Hybrid Search) | Wysoka | Inteligentna pamięć bota |
 | 🔴 Wysoki | pg_cron auto-sync (Oura + Yazio) | Niska | Dane zawsze aktualne |
 | 🔴 Wysoki | Alerty progowe w UI | Średnia | Realtime feedback |
 | 🟡 Średni | Wykres RPE trend (bench) | Niska | Widoczność adaptacji |
 | 🟡 Średni | Korelacja sen vs. siła (scatter plot) | Średnia | Wgląd w recovery |
 | 🟡 Średni | Eksport CSV | Niska | Zewnętrzna analiza |
 | 🟡 Średni | Wizualizacja lokalizacji (mapa) | Średnia | Dane są, brak UI |
+| 🟢 Niski | Temporal Links (Auto-detection) | Wysoka | Causal Intelligence |
 | 🟢 Niski | AI Coach (Claude API) | Wysoka | Personalizowany feedback |
-| 🟢 Niski | Strava / Health Connect | Wysoka | Pełen obraz aktywności |

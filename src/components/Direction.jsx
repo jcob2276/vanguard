@@ -341,7 +341,8 @@ export default function Direction({ session }) {
       .update({
         mood_score: todayWin.mood_score,
         gratitude_entry: todayWin.gratitude_entry,
-        journal_entry: todayWin.journal_entry
+        journal_entry: todayWin.journal_entry,
+        is_intervention: todayWin.is_intervention
       })
       .eq('id', todayWin.id);
     
@@ -655,15 +656,28 @@ export default function Direction({ session }) {
 
             {/* Thoughts */}
             <div className="space-y-3 pt-4 border-t border-neutral-800/50">
-              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <Compass size={12} className="text-primary" /> Przemyślenia & Wnioski
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                  <Compass size={12} className="text-primary" /> Przemyślenia & Wnioski
+                </label>
+                <button 
+                  onClick={() => setTodayWin({ ...todayWin, is_intervention: !todayWin.is_intervention })}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase transition-all ${todayWin.is_intervention ? 'bg-dayA/20 border-dayA text-dayA' : 'bg-neutral-950 border-neutral-800 text-neutral-600'}`}
+                >
+                  <Activity size={10} /> {todayWin.is_intervention ? 'Aktywna Interwencja' : 'Zaznacz jako Interwencję'}
+                </button>
+              </div>
               <textarea 
                 value={todayWin.journal_entry || ''}
                 onChange={(e) => setTodayWin({ ...todayWin, journal_entry: e.target.value })}
                 placeholder="Jak minął dzień? Co poszło dobrze, a co można poprawić?..."
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[120px]"
               />
+              {todayWin.is_intervention && (
+                <p className="text-[9px] font-bold text-dayA uppercase italic animate-pulse">
+                  System przeanalizuje wpływ tego dnia na Twoją biometrię w ciągu najbliższych 48h.
+                </p>
+              )}
             </div>
 
             <div className="pt-2">

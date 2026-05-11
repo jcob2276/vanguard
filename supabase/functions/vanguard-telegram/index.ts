@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const TELEGRAM_TOKEN = "7504183176:AAFAfdQ7oMsjpnjZCz2dCZy-FmnxZVn1pA0";
+const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || "";
-const AUTHORIZED_CHAT_ID = 2031950649;
+const AUTHORIZED_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || "0");
+const VANGUARD_USER_ID = Deno.env.get('VANGUARD_USER_ID') || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -36,14 +37,35 @@ serve(async (req) => {
       classification = 'insight';
     }
 
+    // --- NOWOŚĆ: GENEROWANIE EMBEDDINGU ---
+    let embedding = null;
+    try {
+      const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-3-small',
+          input: text.replace(/\n/g, ' '),
+        }),
+      });
+      const embedData = await embedRes.json();
+      embedding = embedData.data?.[0]?.embedding;
+    } catch (e) {
+      console.error("Embedding Error:", e);
+    }
+
     // Zapis do vanguard_stream
     const { error: streamError } = await supabase
       .from('vanguard_stream')
       .insert({
-        user_id: "165ae341-670c-46ce-82dc-434c4dbfcdfd",
+        user_id: VANGUARD_USER_ID,
         source: 'telegram',
         content: text,
         classification: classification,
+        embedding: embedding,
         metadata: { telegram_chat_id: chatId }
       });
 
@@ -52,7 +74,7 @@ serve(async (req) => {
       await supabase
         .from('vanguard_decisions')
         .insert({
-          user_id: "165ae341-670c-46ce-82dc-434c4dbfcdfd",
+          user_id: VANGUARD_USER_ID,
           decision_text: text,
           emotional_state: 'logged_via_telegram'
         });

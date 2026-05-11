@@ -68,14 +68,18 @@ serve(async (req) => {
     if (oura?.readiness_score != null && oura.readiness_score < 60) identityScore -= 10
     identityScore = Math.max(0, identityScore)
 
-    // Uproszczona klasyfikacja stanu
+    // Uproszczona klasyfikacja stanu (zbieżna z vanguardCore.js)
     let finalState = 'STABLE'
     const exec = completedTasks / 5
-    if (wins?.result === 'P' && oura?.readiness_score < 60) finalState = 'CHAOS'
-    else if (oura?.readiness_score < 60 || (oura?.hrv_avg != null && oura.hrv_avg < 25)) finalState = 'RECOVERY'
-    else if (exec === 1.0) finalState = 'LOCKED_IN'
+    
+    const hrv = oura?.hrv_avg || null
+    const readiness = oura?.readiness_score || null
+
+    if (exec < 0.4 && readiness < 60) finalState = 'CHAOS'
+    else if (readiness < 60 || (hrv != null && hrv < 25)) finalState = 'RECOVERY'
+    else if (exec === 1.0 && (readiness == null || readiness >= 70)) finalState = 'LOCKED_IN'
     else if (exec >= 0.8) finalState = 'MOMENTUM'
-    else if (exec < 0.4 && oura?.readiness_score >= 70) finalState = 'AVOIDANCE'
+    else if (exec < 0.4 && readiness >= 70) finalState = 'AVOIDANCE'
 
     const aggregate = {
       user_id: userId,

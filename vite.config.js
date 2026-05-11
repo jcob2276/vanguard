@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'VANGUARD PROTOCOL',
-        short_name: 'VANGUARD',
+        name: 'Digital Twin',
+        short_name: 'DigitalTwin',
         description: 'Elite performance, discipline and identity tracking system',
         theme_color: '#000000',
         background_color: '#000000',
