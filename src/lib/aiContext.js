@@ -50,7 +50,7 @@ export async function gatherUserContext(session) {
       identity_vault: await core.evaluateIdentityVault() 
     };
 
-    return `VANGUARD_STATE_VECTOR: ${JSON.stringify(stateVector, null, 2)}`;
+    return stateVector;
 
   } catch (error) {
     console.error("Context Gathering Error:", error);
