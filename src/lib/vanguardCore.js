@@ -276,28 +276,41 @@ STATUS: AKTYWNY BASELINE`;
    * POBIERA KONTEKST TOŻSAMOŚCI (Identity Vault)
    */
   async evaluateIdentityVault() {
-    // 1. Podstawowa tożsamość
-    const { data: vaultData } = await this.db
-      .from('life_goals')
-      .select('*')
-      .eq('user_id', this.userId)
-      .maybeSingle();
-
-    // 2. Strumień świadomości (Telegram)
-    const { data: streamData } = await this.db
-      .from('vanguard_stream')
-      .select('content, classification, created_at')
-      .eq('user_id', this.userId)
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const today = new Date().toISOString().split('T')[0];
     
+    // Pobieramy dane równolegle dla maksymalnej prędkości
+    const [vaultRes, fundamentRes, identityRes, journalRes, streamRes] = await Promise.all([
+      this.db.from('life_goals').select('*').eq('user_id', this.userId).maybeSingle(),
+      this.db.from('user_fundament').select('*').eq('user_id', this.userId).maybeSingle(),
+      this.db.from('vanguard_identity').select('*').eq('user_id', this.userId).maybeSingle(),
+      this.db.from('daily_wins').select('journal_entry, gratitude_entry').eq('user_id', this.userId).eq('date', today).maybeSingle(),
+      this.db.from('vanguard_stream').select('content, classification, created_at').eq('user_id', this.userId).order('created_at', { ascending: false }).limit(5)
+    ]);
+
     return {
-      philosophy: vaultData?.vault_content || "Brak zdefiniowanego Fundamentu.",
-      stream: streamData || [],
+      // 1. Warstwa Narracyjna & Filozoficzna
+      philosophy: vaultRes.data?.vault_content || "Brak",
+      mission: fundamentRes.data?.vision || "Nieokreślona",
+      pillars: fundamentRes.data?.identity || "Nieokreślone",
+      drifters: fundamentRes.data?.knowledge || "Nieokreślone (System Drifters)",
+      
+      // 2. Warstwa Dziennika (Dzisiaj)
+      daily_reflection: {
+        journal: journalRes.data?.journal_entry,
+        gratitude: journalRes.data?.gratitude_entry
+      },
+
+      // 3. Warstwa Statystyczna (Baseline)
+      behavioral_memory: identityRes.data?.behavioral_baseline || {},
+
+      // 4. Strumień (Telegram)
+      recent_thoughts: streamRes.data || [],
+
+      // 5. Cele Operacyjne
       goals: {
-        cialo: vaultData?.goal_cialo,
-        duch: vaultData?.goal_duch,
-        konto: vaultData?.goal_konto
+        cialo: vaultRes.data?.goal_cialo,
+        duch: vaultRes.data?.goal_duch,
+        konto: vaultRes.data?.goal_konto
       }
     };
   }
