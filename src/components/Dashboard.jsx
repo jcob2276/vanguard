@@ -141,7 +141,17 @@ export default function Dashboard({ session }) {
             <button onClick={() => setView('fundament')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5">
               <Fingerprint size={16} className="text-primary" />
             </button>
-            <button onClick={() => supabase.auth.signOut()} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5">
+            <button 
+              onClick={() => {
+                if(window.confirm('CZY WYLOGOWAĆ ZE WSZYSTKICH URZĄDZEŃ? (Global Sign Out)')) {
+                  supabase.auth.signOut({ scope: 'global' });
+                } else {
+                  supabase.auth.signOut();
+                }
+              }} 
+              className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5"
+              title="Wyloguj"
+            >
               <LogOut size={16} className="text-white/40" />
             </button>
           </div>

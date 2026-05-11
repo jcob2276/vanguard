@@ -72,14 +72,8 @@ export default function Auth() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <button 
-            type="button" 
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-neutral-500 hover:text-white transition-colors"
-          >
-            {isLogin ? 'Nie masz konta? Zarejestruj się' : 'Masz już konto? Zaloguj się'}
-          </button>
+        <div className="mt-6 text-center opacity-0 pointer-events-none">
+          {/* Registration disabled */}
         </div>
       </div>
     </div>
