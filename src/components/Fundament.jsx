@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import IdentityVault from './IdentityVault';
 
-export default function Fundament({ onBack }) {
+export default function Fundament({ onBack, session }) {
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
@@ -146,7 +146,7 @@ export default function Fundament({ onBack }) {
             <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Identity Vault (Głęboki Kontekst)</h3>
           </div>
           <p className="text-[9px] text-neutral-500 font-bold uppercase">Wgraj tutaj swoje ankiety, wyniki testów i notatki o sobie. AI będzie ich używać do każdej analizy.</p>
-          <IdentityVault />
+          <IdentityVault session={session} />
         </div>
 
         {/* Memory Ingest (NEW) */}
