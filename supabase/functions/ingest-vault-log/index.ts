@@ -82,9 +82,8 @@ Zasady:
     }
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content ?? '';
-    console.log(`[VAULT INGEST] DeepSeek raw response: ${content.slice(0, 300)}`);
     const match = content.match(/\[[\s\S]*\]/);
-    if (!match) { console.warn('[VAULT INGEST] No JSON array in response'); return []; }
+    if (!match) return [];
     return JSON.parse(match[0]);
   } catch (e) {
     console.error('[VAULT INGEST] extractTriads exception:', e);
@@ -155,11 +154,7 @@ serve(async (req) => {
           p_target: triad.target,
           p_target_type: triad.target_type || 'unknown',
         });
-        if (rpcError) {
-          console.error(`[VAULT INGEST] RPC error for triad "${triad.source} ${triad.relation} ${triad.target}": ${JSON.stringify(rpcError)}`);
-        } else {
-          triadCount++;
-        }
+        if (!rpcError) triadCount++;
       }
     }
 
