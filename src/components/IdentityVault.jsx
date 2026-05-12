@@ -65,17 +65,31 @@ export default function IdentityVault({ session: sessionProp }) {
     setLoading(true);
     setSaveStatus(null);
     try {
-      // Tylko niepuste pola — nie nadpisuj istniejących danych pustymi stringami
+      // Tylko niepuste pola
       const nonEmpty = Object.fromEntries(
         Object.entries(vault).filter(([_, v]) => v.trim() !== '')
       );
       if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
 
+      // Pobierz aktualne wartości z bazy i doklejaj nowe logi (append, nie replace)
+      const { data: existing } = await supabase
+        .from('user_fundament')
+        .select('*')
+        .eq('user_id', uid)
+        .maybeSingle();
+
+      const merged = {};
+      for (const [field, newContent] of Object.entries(nonEmpty)) {
+        const current = existing?.[field] || '';
+        const separator = current ? '\n\n--- NOWY WPIS ---\n\n' : '';
+        merged[field] = current + separator + newContent;
+      }
+
       const { error } = await supabase
         .from('user_fundament')
         .upsert({
           user_id: uid,
-          ...nonEmpty,
+          ...merged,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
 
