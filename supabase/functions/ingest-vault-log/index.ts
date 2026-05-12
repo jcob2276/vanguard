@@ -69,19 +69,27 @@ Zasady:
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'deepseek-v4-flash',
+        model: 'deepseek-chat',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         max_tokens: 1000,
       }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[VAULT INGEST] DeepSeek error ${res.status}: ${errText}`);
+      return [];
+    }
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content ?? '';
+    console.log(`[VAULT INGEST] DeepSeek raw response: ${content.slice(0, 300)}`);
     const match = content.match(/\[[\s\S]*\]/);
-    if (!match) return [];
+    if (!match) { console.warn('[VAULT INGEST] No JSON array in response'); return []; }
     return JSON.parse(match[0]);
-  } catch { return []; }
+  } catch (e) {
+    console.error('[VAULT INGEST] extractTriads exception:', e);
+    return [];
+  }
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
