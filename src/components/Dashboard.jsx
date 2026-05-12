@@ -130,7 +130,7 @@ export default function Dashboard({ session }) {
     window.location.href = `${root}?${qs.toString()}`;
   }
 
-  if (view === 'fundament') return <Fundament onBack={() => setView('workout')} />;
+  if (view === 'fundament') return <Fundament session={session} onBack={() => setView('workout')} />;
 
   if (loading) {
     return (
