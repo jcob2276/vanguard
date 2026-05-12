@@ -56,14 +56,23 @@ export default function IdentityVault({ session: sessionProp }) {
   };
 
   const handleSave = async () => {
-    if (!userId) return;
+    console.log('[VAULT] handleSave called, userId:', userId);
+    // Resolve userId in real-time as fallback
+    let uid = userId;
+    if (!uid) {
+      const { data } = await supabase.auth.getUser();
+      uid = data?.user?.id ?? null;
+      console.log('[VAULT] fallback getUser uid:', uid);
+    }
+    if (!uid) { console.error('[VAULT] No userId, aborting'); return; }
     setLoading(true);
     setSaveStatus(null);
     try {
+      console.log('[VAULT] upserting with uid:', uid, 'vault:', vault);
       const { error } = await supabase
         .from('user_fundament')
         .upsert({
-          user_id: userId,
+          user_id: uid,
           ...vault,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
