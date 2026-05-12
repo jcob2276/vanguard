@@ -370,6 +370,8 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
     google_fit_client_id TEXT,
     google_fit_client_secret TEXT,
     google_fit_refresh_token TEXT,
+    -- Todoist
+    todoist_token TEXT,
     -- Lokalizacja (POI)
     home_lat DECIMAL(9,6),
     home_lng DECIMAL(9,6),

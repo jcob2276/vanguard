@@ -6,14 +6,17 @@ import {
 } from 'lucide-react';
 import StayFreeSync from './StayFreeSync';
 import IdentityVault from './IdentityVault';
+import TodoistSync from './TodoistSync';
 
-export default function DataHub({ onBack }) {
+export default function DataHub({ session, onBack }) {
   return (
     <div className="min-h-screen bg-black p-6 space-y-8 animate-in fade-in duration-500">
       <header className="flex items-center gap-4">
-        <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
-          <ChevronLeft size={24} />
-        </button>
+        {onBack && (
+          <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
+            <ChevronLeft size={24} />
+          </button>
+        )}
         <div>
           <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Data Hub</h1>
           <p className="text-[10px] text-primary font-black uppercase tracking-widest">Reality Sync Console</p>
@@ -27,7 +30,18 @@ export default function DataHub({ onBack }) {
         </div>
 
         <div className="mb-4">
-          <StayFreeSync />
+          <StayFreeSync session={session} />
+        </div>
+      </section>
+
+      <section className="bg-neutral-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <CheckCircle2 className="text-red-500" size={20} />
+          <h3 className="text-xs font-black text-white uppercase tracking-widest">Brainstorming (Todoist)</h3>
+        </div>
+
+        <div className="mb-4">
+          <TodoistSync session={session} />
         </div>
       </section>
 
@@ -39,7 +53,7 @@ export default function DataHub({ onBack }) {
         
         <p className="text-[10px] text-neutral-500 font-bold mb-4 uppercase">Wklej tutaj ankiety, wyniki testów (MBTI, Enneagram), sesje terapeutyczne lub notatki o sobie. AI będzie o tym pamiętać.</p>
         
-        <IdentityVault />
+        <IdentityVault session={session} />
       </section>
 
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">

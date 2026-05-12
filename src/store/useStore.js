@@ -34,7 +34,7 @@ export const useStore = create((set, get) => ({
       .select('*')
       .eq('user_id', session.user.id)
       .eq('date', today)
-      .single();
+      .maybeSingle();
     
     set({ todayWin: data });
   },

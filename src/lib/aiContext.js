@@ -17,7 +17,7 @@ export async function gatherUserContext(session) {
     const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const lastWeekStart = format(startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     
-    const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes] = await Promise.all([
+    const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes] = await Promise.all([
       supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today),
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
@@ -25,17 +25,27 @@ export async function gatherUserContext(session) {
       supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
       supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', lastWeekStart).maybeSingle(),
       supabase.from('weekly_reviews').select('*').eq('user_id', userId).order('week_start', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('vanguard_footprint').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(20)
+      supabase.from('vanguard_footprint').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(20),
+      supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+      supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()
     ]);
 
-    const currentMetrics = computeSignals(stayfreeRes.data || [], latestOuraRes.data, powerListRes.data);
+    const currentMetrics = computeSignals(
+      stayfreeRes.data || [], 
+      latestOuraRes.data, 
+      powerListRes.data,
+      nutritionRes.data,
+      lastWorkoutRes.data?.date
+    );
+
     const personalBaseline = await core.getPersonalBaseline();
-    const vanguardState = await core.determineState(currentMetrics, personalBaseline);
+    const { state: vanguardState, score: stabilityScore } = await core.determineState(currentMetrics, personalBaseline);
     const history = historyRes.data || [];
 
     // 1:1 Identical Vector with AIInsight.jsx
     const stateVector = {
       state: vanguardState,
+      stability_score: stabilityScore,
       confidence: currentMetrics.confidence,
       now: new Date().toISOString(),
       metrics: {

@@ -177,14 +177,22 @@ export default function Direction({ session }) {
       const today = format(new Date(), 'yyyy-MM-dd');
       const core = new VanguardCore(session.user.id, supabase);
 
-      const [ouraRes, stayfreeRes] = await Promise.all([
+      const [ouraRes, stayfreeRes, nutritionRes, lastWorkoutRes] = await Promise.all([
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today)
+        supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today),
+        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
+        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle()
       ]);
 
-      const signals = computeSignals(stayfreeRes.data || [], ouraRes.data, todayWin);
+      const signals = computeSignals(
+        stayfreeRes.data || [], 
+        ouraRes.data, 
+        todayWin,
+        nutritionRes.data,
+        lastWorkoutRes.data?.date
+      );
       const baseline = await core.getPersonalBaseline();
-      const state = await core.determineState(signals, baseline);
+      const { state } = await core.determineState(signals, baseline);
       
       setCurrentState(state);
     }
@@ -343,7 +351,8 @@ export default function Direction({ session }) {
         mood_score: todayWin.mood_score,
         gratitude_entry: todayWin.gratitude_entry,
         journal_entry: todayWin.journal_entry,
-        is_intervention: todayWin.is_intervention
+        is_intervention: todayWin.is_intervention,
+        tags: todayWin.tags
       })
       .eq('id', todayWin.id);
     
@@ -674,6 +683,24 @@ export default function Direction({ session }) {
                 placeholder="Jak minął dzień? Co poszło dobrze, a co można poprawić?..."
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[120px]"
               />
+
+              {/* Tags Input */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                  Tagi (Kategoryzacja Kontekstu)
+                </label>
+                <input 
+                  type="text"
+                  placeholder="Np. #finanse #trening #gawronify"
+                  value={todayWin.tags?.join(' ') || ''}
+                  onChange={(e) => {
+                    const tagArr = e.target.value.split(' ').filter(t => t.startsWith('#'));
+                    setTodayWin({ ...todayWin, tags: tagArr });
+                  }}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[11px] font-bold text-primary outline-none focus:border-primary transition-all"
+                />
+              </div>
+
               {todayWin.is_intervention && (
                 <p className="text-[9px] font-bold text-dayA uppercase italic animate-pulse">
                   System przeanalizuje wpływ tego dnia na Twoją biometrię w ciągu najbliższych 48h.

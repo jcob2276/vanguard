@@ -15,23 +15,42 @@ export default function PowerList({ session, todayWin, onUpdate }) {
   async function toggleTask(index) {
     if (!todayWin) return;
     const field = `done_${index + 1}`;
+    const timeField = `completed_at_${index + 1}`;
     const newValue = !todayWin[field];
+    const timestamp = newValue ? new Date().toISOString() : null;
     
     const allDone = [1, 2, 3, 4, 5].every(i => {
       if (i === index + 1) return newValue;
       return todayWin[`done_${i}`];
     });
 
-    const updates = { [field]: newValue };
+    const updates = { 
+      [field]: newValue,
+      [timeField]: timestamp 
+    };
+
     if (allDone) updates.result = 'Z';
     else {
+      if (todayWin.result === 'Z') updates.result = null;
       const isPastDeadline = new Date().getHours() >= 23;
-      updates.result = isPastDeadline ? 'P' : null;
+      if (isPastDeadline && !allDone) updates.result = 'P';
     }
 
     const { data, error } = await supabase
       .from('daily_wins')
       .update(updates)
+      .eq('id', todayWin.id)
+      .select()
+      .single();
+    
+    if (!error && onUpdate) onUpdate(data);
+  }
+
+  async function updateRPE(value) {
+    if (!todayWin) return;
+    const { data, error } = await supabase
+      .from('daily_wins')
+      .update({ daily_rpe: value })
       .eq('id', todayWin.id)
       .select()
       .single();
@@ -98,6 +117,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
           {[0,1,2,3,4].map((i) => {
             const task = todayWin[`task_${i+1}`];
             const done = todayWin[`done_${i+1}`];
+            const completedAt = todayWin[`completed_at_${i+1}`];
             
             return (
               <button 
@@ -109,11 +129,38 @@ export default function PowerList({ session, todayWin, onUpdate }) {
                   <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${done ? 'bg-dayC border-dayC text-white shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'border-neutral-800 text-transparent'}`}>
                     <CheckSquare size={14} />
                   </div>
-                  <p className={`text-[12px] font-black uppercase italic tracking-tight ${done ? 'line-through text-neutral-600' : 'text-white'}`}>{task}</p>
+                  <div>
+                    <p className={`text-[12px] font-black uppercase italic tracking-tight ${done ? 'line-through text-neutral-600' : 'text-white'}`}>{task}</p>
+                    {done && completedAt && (
+                      <p className="text-[8px] font-bold text-dayC/60 mt-0.5">COMPLETED AT {format(new Date(completedAt), 'HH:mm')}</p>
+                    )}
+                  </div>
                 </div>
               </button>
             );
           })}
+
+          {/* RPE Selector */}
+          <div className="mt-8 pt-6 border-t border-neutral-800 space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Daily Effort (RPE)</h4>
+              <span className="text-[14px] font-black text-primary">{todayWin.daily_rpe || '-'}</span>
+            </div>
+            <div className="flex justify-between gap-1">
+              {[1,2,3,4,5,6,7,8,9,10].map(val => (
+                <button
+                  key={val}
+                  onClick={() => updateRPE(val)}
+                  className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${todayWin.daily_rpe === val ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-neutral-950 text-neutral-600 hover:bg-neutral-800'}`}
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            <p className="text-[8px] font-bold text-neutral-600 text-center uppercase tracking-tighter">
+              1 = Spacer w słońcu | 10 = Walka o życie (Kortyzol Peak)
+            </p>
+          </div>
         </div>
       )}
     </section>

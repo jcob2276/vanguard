@@ -82,10 +82,40 @@ serve(async (req) => {
       .map(p => p.title.trim().toLowerCase());
 
     let semanticContext = "";
+    let graphContext = "";
 
     // 1. GENEROWANIE EMBEDDINGU DLA ZAPYTANIA (jeśli jest)
     if (current_query) {
       console.log('Generating embedding for query:', current_query);
+      
+      // 1.5 GRAPH CONTEXT SCAN (Relational GraphRAG)
+      try {
+        // Znajdź encje wspomniane w zapytaniu (optymalizacja SQL)
+        const { data: mentioned } = await supabase.rpc('find_mentioned_entities', {
+          query_text: current_query,
+          user_id_param: user_id
+        });
+        
+        const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
+
+        if (entitiesInQuery.length > 0) {
+          const { data: graphData } = await supabase.rpc('get_vanguard_graph_context', {
+            start_entities: entitiesInQuery,
+            max_depth: 2,
+            user_id_param: user_id
+          });
+
+          if (graphData && graphData.length > 0) {
+            graphContext = (graphData as any[]).map(g => 
+              `[GRAF]: ${g.source_entity} --(${g.relation})--> ${g.target_entity}`
+            ).join('\n');
+            console.log(`Found ${graphData.length} graph relations`);
+          }
+        }
+      } catch (graphErr) {
+        console.warn('Graph retrieval failed:', graphErr);
+      }
+
       const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
         method: 'POST',
         headers: {
@@ -105,8 +135,8 @@ serve(async (req) => {
         // 2. WYSZUKIWANIE HYBRYDOWE - ZWIĘKSZONY LIMIT
         const { data: matches, error: matchError } = await supabase.rpc('match_vanguard_content', {
           query_embedding: embedding,
-          match_threshold: 0.35, // Nieco luźniejszy, żeby złapać więcej kontekstu
-          match_count: 15,       // Maksymalne okno
+          match_threshold: 0.35, 
+          match_count: 15,       
           user_id_param: user_id
         });
 
@@ -538,6 +568,9 @@ ${mode !== 'mirror' ? `1. EMOCJE: Nigdy nie odzwierciedlaj ("rozumiem", "też ta
 
     const contextInfo = `[DANE SYSTEMOWE OBECNE]: ${JSON.stringify(state_vector, null, 2)}
     
+    [PAMIĘĆ GRAFOWA (RELACJE)]:
+    ${graphContext || "Brak powiązań w grafie dla tego zapytania."}
+
     [PAMIĘĆ SEMANTYCZNA (PODOBNE SYTUACJE Z PRZESZŁOŚCI)]:
     ${semanticContext || "Brak bezpośrednich dopasowań semantycznych."}`;
 
@@ -572,22 +605,27 @@ ${mode !== 'mirror' ? `1. EMOCJE: Nigdy nie odzwierciedlaj ("rozumiem", "też ta
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'deepseek-v4-flash', // tani i szybki model V4 — tylko ekstrakcja
+            model: 'deepseek-v4-flash',
             reasoning_mode: 'non_think',
             temperature: 0.1,
             messages: [
               {
                 role: 'system',
-                content: `Jesteś ekstraktorrem wiedzy o użytkowniku. Z poniższej rozmowy wyciągnij max 3 spostrzeżenia.
+                content: `Jesteś ekstraktorrem wiedzy i relacji. Z poniższej rozmowy wyciągnij:
+1. Max 3 spostrzeżenia (pattern, emotion, person, lesson).
+2. Max 3 triady relacji (source -> relation -> target).
 
-Zasady ekstrakcji:
-- Jeśli pojawia się OSOBA z imieniem — zawsze twórz osobny wpis: category="person", title=imię osoby, content=wszystko co wiesz o tej osobie i relacji z użytkownikiem (np. "partnerka Jakuba, razem jadą na wesele w sobotę").
-- Jeśli pojawia się powtarzający się schemat zachowania — category="pattern", title=krótka nazwa schematu.
-- Emocja z kontekstem — category="emotion".
-- Wniosek lub lekcja — category="lesson".
+Zasady triad:
+- Szukaj związków przyczynowych (np. stres -> ból), korelacji lub sekwencji.
+- Zachowaj spójność nazw encji (używaj rzeczowników w mianowniku, np. "Stres", "Ból barku").
+- source_type/target_type: "technique" | "person" | "state" | "event" | "physical_state".
 
-Format każdego wpisu: { "title": string, "content": string, "category": "pattern"|"emotion"|"person"|"lesson" }
-Zwróć TYLKO tablicę JSON. Jeśli nie ma nic wartego zapisania — zwróć [].`,
+Format wyjściowy:
+{
+  "items": [{ "title": string, "content": string, "category": "pattern"|"emotion"|"person"|"lesson" }],
+  "triads": [{ "source": string, "source_type": string, "relation": string, "target": string, "target_type": string }]
+}
+Zwróć TYLKO JSON.`,
               },
               {
                 role: 'user',
@@ -596,19 +634,36 @@ Zwróć TYLKO tablicę JSON. Jeśli nie ma nic wartego zapisania — zwróć [].
             ],
           }),
         });
+
         const memRes = await memoryExtract.json();
-        const rawContent = memRes.choices?.[0]?.message?.content || '[]';
-        const items: Array<{ title: string; content: string; category: string }> = JSON.parse(rawContent);
+        const rawContent = memRes.choices?.[0]?.message?.content || '{}';
+        const { items, triads } = JSON.parse(rawContent);
+
+        // 1. Zapisz płaskie spostrzeżenia
         if (Array.isArray(items) && items.length > 0) {
           const rows = items.map(item => ({
             user_id,
-            title: item.title?.substring(0, 200) || 'Ekstrakcja z rozmowy',
+            title: item.title?.substring(0, 200) || 'Ekstrakcja',
             content: item.content?.substring(0, 1000) || '',
             category: item.category || 'pattern',
             source_type: 'CONVERSATION',
             importance_score: 6,
           }));
           await supabase.from('vanguard_knowledge').insert(rows);
+        }
+
+        // 2. Zapisz triady (Atomic Upsert)
+        if (Array.isArray(triads) && triads.length > 0) {
+          for (const triad of triads) {
+            await supabase.rpc('upsert_vanguard_entity_link', {
+              p_user_id: user_id,
+              p_source: triad.source,
+              p_source_type: triad.source_type,
+              p_relation: triad.relation,
+              p_target: triad.target,
+              p_target_type: triad.target_type
+            });
+          }
         }
       } catch (_e) {
         // silent fail — nie psujemy głównej odpowiedzi

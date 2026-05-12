@@ -54,9 +54,25 @@ export function computeSignals(stayfree = [], oura = null, todayWin = null, nutr
 
   // Execution Vector (Power List)
   let completedTasks = 0;
+  let timePenalty = 0;
   if (todayWin) {
-    for (let i = 1; i <= 5; i++) if (todayWin[`done_${i}`]) completedTasks++;
+    for (let i = 1; i <= 5; i++) {
+      if (todayWin[`done_${i}`]) {
+        completedTasks++;
+        
+        // Time Penalty Logic
+        const completedAt = todayWin[`completed_at_${i}`];
+        if (completedAt) {
+          const hour = new Date(completedAt).getHours();
+          if (hour >= 21) timePenalty += 0.1; // Late night tasks cost biology
+          if (hour >= 23) timePenalty += 0.15;
+        }
+      }
+    }
   }
+
+  const executionRatio = Math.max(0, (completedTasks / 5) - timePenalty);
+  const dailyRpe = todayWin?.daily_rpe || 5;
 
   // Nutrition Vector (Protein focus)
   const proteinGoal = 160; 
@@ -83,7 +99,8 @@ export function computeSignals(stayfree = [], oura = null, todayWin = null, nutr
     hrv,
     rhr,
     readiness,
-    execution_ratio: completedTasks / 5,
+    execution_ratio: parseFloat(executionRatio.toFixed(2)),
+    daily_rpe: dailyRpe,
     protein_ratio: parseFloat(proteinRatio.toFixed(2)),
     protein_grams: proteinConsumed,
     training_ratio: trainingRatio,
@@ -215,7 +232,13 @@ export class VanguardCore {
     const zDopa = this._zScore(current.dopamine_load, bl.means.dopamine_load, bl.stdDevs.dopamine_load);
     const digitalScore = Math.max(0, Math.min(10, (2 - zDopa) * 2.5));
 
-    const total = executionScore + trainingScore + proteinScore + sleepScore + hrvScore + digitalScore;
+    // 7. Effort-to-Recovery Balance (Modifier)
+    let balanceModifier = 1.0;
+    if (current.daily_rpe >= 8 && (current.sleep < 6.5 || current.hrv < bl.means.hrv)) {
+      balanceModifier = 0.8; // Penalize for pushing too hard when bio is low
+    }
+
+    const total = (executionScore + trainingScore + proteinScore + sleepScore + hrvScore + digitalScore) * balanceModifier;
     return Math.round(total);
   }
 
@@ -228,6 +251,28 @@ export class VanguardCore {
 
     if (bl.calibrating) return { state: VANGUARD_STATES.CALIBRATING, score: 50 };
     if (currentSignals.confidence.is_stale) return { state: 'STALE_DATA', score: 0 };
+
+    // ABSOLUTE HARD LIMITS — niezależne od baseline
+    // Zatrzymują normalizację wypalenia ("gotująca się żaba")
+    const HARD_LIMITS = {
+      sleep_critical:    5.5,  // h    — poniżej: CHAOS niezależnie od trendu
+      sleep_recovery:    6.2,  // h    — poniżej: minimalnie RECOVERY
+      readiness_critical: 55,  // pts  — poniżej: RECOVERY
+      hrv_floor_ratio:   0.5,  // hrv < 50% baseline mean -> RECOVERY (absolutny stres ANS)
+    };
+
+    if (currentSignals.sleep != null && currentSignals.sleep < HARD_LIMITS.sleep_critical) {
+      return { state: VANGUARD_STATES.CHAOS, score: this.calculateStabilityScore(currentSignals, bl) };
+    }
+    if (currentSignals.readiness != null && currentSignals.readiness < HARD_LIMITS.readiness_critical) {
+      return { state: VANGUARD_STATES.RECOVERY, score: this.calculateStabilityScore(currentSignals, bl) };
+    }
+    if (currentSignals.hrv != null && bl.means.hrv && currentSignals.hrv < (bl.means.hrv * HARD_LIMITS.hrv_floor_ratio)) {
+      return { state: VANGUARD_STATES.RECOVERY, score: this.calculateStabilityScore(currentSignals, bl) };
+    }
+    if (currentSignals.sleep != null && currentSignals.sleep < HARD_LIMITS.sleep_recovery) {
+      return { state: VANGUARD_STATES.RECOVERY, score: this.calculateStabilityScore(currentSignals, bl) };
+    }
 
     const stabilityScore = this.calculateStabilityScore(currentSignals, bl);
 
@@ -635,4 +680,5 @@ STATUS: AKTYWNY BASELINE`;
 
     return prediction;
   }
+
 }

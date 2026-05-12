@@ -652,8 +652,8 @@ export default function Stats({ session }) {
       <section className="space-y-6">
         <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Body Trends</h2>
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          <div className="w-full h-full min-w-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          {bodyData?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={224}>
               <LineChart data={bodyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 <XAxis dataKey="date" hide />
@@ -665,7 +665,9 @@ export default function Stats({ session }) {
                 <Line yAxisId="right" type="monotone" dataKey="body_fat" name="Tłuszcz (%)" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={true} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych trendu</div>
+          )}
         </div>
       </section>
 
@@ -674,8 +676,8 @@ export default function Stats({ session }) {
           Oura Readiness <TrendArrow current={trends.readiness?.cur} previous={trends.readiness?.prev} />
         </h2>
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          <div className="w-full h-full min-w-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          {ouraTrend?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={224}>
               <LineChart data={ouraTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 <XAxis dataKey="date" stroke="#525252" fontSize={8} />
@@ -684,7 +686,9 @@ export default function Stats({ session }) {
                 <Line type="monotone" dataKey="readiness" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6' }} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych Oura</div>
+          )}
         </div>
       </section>
 
@@ -693,8 +697,8 @@ export default function Stats({ session }) {
           Protein Intake <TrendArrow current={trends.protein?.cur} previous={trends.protein?.prev} />
         </h2>
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          <div className="w-full h-full min-w-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          {nutritionData?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={224}>
               <LineChart data={nutritionData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 <XAxis dataKey="date" stroke="#525252" fontSize={8} />
@@ -704,7 +708,9 @@ export default function Stats({ session }) {
                 <Line type="monotone" dataKey="protein" name="Białko (g)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6' }} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych żywieniowych</div>
+          )}
         </div>
       </section>
 

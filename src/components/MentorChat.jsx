@@ -81,6 +81,28 @@ export default function MentorChat({ session }) {
         { user_id: session.user.id, role: 'assistant', content: assistantMsg }
       ]);
 
+      // 5. Zero-UI: Auto-Tagging Extraction
+      const tags = userMessage.match(/#\w+/g);
+      if (tags && tags.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: currentWins } = await supabase
+          .from('daily_wins')
+          .select('tags')
+          .eq('user_id', session.user.id)
+          .eq('date', today)
+          .maybeSingle();
+
+        if (currentWins) {
+          const existingTags = currentWins.tags || [];
+          const newTags = [...new Set([...existingTags, ...tags])];
+          await supabase
+            .from('daily_wins')
+            .update({ tags: newTags })
+            .eq('user_id', session.user.id)
+            .eq('date', today);
+        }
+      }
+
       // Trim — zachowaj tylko ostatnie 200 wiadomości
       const { data: oldMsgs } = await supabase
         .from('ai_chat_messages')
