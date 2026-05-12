@@ -182,14 +182,14 @@ export function useDashboardData() {
     try {
       const { data: lastEvent } = await supabase
         .from('vanguard_calendar')
-        .select('updated_at')
+        .select('start_time')
         .eq('user_id', session.user.id)
-        .order('updated_at', { ascending: false })
+        .order('start_time', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-      const lastSync = lastEvent ? new Date(lastEvent.updated_at).getTime() : 0;
+      const lastSync = lastEvent ? new Date(lastEvent.start_time).getTime() : 0;
 
       if (lastSync < twoHoursAgo) {
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
