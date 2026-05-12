@@ -46,7 +46,9 @@ export default function MentorChat({ session }) {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMessage = input.trim();
+    const rawInput = input.trim();
+    const isDeep = rawInput.startsWith('!!');
+    const userMessage = isDeep ? rawInput.substring(2).trim() : rawInput;
     setInput('');
     setLoading(true);
 
@@ -60,11 +62,12 @@ export default function MentorChat({ session }) {
 
       // 3. Call AI via Unified Oracle
       const { data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
-        body: { 
+        body: {
           state_vector: vanguardContext,
           history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
           current_query: userMessage,
-          user_id: session.user.id
+          user_id: session.user.id,
+          thinking: isDeep, // !! = pro + think_high, domyślnie = flash + think
         }
       });
 
@@ -77,6 +80,20 @@ export default function MentorChat({ session }) {
         { user_id: session.user.id, role: 'user', content: userMessage },
         { user_id: session.user.id, role: 'assistant', content: assistantMsg }
       ]);
+
+      // Trim — zachowaj tylko ostatnie 200 wiadomości
+      const { data: oldMsgs } = await supabase
+        .from('ai_chat_messages')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .range(200, 9999);
+      if (oldMsgs && oldMsgs.length > 0) {
+        await supabase
+          .from('ai_chat_messages')
+          .delete()
+          .in('id', oldMsgs.map(m => m.id));
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
     } catch (err) {
@@ -96,8 +113,8 @@ export default function MentorChat({ session }) {
             <Sparkles size={16} className="text-primary animate-pulse" />
           </div>
           <div>
-            <h2 className="text-xs font-black text-white uppercase tracking-tighter italic">Strategiczny Obserwator</h2>
-            <p className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">Aktywny • Pełny Kontekst Systemu</p>
+            <h2 className="text-xs font-black text-white uppercase tracking-tighter italic">Strategiczny Obserwator V4 Pro</h2>
+            <p className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">Aktywny • Think High Mode • Pełny Kontekst</p>
           </div>
         </div>
         <button onClick={clearHistory} className="text-neutral-600 hover:text-dayB transition-colors">
@@ -142,7 +159,7 @@ export default function MentorChat({ session }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
-            placeholder={loading ? "System generuje odpowiedź..." : "Napisz do systemu..."}
+            placeholder={loading ? "System generuje odpowiedź..." : "Napisz do systemu... (!! = tryb głęboki)"}
             className="w-full bg-black border border-neutral-800 rounded-2xl py-4 pl-5 pr-14 text-xs text-white focus:border-primary/50 transition-colors outline-none placeholder:text-neutral-700 font-bold"
           />
           <button 

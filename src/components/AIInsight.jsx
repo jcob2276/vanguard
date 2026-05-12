@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import { VanguardCore, computeSignals } from '../lib/vanguardCore';
+import { gatherUserContext } from '../lib/aiContext';
 import { ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function AIInsight({ session }) {
@@ -11,67 +10,26 @@ export default function AIInsight({ session }) {
 
   async function fetchInsight() {
     if (!session?.user?.id) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const core = new VanguardCore(session.user.id, supabase);
-      
-      // UNIFIED FETCH PIPELINE
-      const [stayfreeRes, latestOuraRes, powerListRes, historyRes] = await Promise.all([
-        supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today),
-        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', session.user.id).order('date', { ascending: true })
-      ]);
+      // Jeden shared builder — identyczny state_vector co MentorChat
+      const stateVector = await gatherUserContext(session);
 
-      const stayfreeToday = stayfreeRes.data || [];
-      const latestOura = latestOuraRes.data;
-      const powerListToday = powerListRes.data;
-      const history = historyRes.data || [];
-
-      // 1. CALCULATE SIGNALS & STATE
-      const currentMetrics = computeSignals(stayfreeToday, latestOura, powerListToday);
-      const personalBaseline = await core.getPersonalBaseline();
-      const vanguardState = await core.determineState(currentMetrics, personalBaseline);
-
-      // 2. CONSTRUCT STATE VECTOR (High Density)
-      const stateVector = {
-        state: vanguardState,
-        confidence: currentMetrics.confidence,
-        now: new Date().toISOString(),
-        metrics: {
-          execution: currentMetrics.execution_ratio || 0,
-          biological: {
-            sleep_z: currentMetrics.sleep ? (currentMetrics.sleep - personalBaseline.means.sleep) / (personalBaseline.stdDevs.sleep || 1) : 0,
-            hrv_z: currentMetrics.hrv ? (currentMetrics.hrv - personalBaseline.means.hrv) / (personalBaseline.stdDevs.hrv || 1) : 0,
-            readiness: currentMetrics.readiness || 0
-          },
-          digital: {
-            dopamine_z: currentMetrics.dopamine_load ? (currentMetrics.dopamine_load - personalBaseline.means.dopamine_load) / (personalBaseline.stdDevs.dopamine_load || 1) : 0,
-            fragmentation_z: currentMetrics.fragmentation ? (currentMetrics.fragmentation - personalBaseline.means.fragmentation) / (personalBaseline.stdDevs.fragmentation || 1) : 0,
-            screen_time: currentMetrics.screen_time_min || 0
-          }
-        },
-        lag_correlations: core.detectLagCorrelations(history),
-        predictions: await core.computePredictions(currentMetrics, history, personalBaseline),
-        goal_alignment: core.calculateGoalAlignment(powerListToday),
-        identity_vault: await core.evaluateIdentityVault() 
-      };
-
-      // 3. INVOKE ORACLE
       const { data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
         body: {
           state_vector: stateVector,
-          user_id: session.user.id
+          current_query: 'Jak wygląda mój stan dziś? Co widzisz w danych?',
+          user_id: session.user.id,
+          mode: 'mirror'
         }
       });
 
       if (functionError) throw functionError;
       if (data?.text) setInsight(data.text);
-      
+
     } catch (err) {
       console.error('Vanguard Oracle Error:', err);
       setError(`Błąd systemu: ${err.message || 'Brak odpowiedzi od Wyroczni.'}`);
@@ -127,21 +85,11 @@ export default function AIInsight({ session }) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-[14px] font-normal text-neutral-300 leading-relaxed whitespace-pre-wrap">
-              {(() => {
-                if (!insight) return null;
-                const keywords = [
-                  'CO SIĘ DZIEJE', 'DLACZEGO', 'CO TO OZNACZA', 'ROZKAZ OPERACYJNY',
-                  'CHAOS', 'LOCKED_IN', 'AVOIDANCE', 'STABLE', 'MOMENTUM', 'RECOVERY', 'CONSUMING'
-                ];
-                const regex = new RegExp(`(${keywords.join('|')})`, 'g');
-                return insight.split(regex).map((part, i) =>
-                  keywords.includes(part) ? <span key={i} className="text-primary font-black uppercase tracking-tight">{part}</span> : part
-                );
-              })()}
-            </div>
+            <p className="text-[14px] font-normal text-neutral-300 leading-relaxed whitespace-pre-wrap">
+              {insight}
+            </p>
             <div className="pt-4 border-t border-white/5">
-              <p className="text-[8px] font-black text-neutral-600 uppercase tracking-[0.2em]">Strategiczny Obserwator v2.0 (STATE_VECTOR)</p>
+              <p className="text-[8px] font-black text-neutral-600 uppercase tracking-[0.2em]">Vanguard Oracle 5.0 — Pełny Kontekst</p>
             </div>
           </div>
         )}

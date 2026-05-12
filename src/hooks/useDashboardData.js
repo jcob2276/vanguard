@@ -95,15 +95,37 @@ export function useDashboardData() {
         .order('date', { ascending: false })
         .limit(30);
 
-      const { data: historyWins } = await supabase
-        .from('daily_wins')
-        .select('result')
+      // --- NOWY SILNIK VANGUARD CORE ---
+      const core = new VanguardCore(session.user.id, supabase);
+      
+      // Pobieramy StayFree (Dopamina/Focus)
+      const { data: stayfreeData } = await supabase
+        .from('stayfree_usage')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today);
+
+      // Pobieramy datę ostatniego treningu
+      const { data: lastWorkout } = await supabase
+        .from('workout_sessions')
+        .select('date')
         .eq('user_id', session.user.id)
         .order('date', { ascending: false })
-        .limit(7);
+        .limit(1)
+        .maybeSingle();
 
-      const stableCount = historyWins?.filter(w => w.result === 'Z').length || 0;
-      const stability = Math.round((stableCount / 7) * 100);
+      const signals = await (async () => {
+        const { computeSignals } = await import('../lib/vanguardCore');
+        return computeSignals(
+          stayfreeData || [],
+          ouraData?.[0] || null,
+          todayData,
+          { protein: protData?.protein || 0 },
+          lastWorkout?.date || null
+        );
+      })();
+
+      const { score: realStability, state: realState } = await core.determineState(signals);
 
       setData({
         mspFeedbackMap: feedbackMap,
@@ -114,13 +136,13 @@ export function useDashboardData() {
         hasWorkoutToday: !!workoutToday,
         ouraToday: ouraData,
         readiness: ouraData?.[0]?.readiness_score || 0,
-        stability: stability,
+        stability: realStability,
+        operationalState: realState,
         nextSuggestedDay: nextDay,
         loading: false
       });
 
       // 4. Trigger Temporal Link Analysis (Asynchronicznie)
-      const core = new VanguardCore(session.user.id, supabase);
       core.analyzeInterventions().catch(err => console.error('Intervention analysis error:', err));
 
     } catch (err) {
@@ -156,8 +178,39 @@ export function useDashboardData() {
     }
   };
 
+  const autoSyncCalendar = async (session) => {
+    try {
+      const { data: lastEvent } = await supabase
+        .from('vanguard_calendar')
+        .select('updated_at')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      const lastSync = lastEvent ? new Date(lastEvent.updated_at).getTime() : 0;
+
+      if (lastSync < twoHoursAgo) {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ userId: session.user.id })
+        });
+      }
+    } catch (_e) {
+      // silent — calendar sync nie może blokować ładowania dashboardu
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) autoSyncCalendar(session);
+    });
   }, []);
 
   return { ...data, syncYazio, refresh: fetchData };

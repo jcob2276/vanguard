@@ -22,7 +22,7 @@ export const VANGUARD_STATES = {
 // --- SIGNAL COMPUTATION ---
 // Czysta funkcja, zero side-effectów, deterministyczna.
 // Pobiera surowe dane, zwraca znormalizowane sygnały.
-export function computeSignals(stayfree = [], oura = null, todayWin = null) {
+export function computeSignals(stayfree = [], oura = null, todayWin = null, nutrition = null, lastTrainingDate = null) {
   // Digital Exposure Vector
   const totalSeconds = stayfree.reduce((a, b) => a + (b.duration_seconds || 0), 0);
 
@@ -52,10 +52,26 @@ export function computeSignals(stayfree = [], oura = null, todayWin = null) {
   const rhr = oura?.rhr_avg ?? null;
   const readiness = oura?.readiness_score ?? null;
 
-  // Execution Vector
+  // Execution Vector (Power List)
   let completedTasks = 0;
   if (todayWin) {
     for (let i = 1; i <= 5; i++) if (todayWin[`done_${i}`]) completedTasks++;
+  }
+
+  // Nutrition Vector (Protein focus)
+  const proteinGoal = 160; 
+  const proteinConsumed = nutrition?.protein || 0;
+  const proteinRatio = Math.min(proteinConsumed / proteinGoal, 1.2);
+
+  // Training Consistency Vector
+  let trainingRatio = 0;
+  if (lastTrainingDate) {
+    const daysSince = Math.floor((new Date() - new Date(lastTrainingDate)) / (1000 * 60 * 60 * 24));
+    if (daysSince === 0) trainingRatio = 1.0; // Dzisiaj
+    else if (daysSince === 1) trainingRatio = 1.0; // Wczoraj
+    else if (daysSince === 2) trainingRatio = 0.8;
+    else if (daysSince === 3) trainingRatio = 0.5;
+    else trainingRatio = 0.2;
   }
 
   return {
@@ -68,11 +84,15 @@ export function computeSignals(stayfree = [], oura = null, todayWin = null) {
     rhr,
     readiness,
     execution_ratio: completedTasks / 5,
+    protein_ratio: parseFloat(proteinRatio.toFixed(2)),
+    protein_grams: proteinConsumed,
+    training_ratio: trainingRatio,
     confidence: {
       digital: stayfree.length > 0 ? 0.95 : 0.1,
       biometrics: sleep != null ? 0.9 : 0.2,
       execution: todayWin != null ? 1.0 : 0.5,
-      // Freshness check
+      nutrition: nutrition != null ? 1.0 : 0.0,
+      training: lastTrainingDate != null ? 1.0 : 0.0,
       is_stale: sleep != null && oura?.date !== format(new Date(), 'yyyy-MM-dd')
     }
   };
@@ -168,18 +188,50 @@ export class VanguardCore {
   }
 
   /**
+   * OBLICZA PROCENT STABILNOŚCI (0-100%)
+   * Wagi: 30% Zadania, 20% Trening, 15% Białko, 15% Sen, 10% HRV, 10% Digital
+   */
+  calculateStabilityScore(current, baseline) {
+    const bl = baseline;
+    
+    // 1. Wykonanie zadań (30%)
+    const executionScore = (current.execution_ratio || 0) * 30;
+
+    // 2. Trening (20%) - oparty na recency
+    const trainingScore = (current.training_ratio || 0) * 20;
+
+    // 3. Białko (15%)
+    const proteinScore = (current.protein_ratio || 0) * 15;
+
+    // 4. Sen (15%) - liczone jako z-score ograniczony do zakresu
+    const zSleep = this._zScore(current.sleep, bl.means.sleep, bl.stdDevs.sleep);
+    const sleepScore = Math.max(0, Math.min(15, (zSleep + 2) * 3.75)); // -2z = 0 pkt, +2z = 15 pkt
+
+    // 5. HRV (10%)
+    const zHrv = this._zScore(current.hrv, bl.means.hrv, bl.stdDevs.hrv);
+    const hrvScore = Math.max(0, Math.min(10, (zHrv + 2) * 2.5));
+
+    // 6. Digital Peace (10%)
+    const zDopa = this._zScore(current.dopamine_load, bl.means.dopamine_load, bl.stdDevs.dopamine_load);
+    const digitalScore = Math.max(0, Math.min(10, (2 - zDopa) * 2.5));
+
+    const total = executionScore + trainingScore + proteinScore + sleepScore + hrvScore + digitalScore;
+    return Math.round(total);
+  }
+
+  /**
    * Klasyfikuje dzisiejszy stan względem personalnego baseline.
    * Przyjmuje signals z computeSignals().
    */
   async determineState(currentSignals, baseline) {
     const bl = baseline || await this.getPersonalBaseline();
 
-    if (bl.calibrating) return VANGUARD_STATES.CALIBRATING;
-    if (currentSignals.confidence.is_stale) return 'STALE_DATA';
+    if (bl.calibrating) return { state: VANGUARD_STATES.CALIBRATING, score: 50 };
+    if (currentSignals.confidence.is_stale) return { state: 'STALE_DATA', score: 0 };
 
-    // Z-scores: dodatnie = lepsze od normy, ujemne = gorsze od normy
-    // HRV i sen: wyższe = lepsze (standardowy kierunek)
-    // Fragmentation i dopamine: wyższe = gorsze (odwracamy znak)
+    const stabilityScore = this.calculateStabilityScore(currentSignals, bl);
+
+    // Z-scores dla klasyfikacji stanów
     const zSleep = this._zScore(currentSignals.sleep,         bl.means.sleep,        bl.stdDevs.sleep);
     const zHrv   = this._zScore(currentSignals.hrv,           bl.means.hrv,          bl.stdDevs.hrv);
     const zFrag  = -this._zScore(currentSignals.fragmentation, bl.means.fragmentation, bl.stdDevs.fragmentation);
@@ -189,14 +241,16 @@ export class VanguardCore {
     const digitalScore    = (zFrag + zDopa) / 2;
     const exec = currentSignals.execution_ratio ?? 0;
 
-    if (biologicalScore < -2.0 && exec < 0.4)  return VANGUARD_STATES.CHAOS;
-    if (biologicalScore < -1.0 && exec < 0.2)  return VANGUARD_STATES.RECOVERY;
-    if (digitalScore < -1.5)                   return VANGUARD_STATES.CONSUMING;
-    if (exec === 1.0 && biologicalScore >= 0)  return VANGUARD_STATES.LOCKED_IN;
-    if (exec >= 0.8)                           return VANGUARD_STATES.MOMENTUM;
-    if (biologicalScore >= -0.5 && exec < 0.4) return VANGUARD_STATES.AVOIDANCE;
+    let state = VANGUARD_STATES.MOMENTUM;
 
-    return VANGUARD_STATES.MOMENTUM;
+    if (biologicalScore < -2.0 && exec < 0.4)  state = VANGUARD_STATES.CHAOS;
+    else if (biologicalScore < -1.0 && exec < 0.2)  state = VANGUARD_STATES.RECOVERY;
+    else if (digitalScore < -1.5)                   state = VANGUARD_STATES.CONSUMING;
+    else if (exec === 1.0 && biologicalScore >= 0)  state = VANGUARD_STATES.LOCKED_IN;
+    else if (exec >= 0.8)                           state = VANGUARD_STATES.MOMENTUM;
+    else if (biologicalScore >= -0.5 && exec < 0.4) state = VANGUARD_STATES.AVOIDANCE;
+
+    return { state, score: stabilityScore };
   }
 
   /**

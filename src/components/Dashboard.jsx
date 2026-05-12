@@ -18,7 +18,6 @@ import AIInsight from './AIInsight';
 import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
 import IntentionTracker from './IntentionTracker';
-import ThoughtStream from './ThoughtStream';
 import { syncActivityWatch } from '../lib/activityWatch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
@@ -42,7 +41,7 @@ export default function Dashboard({ session }) {
   const { 
     lastDayASession, weeklyCalories, todayWin, 
     syncYazio, loading, nextSuggestedDay, refresh,
-    readiness, stability
+    readiness, stability, operationalState
   } = useDashboardData();
 
   // Logic for HUD values
@@ -197,7 +196,7 @@ export default function Dashboard({ session }) {
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Operational State</p>
                       <h2 className="text-2xl font-black italic tracking-tighter uppercase">
-                        {todayWin?.result === 'Z' ? 'System Locked' : 'Analysis Pending'}
+                        {operationalState ? operationalState.replace('_', ' ') : 'Analysis Pending'}
                       </h2>
                     </div>
                     <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
@@ -223,8 +222,13 @@ export default function Dashboard({ session }) {
                 </div>
               </section>
 
-              {/* INTENTION TRACKER (NEW) */}
-              <IntentionTracker session={session} />
+              {/* INTENTION TRACKER (SILNIK DYSCYPLINY) */}
+              <IntentionTracker 
+                session={session} 
+                todayWin={todayWin} 
+                stability={stability}
+                operationalState={operationalState}
+              />
 
               {/* CORE ACTIONS: POWER LIST */}
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />

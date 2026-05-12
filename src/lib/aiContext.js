@@ -68,7 +68,11 @@ export async function gatherUserContext(session) {
       },
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
       desktop_footprint: footprintRes.data?.map(f => ({
-        timestamp: f.timestamp,
+        timestamp: new Date(f.timestamp).toLocaleTimeString('pl-PL', {
+          timeZone: 'Europe/Warsaw',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         app: f.payload?.window?.app,
         title: f.payload?.window?.title,
         web_url: f.payload?.web?.url

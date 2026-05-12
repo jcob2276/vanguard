@@ -5,6 +5,7 @@ import { format, subDays, startOfDay, parseISO, differenceInDays, startOfWeek, e
 import { pl } from 'date-fns/locale';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import StayFreeSync from './StayFreeSync';
+import ManifestationBoard from './ManifestationBoard';
 
 const TrendArrow = ({ current, previous, better = 'up' }) => {
   if (previous === undefined || previous === null || current === undefined || current === null) return null;
@@ -702,6 +703,9 @@ export default function Direction({ session }) {
           </div>
         )}
       </section>
+
+      {/* Manifestacja & Intencje */}
+      <ManifestationBoard session={session} />
 
       {/* Power List Stats (New Section) */}
       <section className="space-y-6">
