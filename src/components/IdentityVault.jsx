@@ -2,31 +2,43 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Shield, Save, Brain, Heart, Zap, Ghost, BookOpen, Briefcase, GraduationCap } from 'lucide-react';
 
-export default function IdentityVault({ session }) {
+export default function IdentityVault({ session: sessionProp }) {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
-  
+  const [userId, setUserId] = useState(sessionProp?.user?.id ?? null);
+
   const [vault, setVault] = useState({
-    vision: '', // Misja & Cele
-    identity: '', // Filary
-    knowledge: '', // Wiedza, umiejętności, książki
-    relationships: '', // Relacje, miłość, problemy
-    philosophy: '', // Cienie, prawda, fetysze, nałogi
-    finances: '', // Finanse & Net Worth
-    work_edu: '' // PRACA & STUDIA (Nowe!)
+    vision: '',
+    identity: '',
+    knowledge: '',
+    relationships: '',
+    philosophy: '',
+    finances: '',
+    work_edu: ''
   });
 
   useEffect(() => {
-    fetchVault();
-  }, [session?.user?.id]);
+    if (sessionProp?.user?.id) {
+      setUserId(sessionProp.user.id);
+      return;
+    }
+    // Fallback: pobierz sesję samodzielnie jeśli prop nie podany
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user?.id) setUserId(data.session.user.id);
+    });
+  }, [sessionProp?.user?.id]);
+
+  useEffect(() => {
+    if (userId) fetchVault();
+  }, [userId]);
 
   const fetchVault = async () => {
-    if (!session?.user?.id) return;
+    if (!userId) return;
     try {
       const { data } = await supabase
         .from('user_fundament')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .maybeSingle();
       
       if (data) {
@@ -46,13 +58,14 @@ export default function IdentityVault({ session }) {
   };
 
   const handleSave = async () => {
+    if (!userId) return;
     setLoading(true);
     setSaveStatus(null);
     try {
       const { error } = await supabase
         .from('user_fundament')
         .upsert({
-          user_id: session.user.id,
+          user_id: userId,
           ...vault,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
