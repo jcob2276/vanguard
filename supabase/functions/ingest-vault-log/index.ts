@@ -147,7 +147,7 @@ serve(async (req) => {
 
       for (const triad of triads) {
         if (!triad.source || !triad.relation || !triad.target) continue;
-        await supabase.rpc('upsert_vanguard_entity_link', {
+        const { error: rpcError } = await supabase.rpc('upsert_vanguard_entity_link', {
           p_user_id: userId,
           p_source: triad.source,
           p_source_type: triad.source_type || 'unknown',
@@ -155,7 +155,11 @@ serve(async (req) => {
           p_target: triad.target,
           p_target_type: triad.target_type || 'unknown',
         });
-        triadCount++;
+        if (rpcError) {
+          console.error(`[VAULT INGEST] RPC error for triad "${triad.source} ${triad.relation} ${triad.target}": ${JSON.stringify(rpcError)}`);
+        } else {
+          triadCount++;
+        }
       }
     }
 
