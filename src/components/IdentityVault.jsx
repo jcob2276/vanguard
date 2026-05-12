@@ -5,7 +5,7 @@ import { Shield, Save, Brain, Heart, Zap, Ghost, BookOpen, Briefcase, Graduation
 export default function IdentityVault({ session: sessionProp }) {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
-  const [userId, setUserId] = useState(sessionProp?.user?.id ?? null);
+  const [userId, setUserId] = useState(null);
 
   const [vault, setVault] = useState({
     vision: '',
@@ -18,14 +18,12 @@ export default function IdentityVault({ session: sessionProp }) {
   });
 
   useEffect(() => {
-    if (sessionProp?.user?.id) {
-      setUserId(sessionProp.user.id);
-      return;
-    }
-    // Fallback: pobierz sesję samodzielnie jeśli prop nie podany
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session?.user?.id) setUserId(data.session.user.id);
-    });
+    const resolveUser = async () => {
+      // Najpierw prop, potem bezpośrednie zapytanie do Supabase
+      const id = sessionProp?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
+      if (id) setUserId(id);
+    };
+    resolveUser();
   }, [sessionProp?.user?.id]);
 
   useEffect(() => {
