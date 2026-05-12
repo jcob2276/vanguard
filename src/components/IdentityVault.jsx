@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Shield, Save, Brain, Heart, Zap, Ghost, BookOpen, Briefcase, GraduationCap } from 'lucide-react';
+import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 
 export default function IdentityVault({ session: sessionProp }) {
   const [loading, setLoading] = useState(false);
@@ -8,13 +8,9 @@ export default function IdentityVault({ session: sessionProp }) {
   const [userId, setUserId] = useState(null);
 
   const [vault, setVault] = useState({
-    vision: '',
-    identity: '',
-    knowledge: '',
-    relationships: '',
-    philosophy: '',
-    finances: '',
-    work_edu: ''
+    identity: '',   // JA
+    philosophy: '', // CIAŁO
+    finances: '',   // ZASOBY
   });
 
   useEffect(() => {
@@ -85,7 +81,7 @@ export default function IdentityVault({ session: sessionProp }) {
       }
       console.log(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
       setSaveStatus('success');
-      setVault({ vision: '', identity: '', knowledge: '', relationships: '', philosophy: '', finances: '', work_edu: '' });
+      setVault({ identity: '', philosophy: '', finances: '' });
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err) {
       console.error('Save error:', err);
@@ -144,54 +140,30 @@ export default function IdentityVault({ session: sessionProp }) {
       )}
 
       {/* Grid of Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Section 
-          title="Praca & Studia"
-          icon={GraduationCap}
-          field="work_edu"
-          color="blue-400"
-          description="Gdzie jesteś, co robisz i kiedy masz egzaminy"
-          placeholder="Twoje stanowisko, wyniki w pracy, daty zaliczeń na studiach, projekty, którymi się zajmujesz..."
-        />
-        <Section 
-          title="Cienie & Prawda"
+      <div className="grid grid-cols-1 gap-6">
+        <Section
+          title="JA"
           icon={Ghost}
-          field="philosophy"
+          field="identity"
           color="purple-500"
-          description="Fetysze, lęki, nałogi i mroczne strony"
-          placeholder="Wpisz tu swoje najgłębsze prawdy: Twoje fetysze (np. rajstopy), to co Cię gnębi, Twoje nałogi, wzorce zachowań, których się wstydzisz. To klucz do Twojego cienia."
+          description="Tożsamość, relacje, psychologia, cienie, misja"
+          placeholder="Kim jesteś? Twoje wartości, lęki, relacje, cienie, misja życiowa, wzorce zachowań, sesje terapeutyczne, refleksje..."
         />
-        <Section 
-          title="Relacje & Miłość"
+        <Section
+          title="CIAŁO"
           icon={Heart}
-          field="relationships"
+          field="philosophy"
           color="rose-500"
-          description="Kogo kochasz i z kim walczysz"
-          placeholder="Kto jest dla Ciebie ważny? W kim się podkochujesz? Jakie masz relacje z rodziną i kobietami? Problemy w komunikacji..."
+          description="Trening, żywienie, biometria, zdrowie"
+          placeholder="Plany treningowe, wyniki badań, dane z Oury, żywienie, pomiary, suplementacja, samopoczucie fizyczne..."
         />
-        <Section 
-          title="Wiedza & Potencjał"
-          icon={BookOpen}
-          field="knowledge"
-          color="emerald-500"
-          description="Co potrafisz i czego się uczysz"
-          placeholder="Twoje umiejętności (np. SQL, AI), przeczytane książki, kursy, które chcesz ukończyć..."
-        />
-        <Section 
-          title="Misja & Dlaczego"
-          icon={Zap}
-          field="vision"
-          color="yellow-500"
-          description="Twój ostateczny napęd"
-          placeholder="Jaki jest Twój ostateczny cel operacyjny? Dlaczego rano wstajesz? Co chcesz osiągnąć przed śmiercią?"
-        />
-        <Section 
-          title="Zasoby & Pieniądze"
+        <Section
+          title="ZASOBY"
           icon={Briefcase}
           field="finances"
           color="orange-500"
-          description="Twoja siła materialna"
-          placeholder="Twój Net Worth, zarobki, cele finansowe, co kupujesz i dlaczego..."
+          description="Praca, studia, finanse, projekty"
+          placeholder="Projekty, zarobki, cele finansowe, postępy na studiach, umiejętności, plany biznesowe..."
         />
       </div>
     </div>
