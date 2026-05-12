@@ -71,29 +71,19 @@ export default function IdentityVault({ session: sessionProp }) {
       );
       if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
 
-      // Pobierz aktualne wartości z bazy i doklejaj nowe logi (append, nie replace)
-      const { data: existing } = await supabase
-        .from('user_fundament')
-        .select('*')
-        .eq('user_id', uid)
-        .maybeSingle();
-
-      const merged = {};
-      for (const [field, newContent] of Object.entries(nonEmpty)) {
-        const current = existing?.[field] || '';
-        const separator = current ? '\n\n--- NOWY WPIS ---\n\n' : '';
-        merged[field] = current + separator + newContent;
+      // Każda kategoria → ingest-vault-log (chunking + embedding + graph)
+      let totalChunks = 0;
+      let totalTriads = 0;
+      for (const [category, text] of Object.entries(nonEmpty)) {
+        const { data, error } = await supabase.functions.invoke('ingest-vault-log', {
+          body: { userId: uid, category, text }
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        totalChunks += data?.chunks ?? 0;
+        totalTriads += data?.triads ?? 0;
       }
-
-      const { error } = await supabase
-        .from('user_fundament')
-        .upsert({
-          user_id: uid,
-          ...merged,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
+      console.log(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
       setSaveStatus('success');
       setVault({ vision: '', identity: '', knowledge: '', relationships: '', philosophy: '', finances: '', work_edu: '' });
       setTimeout(() => setSaveStatus(null), 3000);
