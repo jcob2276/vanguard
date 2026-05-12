@@ -65,11 +65,17 @@ export default function IdentityVault({ session: sessionProp }) {
     setLoading(true);
     setSaveStatus(null);
     try {
+      // Tylko niepuste pola — nie nadpisuj istniejących danych pustymi stringami
+      const nonEmpty = Object.fromEntries(
+        Object.entries(vault).filter(([_, v]) => v.trim() !== '')
+      );
+      if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
+
       const { error } = await supabase
         .from('user_fundament')
         .upsert({
           user_id: uid,
-          ...vault,
+          ...nonEmpty,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
 
