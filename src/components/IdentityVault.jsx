@@ -105,9 +105,9 @@ export default function IdentityVault({ session }) {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="bg-primary text-black px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+          className={`px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 ${saveStatus === 'success' ? 'bg-green-500 text-white shadow-green-500/20' : 'bg-primary text-black shadow-primary/20'}`}
         >
-          {loading ? 'Synchronizacja...' : <><Save size={16} /> Zaktualizuj Prawdę</>}
+          {loading ? 'Synchronizacja...' : saveStatus === 'success' ? '✓ Zapisano!' : <><Save size={16} /> Zaktualizuj Prawdę</>}
         </button>
       </div>
 
