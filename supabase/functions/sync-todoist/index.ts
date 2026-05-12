@@ -32,7 +32,7 @@ serve(async (req) => {
     const token = settings.todoist_token
 
     // 2. Pobierz aktywne zadania z Todoist
-    const response = await fetch('https://api.todoist.com/rest/v2/tasks', {
+    const response = await fetch('https://api.todoist.com/api/v1/tasks', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
@@ -40,7 +40,8 @@ serve(async (req) => {
         const errText = await response.text();
         throw new Error(`Todoist API error (${response.status}): ${errText}`);
     }
-    const tasks = await response.json()
+    const body = await response.json()
+    const tasks: any[] = Array.isArray(body) ? body : (body.results ?? body.items ?? [])
 
     console.log(`[TODOIST SYNC] Found ${tasks.length} tasks for user ${userId}`);
 
@@ -97,7 +98,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error(`[TODOIST SYNC ERROR] ${error.message}`);
     return new Response(JSON.stringify({ error: error.message }), { 
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     })
   }

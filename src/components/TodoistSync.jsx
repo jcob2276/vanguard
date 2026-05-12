@@ -54,6 +54,7 @@ export default function TodoistSync({ session }) {
       });
       
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
       setStatus({ 
         type: 'success', 

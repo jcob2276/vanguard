@@ -23,38 +23,10 @@ export default function DataHub({ session, onBack }) {
         </div>
       </header>
 
-      <section className="bg-neutral-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <Database className="text-primary" size={20} />
-          <h3 className="text-xs font-black text-white uppercase tracking-widest">Strumień StayFree</h3>
-        </div>
+      <StayFreeSync session={session} />
+      <TodoistSync session={session} />
 
-        <div className="mb-4">
-          <StayFreeSync session={session} />
-        </div>
-      </section>
 
-      <section className="bg-neutral-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <CheckCircle2 className="text-red-500" size={20} />
-          <h3 className="text-xs font-black text-white uppercase tracking-widest">Brainstorming (Todoist)</h3>
-        </div>
-
-        <div className="mb-4">
-          <TodoistSync session={session} />
-        </div>
-      </section>
-
-      <section className="bg-neutral-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <ShieldCheck className="text-primary" size={20} />
-          <h3 className="text-xs font-black text-white uppercase tracking-widest">Identity Vault (Głęboki Kontekst)</h3>
-        </div>
-        
-        <p className="text-[10px] text-neutral-500 font-bold mb-4 uppercase">Wklej tutaj ankiety, wyniki testów (MBTI, Enneagram), sesje terapeutyczne lub notatki o sobie. AI będzie o tym pamiętać.</p>
-        
-        <IdentityVault session={session} />
-      </section>
 
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
         <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2 mb-2">

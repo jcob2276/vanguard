@@ -59,6 +59,7 @@ export default function IdentityVault({ session }) {
 
       if (error) throw error;
       setSaveStatus('success');
+      setVault({ vision: '', identity: '', knowledge: '', relationships: '', philosophy: '', finances: '', work_edu: '' });
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err) {
       console.error('Save error:', err);
