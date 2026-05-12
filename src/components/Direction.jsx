@@ -623,116 +623,60 @@ export default function Direction({ session }) {
           {isSavingJournal && <span className="text-[8px] font-black text-primary uppercase animate-pulse">Zapisywanie...</span>}
         </header>
 
-        {todayWin ? (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
-            {/* Mood Tracker */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+            {/* Ocena dnia 1-10 */}
             <div className="space-y-3">
-              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest text-center">Jak się dziś czujesz?</p>
-              <div className="flex justify-around items-center gap-2">
-                {[
-                  { score: 1, icon: <Angry size={20} />, color: 'text-red-500', bg: 'bg-red-500/20', border: 'border-red-500/50', label: 'Źle' },
-                  { score: 2, icon: <Frown size={20} />, color: 'text-orange-500', bg: 'bg-orange-500/20', border: 'border-orange-500/50', label: 'Słabo' },
-                  { score: 3, icon: <Meh size={20} />, color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/50', label: 'Ok' },
-                  { score: 4, icon: <Smile size={20} />, color: 'text-green-500', bg: 'bg-green-500/20', border: 'border-green-500/50', label: 'Dobrze' },
-                  { score: 5, icon: <Star size={20} />, color: 'text-primary', bg: 'bg-primary/20', border: 'border-primary/50', label: 'Świetnie' },
-                ].map((m) => {
-                  const isSelected = todayWin.mood_score === m.score;
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Ocena dnia</p>
+              <div className="flex gap-2">
+                {[1,2,3,4,5,6,7,8,9,10].map(n => {
+                  const isSelected = todayWin?.mood_score === n;
+                  const color = n <= 3 ? 'border-red-500/50 bg-red-500/20 text-red-400' : n <= 6 ? 'border-yellow-500/50 bg-yellow-500/20 text-yellow-400' : 'border-green-500/50 bg-green-500/20 text-green-400';
                   return (
-                    <button 
-                      key={m.score}
-                      onClick={() => setTodayWin({ ...todayWin, mood_score: m.score })}
-                      className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${isSelected ? `${m.bg} ${m.border} scale-105 shadow-lg` : 'border-neutral-800 bg-neutral-950/50 opacity-40 hover:opacity-80'}`}
-                    >
-                      <div className={isSelected ? m.color : 'text-neutral-500'}>{m.icon}</div>
-                      <span className={`text-[8px] font-black uppercase ${isSelected ? 'text-white' : 'text-neutral-700'}`}>{m.label}</span>
+                    <button key={n} onClick={() => setTodayWin({ ...todayWin, mood_score: n })}
+                      className={`flex-1 py-2 rounded-lg border text-[11px] font-black transition-all ${isSelected ? color + ' scale-110 shadow-lg' : 'border-neutral-800 text-neutral-700 hover:border-neutral-600'}`}>
+                      {n}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Gratitude */}
-            <div className="space-y-3 pt-4 border-t border-neutral-800/50">
+            {/* Wdzięczność */}
+            <div className="space-y-2 pt-4 border-t border-neutral-800/50">
               <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <Heart size={12} className="text-red-500" /> Za co jesteś dziś wdzięczny?
+                <Heart size={12} className="text-red-500" /> Za co jesteś wdzięczny?
               </label>
-              <textarea 
-                value={todayWin.gratitude_entry || ''}
+              <textarea
+                value={todayWin?.gratitude_entry || ''}
                 onChange={(e) => setTodayWin({ ...todayWin, gratitude_entry: e.target.value })}
-                placeholder="Np. Dobra kawa, udany trening, czas z bliskimi..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[60px]"
+                placeholder="Konkretne rzeczy z dzisiaj..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[70px]"
               />
             </div>
 
-            {/* Thoughts */}
-            <div className="space-y-3 pt-4 border-t border-neutral-800/50">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                  <Compass size={12} className="text-primary" /> Przemyślenia & Wnioski
-                </label>
-                <button 
-                  onClick={() => setTodayWin({ ...todayWin, is_intervention: !todayWin.is_intervention })}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase transition-all ${todayWin.is_intervention ? 'bg-dayA/20 border-dayA text-dayA' : 'bg-neutral-950 border-neutral-800 text-neutral-600'}`}
-                >
-                  <Activity size={10} /> {todayWin.is_intervention ? 'Aktywna Interwencja' : 'Zaznacz jako Interwencję'}
-                </button>
-              </div>
-              <textarea 
-                value={todayWin.journal_entry || ''}
+            {/* Co poprawię */}
+            <div className="space-y-2 pt-4 border-t border-neutral-800/50">
+              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                <Compass size={12} className="text-primary" /> Co poprawię jutro?
+              </label>
+              <textarea
+                value={todayWin?.journal_entry || ''}
                 onChange={(e) => setTodayWin({ ...todayWin, journal_entry: e.target.value })}
-                placeholder="Jak minął dzień? Co poszło dobrze, a co można poprawić?..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[120px]"
+                placeholder="1 konkretna zmiana na jutro..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[70px]"
               />
-
-              {/* Tags Input */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                  Tagi (Kategoryzacja Kontekstu)
-                </label>
-                <input 
-                  type="text"
-                  placeholder="Np. #finanse #trening #gawronify"
-                  value={todayWin.tags?.join(' ') || ''}
-                  onChange={(e) => {
-                    const tagArr = e.target.value.split(' ').filter(t => t.startsWith('#'));
-                    setTodayWin({ ...todayWin, tags: tagArr });
-                  }}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[11px] font-bold text-primary outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              {todayWin.is_intervention && (
-                <p className="text-[9px] font-bold text-dayA uppercase italic animate-pulse">
-                  System przeanalizuje wpływ tego dnia na Twoją biometrię w ciągu najbliższych 48h.
-                </p>
-              )}
             </div>
 
-            <div className="pt-2">
-              <button 
-                onClick={saveJournal}
-                disabled={isSavingJournal}
-                className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2"
-              >
-                {isSavingJournal ? (
-                  <span className="animate-pulse">Zapisywanie...</span>
-                ) : (
-                  <>
-                    <Save size={14} /> Zapisz Refleksję
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={saveJournal}
+              disabled={isSavingJournal}
+              className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+            >
+              {isSavingJournal ? 'Zapisywanie...' : 'Zapisz'}
+            </button>
           </div>
-        ) : (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
-            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest italic">Zacznij nowy dzień (Power List), aby odblokować dziennik.</p>
-          </div>
-        )}
       </section>
 
-      {/* Manifestacja & Intencje */}
-      <ManifestationBoard session={session} />
 
       {/* Power List Stats (New Section) */}
       <section className="space-y-6">
