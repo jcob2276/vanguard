@@ -12,6 +12,17 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    const cronSecret = Deno.env.get('VANGUARD_CRON_SECRET')
+    
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      console.error('Unauthorized: Invalid or missing VANGUARD_CRON_SECRET')
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
