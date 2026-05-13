@@ -53,7 +53,10 @@ serve(async (req) => {
 ZASADY KRYTYCZNE:
 - TYLKO encje nazwane (osoby, firmy, konkretne technologie) lub złożone koncepty (min. 2 słowa).
 - ZAKAZ: rzeczowników pospolitych (np. "filmik", "router"), dat, przysłówków.
+- TYLKO po polsku — encje i relacje zawsze w języku polskim.
+- ZAKAZ: stanów efemerycznych, instrukcji fizycznych, czynności chwilowych.
 - ZAKAZ: wierzchołków krótszych niż 4 znaki.
+- NORMALIZACJA: Jakub/Ja/użytkownik/Kuba → zawsze "Jakub".
 
 Format JSON:
 {

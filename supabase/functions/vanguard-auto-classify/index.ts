@@ -12,11 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    // 1. AUTH CHECK (Ten sam klucz co w Schedulera)
+    // TASK-02: Uproszczona autoryzacja (Opcja B)
     const authHeader = req.headers.get('Authorization')
-    const cronSecret = Deno.env.get('VANGUARD_CRON_SECRET')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (authHeader !== `Bearer ${serviceRoleKey}`) {
+      console.error('[Vanguard] Unauthorized attempt to call auto-classify');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

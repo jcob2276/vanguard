@@ -18,6 +18,7 @@ import AIInsight from './AIInsight';
 import StayFreeDashboard from './StayFreeDashboard';
 import PowerList from './PowerList';
 import IntentionTracker from './IntentionTracker';
+import GraphMind from './GraphMind';
 import { syncActivityWatch } from '../lib/activityWatch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useStore } from '../store/useStore';
@@ -310,6 +311,7 @@ export default function Dashboard({ session }) {
           {view === 'photos' && <Photos session={session} />}
           {view === 'direction' && <Direction session={session} />}
           {view === 'mentor' && <MentorChat session={session} />}
+          {view === 'mind' && <GraphMind session={session} />}
           {view === 'stayfree' && <StayFreeDashboard session={session} />}
         </main>
 
@@ -318,6 +320,7 @@ export default function Dashboard({ session }) {
           {[
             { id: 'workout', icon: Layout, label: 'Mirror' },
             { id: 'direction', icon: Compass, label: 'Path' },
+            { id: 'mind', icon: Share2, label: 'Mind' },
             { id: 'stats', icon: BarChart2, label: 'Data' },
             { id: 'mentor', icon: Sparkles, label: 'Oracle' },
             { id: 'photos', icon: Camera, label: 'Visual' }

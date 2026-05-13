@@ -252,13 +252,33 @@ serve(async (req) => {
             body: JSON.stringify({ chat_id: chatId, action: "typing" })
           }).catch(() => {});
 
+          // TASK-03: Pobierz historię rozmów (Ostatnie 10 wiadomości)
+          const { data: historyData } = await supabase
+            .from('ai_chat_messages')
+            .select('role, content')
+            .eq('user_id', VANGUARD_USER_ID)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          const formattedHistory = (historyData || []).reverse();
+
+          // TASK-01: Pobierz najświeższy State Vector (Biometria)
+          const { data: lastAggregate } = await supabase
+            .from('vanguard_daily_aggregates')
+            .select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index')
+            .eq('user_id', VANGUARD_USER_ID)
+            .order('date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
           const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
             body: {
               current_query: cleanText,
               user_id: VANGUARD_USER_ID,
+              state_vector: lastAggregate || {},
               mode: mode === 'report' ? 'mirror' : 'chat',
               thinking: mode === 'deep',
-              history: []
+              history: formattedHistory
             }
           });
 

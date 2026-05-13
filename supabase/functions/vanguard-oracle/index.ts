@@ -243,6 +243,7 @@ ZASADY KRYTYCZNE:
 - ZAKAZ: wierzchołków krótszych niż 4 znaki.
 - TYLKO po polsku — encje i relacje zawsze w języku polskim.
 - ZAKAZ: stanów efemerycznych, instrukcji fizycznych, czynności chwilowych (np. "siedzi prosto", "śpi", "je").
+- NORMALIZACJA: Jakub/Ja/użytkownik/Kuba → zawsze "Jakub". Encje osobowe zapisuj jako pełne imię lub imię i nazwisko. Encje konceptualne zawsze w tej samej, kanonicznej formie.
 - SKUP SIĘ NA: konkretnych celach, relacjach międzyludzkich i kluczowych faktach tożsamościowych Jakuba.
 
 Format JSON:
@@ -267,7 +268,12 @@ Zwróć TYLKO JSON.`
         const { items, triads, tasks } = JSON.parse(cleanJson);
 
         // Pobierz token Todoist
-        const { data: settings } = await supabase.from('user_settings').select('todoist_token').eq('user_id', user_id).single();
+        // Pobierz ustawienia Todoist
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('todoist_token, todoist_project_id')
+          .eq('user_id', user_id)
+          .single();
 
         // 1. Zapisz spostrzeżenia
         if (Array.isArray(items)) {
@@ -289,6 +295,7 @@ Zwróć TYLKO JSON.`
 
         // 2. Wyślij zadania do Todoist
         if (Array.isArray(tasks) && settings?.todoist_token) {
+          const targetProjectId = settings.todoist_project_id || '6g8vQP7W9x2PCpJ7'; // Default: Studia
           for (const task of tasks) {
             await fetch('https://api.todoist.com/api/v1/tasks', {
               method: 'POST',
@@ -300,7 +307,7 @@ Zwróć TYLKO JSON.`
                 content: task.content,
                 due_string: task.due_string || 'today',
                 priority: task.priority || 1,
-                project_id: '6g8vQP7W9x2PCpJ7' // Projekt Studia
+                project_id: targetProjectId
               })
             });
           }
