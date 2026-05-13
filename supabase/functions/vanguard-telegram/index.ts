@@ -146,6 +146,13 @@ serve(async (req) => {
           text = await transcribeAudio(message.voice.file_id);
         }
 
+        // --- IMMEDIATE ACKNOWLEDGMENT ---
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: chatId, text: "⚙️ Przetwarzam...", disable_notification: true })
+        }).catch(() => {});
+
         try {
           const { data: existing } = await supabase
             .from('vanguard_stream')
@@ -287,7 +294,7 @@ serve(async (req) => {
 
           const stateVector = {
             biometrics: aggregateRes.data || {},
-            nutrition: { calories_today: aggregateRes.data?.calories_total || 0 },
+            nutrition: { calories_today: 0 },
             physical: { last_workout: workoutRes.data || 'Brak danych' },
             discipline: { today_wins: winRes.data || 'Nie ustawiono celów' }
           };
