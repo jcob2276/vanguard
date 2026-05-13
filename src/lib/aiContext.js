@@ -47,7 +47,15 @@ export async function gatherUserContext(session) {
       state: vanguardState,
       stability_score: stabilityScore,
       confidence: currentMetrics.confidence,
-      now: new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Warsaw' }), // local Warsaw time
+      now: new Date().toLocaleString('pl-PL', { 
+        timeZone: 'Europe/Warsaw',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
       metrics: {
         execution: currentMetrics.execution_ratio || 0,
         biological: {

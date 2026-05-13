@@ -20,6 +20,18 @@ serve(async (req) => {
     const { state_vector, history, current_query, user_id, mode, thinking } = await req.json();
     if (!user_id) throw new Error('Missing user_id');
 
+    // Krok 1: Wymuszenie strefy czasowej (Polska)
+    const now = new Date();
+    const localTimeString = now.toLocaleString('pl-PL', { 
+        timeZone: 'Europe/Warsaw',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
     // STATIC CONTEXT — ładowany raz, wchodzi do system prompt (cache prefix)
     const [fundamentRes, ironRulesRes, patternsRes, personsRes, intentionsRes] = await Promise.all([
       supabase.from('user_fundament')
@@ -455,6 +467,10 @@ Nie zaczynaj od "Widzę", "Zauważam", "Dane pokazują".
 MÓWISZ TYLKO PO POLSKU.
 ${staticProfile}
 
+[CZAS LOKALNY]:
+Jesteś świadomy aktualnego czasu użytkownika. Bieżąca data i godzina to ${localTimeString}. 
+Wykorzystuj tę informację do analizy jego zachowań (np. wyłapuj, jeśli użytkownik pisze do Ciebie o 2:00 w nocy zamiast spać).
+
 ${ironRulesText ? `[ŻELAZNE ZASADY]:\n${ironRulesText}` : ''}
 
 ${repeatedPatterns ? `[POWTARZAJĄCE SIĘ WZORCE]:\n${repeatedPatterns}` : ''}
@@ -566,7 +582,8 @@ ${mode !== 'mirror' ? `1. EMOCJE: Nigdy nie odzwierciedlaj ("rozumiem", "też ta
       history.forEach(msg => messages.push({ role: msg.role, content: msg.content }));
     }
 
-    const contextInfo = `[DANE SYSTEMOWE OBECNE]: ${JSON.stringify(state_vector, null, 2)}
+    const contextInfo = `[BIEŻĄCY CZAS LOKALNY]: ${localTimeString}
+    [DANE SYSTEMOWE OBECNE]: ${JSON.stringify(state_vector, null, 2)}
     
     [PAMIĘĆ GRAFOWA (RELACJE)]:
     ${graphContext || "Brak powiązań w grafie dla tego zapytania."}
