@@ -146,13 +146,6 @@ serve(async (req) => {
           text = await transcribeAudio(message.voice.file_id);
         }
 
-        // --- IMMEDIATE ACKNOWLEDGMENT ---
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: chatId, text: "⚙️ Przetwarzam...", disable_notification: true })
-        }).catch(() => {});
-
         try {
           const { data: existing } = await supabase
             .from('vanguard_stream')

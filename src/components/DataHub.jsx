@@ -7,6 +7,7 @@ import {
 import StayFreeSync from './StayFreeSync';
 import IdentityVault from './IdentityVault';
 import TodoistSync from './TodoistSync';
+import BrainHealth from './BrainHealth';
 
 export default function DataHub({ session, onBack }) {
   return (
@@ -25,6 +26,7 @@ export default function DataHub({ session, onBack }) {
 
       <StayFreeSync session={session} />
       <TodoistSync session={session} />
+      <BrainHealth session={session} />
 
 
 

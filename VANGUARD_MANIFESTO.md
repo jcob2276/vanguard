@@ -60,3 +60,19 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 ## 7. Status & Rozwój (Maj 2026)
 - System w pełni operacyjny (25 tabel, 12 Edge Functions).
 - **Następne etapy:** Daily snapshot (raporty poranne), mapa relacji osób trzecich, integracja z Notion/Readwise.
+
+---
+
+## 8. Kluczowy Profil Użytkownika (Audit 2026-05-13)
+*Ta sekcja służy jako "Zero Point" dla AI. Wszystkie inne dane muszą być spójne z poniższymi faktami.*
+
+- **Osoba:** Jakub, ur. 6 lipca 2002 (23 lata w maju 2026).
+- **Lokalizacja:** Rzeszów.
+- **Edukacja:** Inżynier Analizy Danych (PRz). Obecnie: Magisterka Cyberbezpieczeństwo (1. semestr, PRz).
+- **Relacje:** 
+    - Julia Tomoń (pierwszy poważny związek, 2021).
+    - Klaudia i Julia Ekiert (poprawne nazwiska znajomych/relacji).
+    - Blokada: Trudność w inicjowaniu kontaktu fizycznego, lęk przed dotykiem.
+- **Kluczowe Wydarzenia:** Maraton w Koszycach (4 października 2026). Trening startuje 1 czerwca 2026.
+- **Główne Wątki:** Budowanie "Zintegrowanego Mężczyzny", High Agency, walka z perfekcjonizmem i prokrastynacją ("dryfowanie"), szybkie mówienie (do skorygowania).
+
