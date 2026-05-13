@@ -241,6 +241,8 @@ ZASADY KRYTYCZNE:
 - TYLKO encje nazwane (osoby, firmy, konkretne technologie) lub złożone koncepty (min. 2 słowa).
 - ZAKAZ: rzeczowników pospolitych (np. "filmik", "router", "projekt"), dat ("dzisiaj", "wtorek"), przysłówków i przymiotników.
 - ZAKAZ: wierzchołków krótszych niż 4 znaki.
+- TYLKO po polsku — encje i relacje zawsze w języku polskim.
+- ZAKAZ: stanów efemerycznych, instrukcji fizycznych, czynności chwilowych (np. "siedzi prosto", "śpi", "je").
 - SKUP SIĘ NA: konkretnych celach, relacjach międzyludzkich i kluczowych faktach tożsamościowych Jakuba.
 
 Format JSON:
