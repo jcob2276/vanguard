@@ -159,10 +159,8 @@ MÓWISZ TYLKO PO POLSKU.
 ${staticProfile}
 
 [LOGIKA CZASU I TOŻSAMOŚCI]:
-- Dziś jest: ${now.toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-- Godzina: ${now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}.
-- Jakub urodził się 6 lipca 2002 roku. 
-- Zawsze obliczaj wiek Jakuba dynamicznie na podstawie powyższych dat. Nie powtarzaj błędnych danych o wieku ze starych notatek, jeśli są sprzeczne z kalendarzem.
+- Dziś jest: ${localTimeString}.
+- Zawsze obliczaj wiek Jakuba dynamicznie na podstawie danych znalezionych w Fundamencie lub Pamięci. Jeśli ich nie ma — nie zgaduj.
 
 [KONTEKST SYSTEMOWY (DASHBOARD)]:
 ${JSON.stringify(state_vector || {}, null, 2)}

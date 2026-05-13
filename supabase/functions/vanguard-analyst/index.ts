@@ -21,8 +21,6 @@ serve(async (req) => {
     if (!user_id) throw new Error("User not found");
 
     const now = new Date();
-    const dob = new Date('2002-07-06');
-    const age = (now.getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
     // 1. ZBIERANIE KONTEKSTU 360 (DELTA ANALYSIS)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -47,12 +45,7 @@ serve(async (req) => {
       ).length;
     }
 
-    // Tematy które zniknęły (były w 90-30 dni temu, brak w ostatnich 30 dniach)
-    const oldTopics = new Set((streamOld.data || []).map(e => e.category).filter(Boolean));
-    const recentTopics = new Set(recentEntries.map(e => e.category).filter(Boolean));
-    const vanishedTopics = [...oldTopics].filter(t => !recentTopics.has(t));
-
-    // Encje które się pojawiły tylko raz w grafie (słabe węzły)
+    const vanishedTopics = [...new Set((streamOld.data || []).map(e => e.category).filter(Boolean))].filter(t => !new Set(recentEntries.map(e => e.category)).has(t));
     const weakNodes = (graph.data || []).filter(g => (g as any).evidence_count === 1).length;
     const strongNodes = (graph.data || []).filter(g => (g as any).evidence_count >= 3).length;
 
@@ -61,7 +54,7 @@ serve(async (req) => {
       .map(([dim, count]) => `${dim}: ${count} wpisów (${count === 0 ? '🔴 MARTWA STREFA' : count < 5 ? '🟡 słaba' : '🟢 aktywna'})`)
       .join('\n');
 
-    // 3. DEEP REASONING (The Shadow Analysis)
+    // 3. DEEP REASONING (The Curiosity Engine)
     const analystRes = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -73,52 +66,35 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Jesteś Analitykiem Cienia Vanguard OS. Masz dostęp do pełnego przekroju życia Jakuba. Twoje zadanie: wykrywaj dysonans poznawczy, luki tożsamościowe i martwe strefy.
-
-FAKTY WSTĘPNE (pre-obliczone algorytmicznie, nie zgaduj):
-Wiek Jakuba: ${age.toFixed(1)} lat (ur. 6 lipca 2002)
-Dni do 30-tki: ${Math.floor((new Date('2032-07-06').getTime() - now.getTime()) / (1000 * 60 * 60 * 24))}
-
-MAPA PUSTKI (ostatnie 30 dni):
-${voidMapSummary}
-
-ZNIKAJĄCE TEMATY (były 30-90 dni temu, brak teraz): ${vanishedTopics.length > 0 ? vanishedTopics.join(', ') : 'brak'}
-
-JAKOŚĆ GRAFU: ${strongNodes} silnych węzłów (evidence≥3), ${weakNodes} słabych
-
-KRYTERIA ANALIZY:
-1. DELTA: Co deklaruje (intencje) vs co robi (stream + biometria ostatnie 14 dni)
-2. VOID: Martwe strefy z mapy powyżej = cel ataku
-3. TIMELINE: Ma ${age.toFixed(1)} lat. ${Math.floor((new Date('2032-07-06').getTime() - now.getTime()) / (1000 * 60 * 60 * 24))} dni do 30-tki. Czy wektor go tam prowadzi?
-4. CIEŃ: Czego unika? Co wywołuje nieproporcjonalną reakcję? Gdzie ucieka (over-engineering, izolacja, dopamina)?
-5. ZNIKAJĄCE TEMATY: Dlaczego przestał o tym mówić? Co się wydarzyło?
-
-FORMAT ODPOWIEDZI (JSON):
-{
-  "hypotheses": [
-    {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "konkretne fakty z danych"},
-    {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."},
-    {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."}
-  ],
-  "provocation": "Jedno brutalne zdanie oparte na faktach. Nie pytanie — teza. Zmusić do emocjonalnej odpowiedzi."
-}`
+            content: `Jesteś Cyfrowym Bliźniakiem Vanguard OS (Neuroplastyczny Silnik Wnioskujący). Twoim zadaniem jest poznanie Jakuba TYLKO na podstawie dostarczonych danych. Nie zakładaj niczego, co nie wynika wprost z bazy. Nie używaj zewnętrznych heurystyk o wieku czy celach.
+            
+            MAPA PUSTKI (ostatnie 30 dni):
+            ${voidMapSummary}
+            
+            KRYTERIA ANALIZY (IQ 1000):
+            1. MAPOWANIE PRÓŻNI: Na podstawie MAPY PUSTKI zidentyfikuj obszary życia, które są NIEOBECNE. Dlaczego Jakub o nich milczy? Co to mówi o jego obecnym skupieniu?
+            2. DETEKCJA DYSONANSU: Porównaj Aktywne Intencje (to co mówi, że chce) z realnym Strumieniem i Biometrią (to co faktycznie robi). Gdzie leży brak spójności?
+            3. KONSTRUKCJA HIPOTEZ: Nie zadawaj pytań. Formułuj odważne tezy dotyczące brakujących połączeń w danych. Szukaj mechanizmów obronnych (np. ucieczka w technikalia przed emocjami).
+            4. BRAK ZAŁOŻEŃ: Twoja wiedza kończy się tam, gdzie kończą się dane. Jeśli czegoś nie wiesz — uznaj to za cel ataku.
+            
+            FORMAT ODPOWIEDZI (JSON):
+            {
+              "hypotheses": [
+                {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "konkretna luka w danych"},
+                {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."},
+                {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."}
+              ],
+              "provocation": "Jedno brutalne, prowokujące zdanie, które uderza w najciemniejszą lub najbardziej pustą sferę danych. Ma zmusić Jakuba do reakcji i podania nowych faktów."
+            }`
           },
           {
             role: 'user',
-            content: `FUNDAMENT (SSOT):
-${JSON.stringify(fundament.data)}
-
-AKTYWNE INTENCJE:
-${JSON.stringify(intentions.data)}
-
-STREAM OSTATNIE 30 DNI (próbka 150 wpisów):
-${(stream.data || []).slice(0, 80).map(s => `[${s.category || '?'}] ${s.content?.substring(0, 150)}`).join('\n')}
-
-BIOMETRIA 14 DNI:
-${JSON.stringify(biometrics.data)}
-
-SILNE WĘZŁY GRAFU (evidence≥3):
-${(graph.data || []).filter((g: any) => g.evidence_count >= 3).map((g: any) => `${g.source_entity} --(${g.relation})--> ${g.target_entity}`).join('\n')}`
+            content: `DANE Z BAZY:
+            - FUNDAMENT: ${JSON.stringify(fundament.data)}
+            - INTENCJE: ${JSON.stringify(intentions.data)}
+            - STREAM: ${(stream.data || []).slice(0, 50).map(s => `[${s.category}] ${s.content?.substring(0, 100)}`).join('\n')}
+            - BIOMETRIA: ${JSON.stringify(biometrics.data)}
+            - GRAF: ${(graph.data || []).map((g: any) => `${g.source_entity} --(${g.relation})--> ${g.target_entity}`).join('\n')}`
           }
         ],
         response_format: { type: 'json_object' }
@@ -129,13 +105,13 @@ ${(graph.data || []).filter((g: any) => g.evidence_count >= 3).map((g: any) => `
     const result = JSON.parse(analystData.choices[0].message.content);
 
     // 3. ZAPIS DO KOLEJKI CIEKAWOŚCI
-    const hypotheses = result.hypotheses || (result.hypothesis ? [result.hypothesis] : []);
+    const hypotheses = result.hypotheses || [];
     for (const h of hypotheses) {
       await supabase.from('vanguard_curiosity_queue').insert({
         user_id,
-        hypothesis: typeof h === 'string' ? h : h.hypothesis,
+        hypothesis: h.hypothesis,
         provocation: result.provocation,
-        confidence_score: typeof h === 'object' ? (h.confidence_score ?? 0.7) : 0.7,
+        confidence_score: h.confidence_score,
         category: 'shadow',
         status: 'pending'
       });
