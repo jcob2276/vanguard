@@ -38,11 +38,11 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .maybeSingle(),
       supabase.from('vanguard_knowledge')
-        .select('title, content')
+        .select('title, content, importance_score')
         .eq('user_id', user_id)
-        .gte('importance_score', 8)
+        .in('category', ['rule', 'pattern'])
         .order('importance_score', { ascending: false })
-        .limit(5),
+        .limit(3),
       supabase.from('vanguard_knowledge')
         .select('title, category')
         .eq('user_id', user_id)
@@ -109,9 +109,10 @@ serve(async (req) => {
             user_id_param: user_id
           });
           if (graphData && graphData.length > 0) {
-            graphContext = (graphData as any[]).map(g => 
-              `[GRAF]: ${g.source_entity} --(${g.relation})--> ${g.target_entity}`
-            ).join('\n');
+            graphContext = (graphData as any[])
+              .slice(0, 10) // TASK-08: Limit 10 triad
+              .map(g => `[GRAF]: ${g.source_entity} --(${g.relation})--> ${g.target_entity}`)
+              .join('\n');
           }
         }
       } catch (err) { console.warn('Graph retrieval failed', err); }
@@ -135,7 +136,7 @@ serve(async (req) => {
         const { data: matches } = await supabase.rpc('match_vanguard_content', {
           query_embedding: embedding,
           match_threshold: 0.25, 
-          match_count: 15,       
+          match_count: 5, // TASK-08: Limit 5 wyników       
           user_id_param: user_id
         });
 

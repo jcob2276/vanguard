@@ -27,18 +27,41 @@ serve(async (req) => {
       .eq('user_id', userId)
       .single()
 
-    // 2. Pobierz Strumień z ostatnich 24h
-    const yesterday = new Date()
-    yesterday.setHours(yesterday.getHours() - 24)
+    // 3. POBIERZ DANE Z OSTATNICH 24H (TASK-10: SEMANTIC SEARCH)
+    const yesterdayQuery = "Co najważniejszego wydarzyło się w ciągu ostatnich 24 godzin? Kluczowe wydarzenia, emocje i sukcesy.";
     
-    const { data: stream } = await supabase
-      .from('vanguard_stream')
-      .select('content, created_at')
-      .eq('user_id', userId)
-      .gt('created_at', yesterday.toISOString())
-      .order('created_at', { ascending: true })
+    const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: yesterdayQuery,
+      }),
+    });
+    const embedData = await embedRes.json();
+    const embedding = embedData.data?.[0]?.embedding;
 
-    const streamText = stream?.map(s => `[${s.created_at}] ${s.content}`).join('\n') || "Brak nowych danych w strumieniu."
+    const { data: recentStream } = await supabase.rpc('match_vanguard_content', {
+      query_embedding: embedding,
+      match_threshold: 0.2,
+      match_count: 10,
+      user_id_param: userId
+    });
+
+    const streamText = (recentStream || [])
+      .map((s: any) => `- [${s.category}] ${s.content}`)
+      .join('\n');
+
+    const { data: lastAggregate } = await supabase
+      .from('vanguard_daily_aggregates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     // 3. Pobierz najnowsze połączenia z Grafu (kontekst relacyjny)
     const { data: links } = await supabase

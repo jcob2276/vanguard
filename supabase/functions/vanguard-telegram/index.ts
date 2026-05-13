@@ -233,10 +233,31 @@ serve(async (req) => {
               }, { onConflict: 'user_id' });
           }
         } else {
+          // TASK-09: Generowanie embeddingu dla trybu stream
+          let streamEmbedding = null;
+          try {
+            const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'text-embedding-3-small',
+                input: cleanText.replace(/\n/g, ' '),
+              }),
+            });
+            const embedData = await embedRes.json();
+            streamEmbedding = embedData.data?.[0]?.embedding;
+          } catch (err) {
+            console.error('[Vanguard] Stream embedding failed:', err);
+          }
+
           await supabase.from('vanguard_stream').insert({
             user_id: VANGUARD_USER_ID,
             source: 'telegram',
             content: cleanText,
+            embedding: streamEmbedding,
             metadata: { telegram_chat_id: chatId, telegram_message_id: messageId, mode }
           });
         }
