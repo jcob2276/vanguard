@@ -13,7 +13,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // --- WHISPER INTEGRATION ---
 async function transcribeAudio(fileId: string) {
   try {
-    // 1. Pobierz ścieżkę do pliku z Telegrama
     const fileRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getFile?file_id=${fileId}`);
     const fileData = await fileRes.json();
     if (!fileData.ok) throw new Error("Nie udało się pobrać ścieżki pliku z Telegrama");
@@ -21,11 +20,9 @@ async function transcribeAudio(fileId: string) {
     const filePath = fileData.result.file_path;
     const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${filePath}`;
 
-    // 2. Pobierz plik binarny
     const audioRes = await fetch(fileUrl);
     const audioBlob = await audioRes.blob();
 
-    // 3. Wyślij do OpenAI Whisper
     const formData = new FormData();
     formData.append("file", audioBlob, "voice.ogg");
     formData.append("model", "whisper-1");
@@ -51,19 +48,15 @@ serve(async (req) => {
   try {
     const payload = await req.json();
     
-    // --- OBSŁUGA CALLBACK_QUERY (Przycisków 👍/👎) ---
     if (payload.callback_query) {
       const { id, data, message } = payload.callback_query;
       const chatId = message.chat.id;
       const callbackId = id;
-      
-      // Parsowanie danych: fb_ok_TIMESTAMP lub fb_err_TIMESTAMP
       const isOk = data.startsWith('fb_ok');
       const score = isOk ? 1 : -1;
       
       EdgeRuntime.waitUntil((async () => {
         try {
-          // 1. Zapisz feedback
           await supabase.from('vanguard_feedback').insert({
             user_id: VANGUARD_USER_ID,
             message_id: message.message_id.toString(),
@@ -73,7 +66,6 @@ serve(async (req) => {
             metadata: { callback_data: data }
           });
 
-          // 2. Jeśli 👍 -> oznacz ostatnią wiedzę z tej rozmowy jako zweryfikowaną
           if (isOk) {
             const { data: lastKnowledge } = await supabase
               .from('vanguard_knowledge')
@@ -91,7 +83,6 @@ serve(async (req) => {
             }
           }
 
-          // 3. Poinformuj użytkownika i usuń przyciski
           await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -139,15 +130,12 @@ serve(async (req) => {
     const messageId = message.message_id;
     let text = message.text || "";
 
-    // 1. Zabezpieczenie: Tylko Jakub
     if (chatId !== AUTHORIZED_CHAT_ID) {
       return new Response("OK", { status: 200 });
     }
 
-    // 2. NATYCHMIASTOWY ACK
     EdgeRuntime.waitUntil((async () => {
       try {
-        // 3. Audio Pipeline
         if (isVoice) {
           await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method: "POST",
@@ -158,7 +146,6 @@ serve(async (req) => {
           text = await transcribeAudio(message.voice.file_id);
         }
 
-        // 4. Idempotencja
         try {
           const { data: existing } = await supabase
             .from('vanguard_stream')
@@ -168,7 +155,6 @@ serve(async (req) => {
           if (existing) return;
         } catch (_) {}
 
-        // 5. Parsowanie prefiksu
         let shouldRespond = false;
         let mode = 'stream';
         let cleanText = text;
@@ -180,7 +166,7 @@ serve(async (req) => {
         else if (text.toLowerCase().startsWith('poprawka:')) {
            shouldRespond = false;
            mode = 'knowledge';
-           cleanText = text; // Zachowaj cały tekst poprawki
+           cleanText = text;
         }
         
         if (isVoice && mode === 'stream') {
@@ -188,9 +174,35 @@ serve(async (req) => {
           if (text.includes('?')) mode = 'chat';
         }
 
-        // 5. Zapis do bazy
+        // --- MANDATORY STREAM RECORDING (BEFORE ANALYSIS) ---
+        if (mode !== 'knowledge') {
+          let streamEmbedding = null;
+          try {
+            const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'text-embedding-3-small',
+                input: cleanText.replace(/\n/g, ' '),
+              }),
+            });
+            const embedData = await embedRes.json();
+            streamEmbedding = embedData.data?.[0]?.embedding;
+          } catch (err) { console.error('[Vanguard] Stream embedding failed:', err); }
+
+          await supabase.from('vanguard_stream').insert({
+            user_id: VANGUARD_USER_ID,
+            source: 'telegram',
+            content: cleanText,
+            embedding: streamEmbedding,
+            metadata: { telegram_chat_id: chatId, telegram_message_id: messageId, mode }
+          });
+        }
+
         if (mode === 'knowledge') {
-          // Generowanie embeddingu
           let embedding = null;
           try {
             const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
@@ -210,7 +222,6 @@ serve(async (req) => {
             console.warn("Failed to generate embedding for knowledge:", e);
           }
 
-          // 1. Zapisz w Baza Wiedzy
           await supabase.from('vanguard_knowledge').insert({
             user_id: VANGUARD_USER_ID,
             title: cleanText.startsWith('Poprawka:') ? 'Poprawka użytkownika' : cleanText.substring(0, 50),
@@ -223,8 +234,7 @@ serve(async (req) => {
             metadata: { telegram_message_id: messageId }
           });
 
-          // 2. Jeśli to poprawka tożsamości -> zaktualizuj Fundament (SSOT)
-          if (cleanText.toLowerCase().includes('studiuję') || cleanText.toLowerCase().includes('mam') || cleanText.startsWith('Poprawka:')) {
+          if (cleanText.startsWith('Poprawka:')) {
             await supabase
               .from('user_fundament')
               .upsert({ 
@@ -232,37 +242,8 @@ serve(async (req) => {
                 identity: cleanText.replace('Poprawka:', '').trim() 
               }, { onConflict: 'user_id' });
           }
-        } else {
-          // TASK-09: Generowanie embeddingu dla trybu stream
-          let streamEmbedding = null;
-          try {
-            const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'text-embedding-3-small',
-                input: cleanText.replace(/\n/g, ' '),
-              }),
-            });
-            const embedData = await embedRes.json();
-            streamEmbedding = embedData.data?.[0]?.embedding;
-          } catch (err) {
-            console.error('[Vanguard] Stream embedding failed:', err);
-          }
-
-          await supabase.from('vanguard_stream').insert({
-            user_id: VANGUARD_USER_ID,
-            source: 'telegram',
-            content: cleanText,
-            embedding: streamEmbedding,
-            metadata: { telegram_chat_id: chatId, telegram_message_id: messageId, mode }
-          });
         }
 
-        // 6. Odpowiedź
         let responseText = "";
         if (!shouldRespond) {
           responseText = mode === 'knowledge' ? '📖 Zaktualizowano moją wiedzę.' : '💭 Zapisano w Strumieniu.';
@@ -273,7 +254,6 @@ serve(async (req) => {
             body: JSON.stringify({ chat_id: chatId, action: "typing" })
           }).catch(() => {});
 
-          // TASK-03: Pobierz historię rozmów (Ostatnie 10 wiadomości)
           const { data: historyData } = await supabase
             .from('ai_chat_messages')
             .select('role, content')
@@ -283,20 +263,40 @@ serve(async (req) => {
 
           const formattedHistory = (historyData || []).reverse();
 
-          // TASK-01: Pobierz najświeższy State Vector (Biometria)
-          const { data: lastAggregate } = await supabase
-            .from('vanguard_daily_aggregates')
-            .select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index')
-            .eq('user_id', VANGUARD_USER_ID)
-            .order('date', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          // --- EXTENDED STATE VECTOR (Biometry + Nutrition + Workouts + Wins) ---
+          const today = new Date().toISOString().split('T')[0];
+          const [aggregateRes, workoutRes, winRes] = await Promise.all([
+            supabase.from('vanguard_daily_aggregates')
+              .select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index')
+              .eq('user_id', VANGUARD_USER_ID)
+              .order('date', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase.from('vanguard_workouts')
+              .select('created_at, day_key')
+              .eq('user_id', VANGUARD_USER_ID)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase.from('vanguard_daily_wins')
+              .select('tasks, completed_tasks')
+              .eq('user_id', VANGUARD_USER_ID)
+              .eq('date', today)
+              .maybeSingle()
+          ]);
+
+          const stateVector = {
+            biometrics: aggregateRes.data || {},
+            nutrition: { calories_today: aggregateRes.data?.calories_total || 0 },
+            physical: { last_workout: workoutRes.data || 'Brak danych' },
+            discipline: { today_wins: winRes.data || 'Nie ustawiono celów' }
+          };
 
           const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
             body: {
               current_query: cleanText,
               user_id: VANGUARD_USER_ID,
-              state_vector: lastAggregate || {},
+              state_vector: stateVector,
               mode: mode === 'report' ? 'mirror' : 'chat',
               thinking: mode === 'deep',
               history: formattedHistory
@@ -306,13 +306,13 @@ serve(async (req) => {
           if (error) {
             responseText = `⚠️ Oracle error: ${error.message}`;
           } else {
-            let raw = data.text as string;
+            let raw = (data?.text || "") as string;
             raw = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            responseText = raw.length > 4000 ? raw.substring(0, 4000) + '…' : raw;
+            if (!raw) responseText = "⚠️ Wyrocznia milczy (prawdopodobny timeout modelu reasoner). Spróbuj bez !!.";
+            else responseText = raw.length > 4000 ? raw.substring(0, 4000) + '…' : raw;
           }
         }
 
-        // 7. Wyślij odpowiedź z przyciskami (tylko dla Oracle)
         const hasButtons = shouldRespond && !responseText.startsWith('⚠️');
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
           method: "POST",
@@ -350,6 +350,3 @@ serve(async (req) => {
     return new Response("OK", { status: 200 });
   }
 });
-
-
-

@@ -24,7 +24,7 @@ serve(async (req) => {
     const table = type === 'knowledge' ? 'vanguard_knowledge' : 'vanguard_stream'
     const { data: records, error: fetchError } = await supabase
       .from(table)
-      .select('content')
+      .select('content, created_at')
       .eq('user_id', VANGUARD_USER_ID)
       .range(offset, offset + limit - 1)
 
@@ -36,6 +36,15 @@ serve(async (req) => {
     // 2. Procesowanie każdego rekordu przez DeepSeek
     for (const record of records) {
       if (!record.content) continue;
+
+      // Pobierz biometrię z dnia wpisu
+      const recordDate = new Date(record.created_at).toISOString().split('T')[0];
+      const { data: dailyBio } = await supabase
+        .from('vanguard_daily_aggregates')
+        .select('hrv_avg, sleep_hours, final_state')
+        .eq('user_id', VANGUARD_USER_ID)
+        .eq('date', recordDate)
+        .maybeSingle();
 
       const memoryExtract = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -49,22 +58,24 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: `Jesteś rygorystycznym Architektem Grafu Vanguard OS. Z tekstu archiwalnego wyciągnij TYLKO istotne triady relacji.
+              content: `Jesteś rygorystycznym Architektem Grafu Vanguard OS. Z tekstu archiwalnego i danych biometrycznych wyciągnij triady relacji.
 ZASADY KRYTYCZNE:
-- TYLKO encje nazwane (osoby, firmy, konkretne technologie) lub złożone koncepty (min. 2 słowa).
-- ZAKAZ: rzeczowników pospolitych (np. "filmik", "router"), dat, przysłówków.
-- TYLKO po polsku — encje i relacje zawsze w języku polskim.
-- ZAKAZ: stanów efemerycznych, instrukcji fizycznych, czynności chwilowych.
-- ZAKAZ: wierzchołków krótszych niż 4 znaki.
+- TYLKO encje nazwane, złożone koncepty oraz STANY BIOLOGICZNE (np. "Niskie HRV", "Niedobór Snu").
+- Szukaj powiązań CIAŁO -> UMYSŁ. Jeśli tekst opisuje stres, a biometria jest zła, połącz je w grafie (np. [Niskie HRV] --(wywołuje)--> [Prokrastynacja]).
+- ZAKAZ: rzeczowników pospolitych, dat, przysłówków.
+- ZAKAZ: węzłów dla stanów efemerycznych (chyba że są to konkretne biologiczne bloki, jak "Brak Regeneracji").
 - NORMALIZACJA: Jakub/Ja/użytkownik/Kuba → zawsze "Jakub".
 
 Format JSON:
 {
-  "triads": [{ "source": string, "source_type": string, "relation": string, "target": string, "target_type": string }]
+  "triads": [{ "source": string, "source_type": "Person"|"Concept"|"Biology"|"Action", "relation": string, "target": string, "target_type": "Person"|"Concept"|"Biology"|"Action" }]
 }
 Zwróć TYLKO JSON.`
             },
-            { role: 'user', content: record.content }
+            { 
+              role: 'user', 
+              content: `[BIOMETRIA Z TEGO DNIA]: ${JSON.stringify(dailyBio || 'Brak danych')}\n[TEKST]: ${record.content}` 
+            }
           ],
         }),
       });

@@ -26,13 +26,14 @@ serve(async (req) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [fundament, intentions, stream, streamOld, biometrics, graph] = await Promise.all([
+    const [fundament, intentions, stream, streamOld, biometrics, graph, pendingHypotheses] = await Promise.all([
       supabase.from('user_fundament').select('*').eq('user_id', user_id).single(),
       supabase.from('vanguard_intentions').select('*').eq('user_id', user_id).eq('status', 'active'),
       supabase.from('vanguard_stream').select('content, category, classification, created_at').eq('user_id', user_id).gte('created_at', thirtyDaysAgo).order('created_at', { ascending: false }).limit(150),
       supabase.from('vanguard_stream').select('content, category, created_at').eq('user_id', user_id).gte('created_at', ninetyDaysAgo).lt('created_at', thirtyDaysAgo).order('created_at', { ascending: false }).limit(50),
       supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', user_id).order('date', { ascending: false }).limit(14),
-      supabase.from('vanguard_entity_links').select('source_entity, relation, target_entity, evidence_count').eq('user_id', user_id).order('evidence_count', { ascending: false }).limit(30)
+      supabase.from('vanguard_entity_links').select('source_entity, relation, target_entity, evidence_count').eq('user_id', user_id).order('evidence_count', { ascending: false }).limit(30),
+      supabase.from('vanguard_curiosity_queue').select('id, hypothesis, provocation, created_at').eq('user_id', user_id).eq('status', 'pending').order('created_at', { ascending: false }).limit(3)
     ]);
 
     // 2. PRE-COMPUTED VOID MAP (deterministyczna matematyka, nie LLM)
@@ -71,25 +72,29 @@ serve(async (req) => {
             MAPA PUSTKI (ostatnie 30 dni):
             ${voidMapSummary}
             
-            KRYTERIA ANALIZY (IQ 1000):
-            1. MAPOWANIE PRÓŻNI: Na podstawie MAPY PUSTKI zidentyfikuj obszary życia, które są NIEOBECNE. Dlaczego Jakub o nich milczy? Co to mówi o jego obecnym skupieniu?
-            2. DETEKCJA DYSONANSU: Porównaj Aktywne Intencje (to co mówi, że chce) z realnym Strumieniem i Biometrią (to co faktycznie robi). Gdzie leży brak spójności?
-            3. KONSTRUKCJA HIPOTEZ: Nie zadawaj pytań. Formułuj odważne tezy dotyczące brakujących połączeń w danych. Szukaj mechanizmów obronnych (np. ucieczka w technikalia przed emocjami).
-            4. BRAK ZAŁOŻEŃ: Twoja wiedza kończy się tam, gdzie kończą się dane. Jeśli czegoś nie wiesz — uznaj to za cel ataku.
+            ZADANIE (EMERGENT INTELLIGENCE & EWALUACJA):
+            1. EWALUACJA WCZORAJSZEJ PROWOKACJI: Masz dostęp do "Pending Hypotheses". Przeczytaj dzisiejszy Strumień (ostatnie wpisy Jakuba). Oceń, czy Jakub potwierdził Twoją hipotezę, zaprzeczył jej, czy ją zignorował.
+            2. ANALIZA HOLISTYCZNA: Nie ograniczaj się do prostych korelacji. Znajdź nieoczywiste powiązania między tym, co mówi w emocjach, a tym, jak reaguje jego ciało.
+            3. PROAKTYWNE WNIOSKOWANIE: Nie czekaj na pytania. Samodzielnie generuj hipotezy o tym, co faktycznie steruje zachowaniem Jakuba.
+            4. PROWOKACJA JAKO NARZĘDZIE: Twoja prowokacja ma uderzać w punkt, o którym Jakub jeszcze nawet nie pomyślał.
             
             FORMAT ODPOWIEDZI (JSON):
             {
+              "evaluations": [
+                {"id": "id_z_pending", "status": "validated_true" | "validated_false" | "ignored", "reason": "krótkie uzasadnienie na podstawie strumienia"}
+              ],
               "hypotheses": [
-                {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "konkretna luka w danych"},
+                {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "dowód wynikający z połączenia rozproszonych danych (np. fragment głosówki + anomalia w biometrii + brak aktywności w danym obszarze grafu)"},
                 {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."},
                 {"hypothesis": "...", "confidence_score": 0.0-1.0, "evidence": "..."}
               ],
-              "provocation": "Jedno brutalne, prowokujące zdanie, które uderza w najciemniejszą lub najbardziej pustą sferę danych. Ma zmusić Jakuba do reakcji i podania nowych faktów."
+              "provocation": "Proaktywna teza, która łączy fakty z różnych wymiarów życia Jakuba. Ma go zaskoczyć Twoją zdolnością do łączenia kropek."
             }`
           },
           {
             role: 'user',
             content: `DANE Z BAZY:
+            - PENDING HYPOTHESES (do ewaluacji): ${JSON.stringify(pendingHypotheses.data || [])}
             - FUNDAMENT: ${JSON.stringify(fundament.data)}
             - INTENCJE: ${JSON.stringify(intentions.data)}
             - STREAM: ${(stream.data || []).slice(0, 50).map(s => `[${s.category}] ${s.content?.substring(0, 100)}`).join('\n')}
@@ -103,6 +108,17 @@ serve(async (req) => {
 
     const analystData = await analystRes.json();
     const result = JSON.parse(analystData.choices[0].message.content);
+
+    // 2.5 AKTUALIZACJA STARYCH HIPOTEZ (Feedback Loop)
+    if (result.evaluations && result.evaluations.length > 0) {
+      for (const ev of result.evaluations) {
+        if (ev.status !== 'ignored') {
+          await supabase.from('vanguard_curiosity_queue')
+            .update({ status: ev.status, updated_at: new Date().toISOString() })
+            .eq('id', ev.id);
+        }
+      }
+    }
 
     // 3. ZAPIS DO KOLEJKI CIEKAWOŚCI
     const hypotheses = result.hypotheses || [];

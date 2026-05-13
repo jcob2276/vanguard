@@ -104,7 +104,7 @@ export default function Dashboard({ session }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ userId: session.user.id })
+        body: JSON.stringify({ userId: session?.user?.id })
       });
       refresh();
     } catch (err) {
@@ -297,6 +297,12 @@ export default function Dashboard({ session }) {
                   Analytics
                 </button>
                 <button 
+                  onClick={() => setSelectedDataTab('graph')}
+                  className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedDataTab === 'graph' ? 'bg-primary/10 border-primary text-primary' : 'bg-neutral-900 border-white/5 text-white/30'}`}
+                >
+                  Graph
+                </button>
+                <button 
                   onClick={() => setSelectedDataTab('import')}
                   className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedDataTab === 'import' ? 'bg-primary/10 border-primary text-primary' : 'bg-neutral-900 border-white/5 text-white/30'}`}
                 >
@@ -304,14 +310,15 @@ export default function Dashboard({ session }) {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                {selectedDataTab === 'charts' ? <Stats session={session} /> : <DataHub session={session} />}
+                {selectedDataTab === 'charts' ? <Stats session={session} /> : 
+                 selectedDataTab === 'graph' ? <GraphMind session={session} /> : 
+                 <DataHub session={session} />}
               </div>
             </div>
           )}
           {view === 'photos' && <Photos session={session} />}
           {view === 'direction' && <Direction session={session} />}
           {view === 'mentor' && <MentorChat session={session} />}
-          {view === 'mind' && <GraphMind session={session} />}
           {view === 'stayfree' && <StayFreeDashboard session={session} />}
         </main>
 
@@ -320,7 +327,6 @@ export default function Dashboard({ session }) {
           {[
             { id: 'workout', icon: Layout, label: 'Mirror' },
             { id: 'direction', icon: Compass, label: 'Path' },
-            { id: 'mind', icon: Share2, label: 'Mind' },
             { id: 'stats', icon: BarChart2, label: 'Data' },
             { id: 'mentor', icon: Sparkles, label: 'Oracle' },
             { id: 'photos', icon: Camera, label: 'Visual' }

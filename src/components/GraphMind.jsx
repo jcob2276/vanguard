@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Share2, Users, Briefcase, Zap, Activity } from 'lucide-react';
+import { Share, Users, Briefcase, Zap, Activity } from 'lucide-react';
 
 export default function GraphMind({ session }) {
   const containerRef = useRef(null);
@@ -122,7 +122,7 @@ export default function GraphMind({ session }) {
           <p className="text-[10px] text-white/40 font-bold">{stats}</p>
         </div>
         <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-          <Share2 size={16} className="text-primary" />
+          <Share size={16} className="text-primary" />
         </div>
       </div>
 

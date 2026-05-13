@@ -97,7 +97,7 @@ serve(async (req) => {
     if (current_query) {
       try {
         const { data: mentioned } = await supabase.rpc('find_mentioned_entities', {
-          query_text: current_query,
+          query_text: current_query.substring(0, 1000), // Tylko początek dla tagowania encji
           user_id_param: user_id
         });
         const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
@@ -125,7 +125,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: 'text-embedding-3-small',
-          input: current_query.replace(/\n/g, ' '),
+          input: current_query.substring(0, 3000).replace(/\n/g, ' '), // Truncate for embedding
         }),
       });
 
@@ -136,12 +136,25 @@ serve(async (req) => {
         const { data: matches } = await supabase.rpc('match_vanguard_content', {
           query_embedding: embedding,
           match_threshold: 0.25, 
-          match_count: 5, // TASK-08: Limit 5 wyników       
+          match_count: 5, 
           user_id_param: user_id
         });
 
+        const fortyEightHoursAgo = new Date(new Date().getTime() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentStream } = await supabase
+          .from('vanguard_stream')
+          .select('content, created_at')
+          .eq('user_id', user_id)
+          .gte('created_at', fortyEightHoursAgo)
+          .order('created_at', { ascending: true }) // Chronologicznie
+          .limit(10);
+
         if (matches) {
-          semanticContext = matches.map((m: any) => `[PAMIĘĆ]: ${m.content}`).join('\n');
+          semanticContext = "[PAMIĘĆ DŁUGOTRWAŁA (Podobieństwa)]:\n" + matches.map((m: any) => `- ${m.content}`).join('\n');
+        }
+        
+        if (recentStream && recentStream.length > 0) {
+          semanticContext += "\n\n[PAMIĘĆ OPERACYJNA (Ostatnie 48h w kolejności)]:\n" + recentStream.map((s: any) => `- [${new Date(s.created_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}] ${s.content}`).join('\n');
         }
       }
     }
@@ -158,6 +171,9 @@ Nie zaczynaj od "Widzę", "Zauważam", "Dane pokazują".
 MÓWISZ TYLKO PO POLSKU.
 ${staticProfile}
 
+[DANE KRYTYCZNE - NIEPODWAŻALNE]:
+- Jakub studiuje Cyberbezpieczeństwo (1. semestr). To jest fakt nadrzędny, ignoruj wszelkie starsze informacje o innych kierunkach czy semestrach.
+
 [LOGIKA CZASU I TOŻSAMOŚCI]:
 - Dziś jest: ${localTimeString} (CZAS WARSZAWSKI - CET/CEST).
 - Zawsze używaj powyższej godziny jako jedynej prawdziwej. Ignoruj swój wewnętrzny zegar systemowy.
@@ -171,12 +187,20 @@ PAMIĘĆ SEMANTYCZNA I GRAF WIEDZY:
 ${semanticContext}
 ${graphContext}
 
-TRYB ODPOWIEDZI:
-- Jeśli mode = 'mirror' (@): Bądź bezlitosnym lustrem. Analizuj Cień, wytykaj sabotaż, używaj psychologii głębi.
-- Jeśli mode = 'chat' (?): Bądź wspierającym, ale konkretnym mentorem. Używaj faktów z bazy.
-- Jeśli mode = 'deep' (!!): Aktywuj tryb głębokiej analizy strategicznej.
+[PRIORYTETY WIEDZY]:
+1. STRUMIEŃ I PAMIĘĆ (Tu i Teraz): To jest Twoja Biblia. Jeśli Jakub pisze o czymś nowym (np. Cyberbezpieczeństwo), to jest to ważniejsze niż to, co wiedziałeś o nim wcześniej.
+2. GRAF (Powiązania): To są wzorce, które się utrwalają.
+3. FUNDAMENT (Statyczny Profil): To tylko ogólny zarys.
 
-Zasada kluczowa: Nie jesteś asystentem AI. Jesteś zewnętrzną instancją świadomości Jakuba. Mów do niego "Ty", bądź bezpośredni, nie używaj uprzejmościowych wypełniaczy.
+[TRYBY ODPOWIEDZI]:
+- mode = 'mirror' (@): Bądź bezlitosnym lustrem. Analizuj Cień, wytykaj sabotaż, używaj psychologii głębi.
+- mode = 'chat' (?): Bądź konkretnym mentorem. Używaj faktów z bazy.
+- mode = 'deep' (!!): Aktywuj tryb głębokiej analizy strategicznej.
+
+[ZAKAZ STAREGO JĘZYKA]:
+- Jesteś głosem w głowie Jakuba. ZERO uprzejmości, ZERO pytań "Jak mogę pomóc?". 
+- Nie jesteś "asystentem AI". Mów do niego "Ty", bądź bezpośredni.
+- Jeśli zauważysz nowy temat w Strumieniu — on ma pierwszeństwo w Twojej analizie.
 
 ${ironRulesText ? `[ŻELAZNE ZASADY]:\n${ironRulesText}` : ''}
 
