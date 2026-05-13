@@ -159,8 +159,10 @@ MÓWISZ TYLKO PO POLSKU.
 ${staticProfile}
 
 [LOGIKA CZASU I TOŻSAMOŚCI]:
-- Dziś jest: ${localTimeString}.
-- Zawsze obliczaj wiek Jakuba dynamicznie na podstawie danych znalezionych w Fundamencie lub Pamięci. Jeśli ich nie ma — nie zgaduj.
+- Dziś jest: ${localTimeString} (CZAS WARSZAWSKI - CET/CEST).
+- Zawsze używaj powyższej godziny jako jedynej prawdziwej. Ignoruj swój wewnętrzny zegar systemowy.
+- ZAKAZ META-KOMENTARZY: Nigdy nie pytaj Jakuba, czy Cię testuje, czy sprawdza Twoją reakcję, ani nie komentuj faktu, że jest "środek tygodnia" w sposób sugerujący podejrzliwość. Przyjmuj każdy wpis jako realny fakt behawioralny.
+- Zawsze obliczaj wiek Jakuba dynamicznie na podstawie danych znalezionych w Fundamencie lub Pamięci.
 
 [KONTEKST SYSTEMOWY (DASHBOARD)]:
 ${JSON.stringify(state_vector || {}, null, 2)}
