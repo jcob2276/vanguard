@@ -73,7 +73,17 @@ serve(async (req) => {
 
     const graphContext = links?.map(l => `${l.source_entity} --(${l.relation})--> ${l.target_entity}`).join('\n') || "Brak nowych relacji w grafie."
 
-    // 4. Generowanie Briefingu przez DeepSeek
+    // 4. POBIERZ PROWOKACJĘ Z KOLEJKI CIEKAWOŚCI (TASK-11+)
+    const { data: topProvocation } = await supabase
+      .from('vanguard_curiosity_queue')
+      .select('provocation, hypothesis')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('confidence_score', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 5. Generowanie Briefingu przez DeepSeek
     const briefingRequest = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -92,12 +102,12 @@ Styl: Ostry, konkretny, analityczny, lekko cyniczny, ale ultra-pomocny. Nie lej 
 Struktura raportu:
 1. STAN OBECNY (Synteza ostatnich 24h).
 2. ANALIZA GRAFU (Co bot zauważył w relacjach).
-3. STRATEGIA NA DZIŚ (3 konkretne punkty, na czym się skupić, a co olać).
-4. HARD TRUTH (Jedno zdanie ostrej prawdy o jego obecnym kierunku).`
+3. PROWOKACJA DNIA (Atak na Cień — wykorzystaj dostarczoną prowokację, aby zmusić go do myślenia).
+4. STRATEGIA NA DZIŚ (3 konkretne punkty).`
           },
           {
             role: 'user',
-            content: `FUNDAMENT: ${fundament?.identity || 'Brak danych'}\n\nSTRUMIEŃ OSTATNIE 24H:\n${streamText}\n\nKONTEKST GRAFU:\n${graphContext}`
+            content: `FUNDAMENT: ${fundament?.identity || 'Brak danych'}\n\nSTRUMIEŃ OSTATNIE 24H:\n${streamText}\n\nKONTEKST GRAFU:\n${graphContext}\n\nPROWOKACJA ANALITYCZNA:\n${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy. Skup się na dysonansie między celami a brakiem działań w pustych strefach.'}`
           }
         ],
       }),
