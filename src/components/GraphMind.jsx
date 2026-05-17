@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Share, Users, Briefcase, Zap, Activity } from 'lucide-react';
+import { Share, Users, Zap, Activity } from 'lucide-react';
 
 export default function GraphMind({ session }) {
   const containerRef = useRef(null);
   const [stats, setStats] = useState('Inicjalizacja...');
-  const [currentFilter, setCurrentFilter] = useState('all');
+  const [currentFilter, setCurrentFilter] = useState('current');
   const [allData, setAllData] = useState({ nodes: [], edges: [] });
   const networkRef = useRef(null);
 
@@ -25,7 +25,7 @@ export default function GraphMind({ session }) {
   async function initGraph() {
     const { data, error } = await supabase
       .from('vanguard_entity_links')
-      .select('*')
+      .select('source_entity, source_type, target_entity, target_type, relation, temporal_status, evidence_count')
       .eq('user_id', session.user.id);
 
     if (error) {
@@ -33,7 +33,15 @@ export default function GraphMind({ session }) {
       return;
     }
 
-    setStats(`Aktywne połączenia: ${data.length}`);
+    const counts = { current: 0, declared: 0, hypothesis: 0, unknown: 0, historical: 0, stale: 0 };
+    (data || []).forEach(l => {
+      const s = l.temporal_status || 'unknown';
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    const currentTotal = (counts.current || 0) + (counts.declared || 0);
+    setStats(
+      `Wszystkie: ${data.length} | Aktualne: ${currentTotal} | Hipotezy: ${counts.hypothesis || 0} | Legacy: ${counts.unknown + (counts.historical || 0) + (counts.stale || 0)}`
+    );
 
     const nodesMap = new Map();
     const edges = [];
@@ -57,13 +65,23 @@ export default function GraphMind({ session }) {
       addNode(link.source_entity, link.source_type);
       addNode(link.target_entity, link.target_type);
 
+      const edgeColor = {
+        current:    { color: 'rgba(0,242,255,0.6)',   highlight: '#00f2ff' },
+        declared:   { color: 'rgba(0,255,102,0.5)',   highlight: '#00ff66' },
+        hypothesis: { color: 'rgba(255,204,0,0.3)',   highlight: '#ffcc00' },
+        unknown:    { color: 'rgba(255,255,255,0.04)', highlight: 'rgba(255,255,255,0.15)' },
+        historical: { color: 'rgba(255,255,255,0.04)', highlight: 'rgba(255,255,255,0.15)' },
+        stale:      { color: 'rgba(255,255,255,0.04)', highlight: 'rgba(255,255,255,0.15)' },
+      }[link.temporal_status || 'unknown'] || { color: 'rgba(255,255,255,0.04)', highlight: '#fff' };
+
       edges.push({
         from: link.source_entity,
         to: link.target_entity,
         label: link.relation,
         arrows: 'to',
-        color: { color: 'rgba(255,255,255,0.05)', highlight: '#00f2ff' },
-        font: { size: 8, color: 'rgba(255,255,255,0.2)', strokeWidth: 0 }
+        color: edgeColor,
+        font: { size: 8, color: 'rgba(255,255,255,0.2)', strokeWidth: 0 },
+        temporalStatus: link.temporal_status || 'unknown'
       });
     });
 
@@ -96,21 +114,35 @@ export default function GraphMind({ session }) {
   useEffect(() => {
     if (!networkRef.current || allData.nodes.length === 0) return;
 
-    let filteredNodes = allData.nodes;
-    if (currentFilter !== 'all') {
+    const TEMPORAL_FILTERS = ['current', 'declared', 'hypothesis', 'unknown'];
+
+    let activeEdges = allData.edges;
+    if (TEMPORAL_FILTERS.includes(currentFilter)) {
+      activeEdges = allData.edges.filter(e => e.temporalStatus === currentFilter ||
+        (currentFilter === 'current' && (e.temporalStatus === 'current' || e.temporalStatus === 'declared'))
+      );
+    } else if (currentFilter !== 'all') {
       const directNodes = allData.nodes.filter(n => n.category === currentFilter);
       const nodeIds = new Set(directNodes.map(n => n.id));
       const connectedEdges = allData.edges.filter(e => nodeIds.has(e.from) || nodeIds.has(e.to));
       const connectedNodeIds = new Set([...connectedEdges.map(e => e.from), ...connectedEdges.map(e => e.to)]);
-      filteredNodes = allData.nodes.filter(n => connectedNodeIds.has(n.id));
+      activeEdges = connectedEdges;
+      const filteredNodes = allData.nodes.filter(n => connectedNodeIds.has(n.id));
+      const filteredEdgeSubset = filteredNodes.length > 0
+        ? allData.edges.filter(e => connectedNodeIds.has(e.from) && connectedNodeIds.has(e.to))
+        : [];
+      const edgeNodeIds = new Set([...filteredEdgeSubset.map(e => e.from), ...filteredEdgeSubset.map(e => e.to)]);
+      networkRef.current.setData({
+        nodes: new window.vis.DataSet(allData.nodes.filter(n => edgeNodeIds.has(n.id))),
+        edges: new window.vis.DataSet(filteredEdgeSubset)
+      });
+      return;
     }
 
-    const nodeIds = new Set(filteredNodes.map(n => n.id));
-    const filteredEdges = allData.edges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
-
+    const visibleNodeIds = new Set([...activeEdges.map(e => e.from), ...activeEdges.map(e => e.to)]);
     networkRef.current.setData({
-      nodes: new window.vis.DataSet(filteredNodes),
-      edges: new window.vis.DataSet(filteredEdges)
+      nodes: new window.vis.DataSet(allData.nodes.filter(n => visibleNodeIds.has(n.id))),
+      edges: new window.vis.DataSet(activeEdges)
     });
   }, [currentFilter, allData]);
 
@@ -132,10 +164,10 @@ export default function GraphMind({ session }) {
         {/* Kontrolki filtrów */}
         <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {[
-            { id: 'all', label: 'Wszystko', icon: Activity },
-            { id: 'person', label: 'Ludzie', icon: Users },
-            { id: 'career', label: 'Kariera', icon: Briefcase },
-            { id: 'state', label: 'Stany', icon: Zap }
+            { id: 'current',    label: 'Aktualne',   icon: Activity },
+            { id: 'hypothesis', label: 'Hipotezy',   icon: Zap },
+            { id: 'unknown',    label: 'Legacy',     icon: Share },
+            { id: 'all',        label: 'Wszystko',   icon: Users },
           ].map(f => (
             <button
               key={f.id}
