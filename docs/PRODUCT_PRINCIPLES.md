@@ -7,11 +7,37 @@
 
 ## Core Principle
 
-Vanguard OS nie jest AI-psychologiem ani cyfrowym bliźniakiem.
+**Vanguard OS nie przechowuje "prawdy o użytkowniku".**
+**Vanguard OS przechowuje uporządkowane ślady zachowania wraz z poziomem pewności i możliwością korekty.**
 
 To system **behavioral instrumentation** i **evidence-based self-observation**.
 
 Jego zadaniem jest utrzymywanie ciągłości obserwacji, której ludzki mózg sam nie utrzymuje — nie odkrywanie "prawdy o użytkowniku".
+
+---
+
+## Reasoning ≠ Measurement
+
+Sprint 0.7 nie był "cleanupem kodu". Był **rozdzieleniem epistemologicznym warstw systemu**.
+
+**Błąd Oracle era:**
+```
+inference → memory → retrieval → stronger inference
+```
+Samowzmacniająca się pętla interpretacji. Oracle wnioskował, zapisywał wnioski jako wiedzę, a potem wnioskował na podstawie własnych wniosków.
+
+**Zdrowy model:**
+```
+behavior → evidence → confirmation → pattern detection → reasoning
+```
+Kolejność jest tu wszystkim.
+
+**Podział warstw:**
+- `LLM (DeepSeek/Oracle)` = reasoning layer
+- `Vanguard pipeline` = behavioral evidence layer
+
+Vanguard nie konkuruje z LLM na polu reasoning.
+Vanguard dostarcza LLM dane, których LLM sam nie może zebrać.
 
 ---
 
@@ -173,6 +199,34 @@ Nie: ilość eventów, embeddings, insightów, grafów.
 
 > Użytkownik ufa danym bardziej niż chwilowej narracji —
 > ale nadal zachowuje możliwość korekty systemu.
+
+---
+
+## Known biases in the data
+
+Timestamps i częstotliwość nie są obiektywną prawdą. Vanguard przechowuje **strukturalizowany ślad zachowania** — nie pomiar.
+
+**Selection bias** — logujesz to co zauważysz, pamiętasz, uznasz za ważne. System nie widzi 95% życia, kontekstu, stanów nieuświadomionych.
+
+**Reporting bias** — każdy wpis jest już interpretacją. "Straciłem 3h" może być regulacją emocjonalną, objawem przemęczenia albo rzeczywiście kosztem.
+
+**Metric trap** — system zaczyna optymalizować mierzalne rzeczy, ignorując niemierzalne. Dlatego `resource_observations` istnieje: człowiek nie działa wyłącznie przez redukcję błędów.
+
+System musi pamiętać o tych limitach przy każdym patternie który prezentuje.
+
+---
+
+## The long-term value
+
+Nie: "AI rozumie człowieka."
+
+Tylko:
+
+> **System utrzymuje długoterminową ciągłość zachowania lepiej niż ludzka pamięć.**
+
+GPT/Claude mogą być genialnym reasoning engine w jednej rozmowie — ale nie utrzymują rygorystycznej longitudinal continuity opartej o realne dane użytkownika.
+
+To jest nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memory.**
 
 ---
 
