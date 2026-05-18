@@ -5,6 +5,8 @@
 
 > **Stan projektu:** system przestał być naiwny wobec własnych błędów. To nie jest to samo co dojrzałość.
 >
+> **Najlepszy opis systemu:** *behavioral field notes with continuity and correction.*
+>
 > **Ten dokument ma wersje.** Zasady które są tu teraz mogą wymagać zmiany gdy pojawi się outcome tracking, interventional learning, lub 12 miesięcy realnych danych. Epistemiczna dyscyplina oznacza zdolność aktualizowania własnych założeń — nie ich zamrożenie.
 >
 > **Backlog dokumentu:** dodać sekcję "examples of bad outputs" z realnymi przykładami semantic inflation, creeping interpretation, acceptable uncertainty i epistemic paralysis gdy system będzie miał wystarczająco dużo outputów do pokazania.
