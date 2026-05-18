@@ -292,6 +292,9 @@ Raz na tydzień — losowa próbka outputów systemu (briefingi, reconciliation 
 
 Jeśli odpowiedź na 1, 3 lub 4 jest "tak" — creeping interpretation wraca. Nie szukać przyczyny w danych. Szukać w promptach, retrieval i wording modelu.
 
+**Dodatkowy sygnał ostrzegawczy — telemetry corruption:**
+Jeśli wpisy w strumieniu zaczynają brzmieć "lepiej niż życie" — system zaczyna produkować uporządkowaną fikcję. Użytkownik nauczył się pisać pod AI, nie pod rzeczywistość. Frictionless honesty > perfect structure. Brudny, nieskładny, prawdziwy stream jest więcej wart niż pięknie sklasyfikowany performans.
+
 ---
 
 ## Operational vocabulary
@@ -310,6 +313,7 @@ Wspólny język do code review, architecture decisions i wykrywania regresji:
 | **outcome continuity** | śledzenie czy zmiana zachowania faktycznie zmieniła trajektorię — jeszcze nie istnieje |
 | **interventional learning** | "gdy zrobiłeś X, pattern Y zmniejszył się przez N dni" — wymaga outcome continuity |
 | **longitudinal behavioral memory** | ciągłość obserwacji przez tygodnie/miesiące — docelowy stan, nie obecny |
+| **telemetry corruption** | użytkownik uczy się jak "dobrze wyglądać" przed systemem — wpisy stają się estetyczne ale mniej prawdziwe; behavioral continuity zaczyna się rozpadać |
 
 ---
 
