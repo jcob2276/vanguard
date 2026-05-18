@@ -3,6 +3,8 @@
 > Guardrail document for feature decisions, architecture reviews, and AI behavior.
 > Last updated: 2026-05-18
 
+> **Stan projektu:** system przestał być naiwny wobec własnych błędów. To nie jest to samo co dojrzałość.
+
 ---
 
 ## Core Principle
@@ -304,6 +306,42 @@ Wspólny język do code review, architecture decisions i wykrywania regresji:
 | **outcome continuity** | śledzenie czy zmiana zachowania faktycznie zmieniła trajektorię — jeszcze nie istnieje |
 | **interventional learning** | "gdy zrobiłeś X, pattern Y zmniejszył się przez N dni" — wymaga outcome continuity |
 | **longitudinal behavioral memory** | ciągłość obserwacji przez tygodnie/miesiące — docelowy stan, nie obecny |
+
+---
+
+## The balance: epistemic discipline ≠ epistemic paralysis
+
+Zbyt dużo ostrożności to też failure mode:
+- wszystko hedge'owane,
+- każdy output ma tyle disclaimerów że przestaje być użyteczny,
+- system boi się powiedzieć cokolwiek konkretnego.
+
+**Docelowy format outputu:**
+
+> "W ostatnich 14 dniach pattern X pojawił się 9 razy, głównie po Y. Confidence: low-to-medium. Możesz sprawdzić, czy to trafia."
+
+To: nie udaje prawdy — ale nadal jest użyteczne i actionable.
+
+**Dwa failure modes do pilnowania równocześnie:**
+
+| za dużo interpretacji | za dużo ostrożności |
+|---|---|
+| semantic inflation | epistemic paralysis |
+| identity claims | bezużyteczne hedge'y |
+| confidence inflation | brak konkretnych outputów |
+| Oracle era | archiwum logów bez wartości |
+
+---
+
+## Red-team epistemiczny (backlog)
+
+Gdy system będzie miał 60+ dni danych — celowe testy graniczne:
+- adversarial prompts wywołujące psychoanalizę
+- małe sample → czy system tworzy pewne identity claims?
+- edge cases reconciliation → czy parser nadinterpretuje?
+- sprawdzenie czy confidence rośnie bez nowych danych
+
+Guardrailsie najlepiej poznaje się gdy próbujesz je złamać.
 
 ---
 
