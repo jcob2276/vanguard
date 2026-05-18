@@ -274,6 +274,25 @@ Ale to jest aspiracja, nie obecny stan. Największy błąd jaki można zrobić: 
 
 ---
 
+## Principles → Technical guardrails
+
+Każda zasada ma odpowiadający constraint techniczny. Bez tego dokument jest tylko intencją.
+
+| zasada | guardrail techniczny | gdzie w kodzie |
+|---|---|---|
+| confirmed only | `VIEW confirmed_friction_events` filtruje `review_status IN ('good', 'user_confirmed', 'user_corrected')` | SQL migration `sprint_08` |
+| reasoning ≠ measurement | Oracle write access do `vanguard_knowledge` i `entity_links` wyłączony | `vanguard-oracle` v103, Sprint 0.7 |
+| user correction is signal | `daily_reconciliations` table, `confidence_source = user_corrected` | Sprint 0.8 P1 |
+| no semantic inflation | `match_vanguard_content` — max 90 dni, tylko verified knowledge | SQL migration `sprint_07_match_vanguard_content_recency` |
+| behavior → evidence → reasoning | `vanguard-architect` friction extraction disabled, tylko `vanguard-auto-classify` jako canonical pipeline | Sprint 0.7 P3 |
+| resource ≠ friction | `resource_observations` osobna tabela, nie wchodzi do `confirmed_friction_events` | P2 (pending) |
+| no outcome inference | brak `interventional_outcomes` table — system nie twierdzi że X spowodowało Y | stan obecny, intencjonalny |
+
+**Zasada weryfikacji nowego feature'a:**
+Przed merge — czy narusza którąś z powyższych linii? Jeśli tak — wymaga eksplicytnej decyzji i aktualizacji tej tabeli.
+
+---
+
 ## What Vanguard OS is NOT
 
 Filtr dla przyszłych feature requestów. Jeśli propozycja wpada w którąś z poniższych kategorii — wymaga bardzo mocnego uzasadnienia.
