@@ -274,6 +274,39 @@ Ale to jest aspiracja, nie obecny stan. Największy błąd jaki można zrobić: 
 
 ---
 
+## Weekly output audit
+
+Raz na tydzień — losowa próbka outputów systemu (briefingi, reconciliation summaries, pattern outputs). Pytania:
+
+1. Czy brzmi to jak **pomiar** czy **diagnoza**?
+2. Czy każdy claim ma evidence (count, source, date range)?
+3. Czy wording sugeruje większą pewność niż dane uzasadniają?
+4. Czy system przypisuje cechy tożsamości użytkownika?
+5. Czy użytkownik mógłby skutecznie to skorygować?
+
+Jeśli odpowiedź na 1, 3 lub 4 jest "tak" — creeping interpretation wraca. Nie szukać przyczyny w danych. Szukać w promptach, retrieval i wording modelu.
+
+---
+
+## Operational vocabulary
+
+Wspólny język do code review, architecture decisions i wykrywania regresji:
+
+| pojęcie | definicja |
+|---|---|
+| **semantic inflation** | system nadaje znaczenie jednostkowym zdarzeniom lub łączy eventy w "wzorce" bez evidence threshold |
+| **creeping interpretation** | stopniowy powrót psychologicznych narracji przez małe zmiany tonu, wordingu i confidence — bez jednego wyraźnego błędu |
+| **temporal collapse** | traktowanie historycznych danych jako aktualnych; brak rozróżnienia między tym co było a tym co jest |
+| **reasoning ≠ measurement** | LLM wnioskuje — Vanguard mierzy. Te dwie warstwy nie mogą się mieszać |
+| **confirmed gate** | bariera między raw inference a pattern analysis: tylko `review_status = good/user_confirmed/user_corrected` |
+| **evidence layer** | `vanguard_stream`, `friction_events`, `daily_reconciliations` — dane z zachowania |
+| **reasoning layer** | Oracle/DeepSeek — interpretacja na podstawie evidence layer, nie jego mutator |
+| **outcome continuity** | śledzenie czy zmiana zachowania faktycznie zmieniła trajektorię — jeszcze nie istnieje |
+| **interventional learning** | "gdy zrobiłeś X, pattern Y zmniejszył się przez N dni" — wymaga outcome continuity |
+| **longitudinal behavioral memory** | ciągłość obserwacji przez tygodnie/miesiące — docelowy stan, nie obecny |
+
+---
+
 ## Principles → Technical guardrails
 
 Każda zasada ma odpowiadający constraint techniczny. Bez tego dokument jest tylko intencją.
