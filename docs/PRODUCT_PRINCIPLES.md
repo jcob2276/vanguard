@@ -327,13 +327,58 @@ Obrona: zawsze pokazywać source + count + confidence.
 
 ---
 
+## Feature gate — 3 pytania dla każdego nowego AI capability
+
+Każde nowe AI capability przechodzi przez te pytania przed implementacją:
+
+### 1. Czy to generuje evidence czy inference?
+Evidence = dane z zachowania użytkownika, potwierdzone lub confirmowalane.
+Inference = wniosek systemu bez twardego potwierdzenia.
+Inference jest dozwolony — ale musi być oznaczony jako inference, nie fakt.
+
+### 2. Czy inference może mutować evidence layer?
+Jeśli tak — feature jest podejrzany. To był błąd Oracle era.
+`inference → memory → retrieval → stronger inference` = samowzmacniająca się pętla.
+Inference nie może zapisywać się jako wiedza bez human confirmation.
+
+### 3. Czy użytkownik może skutecznie to skorygować?
+Jeśli correction loop nie istnieje lub jest ograniczony — feature wymaga uzasadnienia.
+System bez korekty staje się czarną skrzynką generującą niekontrolowane claims.
+
+---
+
+## Creeping interpretation — największe ryzyko operacyjne
+
+Guardrailsie nie łamią się nagle. Wracają powoli, niezauważalnie:
+
+```
+mały insight
+→ pattern
+→ user profile
+→ identity graph
+→ Oracle era
+```
+
+Sygnały ostrzegawcze:
+- system zaczyna używać "Twój wzorzec to..." zamiast "to wystąpiło X razy"
+- nowy feature "trochę interpretuje" — ale to przecież tylko mały dodatek
+- confidence score rośnie bez nowych danych
+- agent zaczyna wyprowadzać wnioski których nie można sfalsyfikować
+
+**Finalnym testem guardraila nie jest dokument, prompt ani komentarz w SQL.**
+**Tylko output systemu na realnych danych.**
+
+Jeśli output zaczyna brzmieć jak diagnoza psychologiczna — guardrail nie działa, niezależnie od tego co mówi kod.
+
+---
+
 ## Zasada implementacyjna
 
 Przed dodaniem każdego nowego feature'a:
 
 1. Czy to zbiera dane lepiej?
 2. Czy to pomaga użytkownikowi korygować system?
-3. Czy to nie generuje inferencji bez evidence?
+3. Czy to nie pozwala inference mutować evidence layer?
 4. Czy to nie zwiększa psychologicznego ciężaru systemu?
 
-Jeśli odpowiedź na 3 lub 4 brzmi "tak" — feature wymaga dodatkowego uzasadnienia.
+Jeśli odpowiedź na 3 brzmi "tak" — feature jest zablokowany bez eksplicytnej decyzji architektonicznej.
