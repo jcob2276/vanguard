@@ -216,7 +216,33 @@ System musi pamiętać o tych limitach przy każdym patternie który prezentuje.
 
 ---
 
-## The long-term value
+## Where we are now (honest assessment)
+
+Vanguard OS to **aktualnie**:
+
+- A. Behavioral logging system
+- B. Structured reconciliation layer
+- C. Evidence-aware pattern groundwork
+
+To już więcej niż journaling. Ale mniej niż "longitudinal behavioral memory".
+
+**Czego jeszcze nie ma:**
+
+| brakujący element | co to oznacza |
+|---|---|
+| Stable longitudinal patterns | Prawdziwa ciągłość zaczyna się po tygodniach, nie dniach |
+| Outcome continuity | System nie widzi czy zmiana zadziałała, czy pattern się zmniejszył |
+| State transitions | Brak rozumienia spirali, momentum, przeciążenia jako stanów dynamicznych |
+| Behavioral compression | Brak tygodniowych/miesięcznych podsumowań jako jednostek analizy |
+| Interventional learning | "Gdy zrobiłeś X, pattern Y zmniejszył się przez 8 dni" — jeszcze nie istnieje |
+
+**Minimum żeby powiedzieć "mamy continuity layer":**
+- 60–90 dni danych
+- Outcome tracking (czy coś się poprawia)
+- Stabilny correction loop (system uczy się false positives)
+- Behavioral summarization (nie tylko eventy, ale fazy i trendy)
+
+## The long-term target
 
 Nie: "AI rozumie człowieka."
 
@@ -226,7 +252,9 @@ Tylko:
 
 GPT/Claude mogą być genialnym reasoning engine w jednej rozmowie — ale nie utrzymują rygorystycznej longitudinal continuity opartej o realne dane użytkownika.
 
-To jest nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memory.**
+To jest docelowa nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memory.**
+
+Ale to jest aspiracja, nie obecny stan. Największy błąd jaki można zrobić: uwierzyć za wcześnie, że system już rozumie użytkownika.
 
 ---
 
