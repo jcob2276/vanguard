@@ -202,6 +202,22 @@ Nie: ilość eventów, embeddings, insightów, grafów.
 
 ---
 
+## Current limitations
+
+> Vanguard obecnie obserwuje ślady zachowania. Nie wnioskuje przyczynowości, nie diagnozuje psychologicznie i nie potwierdza twierdzeń o tożsamości użytkownika.
+
+Konkretnie — system **nie potrafi** jeszcze:
+
+- powiedzieć czy coś się poprawia (brak outcome tracking)
+- odróżnić spirali od chwilowego kosztu (brak state transitions)
+- stwierdzić że interwencja zadziałała (korelacja ≠ kauzalność)
+- podsumować tygodnia/miesiąca jako jednostki analizy (brak behavioral compression)
+- powiedzieć "ten pattern jest Twój" z wystarczającym confidence (za mało danych)
+
+Każda z tych rzeczy wymaga minimum 60-90 dni danych i osobnego etapu walidacji.
+
+---
+
 ## Known biases in the data
 
 Timestamps i częstotliwość nie są obiektywną prawdą. Vanguard przechowuje **strukturalizowany ślad zachowania** — nie pomiar.
