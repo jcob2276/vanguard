@@ -66,6 +66,10 @@ serve(async (req) => {
         }),
       });
 
+      if (!cleanupRes.ok) {
+        const errText = await cleanupRes.text().catch(() => 'unknown')
+        throw new Error(`DeepSeek intentions-cleanup error (${cleanupRes.status}): ${errText.substring(0, 200)}`)
+      }
       const auditData = await cleanupRes.json();
       const updates = JSON.parse(auditData.choices[0].message.content).updates;
 

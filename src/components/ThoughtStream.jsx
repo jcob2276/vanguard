@@ -66,7 +66,7 @@ export default function ThoughtStream({ session }) {
         {recentThoughts.map((t, i) => (
           <div key={t.id} className="flex gap-2 items-start animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${i * 100}ms` }}>
             <span className="text-[9px] font-mono text-primary/40 mt-1 whitespace-nowrap">
-              {new Date(t.created_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(t.created_at).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
             </span>
             <p className="text-[11px] text-neutral-400 font-medium leading-relaxed italic">
               {t.content}

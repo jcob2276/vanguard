@@ -8,7 +8,6 @@ console.log("Vanguard: Initializing...");
 window.onerror = function(msg, url, line) {
   const errorMsg = "ERR: " + msg + "\nLine: " + line;
   console.error(errorMsg);
-  alert(errorMsg);
 };
 
 try {
@@ -22,5 +21,4 @@ try {
   console.log("Vanguard: Render called");
 } catch (e) {
   console.error("Vanguard: Mount Crash", e);
-  alert("Mount Crash: " + e.message);
 }

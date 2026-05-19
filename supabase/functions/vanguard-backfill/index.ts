@@ -68,6 +68,10 @@ serve(async (req) => {
         }),
       });
 
+      if (!embedRes.ok) {
+        console.error(`OpenAI embedding HTTP error for ${record.id}: ${embedRes.status}`);
+        continue;
+      }
       const embedData = await embedRes.json();
       if (embedData.error) {
         console.error(`OpenAI Error for ${record.id}:`, embedData.error);
