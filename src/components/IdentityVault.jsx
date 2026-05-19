@@ -79,7 +79,7 @@ export default function IdentityVault({ session: sessionProp }) {
         totalChunks += data?.chunks ?? 0;
         totalTriads += data?.triads ?? 0;
       }
-      console.log(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
+      console.debug(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
       setSaveStatus('success');
       setVault({ identity: '', philosophy: '', finances: '' });
       setTimeout(() => setSaveStatus(null), 3000);

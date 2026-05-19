@@ -32,7 +32,8 @@ serve(async (req) => {
 
     console.log(`[auto-classify] start for record: ${record.id}`)
 
-    const today = new Date().toISOString().split('T')[0]
+    // Use Warsaw local date — toISOString() returns UTC which drifts at midnight (22:00 UTC in summer)
+    const today = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
 
     const { data: aggregate } = await supabase
       .from('vanguard_daily_aggregates')
@@ -151,6 +152,20 @@ Przykłady:
       })
     ])
 
+    // === Guard: DeepSeek errors (429, 500, etc.) ===
+    if (!classifyRes.ok || !frictionRes.ok) {
+      const classifyStatus = classifyRes.status
+      const frictionStatus = frictionRes.status
+      console.error(`[auto-classify] DeepSeek error — classify: ${classifyStatus}, friction: ${frictionStatus}`)
+      return new Response(JSON.stringify({
+        error: `DeepSeek upstream error (classify: ${classifyStatus}, friction: ${frictionStatus})`,
+        record_id: record.id
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // === Parse klasyfikacja ===
     const classifyData = await classifyRes.json()
     const classification = JSON.parse(classifyData.choices?.[0]?.message?.content || '{}')
@@ -197,9 +212,10 @@ Przykłady:
       const closureEmbedding = closureEmbedData.data?.[0]?.embedding
 
       if (closureEmbedding) {
+        const CLOSURE_THRESHOLD = 0.65
         const { data: matches } = await supabase.rpc('match_vanguard_content', {
           query_embedding: closureEmbedding,
-          match_threshold: 0.65,
+          match_threshold: CLOSURE_THRESHOLD,
           match_count: 5,
           user_id_param: record.user_id
         })
@@ -207,10 +223,23 @@ Przykłady:
           .filter((m: any) => m.table_name === 'vanguard_stream' && m.id !== record.id)
           .map((m: any) => m.id)
         if (idsToClose.length > 0) {
-          await supabase
-            .from('vanguard_stream')
-            .update({ valid_until: new Date().toISOString() })
-            .in('id', idsToClose)
+          // Human gate: LLM inference cannot mutate evidence layer without confirmation.
+          // Actual valid_until update happens only after status='approved' (P3).
+          const { error: proposalErr } = await supabase
+            .from('vanguard_stream_closure_proposals')
+            .insert({
+              user_id: record.user_id,
+              proposed_by_record_id: record.id,
+              target_record_ids: idsToClose,
+              closed_topic_description: classification.closed_topic_description,
+              similarity_threshold: CLOSURE_THRESHOLD,
+              status: 'pending'
+            })
+          if (proposalErr) {
+            console.error('[auto-classify] closure proposal insert error:', proposalErr)
+          } else {
+            console.log(`[auto-classify] closure proposal created for ${idsToClose.length} record(s), topic: ${classification.closed_topic_description}`)
+          }
         }
       }
     }

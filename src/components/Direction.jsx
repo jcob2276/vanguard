@@ -16,7 +16,6 @@ const TrendArrow = ({ current, previous, better = 'up' }) => {
 };
 
 export default function Direction({ session }) {
-  console.log('--- DIRECTION V2.2.1 ACTIVE ---');
   const [loading, setLoading] = useState(true);
   const [lifeGoals, setLifeGoals] = useState({ goal_cialo: '', goal_duch: '', goal_konto: '' });
   const [isEditingGoals, setIsEditingGoals] = useState(false);
@@ -364,8 +363,6 @@ export default function Direction({ session }) {
 
   const saveWeeklyReview = async () => {
     if (currentReview) return;
-    
-    console.log('Saving Weekly Review for:', currentWeekStart, reviewForm);
     
     const { data, error } = await supabase
       .from('weekly_reviews')

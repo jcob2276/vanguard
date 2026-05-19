@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 
 export const syncActivityWatch = async (userId) => {
-  console.log('🔄 Próba synchronizacji z ActivityWatch (via Bridge)...');
   try {
     const bucketsRes = await fetch('http://localhost:5601/api/0/buckets/?bypass_sw=1');
     const buckets = await bucketsRes.json();
@@ -42,7 +41,6 @@ export const syncActivityWatch = async (userId) => {
       });
       
       if (error) throw error;
-      console.log('✅ Synchronizacja zakończona sukcesem:', payload.window?.title);
       return payload;
     }
   } catch (err) {

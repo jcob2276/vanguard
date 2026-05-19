@@ -56,7 +56,6 @@ export default function LocationTracker({ session }) {
         if (!error) {
           lastSync.current = now;
           lastCoords.current = { lat: latitude, lng: longitude };
-          console.log('📍 Pozycja zaktualizowana:', currentPOI ? currentPOI.name : 'W ruchu');
         }
       }
     };

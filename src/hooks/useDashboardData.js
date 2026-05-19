@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { format, startOfWeek } from 'date-fns';
@@ -16,6 +16,7 @@ export function useDashboardData() {
     loading: true
   });
 
+  const mountedRef = useRef(true);
   const { setSyncing } = useStore();
 
   const fetchData = async () => {
@@ -127,6 +128,7 @@ export function useDashboardData() {
 
       const { score: realStability, state: realState } = await core.determineState(signals);
 
+      if (!mountedRef.current) return;
       setData({
         mspFeedbackMap: feedbackMap,
         lastDayASession: lastA,
@@ -208,10 +210,12 @@ export function useDashboardData() {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchData();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) autoSyncCalendar(session);
     });
+    return () => { mountedRef.current = false; };
   }, []);
 
   return { ...data, syncYazio, refresh: fetchData };

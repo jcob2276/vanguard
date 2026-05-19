@@ -564,7 +564,7 @@ STATUS: AKTYWNY BASELINE`;
           strength: Math.min(1.0, (hrvDelta / 10) + (sleepDelta / 2)),
           metadata: { hrv_delta: hrvDelta, sleep_delta: sleepDelta, intervention_text: inter.journal_entry }
         });
-        console.log(`[Vanguard] Created Temporal Link for intervention on ${inter.date}`);
+        console.debug(`[Vanguard] Created Temporal Link for intervention on ${inter.date}`);
       }
     }
   }

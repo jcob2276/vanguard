@@ -18,7 +18,13 @@ export default function GraphMind({ session }) {
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
