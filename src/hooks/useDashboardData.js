@@ -147,6 +147,7 @@ export function useDashboardData() {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      setData(prev => ({ ...prev, loading: false, error: err.message }));
     }
   };
 
