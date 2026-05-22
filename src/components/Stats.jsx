@@ -357,7 +357,7 @@ export default function Stats({ session }) {
       const [
         { data: sessions },
         { data: bodyMetrics },
-        { data: food },
+        { data: food, error: foodError },
         { data: nutritionSummary },
         { data: journal },
         { data: telegramLogs },
@@ -558,7 +558,9 @@ export default function Stats({ session }) {
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g**\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
-            md += `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;
+            md += foodError
+              ? `Nie udało się pobrać szczegółowych produktów z \`daily_food_entries\`: ${foodError.message}\n\n`
+              : `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;
             md += `**Suma dnia: ${dayNutrition.calories || 0} kcal | B: ${Number(dayNutrition.protein || 0).toFixed(1)}g**\n`;
           }
         }
