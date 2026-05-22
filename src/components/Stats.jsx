@@ -358,6 +358,7 @@ export default function Stats({ session }) {
         { data: sessions },
         { data: bodyMetrics },
         { data: food },
+        { data: nutritionSummary },
         { data: journal },
         { data: telegramLogs },
         { data: reviews },
@@ -372,6 +373,7 @@ export default function Stats({ session }) {
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
         includeYazio ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        includeYazio ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve({ data: [] }),
         supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
@@ -385,6 +387,7 @@ export default function Stats({ session }) {
       ]);
 
       const foodEntries = food || [];
+      const nutritionEntries = nutritionSummary || [];
       const journalEntries = journal || [];
       const telegramEntries = telegramLogs || [];
       const weeklyReviews = reviews || [];
@@ -429,6 +432,7 @@ export default function Stats({ session }) {
       const dates = [...new Set([
         ...sessions.map(s => s.date),
         ...foodEntries.map(f => f.date),
+        ...nutritionEntries.map(n => n.date),
         ...journalEntries.map(j => j.date),
         ...telegramEntries.map(t => toWarsawDate(t.created_at)),
         ...bodyMetrics.map(b => b.date)
@@ -446,6 +450,7 @@ export default function Stats({ session }) {
       allDatesInRange.forEach(dateStr => {
         const daySessions = sessions.filter(s => s.date === dateStr);
         const dayFood = foodEntries.filter(f => f.date === dateStr);
+        const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
         const dayJournal = journalEntries.find(j => j.date === dateStr);
         const dayTelegramLogs = telegramEntries.filter(t => toWarsawDate(t.created_at) === dateStr);
         const dayBody = bodyMetrics.find(b => b.date === dateStr);
@@ -453,7 +458,7 @@ export default function Stats({ session }) {
         const dayPhotos = photos?.filter(p => p.date === dateStr);
 
         // Header and Lose Day Logic
-        const hasAnyData = daySessions.length > 0 || (includeYazio && dayFood.length > 0) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
+        const hasAnyData = daySessions.length > 0 || (includeYazio && (dayFood.length > 0 || dayNutrition)) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
 
         if (!hasAnyData) {
           md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n`;
@@ -531,6 +536,7 @@ export default function Stats({ session }) {
 
         if (includeYazio) {
           const dayFood = foodEntries.filter(f => f.date === dateStr);
+          const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
           if (dayFood.length > 0) {
             md += `### 🥗 Dieta (Yazio)\n`;
             const meals = { breakfast: 'Śniadanie', lunch: 'Obiad', dinner: 'Kolacja', snack: 'Przekąski' };
@@ -550,6 +556,10 @@ export default function Stats({ session }) {
             const totalCarb = dayFood.reduce((sum, f) => sum + (Number(f.carbs) || 0), 0);
             const totalFat = dayFood.reduce((sum, f) => sum + (Number(f.fat) || 0), 0);
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g**\n`;
+          } else if (dayNutrition) {
+            md += `### 🥗 Dieta (Yazio)\n`;
+            md += `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;
+            md += `**Suma dnia: ${dayNutrition.calories || 0} kcal | B: ${Number(dayNutrition.protein || 0).toFixed(1)}g**\n`;
           }
         }
         if (includeJournal && dayTelegramLogs.length > 0) {
