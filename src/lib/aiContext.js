@@ -16,8 +16,9 @@ export async function gatherUserContext(session) {
   try {
     const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const lastWeekStart = format(startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const fourteenDaysAgo = format(subDays(new Date(), 13), 'yyyy-MM-dd');
     
-    const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes] = await Promise.all([
+    const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes] = await Promise.all([
       supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today),
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
@@ -27,7 +28,17 @@ export async function gatherUserContext(session) {
       supabase.from('weekly_reviews').select('*').eq('user_id', userId).order('week_start', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('vanguard_footprint').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(20),
       supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
-      supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()
+      supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('oura_daily_summary')
+        .select('date, steps, active_calories, total_calories')
+        .eq('user_id', userId)
+        .gte('date', fourteenDaysAgo)
+        .order('date', { ascending: false }),
+      supabase.from('daily_nutrition')
+        .select('date, calories, protein')
+        .eq('user_id', userId)
+        .gte('date', fourteenDaysAgo)
+        .order('date', { ascending: false })
     ]);
 
     const currentMetrics = computeSignals(
@@ -41,6 +52,12 @@ export async function gatherUserContext(session) {
     const personalBaseline = await core.getPersonalBaseline();
     const { state: vanguardState, score: stabilityScore } = await core.determineState(currentMetrics, personalBaseline);
     const history = historyRes.data || [];
+    const avg = (items, key) => {
+      const values = (items || []).map(item => Number(item?.[key])).filter(Number.isFinite);
+      return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+    };
+    const oura14d = oura14dRes.data || [];
+    const nutrition14d = nutrition14dRes.data || [];
 
     // 1:1 Identical Vector with AIInsight.jsx
     const stateVector = {
@@ -68,6 +85,19 @@ export async function gatherUserContext(session) {
           fragmentation_z: currentMetrics.fragmentation ? (currentMetrics.fragmentation - personalBaseline.means.fragmentation) / (personalBaseline.stdDevs.fragmentation || 1) : 0,
           screen_time: currentMetrics.screen_time_min || 0
         }
+      },
+      last_14_days: {
+        date_from: fourteenDaysAgo,
+        date_to: today,
+        oura_days_logged: oura14d.length,
+        nutrition_days_logged: nutrition14d.length,
+        avg_steps: avg(oura14d, 'steps'),
+        avg_active_calories: avg(oura14d, 'active_calories'),
+        avg_total_calories_burned: avg(oura14d, 'total_calories'),
+        avg_food_calories: avg(nutrition14d, 'calories'),
+        avg_protein: avg(nutrition14d, 'protein'),
+        oura_daily: oura14d,
+        nutrition_daily: nutrition14d
       },
       lag_correlations: core.detectLagCorrelations(history),
       predictions: await core.computePredictions(currentMetrics, history, personalBaseline),

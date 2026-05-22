@@ -1,28 +1,24 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { 
-  Calendar, Link2, RefreshCcw, CheckCircle2, 
-  XCircle, ChevronLeft, Globe, ShieldCheck, Database
-} from 'lucide-react';
+import { ChevronLeft, ShieldCheck } from 'lucide-react';
 import StayFreeSync from './StayFreeSync';
-import IdentityVault from './IdentityVault';
 import TodoistSync from './TodoistSync';
 import BrainHealth from './BrainHealth';
 
-export default function DataHub({ session, onBack }) {
+export default function DataHub({ session, onBack, embedded = false }) {
   return (
-    <div className="min-h-screen bg-black p-6 space-y-8 animate-in fade-in duration-500">
-      <header className="flex items-center gap-4">
-        {onBack && (
-          <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-        )}
-        <div>
-          <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Data Hub</h1>
-          <p className="text-[10px] text-primary font-black uppercase tracking-widest">Reality Sync Console</p>
-        </div>
-      </header>
+    <div className={`${embedded ? 'space-y-6' : 'min-h-screen bg-black p-6 space-y-8 animate-in fade-in duration-500'}`}>
+      {!embedded && (
+        <header className="flex items-center gap-4">
+          {onBack && (
+            <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          <div>
+            <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Data Hub</h1>
+            <p className="text-[10px] text-primary font-black uppercase tracking-widest">Reality Sync Console</p>
+          </div>
+        </header>
+      )}
 
       <StayFreeSync session={session} />
       <TodoistSync session={session} />

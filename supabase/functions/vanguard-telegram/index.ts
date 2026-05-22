@@ -28,6 +28,17 @@ function inferVaultCategory(text: string) {
   return "telegram_vault";
 }
 
+function extractDayScore(text: string): number | null {
+  const normalized = text.toLowerCase();
+  const explicit = normalized.match(/(?:ocena dnia|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?)\D*([1-5])(?:\s*\/\s*5)?/i);
+  if (explicit?.[1]) return Number(explicit[1]);
+
+  const numberedAnswer = normalized.match(/(?:^|\n|\s)4[\).\:-]\s*([1-5])(?:\s*\/\s*5)?/i);
+  if (numberedAnswer?.[1]) return Number(numberedAnswer[1]);
+
+  return null;
+}
+
 // --- WHISPER INTEGRATION ---
 async function transcribeAudio(fileId: string) {
   try {
@@ -79,9 +90,75 @@ serve(async (req) => {
       const { id, data, message } = payload.callback_query;
       const chatId = message.chat.id;
       const callbackId = id;
+
+      // --- MIDDAY CHECK CALLBACKS ---
+      if (data === 'midday_yes' || data === 'midday_no' || data === 'midday_stuck') {
+        EdgeRuntime.waitUntil((async () => {
+          try {
+            const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+            const { data: planRows } = await supabase
+              .from('daily_reconciliations')
+              .select('id, planning_summary')
+              .eq('user_id', VANGUARD_USER_ID)
+              .not('planning_summary', 'is', null)
+              .order('answered_at', { ascending: false })
+              .limit(5);
+
+            const planRow = (planRows || []).find((r: any) =>
+              r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+            );
+            const plan = planRow?.planning_summary as any;
+
+            // Save midday status
+            if (planRow?.id) {
+              const statusMap: Record<string, string> = { midday_yes: 'done', midday_no: 'not_done', midday_stuck: 'stuck' };
+              await supabase
+                .from('daily_reconciliations')
+                .update({ midday_status: statusMap[data] })
+                .eq('id', planRow.id);
+            }
+
+            // Build response — backward compat with old field names
+            const firstMove = plan?.first_move_morning || plan?.pierwszy_ruch || '—';
+            const mvd = plan?.minimum_viable_day || '—';
+            const risk = plan?.biggest_risk || plan?.ryzyko || '—';
+            const counter = plan?.counterplan || plan?.kontrplan || '—';
+
+            let responseText = '';
+            if (data === 'midday_yes') {
+              responseText = 'Zapisane. Trzymaj Top 1.';
+            } else if (data === 'midday_no') {
+              responseText = `Minimum viable day:\n${mvd}\n\nRobisz teraz minimum?`;
+            } else {
+              responseText = `Ryzyko:\n${risk}\n\nKontrplan:\n${counter}\n\nCo blokuje: energia / niejasnosc / opor / zewnetrzne?`;
+            }
+
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callback_query_id: callbackId, text: '' })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageReplyMarkup`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: message.message_id, reply_markup: { inline_keyboard: [] } })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: responseText, disable_notification: false })
+            });
+          } catch (err) {
+            console.error('[telegram] midday callback error:', err);
+          }
+        })());
+        return new Response('OK', { status: 200 });
+      }
+
+      // --- FEEDBACK CALLBACKS (fb_ok / fb_err) ---
       const isOk = data.startsWith('fb_ok');
       const score = isOk ? 1 : -1;
-      
+
       EdgeRuntime.waitUntil((async () => {
         try {
           await supabase.from('vanguard_feedback').insert({
@@ -162,10 +239,13 @@ serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
-    EdgeRuntime.waitUntil((async () => {
+    await (async () => {
       try {
         let streamRecordId: string | null = null;
         let deferredVaultIngest: { text: string; category: string } | null = null;
+        let pendingReconciliation: { id: string; date: string } | null = null;
+        let activePlanningSession: { id: string; history: any[] } | null = null;
+        let planningEnded = false;
 
         if (isVoice) {
           await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
@@ -190,7 +270,9 @@ serve(async (req) => {
         let mode = 'stream';
         let cleanText = text;
 
-        const explicitVoiceCommand = isVoice && /^(\\?|!!|##|@)/.test(originalText.trim());
+        const commandSource = isVoice ? text : originalText;
+        const hasCommandPrefix = /^(\?|!!|##|@)/.test(commandSource.trim());
+        const explicitVoiceCommand = isVoice && hasCommandPrefix;
 
         if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';    cleanText = text.substring(1).trim(); }
         else if (text.startsWith('!!')) { shouldRespond = true; mode = 'deep';    cleanText = text.substring(2).trim(); }
@@ -201,8 +283,162 @@ serve(async (req) => {
            mode = 'knowledge';
            cleanText = text;
         }
+
+        if (!hasCommandPrefix && mode === 'stream') {
+          // Check for active planning session first (planning_status = 'active' within 4h)
+          const { data: activePlanning } = await supabase
+            .from('daily_reconciliations')
+            .select('id, planning_history, answered_at, created_at')
+            .eq('user_id', VANGUARD_USER_ID)
+            .eq('planning_status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (activePlanning) {
+            // Use answered_at as session start (when planning was triggered), fall back to created_at
+            const sessionStart = activePlanning.answered_at || activePlanning.created_at;
+            const ageMs = Date.now() - new Date(sessionStart).getTime();
+            const history = (activePlanning.planning_history as any[]) || [];
+            const PLANNING_WINDOW_MS = 120 * 60 * 1000;
+            const PLANNING_MAX_ENTRIES = 20; // 10 turns × 2
+
+            if (ageMs <= PLANNING_WINDOW_MS && history.length < PLANNING_MAX_ENTRIES) {
+              if (/^(koniec|done|gotowe|wystarczy|stop|dziękuję|dziekuje|ok dzięki)\b/i.test(cleanText.trim())) {
+                await supabase
+                  .from('daily_reconciliations')
+                  .update({ planning_status: 'completed' })
+                  .eq('id', activePlanning.id);
+                planningEnded = true;
+                shouldRespond = false;
+                mode = 'stream';
+
+                // Generate structured plan summary in background
+                const closureHistory = history.slice();
+                const closureId = activePlanning.id;
+                // Compute target date server-side (tomorrow in Warsaw tz) — injected into both
+                // the DeepSeek prompt and the saved jsonb so poranne query is always correct.
+                const tomorrowWarsawDate = (() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  return d.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+                })();
+                // @ts-ignore
+                EdgeRuntime.waitUntil((async () => {
+                  let telegramText = '✅ Sesja planowania zakończona. Dobrej nocy!';
+                  try {
+                    const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        temperature: 0.3,
+                        max_tokens: 900,
+                        messages: [
+                          {
+                            role: 'system',
+                            content: 'Jesteś asystentem planowania. Na podstawie sesji planowania wygeneruj plan jutra. Odpowiedz TYLKO poprawnym JSON-em, zero markdown, zero dodatkowego tekstu.'
+                          },
+                          ...closureHistory,
+                          {
+                            role: 'user',
+                            content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","top3":["zadanie1","zadanie2","zadanie3"],"first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia"}`
+                          }
+                        ]
+                      })
+                    });
+
+                    if (dsRes.ok) {
+                      const dsData = await dsRes.json().catch(() => null);
+                      const rawPlan = (dsData?.choices?.[0]?.message?.content || '').trim();
+
+                      if (rawPlan) {
+                        let planJson: any = null;
+                        try {
+                          const jsonMatch = rawPlan.match(/\{[\s\S]*\}/);
+                          if (jsonMatch) planJson = JSON.parse(jsonMatch[0]);
+                        } catch (_) {}
+
+                        if (planJson?.top3) {
+                          // Server-side stamp: target_date always correct regardless of model output
+                          const summaryToSave = { ...planJson, target_date: tomorrowWarsawDate, date: tomorrowWarsawDate };
+                          await supabase
+                            .from('daily_reconciliations')
+                            .update({ planning_summary: summaryToSave })
+                            .eq('id', closureId);
+
+                          // Format output using new schema fields
+                          const top3 = (planJson.top3 as string[]).map((t, i) => `${i + 1}. ${t}`).join('\n');
+                          const urgentSection = (planJson.urgent_items as string[] || []).filter(Boolean).length > 0
+                            ? `\n\nPilne:\n${(planJson.urgent_items as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                          const notDoingSection = (planJson.not_doing as string[] || []).filter(Boolean).length > 0
+                            ? `\n\nNie robimy:\n${(planJson.not_doing as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                          const openLoopsSection = (planJson.open_loops as string[] || []).filter(Boolean).length > 0
+                            ? `\n\nOtwarte petle:\n${(planJson.open_loops as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+
+                          telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}`;
+                        } else {
+                          // JSON parse failed → save raw fallback, send as-is (still readable)
+                          console.warn('[telegram] plan JSON parse failed, saving raw');
+                          await supabase
+                            .from('daily_reconciliations')
+                            .update({ planning_summary: { raw: rawPlan, parse_error: true, target_date: tomorrowWarsawDate } })
+                            .eq('id', closureId);
+                          telegramText = rawPlan.length > 4000 ? rawPlan.substring(0, 4000) + '…' : rawPlan;
+                        }
+                      }
+                    } else {
+                      console.error('[telegram] DeepSeek plan generation failed:', dsRes.status);
+                    }
+                  } catch (planSummaryErr) {
+                    console.error('[telegram] plan summary error:', planSummaryErr);
+                  }
+
+                  await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: chatId,
+                      text: telegramText,
+                      disable_notification: false
+                    })
+                  });
+                })());
+              } else {
+                activePlanningSession = { id: activePlanning.id, history };
+                shouldRespond = true;
+                mode = 'planning';
+              }
+            }
+          }
+
+          const { data: reconciliation } = !activePlanningSession && !planningEnded ? await supabase
+            .from('daily_reconciliations')
+            .select('id, date, created_at')
+            .eq('user_id', VANGUARD_USER_ID)
+            .eq('status', 'sent')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle() : { data: null };
+
+          if (reconciliation) {
+            const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
+            if (ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000) {
+              pendingReconciliation = {
+                id: reconciliation.id,
+                date: reconciliation.date
+              };
+              shouldRespond = false;
+              mode = 'daily_reconciliation_response';
+              cleanText = text.trim();
+            }
+          }
+        }
         
-        if (isVoice && !explicitVoiceCommand) {
+        if (isVoice && !explicitVoiceCommand && mode !== 'daily_reconciliation_response' && mode !== 'planning') {
           const transcriptWordCount = text.trim().split(/\s+/).filter(Boolean).length;
           if (transcriptWordCount > 120) {
             shouldRespond = false;
@@ -266,6 +502,10 @@ serve(async (req) => {
               telegram_chat_id: chatId,
               telegram_message_id: messageId,
               mode,
+              ...(pendingReconciliation ? {
+                reconciliation_id: pendingReconciliation.id,
+                reconciliation_date: pendingReconciliation.date
+              } : {}),
               ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
             }
           }).select('id').single();
@@ -278,6 +518,141 @@ serve(async (req) => {
 
           if (emotionData) {
             console.log(`[telegram] emotion: ${emotionData.state} (v=${emotionData.valence?.toFixed(2)}, a=${emotionData.arousal?.toFixed(2)}) voice=${isVoice}`);
+          }
+        }
+
+        if (pendingReconciliation) {
+          const dayScore = extractDayScore(cleanText);
+          const { error: reconciliationUpdateError } = await supabase
+            .from('daily_reconciliations')
+            .update({
+              status: 'answered',
+              user_response: cleanText,
+              parsed_response: {
+                raw_response: cleanText,
+                stream_record_id: streamRecordId,
+                parser_version: 'telegram_edge_v1'
+              },
+              day_score: dayScore,
+              answered_at: new Date().toISOString()
+            })
+            .eq('id', pendingReconciliation.id);
+
+          if (reconciliationUpdateError) {
+            console.error("[telegram] reconciliation update failed:", reconciliationUpdateError);
+          }
+
+          // Trigger evening planning session after reconciliation is answered
+          if (!reconciliationUpdateError) {
+            // @ts-ignore
+            EdgeRuntime.waitUntil((async () => {
+              try {
+                const reconId = pendingReconciliation!.id;
+                const today = new Date().toISOString().split('T')[0];
+
+                // Fetch context in parallel: state, todos, Todoist token
+                const [aggregateRes, winRes, userSettingsRes] = await Promise.all([
+                  supabase.from('vanguard_daily_aggregates')
+                    .select('final_state, sleep_hours, hrv_avg, execution_score')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .order('date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
+                  supabase.from('vanguard_daily_wins')
+                    .select('tasks, completed_tasks')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .eq('date', today)
+                    .maybeSingle(),
+                  supabase.from('user_settings')
+                    .select('todoist_token')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .maybeSingle()
+                ]);
+
+                // Fetch Todoist tasks if token available
+                let todoistTasks = '';
+                const todoistToken = userSettingsRes.data?.todoist_token;
+                if (todoistToken) {
+                  try {
+                    const tRes = await fetch('https://api.todoist.com/rest/v2/tasks?filter=overdue|today', {
+                      headers: { 'Authorization': `Bearer ${todoistToken}` }
+                    });
+                    if (tRes.ok) {
+                      const tasks = await tRes.json();
+                      if (tasks?.length > 0) {
+                        todoistTasks = tasks
+                          .slice(0, 15)
+                          .map((t: any) => `- ${t.content}${t.due?.date ? ` (${t.due.date})` : ''}`)
+                          .join('\n');
+                      }
+                    }
+                  } catch (tErr) {
+                    console.warn('[telegram] Todoist fetch failed:', tErr);
+                  }
+                }
+
+                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nRozpocznij sesję planowania na jutro. Odwołaj się do reconciliation, przejrzyj listę zadań i zadaj konkretne pytania.`;
+
+                const planningStateVector = {
+                  biometrics: aggregateRes.data || {},
+                  discipline: { today_wins: winRes.data || 'Nie ustawiono celów' }
+                };
+
+                const planController = new AbortController();
+                const planTimeout = setTimeout(() => planController.abort(), 45000);
+
+                const planRes = await fetch(`${SUPABASE_URL}/functions/v1/vanguard-oracle`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY
+                  },
+                  body: JSON.stringify({
+                    current_query: planningQuery,
+                    user_id: VANGUARD_USER_ID,
+                    state_vector: planningStateVector,
+                    mode: 'planning',
+                    history: []
+                  }),
+                  signal: planController.signal
+                }).catch(e => { console.error('[telegram] planning oracle fetch error:', e); return null; });
+                clearTimeout(planTimeout);
+
+                if (!planRes?.ok) {
+                  console.error('[telegram] planning oracle error status:', planRes?.status);
+                  return;
+                }
+
+                const planData = await planRes.json().catch(() => null);
+                const planningText = (planData?.text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                if (!planningText) {
+                  console.warn('[telegram] planning oracle returned empty text');
+                  return;
+                }
+
+                // Update reconciliation: activate planning, save initial message
+                await supabase.from('daily_reconciliations').update({
+                  planning_status: 'active',
+                  planning_history: [{ role: 'assistant', content: planningText }]
+                }).eq('id', reconId);
+
+                // Send planning opener to Telegram
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `🎯 ${planningText}`,
+                    disable_notification: false
+                  })
+                });
+
+                console.log('[telegram] planning session started for reconciliation:', reconId);
+              } catch (planErr) {
+                console.error('[telegram] planning session trigger error:', planErr);
+              }
+            })());
           }
         }
 
@@ -357,7 +732,13 @@ serve(async (req) => {
 
         let responseText = "";
         if (!shouldRespond) {
-          responseText = mode === 'knowledge' ? '📖 Zaktualizowano moją wiedzę.' : '💭 Zapisano w Strumieniu.';
+          responseText = mode === 'knowledge'
+            ? '📖 Zaktualizowano moją wiedzę.'
+            : mode === 'daily_reconciliation_response'
+              ? '✅ Reconciliation zapisane.'
+              : planningEnded
+                ? '⏳ Zaraz generuję plan na jutro...'
+                : '💭 Zapisano w Strumieniu.';
         } else {
           fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendChatAction`, {
             method: "POST",
@@ -373,10 +754,14 @@ serve(async (req) => {
             .limit(10);
 
           const formattedHistory = (historyData || []).reverse();
+          const oracleHistory = mode === 'planning' && activePlanningSession
+            ? activePlanningSession.history
+            : formattedHistory;
 
-          // --- EXTENDED STATE VECTOR (Biometry + Nutrition + Workouts + Wins) ---
+          // --- EXTENDED STATE VECTOR (Biometry + Nutrition + Workouts + Wins + Today Plan) ---
           const today = new Date().toISOString().split('T')[0];
-          const [aggregateRes, workoutRes, winRes] = await Promise.all([
+          const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+          const [aggregateRes, workoutRes, winRes, planRows] = await Promise.all([
             supabase.from('vanguard_daily_aggregates')
               .select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index')
               .eq('user_id', VANGUARD_USER_ID)
@@ -393,30 +778,61 @@ serve(async (req) => {
               .select('tasks, completed_tasks')
               .eq('user_id', VANGUARD_USER_ID)
               .eq('date', today)
-              .maybeSingle()
+              .maybeSingle(),
+            supabase.from('daily_reconciliations')
+              .select('planning_summary, answered_at')
+              .eq('user_id', VANGUARD_USER_ID)
+              .not('planning_summary', 'is', null)
+              .order('answered_at', { ascending: false })
+              .limit(5)
           ]);
+
+          const todayPlan = (planRows.data || []).find((r: any) =>
+            r.planning_summary?.target_date === todayWarsawDate &&
+            !r.planning_summary?.parse_error
+          )?.planning_summary || null;
 
           const stateVector = {
             biometrics: aggregateRes.data || {},
             nutrition: { calories_today: 0 },
             physical: { last_workout: workoutRes.data || 'Brak danych' },
-            discipline: { today_wins: winRes.data || 'Nie ustawiono celów' }
+            discipline: { today_wins: winRes.data || 'Nie ustawiono celów' },
+            ...(todayPlan ? { today_plan: todayPlan } : {})
           };
 
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
 
-          const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
-            body: {
+          let data: any = null;
+          let error: any = null;
+          try {
+            const oracleRes = await fetch(`${SUPABASE_URL}/functions/v1/vanguard-oracle`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'apikey': SUPABASE_SERVICE_ROLE_KEY
+              },
+              body: JSON.stringify({
               current_query: cleanText,
               user_id: VANGUARD_USER_ID,
               state_vector: stateVector,
-              mode: mode === 'report' ? 'mirror' : 'chat',
+              mode: mode === 'planning' ? 'planning' : mode === 'report' ? 'mirror' : 'chat',
               thinking: mode === 'deep',
-              history: formattedHistory
-            },
-            signal: controller.signal
-          });
+              history: oracleHistory
+              }),
+              signal: controller.signal
+            });
+
+            if (!oracleRes.ok) {
+              const bodyText = await oracleRes.text().catch(() => '');
+              error = new Error(`(Status ${oracleRes.status}) ${bodyText.substring(0, 200)}`);
+            } else {
+              data = await oracleRes.json();
+            }
+          } catch (invokeErr) {
+            error = invokeErr;
+          }
           clearTimeout(timeoutId);
 
           if (error) {
@@ -441,28 +857,58 @@ serve(async (req) => {
             raw = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             if (!raw) responseText = "⚠️ Wyrocznia milczy (prawdopodobny timeout modelu reasoner). Spróbuj bez !!.";
             else responseText = raw.length > 4000 ? raw.substring(0, 4000) + '…' : raw;
+
+            // Update planning history after successful Oracle response
+            if (mode === 'planning' && activePlanningSession && raw) {
+              const updatedHistory = [
+                ...activePlanningSession.history,
+                { role: 'user', content: cleanText },
+                { role: 'assistant', content: raw }
+              ];
+              await supabase
+                .from('daily_reconciliations')
+                .update({ planning_history: updatedHistory })
+                .eq('id', activePlanningSession.id)
+                .then(({ error: e }) => { if (e) console.error('[telegram] planning history update error:', e); });
+            }
           }
         }
 
-        const hasButtons = shouldRespond && !responseText.startsWith('⚠️');
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+        const hasButtons = shouldRespond && !responseText.startsWith('⚠️') && mode !== 'planning';
+        const telegramPayload = {
+          chat_id: chatId,
+          text: responseText,
+          disable_notification: planningEnded ? false : !shouldRespond,
+          reply_markup: hasButtons ? {
+            inline_keyboard: [
+              [
+                { text: '👍 Dobra odpowiedź', callback_data: `fb_ok_${Date.now()}` },
+                { text: '👎 Popraw mnie', callback_data: `fb_err_${Date.now()}` }
+              ]
+            ]
+          } : undefined
+        };
+
+        const telegramSendRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: responseText,
-            parse_mode: 'Markdown',
-            disable_notification: !shouldRespond,
-            reply_markup: hasButtons ? {
-              inline_keyboard: [
-                [
-                  { text: '👍 Dobra odpowiedź', callback_data: `fb_ok_${Date.now()}` },
-                  { text: '👎 Popraw mnie', callback_data: `fb_err_${Date.now()}` }
-                ]
-              ]
-            } : undefined
-          })
+          body: JSON.stringify(telegramPayload)
         });
+
+        if (!telegramSendRes.ok) {
+          const telegramError = await telegramSendRes.text().catch(() => 'unknown');
+          console.error("[telegram] sendMessage failed:", telegramError);
+
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: responseText.replace(/[<>&]/g, ''),
+              disable_notification: !shouldRespond
+            })
+          });
+        }
 
         if (deferredVaultIngest) {
           try {
@@ -504,7 +950,7 @@ serve(async (req) => {
           body: JSON.stringify({ chat_id: chatId, text: `⚠️ Błąd: ${innerErr.message}` })
         }).catch(() => {});
       }
-    })());
+    })();
 
     return new Response("OK", { status: 200 });
 

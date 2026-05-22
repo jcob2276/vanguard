@@ -7,6 +7,12 @@
 >
 > **Najlepszy opis systemu:** *behavioral field notes with continuity and correction.*
 >
+> **Propozycja wartości:** Vanguard nie wygrywa pierwszej sesji. Wygrywa przez longitudinal usefulness — po 90 dniach użytkownik ma lepszy kontakt z własnym trajectory niż kiedykolwiek wcześniej. To jest celowo wolniejsza wartość niż "instant perceived intelligence" (Mindsera, journaling AI). Ryzyko: wymaga konsekwentnego użycia żeby w ogóle zadziałać.
+>
+> **Earned depth vs simulated depth:** większość AI apps produkuje "AI deeply understands your mind" od pierwszego dnia z 4 wpisami i 2 emocjami. To jest simulated depth — generatywna pewność modelu bez danych. Vanguard buduje earned depth: insight wynikający z czasu, powtarzalności i realnych danych. System nie pompuje głębi której jeszcze nie ma.
+>
+> **Progressive disclosure of depth:** wartość systemu pojawia się stopniowo — tydzień 1–2 (anchor, reconciliation, reset), tydzień 3–4 (pierwsze powtarzalności), miesiąc 2 (weekly trajectory review, friction/recovery patterns), miesiąc 3 (trajectory-level observations, "od kilku tygodni..."). Każdy etap daje tyle głębi ile uzasadniają dane — nie więcej.
+>
 > **Ten dokument ma wersje.** Zasady które są tu teraz mogą wymagać zmiany gdy pojawi się outcome tracking, interventional learning, lub 12 miesięcy realnych danych. Epistemiczna dyscyplina oznacza zdolność aktualizowania własnych założeń — nie ich zamrożenie.
 >
 > **Backlog dokumentu:** dodać sekcję "examples of bad outputs" z realnymi przykładami semantic inflation, creeping interpretation, acceptable uncertainty i epistemic paralysis gdy system będzie miał wystarczająco dużo outputów do pokazania.
@@ -17,6 +23,22 @@
 
 **Vanguard OS nie przechowuje "prawdy o użytkowniku".**
 **Vanguard OS przechowuje uporządkowane ślady zachowania wraz z poziomem pewności i możliwością korekty.**
+
+**Vanguard minimalizuje interpretację, ale nie eliminuje refleksji.**
+
+System może:
+- odzwierciedlać powtarzające się obserwacje (z liczbą wystąpień)
+- sugerować praktyki (Transurfing layer, reset prompts)
+- podkreślać ciągłość i wzorce dryfu/recovery
+- pokazywać trajectory w czasie
+
+System nie może:
+- twierdzić psychologicznej pewności
+- wnioskować metafizycznej prawdy
+- zastępować agency użytkownika
+- przedstawiać interpretacji jako obiektywnego faktu
+
+> Poprzednia formuła "System measures behavior. User gives meaning." była zbyt wąska po dodaniu Transurfing layer i reflection layer. Obecna definicja jest dokładniejsza.
 
 To system **behavioral instrumentation** i **evidence-based self-observation**.
 
@@ -463,3 +485,119 @@ Przed dodaniem każdego nowego feature'a:
 4. Czy to nie zwiększa psychologicznego ciężaru systemu?
 
 Jeśli odpowiedź na 3 brzmi "tak" — feature jest zablokowany bez eksplicytnej decyzji architektonicznej.
+
+---
+
+## Transurfing Layer Guardrail
+
+Transurfing w Vanguard OS jest warstwą praktyki i intencji, nie warstwą prawdy.
+
+System może używać pojęć: intencja, wahadło, obniżenie ważności, slajd procesu, wybór wariantu — ale tylko jako języka refleksji i działania. System może sugerować praktykę. Nigdy nie może twierdzić metafizycznej pewności.
+
+**System nie może twierdzić:**
+- że dane wydarzenie stało się przez wahadło
+- że manifestacja zadziałała
+- że rzeczywistość wysłała znak
+- że energia użytkownika przyciągnęła wynik
+- że system zna metafizyczną przyczynę zdarzeń
+
+**Bezpieczna formuła:**
+> "Możesz spojrzeć na to przez zasadę X. Co to zmienia w Twoim najbliższym ruchu?"
+
+**Zakazana formuła:**
+> "To dowód, że X działa."
+
+**Core rule:**
+> System measures behavior. User gives meaning.
+
+Slajd procesu musi dotyczyć procesu, nie fantazji wyniku:
+- ✓ "widzę siebie, jak robię 45 minut pracy bez telefonu"
+- ✗ "jestem bogaty, pewny siebie i wszystko mi wychodzi"
+
+---
+
+## Timezone — zasada wyświetlania
+
+**DB przechowuje UTC — zawsze, bez wyjątku.**
+
+User-facing display:
+- każde `answered_at`, `created_at`, `sent_at`, `occurred_at` renderować jako `Europe/Warsaw`
+- w raportach Telegram nigdy nie pokazywać surowego UTC bez oznaczenia strefy
+- format: `HH:mm Warsaw` lub `DD.MM HH:mm Warsaw` — nie ISO string
+
+**Timestamp metadata > user-stated time:**
+Jeśli użytkownik w głosówce mówi "jest 21:30", ale metadata timestamp mówi 23:32 Warsaw — system ufa metadata. Wypowiedź użytkownika o godzinie traktować jako treść (content), nie jako source of truth dla czasu zdarzenia. Użytkownik może się mylić, voice-to-text może zniekształcić, timezone confusion jest częsta.
+
+---
+
+## P2: Positive trajectory signals — improve extraction
+
+Obserwacja z 2026-05-18: pipeline dobrze łapie dryf, avoidance, blokady, self-control breaks. Słabiej łapie recovery, adaptive moves, małe przełamania.
+
+Bez recovery layer weekly review staje się listą defektów zamiast mapą trajectory.
+
+**Cel:** `weekly review = mapa (friction vs recovery), nie lista problemów`
+
+### Do dodania do extraction pipeline (kiedy ≥5 podobnych missów w backlogu):
+
+- **positive_micro_action — social recovery:**
+  shifted focus to other person, asked follow-up question, spontaneous check-in
+
+- **adaptive behavioral signals:**
+  spontaneous initiative, action despite resistance, interruption of drift
+
+- **recovery anchors:**
+  broke scroll, completed anchor despite avoidance, resumed task after friction
+
+**Zasada:** nie "AI detected growth". Tylko small observable positive deviations.
+
+**Kiedy nie robić:** dopóki nie ma ≥5 potwierdzonych miss-ów tego typu w observation backlog poniżej. Nie eskalować do feature sprintu bez danych.
+
+---
+
+## Auto-classify observation backlog
+
+Przypadki gdzie auto-classify nie złapał potencjalnego friction event. Nie naprawiać natychmiast — zbierać przez 2–4 tygodnie żeby zobaczyć czy to failure mode systemowy czy jednostkowy miss.
+
+| data | treść wpisu | dlaczego interesujące | hipoteza przyczyny |
+|---|---|---|---|
+| 2026-05-18 | "W sumie tak... ten dzień uciekł, jest już 17 prawie" (voice-to-text) | passive drift / time loss, brak agencji | chaotyczny voice-to-text, brak słów-kluczy triggering classifier |
+
+**Sygnał ostrzegawczy — dekoracyjna precyzja:**
+Liczby i stany które brzmią precyzyjnie ale nie są mierzone. Przykłady z tego projektu: `confidence: 0.65` (zawsze ta sama wartość niezależnie od jakości odpowiedzi modelu), `valid_until` pisany przez LLM bez progu pewności. Przy każdym sprint review: *czy ta liczba/stan faktycznie coś mierzy, czy tylko wygląda jak pomiar?*
+
+**Kiedy patrzeć:** gdy zebrane ≥5 podobnych przypadków — sprawdzić czy jest wspólny pattern (voice transcription? brak słów-kluczy? długie wpisy?). Dopiero wtedy decyzja o ewentualnym patchu classifiera.
+
+---
+
+## P2 parser — spec i pierwszy sample
+
+### Pola do wyciągnięcia z `user_response`:
+
+| pole | typ | opis |
+|---|---|---|
+| `day_score` | int 1–5 | "ocena dnia X/10" → normalizuj do 1–5 |
+| `biggest_cost` | text | odpowiedź na pytanie 2 |
+| `best_move` | text | odpowiedź na pytanie 3 |
+| `correction` | text | odpowiedź na pytanie 1 (co system źle zrozumiał) |
+| `resource` | text\|null | odpowiedź na pytanie 5 (opcjonalne) |
+| `blocker_candidates` | jsonb | surowe — nie klasyfikować, tylko wylistować |
+| `parse_confidence` | float | jak pewny jest parser że dobrze podzielił odpowiedź |
+| `needs_manual_review` | bool | jeśli odpowiedź chaotyczna / niejednoznaczna |
+
+**Zasada parsera:** użytkownik odpowiada głosówką, nielinearnie, z dygresami. Parser nie wymusza struktury — wyciąga sygnały gdzie są, resztę zostawia w `unparsed_notes`.
+
+### Pierwszy real sample (2026-05-18):
+
+```
+day_score: 2/10 → skala 1–5: ~1
+biggest_cost: uciekł czas, brak pracy pomimo lekkiego dnia, morning scrolling, opóźniony kurs Cisco (zablokowany dostęp)
+best_move: skończony egzamin Cisco
+correction: "system nic źle nie zrozumiał, nie dałem dużo danych"
+resource: null — "nie mam pojęcia co zasiliło, zjadłem klepsiki w barze mlecznym"
+blocker_candidates raw: [późny sen poprzedniego dnia, telefon rano, scrolling, brak kierunku/wizualizacji, dryf, pętla późno-spać→późno-wstać]
+parse_confidence: high — odpowiedź linearna mimo voice-to-text
+needs_manual_review: false
+```
+
+**Obserwacja:** użytkownik sam nazwał "pętlę" (późno spać → późno wstać → scrolling → brak pracy). To nie jest analiza systemu — to user-generated hypothesis. Trafia do `blocker_candidates`, nie do `confirmed_friction_events`. Wymaga powtórzenia w kolejnych dniach zanim stanie się czymkolwiek więcej.

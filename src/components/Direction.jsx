@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, MessageSquare, Heart, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy, Activity } from 'lucide-react';
+import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy, Activity } from 'lucide-react';
 import { format, subDays, startOfDay, parseISO, differenceInDays, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
@@ -32,7 +32,6 @@ export default function Direction({ session }) {
   const [habitLogs, setHabitLogs] = useState([]);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '💪', is_positive: true });
-  const [isSavingJournal, setIsSavingJournal] = useState(false);
   const [tomorrowWin, setTomorrowWin] = useState(null);
   const [isPlanningTomorrow, setIsPlanningTomorrow] = useState(false);
   const [currentReview, setCurrentReview] = useState(null);
@@ -340,27 +339,6 @@ export default function Direction({ session }) {
     }
   }
 
-  // Journaling Logic
-  const saveJournal = async () => {
-    if (!todayWin) return;
-    setIsSavingJournal(true);
-    const { error } = await supabase
-      .from('daily_wins')
-      .update({
-        mood_score: todayWin.mood_score,
-        gratitude_entry: todayWin.gratitude_entry,
-        journal_entry: todayWin.journal_entry,
-        is_intervention: todayWin.is_intervention,
-        tags: todayWin.tags
-      })
-      .eq('id', todayWin.id);
-    
-    if (!error) {
-      // Show success briefly if needed, but for now just stop loading
-    }
-    setIsSavingJournal(false);
-  };
-
   const saveWeeklyReview = async () => {
     if (currentReview) return;
     
@@ -610,70 +588,6 @@ export default function Direction({ session }) {
           })}
         </div>
       </section>
-
-      {/* Journaling Section (Nowa Sekcja) */}
-      <section className="space-y-6">
-        <header className="flex justify-between items-center">
-          <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <MessageSquare size={12} /> Dziennik & Refleksja
-          </h2>
-          {isSavingJournal && <span className="text-[8px] font-black text-primary uppercase animate-pulse">Zapisywanie...</span>}
-        </header>
-
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
-            {/* Ocena dnia 1-10 */}
-            <div className="space-y-3">
-              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Ocena dnia</p>
-              <div className="flex gap-2">
-                {[1,2,3,4,5,6,7,8,9,10].map(n => {
-                  const isSelected = todayWin?.mood_score === n;
-                  const color = n <= 3 ? 'border-red-500/50 bg-red-500/20 text-red-400' : n <= 6 ? 'border-yellow-500/50 bg-yellow-500/20 text-yellow-400' : 'border-green-500/50 bg-green-500/20 text-green-400';
-                  return (
-                    <button key={n} onClick={() => setTodayWin({ ...todayWin, mood_score: n })}
-                      className={`flex-1 py-2 rounded-lg border text-[11px] font-black transition-all ${isSelected ? color + ' scale-110 shadow-lg' : 'border-neutral-800 text-neutral-700 hover:border-neutral-600'}`}>
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Wdzięczność */}
-            <div className="space-y-2 pt-4 border-t border-neutral-800/50">
-              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <Heart size={12} className="text-red-500" /> Za co jesteś wdzięczny?
-              </label>
-              <textarea
-                value={todayWin?.gratitude_entry || ''}
-                onChange={(e) => setTodayWin({ ...todayWin, gratitude_entry: e.target.value })}
-                placeholder="Konkretne rzeczy z dzisiaj..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[70px]"
-              />
-            </div>
-
-            {/* Co poprawię */}
-            <div className="space-y-2 pt-4 border-t border-neutral-800/50">
-              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <Compass size={12} className="text-primary" /> Co poprawię jutro?
-              </label>
-              <textarea
-                value={todayWin?.journal_entry || ''}
-                onChange={(e) => setTodayWin({ ...todayWin, journal_entry: e.target.value })}
-                placeholder="1 konkretna zmiana na jutro..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[70px]"
-              />
-            </div>
-
-            <button
-              onClick={saveJournal}
-              disabled={isSavingJournal}
-              className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
-            >
-              {isSavingJournal ? 'Zapisywanie...' : 'Zapisz'}
-            </button>
-          </div>
-      </section>
-
 
       {/* Power List Stats (New Section) */}
       <section className="space-y-6">

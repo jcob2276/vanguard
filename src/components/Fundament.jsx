@@ -5,6 +5,7 @@ import {
   ChevronLeft, Save 
 } from 'lucide-react';
 import IdentityVault from './IdentityVault';
+import DataHub from './DataHub';
 
 export default function Fundament({ onBack, session }) {
   const [identity, setIdentity] = useState({
@@ -162,6 +163,17 @@ export default function Fundament({ onBack, session }) {
             placeholder='{"baselineMode": "THE_BUILDER", ...}'
             className="w-full bg-black border border-neutral-800 rounded-xl p-4 text-[10px] font-mono text-primary outline-none focus:border-primary min-h-[150px] transition-all"
           />
+        </div>
+
+        <div className="pt-8 border-t border-white/5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Database className="text-primary" size={16} />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Importy i synchronizacje</h3>
+          </div>
+          <p className="text-[9px] text-neutral-500 font-bold uppercase">
+            Narzędzia zasilające bota i warstwę danych: StayFree, Todoist oraz health check pamięci.
+          </p>
+          <DataHub session={session} embedded />
         </div>
 
         <button 

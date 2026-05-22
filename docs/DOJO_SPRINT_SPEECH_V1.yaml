@@ -1,0 +1,463 @@
+global_feedback_rules:
+  format: |
+    Działało:
+    - [jedna rzecz]
+    Do poprawy:
+    - [jedna rzecz]
+    Next rep:
+    - [jedna konkretna instrukcja]
+  guidelines: |
+    Bez motywacyjnego coachingu.
+    Bez psychoanalizy.
+    Bez oceniania tożsamości.
+    Bez długich komentarzy.
+
+measurement_notes: |
+  WPM z Whispera NIE jest precyzyjny dla krótkich nagrań polskich.
+  Whisper nie daje word-level timestamps wystarczających dla progu 140-170 WPM.
+  Używaj WPM jako self-check porównawczy (dzień 1 vs dzień 20), nie jako twardy pomiar.
+
+  Filler detection po polsku jest zawodny (yyy, eee, jakby → Whisper pomija lub transkrybuje inaczej).
+  llm_check jest lepszym detektorem fillerów niż mechaniczne zliczanie z transkryptu.
+  Nie traktuj liczby fillerów jako danych — traktuj jako sygnał.
+
+v0_protocol: |
+  Jak uruchomić bez infrastruktury:
+  1. Czytasz instrukcję dnia z tego pliku.
+  2. Nagrywasz voice do Telegrama z prefiksem /dojo dzień N rep_a.
+  3. Whisper transkrybuje jak zawsze, trafia do vanguard_stream.
+  4. Wklejasz transkrypt + llm_check rubric i pytasz Vanguarda o feedback.
+  5. Self_check robisz sam.
+  Zero nowych tabel, cronów, funkcji.
+  Jeśli po 5 dniach faktycznie to robisz — dopiero wtedy warto budować practice_sprints.
+
+completion_criteria:
+  - porównanie dnia 1 i dnia 20
+  - czy historia ma mniej chaosu
+  - czy szybciej pojawia się napięcie
+  - czy tło jest krótsze
+  - czy pointa jest jaśniejsza
+  - czy użytkownik mówi wolniej i pewniej (self-check, nie WPM threshold)
+  - czy przynajmniej 2 razy użył skilla w realnych rozmowach
+
+program:
+  - day: 1
+    block: 1. Fundamenty i Mechanika
+    focus: Eliminacja wypełniaczy
+    objective: Zbudowanie świadomości własnych przerw i zastąpienie "yyy" ciszą.
+    primary_constraint: Jeśli nie wiesz, co powiedzieć – milcz. Nie wydawaj dźwięków namysłu.
+    background_constraints: Mów w spokojnym tempie.
+    rep_a:
+      instruction: Opowiedz, co dokładnie jadłeś wczoraj na obiad, z przesadnie wolnym tempem.
+      duration_seconds: 60
+    rep_b:
+      instruction: Wylosuj słowo z generatora (lub weź dowolny przedmiot z biurka). Mów o nim przez minutę.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Wykrycie typowych wypełniaczy (yyy, eee, jakby, po prostu). Cel to mniejsza liczba niż w naturalnej mowie.
+      self_check: Ile wypełniaczy świadomie zauważyłeś podczas mówienia? Czy wstrzymałeś oddech?
+      llm_check: Czy w tekście widać nadmiar słów-wytrychów nie wnoszących treści?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: W transkrypcie widać wyraźne zagęszczenie słów-wypełniaczy i brak prób pauzowania.
+    common_mistakes: Przyspieszanie tempa z nerwów, by zatuszować brak pomysłu.
+    next_rep_instruction_template: Skup się na domknięciu ust, gdy szukasz kolejnego słowa.
+
+  - day: 2
+    block: 1. Fundamenty i Mechanika
+    focus: Zdania deklaratywne
+    objective: Nauka tworzenia krótkich, ucinanych bloków myślowych zakończonych kropką.
+    primary_constraint: Maksymalnie 12 słów w jednym zdaniu. Twarda kropka.
+    background_constraints: Milczenie zamiast wypełniaczy, unikanie łączenia zdań spójnikami (i, więc, bo).
+    rep_a:
+      instruction: Opisz najprostszą drogę ze swojego domu do pracy/sklepu.
+      duration_seconds: 60
+    rep_b:
+      instruction: Wytłumacz osobie spoza branży, czym zajmuje się Twoja firma lub dział.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Średnia długość zdania < 12 słów. Zliczanie spójników przedłużających zdanie.
+      self_check: Czy czułeś fizyczne zatrzymanie po każdym krótkim zdaniu?
+      llm_check: Czy wypowiedź jest naturalnie poszatkowana na zrozumiałe, samodzielne fragmenty?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Ponad połowa zdań w transkrypcie to zdania wielokrotnie złożone.
+    common_mistakes: Lęk przed kropką i kompulsywne doklejanie "i wtedy", "no i".
+    next_rep_instruction_template: Skróć myśli jeszcze bardziej. Mów do kropki, weź wdech.
+
+  - day: 3
+    block: 1. Fundamenty i Mechanika
+    focus: Strategiczna pauza
+    objective: Nauczenie się tolerowania dłuższej ciszy w wypowiedzi w celu budowania autorytetu.
+    primary_constraint: W trakcie wypowiedzi musisz zrobić dokładnie 3 wyraźne pauzy trwające około 3 sekund.
+    background_constraints: Krótkie zdania, brak "yyy".
+    rep_a:
+      instruction: Przeczytaj dowolny tekst, robiąc 3-sekundową pauzę po co drugim zdaniu.
+      duration_seconds: 60
+    rep_b:
+      instruction: Opowiedz o drobnym niepowodzeniu z tego tygodnia, wymuszając w trakcie trzy długie pauzy.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Detekcja nienaturalnie długich przerw między zdaniami w transkrypcji (lub znaczników pauzy z silnika STT).
+      self_check: Czy pauzy wydawały Ci się nienaturalnie długie i stresujące?
+      llm_check: Czy pauzy (na podstawie struktury) mogły wypaść w sensownych miejscach (np. przed puentą)?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Brak zadeklarowanych i dających się wyczytać z rytmu pauz.
+    common_mistakes: Skracanie pauzy w głowie z powodu dyskomfortu ciszy (pauza trwa 0.5s zamiast 3s).
+    next_rep_instruction_template: Odliczaj w myślach - raz, dwa, trzy – i dopiero zacznij mówić dalej.
+
+  - day: 4
+    block: 1. Fundamenty i Mechanika
+    focus: Stabilizacja tempa i tonu
+    objective: Utrzymanie zwartego rytmu oraz zniżanie intonacji pod koniec zdania.
+    primary_constraint: Brak pytań na końcu zdań twierdzących (eliminacja uptalku).
+    background_constraints: Użycie 1 długiej pauzy.
+    measurement_note: WPM self-check — porównuj z poczuciem tempa, nie z liczbą. Cel to "wolniej niż normalnie", nie konkretny próg.
+    rep_a:
+      instruction: Przeczytaj na głos krótki artykuł, celowo i wyraźnie obniżając głos na każdej kropce.
+      duration_seconds: 60
+    rep_b:
+      instruction: Przekonaj wyobrażonego rozmówcę, dlaczego warto obejrzeć Twój ulubiony film, mówiąc miarowym rytmem.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Sprawdzenie znaków zapytania na końcu zdań twierdzących w transkrypcji.
+      self_check: Czy czułeś fizyczne obniżenie intonacji na zakończeniach zdań? Czy tempo było wolniejsze niż dzień 1?
+      llm_check: Czy tekst brzmi jak seria stwierdzeń faktów, a nie niepewnych pytań?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Tekst pełen znaków zapytania lub wyraźnie szybszy niż w poprzednich dniach.
+    common_mistakes: Uciekanie w wyższe rejestry z obawy, że obniżenie głosu brzmi zbyt agresywnie.
+    next_rep_instruction_template: Spróbuj brzmieć o 20% bardziej stanowczo przy ostatnim słowie każdego zdania.
+
+  - day: 5
+    block: 1. Fundamenty i Mechanika
+    focus: Checkpoint 1 - Integracja mechaniki
+    objective: Sprawdzenie umiejętności panowania nad tempem, pauzą i czystością mowy w jednym zadaniu.
+    primary_constraint: Świadoma integracja krótkich zdań, pauz i braku "yyy" w swobodnej wypowiedzi.
+    background_constraints: Czysty start (bez chrząkania/namysłu).
+    rep_a:
+      instruction: Wylosuj temat i odpowiedz na pytanie "Za co lubisz / czego nie lubisz w X?". Przygotowanie 10 sekund.
+      duration_seconds: 60
+    rep_b:
+      instruction: Opowiedz o najbardziej produktywnym momencie Twojego wczorajszego dnia. Start natychmiastowy.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Długość zdań (<15 słów), zliczenie widocznych wypełniaczy.
+      self_check: Który element mechaniki (pauza, kropka, brak fillera) sprawił Ci tu najwięcej trudności?
+      llm_check: Ocena zwięzłości i klarowności wypowiedzi na bazie transkryptu.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Powrót do starych nawyków – jedno wielkie, zapętlone zdanie pełne wypełniaczy.
+    common_mistakes: Skupienie na samej treści kosztem wyćwiczonej przez ostatnie dni mechaniki.
+    next_rep_instruction_template: Zanim znów nagrasz, weź wdech i przypomnij sobie - "Krótkie zdania ratują mnie przed chaosem."
+
+  - day: 6
+    block: 2. Struktura i Logika na gorąco
+    focus: Kręgosłup ABT (And, But, Therefore)
+    objective: Budowa napięcia i konfliktu bez wchodzenia w anegdotyczne lanie wody.
+    primary_constraint: Dosłowne użycie słów "I/Oraz", "Ale/Jednak", "Dlatego/Więc" w podanej kolejności.
+    background_constraints: Zachowanie zrzutu mocy na koniec.
+    rep_a:
+      instruction: Zrelacjonuj najprostszą czynność z użyciem ramy ABT (np. "Robiłem kawę I miałem plan, ALE... DLATEGO...").
+      duration_seconds: 60
+    rep_b:
+      instruction: Odpowiedz na wyimaginowaną prośbę o zniżkę w pracy/biznesie, używając ramy ABT.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Detekcja wystąpienia słów z grupy "I", "Ale", "Dlatego" i ich logicznej kolejności.
+      self_check: Czy środkowe "ALE" faktycznie wprowadziło problem lub zwrot akcji?
+      llm_check: Sprawdzenie, czy wypowiedź ma poprawną strukturę wprowadzającą kontrast i konkluzję.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Brak wyraźnego kontrastu ("Ale") prowadzącego do puenty ("Dlatego").
+    common_mistakes: Zastępowanie "Ale" spójnikami typu "i potem", co tworzy płaską wyliczankę.
+    next_rep_instruction_template: Wyostrz konflikt. Słowo "ALE" musi oznaczać rzeczywistą przeszkodę w Twojej historii.
+
+  - day: 7
+    block: 2. Struktura i Logika na gorąco
+    focus: Framework CCC (Context, Core, Connect)
+    objective: Klarowne przekazywanie pomysłów bez tracenia uwagi rozmówcy.
+    primary_constraint: Wyraźny podział - (1) Kontekst sytuacji, (2) Jeden pomysł/rdzeń, (3) Dlaczego to ważne dla odbiorcy.
+    background_constraints: Ograniczenie zdania wprowadzającego do max 10 słów.
+    rep_a:
+      instruction: Wyjaśnij, dlaczego lubisz swoje hobby, używając schematu Kontekst -> Sedno -> Związek ze słuchaczem.
+      duration_seconds: 60
+    rep_b:
+      instruction: Zaproponuj ulepszenie procesu w Twojej pracy, tłumacząc to przełożonemu/wspólnikowi za pomocą ramy CCC.
+      duration_seconds: 90
+    feedback_rubric:
+      transcript_check: Identyfikacja 3 bloków tematycznych w tekście (brak chaotycznych przeskoków).
+      self_check: Czy na końcu jawnie odniosłeś się do korzyści / sytuacji słuchacza (Connect)?
+      llm_check: Czy pomysł (Core) był jasny, a kontekst (Context) nie zdominował czasu wypowiedzi?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Zbyt długi wstęp (Context zajmujący 80% nagrania) bez odniesienia do odbiorcy na końcu.
+    common_mistakes: Zapominanie o etapie "Connect" i zostawianie pomysłu w próżni.
+    next_rep_instruction_template: Skróć kontekst o połowę. Skup się mocniej na tym, co pomysł oznacza dla drugiej osoby.
+
+  - day: 8
+    block: 2. Struktura i Logika na gorąco
+    focus: Framework numeryczny 3-2-1
+    objective: Porządkowanie na gorąco odpowiedzi na trudne lub niespodziewane pytania.
+    primary_constraint: Oparcie odpowiedzi na zadeklarowanych liczbach (np. 3 powody, 2 typy, 1 najważniejsza rzecz).
+    background_constraints: Płynne przejścia między numerami bez długiego "yyy".
+    rep_a:
+      instruction: "Opisz swój ulubiony posiłek: 3 składniki, 2 powody dlaczego go lubisz, 1 najlepsza chwila na jedzenie go."
+      duration_seconds: 60
+    rep_b:
+      instruction: "Odpowiedz na pytanie 'Jak będzie wyglądać Twoja branża za 5 lat?'. Wymuś strukturę odliczającą (np. 3 trendy, 1 wniosek)."
+      duration_seconds: 90
+    feedback_rubric:
+      transcript_check: Detekcja numeracji/wyliczeń słownych ("po pierwsze", "trzy rzeczy", "jeden", itp.).
+      self_check: Czy gubiłeś się w numeracji (np. zapomniałeś o punkcie drugim)?
+      llm_check: Ocena, czy użycie wyliczenia sprawiło, że wypowiedź brzmi na uporządkowaną i przemyślaną.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Chaos strukturalny, zapowiedź wyliczenia i brak jego realizacji.
+    common_mistakes: Obiecywanie zbyt wielu punktów i brak czasu na ich realizację w 60 sekundach.
+    next_rep_instruction_template: Trzymaj się prostej ramy - "Dwie rzeczy są tu ważne. Pierwsza... Druga...".
+
+  - day: 9
+    block: 2. Struktura i Logika na gorąco
+    focus: Empathy Echo + Pytanie
+    objective: Aktywne przejmowanie ramy rozmowy bez narzucania rozwiązań czy agresji.
+    primary_constraint: Twoje pierwsze słowo to powtórzenie (echo) emocji/głównego słowa rozmówcy, potem pauza, potem pytanie od "Co/Jak".
+    background_constraints: Zakaz używania słowa "dlaczego" (bywa odbierane jako atak).
+    rep_a:
+      instruction: Wyobraź sobie, że znajomy mówi - "Znowu zawalili mi termin w urzędzie". Nagraj samo echo i pytanie.
+      duration_seconds: 30
+    rep_b:
+      instruction: Reakcja na klienta - "Wasz produkt jest za drogi i skomplikowany". Użyj Empathy Echo i otwórz rozmowę pytaniem konstruktywnym.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Weryfikacja słów na początku transkryptu (powtórzenie echa). Brak słowa "dlaczego".
+      self_check: Czy zrobiłeś krótką pauzę po echu, zanim zadałeś pytanie?
+      llm_check: Czy ton i dobór słów w transkrypcie wskazują na chłodne obniżenie emocji i przejęcie inicjatywy w pytaniu?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Natychmiastowe przejście do obrony, tłumaczenia się lub atakowania rozmówcy (brak echa).
+    common_mistakes: Zamiast echa udzielanie rady (np. "Musisz po prostu zadzwonić i spytać").
+    next_rep_instruction_template: Odbij słowo klucz bez oceny, zrób przerwę na wdech, zadaj krótkie pytanie badawcze.
+
+  - day: 10
+    block: 2. Struktura i Logika na gorąco
+    focus: Checkpoint 2 - Integracja struktury
+    objective: Sprawdzenie zdolności narzucenia struktury na nieoczekiwane pytanie biznesowe lub życiowe.
+    primary_constraint: Mniej chaosu niż w Dniu 1, wyraźne zastosowanie zadeklarowanej struktury (ABT, CCC lub wyliczenie).
+    background_constraints: Stosowanie pauz na zebranie myśli zamiast wypełniaczy.
+    rep_a:
+      instruction: Wylosuj temat i zbuduj 60s odpowiedź używając ramy "Context -> Core -> Connect".
+      duration_seconds: 60
+    rep_b:
+      instruction: "Odpowiedz improwizując: 'Gdybyś miał zmienić jedną rzecz w swojej obecnej karierze, co by to było?'"
+      duration_seconds: 90
+    feedback_rubric:
+      transcript_check: Krótkie zdania, bardzo mała liczba "yyy", obecność słów kategoryzujących lub łączników strukturalnych.
+      self_check: Czy narzucenie struktury dało Ci poczucie kontroli nad myślami?
+      llm_check: Czy wypowiedź ma wstęp, wyraźny problem/środek i celową puentę?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Odpowiedź była w całości wielką, jednolitą dygresją bez jasnej ramy i konkluzji.
+    common_mistakes: Startowanie z odpowiedzią za wcześnie, przez co struktura gubi się w połowie.
+    next_rep_instruction_template: Wybierz konstrukcję zanim otworzysz usta. Zdecyduj, gdzie chcesz skończyć, potem zacznij.
+
+  - day: 11
+    block: 3. Storytelling i Zabiegi Narracyjne
+    focus: In Media Res (Start w środku akcji)
+    objective: Odrzucenie nudnego wprowadzania w historię i zdobywanie uwagi natychmiastowym haczykiem.
+    primary_constraint: Pierwsze zdanie zaczyna się od fizycznej lokalizacji, w czasie teraźniejszym.
+    background_constraints: Krótkie bloki zdań dla podbicia dynamiki.
+    rep_a:
+      instruction: Opowiedz o wczorajszym popołudniu. Zacznij - "Jest [godzina], [siedzę/stoję] w [miejsce] i..."
+      duration_seconds: 60
+    rep_b:
+      instruction: Opowiedz krótką "Homework for Life" (drobny moment z dzisiejszego dnia), wchodząc prosto w akcję z pominięciem wstępu.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Pierwsze słowa transkryptu muszą zawierać czasownik w czasie teraźniejszym i miejsce. Brak "throat-clearingu".
+      self_check: Czy powstrzymałeś odruch tłumaczenia, dlaczego opowiadasz tę historię przed jej zaczęciem?
+      llm_check: Weryfikacja, czy opowieść startuje od akcji/miejsca, od razu wciągając słuchacza.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Wypowiedź zaczyna się od słów typu "Chciałem opowiedzieć", "To działo się kilka dni temu, ogólnie to...".
+    common_mistakes: Zdradzanie puenty na starcie ("To jest historia o tym, jak zgubiłem klucze").
+    next_rep_instruction_template: Skasuj z myśli pierwsze dwa zdania. Zacznij opowieść od trzeciego.
+
+  - day: 12
+    block: 3. Storytelling i Zabiegi Narracyjne
+    focus: Show, Don't Tell (Zmysły i detale)
+    objective: Zastąpienie nazywania emocji wskazywaniem dowodów fizycznych (zmysłowych).
+    primary_constraint: Kategoryczny zakaz używania etykiet emocji (zły, smutny, zestresowany, szczęśliwy).
+    background_constraints: Pamięć o In Media Res na początku.
+    rep_a:
+      instruction: Opisz sytuację ogromnej radości z przeszłości bez użycia słów "radość", "szczęście", "cieszyłem się".
+      duration_seconds: 60
+    rep_b:
+      instruction: Opisz sytuację ekstremalnie stresującą. Zobrazuj reakcje ciała i otoczenia (drżenie, pot, tykanie zegara).
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Weryfikacja słów na "czarnej liście" (smutny, zły, wesoły, zestresowany). Zliczenie fizycznych opisów (np. bicie serca, pot, zaciśnięte pięści).
+      self_check: Czy opisałeś chociaż jeden detal, który było widać, słychać lub czuć?
+      llm_check: Czy AI z tekstu jednoznacznie odczytuje ukrytą emocję mimo braku jej nazwy?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Użycie słów-etykiet (np. "strasznie się zdenerwowałem") lub brak opisów fizycznych.
+    common_mistakes: Opisywanie logiki zdarzeń zamiast fizycznych odczuć bohatera w danym momencie.
+    next_rep_instruction_template: Skup się na tym, co czuły twoje ręce i jak biło serce. Pozwól nam to zobaczyć.
+
+  - day: 13
+    block: 3. Storytelling i Zabiegi Narracyjne
+    focus: Myśli jako dialog w czasie teraźniejszym
+    objective: Udynamizowanie narracji przez wplatanie myśli w formie bezpośrednich cytatów na gorąco.
+    primary_constraint: Przekształcenie przemyśleń w zacytowany dialog ("I myślę sobie - co ty robisz?").
+    background_constraints: Oddech przez nos przed wdrożeniem cytatu.
+    rep_a:
+      instruction: Zrelacjonuj moment, kiedy podjąłeś szybką decyzję. Zacytuj swoją myśl na głos.
+      duration_seconds: 60
+    rep_b:
+      instruction: Opowiedz o małej pomyłce w pracy/życiu. Użyj myśli w czasie teraźniejszym jako kulminacyjnego punktu opowieści.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Detekcja struktury cytatu lub mowy niezależnej ("pomyślałem:", "mówię sobie:").
+      self_check: Czy Twoja zacytowana myśl zabrzmiała jak rzeczywista reakcja w tamtej chwili?
+      llm_check: Czy przeskok do czasu teraźniejszego i bezpośredniego cytatu ubarwił narrację?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Zamiana myśli na raport oparty o przeszłość (np. "Wtedy uświadomiłem sobie, że zrobiłem błąd").
+    common_mistakes: Używanie suchego streszczenia myśli zamiast żywej reakcji słownej w głowie bohatera.
+    next_rep_instruction_template: Oddaj nam głos z wnętrza głowy, w pierwszej osobie i czasie teraźniejszym.
+
+  - day: 14
+    block: 3. Storytelling i Zabiegi Narracyjne
+    focus: Kontrast Dynamiki
+    objective: Przełamanie monotonnego tonu przez celowe zderzenie dwóch różnych temp mówienia.
+    primary_constraint: Słyszalna, wyraźna zmiana między napięciem (szybciej, głośniej) a spokojem (wolniej, pauza) przed finałem.
+    background_constraints: Struktura napięcia z widocznym rozwiązaniem.
+    rep_a:
+      instruction: Opowiedz o parzeniu kawy/herbaty jak o rozbrajaniu bomby (szybko i intensywnie), na koniec użyj głębokiego Power Drop (wolno).
+      duration_seconds: 60
+    rep_b:
+      instruction: Opowiedz historię z drobnym elementem akcji. Na 5 sekund przed zakończeniem zrób celową pauzę i ekstremalnie zwolnij.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Sprawdzenie punktów z długimi pauzami w okolicach końca w stosunku do szybszych fraz wcześniej.
+      self_check: Czy zmiana dynamiki wymagała od Ciebie wyjścia ze strefy komfortu i przerysowania emocji?
+      llm_check: Czy da się odczuć z zapisu, że w opowieści jest faza pośpiechu, a potem zwolnienie do konkluzji?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Utrzymanie płaskiego, jednostajnego tonu odczytywania raportu przez pełne 60 sekund.
+    common_mistakes: Wstyd przed "aktorskim" zaangażowaniem w opowieść.
+    next_rep_instruction_template: Pozwól sobie na przesadę, tak samo jak podczas opowiadania dowcipu bliskiemu znajomemu.
+
+  - day: 15
+    block: 3. Storytelling i Zabiegi Narracyjne
+    focus: Checkpoint 3 - The Pocket Story
+    objective: Sprawdzian z wciągającej, przetestowanej 60-sekundowej anegdoty z zastosowaniem technik.
+    primary_constraint: Zintegrowanie w 60 sekundach - In Media Res, ramy ABT, Show-don't-tell i myśli jako dialogu.
+    background_constraints: Płynność wykonania bez filleryzacji.
+    rep_a:
+      instruction: Wybierz opowieść o dawnej porażce z wyciągniętą lekcją. Zastanów się nad ułożeniem z użyciem technik. (Prep time)
+      duration_seconds: 60
+    rep_b:
+      instruction: Nagraj finalną "Pocket Story". Zacznij od miejsca, zbuduj konflikt (ALE), użyj cytatu myśli i zamknij konkluzją.
+      duration_seconds: 90
+    feedback_rubric:
+      transcript_check: Zgodność z listą kontrolną - czas teraźniejszy na start, brak "yyy", struktura problemu i puenta.
+      self_check: Czy ta anegdota ma szansę być użyta w luźnej rozmowie biznesowej / towarzyskiej?
+      llm_check: Czy wypowiedź funkcjonuje jako angażująca zamknięta miniatura narracyjna?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Płaska relacja z faktów zamiast zaangażowanej historii.
+    common_mistakes: Przeładowywanie "pocket story" wątkami pobocznymi, tracenie na tym puenty.
+    next_rep_instruction_template: Tnij niepotrzebne postacie i detale. Skup się tylko na głównej zmianie bohatera (Ciebie).
+
+  - day: 16
+    block: 4. Transfer i Realne Pole Walki
+    focus: Przełożenie na obiekcje klienta/rozmówcy
+    objective: Wykorzystanie Pocket Story jako tarczy w negocjacjach lub do udowodnienia punktu.
+    primary_constraint: Historia musi kończyć się mocnym elementem odniesienia do drugiej strony ("Mówię Ci o tym, bo...").
+    background_constraints: Utrzymanie stabilnego rytmu i opadającej intonacji na koniec.
+    rep_a:
+      instruction: Zidentyfikuj główną obiekcję (wobec Ciebie/Twojego pomysłu). Przekształć wczorajszą historię by była na nią odpowiedzią.
+      duration_seconds: 60
+    rep_b:
+      instruction: Nagraj zbijanie obiekcji. Wprowadź krótką opowieść jako dowód, a w ostatnich 10 sek przenieś morał na słuchacza ("Dlatego uważam, że...").
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Wykrycie zadeklarowanej na końcu frazy spinającej z odbiorcą (Connect).
+      self_check: Czy morał wynikał naturalnie z samej historii?
+      llm_check: Odbiór - czy historia osłabia obiekcję zamiast frontalnie z nią walczyć agresywnymi argumentami?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Brak jasnego pomostu na koniec łączącego opowieść z interesem osoby, do której "mówimy".
+    common_mistakes: Tłumaczenie historii za bardzo "ja, moje" bez ostatecznego skupienia się na potrzebach odbiorcy.
+    next_rep_instruction_template: Historia broni się sama. Na koniec dorzuć tylko, dlaczego jest istotna dla rozmówcy.
+
+  - day: 17
+    block: 4. Transfer i Realne Pole Walki
+    focus: Ucinanie dygresji pod presją
+    objective: Radzenie sobie z natłokiem informacji, przejęcie sterów i Power Drop tnący debatę.
+    primary_constraint: Musisz uciąć wypowiedź dokładnie zdaniem podsumowującym z intonacją opadającą ("Podsumowując..."). Zero łagodzenia zdania.
+    background_constraints: Płynność startu, zdania deklaratywne, unikanie pytań retorycznych.
+    rep_a:
+      instruction: Wyobraź sobie wielowątkowe, chaotyczne pytanie na zebraniu. Sformułuj w głowie 3 punkty odpowiedzi.
+      duration_seconds: 30
+    rep_b:
+      instruction: Rozpocznij od "Dwie kluczowe sprawy...". Na około 45. sekundzie zamknij temat kategorycznym zdaniem z kropką bez owijania w bawełnę.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Sprawdzenie, czy tekst zawiera kategoryczne podsumowanie i brakuje "wiesz o co mi chodzi" na samym końcu.
+      self_check: Czy odczułeś zrzut intonacji na kropce jako kategoryczne cięcie nożem?
+      llm_check: Czy ton i forma na koniec ewidentnie kończy temat, nie zachęcając do dalszych pytań i lania wody?
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Końcówka "rozmyta", dodawanie zmiękczających wypełniaczy typu "także ten", "no", "jakby".
+    common_mistakes: Pytająca tonacja (uptalk) przy "Podsumowując to jest chyba najlepsza opcja... prawda?".
+    next_rep_instruction_template: Ostatnie zdanie to betonowa ściana. Powiedz je i absolutnie zamilknij.
+
+  - day: 18
+    block: 4. Transfer i Realne Pole Walki
+    focus: Zero-Prep Voice Note (Autentyczność pod presją)
+    objective: Radzenie sobie z prośbą komunikacyjną "z biegu", eliminacja prokrastynacji i perfekcjonizmu.
+    primary_constraint: Naciskasz "nagraj" maksymalnie 3 sekundy po otrzymaniu/przeczytaniu tematu. Jedno podejście (One-Take).
+    background_constraints: Zastosowanie oddechu przed mówieniem.
+    rep_a:
+      instruction: Zaplanuj otwarcie Telegrama/narzędzia nagrywania, miej przed sobą losowe zapytanie od klienta/znajomego.
+      duration_seconds: 15
+    rep_b:
+      instruction: Odczytaj - "Przekonaj mnie dlaczego ta opcja jest lepsza od drugiej". Nagrywaj natychmiast. Powiedz, co masz powiedzieć, używając ramy CCC.
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Analiza ewentualnych zająknięć na początku tekstu ("yyy"). Oceniamy tylko przejrzystość podziału, z tolerancją na małe wpadki.
+      self_check: Czy naprawdę zacząłeś bez sekundy wahania i układania skryptu w głowie? Zdałeś "one-take"?
+      llm_check: Ocena użyteczności komunikatu mimo improwizacji "z marszu".
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Kasowanie notatki i nagrywanie ponowne. Niestabilny początek ze słowami "no to tak...".
+    common_mistakes: Próba zrobienia tego idealnie za pierwszym razem i panikowanie na drobnych lapsusach słownych.
+    next_rep_instruction_template: Jeśli zająkniesz się, użyj pauzy by zresetować rytm, zamiast wracać do wypełniaczy.
+
+  - day: 19
+    block: 4. Transfer i Realne Pole Walki
+    focus: The "Real Human" Transfer
+    objective: Prawdziwe testowanie nawyków w bieżących asynchronicznych rozmowach głosowych.
+    primary_constraint: Przynajmniej jedno z nagrań musi trafić do PRAWDZIWEJ OSOBY. Zero odsłuchiwania po nagraniu. Wysyłasz natychmiast.
+    background_constraints: Pamięć o kropce i obniżonym głosie na końcu.
+    rep_a:
+      instruction: Wyślij prawdziwą notatkę głosową do członka rodziny / bliskiego znajomego z drobną anegdotą.
+      duration_seconds: 60
+    rep_b:
+      instruction: Wyślij notatkę głosową związaną z pracą / ustaleniami. Zastosuj Power Drop na koniec oraz zero "yyy".
+      duration_seconds: 60
+    feedback_rubric:
+      transcript_check: Skopiuj i prześlij transkrypt (lub podyktuj AI) z tego, co wysłałeś, do systemu w celu sprawdzenia ew. fillerów.
+      self_check: Czy wysłałeś to do prawdziwej osoby bez kasowania i odsłuchiwania siebie?
+      llm_check: Ocena, czy z perspektywy odbiorcy wiadomość jest precyzyjna, profesjonalna i angażująca.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Tchórzostwo przed wysłaniem pierwszej wersji i wielokrotne powtórki.
+    common_mistakes: Przepraszanie rozmówcy, że wysyłasz głosówkę ("Sorki za formę, ale nie mogłem pisać...").
+    next_rep_instruction_template: Twój głos ma wartość. Zacznij mówić z entuzjazmem, bez tłumaczenia się.
+
+  - day: 20
+    block: 4. Transfer i Realne Pole Walki
+    focus: EGZAMIN BOJOWY (The Master Run)
+    objective: Połączenie całej nauki z 20 dni w jedną wymierzoną wizytówkę.
+    primary_constraint: Spójna miniprezentacja (np. auto-pitch) z rygorem - pauza, brak fillerów, zrzut mocy.
+    background_constraints: Start In Media Res i zmysłowy storytelling wpleciony w środek.
+    rep_a:
+      instruction: "Napisz sobie na kartce ramę swojej 90-sekundowej wizytówki: Haczyk -> Anegdota -> Twoja Wartość (Core) -> Call to Action (Connect)."
+      duration_seconds: 60
+    rep_b:
+      instruction: "Nagranie ostateczne wizytówki do klienta lub przełożonego. Pokaż kim jesteś i w czym jesteś najlepszy."
+      duration_seconds: 90
+    feedback_rubric:
+      transcript_check: Mniej "yyy" niż na starcie Dnia 1 (self-check porównawczy, nie liczba bezwzględna). Utrzymanie średniej 12 słów w zdaniu.
+      self_check: Czy opowieść nabrała "chaosu na zewnątrz, struktury wewnątrz"? Czy obniżałeś głos dla autorytetu?
+      llm_check: Weryfikacja - Mniej chaosu, tło krótsze, pointa jaśniejsza. Ocena autorytetu (ciepło + kompetencja) bazująca na doborze słów.
+    success_marker: pass / partial / repeat_day
+    repeat_day_if: Rażąca ilość elementów "niepewności" słownej lub niezastosowanie schematu, jak w Dniu 1.
+    common_mistakes: Presja finałowa wymuszająca zbyt szybkie mówienie kosztem oddechu.
+    next_rep_instruction_template: Weź głęboki wdech, poczuj grunt pod nogami. Zacznij mocnym akcentem.

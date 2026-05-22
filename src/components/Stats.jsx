@@ -352,11 +352,14 @@ export default function Stats({ session }) {
   async function exportData() {
     setIsExporting(true);
     try {
+      const exportStartIso = new Date(`${dateRange.from}T00:00:00`).toISOString();
+      const exportEndIso = new Date(`${dateRange.to}T23:59:59.999`).toISOString();
       const [
         { data: sessions },
         { data: bodyMetrics },
         { data: food },
         { data: journal },
+        { data: telegramLogs },
         { data: reviews },
         { data: goals },
         { data: habits },
@@ -370,6 +373,7 @@ export default function Stats({ session }) {
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
         includeYazio ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve({ data: [] }),
         supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
         supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('habits').select('*').eq('user_id', session.user.id),
@@ -382,7 +386,10 @@ export default function Stats({ session }) {
 
       const foodEntries = food || [];
       const journalEntries = journal || [];
+      const telegramEntries = telegramLogs || [];
       const weeklyReviews = reviews || [];
+      const toWarsawDate = (value) => new Date(value).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const toWarsawTime = (value) => new Date(value).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
 
       const userPOI = [
         { name: 'Dom', lat: userSettings?.home_lat, lng: userSettings?.home_lng, radius: 150 },
@@ -423,6 +430,7 @@ export default function Stats({ session }) {
         ...sessions.map(s => s.date),
         ...foodEntries.map(f => f.date),
         ...journalEntries.map(j => j.date),
+        ...telegramEntries.map(t => toWarsawDate(t.created_at)),
         ...bodyMetrics.map(b => b.date)
       ])].sort();
 
@@ -439,12 +447,13 @@ export default function Stats({ session }) {
         const daySessions = sessions.filter(s => s.date === dateStr);
         const dayFood = foodEntries.filter(f => f.date === dateStr);
         const dayJournal = journalEntries.find(j => j.date === dateStr);
+        const dayTelegramLogs = telegramEntries.filter(t => toWarsawDate(t.created_at) === dateStr);
         const dayBody = bodyMetrics.find(b => b.date === dateStr);
         const dayOura = ouraData?.find(o => o.date === dateStr);
         const dayPhotos = photos?.filter(p => p.date === dateStr);
 
         // Header and Lose Day Logic
-        const hasAnyData = daySessions.length > 0 || (includeYazio && dayFood.length > 0) || (includeJournal && dayJournal) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
+        const hasAnyData = daySessions.length > 0 || (includeYazio && dayFood.length > 0) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
 
         if (!hasAnyData) {
           md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n`;
@@ -543,6 +552,19 @@ export default function Stats({ session }) {
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g**\n`;
           }
         }
+        if (includeJournal && dayTelegramLogs.length > 0) {
+          md += `### Notatnik (Telegram)\n`;
+          md += `#### Logi z Telegrama\n`;
+          dayTelegramLogs.forEach(log => {
+            const mode = log.metadata?.mode ? ` [${log.metadata.mode}]` : '';
+            const content = (log.content || '').trim().replace(/\n/g, '\n  ');
+            if (content) {
+              md += `- **${toWarsawTime(log.created_at)}**${mode}: ${content}\n`;
+            }
+          });
+          md += `\n`;
+        }
+
         if (includeJournal && dayJournal) {
           md += `### 📓 Notatnik & Power Lista\n`;
           md += `**Wynik Dnia:** ${dayJournal.result === 'Z' ? 'WYGRANA (Z)' : 'PORAŻKA (P)'}\n\n`;
@@ -813,7 +835,7 @@ export default function Stats({ session }) {
             <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeJournal ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
               {includeJournal && <CheckSquare size={10} />}
             </div>
-            <span className="text-[10px] font-black uppercase">Notatnik (Journal)</span>
+            <span className="text-[10px] font-black uppercase">Notatnik (Telegram)</span>
           </button>
 
           <button onClick={() => setIncludeOura(!includeOura)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
