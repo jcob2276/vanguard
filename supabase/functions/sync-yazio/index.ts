@@ -105,13 +105,43 @@ serve(async (req) => {
           });
         }
 
+        let insertedCount = 0;
+        let sample: any[] = [];
         if (totalCals > 0 || totalProt > 0) {
-          await supabase.from('daily_nutrition').upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' });
-          await supabase.from('daily_food_entries').delete().eq('user_id', userId).eq('date', dateStr);
-          await supabase.from('daily_food_entries').insert(foodEntries);
+          const { error: nutritionError } = await supabase
+            .from('daily_nutrition')
+            .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' });
+          if (nutritionError) throw new Error(`daily_nutrition upsert failed: ${nutritionError.message}`);
+
+          const { error: deleteError } = await supabase
+            .from('daily_food_entries')
+            .delete()
+            .eq('user_id', userId)
+            .eq('date', dateStr);
+          if (deleteError) throw new Error(`daily_food_entries delete failed: ${deleteError.message}`);
+
+          if (foodEntries.length > 0) {
+            const { error: insertError } = await supabase
+              .from('daily_food_entries')
+              .insert(foodEntries);
+            if (insertError) throw new Error(`daily_food_entries insert failed: ${insertError.message}`);
+          }
+
+          const { count, data: insertedSample, error: verifyError } = await supabase
+            .from('daily_food_entries')
+            .select('name, meal_type, calories, protein', { count: 'exact' })
+            .eq('user_id', userId)
+            .eq('date', dateStr)
+            .limit(3);
+          if (verifyError) throw new Error(`daily_food_entries verify failed: ${verifyError.message}`);
+          insertedCount = count || 0;
+          sample = insertedSample || [];
         }
-        results.push({ date: dateStr, items: foodEntries.length });
-      } catch (err) { console.log(`Error ${dateStr}:`, err.message); }
+        results.push({ date: dateStr, items: foodEntries.length, inserted_count: insertedCount, calories: totalCals, sample });
+      } catch (err) {
+        console.log(`Error ${dateStr}:`, err.message);
+        results.push({ date: dateStr, error: err.message });
+      }
       if (sync_history) await new Promise(r => setTimeout(r, 50));
     }
     return new Response(JSON.stringify({ success: true, results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
