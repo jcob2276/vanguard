@@ -62,7 +62,11 @@ Deno.serve(async (_req) => {
 
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
 
-    const [frictionRes, anchorRes] = await Promise.all([
+    // Yesterday's date (for pulling today's plan which was created last night)
+    const yesterdayStr = new Date(new Date(todayStr).getTime() - 86400000)
+      .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+
+    const [frictionRes, anchorRes, planRes] = await Promise.all([
       supabase
         .from('friction_events')
         .select('id, friction_type, actual_behavior, declared_intention, immediate_cost')
@@ -79,6 +83,16 @@ Deno.serve(async (_req) => {
         .ilike('content', 'anchor:%')
         .order('timestamp', { ascending: false })
         .limit(1)
+        .maybeSingle(),
+      // Today's plan = planning session from yesterday evening
+      supabase
+        .from('daily_reconciliations')
+        .select('planning_summary')
+        .eq('user_id', VANGUARD_USER_ID)
+        .eq('date', yesterdayStr)
+        .eq('type', 'planning')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
     ]);
 
@@ -94,9 +108,25 @@ Deno.serve(async (_req) => {
       ? anchorRaw.replace(/^anchor:\s*/i, '').trim()
       : null;
 
-    console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'}`);
+    // Extract today's plan from yesterday's planning session
+    const planningSummary = planRes.data?.planning_summary as any || null;
+    const top3: string[] = planningSummary?.top3 || [];
+    const firstMove: string | null = planningSummary?.first_move_morning || planningSummary?.pierwszy_ruch || null;
+    const tensionAction: string | null = planningSummary?.tension_action?.task || null;
+
+    console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'} plan=${top3.length > 0 ? 'yes' : 'no'}`);
 
     let messageText: string;
+
+    // --- PLAN NA DZIŚ (z wczorajszego planowania) ---
+    let planBlock = '';
+    if (top3.length > 0) {
+      planBlock =
+        `*Plan na dziś był:*\n` +
+        top3.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
+      if (tensionAction) planBlock += `\n⚡ Ruch napięciowy: ${tensionAction}`;
+      planBlock += '\n\n';
+    }
 
     if (hasEvents) {
       const lines = evList.map((e: any, i: number) => {
@@ -107,10 +137,12 @@ Deno.serve(async (_req) => {
 
       messageText =
         `*Daily reconciliation — 5 min*\n\n` +
+        planBlock +
         `Dziś wykryłem:\n${lines}\n`;
     } else {
       messageText =
         `*Daily check-in — 3 min*\n\n` +
+        planBlock +
         `Nie wykryłem dziś mikrotarć ani pozytywnych mikroakcji.\n`;
     }
 
