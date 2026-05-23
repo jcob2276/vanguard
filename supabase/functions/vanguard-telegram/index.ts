@@ -120,7 +120,7 @@ async function runRealityAdversary(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-flash',
         temperature: 0.2,
         max_tokens: 500,
         messages: [
@@ -518,7 +518,7 @@ serve(async (req) => {
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
-                        model: 'deepseek-chat',
+                        model: 'deepseek-v4-flash',
                         temperature: 0.3,
                         max_tokens: 900,
                         messages: [
@@ -674,7 +674,7 @@ serve(async (req) => {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  model: 'deepseek-chat',
+                  model: 'deepseek-v4-flash',
                   temperature: 0.1,
                   max_tokens: 80,
                   messages: [{
