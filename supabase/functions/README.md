@@ -52,16 +52,20 @@ Project: `pdvqkgfsqziqlhptatgf`
 |---|---|---|---|
 | `weekly-report` | Weekly summary report | Cron | **false** |
 
-## Shared helpers (planned)
+## Shared helpers
 
 ```
 supabase/functions/_shared/
 ├── telegram.ts    # sendMessage, sendChatAction, escapeMd
-├── deepseek.ts    # chat completion + JSON parse + timeout
+├── deepseek.ts    # deepseekChat, parseJsonFromContent
 └── supabase.ts    # createServiceClient()
 ```
 
 Import: `import { sendMessage } from '../_shared/telegram.ts'`
+
+**Adopted in:** `dojo-telegram`, `vanguard-morning-brief`, `vanguard-midday-check`
+
+**Planned:** `vanguard-telegram`, `vanguard-auto-classify`, `vanguard-daily-reconciliation`
 
 ## Deploy checklist
 

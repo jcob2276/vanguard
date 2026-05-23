@@ -1,11 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendMessage as telegramSend, escapeMd } from "../_shared/telegram.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
 
 const DOJO_TOKEN = Deno.env.get("DOJO_TELEGRAM_BOT_TOKEN") || "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") || "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const DOJO_USER_ID = Deno.env.get("VANGUARD_USER_ID") || "";
 const AUTHORIZED_CHAT_ID = parseInt(Deno.env.get("DOJO_TELEGRAM_CHAT_ID") || "0");
 
@@ -15,16 +14,10 @@ const EVAL_PROMPT_VERSION = "setter_v1";
 
 const POLISH_FILLERS = ["yyyy", "yyy", "yy", "eee", "ee", "ehe", "jakby", "jakby", "tutaj", "no ", "no,", "właśnie", "znaczy", "wiesz", "rozumiesz", "tak więc", "i tak"];
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createServiceClient();
 
-// ---- Telegram helpers ----
-
-async function sendMessage(chatId: number, text: string): Promise<void> {
-  await fetch(`https://api.telegram.org/bot${DOJO_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  });
+async function dojoSend(chatId: number, text: string): Promise<void> {
+  await telegramSend(DOJO_TOKEN, chatId, text, { parseMode: "Markdown" });
 }
 
 // ---- Audio helpers ----
@@ -429,13 +422,13 @@ async function handleStart(chatId: number): Promise<Response> {
     .single();
 
   if (error || !run) {
-    await sendMessage(chatId, "Błąd tworzenia runu. Sprawdź logi.");
+    await dojoSend(chatId, "Błąd tworzenia runu. Sprawdź logi.");
     return new Response("error");
   }
 
   const day0 = await getCurriculumDay(0);
   if (!day0) {
-    await sendMessage(chatId, "Curriculum nie znalezione. Uruchom najpierw import_curriculum.ts.");
+    await dojoSend(chatId, "Curriculum nie znalezione. Uruchom najpierw import_curriculum.ts.");
     return new Response("error");
   }
 
@@ -444,7 +437,7 @@ async function handleStart(chatId: number): Promise<Response> {
   const microRep2 = day0.micro_rep_2 as Record<string, unknown>;
   const repB = day0.rep_b as Record<string, unknown>;
 
-  await sendMessage(
+  await dojoSend(
     chatId,
     `🥋 *Practice Dojo — Start*\n\n*Skill:* Persuasive Communication Mode V1\n\n📊 *Dzień 0 — Diagnostyka Bazowa*\n_Bez oceniania. Zbieramy próbki do baseline._\n\n` +
     `*Rep A (${repA.duration_seconds}s):*\n${repA.instruction}\n\n` +
@@ -458,14 +451,10 @@ async function handleStart(chatId: number): Promise<Response> {
   return new Response("ok");
 }
 
-function escapeMd(text: string): string {
-  return text.replace(/[_*[\]`]/g, (c) => "\\" + c);
-}
-
 async function handleStatus(chatId: number): Promise<Response> {
   const run = await getActiveRun();
   if (!run) {
-    await sendMessage(chatId, "Brak aktywnego sprintu. Wyślij /start \u017ceby zacz\u0105\u0107.");
+    await dojoSend(chatId, "Brak aktywnego sprintu. Wyślij /start \u017ceby zacz\u0105\u0107.");
     return new Response("ok");
   }
 
@@ -486,7 +475,7 @@ async function handleStatus(chatId: number): Promise<Response> {
     }
   }
 
-  await sendMessage(
+  await dojoSend(
     chatId,
     `\u{1F4CA} *Dojo Status*\n\n` +
     `Dzie\u0144: ${day}/30\n` +
@@ -504,13 +493,13 @@ async function handleStatus(chatId: number): Promise<Response> {
 async function handleTransferComplete(chatId: number): Promise<Response> {
   const run = await getActiveRun();
   if (!run) {
-    await sendMessage(chatId, "Brak aktywnego sprintu.");
+    await dojoSend(chatId, "Brak aktywnego sprintu.");
     return new Response("ok");
   }
 
   const phase = run.phase as string;
   if (phase !== "real_life_transfer") {
-    await sendMessage(chatId, `Nie jesteś w fazie transfer. Aktualna faza: \`${phase}\``);
+    await dojoSend(chatId, `Nie jesteś w fazie transfer. Aktualna faza: \`${phase}\``);
     return new Response("ok");
   }
 
@@ -550,27 +539,27 @@ async function handleTransferComplete(chatId: number): Promise<Response> {
   const nextDayData = nextDay !== currentDay ? await getCurriculumDay(nextDay) : null;
   const instruction = buildNextInstruction(nextPhase, nextDay, currentDay, dayData, nextDayData);
 
-  await sendMessage(chatId, instruction || `✅ Dzień ${currentDay} ukończony.`);
+  await dojoSend(chatId, instruction || `✅ Dzień ${currentDay} ukończony.`);
   return new Response("ok");
 }
 
 async function handleVoiceRep(message: Record<string, unknown>, chatId: number): Promise<Response> {
   const run = await getActiveRun();
   if (!run) {
-    await sendMessage(chatId, "Brak aktywnego sprintu. Wyślij /start.");
+    await dojoSend(chatId, "Brak aktywnego sprintu. Wyślij /start.");
     return new Response("ok");
   }
 
   const phase = run.phase as string;
   if (phase === "real_life_transfer" || phase === "completed") {
-    await sendMessage(chatId, phase === "completed" ? "Sprint ukończony." : `Faza transfer — wyślij "done" gdy zrobisz real-life transfer.`);
+    await dojoSend(chatId, phase === "completed" ? "Sprint ukończony." : `Faza transfer — wyślij "done" gdy zrobisz real-life transfer.`);
     return new Response("ok");
   }
 
   const voiceObj = (message.voice || message.audio) as Record<string, unknown>;
   const fileId = voiceObj.file_id as string;
 
-  await sendMessage(chatId, "⏳ Transkrybuję...");
+  await dojoSend(chatId, "⏳ Transkrybuję...");
 
   let transcript: string;
   let audioDuration: number;
@@ -580,7 +569,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
     audioDuration = result.durationSeconds;
   } catch (err) {
     console.error("Transcription failed:", err);
-    await sendMessage(chatId, "❌ Błąd transkrypcji. Spróbuj jeszcze raz.");
+    await dojoSend(chatId, "❌ Błąd transkrypcji. Spróbuj jeszcze raz.");
     return new Response("error");
   }
 
@@ -588,7 +577,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
   const currentDay = run.current_day as number;
   const dayData = await getCurriculumDay(currentDay);
   if (!dayData) {
-    await sendMessage(chatId, "Błąd: nie znaleziono dnia w curriculum.");
+    await dojoSend(chatId, "Błąd: nie znaleziono dnia w curriculum.");
     return new Response("error");
   }
 
@@ -600,7 +589,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
     evalResult = await evaluateRep(dayData, transcript, audioDuration, wordCount, baselineStats);
   } catch (err) {
     console.error("Evaluation failed:", err);
-    await sendMessage(chatId, "❌ Błąd evaluation LLM. Spróbuj ponownie.");
+    await dojoSend(chatId, "❌ Błąd evaluation LLM. Spróbuj ponownie.");
     return new Response("error");
   }
 
@@ -631,7 +620,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
       const repB = dayData.rep_b as Record<string, unknown>;
       const microRep1 = dayData.micro_rep_1 as Record<string, unknown>;
       const microRep2 = dayData.micro_rep_2 as Record<string, unknown>;
-      await sendMessage(
+      await dojoSend(
         chatId,
         `✅ Rep A zarejestrowana.\n\n` +
         `*Ćwicz solo (nie nagrywaj):*\n• ${microRep1.instruction}\n• ${microRep2.instruction}\n\n` +
@@ -654,7 +643,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
       });
 
       const transfer = dayData.real_life_transfer as Record<string, unknown>;
-      await sendMessage(
+      await dojoSend(
         chatId,
         `📊 *Baseline zapisany:*\n` +
         `• Tempo: ${(finalBaseline.words_per_second as number).toFixed(2)} słów/s\n` +
@@ -681,7 +670,7 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
   const instructionMsg = buildNextInstruction(nextPhase, nextDay, currentDay, dayData, nextDayData);
 
   const fullMessage = [evalMsg, instructionMsg].filter(Boolean).join("\n\n---\n\n");
-  await sendMessage(chatId, fullMessage || "✅");
+  await dojoSend(chatId, fullMessage || "✅");
 
   return new Response("ok");
 }
@@ -707,7 +696,7 @@ serve(async (req) => {
     if (/^(done|gotowe|transfer done|transfer|✓|✅)/i.test(text.trim())) return handleTransferComplete(chatId);
     if (message.voice || message.audio) return handleVoiceRep(message, chatId);
 
-    await sendMessage(chatId, "Wyślij voice note albo użyj /start · /status");
+    await dojoSend(chatId, "Wyślij voice note albo użyj /start · /status");
     return new Response("ok");
   } catch (err) {
     console.error("dojo-telegram error:", err);
