@@ -49,7 +49,7 @@ Edge function gotchas:
 4. `supabase/functions/README.md` — all edge functions mapped
 5. `docs/runbooks/` — operational fixes from past incidents
 6. `docs/PRODUCT_PRINCIPLES.md` — full guardrails document
-7. `AI_CONTEXT.md` / `ARCHITECTURE.md` — legacy deep context (verify against current state)
+7. `docs/legacy/` — older context (verify against current state before trusting)
 
 ## Models (current)
 

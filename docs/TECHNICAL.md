@@ -62,7 +62,6 @@ Brak cron (HTTP manual):
   vanguard-debug-retrieval
   vanguard-eval-runner
   vanguard-friction-qa
-  refresh-vanguard-correlations
   sync-oura / sync-yazio / sync-todoist / sync-calendar / sync-google-fit
 ```
 
@@ -84,13 +83,13 @@ Brak cron (HTTP manual):
 | vanguard-friction-qa | ✅ aktywna | HTTP manual | |
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | gpt-5-mini bug |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
-| refresh-vanguard-correlations | ✅ aktywna | HTTP manual | |
 | sync-oura / sync-yazio / sync-todoist / sync-calendar / sync-google-fit | ✅ aktywne | HTTP manual | |
 | google-fit-auth | ✅ aktywna | HTTP GET (OAuth callback) | single-user assumption |
-| daily-reminder | ✅ aktywna | HTTP (cron? nieznane) | Resend email |
-| weekly-report | ✅ aktywna | HTTP (cron? nieznane) | Resend + jsPDF |
-| vanguard-daily-reconciliation | ❌ NIE ISTNIEJE | — | ref. w rules, brak pliku |
-| vanguard-transurfing-reset | ❌ NIE ISTNIEJE | — | ref. w rules, brak pliku |
+| weekly-report | ✅ aktywna | cron | **false** JWT |
+| vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
+| vanguard-reset-prompt | ✅ aktywna | pg_cron | **false** JWT |
+| dojo-telegram / dojo-scheduler | ✅ aktywne | webhook / cron | **false** JWT |
+| vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**
 

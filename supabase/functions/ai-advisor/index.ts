@@ -47,19 +47,16 @@ STRUKTURA ODPOWIEDZI (jeśli to diagnoza):
 
 Jeśli użytkownik zadaje luźne pytanie, odpowiedz w tym samym zimnym, systemowym stylu, ale merytorycznie.`
 
-    // Prepare messages
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
     ];
 
-    // Add history if exists
     if (context.history && Array.isArray(context.history)) {
       context.history.forEach((msg: any) => {
         messages.push({ role: msg.role, content: msg.content });
       });
     }
 
-    // Add current context and query
     const userPrompt = `
 [VANGUARD_CONTEXT]: ${context.vanguard_context || 'Brak rozszerzonego kontekstu'}
 [DATA_VECTOR]: ${JSON.stringify(context.user_data)}

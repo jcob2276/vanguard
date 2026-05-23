@@ -24,15 +24,13 @@ Lean operational docs + links to existing deep context.
 - [../supabase/functions/README.md](../supabase/functions/README.md) — all edge functions
 - [../supabase/migrations/README.md](../supabase/migrations/README.md) — migration domain index
 
-## Deep context (existing — verify against current state)
+## Deep context (verify against current state)
 
 - [PRODUCT_PRINCIPLES.md](./PRODUCT_PRINCIPLES.md) — full epistemic guardrails
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — architecture in docs/
-- [TECHNICAL.md](./TECHNICAL.md) — technical reference
+- [TECHNICAL.md](./TECHNICAL.md) — technical reference (may be stale)
 - [VANGUARD_OS_CANONICAL_SPEC.md](./VANGUARD_OS_CANONICAL_SPEC.md) — canonical spec
-- [../ARCHITECTURE.md](../ARCHITECTURE.md) — root architecture
-- [../AI_CONTEXT.md](../AI_CONTEXT.md) — legacy AI context
-- [../DOKUMENTACJA_TECHNICZNA.md](../DOKUMENTACJA_TECHNICZNA.md) — technical docs (PL)
+- [legacy/](./legacy/) — moved root docs (ARCHITECTURE, AI_CONTEXT, PL docs)
 
 ## Cursor rules
 

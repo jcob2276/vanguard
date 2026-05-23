@@ -65,7 +65,7 @@ Import: `import { sendMessage } from '../_shared/telegram.ts'`
 
 **Adopted in:** `dojo-telegram`, `vanguard-morning-brief`, `vanguard-midday-check`
 
-**Planned:** `vanguard-telegram`, `vanguard-auto-classify`, `vanguard-daily-reconciliation`
+**Planned:** `vanguard-telegram`, `vanguard-auto-classify`
 
 ## Deploy checklist
 

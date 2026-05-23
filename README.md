@@ -24,12 +24,10 @@ Supabase project: `pdvqkgfsqziqlhptatgf` · Frontend: React + Vite · Deploy: Ve
 - [supabase/functions/README.md](./supabase/functions/README.md) — edge functions map
 - [docs/runbooks/](./docs/runbooks/) — incident fixes
 
-### Deep context (existing)
+### Deep context
 - [docs/PRODUCT_PRINCIPLES.md](./docs/PRODUCT_PRINCIPLES.md) — full guardrails
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — architecture overview
-- [AI_CONTEXT.md](./AI_CONTEXT.md) — legacy AI context
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — docs architecture
-- [DOKUMENTACJA_TECHNICZNA.md](./DOKUMENTACJA_TECHNICZNA.md) — technical docs (PL)
+- [docs/vanguard-core.md](./docs/vanguard-core.md) — daily loop + telegram
+- [docs/legacy/](./docs/legacy/) — older docs (may be stale)
 
 ## Daily loop (Vanguard)
 

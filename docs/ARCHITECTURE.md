@@ -51,7 +51,7 @@
 | `vanguard-oracle` | Główny silnik rozumowania | `query`, `mode` (mirror/chat) | `answer`, `sources`, `claims` |
 | `vanguard-architect` | Budowniczy grafu wiedzy | `type` (stream/knowledge), `offset`, `limit` | `triads_created`, `items_processed` |
 | `save-daily-aggregate` | Tworzy snapshot dnia | `userId`, `date` | `status: success` |
-| `refresh-vanguard-correlations` | Liczy korelacje sygnałów | `userId` | `correlations_updated` |
+| `weekly-report` | Tygodniowy raport | cron | `weekly_report` |
 | `sync-oura` | Synchronizacja z API Oura | `userId` | `records_synced` |
 | `vanguard-telegram` | Bramka dla bota Telegram | `message_text`, `chat_id` | `status: ok` |
 
