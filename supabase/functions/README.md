@@ -18,7 +18,8 @@ Project: `pdvqkgfsqziqlhptatgf`
 | `vanguard-midday-check` | Midday progress check with inline buttons | pg_cron | **false** | `daily_reconciliations` |
 | `vanguard-daily-reconciliation` | Evening summary + ask for day review | pg_cron | **false** | `daily_reconciliations`, `friction_events` |
 | `vanguard-friction-qa` | QA friction event classification | Cron | **false** | `friction_events` |
-| `vanguard-reset-prompt` | Periodic prompt/context reset | Cron | **false** | — |
+| `vanguard-reset-prompt` | ~~Periodic attention reset~~ | ~~Cron~~ | **false** | — | ← DISABLED (cron removed 2026-05-23) |
+| `vanguard-weekly-synthesis` | Sunday behavioral summary → Telegram | pg_cron Sunday 17:00 UTC | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue` |
 | `vanguard-intentions-cleanup` | Clean stale intentions | Cron | **false** | `vanguard_intentions` |
 | `vanguard-backfill` | Backfill historical data | Manual | true | various |
 | `vanguard-debug-retrieval` | Debug knowledge retrieval | Manual | true | `vanguard_knowledge` |
