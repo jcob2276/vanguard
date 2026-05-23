@@ -8,9 +8,8 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 ## 2. Stack Technologiczny (Vanguard 5.0)
 - **Frontend:** React 19 + Vite + Tailwind CSS (Vanilla).
 - **Backend:** Supabase (PostgreSQL + Edge Functions).
-- **AI Core:** DeepSeek V4 Pro (Główny model, tryb `think_high`).
+- **AI Core:** DeepSeek `deepseek-v4-flash` (wszystkie funkcje, default) + `deepseek-reasoner` (tryb `!!` deep mode).
 - **Memory Engine:** OpenAI `text-embedding-3-small` (Pamięć semantyczna).
-- **Extraction:** DeepSeek V4 Flash (Szybka ekstrakcja wiedzy w tle).
 - **Hosting/Deploy:** Supabase CLI / Vercel.
 
 ## 3. Strumienie Danych (Automatyczne)
@@ -38,7 +37,7 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 ### Telegram Bot
 - **Bez prefiksu:** Zapis myśli do strumienia.
 - **?**: Krótka rozmowa.
-- **!!**: Zapis "Żelaznych Zasad" (Importance 10).
+- **!!**: Tryb głębokiej analizy — model `deepseek-reasoner`.
 - **@**: Pełny raport operacyjny.
 
 ### Intention Tracker (Silnik Dyscypliny)
@@ -47,9 +46,9 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 
 ## 5. Mechanizm Oracle (Logika Pamięci)
 1. **Context Assembly:** Przy każdym zapytaniu system buduje wektor stanu (Oura + Yazio + Footprint + Kalendarz + Power List).
-2. **Semantic Retrieval:** Wyszukiwanie wektorowe znajduje podobne sytuacje z przeszłości.
-3. **Reasoning:** DeepSeek V4 Pro analizuje dane i historię.
-4. **Memory Loop:** Po rozmowie model Flash wyciąga wnioski i zapisuje je do bazy wiedzy.
+2. **Semantic Retrieval:** Wyszukiwanie wektorowe (HippoRAG) + graf behawioralny — re-ranking current-first.
+3. **Reasoning:** `deepseek-v4-flash` analizuje dane i historię. Tryb `!!` → `deepseek-reasoner`.
+4. **Memory Loop:** ~~Po rozmowie model zapisuje wnioski do bazy wiedzy.~~ **WYŁĄCZONY** (Sprint 0.7) — Oracle tylko czyta. Zapis wyłącznie przez `vanguard_stream → vanguard-auto-classify`.
 
 ## 6. Zasady Tożsamości Oracle
 - Nie jest asystentem produktywności ani coachem motywacyjnym.
@@ -58,8 +57,9 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 - **Zasada Mirroringu:** Nigdy nie odzwierciedla emocji ("też tak mam"), zawsze drąży ich źródło.
 
 ## 7. Status & Rozwój (Maj 2026)
-- System w pełni operacyjny (25 tabel, 12 Edge Functions).
-- **Następne etapy:** Daily snapshot (raporty poranne), mapa relacji osób trzecich, integracja z Notion/Readwise.
+- System w pełni operacyjny (27 Edge Functions, pełna pętla dzienna).
+- **Live:** Morning brief, midday check, reconciliation wieczorna, planning session, friction detection, HippoRAG Oracle.
+- **Następne etapy:** Drift Detection / Reality Weighting (Sprint 1+), confirmed_friction_events VIEW, closure proposals approval flow.
 
 ---
 

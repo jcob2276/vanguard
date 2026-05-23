@@ -23,6 +23,7 @@ Functions that require `verify_jwt: false`:
 - `vanguard-oracle` (invoked server-to-server from telegram)
 - `vanguard-auto-classify` (DB trigger / cron)
 - `vanguard-architect`, `ingest-vault-log`, `vanguard-friction-qa`, `vanguard-reset-prompt`
+- `vanguard-analyst`, `save-daily-aggregate`
 
 After every deploy: check Supabase edge function logs for **401 Unauthorized**.
 
