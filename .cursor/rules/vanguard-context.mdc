@@ -29,7 +29,7 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 
 - **Frontend:** React + Vite + Tailwind, SPA deployowany na Vercel
 - **Backend:** Supabase (Postgres + Edge Functions w Deno/TypeScript)
-- **AI:** DeepSeek — Oracle/architect: `deepseek-v4-flash`; reasoner dla `!!`; Dojo eval + inline telegram calls: `deepseek-chat`; OpenAI Whisper + embeddings
+- **AI:** DeepSeek — Oracle/architect/telegram inline: `deepseek-v4-flash`; reasoner dla `!!`: `deepseek-reasoner`; Dojo eval: `deepseek-chat`; OpenAI Whisper + embeddings
 - **Notifications:** Telegram Bot API
 - **Biometrics:** Oura Ring API (HRV, sen, readiness), Yazio (dieta)
 - **Crons:** pg_cron w Supabase
@@ -53,7 +53,7 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 
 ## Edge Functions
 
-Pełna mapa 28 funkcji (JWT, triggery, tabele): **`supabase/functions/README.md`**
+Pełna mapa 27 funkcji (JWT, triggery, tabele): **`supabase/functions/README.md`**
 
 Reguły deployu i constraintów DB: **`.cursor/rules/vanguard-ops.mdc`** i **`AGENTS.md`**
 

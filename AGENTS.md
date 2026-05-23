@@ -6,7 +6,7 @@ Entry point for AI agents working in this repository.
 
 Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on Supabase project `pdvqkgfsqziqlhptatgf`.
 
-Local ↔ Supabase sync: 28 functions local = 28 deployed. Last verified: 2026-05-23.
+Local ↔ Supabase sync: 27 functions local = 27 deployed. Last verified: 2026-05-23.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -24,7 +24,8 @@ Deploy:
   vanguard-daily-reconciliation, vanguard-intentions-cleanup,
   weekly-report, vanguard-telegram, dojo-telegram, dojo-scheduler,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
-  ingest-vault-log, vanguard-friction-qa, vanguard-reset-prompt
+  ingest-vault-log, vanguard-friction-qa, vanguard-reset-prompt,
+  vanguard-analyst, save-daily-aggregate
 - After deploy: check edge function logs for 401 errors
 
 Isolation:
