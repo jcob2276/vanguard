@@ -470,7 +470,7 @@ serve(async (req) => {
           // Check for active planning session first (planning_status = 'active' within 4h)
           const { data: activePlanning } = await supabase
             .from('daily_reconciliations')
-            .select('id, planning_history, answered_at, created_at')
+            .select('id, planning_history, answered_at, created_at, date')
             .eq('user_id', VANGUARD_USER_ID)
             .eq('planning_status', 'active')
             .order('created_at', { ascending: false })
@@ -498,12 +498,14 @@ serve(async (req) => {
                 // Generate structured plan summary in background
                 const closureHistory = history.slice();
                 const closureId = activePlanning.id;
-                // Compute target date server-side (tomorrow in Warsaw tz) — injected into both
-                // the DeepSeek prompt and the saved jsonb so poranne query is always correct.
+                // Compute target date from reconciliation's Warsaw date + 1 day.
+                // Using activePlanning.date (not new Date()) avoids off-by-one when closure
+                // happens after Warsaw midnight (22:00+ UTC) — BUG-01 fix.
                 const tomorrowWarsawDate = (() => {
-                  const d = new Date();
-                  d.setDate(d.getDate() + 1);
-                  return d.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+                  const reconDate = (activePlanning as any).date as string; // e.g. "2026-05-22"
+                  const d = new Date(reconDate + 'T12:00:00Z'); // noon UTC — safe from DST edge
+                  d.setUTCDate(d.getUTCDate() + 1);
+                  return d.toISOString().split('T')[0]; // "2026-05-23"
                 })();
                 // @ts-ignore
                 EdgeRuntime.waitUntil((async () => {

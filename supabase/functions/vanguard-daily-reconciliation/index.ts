@@ -39,15 +39,24 @@ Deno.serve(async (_req) => {
   try {
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
+    // Guard: skip only if an evening reconciliation was already sent today.
+    // Uses 17:00 Warsaw as cutoff — morning rows (planning sessions) must not block
+    // the evening cron. BUG-02 fix.
+    const eveningCutoff = (() => {
+      const { start: dayStart } = getWarsawDayBoundaries(todayStr);
+      return new Date(new Date(dayStart).getTime() + 17 * 3600000).toISOString();
+    })();
+
     const { data: existing } = await supabase
       .from('daily_reconciliations')
       .select('id')
       .eq('user_id', VANGUARD_USER_ID)
       .eq('date', todayStr)
+      .gte('created_at', eveningCutoff)
       .maybeSingle();
 
     if (existing) {
-      console.log('[reconciliation] already sent today — skipping');
+      console.log('[reconciliation] already sent this evening — skipping');
       return new Response(JSON.stringify({ skipped: true }), { status: 200 });
     }
 
