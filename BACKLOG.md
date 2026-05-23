@@ -9,27 +9,23 @@ Nie implementować wcześniej.
 
 ## Known bugs (fix anytime — nie czekać na Sprint 1)
 
-### [BUG-01] `tomorrowWarsawDate` — UTC offset w `vanguard-telegram`
+### ~~[BUG-01] `tomorrowWarsawDate` — UTC offset w `vanguard-telegram`~~ ✅ NAPRAWIONE (commit f1bb2b6, 2026-05-23)
 
-**Lokalizacja:** `supabase/functions/vanguard-telegram/index.ts` ~503–507
+**Lokalizacja:** `supabase/functions/vanguard-telegram/index.ts`
 
-**Problem:** `d.setDate(d.getDate() + 1)` działa w UTC (runtime Supabase), dopiero potem formatuje przez `Europe/Warsaw`. W okolicach północy plan może dostać złą `target_date` w `planning_summary`.
+**Problem:** `d.setDate(d.getDate() + 1)` działał w UTC — po 22:00 UTC (midnight Warsaw) dawał datę +2 zamiast +1.
 
-**Wzorzec poprawny:** jak w `vanguard-morning-brief` — liczyć „dziś” w Warsaw, potem dodać 1 dzień kalendarzowy w tej strefie (bez `setDate` na obiekcie UTC).
-
-**Objaw:** poranny brief nie znajduje planu / plan przypisany do złej daty.
+**Fix:** `tomorrowWarsawDate` teraz obliczana z `activePlanning.date + 1 dzień` (semantycznie poprawne, niezależne od godziny wywołania). Wymaga dodania `date` do selecta activePlanning.
 
 ---
 
-### [BUG-02] `vanguard-daily-reconciliation` guard — fałszywy skip wieczorem
+### ~~[BUG-02] `vanguard-daily-reconciliation` guard — fałszywy skip wieczorem~~ ✅ NAPRAWIONE (commit f1bb2b6, 2026-05-23)
 
-**Lokalizacja:** `supabase/functions/vanguard-daily-reconciliation/index.ts` ~42–51
+**Lokalizacja:** `supabase/functions/vanguard-daily-reconciliation/index.ts`
 
-**Problem:** Guard sprawdza tylko `date = today` — jeśli jakikolwiek wpis na dziś już istnieje (np. ślad po porannym/midday flow na tej samej dacie), cron pomija wysyłkę wieczornej reconciliation.
+**Problem:** Guard sprawdzał tylko `date = today` — poranki/midday z tą samą datą blokowały wieczorną reconciliation.
 
-**Fix kierunkowy:** skip tylko gdy wieczorna reconciliation już poszła (`status = 'sent'` + `telegram_message_id`), nie przy samym istnieniu wiersza z dzisiejszą datą.
-
-**Objaw:** brak wieczornego „Daily reconciliation” mimo że dzień nie był domknięty.
+**Fix:** Dodano `eveningCutoff = 17:00 Warsaw` (obliczone przez `getWarsawDayBoundaries()`). Guard pomija TYLKO gdy wieczorny wiersz już istnieje (`created_at >= 17:00 Warsaw`).
 
 ---
 
