@@ -22,7 +22,9 @@ Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
 - Affected: vanguard-morning-brief, vanguard-midday-check,
   vanguard-daily-reconciliation, vanguard-intentions-cleanup,
-  weekly-report, vanguard-telegram, dojo-telegram, dojo-scheduler
+  weekly-report, vanguard-telegram, dojo-telegram, dojo-scheduler,
+  vanguard-oracle, vanguard-auto-classify, vanguard-architect,
+  ingest-vault-log, vanguard-friction-qa, vanguard-reset-prompt
 - After deploy: check edge function logs for 401 errors
 
 Isolation:
@@ -58,7 +60,7 @@ Edge function gotchas:
 - Oracle (default): `deepseek-v4-flash`
 - Oracle deep mode (`!!`): `deepseek-reasoner`
 - Dojo eval: `deepseek-chat`
-- Telegram adversary/planning inline calls: `deepseek-chat` (in `vanguard-telegram`)
+- Telegram adversary/planning/emotion inline calls: `deepseek-v4-flash` (in `vanguard-telegram`)
 - Transcription: OpenAI Whisper (`whisper-1`)
 - Embeddings: OpenAI `text-embedding-3-small`
 
