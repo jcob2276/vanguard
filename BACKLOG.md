@@ -7,6 +7,32 @@ Nie implementować wcześniej.
 
 ---
 
+## Known bugs (fix anytime — nie czekać na Sprint 1)
+
+### [BUG-01] `tomorrowWarsawDate` — UTC offset w `vanguard-telegram`
+
+**Lokalizacja:** `supabase/functions/vanguard-telegram/index.ts` ~503–507
+
+**Problem:** `d.setDate(d.getDate() + 1)` działa w UTC (runtime Supabase), dopiero potem formatuje przez `Europe/Warsaw`. W okolicach północy plan może dostać złą `target_date` w `planning_summary`.
+
+**Wzorzec poprawny:** jak w `vanguard-morning-brief` — liczyć „dziś” w Warsaw, potem dodać 1 dzień kalendarzowy w tej strefie (bez `setDate` na obiekcie UTC).
+
+**Objaw:** poranny brief nie znajduje planu / plan przypisany do złej daty.
+
+---
+
+### [BUG-02] `vanguard-daily-reconciliation` guard — fałszywy skip wieczorem
+
+**Lokalizacja:** `supabase/functions/vanguard-daily-reconciliation/index.ts` ~42–51
+
+**Problem:** Guard sprawdza tylko `date = today` — jeśli jakikolwiek wpis na dziś już istnieje (np. ślad po porannym/midday flow na tej samej dacie), cron pomija wysyłkę wieczornej reconciliation.
+
+**Fix kierunkowy:** skip tylko gdy wieczorna reconciliation już poszła (`status = 'sent'` + `telegram_message_id`), nie przy samym istnieniu wiersza z dzisiejszą datą.
+
+**Objaw:** brak wieczornego „Daily reconciliation” mimo że dzień nie był domknięty.
+
+---
+
 ## [BACKLOG-01] Rozróżnienie typów obserwacji
 
 **Kontekst:** W QA z 2026-05-17 pojawiły się dwa false positives w friction_events:

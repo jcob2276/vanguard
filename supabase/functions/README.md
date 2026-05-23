@@ -62,9 +62,12 @@ supabase/functions/_shared/
 
 Import: `import { sendMessage } from '../_shared/telegram.ts'`
 
-**Adopted in:** `dojo-telegram`, `vanguard-morning-brief`, `vanguard-midday-check`
+```
+_shared/ adopted: vanguard-morning-brief, vanguard-midday-check, dojo-telegram
+Pending migration: vanguard-telegram, vanguard-auto-classify
+```
 
-**Planned:** `vanguard-telegram`, `vanguard-auto-classify`
+> Functions live in a flat folder layout (no subfolders by domain). If that changes, update this note.
 
 ## Deploy checklist
 
