@@ -26,7 +26,6 @@ Project: `pdvqkgfsqziqlhptatgf`
 | `vanguard-graph-embedder` | Embed graph entities | Manual | **false** | `vanguard_entity_links` |
 | `ingest-vault-log` | Long-form vault/knowledge ingest | Invoked by telegram | **false** | `vanguard_knowledge` |
 | `save-daily-aggregate` | Save daily state aggregate | Cron / manual | **false** | `vanguard_daily_aggregates` |
-| `ai-advisor` | Legacy AI advisor endpoint | HTTP | **false** | — |
 
 ## Practice Dojo
 

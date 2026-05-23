@@ -6,6 +6,8 @@ Entry point for AI agents working in this repository.
 
 Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on Supabase project `pdvqkgfsqziqlhptatgf`.
 
+Local ↔ Supabase sync: 28 functions local = 28 deployed. Last verified: 2026-05-23.
+
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |

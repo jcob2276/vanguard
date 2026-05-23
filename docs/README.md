@@ -23,6 +23,8 @@ Lean operational docs + links to existing deep context.
 
 - [../supabase/functions/README.md](../supabase/functions/README.md) — all edge functions
 - [../supabase/migrations/README.md](../supabase/migrations/README.md) — migration domain index
+- [../scripts/README.md](../scripts/README.md) — local one-off scripts
+- [../src/README.md](../src/README.md) — legacy workout frontend
 
 ## Deep context (verify against current state)
 
