@@ -22,6 +22,7 @@ Supabase project: `pdvqkgfsqziqlhptatgf` · Frontend: React + Vite · Deploy: Ve
 
 ### Operations
 - [supabase/functions/README.md](./supabase/functions/README.md) — edge functions map
+- [docs/DEV_GUIDE.md](./docs/DEV_GUIDE.md) — how to develop: conventions, checklists, rules
 - [docs/runbooks/](./docs/runbooks/) — incident fixes
 
 ### Deep context

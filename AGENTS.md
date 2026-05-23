@@ -52,9 +52,10 @@ Edge function gotchas:
 2. `.cursor/rules/vanguard-ops.mdc` — deploy rules, secrets, DB constraints
 3. `.cursor/rules/dojo-isolation.mdc` — Practice Dojo boundary rules
 4. `supabase/functions/README.md` — all edge functions mapped
-5. `docs/runbooks/` — operational fixes from past incidents
-6. `docs/PRODUCT_PRINCIPLES.md` — full guardrails document
-7. `docs/legacy/` — older context (verify against current state before trusting)
+5. `docs/DEV_GUIDE.md` — **how to develop: conventions, commit rules, checklists**
+6. `docs/runbooks/` — operational fixes from past incidents
+7. `docs/PRODUCT_PRINCIPLES.md` — full guardrails document
+8. `docs/legacy/` — older context (verify against current state before trusting)
 
 ## Models (current)
 
