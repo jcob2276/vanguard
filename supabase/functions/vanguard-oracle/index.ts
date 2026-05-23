@@ -6,15 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function classifyIntent(query = '') {
-  const q = query.toLowerCase();
-  if (/wiek|urodzin|studi|kim jestem|fundament|identity|tożsamość/.test(q)) return 'identity';
-  if (/jul|tomoń|ekiert|klaud|paweł|osob|relac|dziewczyn/.test(q)) return 'person';
-  if (/ostatnio|7 dni|wzorc|powtarza|trend|history/.test(q)) return 'recent_pattern';
-  if (/sen|hrv|oura|execution|biometr|tętno|recovery|krok|kalor|jedz|jem|yazio|białk|bialk/.test(q)) return 'biometric';
-  return 'open_reflection';
-}
-
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
   return values.length

@@ -32,7 +32,7 @@ export async function deepseekChat(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: params.model ?? "deepseek-chat",
+        model: params.model ?? "deepseek-v4-flash",
         messages: params.messages,
         max_tokens: params.maxTokens ?? 500,
         temperature: params.temperature ?? 0.2,
