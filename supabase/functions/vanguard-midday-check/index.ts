@@ -63,8 +63,30 @@ serve(async () => {
     const plan = row.planning_summary as Record<string, any>;
     // Backward compat: support both old and new field names
     const firstMove = plan.first_move_morning || plan.pierwszy_ruch || '—';
+    const ta = plan.tension_action as { action?: string; minimum_version?: string; status?: string } | undefined;
 
-    const text = `Check.\n\nPierwszy ruch z rana:\n${firstMove}\n\nCzy zostal zrobiony?`;
+    // Skip tension_action row if already done
+    const taActive = ta?.action && ta?.status !== 'done';
+    const tensionLine = taActive ? `\n\n⚡ Ruch napięciowy:\n${ta!.action}` : '';
+
+    const text = `Check.\n\nPierwszy ruch z rana:\n${firstMove}\n\nCzy zostal zrobiony?${tensionLine}`;
+
+    const inlineKeyboard = taActive ? [
+      [
+        { text: '✅ Tak', callback_data: 'midday_yes' },
+        { text: '❌ Nie', callback_data: 'midday_no' },
+        { text: '🔧 Utknąłem', callback_data: 'midday_stuck' }
+      ],
+      [
+        { text: '⚡ TA: Tak', callback_data: 'midday_ta_yes' },
+        { text: '⚡ TA: Nie', callback_data: 'midday_ta_no' },
+        { text: '⚡ TA: Utknąłem', callback_data: 'midday_ta_stuck' }
+      ]
+    ] : [[
+      { text: '✅ Tak', callback_data: 'midday_yes' },
+      { text: '❌ Nie', callback_data: 'midday_no' },
+      { text: '🔧 Utknąłem', callback_data: 'midday_stuck' }
+    ]];
 
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -72,13 +94,7 @@ serve(async () => {
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
         text,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '✅ Tak', callback_data: 'midday_yes' },
-            { text: '❌ Nie', callback_data: 'midday_no' },
-            { text: '🔧 Utknąłem', callback_data: 'midday_stuck' }
-          ]]
-        },
+        reply_markup: { inline_keyboard: inlineKeyboard },
         disable_notification: false
       })
     });

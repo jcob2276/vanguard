@@ -82,6 +82,133 @@ async function transcribeAudio(fileId: string) {
   }
 }
 
+// --- REALITY ADVERSARY ---
+async function runRealityAdversary(
+  yesterdayPlan: any | null,
+  stream72h: any[]
+): Promise<{
+  biggest_inconsistency: string;
+  most_relevant_open_loop: string;
+  recommended_tension_action: {
+    action: string;
+    why_it_matters: string;
+    minimum_version: string;
+    due_time: string;
+    verification: 'self' | 'human' | 'external_result';
+  };
+} | null> {
+  try {
+    const planContext = yesterdayPlan ? `PLAN NA WCZORAJ (${yesterdayPlan.target_date}):
+- First move: ${yesterdayPlan.first_move_morning || '—'}
+- Top 3: ${(yesterdayPlan.top3 || []).join(' | ')}
+- Open loops: ${(yesterdayPlan.open_loops || []).join(' | ') || '—'}
+- Tension action: ${yesterdayPlan.tension_action?.action || '—'} [status: ${yesterdayPlan.tension_action?.status || '—'}]` : 'BRAK planu na wczoraj.';
+
+    const streamLines = stream72h
+      .filter(s => s.content && s.content.trim().length > 10)
+      .slice(0, 25)
+      .map(s => {
+        const dt = new Date(s.created_at).toLocaleString('pl', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+        return `[${dt}] ${s.content.substring(0, 180)}`;
+      })
+      .join('\n');
+
+    const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        temperature: 0.2,
+        max_tokens: 500,
+        messages: [
+          {
+            role: 'system',
+            content: `Jesteś Reality Adversary. Analizujesz TYLKO dane z ostatnich 72h.
+
+DOZWOLONE: "W ostatnich 72h powtarza się...", "Wczoraj plan był X, wykonanie było Y...", "To zadanie wraca trzeci raz...", "Najmniejszy ruch teraz to..."
+ZAKAZANE: "Masz centralny wzorzec...", "To wynika z traumy...", "Twoim problemem jest...", "Od lat robisz...", "Musisz przepracować...", "Twój problem to..."
+
+Odpowiedz TYLKO poprawnym JSON, zero markdown, zero dodatkowego tekstu.`
+          },
+          {
+            role: 'user',
+            content: `${planContext}
+
+STRUMIEŃ OSTATNICH 72H:
+${streamLines || 'Brak wpisów.'}
+
+Wygeneruj JSON:
+{
+  "biggest_inconsistency": "rozjazd między planem a wykonaniem — jedno zdanie, tylko fakty z 72h",
+  "most_relevant_open_loop": "co wraca 2-3 razy w ostatnich 72h — jedno zdanie, konkretna rzecz",
+  "recommended_tension_action": {
+    "action": "jeden konkretny ruch który jest odkładany — jedno zdanie imperatywne",
+    "why_it_matters": "dlaczego ten ruch — oparte na danych z 72h, jedno zdanie",
+    "minimum_version": "absolutne minimum — np. jedno zdanie zamiast całej odpowiedzi",
+    "due_time": "konkretny czas np. 'do 14:00 jutro'",
+    "verification": "self"
+  }
+}`
+          }
+        ]
+      })
+    });
+
+    if (!dsRes.ok) {
+      console.warn('[adversary] DeepSeek error:', dsRes.status);
+      return null;
+    }
+    const dsData = await dsRes.json().catch(() => null);
+    const raw = dsData?.choices?.[0]?.message?.content || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('[adversary] no JSON in response');
+      return null;
+    }
+    const parsed = JSON.parse(jsonMatch[0]);
+    const sanitized = sanitizeAdversaryOutput(parsed);
+    console.log('[adversary] output:', JSON.stringify(sanitized).substring(0, 200));
+    return sanitized;
+  } catch (err) {
+    console.error('[adversary] error:', err);
+    return null;
+  }
+}
+
+// --- ADVERSARY POST-FILTER ---
+const ADVERSARY_FALLBACK = 'W ostatnich 72h widać rozjazd między planem a wykonaniem. Wybierz jeden mały ruch, który zamknie najbliższą otwartą pętlę.';
+
+const FORBIDDEN_ADVERSARY = /masz centralny wzorzec|to wynika z traumy|twoim problemem jest|od lat robisz|musisz przepracować|dzieci[eń]stwo|głęboka przyczyna|osobowo[sś][cć]|diagnoza/i;
+
+function sanitizeAdversaryOutput<T extends Record<string, any>>(output: T): T {
+  const result = { ...output } as Record<string, any>;
+
+  // Top-level string fields
+  for (const field of ['biggest_inconsistency', 'most_relevant_open_loop', 'adversary_note']) {
+    if (typeof result[field] === 'string' && FORBIDDEN_ADVERSARY.test(result[field])) {
+      console.warn(`[adversary] sanitized "${field}" — forbidden phrase detected`);
+      result[field] = ADVERSARY_FALLBACK;
+    }
+  }
+
+  // Nested recommended_tension_action fields
+  if (result.recommended_tension_action && typeof result.recommended_tension_action === 'object') {
+    const ta = { ...result.recommended_tension_action } as Record<string, any>;
+    for (const field of ['action', 'why_it_matters', 'minimum_version']) {
+      if (typeof ta[field] === 'string' && FORBIDDEN_ADVERSARY.test(ta[field])) {
+        console.warn(`[adversary] sanitized "recommended_tension_action.${field}" — forbidden phrase detected`);
+        ta[field] = ADVERSARY_FALLBACK;
+      }
+    }
+    result.recommended_tension_action = ta;
+  }
+
+  return result as T;
+}
+
 serve(async (req) => {
   try {
     const payload = await req.json();
@@ -150,6 +277,61 @@ serve(async (req) => {
             });
           } catch (err) {
             console.error('[telegram] midday callback error:', err);
+          }
+        })());
+        return new Response('OK', { status: 200 });
+      }
+
+      // --- TENSION ACTION CALLBACKS (midday_ta_*) ---
+      if (data === 'midday_ta_yes' || data === 'midday_ta_no' || data === 'midday_ta_stuck') {
+        EdgeRuntime.waitUntil((async () => {
+          try {
+            const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+            const { data: planRows } = await supabase
+              .from('daily_reconciliations')
+              .select('id, planning_summary')
+              .eq('user_id', VANGUARD_USER_ID)
+              .not('planning_summary', 'is', null)
+              .order('answered_at', { ascending: false })
+              .limit(5);
+
+            const planRow = (planRows || []).find((r: any) =>
+              r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+            );
+            const plan = planRow?.planning_summary as any;
+            const ta = plan?.tension_action;
+
+            // Update tension_action status in planning_summary
+            if (planRow?.id && ta) {
+              const newStatus = data === 'midday_ta_yes' ? 'done' : 'skipped';
+              const updatedPlan = { ...plan, tension_action: { ...ta, status: newStatus } };
+              await supabase.from('daily_reconciliations')
+                .update({ planning_summary: updatedPlan })
+                .eq('id', planRow.id);
+            }
+
+            let responseText = '';
+            if (data === 'midday_ta_yes') {
+              responseText = '⚡ Ruch napięciowy zrobiony. Zapisane.';
+            } else {
+              const minVersion = ta?.minimum_version || '—';
+              responseText = `Minimum version:\n${minVersion}\n\nRobisz wersję minimalną teraz?`;
+            }
+
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callback_query_id: callbackId, text: '' })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageReplyMarkup`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: message.message_id, reply_markup: { inline_keyboard: [] } })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: responseText })
+            });
+          } catch (err) {
+            console.error('[telegram] ta callback error:', err);
           }
         })());
         return new Response('OK', { status: 200 });
@@ -345,7 +527,7 @@ serve(async (req) => {
                           ...closureHistory,
                           {
                             role: 'user',
-                            content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","top3":["zadanie1","zadanie2","zadanie3"],"first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia"}`
+                            content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","top3":["zadanie1","zadanie2","zadanie3"],"first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia","adversary_note":"co adversary wykrył z 72h — jedno zdanie, tylko fakty, zero psychologizowania","tension_action":{"action":"jeden konkretny ruch napięciowy ustalony w sesji — jedno zdanie imperatywne","why_it_matters":"dlaczego ten ruch — oparte na danych, jedno zdanie","minimum_version":"absolutne minimum tego ruchu — jedno zdanie","due_time":"konkretny czas np. do 14:00","verification":"self","status":"planned"}}`
                           }
                         ]
                       })
@@ -363,23 +545,45 @@ serve(async (req) => {
                         } catch (_) {}
 
                         if (planJson?.top3) {
-                          // Server-side stamp: target_date always correct regardless of model output
-                          const summaryToSave = { ...planJson, target_date: tomorrowWarsawDate, date: tomorrowWarsawDate };
-                          await supabase
-                            .from('daily_reconciliations')
-                            .update({ planning_summary: summaryToSave })
-                            .eq('id', closureId);
+                          // GUARDRAIL: tension_action.action is required — revert if missing
+                          if (!planJson?.tension_action?.action) {
+                            console.warn('[telegram] tension_action missing — reverting planning to active');
+                            const revertHistory = [
+                              ...closureHistory,
+                              { role: 'user', content: 'koniec' },
+                              { role: 'assistant', content: 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?' }
+                            ];
+                            await supabase
+                              .from('daily_reconciliations')
+                              .update({ planning_status: 'active', planning_history: revertHistory })
+                              .eq('id', closureId);
+                            telegramText = 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?';
+                          } else {
+                            // Server-side stamp: target_date always correct regardless of model output
+                            const summaryToSave = { ...planJson, target_date: tomorrowWarsawDate, date: tomorrowWarsawDate };
+                            await supabase
+                              .from('daily_reconciliations')
+                              .update({ planning_summary: summaryToSave })
+                              .eq('id', closureId);
 
-                          // Format output using new schema fields
-                          const top3 = (planJson.top3 as string[]).map((t, i) => `${i + 1}. ${t}`).join('\n');
-                          const urgentSection = (planJson.urgent_items as string[] || []).filter(Boolean).length > 0
-                            ? `\n\nPilne:\n${(planJson.urgent_items as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
-                          const notDoingSection = (planJson.not_doing as string[] || []).filter(Boolean).length > 0
-                            ? `\n\nNie robimy:\n${(planJson.not_doing as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
-                          const openLoopsSection = (planJson.open_loops as string[] || []).filter(Boolean).length > 0
-                            ? `\n\nOtwarte petle:\n${(planJson.open_loops as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                            // Format output using new schema fields
+                            const top3 = (planJson.top3 as string[]).map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
+                            const urgentSection = (planJson.urgent_items as string[] || []).filter(Boolean).length > 0
+                              ? `\n\nPilne:\n${(planJson.urgent_items as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                            const notDoingSection = (planJson.not_doing as string[] || []).filter(Boolean).length > 0
+                              ? `\n\nNie robimy:\n${(planJson.not_doing as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                            const openLoopsSection = (planJson.open_loops as string[] || []).filter(Boolean).length > 0
+                              ? `\n\nOtwarte petle:\n${(planJson.open_loops as string[]).map((u: string) => `• ${u}`).join('\n')}` : '';
+                            const ta = planJson.tension_action as any;
+                            const tensionSection = ta?.action
+                              ? `\n\n⚡ Ruch napięciowy:\n${ta.action}\nMinimum: ${ta.minimum_version || '—'}\nDo: ${ta.due_time || '—'}`
+                              : '';
+                            const adversaryNoteSection = planJson.adversary_note
+                              ? `\n\n🔍 ${planJson.adversary_note}`
+                              : '';
 
-                          telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}`;
+                            telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${tensionSection}${adversaryNoteSection}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}`;
+                          }
                         } else {
                           // JSON parse failed → save raw fallback, send as-is (still readable)
                           console.warn('[telegram] plan JSON parse failed, saving raw');
@@ -550,8 +754,15 @@ serve(async (req) => {
                 const reconId = pendingReconciliation!.id;
                 const today = new Date().toISOString().split('T')[0];
 
-                // Fetch context in parallel: state, todos, Todoist token
-                const [aggregateRes, winRes, userSettingsRes] = await Promise.all([
+                // Fetch context in parallel: state, todos, Todoist token, 72h stream, yesterday plan
+                const yesterdayWarsawDate = (() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 1);
+                  return d.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+                })();
+                const cutoff72h = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+
+                const [aggregateRes, winRes, userSettingsRes, stream72hRes, planHistoryRes, ouraLatestRes] = await Promise.all([
                   supabase.from('vanguard_daily_aggregates')
                     .select('final_state, sleep_hours, hrv_avg, execution_score')
                     .eq('user_id', VANGUARD_USER_ID)
@@ -566,8 +777,38 @@ serve(async (req) => {
                   supabase.from('user_settings')
                     .select('todoist_token')
                     .eq('user_id', VANGUARD_USER_ID)
+                    .maybeSingle(),
+                  supabase.from('vanguard_stream')
+                    .select('content, created_at, category, tags')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .gt('created_at', cutoff72h)
+                    .not('content', 'eq', '')
+                    .order('created_at', { ascending: false })
+                    .limit(30),
+                  supabase.from('daily_reconciliations')
+                    .select('planning_summary')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .not('planning_summary', 'is', null)
+                    .order('answered_at', { ascending: false })
+                    .limit(5),
+                  supabase.from('oura_daily_summary')
+                    .select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes')
+                    .eq('user_id', VANGUARD_USER_ID)
+                    .order('date', { ascending: false })
+                    .limit(1)
                     .maybeSingle()
                 ]);
+
+                const yesterdayPlan = (planHistoryRes.data || []).find((r: any) =>
+                  r.planning_summary?.target_date === yesterdayWarsawDate && !r.planning_summary?.parse_error
+                )?.planning_summary || null;
+
+                // Run Reality Adversary
+                const adversaryOutput = await runRealityAdversary(
+                  yesterdayPlan,
+                  stream72hRes.data || []
+                );
+                console.log('[telegram] adversary ran, output:', adversaryOutput ? 'ok' : 'null');
 
                 // Fetch Todoist tasks if token available
                 let todoistTasks = '';
@@ -591,10 +832,32 @@ serve(async (req) => {
                   }
                 }
 
-                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nRozpocznij sesję planowania na jutro. Odwołaj się do reconciliation, przejrzyj listę zadań i zadaj konkretne pytania.`;
+                const adversarySection = adversaryOutput ? `\nREALITY ADVERSARY (dane z 72h — bez interpretacji, tylko fakty):
+Rozjazd plan/wykonanie: ${adversaryOutput.biggest_inconsistency}
+Powtarzający się open loop: ${adversaryOutput.most_relevant_open_loop}
+Proponowany ruch napięciowy: ${adversaryOutput.recommended_tension_action.action}
+Minimum version: ${adversaryOutput.recommended_tension_action.minimum_version}\n` : '';
+
+                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${adversarySection}${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nRozpocznij sesję planowania na jutro. Odwołaj się do reconciliation i danych adversary'ego. Na końcu sesji zapytaj: "Jeden ruch napięciowy na jutro — co odkładasz, bo jest niewygodne?" i zasugeruj opcję z adversary'ego jeśli pasuje.`;
 
                 const planningStateVector = {
-                  biometrics: aggregateRes.data || {},
+                  biometrics: {
+                    ...(aggregateRes.data || {}),
+                    ...(ouraLatestRes.data ? {
+                      oura_last_night: {
+                        date: ouraLatestRes.data.date,
+                        bedtime: ouraLatestRes.data.bedtime_timestamp,
+                        sleep_hours: ouraLatestRes.data.total_sleep_hours,
+                        readiness: ouraLatestRes.data.readiness_score,
+                        hrv: ouraLatestRes.data.hrv_avg,
+                        rhr: ouraLatestRes.data.rhr_avg,
+                        deep_sleep_hours: ouraLatestRes.data.deep_sleep_hours,
+                        rem_sleep_hours: ouraLatestRes.data.rem_sleep_hours,
+                        sleep_efficiency: ouraLatestRes.data.sleep_efficiency,
+                        latency_minutes: ouraLatestRes.data.latency_minutes,
+                      }
+                    } : {})
+                  },
                   discipline: { today_wins: winRes.data || 'Nie ustawiono celów' }
                 };
 
@@ -761,7 +1024,7 @@ serve(async (req) => {
           // --- EXTENDED STATE VECTOR (Biometry + Nutrition + Workouts + Wins + Today Plan) ---
           const today = new Date().toISOString().split('T')[0];
           const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
-          const [aggregateRes, workoutRes, winRes, planRows] = await Promise.all([
+          const [aggregateRes, workoutRes, winRes, planRows, ouraRes] = await Promise.all([
             supabase.from('vanguard_daily_aggregates')
               .select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index')
               .eq('user_id', VANGUARD_USER_ID)
@@ -784,7 +1047,12 @@ serve(async (req) => {
               .eq('user_id', VANGUARD_USER_ID)
               .not('planning_summary', 'is', null)
               .order('answered_at', { ascending: false })
-              .limit(5)
+              .limit(5),
+            supabase.from('oura_daily_summary')
+              .select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes')
+              .eq('user_id', VANGUARD_USER_ID)
+              .order('date', { ascending: false })
+              .limit(3)
           ]);
 
           const todayPlan = (planRows.data || []).find((r: any) =>
@@ -793,7 +1061,23 @@ serve(async (req) => {
           )?.planning_summary || null;
 
           const stateVector = {
-            biometrics: aggregateRes.data || {},
+            biometrics: {
+              ...(aggregateRes.data || {}),
+              ...(ouraRes.data?.[0] ? {
+                oura_last_night: {
+                  date: ouraRes.data[0].date,
+                  bedtime: ouraRes.data[0].bedtime_timestamp,
+                  sleep_hours: ouraRes.data[0].total_sleep_hours,
+                  readiness: ouraRes.data[0].readiness_score,
+                  hrv: ouraRes.data[0].hrv_avg,
+                  rhr: ouraRes.data[0].rhr_avg,
+                  deep_sleep_hours: ouraRes.data[0].deep_sleep_hours,
+                  rem_sleep_hours: ouraRes.data[0].rem_sleep_hours,
+                  sleep_efficiency: ouraRes.data[0].sleep_efficiency,
+                  latency_minutes: ouraRes.data[0].latency_minutes,
+                }
+              } : {})
+            },
             nutrition: { calories_today: 0 },
             physical: { last_workout: workoutRes.data || 'Brak danych' },
             discipline: { today_wins: winRes.data || 'Nie ustawiono celów' },

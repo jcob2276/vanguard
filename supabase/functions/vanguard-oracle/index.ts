@@ -96,7 +96,7 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .eq('is_active', true),
       supabase.from('oura_daily_summary')
-        .select('date, steps, active_calories, total_calories')
+        .select('date, steps, active_calories, total_calories, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes')
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
@@ -131,14 +131,18 @@ ${fundamentRes.data?.vision || 'Brak danych'}
       avg_total_calories_burned: avg(oura14d, 'total_calories'),
       avg_food_calories: avg(nutrition14d, 'calories'),
       avg_protein: avg(nutrition14d, 'protein'),
+      avg_sleep_hours: avg(oura14d, 'total_sleep_hours'),
+      avg_hrv: avg(oura14d, 'hrv_avg'),
+      avg_readiness: avg(oura14d, 'readiness_score'),
       oura_daily: oura14d,
       nutrition_daily: nutrition14d
     };
     const healthSummaryText = `[ZDROWIE/JEDZENIE - OSTATNIE 14 DNI, DANE DETERMINISTYCZNE]:
 Zakres: ${healthSummary14d.date_from} - ${healthSummary14d.date_to}
 Dni Oura: ${healthSummary14d.oura_days_logged}; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
+Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'brak danych'}h; srednie HRV: ${healthSummary14d.avg_hrv ?? 'brak danych'}; sredni readiness: ${healthSummary14d.avg_readiness ?? 'brak danych'}
 Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}
-Oura dzien po dniu: ${JSON.stringify(healthSummary14d.oura_daily)}
+Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
 Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
 
     const knownPersonsLine = knownPersons ? `ZNASZ NASTĘPUJĄCE OSOBY:\n${knownPersons}` : '';

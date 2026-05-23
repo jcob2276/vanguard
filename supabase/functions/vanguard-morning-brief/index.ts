@@ -66,8 +66,16 @@ serve(async () => {
       ? `\n\nPilne:\n${urgentItems.map(u => `• ${u}`).join('\n')}`
       : (todayPlan.pilne && todayPlan.pilne !== 'null' ? `\n\nPilne:\n${todayPlan.pilne}` : '');
 
+    const ta = todayPlan.tension_action as { action?: string; minimum_version?: string; due_time?: string } | undefined;
+    const tensionSection = ta?.action
+      ? `\n\n⚡ Ruch napięciowy:\n${ta.action}\nMinimum: ${ta.minimum_version || '—'}\nDo: ${ta.due_time || '—'}`
+      : '';
+    const adversaryNoteSection = todayPlan.adversary_note
+      ? `\n\n🔍 ${todayPlan.adversary_note}`
+      : '';
+
     const text =
-      `Dzien dobry.\n\nFirst move:\n${firstMove}\n\nTop 3:\n${top3}${mvd ? `\n\nMinimum viable day:\n${mvd}` : ''}\n\nRyzyko:\n${biggestRisk}\n\nKontrplan:\n${counter}${urgentSection}`;
+      `Dzien dobry.\n\nFirst move:\n${firstMove}\n\nTop 3:\n${top3}${mvd ? `\n\nMinimum viable day:\n${mvd}` : ''}${tensionSection}${adversaryNoteSection}\n\nRyzyko:\n${biggestRisk}\n\nKontrplan:\n${counter}${urgentSection}`;
 
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: 'POST',
