@@ -53,8 +53,10 @@ Edge function gotchas:
 
 ## Models (current)
 
-- Default chat/eval: `deepseek-chat` (DeepSeek)
-- Deep reasoning: DeepSeek reasoner (`!!` prefix in Vanguard Telegram)
+- Oracle (default): `deepseek-v4-flash`
+- Oracle deep mode (`!!`): `deepseek-reasoner`
+- Dojo eval: `deepseek-chat`
+- Telegram adversary/planning inline calls: `deepseek-chat` (in `vanguard-telegram`)
 - Transcription: OpenAI Whisper (`whisper-1`)
 - Embeddings: OpenAI `text-embedding-3-small`
 

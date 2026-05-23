@@ -29,7 +29,7 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 
 - **Frontend:** React + Vite + Tailwind, SPA deployowany na Vercel
 - **Backend:** Supabase (Postgres + Edge Functions w Deno/TypeScript)
-- **AI:** DeepSeek (`deepseek-chat`, reasoner dla `!!`), OpenAI Whisper + embeddings
+- **AI:** DeepSeek — Oracle/architect: `deepseek-v4-flash`; reasoner dla `!!`; Dojo eval + inline telegram calls: `deepseek-chat`; OpenAI Whisper + embeddings
 - **Notifications:** Telegram Bot API
 - **Biometrics:** Oura Ring API (HRV, sen, readiness), Yazio (dieta)
 - **Crons:** pg_cron w Supabase
