@@ -1,0 +1,61 @@
+---
+description: Deploy rules, secrets, DB constraints, and operational gotchas for Vanguard/Dojo edge functions
+globs: supabase/functions/**
+alwaysApply: false
+---
+
+# Vanguard Operations
+
+## DEPLOY RULE (CRITICAL)
+
+Cron-triggered and webhook edge functions **MUST** deploy with JWT verification disabled (`verify_jwt: false` / `--no-verify-jwt`).
+
+Functions that require `verify_jwt: false`:
+
+- `vanguard-morning-brief`
+- `vanguard-midday-check`
+- `vanguard-daily-reconciliation`
+- `vanguard-intentions-cleanup`
+- `weekly-report`
+- `vanguard-telegram`
+- `dojo-telegram`
+- `dojo-scheduler`
+- `vanguard-oracle` (invoked server-to-server from telegram)
+- `vanguard-auto-classify` (DB trigger / cron)
+- `vanguard-architect`, `ingest-vault-log`, `vanguard-friction-qa`, `vanguard-reset-prompt`
+
+After every deploy: check Supabase edge function logs for **401 Unauthorized**.
+
+Never store deploy version numbers in rules — they go stale weekly. Use Supabase dashboard for current versions.
+
+## Secrets map
+
+| Secret | Used by |
+|---|---|
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Vanguard bot |
+| `DOJO_TELEGRAM_BOT_TOKEN`, `DOJO_TELEGRAM_CHAT_ID` | Dojo bot |
+| `OPENAI_API_KEY` | Whisper, embeddings |
+| `DEEPSEEK_API_KEY` | Oracle, analyst, Dojo eval, adversary |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | All functions |
+| `VANGUARD_USER_ID` | All user-scoped operations |
+
+## DB constraints (learned the hard way)
+
+Always test INSERT before assuming schema matches code.
+
+```
+planning_status:     pending | active | completed   (NOT 'done')
+dojo_reps.status:    pass | partial | repeat_day | pending | diagnostic | self_check
+dojo_reps.rep_type:  rep_a | rep_b | correction_rep_a | real_life_transfer
+```
+
+## Edge function gotchas
+
+- `EdgeRuntime.waitUntil` does **NOT** keep background tasks alive after HTTP response on Supabase
+- Telegram webhook timeout: **30 seconds** — long voice processing must be **synchronous**
+- `vanguard-telegram` is a monolith (~60KB) — change one flow at a time
+- Dojo voice flow: transcribe → save rep → update phase → send feedback (all before returning 200)
+
+## Runbooks
+
+See `docs/runbooks/` for incident-specific fixes.

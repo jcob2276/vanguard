@@ -1,0 +1,199 @@
+---
+description: Vanguard OS — full project context for Cursor. Read this before any opinion, review, or suggestion.
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Vanguard OS — Project Context
+
+## Co to jest
+
+Vanguard OS to **behavioral instrumentation system** zbudowany przez jednego użytkownika (Jakub, 23 lata, Polska) dla siebie.
+
+**Nie jest:**
+- AI psychologiem
+- life coachiem
+- gamification platformą
+- "digital twin" w sensie pełnego modelu osobowości
+
+**Jest:**
+- systemem logowania mikrotarć behawioralnych (friction events)
+- warstwą pomiarową zachowania (nie interpretacyjną)
+- behavioral field notes with continuity and correction
+
+Najprostsza definicja: **pamiętnik z backendem analitycznym.**
+
+---
+
+## Stack
+
+- **Frontend:** React + Vite + Tailwind, SPA deployowany na Vercel
+- **Backend:** Supabase (Postgres + Edge Functions w Deno/TypeScript)
+- **AI:** DeepSeek (`deepseek-chat`, reasoner dla `!!`), OpenAI Whisper + embeddings
+- **Notifications:** Telegram Bot API
+- **Biometrics:** Oura Ring API (HRV, sen, readiness), Yazio (dieta)
+- **Crons:** pg_cron w Supabase
+
+---
+
+## Kluczowe tabele
+
+| tabela | rola |
+|---|---|
+| `vanguard_stream` | surowy strumień wpisów użytkownika (source of truth) |
+| `friction_events` | wyekstrahowane zdarzenia tarcia (z auto-classify) |
+| `confirmed_friction_events` | VIEW — tylko `review_status IN ('good', 'user_confirmed', 'user_corrected')` |
+| `daily_reconciliations` | wieczorne sesje reconciliation (21:30 Warsaw) |
+| `vanguard_daily_aggregates` | agregaty biometryczne per dzień |
+| `user_fundament` | tożsamość/filozofia/wizja użytkownika (SSOT) |
+| `vanguard_entity_links` | graf behawioralny (temporal_status: current/declared/historical) |
+| `vanguard_curiosity_queue` | hipotezy systemu czekające na potwierdzenie |
+
+---
+
+## Edge Functions
+
+Pełna mapa 28 funkcji (JWT, triggery, tabele): **`supabase/functions/README.md`**
+
+Reguły deployu i constraintów DB: **`.cursor/rules/vanguard-ops.mdc`** i **`AGENTS.md`**
+
+Nie trzymaj numerów wersji w rules — szybko się dezaktualizują.
+
+---
+
+## Practice Dojo (osobny subsystem)
+
+30-dniowy trening głosu via Telegram. **Nie jest częścią Vanguard Core.**
+
+- Funkcje: `dojo-telegram`, `dojo-scheduler`
+- Tabele: `dojo_runs`, `dojo_reps`, `dojo_curricula`
+- Curriculum: `setter.yaml` → DB (deterministyczne, nie LLM-driven pacing)
+- Osobny bot i secrety: `DOJO_TELEGRAM_*`
+
+Przy pracy nad Vanguard: **nie ruszaj** `dojo-*`. Szczegóły: **`.cursor/rules/dojo-isolation.mdc`**
+
+---
+
+## Pełne guardrails — przeczytaj przed jakąkolwiek opinią
+
+Pełny dokument: `docs/PRODUCT_PRINCIPLES.md`
+
+**Najważniejsze zasady:**
+
+### 1. Evidence layer ≠ Reasoning layer
+- `vanguard_stream`, `friction_events`, `daily_reconciliations` = dane z zachowania
+- Oracle/DeepSeek = interpretacja NA PODSTAWIE danych, NIE ich mutator
+- LLM nie może zapisywać wnioskowanych faktów do bazy bez human confirmation
+
+### 2. Confirmed gate
+Wzorzec wchodzi do analizy tylko przez `confirmed_friction_events` VIEW.
+Raw `inferred` friction events nie są wzorcami — są kandydatami.
+
+### 3. Język wzorców
+- ZAKAZ: "wzorzec potwierdzony", "zawsze", "typowe dla niego"
+- OK: "powtarzająca się obserwacja (N wystąpień)", "robocza hipoteza"
+- Pewność = liczba powtórzeń. Podaj ją jawnie.
+
+### 4. No temporal collapse
+Dane historyczne nie są aktualną prawdą. Stream 24h ma absolutny priorytet.
+
+### 5. Transurfing layer guardrail
+System może sugerować praktykę (intencja, slajd procesu, obniżenie ważności).
+Nigdy nie może twierdzić metafizycznej pewności.
+**Core rule: System measures behavior. User gives meaning.**
+
+---
+
+## Historia systemu — ważny kontekst
+
+System przeszedł radykalną ewolucję w ciągu ~7 dni:
+
+**Stary Vanguard (Oracle era, ~8 dni temu):**
+- "Jesteś jednością z Jakubem — jego zewnętrzną samoświadomością"
+- "MY", "NASZ" — perspektywa jedności
+- "Shadow Engine" z "brutalną prowokacją zmusić do emocjonalnej odpowiedzi"
+- "VOID MAP" — obliczanie pustki w życiu użytkownika
+- "wzorzec potwierdzony" z confidence_score 0.0–1.0 na podstawie kilku danych punktów
+- Terapeuta + trener + analityk w jednym
+
+**Obecny Vanguard:**
+- "Jesteś systemem logowania mikrotarć"
+- ZAKAZ psychoanalizy i interpretacji motywów
+- ZAKAZ dyrektyw i porad
+- Probabilistyczny język, N wystąpień jawnie
+- Behavioral field notes with continuity and correction
+
+To nie jest przypadkowa zmiana — to świadoma korekta architektury epistemologicznej.
+
+---
+
+## Znane failure modes do pilnowania
+
+| failure mode | opis | obrona |
+|---|---|---|
+| **semantic inflation** | nadanie znaczenia jednostkowym zdarzeniom, pattern z 2 przykładów | evidence threshold, confirmed gate |
+| **creeping interpretation** | stopniowy powrót psychologicznych narracji przez małe zmiany tonu | weekly output audit |
+| **temporal collapse** | historyczne dane traktowane jako aktualną prawdę | current-first zasada w każdym prompcie |
+| **telemetry corruption** | użytkownik uczy się pisać "pod AI" — stream staje się estetyczny, mniej prawdziwy | frictionless honesty > perfect structure |
+| **epistemic paralysis** | za dużo hedgowania → outputs bezużyteczne | dwa failure modes do pilnowania równocześnie |
+
+---
+
+## Co jest zablokowane intencjonalnie
+
+Nie pytaj "dlaczego tego nie ma" bez przeczytania tego:
+
+- Oracle nie zapisuje do `vanguard_knowledge` ani `entity_links` — wyłączone celowo (Oracle era bug)
+- Brak `interventional_outcomes` table — system nie twierdzi że X spowodowało Y
+- Brak `manifestation_tracker`, `pendulum_detector`, `outer_intention_score` — scope guard
+- `clean_old_vanguard_logs()` zneutralizowane — nie może usuwać `vanguard_stream`
+- `vanguard-architect` nie ekstrahuje friction events — tylko `vanguard-auto-classify` jest canonical pipeline
+
+---
+
+## Obecny stan (2026)
+
+**Live — daily loop:**
+- `vanguard-morning-brief` → plan jutra rano
+- `vanguard-midday-check` → inline buttons (done/stuck)
+- `vanguard-daily-reconciliation` → wieczorny review
+- `vanguard-telegram` → stream + reconciliation routing + **planning sessions** (Oracle)
+- Planning zapisuje `planning_summary` z tension_action na jutro
+
+**Live — evidence layer:**
+- friction_events + confirmed_friction_events VIEW
+- vanguard-auto-classify, vanguard-architect, vanguard-analyst
+- vanguard-oracle z full state vector (Oura, wins, plan)
+
+**Live — Practice Dojo:**
+- Osobny Telegram bot, Day 0 baseline + Day 1+ eval
+- Szczegóły: `docs/practice-dojo.md`
+
+~~Observation mode~~ — **deprecated**. System jest w pełnym daily loop, nie w trybie zbierania danych.
+
+Runbooki incydentów: **`docs/runbooks/`**
+
+---
+
+## Twoja rola jako Cursor
+
+Możesz i powinieneś:
+- wskazywać bugi, race conditions, null handling issues
+- sugerować lepszy TypeScript/Deno/React code
+- zauważać gdzie guardrails mogą przeciekać (język, framing, tone w promptach)
+- pytać "czy ten feature nie narusza confirmed gate?"
+- zauważać N-threshold violations w language (N=2 to nie "korelacja")
+- wskazywać gdzie UTC nie jest konwertowane na Warsaw
+
+Unikaj:
+- sugerowania nowych AI capabilities bez przejścia przez feature gate (3 pytania z PRODUCT_PRINCIPLES)
+- proponowania "shadow engine", "pattern engine", "manifestation tracker" itp.
+- interpretowania zachowania użytkownika na podstawie kodu
+- sugerowania że system "już rozumie" użytkownika
+
+---
+
+## Jeden zdanie podsumowania
+
+> Vanguard OS = behavioral field notes with continuity and correction.
+> System mierzy. Użytkownik interpretuje.
