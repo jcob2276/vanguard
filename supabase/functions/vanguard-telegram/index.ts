@@ -520,7 +520,7 @@ serve(async (req) => {
                       body: JSON.stringify({
                         model: 'deepseek-v4-flash',
                         temperature: 0.3,
-                        max_tokens: 900,
+                        max_tokens: 1500,
                         messages: [
                           {
                             role: 'system',
@@ -749,10 +749,10 @@ serve(async (req) => {
           }
 
           // Trigger evening planning session after reconciliation is answered
+          // NOTE: do NOT wrap in waitUntil — it does not keep tasks alive after HTTP response.
+          // Direct await inside the inner IIFE ensures planning runs before IIFE completes.
           if (!reconciliationUpdateError) {
-            // @ts-ignore
-            EdgeRuntime.waitUntil((async () => {
-              try {
+            try {
                 const reconId = pendingReconciliation!.id;
                 const today = new Date().toISOString().split('T')[0];
 
@@ -840,7 +840,7 @@ Powtarzający się open loop: ${adversaryOutput.most_relevant_open_loop}
 Proponowany ruch napięciowy: ${adversaryOutput.recommended_tension_action.action}
 Minimum version: ${adversaryOutput.recommended_tension_action.minimum_version}\n` : '';
 
-                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${adversarySection}${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nRozpocznij sesję planowania na jutro. Odwołaj się do reconciliation i danych adversary'ego. Na końcu sesji zapytaj: "Jeden ruch napięciowy na jutro — co odkładasz, bo jest niewygodne?" i zasugeruj opcję z adversary'ego jeśli pasuje.`;
+                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${adversarySection}${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nPROWADŹ SESJĘ PLANOWANIA W KROKACH — NIE wysyłaj gotowego planu od razu.\n\nKROK 1 (ta wiadomość): Napisz 2-3 zdania podsumowania dnia na podstawie reconciliation (co system widzi — tylko fakty). Następnie zadaj JEDNO konkretne pytanie które pomoże ułożyć jutro (np. co musisz koniecznie zamknąć, albo ile masz energii na jutro). Czekaj na odpowiedź.\n\nKROK 2 (po odpowiedzi): Możesz zadać jeszcze 1 pytanie lub zaproponować wstępny Top 3 i zapytać czy to właściwy kierunek.\n\nKROK 3 (finalizacja): Gdy masz wystarczająco danych — zaproponuj Top 3 + ruch napięciowy i zapytaj "Zgadzasz się? Możemy zamknąć plan."\n\nGdy user powie "koniec/ok/tak/zgadzam się" — sesja zostanie zapisana jako formalny plan.\n\nWAŻNE: W TEJ wiadomości TYLKO krok 1. Żadnego harmonogramu, żadnej listy zadań — tylko podsumowanie dnia + jedno pytanie.`;
 
                 const planningStateVector = {
                   biometrics: {
@@ -914,10 +914,9 @@ Minimum version: ${adversaryOutput.recommended_tension_action.minimum_version}\n
                 });
 
                 console.log('[telegram] planning session started for reconciliation:', reconId);
-              } catch (planErr) {
-                console.error('[telegram] planning session trigger error:', planErr);
-              }
-            })());
+            } catch (planErr) {
+              console.error('[telegram] planning session trigger error:', planErr);
+            }
           }
         }
 
@@ -1141,7 +1140,10 @@ Minimum version: ${adversaryOutput.recommended_tension_action.minimum_version}\n
           } else {
             let raw = (data?.text || "") as string;
             raw = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            if (!raw) responseText = "⚠️ Wyrocznia milczy (prawdopodobny timeout modelu reasoner). Spróbuj bez !!.";
+            if (!raw) {
+              console.error(`[telegram] oracle returned empty text — data keys: ${data ? Object.keys(data).join(',') : 'null'}, text repr: ${JSON.stringify(data?.text)?.substring(0, 80)}`);
+              responseText = "⚠️ Oracle: pusta odpowiedź modelu. Spróbuj jeszcze raz.";
+            }
             else responseText = raw.length > 4000 ? raw.substring(0, 4000) + '…' : raw;
 
             // Update planning history after successful Oracle response

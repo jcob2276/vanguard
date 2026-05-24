@@ -484,10 +484,19 @@ ${mode !== 'mirror' && knownPersonsLine ? `\n${knownPersonsLine}` : ''}
       try {
         structuredResponse = JSON.parse(stripJsonFence(rawOutput));
       } catch (_parseError) {
-        console.log("Parsing failed, assuming raw text from reasoner");
+        // deepseek-v4-flash (reasoning model) sometimes returns ONLY a <think> block
+        // with no text after it. Strip think tags first; if nothing remains, extract
+        // the think content so Telegram doesn't receive an empty string.
+        const thinkStripped = rawOutput.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        const thinkContent = rawOutput.match(/<think>([\s\S]*?)<\/think>/i)?.[1]?.trim() || '';
+        if (!thinkStripped && thinkContent) {
+          console.warn('[oracle] model returned only <think> block — extracting think content as answer');
+        } else {
+          console.log('[oracle] JSON parse failed, using text as answer');
+        }
         structuredResponse = {
-          answer: rawOutput,
-          confidence: "medium",
+          answer: thinkStripped || thinkContent || rawOutput,
+          confidence: thinkStripped ? "medium" : "low",
           intent_confirmed: intent,
           claims: []
         };

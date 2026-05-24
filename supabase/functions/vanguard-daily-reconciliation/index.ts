@@ -35,29 +35,35 @@ async function sendTelegram(text: string): Promise<number | null> {
   return data.result?.message_id ?? null;
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
   try {
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
-    // Guard: skip only if an evening reconciliation was already sent today.
-    // Uses 17:00 Warsaw as cutoff — morning rows (planning sessions) must not block
-    // the evening cron. BUG-02 fix.
-    const eveningCutoff = (() => {
-      const { start: dayStart } = getWarsawDayBoundaries(todayStr);
-      return new Date(new Date(dayStart).getTime() + 17 * 3600000).toISOString();
-    })();
+    // Allow manual force-override via ?force=true query param
+    const url = new URL(req.url);
+    const forceOverride = url.searchParams.get('force') === 'true';
 
-    const { data: existing } = await supabase
-      .from('daily_reconciliations')
-      .select('id')
-      .eq('user_id', VANGUARD_USER_ID)
-      .eq('date', todayStr)
-      .gte('created_at', eveningCutoff)
-      .maybeSingle();
+    if (!forceOverride) {
+      // Guard: skip only if an evening reconciliation was already sent today.
+      // Uses 17:00 Warsaw as cutoff — morning rows (planning sessions) must not block
+      // the evening cron. BUG-02 fix.
+      const eveningCutoff = (() => {
+        const { start: dayStart } = getWarsawDayBoundaries(todayStr);
+        return new Date(new Date(dayStart).getTime() + 17 * 3600000).toISOString();
+      })();
 
-    if (existing) {
-      console.log('[reconciliation] already sent this evening — skipping');
-      return new Response(JSON.stringify({ skipped: true }), { status: 200 });
+      const { data: existing } = await supabase
+        .from('daily_reconciliations')
+        .select('id')
+        .eq('user_id', VANGUARD_USER_ID)
+        .eq('date', todayStr)
+        .gte('created_at', eveningCutoff)
+        .maybeSingle();
+
+      if (existing) {
+        console.log('[reconciliation] already sent this evening — skipping');
+        return new Response(JSON.stringify({ skipped: true }), { status: 200 });
+      }
     }
 
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
