@@ -124,64 +124,36 @@ Deno.serve(async (req) => {
 
     let messageText: string;
 
-    // --- PLAN NA DZIŚ (z wczorajszego planowania) ---
+    // Plan block — from last night's planning session
     let planBlock = '';
     if (top3.length > 0) {
       planBlock =
-        `*Plan na dziś był:*\n` +
+        `*Plan był:*\n` +
         top3.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
       if (tensionAction) planBlock += `\n⚡ Ruch napięciowy: ${tensionAction}`;
       planBlock += '\n\n';
     }
 
+    // Friction summary (if any)
+    let frictionBlock = '';
     if (hasEvents) {
       const lines = evList.map((e: any, i: number) => {
         const type = e.friction_type || 'event';
         const beh  = (e.actual_behavior || e.declared_intention || '(brak opisu)').substring(0, 80);
         return `${i + 1}. \`${type}\` — ${beh}`;
       }).join('\n');
-
-      messageText =
-        `*Daily reconciliation — 5 min*\n\n` +
-        planBlock +
-        `Dziś wykryłem:\n${lines}\n`;
-    } else {
-      messageText =
-        `*Daily check-in — 3 min*\n\n` +
-        planBlock +
-        `Nie wykryłem dziś mikrotarć ani pozytywnych mikroakcji.\n`;
+      frictionBlock = `System wykrył:\n${lines}\n\n`;
     }
 
-    if (anchorText) {
-      messageText += `\n*Anchor:* ${anchorText}\n`;
-    }
-
-    if (hasEvents) {
-      messageText +=
-        `\n*Correction:*\n` +
-        `1. Co system źle zrozumiał?\n` +
-        `2. Jaki był największy koszt dnia?\n` +
-        `3. Jaki był najlepszy ruch dnia?\n` +
-        `4. Ocena dnia 1–5.`;
-    } else {
-      messageText +=
-        `\n*Correction:*\n` +
-        `1. Czy to był faktycznie czysty dzień, czy czegoś nie zalogowałeś?\n` +
-        `2. Najważniejszy ruch dnia?\n` +
-        `3. Największy koszt dnia?\n` +
-        `4. Ocena dnia 1–5.`;
-    }
-
-    if (anchorText) {
-      const anchorQ = hasEvents ? 5 : 5;
-      messageText +=
-        `\n${anchorQ}. Anchor zrobiony? tak / nie / częściowo\n` +
-        `${anchorQ + 1}. Jeśli nie — co realnie zatrzymało?`;
-    }
-
-    messageText +=
-      `\n\n_Reflection (opcjonalnie):_\n` +
-      `${anchorText ? '7' : '5'}. Co dzisiaj realnie Cię zasiliło albo ustabilizowało?`;
+    messageText =
+      `*Zamknięcie dnia — 5 min.*\n\n` +
+      planBlock +
+      frictionBlock +
+      `Powiedz głosówką (lub napisz):\n` +
+      `1. Co realnie zostało zrobione?\n` +
+      `2. Co się rozjechało?\n` +
+      `3. Jakie mikro-tarcie dziś zauważyłeś?\n` +
+      `4. Co jutro musi się wydarzyć?`;
 
     const messageId = await sendTelegram(messageText);
 

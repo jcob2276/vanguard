@@ -218,6 +218,102 @@ serve(async (req) => {
       const chatId = message.chat.id;
       const callbackId = id;
 
+      // --- MORNING BRIEF CALLBACKS ---
+      if (['morning_start', 'morning_show_plan', 'morning_late', 'morning_minimum_now',
+           'morning_change_minimum', 'morning_stuck'].includes(data)) {
+        EdgeRuntime.waitUntil((async () => {
+          try {
+            const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+            const { data: planRows } = await supabase
+              .from('daily_reconciliations')
+              .select('id, planning_summary')
+              .eq('user_id', VANGUARD_USER_ID)
+              .not('planning_summary', 'is', null)
+              .order('answered_at', { ascending: false })
+              .limit(5);
+
+            const planRow = (planRows || []).find((r: any) =>
+              r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+            );
+            const plan = planRow?.planning_summary as any;
+            const ta = plan?.tension_action as any;
+
+            const updates: Record<string, any> = { morning_clicked_at: new Date().toISOString() };
+            let responseText = '';
+            let responseMarkup: any = undefined;
+
+            if (data === 'morning_start') {
+              updates.morning_action = 'start';
+              updates.first_move_started = true;
+              responseText = 'Zaczęte. Wróć po first move.';
+            } else if (data === 'morning_show_plan') {
+              updates.morning_action = 'show_plan';
+              const top3 = (plan?.top3 as string[] || []).map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
+              const tensionPart = ta?.action ? `\n\nRuch napięciowy:\n${ta.action}\nMinimum: ${ta.minimum_version || '—'}\nDo: ${ta.due_time || '—'}` : '';
+              const notDoing = (plan?.not_doing as string[] || []).filter(Boolean);
+              const notDoingPart = notDoing.length > 0 ? `\n\nNie robimy:\n${notDoing.map((u: string) => `• ${u}`).join('\n')}` : '';
+              responseText =
+                `Plan dnia:\n\nTop 3:\n${top3}\n\n` +
+                `Minimum viable day:\n${plan?.minimum_viable_day || '—'}` +
+                notDoingPart +
+                `\n\nNajwiększe ryzyko:\n${plan?.biggest_risk || plan?.ryzyko || '—'}\n\nKontrplan:\n${plan?.counterplan || plan?.kontrplan || '—'}` +
+                tensionPart;
+            } else if (data === 'morning_late') {
+              updates.morning_action = 'late';
+              updates.phone_drift_morning = true;
+              updates.compression_mode_used = true;
+              const mvd = plan?.minimum_viable_day || plan?.first_move_morning || plan?.pierwszy_ruch || '—';
+              responseText = `Reset.\n\nNie nadrabiamy całego dnia.\nMinimum na teraz:\n${mvd}`;
+              responseMarkup = { inline_keyboard: [[
+                { text: '✅ Robię teraz', callback_data: 'morning_minimum_now' },
+                { text: '🔧 Zmień minimum', callback_data: 'morning_change_minimum' }
+              ]]};
+            } else if (data === 'morning_minimum_now') {
+              updates.morning_action = 'minimum_now';
+              updates.first_move_started = true;
+              const mvd = plan?.minimum_viable_day || plan?.first_move_morning || plan?.pierwszy_ruch || '—';
+              responseText = `Dobrze. 10 minut na:\n${mvd}`;
+            } else if (data === 'morning_change_minimum') {
+              updates.morning_action = 'change_minimum';
+              responseText = 'Napisz swoje minimum na dziś:';
+            } else if (data === 'morning_stuck') {
+              updates.morning_action = 'stuck';
+              responseText = 'Blokada.\n\nCo blokuje?';
+              responseMarkup = { inline_keyboard: [[
+                { text: '🔋 Energia', callback_data: 'midday_block_energy' },
+                { text: '❓ Niejasność', callback_data: 'midday_block_clarity' },
+                { text: '⚡ Opór', callback_data: 'midday_block_resistance' },
+                { text: '🌍 Zewnętrzne', callback_data: 'midday_block_external' }
+              ]]};
+            }
+
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callback_query_id: callbackId, text: '' })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageReplyMarkup`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: message.message_id, reply_markup: { inline_keyboard: [] } })
+            });
+            if (responseText) {
+              await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: chatId, text: responseText,
+                  ...(responseMarkup ? { reply_markup: responseMarkup } : {})
+                })
+              });
+            }
+            if (planRow?.id) {
+              await supabase.from('daily_reconciliations').update(updates).eq('id', planRow.id);
+            }
+          } catch (err) {
+            console.error('[telegram] morning callback error:', err);
+          }
+        })());
+        return new Response('OK', { status: 200 });
+      }
+
       // --- MIDDAY CHECK CALLBACKS ---
       if (data === 'midday_yes' || data === 'midday_no' || data === 'midday_stuck') {
         EdgeRuntime.waitUntil((async () => {
@@ -252,12 +348,19 @@ serve(async (req) => {
             const counter = plan?.counterplan || plan?.kontrplan || '—';
 
             let responseText = '';
+            let middayStuckMarkup: any = undefined;
             if (data === 'midday_yes') {
               responseText = 'Zapisane. Trzymaj Top 1.';
             } else if (data === 'midday_no') {
               responseText = `Minimum viable day:\n${mvd}\n\nRobisz teraz minimum?`;
             } else {
-              responseText = `Ryzyko:\n${risk}\n\nKontrplan:\n${counter}\n\nCo blokuje: energia / niejasnosc / opor / zewnetrzne?`;
+              responseText = 'Blokada.\n\nCo blokuje?';
+              middayStuckMarkup = { inline_keyboard: [[
+                { text: '🔋 Energia', callback_data: 'midday_block_energy' },
+                { text: '❓ Niejasność', callback_data: 'midday_block_clarity' },
+                { text: '⚡ Opór', callback_data: 'midday_block_resistance' },
+                { text: '🌍 Zewnętrzne', callback_data: 'midday_block_external' }
+              ]]};
             }
 
             await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
@@ -273,7 +376,7 @@ serve(async (req) => {
             await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, text: responseText, disable_notification: false })
+              body: JSON.stringify({ chat_id: chatId, text: responseText, disable_notification: false, ...(middayStuckMarkup ? { reply_markup: middayStuckMarkup } : {}) })
             });
           } catch (err) {
             console.error('[telegram] midday callback error:', err);
@@ -311,11 +414,80 @@ serve(async (req) => {
             }
 
             let responseText = '';
+            let taStuckMarkup: any = undefined;
             if (data === 'midday_ta_yes') {
               responseText = '⚡ Ruch napięciowy zrobiony. Zapisane.';
-            } else {
+            } else if (data === 'midday_ta_no') {
               const minVersion = ta?.minimum_version || '—';
               responseText = `Minimum version:\n${minVersion}\n\nRobisz wersję minimalną teraz?`;
+            } else {
+              responseText = 'Blokada.\n\nCo blokuje?';
+              taStuckMarkup = { inline_keyboard: [[
+                { text: '🔋 Energia', callback_data: 'midday_block_energy' },
+                { text: '❓ Niejasność', callback_data: 'midday_block_clarity' },
+                { text: '⚡ Opór', callback_data: 'midday_block_resistance' },
+                { text: '🌍 Zewnętrzne', callback_data: 'midday_block_external' }
+              ]]};
+            }
+
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callback_query_id: callbackId, text: '' })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageReplyMarkup`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: message.message_id, reply_markup: { inline_keyboard: [] } })
+            });
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: responseText, ...(taStuckMarkup ? { reply_markup: taStuckMarkup } : {}) })
+            });
+          } catch (err) {
+            console.error('[telegram] ta callback error:', err);
+          }
+        })());
+        return new Response('OK', { status: 200 });
+      }
+
+      // --- MIDDAY BLOCKER CLASSIFICATION CALLBACKS ---
+      if (['midday_block_energy', 'midday_block_clarity', 'midday_block_resistance', 'midday_block_external'].includes(data)) {
+        EdgeRuntime.waitUntil((async () => {
+          try {
+            const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+            const { data: planRows } = await supabase
+              .from('daily_reconciliations')
+              .select('id, planning_summary')
+              .eq('user_id', VANGUARD_USER_ID)
+              .not('planning_summary', 'is', null)
+              .order('answered_at', { ascending: false })
+              .limit(5);
+            const planRow = (planRows || []).find((r: any) =>
+              r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+            );
+            const plan = planRow?.planning_summary as any;
+            const ta = plan?.tension_action as any;
+
+            const blockerMap: Record<string, string> = {
+              midday_block_energy: 'energy', midday_block_clarity: 'clarity',
+              midday_block_resistance: 'resistance', midday_block_external: 'external'
+            };
+            if (planRow?.id) {
+              await supabase.from('daily_reconciliations')
+                .update({ midday_blocker: blockerMap[data] })
+                .eq('id', planRow.id);
+            }
+
+            let responseText = '';
+            if (data === 'midday_block_energy') {
+              responseText = `Energia niska.\n\nMinimum viable day:\n${plan?.minimum_viable_day || '—'}\n\nRobisz 10 min?`;
+            } else if (data === 'midday_block_clarity') {
+              const top3 = (plan?.top3 as string[] || []).map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
+              responseText = `Niejasność blokuje.\n\nTop 3 na dziś:\n${top3}\n\nKtóry punkt jest niejasny?`;
+            } else if (data === 'midday_block_resistance') {
+              const minVersion = ta?.minimum_version || plan?.minimum_viable_day || '—';
+              responseText = `Opór.\n\nMinimum version:\n${minVersion}\n\nJeden ruch. Robisz?`;
+            } else if (data === 'midday_block_external') {
+              responseText = 'Zewnętrzna blokada.\n\nCo konkretnie zatrzymuje? Napisz w jednym zdaniu.';
             }
 
             await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`, {
@@ -331,7 +503,7 @@ serve(async (req) => {
               body: JSON.stringify({ chat_id: chatId, text: responseText })
             });
           } catch (err) {
-            console.error('[telegram] ta callback error:', err);
+            console.error('[telegram] midday blocker callback error:', err);
           }
         })());
         return new Response('OK', { status: 200 });
@@ -529,7 +701,7 @@ serve(async (req) => {
                           ...closureHistory,
                           {
                             role: 'user',
-                            content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","top3":["zadanie1","zadanie2","zadanie3"],"first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia","adversary_note":"co adversary wykrył z 72h — jedno zdanie, tylko fakty, zero psychologizowania","tension_action":{"action":"jeden konkretny ruch napięciowy ustalony w sesji — jedno zdanie imperatywne","why_it_matters":"dlaczego ten ruch — oparte na danych, jedno zdanie","minimum_version":"absolutne minimum tego ruchu — jedno zdanie","due_time":"konkretny czas np. do 14:00","verification":"self","status":"planned"}}`
+                            content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","day_mode":"work|sales|recovery|chaos|weekend|social","top3":["zadanie1","zadanie2","zadanie3"],"one_clear_move":"jeden konkretny ruch który definiuje wygrany dzień — najprostsze zdanie imperatywne","first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","morning_activation":{"first_10_minutes":"dokładnie co robisz w pierwszych 10 minutach po wstaniu","phone_risk":true,"anti_phone_instruction":"krótka instrukcja zapobiegająca scrollowaniu rano"},"biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia","adversary_note":"co adversary wykrył z 72h — jedno zdanie, tylko fakty, zero psychologizowania","tension_action":{"action":"jeden konkretny ruch napięciowy ustalony w sesji — jedno zdanie imperatywne","why_it_matters":"dlaczego ten ruch — oparte na danych, jedno zdanie","minimum_version":"absolutne minimum tego ruchu — jedno zdanie","due_time":"konkretny czas np. do 14:00","verification":"self","status":"planned"}}`
                           }
                         ]
                       })
@@ -584,7 +756,10 @@ serve(async (req) => {
                               ? `\n\n🔍 ${planJson.adversary_note}`
                               : '';
 
-                            telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${tensionSection}${adversaryNoteSection}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}`;
+                            const oneClearMoveSection = planJson.one_clear_move
+                              ? `\n\nDzisiaj dzień wygrywa:\n${planJson.one_clear_move}` : '';
+                            const dayModeSection = planJson.day_mode ? ` | Tryb: ${planJson.day_mode}` : '';
+                            telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}${oneClearMoveSection}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${tensionSection}${adversaryNoteSection}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}${dayModeSection}`;
                           }
                         } else {
                           // JSON parse failed → save raw fallback, send as-is (still readable)
@@ -748,6 +923,42 @@ serve(async (req) => {
             console.error("[telegram] reconciliation update failed:", reconciliationUpdateError);
           }
 
+          // Evening extraction: structured parse of reconciliation voice/text response
+          let eveningExtraction: any = null;
+          if (!reconciliationUpdateError) {
+            try {
+              const extractRes = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  model: 'deepseek-v4-flash',
+                  temperature: 0.1,
+                  max_tokens: 300,
+                  messages: [{
+                    role: 'user',
+                    content: `Z odpowiedzi użytkownika wyodrębnij dane. Odpowiedz TYLKO poprawnym JSON bez markdown:\n{"done":[],"missed":[],"micro_frictions":[],"biggest_cost":"","best_move":"","tomorrow_candidates":[],"tension_candidate":""}\n\nODPOWIEDŹ UŻYTKOWNIKA:\n${cleanText.substring(0, 600)}`
+                  }]
+                })
+              });
+              if (extractRes.ok) {
+                const extractData = await extractRes.json().catch(() => null);
+                const rawExtract = extractData?.choices?.[0]?.message?.content || '';
+                const jsonMatch = rawExtract.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  eveningExtraction = JSON.parse(jsonMatch[0]);
+                  await supabase.from('daily_reconciliations')
+                    .update({ evening_extraction: eveningExtraction })
+                    .eq('id', pendingReconciliation!.id);
+                }
+              }
+            } catch (extractErr) {
+              console.warn('[telegram] evening extraction failed:', extractErr);
+            }
+          }
+
           // Trigger evening planning session after reconciliation is answered
           // NOTE: do NOT wrap in waitUntil — it does not keep tasks alive after HTTP response.
           // Direct await inside the inner IIFE ensures planning runs before IIFE completes.
@@ -840,7 +1051,16 @@ Powtarzający się open loop: ${adversaryOutput.most_relevant_open_loop}
 Proponowany ruch napięciowy: ${adversaryOutput.recommended_tension_action.action}
 Minimum version: ${adversaryOutput.recommended_tension_action.minimum_version}\n` : '';
 
-                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${adversarySection}${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nPROWADŹ SESJĘ PLANOWANIA W KROKACH — NIE wysyłaj gotowego planu od razu.\n\nKROK 1 (ta wiadomość): Napisz 2-3 zdania podsumowania dnia na podstawie reconciliation (co system widzi — tylko fakty). Następnie zadaj JEDNO konkretne pytanie które pomoże ułożyć jutro (np. co musisz koniecznie zamknąć, albo ile masz energii na jutro). Czekaj na odpowiedź.\n\nKROK 2 (po odpowiedzi): Możesz zadać jeszcze 1 pytanie lub zaproponować wstępny Top 3 i zapytać czy to właściwy kierunek.\n\nKROK 3 (finalizacja): Gdy masz wystarczająco danych — zaproponuj Top 3 + ruch napięciowy i zapytaj "Zgadzasz się? Możemy zamknąć plan."\n\nGdy user powie "koniec/ok/tak/zgadzam się" — sesja zostanie zapisana jako formalny plan.\n\nWAŻNE: W TEJ wiadomości TYLKO krok 1. Żadnego harmonogramu, żadnej listy zadań — tylko podsumowanie dnia + jedno pytanie.`;
+                const extractionSection = eveningExtraction ? `\nEKSTRAKCJA DNIA (automatyczna — użyj jako kontekst):
+Zrobione: ${(eveningExtraction.done || []).join(', ') || '—'}
+Niewykonane: ${(eveningExtraction.missed || []).join(', ') || '—'}
+Mikro-tarcia: ${(eveningExtraction.micro_frictions || []).join(', ') || '—'}
+Najlepszy ruch: ${eveningExtraction.best_move || '—'}
+Największy koszt: ${eveningExtraction.biggest_cost || '—'}
+Kandydaci na jutro: ${(eveningExtraction.tomorrow_candidates || []).join(', ') || '—'}
+Kandydat napięciowy: ${eveningExtraction.tension_candidate || '—'}\n` : '';
+
+                const planningQuery = `[PLANNING MODE - Evening Planning Session]\n\nReconciliation Jakuba na dziś:\n${cleanText}\n\n${extractionSection}${adversarySection}${todoistTasks ? `Jego lista zadań z Todoist (dziś / zaległe):\n${todoistTasks}\n\n` : ''}Zadania z vanguard na dziś: ${JSON.stringify(winRes.data || 'brak')}\n\nPROWADŹ SESJĘ PLANOWANIA W KROKACH — NIE wysyłaj gotowego planu od razu.\n\nKROK 1 (ta wiadomość): Na podstawie reconciliation + ekstrakcji — napisz 2-3 zdania co system widzi (tylko fakty, bez interpretacji). Zadaj JEDNO konkretne pytanie: co jutro musi się wydarzyć, albo ile masz energii. Czekaj na odpowiedź.\n\nKROK 2 (po odpowiedzi): Zaproponuj wstępny Top 3 i zapytaj o potwierdzenie. Dopytaj o day_mode (work/sales/recovery/chaos/weekend/social) jeśli nie jest oczywisty z kontekstu.\n\nKROK 3 (finalizacja): Zaproponuj Top 3 + one_clear_move + ruch napięciowy. Zapytaj "Zgadzasz się? Możemy zamknąć plan."\n\nGdy user powie "koniec/ok/tak/zgadzam się" — plan zostanie zapisany.\n\nWAŻNE: W TEJ wiadomości TYLKO krok 1. Zero harmonogramów, zero list — tylko obserwacja dnia + jedno pytanie.`;
 
                 const planningStateVector = {
                   biometrics: {

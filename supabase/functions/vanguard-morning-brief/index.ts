@@ -2,8 +2,9 @@
  * vanguard-morning-brief
  *
  * Cron: 05:00 UTC daily = 07:00 Warsaw (CEST) / 06:00 (CET)
- * Sends the day's plan from last night's planning session.
- * Silently skips if no plan exists for today (no reconciliation / planning not done).
+ * Sends a short action-oriented start message (not a document).
+ * Full plan sent only when user clicks "Pokaż plan".
+ * Tracks morning_sent_at to prevent duplicate sends and enable ping detection.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -23,13 +24,11 @@ serve(async () => {
       return new Response('ok');
     }
 
-    // Warsaw-aware today date — avoids UTC midnight bug
     const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
 
-    // Fetch last few plans and filter in code (jsonb field comparison)
     const { data: rows, error } = await supabase
       .from('daily_reconciliations')
-      .select('planning_summary, answered_at')
+      .select('id, planning_summary, answered_at, morning_sent_at')
       .eq('user_id', VANGUARD_USER_ID)
       .not('planning_summary', 'is', null)
       .order('answered_at', { ascending: false })
@@ -40,43 +39,42 @@ serve(async () => {
       return new Response('error', { status: 500 });
     }
 
-    const todayPlan = rows?.find(r =>
+    const row = rows?.find(r =>
       r.planning_summary?.target_date === todayWarsawDate &&
       !r.planning_summary?.parse_error
-    )?.planning_summary as Record<string, any> | undefined;
+    );
 
-    if (!todayPlan) {
+    if (!row) {
       console.log(`[morning-brief] No plan for ${todayWarsawDate}, skipping.`);
       return new Response('ok');
     }
 
-    const top3 = ((todayPlan.top3 as string[]) || [])
-      .map((t, i) => `${i + 1}. ${t}`)
-      .join('\n');
+    if (row.morning_sent_at) {
+      console.log(`[morning-brief] Already sent for ${todayWarsawDate}, skipping.`);
+      return new Response('ok');
+    }
 
-    // Backward compat: support both old and new field names
-    const firstMove = todayPlan.first_move_morning || todayPlan.pierwszy_ruch || '—';
-    const biggestRisk = todayPlan.biggest_risk || todayPlan.ryzyko || '—';
-    const counter = todayPlan.counterplan || todayPlan.kontrplan || '—';
-    const mvd = todayPlan.minimum_viable_day;
-
-    const urgentItems = (todayPlan.urgent_items as string[] || []).filter(Boolean);
-    const urgentSection = urgentItems.length > 0
-      ? `\n\nPilne:\n${urgentItems.map(u => `• ${u}`).join('\n')}`
-      : (todayPlan.pilne && todayPlan.pilne !== 'null' ? `\n\nPilne:\n${todayPlan.pilne}` : '');
-
-    const ta = todayPlan.tension_action as { action?: string; minimum_version?: string; due_time?: string } | undefined;
-    const tensionSection = ta?.action
-      ? `\n\n⚡ Ruch napięciowy:\n${ta.action}\nMinimum: ${ta.minimum_version || '—'}\nDo: ${ta.due_time || '—'}`
-      : '';
-    const adversaryNoteSection = todayPlan.adversary_note
-      ? `\n\n🔍 ${todayPlan.adversary_note}`
-      : '';
+    const plan = row.planning_summary as Record<string, any>;
+    const firstMove = plan.first_move_morning || plan.pierwszy_ruch || '—';
+    // one_clear_move: new schema field, falls back to top3[0]
+    const oneClearMove = plan.one_clear_move || (plan.top3 as string[] || [])[0] || '—';
+    const ta = plan.tension_action as { action?: string; status?: string } | undefined;
+    const taActive = ta?.action && ta?.status !== 'done';
 
     const text =
-      `Dzien dobry.\n\nFirst move:\n${firstMove}\n\nTop 3:\n${top3}${mvd ? `\n\nMinimum viable day:\n${mvd}` : ''}${tensionSection}${adversaryNoteSection}\n\nRyzyko:\n${biggestRisk}\n\nKontrplan:\n${counter}${urgentSection}`;
+      `Start dnia.\n\nNie scrolluj.\n\n` +
+      `Pierwszy ruch:\n→ Woda.\n→ Otwórz: ${firstMove}.\n→ 10 minut.\n\n` +
+      `Dzisiaj dzień wygrywa:\n${oneClearMove}` +
+      (taActive ? `\n\n⚡ Ruch napięciowy:\n${ta!.action}` : '');
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
+      replyMarkup: {
+        inline_keyboard: [[
+          { text: '✅ Start 10 min', callback_data: 'morning_start' },
+          { text: '📋 Pokaż plan', callback_data: 'morning_show_plan' },
+          { text: '😵 Wstałem za późno', callback_data: 'morning_late' }
+        ]]
+      },
       disableNotification: false,
     });
 
@@ -86,7 +84,12 @@ serve(async () => {
       return new Response('error', { status: 500 });
     }
 
-    console.log(`[morning-brief] Plan sent for ${todayWarsawDate}.`);
+    await supabase
+      .from('daily_reconciliations')
+      .update({ morning_sent_at: new Date().toISOString() })
+      .eq('id', row.id);
+
+    console.log(`[morning-brief] Start message sent for ${todayWarsawDate}, row ${row.id}.`);
     return new Response('ok');
   } catch (err) {
     console.error('[morning-brief] error:', err);

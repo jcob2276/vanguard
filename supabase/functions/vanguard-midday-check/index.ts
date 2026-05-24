@@ -68,7 +68,7 @@ serve(async () => {
     const taActive = ta?.action && ta?.status !== 'done';
     const tensionLine = taActive ? `\n\n⚡ Ruch napięciowy:\n${ta!.action}` : '';
 
-    const text = `Check.\n\nPierwszy ruch z rana:\n${firstMove}\n\nCzy zostal zrobiony?${tensionLine}`;
+    const text = `Check.\n\n1. First move:\n${firstMove}\nZrobione?` + (taActive ? `\n\n2. Ruch napięciowy:\n${ta!.action}\nZrobione?` : '');
 
     const inlineKeyboard = taActive ? [
       [
