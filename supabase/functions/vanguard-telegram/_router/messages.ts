@@ -97,6 +97,24 @@ export async function handleIncomingMessage(
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }
       else if (text.startsWith('!!')) { shouldRespond = true; mode = 'deep';      cleanText = text.substring(2).trim(); }
       else if (text.startsWith('##')) { shouldRespond = false; mode = 'knowledge'; cleanText = text.substring(2).trim(); }
+      else if (text.toLowerCase().trim() === '@trening') {
+        // Shortcut: call analyze-training and return immediately
+        await safeSendTelegram(telegramToken, chatId, '⏳ Analizuję plan vs Strava...');
+        try {
+          const res = await fetch(`${supabaseUrl}/functions/v1/analyze-training`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegram: true })
+          });
+          if (!res.ok) throw new Error('analyze-training HTTP ' + res.status);
+        } catch (e) {
+          await safeSendTelegram(telegramToken, chatId, '❌ Błąd analizy treningu: ' + (e as Error).message);
+        }
+        return;
+      }
       else if (text.startsWith('@'))  { shouldRespond = true; mode = 'report';    cleanText = text.substring(1).trim(); }
       else if (text.toLowerCase().startsWith('poprawka:')) { shouldRespond = false; mode = 'knowledge'; cleanText = text; }
 
