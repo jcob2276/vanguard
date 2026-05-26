@@ -1,22 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
-    // Pobierz wszystkich użytkowników (lub konkretnego, jeśli przekazany)
-    const { data: users } = await supabase.from('user_settings').select('user_id');
+    const users = await safeExecute(supabase.from('user_settings').select('user_id'));
     
     const results = [];
 
@@ -24,21 +15,22 @@ serve(async (req) => {
       console.log(`[Vanguard] Checking intentions for user: ${user_id}`);
 
       // 1. Pobierz aktywne intencje
-      const { data: intentions } = await supabase
-        .from('vanguard_intentions')
-        .select('*')
-        .eq('user_id', user_id)
-        .eq('status', 'active');
+      const intentions = await safeExecute(
+        supabase.from('vanguard_intentions')
+          .select('*')
+          .eq('user_id', user_id)
+          .eq('status', 'active'),
+      );
 
       if (!intentions || intentions.length === 0) continue;
 
-      // 2. Pobierz ostatnie 50 wpisów ze strumienia dla kontekstu
-      const { data: recentLogs } = await supabase
-        .from('vanguard_stream')
-        .select('content, created_at')
-        .eq('user_id', user_id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const recentLogs = await safeExecute(
+        supabase.from('vanguard_stream')
+          .select('content, created_at')
+          .eq('user_id', user_id)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      );
 
       const streamContext = (recentLogs || []).map(l => `[${l.created_at}] ${l.content}`).join('\n');
 
@@ -55,7 +47,7 @@ serve(async (req) => {
             {
               role: 'system',
               content: `Jesteś Audytorem Vanguard OS. Twoim zadaniem jest ocena, które z aktywnych intencji użytkownika zostały już zrealizowane lub powinny zostać porzucone na podstawie jego aktywności w Strumieniu.
-              Zwróć JSON w formacie: {"updates": [{"id": "uuid", "status": "completed" | "abandoned", "reason": "krótkie uzasadnienie"}]}`
+              Zwróć JSON w formacie: {"updates": [{"id": "uuid", "status": "manifested" | "released", "reason": "krótkie uzasadnienie"}]}`
             },
             {
               role: 'user',
@@ -71,19 +63,31 @@ serve(async (req) => {
         throw new Error(`DeepSeek intentions-cleanup error (${cleanupRes.status}): ${errText.substring(0, 200)}`)
       }
       const auditData = await cleanupRes.json();
-      const updates = JSON.parse(auditData.choices[0].message.content).updates;
+      let updates: { id: string; status: string; reason: string }[] = [];
+      try {
+        updates = JSON.parse(auditData.choices[0].message.content).updates || [];
+      } catch (parseErr) {
+        console.error(`[intentions-cleanup] JSON parse failed for user ${user_id}:`, parseErr);
+        continue;
+      }
 
-      if (updates && updates.length > 0) {
+      if (updates.length > 0) {
+        let applied = 0;
         for (const update of updates) {
-          await supabase
+          const { error: updateErr } = await supabase
             .from('vanguard_intentions')
-            .update({ 
+            .update({
               status: update.status,
-              notes: (intentions.find(i => i.id === update.id)?.notes || '') + `\n[Auto-Cleanup]: ${update.reason}`
+              notes: (intentions.find(i => i.id === update.id)?.notes || '') + `\n[Auto-Cleanup]: ${update.reason}`,
             })
             .eq('id', update.id);
+          if (updateErr) {
+            console.error(`[intentions-cleanup] update failed id=${update.id}:`, updateErr);
+          } else {
+            applied++;
+          }
         }
-        results.push({ user_id, updated_count: updates.length });
+        results.push({ user_id, updated_count: applied });
       }
     }
 
@@ -93,6 +97,7 @@ serve(async (req) => {
     })
 
   } catch (err) {
+    console.error('[intentions-cleanup] Fatal error:', err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500

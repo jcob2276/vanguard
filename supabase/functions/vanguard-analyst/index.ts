@@ -1,19 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const { data: users } = await supabase.from('user_settings').select('user_id')
     const user_id = users?.[0]?.user_id
@@ -40,6 +32,7 @@ serve(async (req) => {
         .from('friction_events')
         .select('friction_type, deviation, immediate_cost, later_cost, declared_intention, actual_behavior, occurred_at, confidence, confidence_source')
         .eq('user_id', user_id)
+        .in('event_kind', ['friction_event', 'positive_micro_action'])
         .gte('occurred_at', cut14d)
         .order('occurred_at', { ascending: false }),
 
@@ -56,11 +49,14 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
-        .limit(3),
+        .limit(3)
     ])
+    if (stream72h.error) console.error('[analyst] stream72h query error:', stream72h.error);
+    if (frictionRecent.error) console.error('[analyst] frictionRecent query error:', frictionRecent.error);
+    if (biometrics.error) console.error('[analyst] biometrics query error:', biometrics.error);
+    if (pendingHypotheses.error) console.error('[analyst] pendingHypotheses query error:', pendingHypotheses.error);
 
-    // 2. PATTERN CONTEXT — 3-21 dni (tylko do wykrywania powtórzeń)
-    const { data: streamPattern } = await supabase
+    const { data: streamPattern, error: streamPatternErr } = await supabase
       .from('vanguard_stream')
       .select('content, category, created_at')
       .eq('user_id', user_id)
@@ -68,9 +64,10 @@ serve(async (req) => {
       .lt('created_at', cut72h)
       .order('created_at', { ascending: false })
       .limit(20)
+    if (streamPatternErr) console.error('[analyst] streamPattern query error:', streamPatternErr);
 
     // 3. Graf — TYLKO current/declared z ostatnich 21 dni
-    const { data: graph } = await supabase
+    const { data: graph, error: graphErr } = await supabase
       .from('vanguard_entity_links')
       .select('source_entity, relation, target_entity, evidence_count, temporal_status')
       .eq('user_id', user_id)
@@ -78,6 +75,7 @@ serve(async (req) => {
       .gte('valid_from', cut21d)
       .order('evidence_count', { ascending: false })
       .limit(20)
+    if (graphErr) console.error('[analyst] graph query error:', graphErr);
 
     // --- BUDOWANIE KONTEKSTU ---
     const frictionList = (frictionRecent.data || [])
@@ -251,9 +249,7 @@ ${graphText || 'Brak aktywnych krawędzi.'}`
       })
     }
 
-    // DISABLED — pattern_candidate promotion requires manual QA + 20-30 clean friction_events first.
-    // Re-enable in Sprint 1 after precision/recall evaluation.
-    // if (result.friction_summary?.evidence_count >= 2) { ... }
+    // pattern_candidate → repeated_pattern_candidates: disabled until Sprint 1 QA gate (BACKLOG).
 
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
     return new Response(JSON.stringify({ success: true, result }), {

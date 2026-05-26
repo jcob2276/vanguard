@@ -7,12 +7,18 @@
 ## 1. Zanim cokolwiek zaczniesz
 
 Przeczytaj w tej kolejności:
-1. `AGENTS.md` — stan systemu, modele, reguły deploy
-2. `.cursor/rules/vanguard-context.mdc` — filozofia i guardrails
-3. `supabase/functions/README.md` — mapa funkcji z JWT i triggerami
-4. `BACKLOG.md` — co jest znane jako broken, nie naprawiaj czegoś co jest już zaplanowane inaczej
+1. `AGENTS.md` — konstytucja, quick map, deploy
+2. `docs/ARCHITECTURE.md` — przepływ danych i crony (jedna strona)
+3. `supabase/functions/README.md` — mapa funkcji z JWT i triggerami (SSOT)
+4. `.cursor/rules/vanguard-agent-workflow.mdc` — definition of done
+5. `.cursor/rules/vanguard-context.mdc` — filozofia i guardrails
+6. `BACKLOG.md` — co jest znane jako broken, nie naprawiaj czegoś co jest już zaplanowane inaczej
+
+**Nie implementuj z `docs/legacy/`** — patrz `docs/legacy/README.md`.
 
 Jeśli pracujesz przy Dojo: przeczytaj też `.cursor/rules/dojo-isolation.mdc` i **nie ruszaj** `vanguard-*`.
+
+Funkcje ze statusem **`deprecated`** w README zwracają **410** — nie rozwijaj ich logiki.
 
 ---
 
@@ -24,12 +30,23 @@ Jeśli pracujesz przy Dojo: przeczytaj też `.cursor/rules/dojo-isolation.mdc` i
 [ ] 1. Plik: supabase/functions/<nazwa>/index.ts
 [ ] 2. Model: deepseek-v4-flash (nie deepseek-chat, nie deepseek-v3)
 [ ] 3. verify_jwt: ustal czy cron/webhook (false) czy frontend (true)
-[ ] 4. Dodaj do supabase/functions/README.md (Purpose, Trigger, JWT, Key tables)
+[ ] 4. Dodaj wiersz do supabase/functions/README.md (Status, Trigger, JWT, Key tables, LOC, Verified)
 [ ] 5. Jeśli verify_jwt: false — dodaj do listy w AGENTS.md i vanguard-ops.mdc
-[ ] 6. Dodaj do tabeli w docs/TECHNICAL.md sekcja 1.3
-[ ] 7. Jeśli cron — dodaj do tabeli cron jobs (TECHNICAL.md sekcja 1.4)
-[ ] 8. Deploy → sprawdź logi przez 5 minut → brak 401
+[ ] 6. Jeśli cron — dodaj wiersz w docs/ARCHITECTURE.md (tabela pg_cron) + potwierdź w Supabase
+[ ] 7. Opcjonalnie: skrót w docs/TECHNICAL.md tylko jeśli sekcja jest oznaczona [CURRENT]
+[ ] 8. Deploy → `npm run smoke` → sprawdź logi przez 5 minut → brak 401
 ```
+
+### Po deploy (obowiązkowe)
+
+```powershell
+npm run smoke
+# opcjonalnie po zmianie logiki (bez crona):
+npm run smoke:safe
+```
+
+Runbook: [`docs/runbooks/post-deploy-smoke.md`](runbooks/post-deploy-smoke.md)  
+Cron parity: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) vs [`scripts/ops/smoke-manifest.mjs`](../scripts/ops/smoke-manifest.mjs)
 
 ### Wzorzec struktury funkcji:
 

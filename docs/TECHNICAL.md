@@ -89,15 +89,16 @@ Brak cron (HTTP manual):
 | google-fit-auth | ✅ aktywna | HTTP GET (OAuth callback) | single-user assumption |
 | weekly-report | ✅ aktywna | cron | **false** JWT |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
-| vanguard-reset-prompt | ✅ aktywna | pg_cron | **false** JWT |
+| vanguard-reset-prompt | ⛔ deprecated | HTTP → 410; cron off 2026-05-23 | **false** JWT |
 | dojo-telegram / dojo-scheduler | ✅ aktywne | webhook / cron | **false** JWT |
 | vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**
 
-- `vanguard-architect` linie 700–703: friction extraction wyłączona od Sprint 0.7 (2026-05-17). Powód: duplicate friction_events razem z auto-classify.
-- `vanguard-oracle` linie 477–481: write access (zapis do vanguard_knowledge i vanguard_entity_links) wyłączony od Sprint 0.7. Powód: LLM mutował source-of-truth na każdym turnie rozmowy bez guardrails.
-- `vanguard-analyst` linie 254–256: pattern_candidate promotion wyłączona. Powód: wymaga manual QA i 20–30 czystych friction_events. Re-enable Sprint 1.
+- `vanguard-architect`: `extractFrictionEvent` **usunięte** (2026-05-26) — friction tylko przez `vanguard-auto-classify`.
+- `vanguard-oracle`: zapis do `vanguard_knowledge` / `entity_links` na turnie czatu **wyłączony** (audit log synchroniczny).
+- `vanguard-analyst`: pattern_candidate promotion **wyłączona** (~linia 260). Re-enable po Sprint 1 + QA friction precision.
+- `vanguard-reset-prompt`: **deprecated** — zwraca 410; migracja `20260526100000_unschedule_reset_prompt.sql`.
 
 ### 1.4 Cron jobs
 
@@ -105,7 +106,9 @@ Brak cron (HTTP manual):
 |-----------------|----------------|---------------------|---------|---------|
 | vanguard-daily-snapshot | `0 4 * * *` | 06:00 | save-daily-aggregate | 20260513 |
 | vanguard-daily-analyst | `0 3 * * *` | 05:00 | vanguard-analyst | 20260513 (mig. 008) |
-| vanguard-daily-shadow-analysis | `0 3 * * *` | 05:00 | vanguard-analyst | 20260513 (mig. 009) — **DUPLIKAT** |
+| vanguard-daily-shadow-analysis | — | — | — | **USUNIĘTY** (mig. 20260525170000) |
+| vanguard-morning-brief | `0 5 * * *` | 07:00 | vanguard-morning-brief | 20260521 |
+| vanguard-morning-ping | `20 5 * * *` | 07:20 | vanguard-morning-ping | 20260524 |
 | vanguard-weekly-intentions-cleanup | `0 0 * * 0` | 02:00 niedziela | vanguard-intentions-cleanup | 20260513 (mig. 006) |
 
 ---
@@ -460,7 +463,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 **Embedding:** OpenAI text-embedding-3-small — failure: warn+skip (nie blokuje insertu).
 
-**⚠️ Brakujące tabele:** `ai_chat_messages`, `vanguard_workouts`, `vanguard_daily_wins` (różne od `daily_wins`) — kod je referencjonuje.
+**⚠️ Brakujące tabele:** Brak. Referencje w kodzie `vanguard-telegram` do `vanguard_workouts` i `vanguard_daily_wins` zostały poprawione, by odpytywały właściwe tabele: `workout_sessions` i `daily_wins`. Tabela `ai_chat_messages` istnieje i jest używana.
 
 ---
 
@@ -635,7 +638,7 @@ if (embedRes.ok) {
 | 14 | Hardcoded user_id fallback `165ae341-...` | architect, graph-embedder, telegram, eval-runner |
 | 15 | Dwa klasyfikatory stanów | VanguardCore (z-score) vs save-daily-aggregate (hardcoded thresholds) |
 | 16 | `ARCHITECTURE.md` stale schedules | doc twierdzi analyst co 6h na Monday — rzeczywistość: raz dziennie 03:00 UTC, Sunday |
-| 17 | Brakujące tabele (referenced, no DDL) | vanguard_iron_rules, vanguard_repeated_patterns, vanguard_known_persons, vanguard_tokens, vanguard_calendar, vanguard_youtube, location_history, ai_chat_messages |
+| 17 | Brakujące tabele (referenced, no DDL) | Brak (wszystkie tabele zostały utworzone w migracji lub istnieją w bazie produkcyjnej) |
 
 ---
 

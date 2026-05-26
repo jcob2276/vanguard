@@ -2,11 +2,31 @@
 
 Entry point for AI agents working in this repository.
 
+## Quick map (read first)
+
+- **Live daily loop:** `vanguard-morning-brief` → `vanguard-morning-ping` → (user stream via `vanguard-telegram`) → `vanguard-midday-check` → `vanguard-daily-reconciliation` → planning → `planning_summary` for tomorrow
+- **Evidence:** `vanguard_stream` → `vanguard-auto-classify` → `friction_events` → `confirmed_friction_events` (VIEW)
+- **Graph (batch):** `vanguard-architect` / `ingest-vault-log` — not inline from Oracle chat writes
+- **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
+- **One-page architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Do not implement from:** [`docs/legacy/`](docs/legacy/README.md) — history only
+
+## Konstytucja (non-negotiable)
+
+1. **System measures behavior. User gives meaning.** Evidence layer ≠ reasoning layer.
+2. **One write path for friction:** `vanguard_stream` → `vanguard-auto-classify` only.
+3. **Extend, don’t duplicate:** new features plug into existing handlers / README-listed functions — no parallel Telegram clients, no second classify pipeline, no Oracle writes to graph/knowledge on chat turns.
+4. **Current-first:** stream 72h beats archive; patterns need explicit N — no “confirmed pattern” language.
+5. **Dojo ≠ Vanguard:** separate bots, secrets, tables — see `.cursor/rules/dojo-isolation.mdc`.
+6. **Do not build:** shadow engine, manifestation tracker, psychoanalytic coaching, undeclared “digital twin” certainty.
+
+Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
+
 ## What this repo is
 
 Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on Supabase project `pdvqkgfsqziqlhptatgf`.
 
-Local ↔ Supabase sync: 28 functions local = 28 deployed. Last verified: 2026-05-23.
+Local ↔ Supabase sync: **28** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-05-26**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -22,11 +42,11 @@ Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
 - Affected: vanguard-morning-brief, vanguard-midday-check,
   vanguard-daily-reconciliation, vanguard-intentions-cleanup,
-  weekly-report, vanguard-telegram, dojo-telegram, dojo-scheduler,
+  vanguard-telegram, dojo-telegram, dojo-scheduler,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
-  ingest-vault-log, vanguard-friction-qa, vanguard-reset-prompt,
+  ingest-vault-log, vanguard-friction-qa,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis
-- After deploy: check edge function logs for 401 errors
+- After deploy: `npm run smoke` (or `node scripts/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
 Isolation:
 - Vanguard Core and Practice Dojo share one Supabase project
@@ -46,16 +66,18 @@ Edge function gotchas:
 - Do NOT store deploy version numbers in rules/docs — they go stale weekly
 ```
 
-## Where to read next
+## Where to read next (order matters)
 
-1. `.cursor/rules/vanguard-context.mdc` — system philosophy and epistemic guardrails
-2. `.cursor/rules/vanguard-ops.mdc` — deploy rules, secrets, DB constraints
-3. `.cursor/rules/dojo-isolation.mdc` — Practice Dojo boundary rules
-4. `supabase/functions/README.md` — all edge functions mapped
-5. `docs/DEV_GUIDE.md` — **how to develop: conventions, commit rules, checklists**
-6. `docs/runbooks/` — operational fixes from past incidents
-7. `docs/PRODUCT_PRINCIPLES.md` — full guardrails document
-8. `docs/legacy/` — older context (verify against current state before trusting)
+1. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data flow, crons, subsystems (one page)
+2. [`supabase/functions/README.md`](supabase/functions/README.md) — every edge function: status, JWT, tables
+3. [`docs/DEV_GUIDE.md`](docs/DEV_GUIDE.md) — conventions, checklists, how to add functions
+4. `.cursor/rules/vanguard-agent-workflow.mdc` — definition of done for agents
+5. `.cursor/rules/vanguard-context.mdc` — philosophy and epistemic guardrails
+6. `.cursor/rules/vanguard-ops.mdc` — deploy, secrets, DB constraints
+7. [`BACKLOG.md`](BACKLOG.md) — intentionally deferred work
+8. `docs/runbooks/` — incident fixes
+9. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
+10. [`docs/legacy/`](docs/legacy/README.md) — **archive only; do not implement from here**
 
 ## Models (current)
 
@@ -70,5 +92,5 @@ Edge function gotchas:
 
 - Evening reconciliation → planning sessions → plan jutra: **ACTIVE**
 - Morning brief + midday check crons: **ACTIVE**
-- Practice Dojo: **ACTIVE** (separate Telegram bot)
+- Practice Dojo: **DISABLED** (functions early-return 410, pg_cron jobs unscheduled)
 - Observation-only mode: **DEPRECATED**

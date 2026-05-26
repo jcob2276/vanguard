@@ -17,6 +17,7 @@ export default function OuraWidget({ session }) {
   const [syncing, setSyncing] = useState(false);
   const [data, setData] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [baselineMeans, setBaselineMeans] = useState(null);
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [tempToken, setTempToken] = useState('');
 
@@ -53,6 +54,23 @@ export default function OuraWidget({ session }) {
           today: todayRecord || null,
           yesterday: yesterdayRecord || null
         });
+      }
+
+      // Pobierz rolling baseline (90 dni) do relativnych thresholdów
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const { data: aggHistory } = await supabase
+        .from('vanguard_daily_aggregates')
+        .select('hrv_avg, sleep_hours')
+        .eq('user_id', session.user.id)
+        .gte('date', ninetyDaysAgo.toISOString().split('T')[0])
+        .not('hrv_avg', 'is', null);
+
+      if (aggHistory && aggHistory.length >= 5) {
+        const hrvVals = aggHistory.map(d => d.hrv_avg).filter(Boolean);
+        const sleepVals = aggHistory.map(d => d.sleep_hours).filter(Boolean);
+        const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+        setBaselineMeans({ hrv: mean(hrvVals), sleep: mean(sleepVals) });
       }
     } catch (err) {
       console.error('Error fetching Oura data:', err);
@@ -133,7 +151,7 @@ export default function OuraWidget({ session }) {
   const sleepHours = Math.floor(activeOura?.total_sleep_hours || 0);
   const sleepMinutes = Math.round(((activeOura?.total_sleep_hours || 0) % 1) * 60);
 
-  const insights = VanguardCore.translateBiometrics(activeOura);
+  const insights = VanguardCore.translateBiometrics(activeOura, baselineMeans);
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">

@@ -13,19 +13,20 @@ Cron-triggered and webhook edge functions **MUST** deploy with JWT verification 
 Functions that require `verify_jwt: false`:
 
 - `vanguard-morning-brief`
+- `vanguard-morning-ping`
 - `vanguard-midday-check`
 - `vanguard-daily-reconciliation`
 - `vanguard-intentions-cleanup`
-- `weekly-report`
 - `vanguard-telegram`
 - `dojo-telegram`
 - `dojo-scheduler`
 - `vanguard-oracle` (invoked server-to-server from telegram)
 - `vanguard-auto-classify` (DB trigger / cron)
-- `vanguard-architect`, `ingest-vault-log`, `vanguard-friction-qa`, `vanguard-reset-prompt`
-- `vanguard-analyst`, `save-daily-aggregate`
+- `vanguard-architect`, `ingest-vault-log`, `vanguard-friction-qa`
+- `vanguard-analyst`, `save-daily-aggregate`, `vanguard-weekly-synthesis`
 
-After every deploy: check Supabase edge function logs for **401 Unauthorized**.
+After every deploy: `npm run smoke` then check edge logs for **401 Unauthorized**.  
+Runbook: `docs/runbooks/post-deploy-smoke.md` — bulk deploy: `scripts/ops/deploy-no-jwt.ps1`
 
 Never store deploy version numbers in rules — they go stale weekly. Use Supabase dashboard for current versions.
 

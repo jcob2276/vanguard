@@ -229,7 +229,7 @@ Next rep:
 - [jedna instrukcja]
 Status: pass`;
 
-  const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
@@ -678,6 +678,9 @@ async function handleVoiceRep(message: Record<string, unknown>, chatId: number):
 // ---- Main handler ----
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200 });
+  console.log('[dojo-telegram] Dojo bot is disabled by user configuration.');
+  return new Response("Dojo Telegram Bot is disabled", { status: 410 });
   try {
     const payload = await req.json();
     const message = payload.message as Record<string, unknown> | undefined;

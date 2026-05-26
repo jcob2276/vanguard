@@ -1,22 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as YazioLib from "https://esm.sh/yazio"
+import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 const { Yazio } = YazioLib
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const supabase = createServiceClient()
     const { userId, sync_history, days } = await req.json().catch(() => ({ userId: null, sync_history: false, days: null }))
     if (!userId) throw new Error('Missing userId')
 
-    const { data: settings } = await supabase.from('user_settings').select('yazio_username, yazio_password').eq('user_id', userId).single()
+    const settings = await safeExecute(
+      supabase.from('user_settings').select('yazio_username, yazio_password').eq('user_id', userId).single()
+    )
     if (!settings?.yazio_username) throw new Error('Missing credentials')
 
     const yazio = new Yazio({ credentials: { username: settings.yazio_username, password: settings.yazio_password } })
@@ -27,9 +24,19 @@ serve(async (req) => {
     const results = []
     const productCache: Record<string, string> = {};
 
+    const formatter = new Intl.DateTimeFormat('sv', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const warsawTodayStr = formatter.format(new Date());
+
     for (let i = 0; i < daysToSync; i++) {
-      const targetDate = new Date()
-      if (sync_history) targetDate.setDate(targetDate.getDate() - i)
+      const targetDate = new Date(`${warsawTodayStr}T12:00:00Z`);
+      if (i > 0) {
+        targetDate.setUTCDate(targetDate.getUTCDate() - i);
+      }
       const dateStr = targetDate.toISOString().split('T')[0]
 
       try {
@@ -108,23 +115,26 @@ serve(async (req) => {
         let insertedCount = 0;
         let sample: any[] = [];
         if (totalCals > 0 || totalProt > 0) {
-          const { error: nutritionError } = await supabase
-            .from('daily_nutrition')
-            .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' });
-          if (nutritionError) throw new Error(`daily_nutrition upsert failed: ${nutritionError.message}`);
+          await safeExecute(
+            supabase
+              .from('daily_nutrition')
+              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' })
+          );
 
-          const { error: deleteError } = await supabase
-            .from('daily_food_entries')
-            .delete()
-            .eq('user_id', userId)
-            .eq('date', dateStr);
-          if (deleteError) throw new Error(`daily_food_entries delete failed: ${deleteError.message}`);
+          await safeExecute(
+            supabase
+              .from('daily_food_entries')
+              .delete()
+              .eq('user_id', userId)
+              .eq('date', dateStr)
+          );
 
           if (foodEntries.length > 0) {
-            const { error: insertError } = await supabase
-              .from('daily_food_entries')
-              .insert(foodEntries);
-            if (insertError) throw new Error(`daily_food_entries insert failed: ${insertError.message}`);
+            await safeExecute(
+              supabase
+                .from('daily_food_entries')
+                .insert(foodEntries)
+            );
           }
 
           const { count, data: insertedSample, error: verifyError } = await supabase
@@ -133,7 +143,7 @@ serve(async (req) => {
             .eq('user_id', userId)
             .eq('date', dateStr)
             .limit(3);
-          if (verifyError) throw new Error(`daily_food_entries verify failed: ${verifyError.message}`);
+          if (verifyError) console.error(`[Yazio] daily_food_entries verify failed:`, verifyError);
           insertedCount = count || 0;
           sample = insertedSample || [];
         }

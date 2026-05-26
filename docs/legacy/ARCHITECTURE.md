@@ -1,3 +1,7 @@
+# Vanguard OS — Architecture Reference (LEGACY)
+
+> **Do not implement from this file.** Current map: [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md), [`AGENTS.md`](../../AGENTS.md).
+
 # Vanguard OS — Architecture Reference
 
 ## Co to jest

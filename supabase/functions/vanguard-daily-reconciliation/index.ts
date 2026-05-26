@@ -1,41 +1,27 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { sendMessageParsed } from "../_shared/telegram.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
+import { getVanguardUserId } from "../_shared/constants.ts";
+import { getWarsawDayBoundaries } from "../_shared/time.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '2031950629');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || "";
-const VANGUARD_USER_ID = Deno.env.get('VANGUARD_USER_ID') || '165ae341-670c-46ce-82dc-434c4dbfcdfd';
+const VANGUARD_USER_ID = getVanguardUserId();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-function getWarsawDayBoundaries(dateStr: string): { start: string; end: string } {
-  const probe = new Date(`${dateStr}T12:00:00Z`);
-  const tzLabel = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Warsaw',
-    timeZoneName: 'shortOffset'
-  }).formatToParts(probe).find(p => p.type === 'timeZoneName')?.value || 'GMT+2';
-  const m = tzLabel.match(/GMT([+-])(\d+)(?::(\d+))?/);
-  const sign = (m?.[1] === '+') ? 1 : -1;
-  const offsetMs = sign * ((parseInt(m?.[2] || '2') * 60 + parseInt(m?.[3] || '0')) * 60000);
-  const startUTC = new Date(`${dateStr}T00:00:00Z`).getTime() - offsetMs;
-  return {
-    start: new Date(startUTC).toISOString(),
-    end:   new Date(startUTC + 86400000).toISOString()
-  };
-}
+const supabase = createServiceClient();
 
 async function sendTelegram(text: string): Promise<number | null> {
-  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'Markdown' })
+  const result = await sendMessageParsed(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
+    parseMode: 'Markdown',
   });
-  const data = await res.json();
-  if (!data.ok) console.error('[reconciliation] Telegram error:', JSON.stringify(data));
-  return data.result?.message_id ?? null;
+  if (!result.ok) {
+    console.error('[reconciliation] Telegram error:', result.description);
+    return null;
+  }
+  return result.messageId ?? null;
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200 });
   try {
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
@@ -77,6 +63,7 @@ Deno.serve(async (req) => {
         .from('friction_events')
         .select('id, friction_type, actual_behavior, declared_intention, immediate_cost')
         .eq('user_id', VANGUARD_USER_ID)
+        .in('event_kind', ['friction_event', 'positive_micro_action'])
         .gte('occurred_at', dayStart)
         .lt('occurred_at', dayEnd)
         .order('occurred_at', { ascending: true }),
@@ -96,7 +83,7 @@ Deno.serve(async (req) => {
         .select('planning_summary')
         .eq('user_id', VANGUARD_USER_ID)
         .eq('date', yesterdayStr)
-        .eq('type', 'planning')
+        .not('planning_summary', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -104,6 +91,41 @@ Deno.serve(async (req) => {
 
     if (frictionRes.error) console.error('[reconciliation] friction query error:', frictionRes.error);
     if (anchorRes.error) console.error('[reconciliation] anchor query error:', anchorRes.error);
+    if (planRes.error) console.error('[reconciliation] plan query error:', planRes.error);
+
+    const warsawDay = new Date().toLocaleDateString('en-US', { timeZone: 'Europe/Warsaw', weekday: 'long' });
+    const isSaturday = warsawDay === 'Saturday';
+
+    if (isSaturday) {
+      console.log('[reconciliation] triggering Saturday Check-In flow');
+      const messageText = 
+        `🧱 *Saturday Check-In: WEEKLY INTEGRATION + REALITY REVIEW* 🧱\n\n` +
+        `*Część 1: INPUT*\n` +
+        `1. Co konsumowałeś najwięcej?\n` +
+        `2. Co przeczytałeś / oglądałeś / analizowałeś?\n` +
+        `3. Ile było konsumowania vs tworzenia?\n` +
+        `4. Czy input prowadził do działania czy zastępował działanie?\n\n` +
+        `_Nagraj głosówkę lub odpisz._`;
+
+      const messageId = await sendTelegram(messageText);
+
+      const { data: insData, error: insErr } = await supabase.from('daily_reconciliations').insert({
+        user_id:             VANGUARD_USER_ID,
+        date:                todayStr,
+        status:              'sent',
+        mode:                'checkin',
+        telegram_message_id: messageId,
+        parsed_response:     { mode: 'saturday_checkin', step: 'input', answers: {} }
+      }).select();
+
+      if (insErr) {
+        console.error('[reconciliation] Saturday insert error:', insErr);
+        throw new Error('Insert failed: ' + insErr.message);
+      }
+
+      console.log(`[reconciliation] Saturday check-in sent msg_id=${messageId} data=${JSON.stringify(insData)}`);
+      return new Response(JSON.stringify({ ok: true, mode: 'saturday_checkin' }), { status: 200 });
+    }
 
     const evList = frictionRes.data || [];
     const hasEvents = evList.length > 0;
@@ -116,22 +138,23 @@ Deno.serve(async (req) => {
 
     // Extract today's plan from yesterday's planning session
     const planningSummary = planRes.data?.planning_summary as any || null;
-    const top3: string[] = planningSummary?.top3 || [];
-    const firstMove: string | null = planningSummary?.first_move_morning || planningSummary?.pierwszy_ruch || null;
-    const tensionAction: string | null = planningSummary?.tension_action?.task || null;
+    const prodArtifact = planningSummary?.production_artifact as { artifact?: string } | undefined;
+    const prodArtifactName = prodArtifact?.artifact || null;
+    const oneClearMove = planningSummary?.one_clear_move || (planningSummary?.top3 as string[] || [])[0] || null;
+    const tensionAction = (planningSummary?.tension_action as { action?: string } | undefined)?.action || planningSummary?.tension_action?.task || null;
 
-    console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'} plan=${top3.length > 0 ? 'yes' : 'no'}`);
+    console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'} plan=${oneClearMove ? 'yes' : 'no'}`);
 
     let messageText: string;
 
     // Plan block — from last night's planning session
     let planBlock = '';
-    if (top3.length > 0) {
-      planBlock =
-        `*Plan był:*\n` +
-        top3.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
-      if (tensionAction) planBlock += `\n⚡ Ruch napięciowy: ${tensionAction}`;
-      planBlock += '\n\n';
+    if (oneClearMove || prodArtifactName || tensionAction) {
+      planBlock = `*Plan był:*\n`;
+      if (oneClearMove) planBlock += `→ Pierwszy blok: ${oneClearMove}\n`;
+      if (prodArtifactName) planBlock += `→ Artefakt: ${prodArtifactName}\n`;
+      if (tensionAction) planBlock += `⚡ Ruch napięciowy: ${tensionAction}\n`;
+      planBlock += '\n';
     }
 
     // Friction summary (if any)
@@ -146,18 +169,19 @@ Deno.serve(async (req) => {
     }
 
     messageText =
-      `*Zamknięcie dnia — 5 min.*\n\n` +
+      `*Zamknięcie dnia — głosówka.*\n\n` +
       planBlock +
       frictionBlock +
-      `Powiedz głosówką (lub napisz):\n` +
-      `1. Co realnie zostało zrobione?\n` +
-      `2. Co się rozjechało?\n` +
-      `3. Jakie mikro-tarcie dziś zauważyłeś?\n` +
-      `4. Co jutro musi się wydarzyć?`;
+      `Powiedz:\n` +
+      `1. Jaki artefakt dziś powstał?\n` +
+      `2. Czy pierwsze 90 minut było bez stymulacji?\n` +
+      `3. Jaki ruch napięciowy zrobiłeś albo ominąłeś?\n` +
+      `4. Gdzie analiza zastąpiła działanie?\n` +
+      `5. Co jest pierwszym artefaktem jutra?`;
 
     const messageId = await sendTelegram(messageText);
 
-    await supabase.from('daily_reconciliations').insert({
+    const { error: reconInsertErr } = await supabase.from('daily_reconciliations').insert({
       user_id:             VANGUARD_USER_ID,
       date:                todayStr,
       status:              'sent',
@@ -171,6 +195,10 @@ Deno.serve(async (req) => {
       telegram_message_id: messageId,
       parsed_response:     anchorText ? { anchor: anchorText } : null
     });
+    if (reconInsertErr) {
+      console.error('[reconciliation] evening insert failed:', reconInsertErr);
+      throw new Error(`Insert failed: ${reconInsertErr.message}`);
+    }
 
     console.log(`[reconciliation] sent mode=${mode} events=${evList.length} anchor=${!!anchorText} msg_id=${messageId}`);
     return new Response(JSON.stringify({ ok: true, mode, events_count: evList.length, anchor: !!anchorText }), { status: 200 });

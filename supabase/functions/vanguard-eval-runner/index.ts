@@ -1,15 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { getVanguardUserId } from "../_shared/constants.ts"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
-const VANGUARD_USER_ID = Deno.env.get('VANGUARD_USER_ID') || '165ae341-670c-46ce-82dc-434c4dbfcdfd';
 
 async function judgeAnswer(params: {
   question: string;
@@ -73,7 +66,7 @@ PRÓG ZALICZENIA: score >= 0.7`;
 }
 
 async function runEval(run_id: string, questions: any[], user_id: string, offset = 0, total = 0, isFinalBatch = true) {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createServiceClient();
   let passed = 0;
   let failed = 0;
   let totalScore = 0;
@@ -123,7 +116,7 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           actual_answer: actualAnswer
         });
 
-        await supabase.from('vanguard_eval_results').insert({
+        const { error: insertResultErr } = await supabase.from('vanguard_eval_results').insert({
           run_id,
           user_id,
           question_id: q.id,
@@ -137,6 +130,10 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           judge_notes: judgment.notes,
           raw_response: { oracle: oracleData }
         });
+        if (insertResultErr) {
+          console.error(`[eval] Failed to insert result for Q[${q.id}]:`, insertResultErr);
+          throw insertResultErr;
+        }
 
         if (judgment.passed) passed++; else failed++;
         totalScore += judgment.score;
@@ -165,7 +162,9 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           question: q.question,
           answer: '', score: 0, passed: false,
           judge_notes: `Runner exception: ${err.message}`
-        }).catch(() => {});
+        }).catch((insertErr) => {
+          console.error(`[eval] Failed to save error result for Q[${q.id}]:`, insertErr);
+        });
       }
     }
 
@@ -205,9 +204,13 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
         judge_model: 'gpt-4o-mini'
       };
 
-      await supabase.from('vanguard_eval_runs').update({
+      const { error: updateRunErr } = await supabase.from('vanguard_eval_runs').update({
         status: 'completed', summary, completed_at: new Date().toISOString()
       }).eq('id', run_id);
+      if (updateRunErr) {
+        console.error(`[eval] Failed to update run status:`, updateRunErr);
+        throw updateRunErr;
+      }
 
       console.log(`[eval] DONE run=${run_id} pass_rate=${(passedAll/totalAll*100).toFixed(1)}% (${passedAll}/${totalAll})`);
     } else {
@@ -220,14 +223,16 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       status: 'failed',
       summary: { error: err.message, passed, failed },
       completed_at: new Date().toISOString()
-    }).eq('id', run_id).catch(() => {});
+    }).eq('id', run_id).catch((updateErr) => {
+      console.error(`[eval] Failed to mark run ${run_id} as failed:`, updateErr);
+    });
   }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createServiceClient();
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -260,7 +265,7 @@ serve(async (req) => {
     }
 
     const suite = body.suite || 'vanguard_v1';
-    const user_id = body.user_id || VANGUARD_USER_ID;
+    const user_id = body.user_id || getVanguardUserId();
     const oracle_version = body.oracle_version || 'v1';
     const model = body.model || 'deepseek-chat';
     const batch_size = body.batch_size ? Number(body.batch_size) : 8;
@@ -306,8 +311,8 @@ serve(async (req) => {
     const batch = allQuestions.slice(offset, offset + batch_size);
     const finished = offset + batch.length >= total;
 
-    // Przetwarzamy batch w tle
-    EdgeRuntime.waitUntil(runEval(run_id, batch, user_id, offset, total, finished));
+    // Synchronous batch — waitUntil is unreliable on Supabase Edge (work is cut off after response)
+    await runEval(run_id, batch, user_id, offset, total, finished);
 
     return new Response(JSON.stringify({
       success: true,

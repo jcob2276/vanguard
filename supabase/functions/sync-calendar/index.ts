@@ -1,21 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const { userId, code, redirectUri } = await req.json()
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')
     const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')
@@ -37,22 +28,27 @@ serve(async (req) => {
       })
 
       const tokens = await tokenResponse.json()
+    // OAuth token upsert (nie rzucamy błędem — to opcjonalna operacja)
       if (tokens.refresh_token) {
-        await supabase.from('vanguard_tokens').upsert({
-          user_id: userId,
-          provider: 'google',
-          refresh_token: tokens.refresh_token
-        })
+        await safeExecute(
+          supabase.from('vanguard_tokens').upsert({
+            user_id: userId,
+            provider: 'google',
+            refresh_token: tokens.refresh_token
+          })
+        )
       }
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
     }
 
     // 2. FETCH TOKEN
-    const { data: tokenData } = await supabase
-      .from('vanguard_tokens')
-      .select('refresh_token')
-      .eq('user_id', userId)
-      .maybeSingle()
+    const tokenData = await safeExecute(
+      supabase
+        .from('vanguard_tokens')
+        .select('refresh_token')
+        .eq('user_id', userId)
+        .maybeSingle()
+    )
 
     if (!tokenData) return new Response(JSON.stringify({ error: 'No token' }), { status: 400, headers: corsHeaders })
 
@@ -69,10 +65,35 @@ serve(async (req) => {
 
     const { access_token } = await refreshRes.json()
 
+    // Helper to get Warsaw offset (e.g. "+02:00" or "+01:00") dynamically
+    const getWarsawOffset = (date: Date): string => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Warsaw',
+        timeZoneName: 'longOffset'
+      }).formatToParts(date);
+      const offsetPart = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+2';
+      const cleanOffset = offsetPart.replace('GMT', '');
+      if (cleanOffset === 'Z') return '+00:00';
+      if (!cleanOffset.includes(':')) {
+        const sign = cleanOffset[0];
+        const val = cleanOffset.substring(1).padStart(2, '0');
+        return `${sign}${val}:00`;
+      }
+      return cleanOffset;
+    };
+
     // 3. SYNC CALENDAR (INTENTIONS)
     const now = new Date()
-    const startOfDay = new Date(now.setHours(0,0,0,0)).toISOString()
-    const endOfDay = new Date(now.setHours(23,59,59,999)).toISOString()
+    const formatter = new Intl.DateTimeFormat('sv', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const warsawTodayStr = formatter.format(now);
+    const offset = getWarsawOffset(now);
+    const startOfDay = new Date(`${warsawTodayStr}T00:00:00${offset}`).toISOString()
+    const endOfDay = new Date(`${warsawTodayStr}T23:59:59.999${offset}`).toISOString()
 
     const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
@@ -88,7 +109,9 @@ serve(async (req) => {
     }))
 
     if (calendarEvents.length > 0) {
-      await supabase.from('vanguard_calendar').upsert(calendarEvents, { onConflict: 'event_id' })
+      await safeExecute(
+        supabase.from('vanguard_calendar').upsert(calendarEvents, { onConflict: 'event_id' })
+      )
     }
 
     // 4. SYNC YOUTUBE (BEHAVIOR)
@@ -106,7 +129,9 @@ serve(async (req) => {
       }))
 
     if (ytActivities.length > 0) {
-      await supabase.from('vanguard_youtube').upsert(ytActivities, { onConflict: 'user_id, video_id' })
+      await safeExecute(
+        supabase.from('vanguard_youtube').upsert(ytActivities, { onConflict: 'user_id, video_id' })
+      )
     }
 
     return new Response(JSON.stringify({ 

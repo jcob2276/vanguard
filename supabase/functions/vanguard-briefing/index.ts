@@ -1,115 +1,77 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { sendMessageParsed } from "../_shared/telegram.ts"
+import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
+import { fetchBriefingStreamLayers, formatBriefingStreamText } from "../_shared/streamContext.ts"
+import { getStreamCutoffs } from "../_shared/time.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const { userId } = await req.json()
     if (!userId) throw new Error("Missing userId")
 
     console.log(`[briefing] start for user: ${userId}`)
 
-    const now = new Date()
-    const cut24h  = new Date(now.getTime() - 24  * 60 * 60 * 1000).toISOString()
-    const cut72h  = new Date(now.getTime() - 72  * 60 * 60 * 1000).toISOString()
-    const cut21d  = new Date(now.getTime() - 21  * 24 * 60 * 60 * 1000).toISOString()
+    const { cut72h: cut72h, cut21d } = getStreamCutoffs()
 
-    // 1. Fundament (identity anchor, nie aktualność)
-    const { data: fundament } = await supabase
-      .from('user_fundament')
-      .select('identity, philosophy, vision')
-      .eq('user_id', userId)
-      .single()
+    const fundament = await safeExecute(
+      supabase.from('user_fundament')
+        .select('identity, philosophy, vision')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    )
 
-    // 2. Stream — PRIMARY: ostatnie 24h (chronologicznie, bez LLM retrieval)
-    const { data: stream24h } = await supabase
-      .from('vanguard_stream')
-      .select('content, category, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', cut24h)
-      .order('created_at', { ascending: true })
-      .limit(25)
+    const streamLayers = await fetchBriefingStreamLayers(supabase, userId)
 
-    // 3. Stream — EXPANDED: 24h–72h (tylko jeśli mało danych z 24h)
-    const { data: stream72h } = await supabase
-      .from('vanguard_stream')
-      .select('content, category, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', cut72h)
-      .lt('created_at', cut24h)
-      .order('created_at', { ascending: false })
-      .limit(stream24h && stream24h.length >= 5 ? 3 : 12)
+    const biometrics = await safeExecute(
+      supabase.from('vanguard_daily_aggregates')
+        .select('date, final_state, execution_score, sleep_hours, hrv_avg, readiness_score')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(14),
+    )
 
-    // 4. Stream — PATTERN: 72h–21d (kontekst wzorca, oznaczony jako archiwum)
-    const { data: streamPattern } = await supabase
-      .from('vanguard_stream')
-      .select('content, category, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', cut21d)
-      .lt('created_at', cut72h)
-      .order('created_at', { ascending: false })
-      .limit(8)
+    const links = await safeExecute(
+      supabase.from('vanguard_entity_links')
+        .select('source_entity, relation, target_entity, temporal_status, evidence_count')
+        .eq('user_id', userId)
+        .in('temporal_status', ['current', 'declared'])
+        .gte('valid_from', cut21d)
+        .order('evidence_count', { ascending: false })
+        .limit(15),
+    )
 
-    // 5. Biometria — ostatnie 14 dni
-    const { data: biometrics } = await supabase
-      .from('vanguard_daily_aggregates')
-      .select('date, final_state, execution_score, sleep_hours, hrv_avg, readiness_score')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .limit(14)
+    const recentFriction = await safeExecute(
+      supabase.from('friction_events')
+        .select('friction_type, deviation, immediate_cost, occurred_at, confidence_source')
+        .eq('user_id', userId)
+        .gte('occurred_at', cut72h)
+        .order('occurred_at', { ascending: false }),
+    )
 
-    // 6. Graf — TYLKO current + declared, max 21 dni wstecz
-    const { data: links } = await supabase
-      .from('vanguard_entity_links')
-      .select('source_entity, relation, target_entity, temporal_status, evidence_count')
-      .eq('user_id', userId)
-      .in('temporal_status', ['current', 'declared'])
-      .gte('valid_from', cut21d)
-      .order('evidence_count', { ascending: false })
-      .limit(15)
+    const topProvocation = await safeExecute(
+      supabase.from('vanguard_curiosity_queue')
+        .select('provocation, hypothesis, confidence_score')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('confidence_score', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    )
 
-    // 7. Friction events — ostatnie 72h
-    const { data: recentFriction } = await supabase
-      .from('friction_events')
-      .select('friction_type, deviation, immediate_cost, occurred_at, confidence_source')
-      .eq('user_id', userId)
-      .gte('occurred_at', cut72h)
-      .order('occurred_at', { ascending: false })
+    const latestOura = await safeExecute(
+      supabase.from('oura_daily_summary')
+        .select('date, total_sleep_hours, hrv_avg, readiness_score')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    )
 
-    // 8. Prowokacja z kolejki (pending, highest confidence)
-    const { data: topProvocation } = await supabase
-      .from('vanguard_curiosity_queue')
-      .select('provocation, hypothesis, confidence_score')
-      .eq('user_id', userId)
-      .eq('status', 'pending')
-      .order('confidence_score', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    // --- BUDOWANIE KONTEKSTU ---
-    const stream24hText = (stream24h || []).length > 0
-      ? (stream24h || []).map(s => `[${s.created_at}][${s.category}] ${s.content}`).join('\n')
-      : 'Brak wpisów z ostatnich 24h.'
-
-    const stream72hText = (stream72h || []).length > 0
-      ? '[24h–72h temu]:\n' + (stream72h || []).map(s => `[${s.created_at}][${s.category}] ${s.content}`).join('\n')
-      : ''
-
-    const streamPatternText = (streamPattern || []).length > 0
-      ? '[ARCHIWUM 72h–21d — tylko kontekst wzorca, nie aktualna prawda]:\n' +
-        (streamPattern || []).map(s => `[${s.created_at}][${s.category}] ${s.content}`).join('\n')
-      : ''
+    const { stream24hText, stream72hText, streamPatternText } = formatBriefingStreamText(streamLayers)
 
     const graphText = (links || []).length > 0
       ? '[GRAF — tylko current/declared, <21 dni]:\n' +
@@ -135,19 +97,27 @@ serve(async (req) => {
       : '[BIOMETRIA — ostatnie 14 dni]'
 
     // Sleep data status — Oura synchronizuje sen dopiero po manualnym otwarciu aplikacji
-    const todayStr = now.toISOString().split('T')[0]
-    const latestIsToday = latestAggregate?.date === todayStr
-    const sleepPending = latestIsToday && latestAggregate?.sleep_hours == null
+    const todayWarsawStr = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
+    const sleepPending = !latestOura || latestOura.date !== todayWarsawStr
     const sleepStatusNote = sleepPending
       ? '\n[SLEEP DATA: pending — Oura nie zsynchronizował jeszcze dzisiejszego snu. Nie wnioskuj o jakości snu z ostatniej nocy.]'
       : ''
 
-    const biometryText = (biometrics || []).length > 0
-      ? `${biometricsStatusLabel}${sleepStatusNote}:\n` +
-        (biometrics || []).map(b =>
-          `${b.date}: stan=${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours != null ? b.sleep_hours + 'h' : 'pending'}, HRV=${b.hrv_avg ?? 'pending'}, readiness=${b.readiness_score ?? 'pending'}`
-        ).join('\n')
-      : 'Brak danych biometrycznych.'
+    let biometryText = 'Brak danych biometrycznych.'
+    if ((biometrics || []).length > 0 || (!sleepPending && latestOura)) {
+      let biometryLines = (biometrics || []).map(b =>
+        `${b.date}: stan=${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours != null ? b.sleep_hours + 'h' : 'pending'}, HRV=${b.hrv_avg ?? 'pending'}, readiness=${b.readiness_score ?? 'pending'}`
+      )
+
+      if (!sleepPending && latestOura) {
+        const todayLine = `${latestOura.date}: stan=pending (w trakcie dnia), exec=pending, sen=${latestOura.total_sleep_hours}h, HRV=${latestOura.hrv_avg ?? 'pending'}, readiness=${latestOura.readiness_score ?? 'pending'}`
+        if (!biometrics?.some(b => b.date === latestOura.date)) {
+          biometryLines.unshift(todayLine)
+        }
+      }
+
+      biometryText = `${biometricsStatusLabel}${sleepStatusNote}:\n` + biometryLines.join('\n')
+    }
 
     // --- LLM BRIEFING ---
     const briefingRequest = await fetch('https://api.deepseek.com/chat/completions', {
@@ -217,22 +187,16 @@ ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`
     const briefingText = briefingData.choices?.[0]?.message?.content || "Nie udało się wygenerować raportu."
 
     // Telegram
-    const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')
-    const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')
+    const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''
+    const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0', 10)
 
-    const telegramRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: `VANGUARD BRIEFING\n\n${briefingText}`,
-      })
-    })
-
-    if (!telegramRes.ok) {
-      const errorData = await telegramRes.json()
-      console.error("[briefing] Telegram error:", errorData)
-      throw new Error(`Telegram error: ${errorData.description}`)
+    const telegramResult = await sendMessageParsed(
+      TELEGRAM_TOKEN,
+      TELEGRAM_CHAT_ID,
+      `VANGUARD BRIEFING\n\n${briefingText}`,
+    )
+    if (!telegramResult.ok) {
+      throw new Error(`Telegram error: ${telegramResult.description}`)
     }
 
     console.log(`[briefing] done`)

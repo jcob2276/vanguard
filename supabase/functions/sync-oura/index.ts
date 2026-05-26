@@ -1,12 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
 const OURA_BASE_URL = 'https://api.ouraring.com/v2/usercollection'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,22 +9,20 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const { userId } = await req.json()
     if (!userId) throw new Error('Missing userId')
 
     // 1. Get Token
-    const { data: settings, error: settingsError } = await supabase
-      .from('user_settings')
-      .select('oura_token')
-      .eq('user_id', userId)
-      .single()
-
-    if (settingsError || !settings?.oura_token) throw new Error('Oura token not found')
+    const settings = await safeExecute(
+      supabase
+        .from('user_settings')
+        .select('oura_token')
+        .eq('user_id', userId)
+        .single()
+    )
+    if (!settings?.oura_token) throw new Error('Oura token not found')
 
     const token = settings.oura_token
     const headers = { 'Authorization': `Bearer ${token}` }
@@ -112,12 +105,20 @@ serve(async (req) => {
     const upsertData = Object.values(summaries).map(s => {
       let isDisciplined = false
       if (s.bedtime_timestamp) {
-        const timePart = s.bedtime_timestamp.split('T')[1]
-        if (timePart) {
-          const [h, m] = timePart.split(':').map(Number)
+        try {
+          const dateObj = new Date(s.bedtime_timestamp)
+          const formattedStr = dateObj.toLocaleTimeString('en-US', {
+            timeZone: 'Europe/Warsaw',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          const [h, m] = formattedStr.split(':').map(Number)
           if (h >= 18 && (h < 23 || (h === 23 && m < 30))) {
             isDisciplined = true
           }
+        } catch (e) {
+          console.error(`[OURA] Failed to parse bedtime timestamp: ${s.bedtime_timestamp}`, e)
         }
       }
       
@@ -144,14 +145,12 @@ serve(async (req) => {
       }
     })
 
-
-
     if (upsertData.length > 0) {
-      const { error: upsertError } = await supabase
-        .from('oura_daily_summary')
-        .upsert(upsertData, { onConflict: 'user_id,date' })
-      
-      if (upsertError) throw upsertError
+      await safeExecute(
+        supabase
+          .from('oura_daily_summary')
+          .upsert(upsertData, { onConflict: 'user_id,date' })
+      )
     }
 
     return new Response(JSON.stringify({ success: true }), { 

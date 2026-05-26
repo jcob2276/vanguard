@@ -1,21 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { sendMessage } from "../_shared/telegram.ts"
+import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
-    const { data: users } = await supabase.from('user_settings').select('user_id')
+    const users = await safeExecute(supabase.from('user_settings').select('user_id'))
     const user_id = users?.[0]?.user_id
     if (!user_id) throw new Error("User not found")
 
@@ -24,30 +17,31 @@ serve(async (req) => {
     const cut7d  = new Date(now.getTime() -  7 * 24 * 60 * 60 * 1000).toISOString()
 
     // 1. Stream z ostatnich 48h
-    const { data: recentStream } = await supabase
-      .from('vanguard_stream')
-      .select('id, content, created_at, category')
-      .eq('user_id', user_id)
-      .gte('created_at', cut48h)
-      .order('created_at', { ascending: false })
+    const recentStream = await safeExecute(
+      supabase.from('vanguard_stream')
+        .select('id, content, created_at, category')
+        .eq('user_id', user_id)
+        .gte('created_at', cut48h)
+        .order('created_at', { ascending: false }),
+    )
 
     const streamIds = (recentStream || []).map(s => s.id)
 
-    // 2. Friction events linkujące do tych stream records
-    const { data: linkedFriction } = streamIds.length > 0
-      ? await supabase
-          .from('friction_events')
-          .select('id, stream_record_id, friction_type, declared_intention, actual_behavior, deviation, immediate_cost, later_cost, confidence, confidence_source, status, occurred_at')
-          .eq('user_id', user_id)
-          .in('stream_record_id', streamIds)
-      : { data: [] }
+    const linkedFriction = streamIds.length > 0
+      ? await safeExecute(
+          supabase.from('friction_events')
+            .select('id, stream_record_id, friction_type, event_kind, declared_intention, actual_behavior, deviation, immediate_cost, later_cost, confidence, confidence_source, status, occurred_at')
+            .eq('user_id', user_id)
+            .in('stream_record_id', streamIds),
+        )
+      : []
 
-    // 3. Wszystkie friction events z 7 dni (do statystyk typów)
-    const { data: allFriction7d } = await supabase
-      .from('friction_events')
-      .select('friction_type, status, confidence, immediate_cost')
-      .eq('user_id', user_id)
-      .gte('occurred_at', cut7d)
+    const allFriction7d = await safeExecute(
+      supabase.from('friction_events')
+        .select('friction_type, event_kind, status, confidence, immediate_cost')
+        .eq('user_id', user_id)
+        .gte('occurred_at', cut7d),
+    )
 
     // --- ANALIZA ---
     const stream = recentStream || []
@@ -59,10 +53,19 @@ serve(async (req) => {
     // Stream bez friction events (potencjalne missy)
     const noFriction = stream.filter(s => !linkedIds.has(s.id))
 
-    // Typy z 7 dni
+    // Typy z 7 dni i statystyki event_kind
     const typeCounts: Record<string, number> = {}
+    const kindCounts: Record<string, number> = {
+      friction_event: 0,
+      positive_micro_action: 0,
+      state_observation: 0,
+      micro_behavior_observation: 0,
+      reflection: 0
+    }
     for (const f of all7d) {
       if (f.friction_type) typeCounts[f.friction_type] = (typeCounts[f.friction_type] || 0) + 1
+      const k = f.event_kind || 'friction_event'
+      kindCounts[k] = (kindCounts[k] || 0) + 1
     }
     const typesSorted = Object.entries(typeCounts)
       .sort(([,a],[,b]) => b - a)
@@ -110,7 +113,14 @@ PIPELINE (ostatnie 48h)
   brak eventu:        ${noFriction.length}
   extraction rate:    ${extractionRate}%
 
-JAKOŚĆ
+OBSERWACJE (ostatnie 7 dni)
+  tarcia behawioralne: ${kindCounts.friction_event}x
+  pozytywne gesty:     ${kindCounts.positive_micro_action}x
+  stany/emocje:        ${kindCounts.state_observation}x
+  mikro-zachowania:    ${kindCounts.micro_behavior_observation}x
+  refleksje:           ${kindCounts.reflection}x
+
+JAKOŚĆ (ostatnie 48h)
   z kosztem (jawnym): ${withCost}
   bez kosztu (null):  ${withoutCost}
   avg confidence:     ${avgConf}
@@ -136,11 +146,12 @@ aby przejrzeć pełną listę z ostatnich 48h.`
     const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')
 
     if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: report })
-      })
+      const chatId = parseInt(TELEGRAM_CHAT_ID, 10);
+      const tgRes = await sendMessage(TELEGRAM_TOKEN, chatId, report);
+      if (!tgRes.ok) {
+        const errBody = await tgRes.text().catch(() => '');
+        console.error('[friction-qa] Telegram send failed:', tgRes.status, errBody.substring(0, 200));
+      }
     }
 
     console.log(`[friction-qa] done — stream:${stream.length} friction:${linked.length} rate:${extractionRate}%`)

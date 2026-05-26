@@ -10,9 +10,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { getVanguardUserId } from "../_shared/constants.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
-const VANGUARD_USER_ID = Deno.env.get('VANGUARD_USER_ID') || '';
+const VANGUARD_USER_ID = getVanguardUserId();
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 
 const supabase = createServiceClient();
@@ -24,14 +25,14 @@ serve(async () => {
       return new Response('ok');
     }
 
-    const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+    const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     const { data: rows, error } = await supabase
       .from('daily_reconciliations')
       .select('id, planning_summary, answered_at, morning_sent_at')
       .eq('user_id', VANGUARD_USER_ID)
       .not('planning_summary', 'is', null)
-      .order('answered_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(5);
 
     if (error) {
@@ -55,25 +56,39 @@ serve(async () => {
     }
 
     const plan = row.planning_summary as Record<string, any>;
-    const firstMove = plan.first_move_morning || plan.pierwszy_ruch || '—';
-    // one_clear_move: new schema field, falls back to top3[0]
-    const oneClearMove = plan.one_clear_move || (plan.top3 as string[] || [])[0] || '—';
+    const oneClearMove = plan.one_clear_move || '—';
+    const prodArtifact = plan.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
+    const prodArtifactName = prodArtifact?.artifact || '—';
     const ta = plan.tension_action as { action?: string; status?: string } | undefined;
-    const taActive = ta?.action && ta?.status !== 'done';
+    const taAction = ta?.action || '—';
 
-    const text =
-      `Start dnia.\n\nNie scrolluj.\n\n` +
-      `Pierwszy ruch:\n→ Woda.\n→ Otwórz: ${firstMove}.\n→ 10 minut.\n\n` +
-      `Dzisiaj dzień wygrywa:\n${oneClearMove}` +
-      (taActive ? `\n\n⚡ Ruch napięciowy:\n${ta!.action}` : '');
+    const text = 
+      `Start dnia.\n\n` +
+      `Telefon nie jest pierwszy.\n\n` +
+      `Pierwsze 90 minut:\n` +
+      `→ bez scrolla\n` +
+      `→ bez YouTube\n` +
+      `→ bez AI loopa\n` +
+      `→ bez reorganizacji systemu\n\n` +
+      `Pierwszy blok:\n` +
+      `${oneClearMove}\n\n` +
+      `Artefakt po bloku:\n` +
+      `${prodArtifactName}\n\n` +
+      `⚡ Ruch napięciowy:\n` +
+      `${taAction}`;
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
       replyMarkup: {
-        inline_keyboard: [[
-          { text: '✅ Start 10 min', callback_data: 'morning_start' },
-          { text: '📋 Pokaż plan', callback_data: 'morning_show_plan' },
-          { text: '😵 Wstałem za późno', callback_data: 'morning_late' }
-        ]]
+        inline_keyboard: [
+          [
+            { text: '🚀 Start 90', callback_data: 'morning_start' },
+            { text: '⚡ Minimum 20', callback_data: 'morning_minimum_20' }
+          ],
+          [
+            { text: '😵 Wstałem za późno', callback_data: 'morning_late' },
+            { text: '📋 Pokaż plan', callback_data: 'morning_show_plan' }
+          ]
+        ]
       },
       disableNotification: false,
     });

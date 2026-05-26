@@ -15,9 +15,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { getVanguardUserId } from "../_shared/constants.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
-const VANGUARD_USER_ID = Deno.env.get('VANGUARD_USER_ID') || '';
+const VANGUARD_USER_ID = getVanguardUserId();
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 
 const supabase = createServiceClient();
@@ -29,14 +30,14 @@ serve(async () => {
       return new Response('ok');
     }
 
-    const todayWarsawDate = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+    const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     const { data: rows, error } = await supabase
       .from('daily_reconciliations')
       .select('id, planning_summary, midday_sent_at, midday_status')
       .eq('user_id', VANGUARD_USER_ID)
       .not('planning_summary', 'is', null)
-      .order('answered_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(5);
 
     if (error) {
@@ -60,32 +61,31 @@ serve(async () => {
     }
 
     const plan = row.planning_summary as Record<string, any>;
-    // Backward compat: support both old and new field names
-    const firstMove = plan.first_move_morning || plan.pierwszy_ruch || '—';
-    const ta = plan.tension_action as { action?: string; minimum_version?: string; status?: string } | undefined;
+    const prodArtifact = plan.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
+    const prodArtifactName = prodArtifact?.artifact || '—';
+    const ta = plan.tension_action as { action?: string; status?: string } | undefined;
+    const taAction = ta?.action || '—';
 
-    // Skip tension_action row if already done
-    const taActive = ta?.action && ta?.status !== 'done';
-    const tensionLine = taActive ? `\n\n⚡ Ruch napięciowy:\n${ta!.action}` : '';
+    const text =
+      `Check.\n\n` +
+      `Artefakt:\n` +
+      `${prodArtifactName}\n` +
+      `Status?\n\n` +
+      `Tension action:\n` +
+      `${taAction}`;
 
-    const text = `Check.\n\n1. First move:\n${firstMove}\nZrobione?` + (taActive ? `\n\n2. Ruch napięciowy:\n${ta!.action}\nZrobione?` : '');
-
-    const inlineKeyboard = taActive ? [
+    const inlineKeyboard = [
       [
-        { text: '✅ Tak', callback_data: 'midday_yes' },
-        { text: '❌ Nie', callback_data: 'midday_no' },
-        { text: '🔧 Utknąłem', callback_data: 'midday_stuck' }
+        { text: '✅ Done', callback_data: 'midday_artifact_done' },
+        { text: '❌ Nie', callback_data: 'midday_artifact_no' },
+        { text: '🔧 Utknąłem', callback_data: 'midday_artifact_stuck' }
       ],
       [
-        { text: '⚡ TA: Tak', callback_data: 'midday_ta_yes' },
-        { text: '⚡ TA: Nie', callback_data: 'midday_ta_no' },
-        { text: '⚡ TA: Utknąłem', callback_data: 'midday_ta_stuck' }
+        { text: '⚡ TA Done', callback_data: 'midday_ta_done' },
+        { text: '⚡ TA Nie', callback_data: 'midday_ta_no' },
+        { text: '⚡ TA Utknąłem', callback_data: 'midday_ta_stuck' }
       ]
-    ] : [[
-      { text: '✅ Tak', callback_data: 'midday_yes' },
-      { text: '❌ Nie', callback_data: 'midday_no' },
-      { text: '🔧 Utknąłem', callback_data: 'midday_stuck' }
-    ]];
+    ];
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
       replyMarkup: { inline_keyboard: inlineKeyboard },

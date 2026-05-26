@@ -1,10 +1,11 @@
+import { getEmbedding } from "../_shared/openai.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import {
+  fetchOracleStreamSlices,
+  formatOracleStreamBlock,
+} from "../_shared/streamContext.ts"
+import { getStreamCutoffs } from "../_shared/time.ts"
 
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
@@ -51,10 +52,7 @@ serve(async (req) => {
   try {
     const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false } = await req.json();
     console.log(`[oracle] start | user: ${user_id} | query: "${current_query?.substring(0, 50)}..."`);
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = createServiceClient();
 
     const now = new Date();
     const localTimeString = now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
@@ -79,9 +77,9 @@ serve(async (req) => {
         .select('name, relation, context')
         .eq('user_id', user_id),
       supabase.from('vanguard_intentions')
-        .select('content, category')
+        .select('text, type')
         .eq('user_id', user_id)
-        .eq('is_active', true),
+        .eq('status', 'active'),
       supabase.from('vanguard_preferences')
         .select('value')
         .eq('user_id', user_id)
@@ -91,12 +89,16 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
-      supabase.from('daily_nutrition')
-        .select('date, calories, protein')
-        .eq('user_id', user_id)
-        .gte('date', fourteenDaysAgoDate)
-        .order('date', { ascending: false })
     ]);
+
+    if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
+    if (preferencesRes.error) console.error('[oracle] vanguard_preferences query error:', preferencesRes.error);
+    if (ironRulesRes.error) console.error('[oracle] vanguard_iron_rules query error:', ironRulesRes.error);
+    if (patternsRes.error) console.error('[oracle] vanguard_behavioral_patterns query error:', patternsRes.error);
+    if (personsRes.error) console.error('[oracle] vanguard_known_persons query error:', personsRes.error);
+    if (intentionsRes.error) console.error('[oracle] vanguard_intentions query error:', intentionsRes.error);
+    if (oura14dRes.error) console.error('[oracle] oura_daily_summary query error:', oura14dRes.error);
+    if (nutrition14dRes.error) console.error('[oracle] daily_nutrition query error:', nutrition14dRes.error);
 
     const staticProfile = `
 [TŁO TOŻSAMOŚCI - KONTEKST]:
@@ -108,7 +110,7 @@ ${fundamentRes.data?.vision || 'Brak danych'}
     const ironRulesText = ironRulesRes.data?.map(r => `- ${r.content}`).join('\n');
     const repeatedPatterns = patternsRes.data?.map(p => `- ${p.pattern_name}: ${p.description}`).join('\n');
     const knownPersons = personsRes.data?.map(p => `- ${p.name} (${p.relation}): ${p.context}`).join('\n');
-    const activeIntentions = intentionsRes.data?.map(i => `- [${i.category}] ${i.content}`).join('\n');
+    const activeIntentions = intentionsRes.data?.map(i => `- [${i.type}] ${i.text}`).join('\n');
     const responsePrefs = preferencesRes.data?.map(p => `- ${p.value}`).join('\n') || '';
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
@@ -157,24 +159,7 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
         const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
 
         // Generate embedding for RAG
-        const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'text-embedding-3-small',
-            input: current_query.substring(0, 3000).replace(/\n/g, ' '),
-          }),
-        });
-
-        if (!embedRes.ok) {
-          console.warn(`OpenAI Embedding error: ${embedRes.status}`);
-        }
-
-        const embedData = await embedRes.json().catch(() => ({}));
-        const embedding = embedData.data?.[0]?.embedding;
+        const embedding = await getEmbedding(current_query.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
 
         // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds
         const [matchesResRaw, semanticGraphRes, entitySeedsRes] = await Promise.all([
@@ -198,6 +183,10 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
           }) : Promise.resolve({ data: [] })
         ]);
 
+        if (matchesResRaw.error) throw matchesResRaw.error;
+        if (semanticGraphRes.error) throw semanticGraphRes.error;
+        if (entitySeedsRes.error) throw entitySeedsRes.error;
+
         matchesRes = matchesResRaw;
 
         // HIPPOGRAPH PHASE 2: rozszerz seeds o encje znalezione semantycznie
@@ -218,6 +207,8 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
               p_min_confidence: 0.0
             })
           : { data: [] };
+
+        if ((graphResRaw as any).error) throw (graphResRaw as any).error;
 
         // Merge graph results: entity-traversal + semantic, deduplikacja
         const entityGraphData = graphResRaw.data || [];
@@ -284,52 +275,26 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
           semanticContext = memCtx;
         }
 
-        // CURRENT-FIRST: 72h aktywne, potem 21 dni jako kontekst
-        const now3 = new Date();
-        const cutoff72h = new Date(now3.getTime() - 72 * 60 * 60 * 1000).toISOString();
-        const cutoff21d = new Date(now3.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString();
-        const isPatternQuery = current_query.toLowerCase().match(/ostatnio|7 dni|trend|wzorc|wzorzec/);
+        const isPatternQuery = !!current_query.toLowerCase().match(/ostatnio|7 dni|trend|wzorc|wzorzec/);
+        const { cut72h: cutoff72h } = getStreamCutoffs();
 
-        const [streamCurrentRes, streamRecentRes] = await Promise.all([
-          // Ostatnie 72h — zawsze, bez limitu kontekstu
-          supabase.from('vanguard_stream')
-            .select('content, created_at')
-            .eq('user_id', user_id)
-            .gte('created_at', cutoff72h)
-            .order('created_at', { ascending: false })
-            .limit(15),
-          // 3–21 dni — tylko jeśli pattern query lub brak danych 72h
-          supabase.from('vanguard_stream')
-            .select('content, created_at')
-            .eq('user_id', user_id)
-            .lt('created_at', cutoff72h)
-            .gte('created_at', cutoff21d)
-            .order('created_at', { ascending: false })
-            .limit(isPatternQuery ? 15 : 5)
-        ]);
-
-        console.log(`[oracle] stream: ${streamCurrentRes.data?.length || 0} current + ${streamRecentRes.data?.length || 0} recent`, Date.now() - t0);
-
-        if (streamCurrentRes.data && streamCurrentRes.data.length > 0) {
-          const current = [...streamCurrentRes.data].reverse();
-          semanticContext += "\n\n[TERAŹNIEJSZOŚĆ (ostatnie 72h) — PRIORYTET ABSOLUTNY]:\n" +
-            current.map(s => `[${s.created_at}] ${s.content}`).join('\n');
-        }
-
-        if (streamRecentRes.data && streamRecentRes.data.length > 0) {
-          const recent = [...streamRecentRes.data].reverse();
-          semanticContext += "\n\n[KONTEKST OSTATNICH 3–21 DNI]:\n" +
-            recent.map(s => `[${s.created_at}] ${s.content}`).join('\n');
-        }
+        const streamSlices = await fetchOracleStreamSlices(supabase, user_id, {
+          includePatternWindow: true,
+          patternLimit: isPatternQuery ? 15 : 5,
+        });
+        console.log(`[oracle] stream: ${streamSlices.current.length} current + ${streamSlices.recent.length} recent`, Date.now() - t0);
+        semanticContext += formatOracleStreamBlock(streamSlices.current, streamSlices.recent);
 
         // FRICTION EVENTS — ostatnie 72h
         try {
-          const { data: frictionRecent } = await supabase
+          const { data: frictionRecent, error: feErr } = await supabase
             .from('friction_events')
             .select('friction_type, deviation, immediate_cost, declared_intention, occurred_at, confidence_source, confidence')
             .eq('user_id', user_id)
             .gte('occurred_at', cutoff72h)
             .order('occurred_at', { ascending: false });
+
+          if (feErr) throw feErr;
 
           if (frictionRecent && frictionRecent.length > 0) {
             semanticContext += "\n\n[FRICTION EVENTS (ostatnie 72h) — atomy tarcia]:\n" +
@@ -338,7 +303,8 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
               ).join('\n');
           }
         } catch (fe) {
-          console.warn('[oracle] friction fetch error:', fe);
+          console.error('[oracle] friction fetch error:', fe);
+          throw fe;
         }
 
         if (rankedGraphData.length > 0) {
@@ -361,7 +327,8 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
         }
 
       } catch (err) {
-        console.error("RAG Error:", err);
+        console.error("[oracle] RAG_ERROR — retrieval failed, continuing without context:", err);
+        semanticContext += "\n\n[SYSTEM: RAG niedostępny — odpowiedź bez pamięci semantycznej/grafu. Nie twierdź o faktach ze strumienia bez świeżego potwierdzenia.]";
       }
     }
 
@@ -373,8 +340,8 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
 MÓWISZ TYLKO PO POLSKU.
 
 TON ABSOLUTNY:
-Dozwolone: zimne fakty, mocny challenge, krótkie komunikaty, dane z ostatnich 72h.
-Zakazane: psychoanaliza, motywacja, moralizowanie, diagnozy, długie eseje. Max 1-2 pytania na odpowiedź.
+Dozwolone: zimne fakty, krótkie challenge, "To jest analiza", "Jaki artefakt powstanie?", "Nie nadrabiamy dnia", "Ratujemy pierwszy artefakt".
+Zakazane: motywacyjne gadki, psychoanaliza, moralizowanie, diagnozy, długie eseje, wzmacnianie self-analysis, rozbudowywanie nowych frameworków w odpowiedzi na drift. Max 1 pytanie na odpowiedź, skupione na konkretnym artefakcie (production_artifact) lub ruchu napięciowym (tension_action). Odpowiedzi muszą być krótkie, surowe i konkretne. Zawsze dąż do konfrontacji analizy z fizycznym działaniem.
 ${mode === 'mirror' ? `\nTRYB OBSERWACJI: Opisujesz co widzisz w danych. Nie pytasz. Kończysz obserwacją lub wnioskiem.\n` : ''}${mode === 'planning' ? `\nTRYB PLANOWANIA WIECZORNEGO:\nJesteś facylitatorem planowania — pomagasz Jakubowi zaplanować jutrzejszy dzień.\n\nZASADY:\n- Odwołaj się do reconciliation (co dziś poszło źle/dobrze) — krótko, bez oceniania\n- Przejrzyj jego aktywne intencje i listę zadań z [KONTEKST SYSTEMOWY]\n- Zadaj konkretne pytania: co MUSI jutro zostać zrobione? co może nie wyjść? jest coś pilnego?\n- Pomóż ustalić TOP 3 priorytety na jutro\n- Zidentyfikuj potencjalne przeszkody i dlaczego może się nie udać\n- Jeśli masz dane z Todoist — wymień nieukończone zadania i zapytaj o priorytety\n- Możesz zaproponować konkretne godziny w harmonogramie\n\nFORMAT: Bezpośredni, konkretny, po polsku. Max 220 słów na jedną odpowiedź. Kończ pytaniem lub konkretną propozycją do potwierdzenia.\nZAKAZ: Moralizowania, psychoanalizy, ogólnych rad bez zakorzenienia w danych.\n` : ''}
 ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
 {
@@ -508,45 +475,29 @@ ${mode !== 'mirror' && knownPersonsLine ? `\n${knownPersonsLine}` : ''}
     } catch (e) {
       clearTimeout(timeoutId);
       console.error("DeepSeek response failed:", e);
-      structuredResponse = {
-        answer: thinking
-          ? "Deep analysis przekroczyl limit czasu. Sprobuj zwyklego pytania bez !! albo zawez temat."
-          : "Wyrocznia przekroczyla limit czasu. Mam zapisany kontekst, ale model nie zdazyl odpowiedziec.",
-        confidence: "low",
-        intent_confirmed: intent,
-        claims: []
-      };
+      throw e;
     }
     const text = structuredResponse.answer || structuredResponse.text || structuredResponse.odpowiedz || structuredResponse.response || "Błąd generowania odpowiedzi.";
 
-    // @ts-ignore
-    EdgeRuntime.waitUntil((async () => {
-      try {
-        await supabase.from('vanguard_oracle_runs').insert({
-          user_id,
-          query: current_query || "",
-          intent: structuredResponse.intent_confirmed || intent,
-          answer: text,
-          confidence: structuredResponse.confidence || "medium",
-          claims: structuredResponse.claims || [],
-          sources: retrievedSources,
-          retrieved_context: { 
-            semantic: matchesRes.data || [], 
-            graph: graphRes.data || [],
-            health_14d: healthSummary14d
-          },
-          state_vector: state_vector || {}
-        });
-      } catch (e) {
-        console.error("Oracle audit log error:", e);
-      }
-
-      // DISABLED — Sprint 0.7 (2026-05-17)
-      // Oracle memory loop wrote to vanguard_knowledge and vanguard_entity_links on every
-      // conversation turn — unaudited mutations outside the source-of-truth pipeline.
-      // Only vanguard_stream → vanguard-auto-classify is the allowed ingestion path
-      // during Observation Mode. Re-enable in Sprint 1 with explicit temporal guards.
-    })());
+    try {
+      await supabase.from('vanguard_oracle_runs').insert({
+        user_id,
+        query: current_query || "",
+        intent: structuredResponse.intent_confirmed || intent,
+        answer: text,
+        confidence: structuredResponse.confidence || "medium",
+        claims: structuredResponse.claims || [],
+        sources: retrievedSources,
+        retrieved_context: {
+          semantic: matchesRes.data || [],
+          graph: graphRes.data || [],
+          health_14d: healthSummary14d,
+        },
+        state_vector: state_vector || {},
+      });
+    } catch (e) {
+      console.error("[oracle] audit log insert failed:", e);
+    }
 
     console.log(`[oracle] response returned`, Date.now() - t0);
     return new Response(JSON.stringify({

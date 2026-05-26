@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { getVanguardUserId } from "../_shared/constants.ts"
 
 const allowedRelations = [
   "jest", "posiada", "studiuje", "pracuje_w", "mieszka_w", "ma_relacje_z",
@@ -461,100 +457,14 @@ function deterministicTriads(text: string) {
   return triads
 }
 
-const FRICTION_TYPES = ['avoidance', 'procrastination', 'emotional_spike', 'habit_break', 'social_withdrawal', 'sleep_disruption', 'other'] as const;
-
-async function extractFrictionEvent(
-  supabase: any,
-  record: { id: string; content: string; created_at: string },
-  userId: string,
-): Promise<boolean> {
-  const frictionSystemPrompt = `Jestes detektorem mikrotarc (friction events) Vanguard OS.
-Micro-tarcie = konkretny moment odchylenia od intencji lub wzorca: unikanie, prokrastynacja, spike emocjonalny, przerwanie nawyku, wycofanie spoleczne, rozregulowanie snu.
-
-Jezeli tekst NIE zawiera zadnego mikrotarcia, zwroc: {"is_friction": false}
-
-Jezeli TAK, zwroc:
-{
-  "is_friction": true,
-  "friction_type": "avoidance|procrastination|emotional_spike|habit_break|social_withdrawal|sleep_disruption|other",
-  "raw_text": "dosłowny fragment opisujacy moment",
-  "context": {"gdzie": "...", "z_kim": "...", "okolicznosci": "..."},
-  "cost_estimate": "krotki opis kosztu np. '2h prokrastynacji', 'zly humor na caly dzien'",
-  "confidence": 0.0-1.0,
-  "confidence_source": "self_report|inferred|biometric"
-}
-
-Zasady:
-- Tylko konkretne momenty, nie ogolne spostrzezenia.
-- "Ciezko mi bylo pogadac" = avoidance/social_withdrawal (konkret).
-- "Generalnie jestem nieśmialy" = NIE (nie ma konkretnego momentu).
-- confidence_source = self_report jezeli Jakub sam to opisuje.`;
-
-  try {
-    const llmRes = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("DEEPSEEK_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "deepseek-v4-flash",
-        temperature: 0.1,
-        max_tokens: 600,
-        messages: [
-          { role: "system", content: frictionSystemPrompt },
-          { role: "user", content: record.content.slice(0, 3000) },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!llmRes.ok) return false;
-
-    const llmData = await llmRes.json();
-    const raw = llmData.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(raw);
-
-    if (!parsed.is_friction) return false;
-
-    const fType = FRICTION_TYPES.includes(parsed.friction_type) ? parsed.friction_type : 'other';
-
-    const { error } = await supabase.from("friction_events").insert({
-      user_id: userId,
-      stream_record_id: record.id,
-      occurred_at: record.created_at,
-      raw_text: parsed.raw_text || record.content.slice(0, 500),
-      friction_type: fType,
-      context: parsed.context || {},
-      cost_estimate: parsed.cost_estimate || null,
-      confidence: Math.min(parsed.confidence || 0.6, 1.0),
-      confidence_source: parsed.confidence_source || 'self_report',
-    });
-
-    if (error) {
-      console.error("Friction event insert error:", error);
-      return false;
-    }
-
-    console.log(`[architect] friction_event saved: type=${fType} from stream ${record.id}`);
-    return true;
-  } catch (e) {
-    console.error("extractFrictionEvent error:", e);
-    return false;
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    )
+    const supabase = createServiceClient()
 
     const { type = "knowledge", offset = 0, limit = 5, record_id = null } = await req.json()
-    const userId = Deno.env.get("VANGUARD_USER_ID") || "165ae341-670c-46ce-82dc-434c4dbfcdfd"
+    const userId = getVanguardUserId()
     const table = type === "knowledge" ? "vanguard_knowledge" : "vanguard_stream"
 
     console.log(`Architect starting: type=${type} offset=${offset} limit=${limit} record_id=${record_id || "none"}`)
@@ -583,17 +493,21 @@ serve(async (req) => {
 
     let totalTriads = 0
     let failedUpserts = 0
+    let failedRecords = 0
 
     for (const record of records) {
       if (!record.content) continue
 
       const recordDate = new Date(record.created_at).toISOString().split("T")[0]
-      const { data: dailyBio } = await supabase
+      const { data: dailyBio, error: dailyBioErr } = await supabase
         .from("vanguard_daily_aggregates")
         .select("hrv_avg, sleep_hours, final_state, execution_score, dopamine_load_index")
         .eq("user_id", userId)
         .eq("date", recordDate)
         .maybeSingle()
+      if (dailyBioErr) {
+        console.error(`[architect] daily aggregate query error for date ${recordDate}:`, dailyBioErr)
+      }
 
       const systemPrompt = `Jestes rygorystycznym Architektem Grafu Vanguard OS. Z tekstu i biometrii wyciagnij triady relacji.
 
@@ -646,6 +560,7 @@ Przyklady:
 
         if (!llmRes.ok) {
           console.error(`Architect LLM error ${llmRes.status}: ${await llmRes.text()}`)
+          failedRecords++
           continue
         }
 
@@ -694,20 +609,16 @@ Przyklady:
         }
       } catch (error) {
         console.error("Error processing record in Architect:", error)
+        failedRecords++
       }
     }
-
-    // DISABLED — Sprint 0.7 (2026-05-17)
-    // Architect was creating duplicate friction_events alongside vanguard-auto-classify.
-    // Only vanguard_stream → vanguard-auto-classify is the canonical friction pipeline.
-    const frictionEventsCreated = 0;
 
     return new Response(JSON.stringify({
       message: "Batch processed",
       items_processed: records.length,
       triads_created: totalTriads,
       failed_upserts: failedUpserts,
-      friction_events_created: frictionEventsCreated,
+      failed_records: failedRecords,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

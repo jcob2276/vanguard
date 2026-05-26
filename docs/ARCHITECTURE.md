@@ -1,68 +1,162 @@
-# Vanguard OS — Architektura Systemu
+# Vanguard OS — Architecture (current)
 
-## Mapa Tabel Bazy Danych
+> **Source of truth for agents:** behavior and deploy live in `AGENTS.md` and `supabase/functions/README.md`.  
+> This file is the **one-page map**: data flow, crons, subsystems.  
+> Do **not** implement from `docs/legacy/` without verifying against the files above.
 
-### 1. Rdzeń Behawioralny i Analityczny
-*   `vanguard_daily_aggregates`: Dzienny snapshot stanu (biometria, egzekucja, stan). Kluczowy dla baseline i Pearsona.
-*   `vanguard_correlations`: Wyniki analizy korelacji Pearsona dla sygnałów (cache korelacji).
-*   `vanguard_temporal_links`: Powiązania czasowe między interwencjami a skutkami (Feedback Loop).
-*   `vanguard_signatures`: Rozpoznane wzorce zachowań i ich przewidywane skutki.
-
-### 2. Wiedza i Tożsamość (GraphRAG)
-*   `vanguard_entity_links`: Graf wiedzy (triady: źródło, relacja, cel). Rdzeń GraphRAG.
-*   `vanguard_relation_ontology`: Słownik 35 kanonicznych relacji (np. `jest`, `prowadzi_do`, `chce`).
-*   `vanguard_entity_aliases`: Mapowanie synonimów encji na formy kanoniczne (np. `Kuba` -> `Jakub`).
-*   `vanguard_knowledge`: Semantyczna baza wiedzy (wzorce, osoby, lekcje).
-*   `user_fundament`: Statyczny profil tożsamości (filozofia, misja, wizja).
-
-### 3. Strumienie Danych i Logi
-*   `vanguard_stream`: Strumień myśli, notatek i idei (wejście z Telegrama/Głosu).
-*   `vanguard_raw_events`: Niezmienne źródło surowych zdarzeń do późniejszego przetwarzania.
-*   `vanguard_footprint`: Aktywność desktopowa (ActivityWatch) - live context dla Oracle.
-*   `ai_chat_messages`: Historia rozmów z Oracle.
-*   `vanguard_oracle_runs`: "Czarna Skrzynka" - audit log każdego zapytania do Oracle.
-
-### 4. Dane Biometryczne i Treningowe
-*   `oura_daily_summary`: Dane z pierścienia Oura (sen, HRV, readiness).
-*   `stayfree_usage`: Statystyki użycia aplikacji mobilnych.
-*   `daily_wins`: Power Lista (5 zadań), dziennik i nastrój.
-*   `workout_sessions` & `exercise_logs`: Szczegółowe logi treningowe.
-*   `daily_nutrition` & `daily_food_entries`: Dane żywieniowe z Yazio.
+Supabase project: `pdvqkgfsqziqlhptatgf`
 
 ---
 
-## Przepływ Danych (Input Streams)
+## Subsystems
 
-### Wejście: Telegram (Vanguard-Telegram)
-1.  **Wysłanie wiadomości**: Użytkownik pisze do bota na Telegramie.
-2.  **Edge Function**: Bot przesyła tekst do funkcji `vanguard-telegram`.
-3.  **Klasyfikacja**: System klasyfikuje wpis (np. `thought`, `idea`, `chaos`).
-4.  **Zapis do Strumienia**: Wpis trafia do `vanguard_stream`.
-5.  **Trigger (Architect)**: Automatyczny trigger odpala `vanguard-architect` dla nowego wpisu.
-6.  **Ekstrakcja Triad**: LLM (DeepSeek) wyciąga triady relacji.
-7.  **Graph Update**: Triady są zapisywane w `vanguard_entity_links` (po kanonizacji).
+| Subsystem | Role | Paths |
+|-----------|------|--------|
+| **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
+| **Practice Dojo** | Voice training (separate bot) | `dojo-telegram`, `dojo-scheduler`, `setter.yaml` |
+| **Integrations** | Oura, Yazio, Calendar, Todoist, Google Fit | `sync-*` |
+| **Legacy workout** | Fitness UI + PDF email (optional) | `src/`, `weekly-report`, `workout_*` tables |
 
----
-
-## Edge Functions
-
-| Funkcja | Opis | Wejście | Wyjście |
-|---|---|---|---|
-| `vanguard-oracle` | Główny silnik rozumowania | `query`, `mode` (mirror/chat) | `answer`, `sources`, `claims` |
-| `vanguard-architect` | Budowniczy grafu wiedzy | `type` (stream/knowledge), `offset`, `limit` | `triads_created`, `items_processed` |
-| `save-daily-aggregate` | Tworzy snapshot dnia | `userId`, `date` | `status: success` |
-| `weekly-report` | Tygodniowy raport | cron | `weekly_report` |
-| `sync-oura` | Synchronizacja z API Oura | `userId` | `records_synced` |
-| `vanguard-telegram` | Bramka dla bota Telegram | `message_text`, `chat_id` | `status: ok` |
+**Isolation:** Dojo and Vanguard share one Supabase project but **must not** share bot handlers, secrets, or business logic. See `.cursor/rules/dojo-isolation.mdc`.
 
 ---
 
-## Harmonogram zadań (pg_cron)
+## Data flow (canonical)
 
-| Zadanie | Harmonogram | Opis |
-|---|---|---|
-| `vanguard-daily-snapshot` | `0 4 * * *` (Codziennie 06:00) | Tworzy snapshot `vanguard_daily_aggregates` dla wszystkich użytkowników. |
-| `vanguard-sunday-cleanup` | `0 5 * * 0` (Niedziela 05:00) | Scalanie synonimów w grafie i czyszczenie nieaktywnych linków. |
-| `vanguard-analyst-loop` | `0 */6 * * *` (Co 6 godzin) | Uruchamia analityka do wykrywania nowych wzorców w danych surowych. |
-| `vanguard-weekly-intentions` | `0 0 * * 1` (Poniedziałek 00:00) | Reset i archiwizacja tygodniowych intencji. |
-| `vanguard-daily-analyst` | `0 3 * * *` (Codziennie 03:00) | Głęboka analiza dnia poprzedniego pod kątem korelacji. |
+```
+Telegram / voice / manual ingest
+        │
+        ▼
+  vanguard_stream          ← only raw user evidence (source of truth)
+        │
+        ├──► vanguard-auto-classify  → friction_events
+        │         (canonical friction pipeline; NOT architect)
+        │
+        ├──► vanguard-architect (batch) → vanguard_entity_links (graph)
+        │
+        └──► ingest-vault-log (long-form) → stream chunks + graph RPC
+
+READ path: Oracle, briefing, synthesis, analyst
+         → confirmed_friction_events VIEW for patterns
+         → current-first: stream 72h > archive
+
+WRITE path (evening): daily_reconciliations → planning (telegram + oracle)
+                   → planning_summary for tomorrow
+
+Morning: morning-brief / morning-ping → daily_reconciliations
+Midday:  midday-check → callbacks on same row
+```
+
+**Rules agents must not break:**
+
+1. **Evidence ≠ reasoning** — LLM does not write facts to `vanguard_knowledge` / `entity_links` from Oracle chat (disabled by design).
+2. **One friction pipeline** — `stream` → `auto-classify` only; do not re-enable friction extraction in architect.
+3. **Extend, don’t duplicate** — new behavior = new handler or one edge function + README row, not a parallel Telegram fetch or second classify path.
+
+---
+
+## Daily loop (Warsaw-oriented)
+
+| Local (approx.) | Edge function | Effect |
+|-----------------|---------------|--------|
+| ~07:00 | `vanguard-morning-brief` | Start message + plan buttons |
+| ~07:20 | `vanguard-morning-ping` | Nudge if no morning click |
+| ~12:00 | `vanguard-midday-check` | Inline done / stuck |
+| ~21:30 | `vanguard-daily-reconciliation` | Evening voice/text prompt |
+| (after reply) | `vanguard-telegram` + `vanguard-oracle` | Planning session → `planning_summary` |
+
+User input all day: `vanguard-telegram` (`index.ts` router → `_router/messages.ts` / `_handlers/*`) → `vanguard_stream` (most messages silent save; `?` / `!!` → Oracle).
+
+Detail: [vanguard-core.md](./vanguard-core.md)
+
+---
+
+## pg_cron jobs (from migrations + docs)
+
+**SSOT for expected jobs:** [`scripts/ops/smoke-manifest.mjs`](../scripts/ops/smoke-manifest.mjs) (`CRON_FROM_MIGRATIONS`, `CRON_DASHBOARD_ONLY`, `CRON_REMOVED`).
+
+Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;`
+
+| Job name (migration) | Schedule (UTC) | Edge function / target |
+|----------------------|----------------|-------------------------|
+| `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` (per user) |
+| `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
+| `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
+| `vanguard-weekly-intentions-cleanup` | `0 0 * * 0` (Sun) | `vanguard-intentions-cleanup` |
+
+**Documented in README / ops, confirm in dashboard:**
+
+| Function | Typical trigger |
+|----------|-----------------|
+| `vanguard-midday-check` | pg_cron (~midday Warsaw) |
+| `vanguard-daily-reconciliation` | pg_cron (~evening Warsaw) |
+| `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
+| `vanguard-friction-qa` | periodic QA report |
+| `dojo-scheduler` | `0 6 * * *` / `0 13 * * *` UTC (see function header) |
+| `weekly-report` | legacy workout PDF — optional |
+
+Deprecated: `vanguard-reset-prompt` → HTTP **410** (cron off; `20260526100000_unschedule_reset_prompt.sql`).  
+Removed duplicate cron: `vanguard-daily-shadow-analysis` (`20260525170000_evaluation_fixes.sql`).
+
+---
+
+## Key tables (minimal)
+
+| Table | Role |
+|-------|------|
+| `vanguard_stream` | Raw entries (Telegram, voice, system) |
+| `friction_events` | Extracted friction atoms |
+| `confirmed_friction_events` | VIEW — confirmed/good only |
+| `daily_reconciliations` | Evening row + planning + morning/midday metadata |
+| `vanguard_entity_links` | Knowledge graph edges |
+| `vanguard_daily_aggregates` | Daily biometric/state snapshot |
+| `vanguard_oracle_runs` | Oracle audit log (read-only telemetry) |
+| `user_fundament` | Identity / philosophy (context, not live truth) |
+
+---
+
+## Edge function kernel (`supabase/functions/_shared/`)
+
+| Module | Purpose |
+|--------|---------|
+| `supabase.ts` | `createServiceClient()` — **only** way to open DB in functions |
+| `constants.ts` | `getVanguardUserId()` |
+| `time.ts` | Warsaw date + day boundaries + stream cutoffs (24h/72h/21d) |
+| `streamContext.ts` | Shared stream fetch/format for Oracle + briefing |
+| `telegram.ts` | Outbound Telegram (not webhook file download) |
+| `vanguardCore.ts` | Daily aggregate signals (mirrors `src/lib/vanguardCore.js`) |
+
+New code should import these instead of duplicating `createClient` or stream queries.
+
+---
+
+## Edge functions registry
+
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **29 functions**, last pass 2026-05-26.
+
+Do not add or deploy a function that is not listed there with status `active` or `manual`.
+
+---
+
+## Agent read order (15 min onboarding)
+
+1. `AGENTS.md` — constitution + deploy rules  
+2. `supabase/functions/README.md` — every function  
+3. This file — flow + crons  
+4. `docs/DEV_GUIDE.md` — how to change code  
+5. `docs/PRODUCT_PRINCIPLES.md` — language and epistemic guardrails  
+6. `BACKLOG.md` — do not fix what is intentionally deferred  
+
+Skip for implementation: `docs/legacy/*` (history only).
+
+---
+
+## What we do not build (constitution)
+
+- Shadow engine / brutal provocation  
+- Manifestation tracker / pendulum detector  
+- Oracle auto-writing to graph or `vanguard_knowledge` on every turn  
+- Second friction pipeline in architect or telegram  
+- “Confirmed pattern” language without explicit N  
+
+See `docs/PRODUCT_PRINCIPLES.md` for the full gate.

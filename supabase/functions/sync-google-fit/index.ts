@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
 const MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
@@ -17,13 +12,12 @@ serve(async (req) => {
     const { userId } = await req.json()
     if (!userId) throw new Error('Brak userId')
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseClient = createServiceClient()
 
     // 1. Get credentials
-    const { data: settings } = await supabaseClient.from('user_settings').select('*').eq('user_id', userId).single()
+    const settings = await safeExecute(
+      supabaseClient.from('user_settings').select('*').eq('user_id', userId).single()
+    )
     if (!settings?.google_fit_refresh_token) throw new Error('Google Fit nie jest połączony')
 
     // 2. Refresh Access Token
@@ -57,7 +51,8 @@ serve(async (req) => {
       const data = await response.json()
       if (data.point) {
         for (const point of data.point) {
-          const date = new Date(parseInt(point.startTimeNanos) / 1000000).toISOString().split('T')[0]
+          const pointDate = new Date(parseInt(point.startTimeNanos) / 1000000)
+          const date = pointDate.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
           const value = point.value[0]?.fpVal || point.value[0]?.intVal
           if (value) {
             if (!dayData[date]) dayData[date] = { user_id: userId, date }
@@ -68,7 +63,9 @@ serve(async (req) => {
     }
     const entries = Object.values(dayData)
     for (const entry of entries) {
-      await supabaseClient.from('body_metrics').upsert(entry, { onConflict: 'user_id,date' })
+      await safeExecute(
+        supabaseClient.from('body_metrics').upsert(entry, { onConflict: 'user_id,date' })
+      )
     }
 
     // 4. Sync Location & SMART TAGGING
@@ -103,14 +100,16 @@ serve(async (req) => {
           }
         }
 
-        await supabaseClient.from('location_history').upsert({
-          user_id: userId,
-          created_at: timestamp,
-          latitude: lat,
-          longitude: lng,
-          accuracy: p.value[2].fpVal,
-          place_name: placeName
-        }, { onConflict: 'user_id,created_at' });
+        await safeExecute(
+          supabaseClient.from('location_history').upsert({
+            user_id: userId,
+            created_at: timestamp,
+            latitude: lat,
+            longitude: lng,
+            accuracy: p.value[2].fpVal,
+            place_name: placeName
+          }, { onConflict: 'user_id,created_at' })
+        );
         syncedLocations++;
       }
     }

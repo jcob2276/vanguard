@@ -1,10 +1,6 @@
+import { getEmbedding } from "../_shared/openai.ts";
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,10 +8,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const payload = await req.json()
     const { record } = payload
@@ -35,12 +28,14 @@ serve(async (req) => {
     // Use Warsaw local date — toISOString() returns UTC which drifts at midnight (22:00 UTC in summer)
     const today = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
 
-    const { data: aggregate } = await supabase
-      .from('vanguard_daily_aggregates')
-      .select('hrv_avg, sleep_hours, final_state')
-      .eq('user_id', record.user_id)
-      .eq('date', today)
-      .maybeSingle()
+    const aggregate = await safeExecute(
+      supabase
+        .from('vanguard_daily_aggregates')
+        .select('hrv_avg, sleep_hours, final_state')
+        .eq('user_id', record.user_id)
+        .eq('date', today)
+        .maybeSingle()
+    )
 
     const contextStr = aggregate
       ? `BIOMETRIA DZIŚ: HRV ${aggregate.hrv_avg}, Sen ${aggregate.sleep_hours}h, Stan: ${aggregate.final_state}.`
@@ -92,17 +87,25 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: `Jesteś detektorem mikrotarć behawioralnych Vanguard OS.
-Analizujesz tekst i decydujesz czy opisuje mikrotarcie lub pozytywny mikrogest.
+              content: `Jesteś detektorem obserwacji behawioralnych i mikrotarć Vanguard OS.
+Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_kind\`):
 
-ZASADY ABSOLUTNE:
-1. Wyciągaj TYLKO to, co jest jawnie w tekście. Nie dopowiadaj, nie interpretuj motywów.
-2. Jeśli koszt nie jest wymieniony w tekście → immediate_cost = null. NIE wymyślaj kosztu.
-3. Jeśli intencja nie jest wyraźna → declared_intention = null. NIE zgaduj intencji.
-4. Tylko jedno zdarzenie = jeden event. Nie łącz wielu odchyleń w jeden rekord.
-5. Neutralne obserwacje, pytania, plany → is_friction = false.
+1. \`friction_event\` — konkretne tarcie behawioralne (odchylenie zachowania od intencji).
+   - Wymaga: intencji (co miało być zrobione) oraz rozbieżnego zachowania (co się stało).
+   - Przykład: "miałem napisać raport ale znowu odłożyłem" lub "chciałem poprosić do tańca ale się zawahałem".
+2. \`positive_micro_action\` — dobry mikrogest, pozytywne mikrozachowanie.
+   - Przykład: "podałem ramię przy schodach" lub "powiedziałem komplement".
+3. \`state_observation\` — stan emocjonalny lub fizyczny użytkownika bez jawnego odchylenia intencji.
+   - Przykład: "jadę na wesele, boli mnie brzuch, stresuję się" lub "jestem zmęczony, mam dziś mało energii".
+4. \`micro_behavior_observation\` — zaobserwowane zachowanie bez jawnej intencji w danym momencie (nawykowe gesty, tiki, sposoby reakcji).
+   - Przykład: "zauważyłem, że nie patrzę w oczy podczas mówienia".
+5. \`reflection\` — refleksja, generalizacja, wniosek, przemyślenia.
+   - Przykład: "ludzie boją się ciszy, więc gadają o byle czym".
 
-SŁOWNIK friction_type:
+Jeśli tekst nie opisuje żadnego z powyższych (np. jest to zwykłe neutralne powiadomienie, suchy plan dnia bez opisu wykonania, pytanie) → set \`is_relevant = false\` i \`event_kind = null\`.
+W przeciwnym wypadku set \`is_relevant = true\`.
+
+SŁOWNIK friction_type (dla wszystkich typów oprócz 'reflection' i neutralnych, jeśli pasuje):
 - sleep_disruption: późne spanie, zaspanie, nocny ekran zamiast snu
 - avoidance: unikanie sytuacji/osoby/tematu mimo że miał podejść
 - procrastination: odkładanie zadania mimo że miał je zrobić
@@ -110,17 +113,18 @@ SŁOWNIK friction_type:
 - training_drop: skrócenie/pominięcie treningu
 - social_hesitation: zawahanie w sytuacji społecznej (nie poprosił do tańca, nie zagadał, unikał kontaktu wzrokowego)
 - communication_drift: nie odpisał, skrócił rozmowę, nie powiedział czegoś wprost
-- emotional_spike: nieoczekiwana, silna reakcja emocjonalna odnotowana przez użytkownika
+- emotional_spike: nieoczekiwana, silna reakcja emocjonalna
 - self_control_break: złamanie własnej zasady (nie pić, nie sprawdzać telefonu, nie jeść X)
-- positive_micro_action: dobry mikrogest (podał ramię, zaproponował napój, poprosił do tańca, powiedział komplement)
-- other: inne odchylenie nie pasujące do powyższych
+- positive_micro_action: dobry mikrogest (podał ramię, zaproponował napój, powiedział komplement)
+- other: inne odchylenie lub stan niepasujący do powyższych
 
 Zwróć TYLKO JSON:
 {
-  "is_friction": boolean,
+  "is_relevant": boolean,
+  "event_kind": "friction_event" | "positive_micro_action" | "state_observation" | "micro_behavior_observation" | "reflection" | null,
   "friction_type": "sleep_disruption"|"avoidance"|"procrastination"|"habit_break"|"training_drop"|"social_hesitation"|"communication_drift"|"emotional_spike"|"self_control_break"|"positive_micro_action"|"other"|null,
   "declared_intention": "dosłownie z tekstu co miało być zrobione (lub null jeśli nie podano)",
-  "actual_behavior": "dosłownie z tekstu co się stało (lub null)",
+  "actual_behavior": "dosłownie z tekstu co się stało/co zaobserwowano (lub null)",
   "deviation": "różnica między intencją a zachowaniem — tylko jeśli obie strony są jawne w tekście (lub null)",
   "immediate_cost": "TYLKO jeśli koszt jest jawnie wymieniony w tekście (lub null)",
   "emotional_state": "stan emocjonalny jeśli wymieniony (lub null)",
@@ -128,18 +132,20 @@ Zwróć TYLKO JSON:
   "location_context": "miejsce jeśli wymienione (lub null)"
 }
 
-WAŻNE: positive_micro_action zawsze ma is_friction=true (to zdarzenie warte zalogowania).
+WAŻNE: positive_micro_action zawsze ma is_relevant=true (to zdarzenie warte zalogowania).
 
 Przykłady:
-"zaspałem" → is_friction=true, sleep_disruption, declared_intention=null, actual_behavior="zaspał", immediate_cost=null
-"zaspałem i nie poszedłem na siłownię" → is_friction=true, sleep_disruption, cost="nie poszedł na siłownię"
-"miałem napisać ale znowu odłożyłem" → is_friction=true, procrastination
-"chciałem poprosić do tańca ale się zawahałem" → is_friction=true, social_hesitation, declared_intention="poprosić do tańca", actual_behavior="zawahał się i nie poprosił"
-"podałem ramię przy schodach" → is_friction=true, positive_micro_action, actual_behavior="podał ramię"
-"siedziałem do 2 w nocy" → is_friction=true, sleep_disruption, actual_behavior="siedział do 2 w nocy"
-"pytam co słychać" → is_friction=false (pytanie, nie zdarzenie)
-"planuję jutro pobiec" → is_friction=false (plan, nie zdarzenie)
-"dzisiaj był dobry trening" → is_friction=false (neutralna obserwacja bez odchylenia)`
+"zaspałem" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", declared_intention=null, actual_behavior="zaspał", immediate_cost=null
+"zaspałem i nie poszedłem na siłownię" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", immediate_cost="nie poszedł na siłownię"
+"miałem napisać ale znowu odłożyłem" → is_relevant=true, event_kind="friction_event", friction_type="procrastination"
+"chciałem poprosić do tańca ale się zawahałem" → is_relevant=true, event_kind="friction_event", friction_type="social_hesitation", declared_intention="poprosić do tańca", actual_behavior="zawahał się i nie poprosił"
+"podałem ramię przy schodach" → is_relevant=true, event_kind="positive_micro_action", friction_type="positive_micro_action", actual_behavior="podał ramię"
+"siedziałem do 2 w nocy" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", actual_behavior="siedział do 2 w nocy"
+"boli mnie dziś brzuch i się stresuję" → is_relevant=true, event_kind="state_observation", friction_type="other", actual_behavior="boli brzuch, stresuje się", emotional_state="stres"
+"zauważyłem, że krzyżuję ręce podczas prezentacji" → is_relevant=true, event_kind="micro_behavior_observation", friction_type="other", actual_behavior="krzyżuje ręce"
+"pytam co słychać" → is_relevant=false (pytanie, nie zdarzenie)
+"planuję jutro pobiec" → is_relevant=false (plan, nie zdarzenie)
+"dzisiaj był dobry trening" → is_relevant=false (neutralna obserwacja bez odchylenia)`
             },
             {
               role: 'user',
@@ -172,44 +178,20 @@ Przykłady:
 
     // === Parse friction ===
     const frictionData = await frictionRes.json()
-    const friction = JSON.parse(frictionData.choices?.[0]?.message?.content || '{"is_friction":false}')
+    const friction = JSON.parse(frictionData.choices?.[0]?.message?.content || '{"is_relevant":false}')
 
-    console.log(`[auto-classify] category=${classification.category}, is_friction=${friction.is_friction}, type=${friction.friction_type}`)
+    console.log(`[auto-classify] category=${classification.category}, is_relevant=${friction.is_relevant}, kind=${friction.event_kind}, type=${friction.friction_type}`)
 
     // === Wektoryzacja fingerprint ===
     let embedding = null
     if (classification.fingerprint_text) {
-      const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: classification.fingerprint_text,
-        }),
-      })
-      const embedData = await embedRes.json()
-      embedding = embedData.data?.[0]?.embedding || null
+      embedding = await getEmbedding(classification.fingerprint_text, Deno.env.get('OPENAI_API_KEY') ?? '');
     }
 
     // === Bi-temporalna logika: zamykanie wątków ===
     if (classification.is_closure && classification.closed_topic_description && embedding) {
       console.log(`[auto-classify] closing topic: ${classification.closed_topic_description}`)
-      const closureEmbedRes = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: classification.closed_topic_description,
-        }),
-      })
-      const closureEmbedData = await closureEmbedRes.json()
-      const closureEmbedding = closureEmbedData.data?.[0]?.embedding
+      const closureEmbedding = await getEmbedding(classification.closed_topic_description, Deno.env.get('OPENAI_API_KEY') ?? '');
 
       if (closureEmbedding) {
         const CLOSURE_THRESHOLD = 0.65
@@ -225,77 +207,72 @@ Przykłady:
         if (idsToClose.length > 0) {
           // Human gate: LLM inference cannot mutate evidence layer without confirmation.
           // Actual valid_until update happens only after status='approved' (P3).
-          const { error: proposalErr } = await supabase
-            .from('vanguard_stream_closure_proposals')
-            .insert({
-              user_id: record.user_id,
-              proposed_by_record_id: record.id,
-              target_record_ids: idsToClose,
-              closed_topic_description: classification.closed_topic_description,
-              similarity_threshold: CLOSURE_THRESHOLD,
-              status: 'pending'
-            })
-          if (proposalErr) {
-            console.error('[auto-classify] closure proposal insert error:', proposalErr)
-          } else {
-            console.log(`[auto-classify] closure proposal created for ${idsToClose.length} record(s), topic: ${classification.closed_topic_description}`)
-          }
+          await safeExecute(
+            supabase
+              .from('vanguard_stream_closure_proposals')
+              .insert({
+                user_id: record.user_id,
+                proposed_by_record_id: record.id,
+                target_record_ids: idsToClose,
+                closed_topic_description: classification.closed_topic_description,
+                similarity_threshold: CLOSURE_THRESHOLD,
+                status: 'pending'
+              })
+          )
+          console.log(`[auto-classify] closure proposal created for ${idsToClose.length} record(s), topic: ${classification.closed_topic_description}`)
         }
       }
     }
 
     // === Update stream record ===
-    await supabase
-      .from('vanguard_stream')
-      .update({
-        importance_score: classification.importance_score,
-        category: classification.category,
-        tags: classification.tags,
-        situation_fingerprint: embedding,
-        classification: classification.category?.toLowerCase(),
-        valid_from: new Date().toISOString(),
-        valid_until: classification.expiration_date || null
-      })
-      .eq('id', record.id)
-
-    // === INSERT friction_event jeśli wykryto mikrotarcie lub pozytywny mikrogest ===
-    // positive_micro_action zawsze logujemy (model może zwrócić is_friction=false dla pozytywnych gestów)
-    const shouldLog = friction.friction_type && (
-      friction.is_friction === true ||
-      friction.friction_type === 'positive_micro_action'
-    )
-    if (shouldLog) {
-      const { error: frictionErr } = await supabase
-        .from('friction_events')
-        .insert({
-          user_id: record.user_id,
-          stream_record_id: record.id,
-          occurred_at: record.created_at || new Date().toISOString(),
-          raw_text: record.content,
-          friction_type: friction.friction_type,
-          declared_intention: friction.declared_intention || null,
-          actual_behavior: friction.actual_behavior || null,
-          deviation: friction.deviation || null,
-          immediate_cost: friction.immediate_cost || null,
-          emotional_state: friction.emotional_state || null,
-          people_involved: friction.people_involved?.length > 0 ? friction.people_involved : null,
-          location_context: friction.location_context || null,
-          confidence_source: 'inferred',
-          confidence: null, // hardcoded 0.65 was decorative — null is more honest until real scoring exists
-          status: 'raw'
+    await safeExecute(
+      supabase
+        .from('vanguard_stream')
+        .update({
+          importance_score: classification.importance_score,
+          category: classification.category,
+          tags: classification.tags,
+          situation_fingerprint: embedding,
+          classification: classification.category?.toLowerCase(),
+          valid_from: new Date().toISOString(),
+          valid_until: classification.expiration_date || null
         })
+        .eq('id', record.id)
+    )
 
-      if (frictionErr) {
-        console.error('[auto-classify] friction insert error:', frictionErr)
-      } else {
-        console.log(`[auto-classify] friction_event inserted: ${friction.friction_type}`)
-      }
+    // === INSERT friction_event jeśli wykryto mikrotarcie, gest lub obserwację ===
+    const shouldLog = friction.is_relevant && friction.event_kind
+    if (shouldLog) {
+      await safeExecute(
+        supabase
+          .from('friction_events')
+          .insert({
+            user_id: record.user_id,
+            stream_record_id: record.id,
+            occurred_at: record.created_at || new Date().toISOString(),
+            raw_text: record.content,
+            event_kind: friction.event_kind,
+            friction_type: friction.friction_type || 'other',
+            declared_intention: friction.declared_intention || null,
+            actual_behavior: friction.actual_behavior || null,
+            deviation: friction.deviation || null,
+            immediate_cost: friction.immediate_cost || null,
+            emotional_state: friction.emotional_state || null,
+            people_involved: friction.people_involved?.length > 0 ? friction.people_involved : null,
+            location_context: friction.location_context || null,
+            confidence_source: 'inferred',
+            confidence: null,
+            status: 'raw'
+          })
+      )
+      console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type}`)
     }
 
     return new Response(JSON.stringify({
       success: true,
       classification,
-      friction_detected: friction.is_friction,
+      friction_detected: friction.is_relevant && (friction.event_kind === 'friction_event' || friction.event_kind === 'positive_micro_action'),
+      event_kind: friction.event_kind || null,
       friction_type: friction.friction_type || null
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

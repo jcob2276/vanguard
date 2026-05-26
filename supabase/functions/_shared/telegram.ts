@@ -4,6 +4,29 @@ export interface SendMessageOptions {
   replyMarkup?: unknown;
 }
 
+export type TelegramSendResult = {
+  ok: boolean;
+  messageId?: number;
+  description?: string;
+};
+
+/** sendMessage + parse Telegram JSON (for message_id / error handling). */
+export async function sendMessageParsed(
+  token: string,
+  chatId: number,
+  text: string,
+  options: SendMessageOptions = {},
+): Promise<TelegramSendResult> {
+  const res = await sendMessage(token, chatId, text, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    const description = data.description || `HTTP ${res.status}`;
+    console.error("[telegram] send failed:", description, data);
+    return { ok: false, description };
+  }
+  return { ok: true, messageId: data.result?.message_id };
+}
+
 export async function sendMessage(
   token: string,
   chatId: number,
@@ -37,9 +60,76 @@ export async function sendChatAction(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, action }),
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn("[telegram] sendChatAction failed:", err);
+  });
 }
 
 export function escapeMd(text: string): string {
   return text.replace(/[_*[\]`]/g, (c) => "\\" + c);
+}
+
+export async function answerCallbackQuery(
+  token: string,
+  callbackQueryId: string,
+  options: { text?: string; showAlert?: boolean } = {},
+): Promise<void> {
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: callbackQueryId,
+      text: options.text ?? "",
+      show_alert: options.showAlert,
+    }),
+  }).catch((err) => {
+    console.warn("[telegram] answerCallbackQuery failed:", err);
+  });
+}
+
+export async function editMessageReplyMarkup(
+  token: string,
+  chatId: number,
+  messageId: number,
+  replyMarkup: unknown = { inline_keyboard: [] },
+): Promise<void> {
+  await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: replyMarkup,
+    }),
+  }).catch((err) => {
+    console.warn("[telegram] editMessageReplyMarkup failed:", err);
+  });
+}
+
+/** Remove inline keyboard from a message. */
+export async function clearInlineKeyboard(
+  token: string,
+  chatId: number,
+  messageId: number,
+): Promise<void> {
+  await editMessageReplyMarkup(token, chatId, messageId);
+}
+
+/** Telegram Bot API getFile — for voice / file download in webhook handlers. */
+export async function getTelegramFilePath(
+  token: string,
+  fileId: string,
+): Promise<string> {
+  const fileRes = await fetch(
+    `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
+  );
+  const fileData = await fileRes.json();
+  if (!fileData.ok) {
+    throw new Error("Nie udało się pobrać ścieżki pliku z Telegrama");
+  }
+  return fileData.result.file_path as string;
+}
+
+export function telegramFileUrl(token: string, filePath: string): string {
+  return `https://api.telegram.org/file/bot${token}/${filePath}`;
 }

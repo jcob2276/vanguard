@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,10 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseClient = createServiceClient()
 
     // 1. Get credentials from any user (we assume the first one with client_id for simplicity in this setup, 
     // or we could pass a state with user_id)
@@ -42,7 +34,9 @@ serve(async (req) => {
       return new Response('Nie znaleziono konfiguracji Google Fit w bazie danych.', { status: 500 })
     }
 
-    const redirectUri = `https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/google-fit-auth`
+    const redirectUri = Deno.env.get('SUPABASE_URL')
+      ? `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-fit-auth`
+      : `https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/google-fit-auth`
 
     // 2. Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

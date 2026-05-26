@@ -1,0 +1,42 @@
+---
+description: Agent workflow — read order, mandatory README, no parallel pipelines. Apply before any Vanguard code change.
+globs: ["supabase/functions/**", "docs/**", "AGENTS.md", "BACKLOG.md"]
+alwaysApply: true
+---
+
+# Vanguard — agent workflow
+
+## Before writing code
+
+1. Read `AGENTS.md` (constitution + deploy).
+2. Read `supabase/functions/README.md` — if the function is missing or not `active`/`manual`, stop and update the registry first.
+3. Read `docs/ARCHITECTURE.md` for data flow — do not invent a second write path.
+4. Check `BACKLOG.md` — do not implement deferred work unless the user explicitly overrides.
+
+**Do not use `docs/legacy/` for current behavior.**
+
+## Adding or changing behavior
+
+- **One extension:** either one new `_handlers/*.ts` slice in `vanguard-telegram` OR one new edge function — not both without user approval.
+- **Imports:** `createServiceClient`, `safeExecute`, `sendMessage` / `sendMessageParsed` from `_shared/` — no new raw `fetch(api.telegram.org)`.
+- **Friction:** only `vanguard_stream` → `vanguard-auto-classify` → `friction_events`.
+- **Dojo:** never import or call `vanguard-*` from `dojo-*` (see `dojo-isolation.mdc`).
+
+## Definition of done (every change)
+
+```
+[ ] Logic matches ARCHITECTURE.md canonical flow
+[ ] supabase/functions/README.md updated if new/changed function
+[ ] Cron change reflected in docs/ARCHITECTURE.md cron table (or noted "dashboard only")
+[ ] verify_jwt matches trigger (cron/webhook → false)
+[ ] No new EdgeRuntime.waitUntil for DB writes that must complete
+[ ] Errors return HTTP 500, not 200 with { error }
+```
+
+## After deploy (cron/webhook functions)
+
+1. `npm run smoke` (OPTIONS-only, safe) — must show **zero FAIL (401)**
+2. Edge logs in Dashboard — no 401 within 5 minutes
+3. If cron changed: run `scripts/ops/cron-check.sql` in SQL Editor
+
+Runbook: `docs/runbooks/post-deploy-smoke.md`

@@ -35,3 +35,7 @@ temp_fn_*
 .agents/
 .claude/
 dev-server.log
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

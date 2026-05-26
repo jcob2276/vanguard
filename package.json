@@ -7,7 +7,10 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "deno check supabase/functions/vanguard-telegram/index.ts supabase/functions/vanguard-analyst/index.ts supabase/functions/vanguard-architect/index.ts",
+    "smoke": "node scripts/smoke-vanguard.mjs --with-service-role",
+    "smoke:safe": "node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",

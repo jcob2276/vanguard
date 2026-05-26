@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { sendMessageParsed } from "../_shared/telegram.ts"
+import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
+import { getVanguardUserId } from "../_shared/constants.ts"
 
-const VANGUARD_USER_ID = '165ae341-670c-46ce-82dc-434c4dbfcdfd'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const VANGUARD_USER_ID = getVanguardUserId()
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,10 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createServiceClient()
 
     const now = new Date()
     const cut7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -27,47 +21,49 @@ serve(async (req) => {
     console.log(`[weekly-synthesis] start | ${weekStart} – ${weekEnd}`)
 
     // 1. Friction events — last 7 days
-    const { data: frictionEvents } = await supabase
-      .from('friction_events')
-      .select('friction_type, deviation, declared_intention, actual_behavior, occurred_at')
-      .eq('user_id', VANGUARD_USER_ID)
-      .gte('occurred_at', cut7d.toISOString())
-      .order('occurred_at', { ascending: false })
+    const frictionEvents = await safeExecute(
+      supabase.from('friction_events')
+        .select('friction_type, deviation, declared_intention, actual_behavior, occurred_at')
+        .eq('user_id', VANGUARD_USER_ID)
+        .in('event_kind', ['friction_event', 'positive_micro_action'])
+        .gte('occurred_at', cut7d.toISOString())
+        .order('occurred_at', { ascending: false }),
+    )
 
-    // 2. Biometrics — last 7 days
-    const { data: biometrics } = await supabase
-      .from('vanguard_daily_aggregates')
-      .select('date, sleep_hours, hrv_avg, readiness_score, execution_score, final_state')
-      .eq('user_id', VANGUARD_USER_ID)
-      .gte('date', weekStart)
-      .order('date', { ascending: false })
+    const biometrics = await safeExecute(
+      supabase.from('vanguard_daily_aggregates')
+        .select('date, sleep_hours, hrv_avg, readiness_score, execution_score, final_state')
+        .eq('user_id', VANGUARD_USER_ID)
+        .gte('date', weekStart)
+        .order('date', { ascending: false }),
+    )
 
-    // 3. Planning sessions this week
-    const { data: plannings } = await supabase
-      .from('daily_reconciliations')
-      .select('date, type')
-      .eq('user_id', VANGUARD_USER_ID)
-      .gte('date', weekStart)
-      .eq('type', 'planning')
+    const plannings = await safeExecute(
+      supabase.from('daily_reconciliations')
+        .select('date')
+        .eq('user_id', VANGUARD_USER_ID)
+        .gte('date', weekStart)
+        .not('planning_summary', 'is', null),
+    )
 
-    // 4. Top hypotheses from curiosity_queue
-    const { data: topHypotheses } = await supabase
-      .from('vanguard_curiosity_queue')
-      .select('hypothesis, provocation, confidence_score, category')
-      .eq('user_id', VANGUARD_USER_ID)
-      .eq('status', 'pending')
-      .order('confidence_score', { ascending: false })
-      .limit(3)
+    const topHypotheses = await safeExecute(
+      supabase.from('vanguard_curiosity_queue')
+        .select('hypothesis, provocation, confidence_score, category')
+        .eq('user_id', VANGUARD_USER_ID)
+        .eq('status', 'pending')
+        .order('confidence_score', { ascending: false })
+        .limit(3),
+    )
 
-    // 5. Stream — last 7 days for context
-    const { data: stream } = await supabase
-      .from('vanguard_stream')
-      .select('content, created_at, category')
-      .eq('user_id', VANGUARD_USER_ID)
-      .gte('created_at', cut7d.toISOString())
-      .not('source', 'eq', 'system')
-      .order('created_at', { ascending: false })
-      .limit(35)
+    const stream = await safeExecute(
+      supabase.from('vanguard_stream')
+        .select('content, created_at, category')
+        .eq('user_id', VANGUARD_USER_ID)
+        .gte('created_at', cut7d.toISOString())
+        .not('source', 'eq', 'system')
+        .order('created_at', { ascending: false })
+        .limit(35),
+    )
 
     // --- Aggregate friction by type ---
     const frictionByType: Record<string, number> = {}
@@ -197,30 +193,29 @@ ${streamText || 'brak wpisów'}`
     if (!synthesisText) throw new Error('LLM returned empty synthesis')
 
     // --- Send to Telegram ---
-    const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')
-    const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')
+    const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''
+    const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0', 10)
 
-    const telegramRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: `📊 SYNTEZA TYGODNIOWA\n\n${synthesisText}\n\n─────\nOdpisz na pytanie powyżej — odpowiedź leci do strumienia i otwiera planning na następne 7 dni.`,
-      })
-    })
-
-    if (!telegramRes.ok) {
-      const err = await telegramRes.json()
-      throw new Error(`Telegram error: ${err.description}`)
+    const telegramResult = await sendMessageParsed(
+      TELEGRAM_TOKEN,
+      TELEGRAM_CHAT_ID,
+      `📊 SYNTEZA TYGODNIOWA\n\n${synthesisText}\n\n─────\nOdpisz na pytanie powyżej — odpowiedź leci do strumienia i otwiera planning na następne 7 dni.`,
+    )
+    if (!telegramResult.ok) {
+      throw new Error(`Telegram error: ${telegramResult.description}`)
     }
 
     // --- Log to stream ---
-    await supabase.from('vanguard_stream').insert({
+    const { error: streamInsertErr } = await supabase.from('vanguard_stream').insert({
       user_id: VANGUARD_USER_ID,
       content: `[weekly synthesis sent] ${weekStart} – ${weekEnd} | friction: ${frictionSorted.map(([t, c]) => `${t}:${c}`).join(',')}`,
       source: 'system',
       classification: 'system:weekly',
     })
+    if (streamInsertErr) {
+      console.error('[weekly-synthesis] stream insert failed:', streamInsertErr)
+      throw new Error(`Stream insert failed: ${streamInsertErr.message}`)
+    }
 
     console.log(`[weekly-synthesis] done`)
     return new Response(JSON.stringify({ success: true, week: `${weekStart} – ${weekEnd}` }), {

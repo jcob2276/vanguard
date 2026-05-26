@@ -10,7 +10,8 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createServiceClient } from "../_shared/supabase.ts";
+import { sendMessage } from "../_shared/telegram.ts";
 
 const DOJO_TOKEN = Deno.env.get("DOJO_TELEGRAM_BOT_TOKEN") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -20,19 +21,18 @@ const DOJO_CHAT_ID = parseInt(Deno.env.get("DOJO_TELEGRAM_CHAT_ID") || "0");
 
 const SKILL_SLUG = "persuasive_communication_mode_v1_jakub_adapted";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createServiceClient();
 
-async function sendMessage(text: string): Promise<void> {
+async function sendDojoMessage(text: string): Promise<void> {
   if (!DOJO_CHAT_ID) {
     console.warn("DOJO_TELEGRAM_CHAT_ID not set, skipping send");
     return;
   }
-  const res = await fetch(`https://api.telegram.org/bot${DOJO_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: DOJO_CHAT_ID, text, parse_mode: "Markdown" }),
-  });
-  if (!res.ok) console.error("sendMessage error:", res.status);
+  const res = await sendMessage(DOJO_TOKEN, DOJO_CHAT_ID, text, { parseMode: "Markdown" });
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    console.error("[dojo-scheduler] sendMessage error:", res.status, errBody.substring(0, 200));
+  }
 }
 
 async function getActiveRun(): Promise<Record<string, unknown> | null> {
@@ -90,6 +90,8 @@ function getSlotForNow(): "morning" | "afternoon" | "none" {
 }
 
 serve(async () => {
+  console.log('[dojo-scheduler] Dojo scheduler is disabled by user configuration.');
+  return new Response("Dojo scheduler is disabled", { status: 410 });
   try {
     const slot = getSlotForNow();
     if (slot === "none") {
@@ -127,7 +129,7 @@ serve(async () => {
 
       const repA = dayData.rep_a as Record<string, unknown>;
       const constraint = dayData.primary_constraint as string;
-      await sendMessage(
+      await sendDojoMessage(
         `🥋 *Dojo — Dzień ${day}: ${dayData.focus}*\n\n` +
         `🎯 Constraint: _${constraint}_\n\n` +
         `*Rep A (${repA.duration_seconds}s):*\n${repA.instruction}\n\nNagraj voice note.`
@@ -147,13 +149,13 @@ serve(async () => {
 
       if (phase === "correction_rep_a") {
         const corrRep = dayData.correction_rep_a as Record<string, unknown>;
-        await sendMessage(
+        await sendDojoMessage(
           `⚡ *Dojo — Correction Rep (Dzień ${day})*\n\n` +
           `${corrRep.instruction_template}\n\nNagraj voice note (${corrRep.duration_seconds}s).`
         );
       } else {
         const repB = dayData.rep_b as Record<string, unknown>;
-        await sendMessage(
+        await sendDojoMessage(
           `🎯 *Dojo — Rep B (Dzień ${day})*\n\n` +
           `${repB.instruction}\n\nNagraj voice note (${repB.duration_seconds}s).`
         );
@@ -165,7 +167,7 @@ serve(async () => {
     // Afternoon: if stuck on real_life_transfer, nudge
     if (slot === "afternoon" && phase === "real_life_transfer") {
       const transfer = dayData.real_life_transfer as Record<string, unknown>;
-      await sendMessage(
+      await sendDojoMessage(
         `🌍 *Transfer (Dzień ${day})*\n\n${transfer.instruction}\n\n✅ Gdy zrobisz: wyślij "done"`
       );
       console.log("Transfer reminder sent.");
