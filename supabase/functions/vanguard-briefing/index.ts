@@ -71,7 +71,43 @@ serve(async (req) => {
         .maybeSingle(),
     )
 
+    // Strava: aktywności z ostatnich 7 dni
+    const todayWarsawStr = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+    const stravaActivities = await safeExecute(
+      supabase.from('strava_activities_clean')
+        .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories')
+        .eq('user_id', userId)
+        .gte('start_date', sevenDaysAgo)
+        .order('start_date', { ascending: false })
+    )
+
     const { stream24hText, stream72hText, streamPatternText } = formatBriefingStreamText(streamLayers)
+
+    // Format Strava activities
+    function fmtPaceBrief(movingTime: number, distanceM: number): string {
+      if (!movingTime || !distanceM) return '—'
+      const sPerKm = movingTime / (distanceM / 1000)
+      return `${Math.floor(sPerKm / 60)}:${String(Math.round(sPerKm % 60)).padStart(2, '0')} /km`
+    }
+    function fmtTimeBrief(sec: number): string {
+      if (!sec) return '—'
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60
+      return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`
+    }
+
+    const stravaText = ((stravaActivities as any[]) || []).length > 0
+      ? '[AKTYWNOŚCI — ostatnie 7 dni]:\n' +
+        ((stravaActivities as any[]) || []).map((a: any) => {
+          const dt = new Date(a.start_date).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+          const dist = a.distance ? `${(a.distance / 1000).toFixed(2)} km` : '—'
+          const pace = fmtPaceBrief(a.moving_time, a.distance)
+          const dur  = fmtTimeBrief(a.moving_time || a.elapsed_time)
+          const hr   = a.average_heartrate ? `HR śr. ${Math.round(a.average_heartrate)} / max ${a.max_heartrate}` : 'brak HR'
+          const ele  = a.total_elevation_gain ? `↑${Math.round(a.total_elevation_gain)}m` : ''
+          return `• ${dt} | ${a.sport_type} "${a.name}" | ${dist} | ${dur} | tempo ${pace} | ${hr}${ele ? ' | ' + ele : ''}`
+        }).join('\n')
+      : 'Brak aktywności Strava z ostatnich 7 dni.'
 
     const graphText = (links || []).length > 0
       ? '[GRAF — tylko current/declared, <21 dni]:\n' +
@@ -171,6 +207,9 @@ ${frictionText}
 ${biometryText}
 
 ${graphText}
+
+AKTYWNOŚCI FIZYCZNE:
+${stravaText}
 
 PROWOKACJA Z KOLEJKI (jeśli pasuje do danych):
 ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`

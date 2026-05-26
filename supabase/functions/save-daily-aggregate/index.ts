@@ -32,17 +32,64 @@ serve(async (req) => {
       today = yesterday.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
     }
 
-    // Pobierz dane z wszystkich źródeł (StayFree, Oura, Wins, Nutrition, Last Workout)
-    const [oura, stayfreeRaw, wins, nutrition, lastWorkout] = await Promise.all([
+    // Pobierz dane z wszystkich źródeł (StayFree, Oura, Wins, Nutrition, Last Workout, Strava)
+    const [oura, stayfreeRaw, wins, nutrition, lastWorkout, stravaRaw] = await Promise.all([
       safeExecute(supabase.from('oura_daily_summary').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today)),
       safeExecute(supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()),
+      // Strava: aktywności z widoku clean dla danego dnia (Warsaw timezone)
+      safeExecute(supabase.from('strava_activities_clean')
+        .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories,suffer_score')
+        .eq('user_id', userId)
+        .gte('start_date', `${today}T00:00:00+02:00`)
+        .lt('start_date', `${today}T23:59:59+02:00`)
+        .order('start_date', { ascending: true })),
     ])
 
     const stayfree: any[] = stayfreeRaw || []
     const lastTrainingDate = lastWorkout?.date || null
+
+    // --- Format Strava activities ---
+    function fmtTime(seconds: number): string {
+      if (!seconds) return '0:00'
+      const h = Math.floor(seconds / 3600)
+      const m = Math.floor((seconds % 3600) / 60)
+      const s = seconds % 60
+      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      return `${m}:${String(s).padStart(2, '0')}`
+    }
+
+    function fmtPace(movingTime: number, distanceM: number): string {
+      if (!movingTime || !distanceM) return '—'
+      const secPerKm = movingTime / (distanceM / 1000)
+      const m = Math.floor(secPerKm / 60)
+      const s = Math.round(secPerKm % 60)
+      return `${m}:${String(s).padStart(2, '0')} /km`
+    }
+
+    const stravaActivities = ((stravaRaw as any[]) || []).map((a: any) => {
+      const startWarsawHour = new Date(a.start_date).toLocaleTimeString('pl-PL', {
+        timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit'
+      })
+      const distKm = a.distance ? +(a.distance / 1000).toFixed(2) : null
+      return {
+        name:                 a.name,
+        sport_type:           a.sport_type,
+        start_time:           startWarsawHour,
+        start_date:           a.start_date,
+        distance_km:          distKm,
+        elapsed_time_fmt:     a.elapsed_time ? fmtTime(a.elapsed_time) : null,
+        moving_time_fmt:      a.moving_time  ? fmtTime(a.moving_time)  : null,
+        pace_per_km:          fmtPace(a.moving_time, a.distance),
+        average_heartrate:    a.average_heartrate ?? null,
+        max_heartrate:        a.max_heartrate ?? null,
+        total_elevation_gain: a.total_elevation_gain ?? null,
+        calories:             a.calories ?? null,
+        suffer_score:         a.suffer_score ?? null,
+      }
+    })
 
     // --- Unified Signal Computation (Vanguard Core) ---
     const signals = computeSignals(
@@ -106,7 +153,8 @@ serve(async (req) => {
       dopamine_load_index: stayfree.length > 0 ? signals.dopamine_load : null,
       fragmentation_index: stayfree.length > 0 ? signals.fragmentation : null,
       final_state: finalState,
-      state_confidence: stayfree.length > 0 && oura ? 0.9 : (oura ? 0.6 : 0.3)
+      state_confidence: stayfree.length > 0 && oura ? 0.9 : (oura ? 0.6 : 0.3),
+      strava_activities_json: stravaActivities.length > 0 ? stravaActivities : null,
     }
 
     await safeExecute(
