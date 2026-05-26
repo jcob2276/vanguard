@@ -99,7 +99,7 @@ export async function handleIncomingMessage(
       else if (text.startsWith('##')) { shouldRespond = false; mode = 'knowledge'; cleanText = text.substring(2).trim(); }
       else if (text.toLowerCase().trim() === '@trening') {
         // Shortcut: call analyze-training and return immediately
-        await safeSendTelegram(telegramToken, chatId, '⏳ Analizuję plan vs Strava...');
+        await safeSendTelegram(chatId, '⏳ Analizuję plan vs Strava...', telegramToken);
         try {
           const res = await fetch(`${supabaseUrl}/functions/v1/analyze-training`, {
             method: 'POST',
@@ -111,7 +111,7 @@ export async function handleIncomingMessage(
           });
           if (!res.ok) throw new Error('analyze-training HTTP ' + res.status);
         } catch (e) {
-          await safeSendTelegram(telegramToken, chatId, '❌ Błąd analizy treningu: ' + (e as Error).message);
+          await safeSendTelegram(chatId, '❌ Błąd analizy treningu: ' + (e as Error).message, telegramToken);
         }
         return;
       }
