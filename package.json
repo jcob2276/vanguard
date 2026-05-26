@@ -41,6 +41,7 @@
     "postcss": "^8.5.12",
     "supabase": "^2.98.2",
     "vite": "^8.0.10",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "ws": "^8.20.1"
   }
 }

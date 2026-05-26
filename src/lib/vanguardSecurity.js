@@ -4,8 +4,6 @@
  * Używa standardu AES-GCM (Web Crypto API).
  */
 
-const ENCRYPTION_KEY = "vanguard_system_secret_key_change_me"; // W produkcji powinno być w .env
-
 export async function encryptData(text) {
   if (!text) return null;
   const encoder = new TextEncoder();

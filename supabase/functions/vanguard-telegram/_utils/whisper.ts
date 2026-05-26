@@ -8,6 +8,10 @@ export async function transcribeAudio(fileId: string, telegramToken: string, ope
   const filePath = await getTelegramFilePath(telegramToken, fileId);
   const fileUrl = telegramFileUrl(telegramToken, filePath);
 
+  if (!fileUrl.startsWith("https://api.telegram.org/")) {
+    throw new Error("Invalid file URL - potential SSRF");
+  }
+
   const audioRes = await fetch(fileUrl);
   const audioBlob = await audioRes.blob();
 

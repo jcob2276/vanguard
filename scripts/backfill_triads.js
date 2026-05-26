@@ -1,5 +1,28 @@
-﻿const URL = "https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-architect";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdnFrZ2ZzcXppcWxocHRhdGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODQ0NzgsImV4cCI6MjA5Mjk2MDQ3OH0.vM69FS8w1K3N_eJjD7LLYxi59T2xCnMH1STEsAICyqU";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function getAnonKey() {
+  if (process.env.SUPABASE_ANON_KEY) return process.env.SUPABASE_ANON_KEY;
+  if (process.env.VITE_SUPABASE_ANON_KEY) return process.env.VITE_SUPABASE_ANON_KEY;
+  try {
+    const envPath = path.resolve(__dirname, "../.env");
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, "utf8").split("\n");
+      for (const line of lines) {
+        const match = line.match(/^\s*VITE_SUPABASE_ANON_KEY\s*=\s*(["']?)(.*?)\1\s*$/);
+        if (match) return match[2];
+      }
+    }
+  } catch (e) {}
+  return "";
+}
+
+const URL = "https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-architect";
+const KEY = getAnonKey();
 
 async function backfill() {
   let offset = 0;

@@ -23,12 +23,20 @@ async function dojoSend(chatId: number, text: string): Promise<void> {
 // ---- Audio helpers ----
 
 async function transcribeAudio(fileId: string): Promise<{ transcript: string; durationSeconds: number }> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(fileId)) {
+    throw new Error("Invalid file ID - potential SSRF");
+  }
+
   const fileRes = await fetch(`https://api.telegram.org/bot${DOJO_TOKEN}/getFile?file_id=${fileId}`);
   if (!fileRes.ok) throw new Error(`Telegram getFile error: ${fileRes.status}`);
   const fileData = await fileRes.json();
   if (!fileData.ok) throw new Error("getFile returned not ok");
 
   const filePath = fileData.result.file_path;
+  if (!/^[a-zA-Z0-9_\-\/.]+$/.test(filePath)) {
+    throw new Error("Invalid file path - potential SSRF");
+  }
+
   const audioRes = await fetch(`https://api.telegram.org/file/bot${DOJO_TOKEN}/${filePath}`);
   const audioBlob = await audioRes.blob();
 
