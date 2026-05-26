@@ -368,7 +368,8 @@ export default function Stats({ session }) {
         { data: ouraData },
         { data: photos },
         { data: locationHistory },
-        { data: fundament }
+        { data: fundament },
+        { data: stravaData }
       ] = await Promise.all([
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
@@ -383,7 +384,8 @@ export default function Stats({ session }) {
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
-        supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle()
+        supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true })
       ]);
 
       const foodEntries = food || [];
@@ -456,6 +458,10 @@ export default function Stats({ session }) {
         const dayBody = bodyMetrics.find(b => b.date === dateStr);
         const dayOura = ouraData?.find(o => o.date === dateStr);
         const dayPhotos = photos?.filter(p => p.date === dateStr);
+        const dayStrava = (stravaData || []).filter(a => {
+          const d = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          return d === dateStr;
+        });
 
         // Header and Lose Day Logic
         const hasAnyData = daySessions.length > 0 || (includeYazio && (dayFood.length > 0 || dayNutrition)) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
@@ -528,11 +534,33 @@ export default function Stats({ session }) {
 
         daySessions.forEach(s => {
           md += `### 🏋️ Trening: Dzień ${s.workout_day}\n`;
-          s.exercise_logs.forEach(l => { 
-            md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (MSP: ${l.rpe ?? '--'}) ${l.is_pws_or_msp ? '🔥' : ''}\n`; 
+          s.exercise_logs.forEach(l => {
+            md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (MSP: ${l.rpe ?? '--'}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
           });
           md += `\n`;
         });
+
+        if (dayStrava.length > 0) {
+          md += `### 🏃 Bieganie (Strava)\n`;
+          dayStrava.forEach(a => {
+            const startTime = new Date(a.start_date).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+            const distKm = a.distance ? (a.distance / 1000).toFixed(2) : null;
+            const movSec = a.moving_time || a.elapsed_time || 0;
+            const h = Math.floor(movSec / 3600), m = Math.floor((movSec % 3600) / 60), s = movSec % 60;
+            const durFmt = h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+            const pace = (a.moving_time && a.distance)
+              ? (() => { const sp = a.moving_time / (a.distance / 1000); return `${Math.floor(sp/60)}:${String(Math.round(sp%60)).padStart(2,'0')} /km`; })()
+              : null;
+            md += `- **${a.name}** (${startTime})\n`;
+            if (distKm)              md += `  - Dystans: **${distKm} km**\n`;
+            if (durFmt !== '0:00')   md += `  - Czas: **${durFmt}**\n`;
+            if (pace)                md += `  - Tempo: **${pace}**\n`;
+            if (a.average_heartrate) md += `  - HR śr.: **${Math.round(a.average_heartrate)} BPM** / max: ${a.max_heartrate ?? '—'} BPM\n`;
+            if (a.total_elevation_gain) md += `  - Przewyższenie: **↑${Math.round(a.total_elevation_gain)} m**\n`;
+            if (a.calories)          md += `  - Kalorie: ${Math.round(a.calories)} kcal\n`;
+          });
+          md += `\n`;
+        }
 
         if (includeYazio) {
           const dayFood = foodEntries.filter(f => f.date === dateStr);
