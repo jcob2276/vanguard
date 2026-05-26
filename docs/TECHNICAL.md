@@ -500,7 +500,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 **Reads `friction_events.later_cost`** — kolumna nie w DDL, ale prawdopodobnie istnieje (ALTER poza migracjami).
 
-**Duplicate cron issue:** Dwa pg_cron jobs (`vanguard-daily-analyst` mig. 008, `vanguard-daily-shadow-analysis` mig. 009) o tej samej godzinie `0 3 * * *`. Analyst uruchamia się dwa razy każdej nocy.
+**Cron:** `vanguard-daily-analyst` (mig. `20260513000008`) — jedyny aktywny job, `0 3 * * *` UTC. Duplikat `vanguard-daily-shadow-analysis` (mig. `20260513000009`) został usunięty w mig. `20260525170000`. Potwierdź live DB przez `scripts/ops/cron-check.sql` query #2.
 
 ---
 

@@ -124,8 +124,10 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 144 | 2026-05-26 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 143 | 2026-05-26 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 132 | 2026-05-26 |
-| `sync-google-fit` | **active** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
-| `google-fit-auth` | **active** | OAuth redirect HTTP | **false** | — | 78 | 2026-05-26 |
+| `sync-google-fit` | **deprecated** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
+| `google-fit-auth` | **deprecated** | OAuth redirect HTTP | **false** | — | 78 | 2026-05-26 |
+
+> `sync-google-fit` + `google-fit-auth` — superseded by Oura Ring + Strava. No active callers. Delete-candidate after confirming no manual usage in last 30 days.
 
 ---
 
