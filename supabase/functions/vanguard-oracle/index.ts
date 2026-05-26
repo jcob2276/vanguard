@@ -89,6 +89,11 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
+      supabase.from('daily_nutrition')
+        .select('date, calories, protein')
+        .eq('user_id', user_id)
+        .gte('date', fourteenDaysAgoDate)
+        .order('date', { ascending: false }),
     ]);
 
     if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);

@@ -72,7 +72,8 @@ serve(async (req) => {
     )
 
     // Strava: aktywności z ostatnich 7 dni
-    const todayWarsawStr = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
+    const now = new Date()
+    const todayWarsawStr = now.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
     const stravaActivities = await safeExecute(
       supabase.from('strava_activities_clean')
@@ -133,7 +134,6 @@ serve(async (req) => {
       : '[BIOMETRIA — ostatnie 14 dni]'
 
     // Sleep data status — Oura synchronizuje sen dopiero po manualnym otwarciu aplikacji
-    const todayWarsawStr = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
     const sleepPending = !latestOura || latestOura.date !== todayWarsawStr
     const sleepStatusNote = sleepPending
       ? '\n[SLEEP DATA: pending — Oura nie zsynchronizował jeszcze dzisiejszego snu. Nie wnioskuj o jakości snu z ostatniej nocy.]'
