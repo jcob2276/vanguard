@@ -128,9 +128,6 @@ export default function Stats({ session }) {
   const [includePhotos, setIncludePhotos] = useState(false);
   const [includeLocation, setIncludeLocation] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isSyncingFit, setIsSyncingFit] = useState(false);
-  const [googleFitConnected, setGoogleFitConnected] = useState(false);
-  const [googleFitConfig, setGoogleFitConfig] = useState({ id: '', secret: '' });
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
   const [trends, setTrends] = useState({});
@@ -165,11 +162,6 @@ export default function Stats({ session }) {
         const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
         const thisWeekSessions = sessions?.filter(s => parseISO(s.created_at) >= thisWeekStart).length || 0;
         setWeeklyStats({ compliance: thisWeekSessions });
-      }
-
-      if (settings) {
-        setGoogleFitConnected(!!settings.google_fit_refresh_token);
-        setGoogleFitConfig({ id: settings.google_fit_client_id, secret: settings.google_fit_client_secret });
       }
 
       if (body) setBodyData(body);
@@ -277,43 +269,6 @@ export default function Stats({ session }) {
     }
   }
 
-  async function connectGoogleFit() {
-    if (!googleFitConfig.id) {
-      alert('Najpierw wpisz Client ID w bazie danych (tabela user_settings).');
-      return;
-    }
-    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-fit-auth`;
-    const scope = 'https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.location.read';
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleFitConfig.id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
-    
-    window.open(authUrl, '_blank', 'width=600,height=600');
-  }
-
-  async function syncGoogleFit() {
-    setIsSyncingFit(true);
-    try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-google-fit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSession.access_token}`
-        },
-        body: JSON.stringify({ userId: session.user.id })
-      });
-      const res = await response.json();
-      if (res.success) {
-        alert(`Zsynchronizowano wagę! (${res.synced_days} dni)`);
-        fetchStats();
-      } else {
-        alert('Błąd synchronizacji Google Fit: ' + res.error);
-      }
-    } catch (err) {
-      alert('Błąd połączenia z funkcją Google Fit');
-    } finally {
-      setIsSyncingFit(false);
-    }
-  }
   async function startEditing(session) {
     setEditingSession(session.id);
     setEditForm({
@@ -916,28 +871,6 @@ export default function Stats({ session }) {
           </button>
         </div>
 
-        <div className="pt-6 border-t border-primary/10 space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${googleFitConnected ? 'bg-dayC animate-pulse' : 'bg-neutral-800'}`} />
-              <span className="text-[10px] font-black uppercase text-white">Google Fit (Waga)</span>
-            </div>
-            {googleFitConnected ? (
-              <button onClick={syncGoogleFit} disabled={isSyncingFit} className="text-[8px] font-black uppercase text-primary hover:underline">
-                {isSyncingFit ? 'Syncing...' : 'Sync Teraz'}
-              </button>
-            ) : (
-              <button onClick={connectGoogleFit} className="bg-white text-black px-4 py-2 rounded-lg text-[8px] font-black uppercase hover:bg-primary hover:text-white transition-all">
-                Połącz Google Fit
-              </button>
-            )}
-          </div>
-          {!googleFitConnected && (
-            <p className="text-[7px] text-neutral-600 uppercase font-bold leading-tight">
-              Automatyczny import wagi z Twojej inteligentnej wagi przez Google Fit.
-            </p>
-          )}
-        </div>
       </section>
     </div>
   );
