@@ -3,7 +3,8 @@
 > **STALE — verify against [AGENTS.md](../AGENTS.md), [vanguard-core.md](./vanguard-core.md), and [supabase/functions/README.md](../supabase/functions/README.md) before trusting details below.**
 
 > Dla developera który zna projekt. Nie intro, nie tutorial.  
-> Stan na: 2026-05-23. Sprint 0.8 — pełna pętla dzienna (Observation Mode deprecated).
+> Stan na: 2026-05-26. Sprint 0.8+ — pełna pętla dzienna + Strava + trening.
+> **⚠️ Sekcja 1.3 (function list) i Sekcja 8 (Known Issues) są częściowo nieaktualne. SSOT: [`supabase/functions/README.md`](../supabase/functions/README.md)**
 
 ---
 
@@ -85,9 +86,10 @@ Brak cron (HTTP manual):
 | vanguard-friction-qa | ✅ aktywna | HTTP manual | |
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | gpt-5-mini bug |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
-| sync-oura / sync-yazio / sync-todoist / sync-calendar / sync-google-fit | ✅ aktywne | HTTP manual | |
-| google-fit-auth | ✅ aktywna | HTTP GET (OAuth callback) | single-user assumption |
-| weekly-report | ✅ aktywna | cron | **false** JWT |
+| sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
+| sync-google-fit | ⚠️ deprecated | HTTP manual | superseded by Strava; UI caller w Stats.jsx nadal istnieje |
+| google-fit-auth | ⚠️ deprecated | HTTP GET (OAuth callback) | superseded by Strava |
+| weekly-report | ❌ nie istnieje | — | ghost — brak folderu; legacy PDF raport nigdy nie wdrożony |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
 | vanguard-reset-prompt | ⛔ deprecated | HTTP → 410; cron off 2026-05-23 | **false** JWT |
 | dojo-telegram / dojo-scheduler | ✅ aktywne | webhook / cron | **false** JWT |
@@ -219,7 +221,7 @@ Migracja: `20260513000000`.
 | created_at | TIMESTAMPTZ | NOW() | |
 | manifested_at | TIMESTAMPTZ | — | |
 
-**⚠️** Oracle queries `.eq('is_active', true)` — kolumna nie istnieje. Oracle prawdopodobnie nie pobiera intentions poprawnie.
+**✅ FIXED (2026-05-26):** Oracle queries `.eq('status', 'active')` — poprawna kolumna, intentions pobierane prawidłowo.
 
 **RLS:** ENABLED — `"Users manage own intentions"` FOR ALL `auth.uid() = user_id`
 
@@ -615,8 +617,8 @@ if (embedRes.ok) {
 
 | # | Problem | Lokalizacja | Efekt |
 |---|---------|-------------|-------|
-| 4 | **Duplicate cron — vanguard-analyst** | mig. 008 + 009, `0 3 * * *` | Analyst uruchamia 2x każdej nocy, tworzy duplikaty w curiosity_queue |
-| 5 | **vanguard_intentions is_active vs status** | oracle linia ~195 | Oracle nie pobiera aktywnych intentions poprawnie |
+| 4 | ~~Duplicate cron — vanguard-analyst~~ | **FIXED** mig. `20260525170000` | `vanguard-daily-shadow-analysis` usunięty; potwierdź przez `scripts/ops/cron-check.sql` query #2 |
+| 5 | ~~vanguard_intentions is_active vs status~~ | **FIXED 2026-05-26** | Oracle używa `.eq('status', 'active')` — poprawna kolumna |
 | 6 | **Hardcoded JWT w migracjach** | mig. 005, 006, 009 | Service role key w git history — wymaga rotacji jeśli repo publiczne |
 | 7 | **gpt-5-mini w eval-runner** | eval-runner linia ~52 | Prawdopodobnie literówka — powinno być gpt-4o-mini |
 

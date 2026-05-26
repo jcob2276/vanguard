@@ -14,8 +14,8 @@ Supabase project: `pdvqkgfsqziqlhptatgf`
 |-----------|------|--------|
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
 | **Practice Dojo** | Voice training (separate bot) | `dojo-telegram`, `dojo-scheduler`, `setter.yaml` |
-| **Integrations** | Oura, Yazio, Calendar, Todoist, Google Fit | `sync-*` |
-| **Legacy workout** | Fitness UI + PDF email (optional) | `src/`, `weekly-report`, `workout_*` tables |
+| **Integrations** | Oura, Yazio, Calendar, Todoist, Strava | `sync-*` (Google Fit deprecated) |
+| **Legacy workout** | Fitness UI + workout tables | `src/`, `workout_*` tables (`weekly-report` function nie istnieje — ghost z wczesnych planów) |
 
 **Isolation:** Dojo and Vanguard share one Supabase project but **must not** share bot handlers, secrets, or business logic. See `.cursor/rules/dojo-isolation.mdc`.
 
@@ -93,7 +93,7 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
 | `vanguard-friction-qa` | periodic QA report |
 | `dojo-scheduler` | `0 6 * * *` / `0 13 * * *` UTC (see function header) |
-| `weekly-report` | legacy workout PDF — optional |
+| ~~`weekly-report`~~ | ❌ ghost — function folder does not exist |
 
 Deprecated: `vanguard-reset-prompt` → HTTP **410** (cron off; `20260526100000_unschedule_reset_prompt.sql`).  
 Removed duplicate cron: `vanguard-daily-shadow-analysis` (`20260525170000_evaluation_fixes.sql`).

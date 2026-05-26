@@ -127,7 +127,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 | `sync-google-fit` | **deprecated** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
 | `google-fit-auth` | **deprecated** | OAuth redirect HTTP | **false** | — | 78 | 2026-05-26 |
 
-> `sync-google-fit` + `google-fit-auth` — superseded by Oura Ring + Strava. No active callers. Delete-candidate after confirming no manual usage in last 30 days.
+> `sync-google-fit` + `google-fit-auth` — superseded by Strava. UI caller exists in `src/components/Stats.jsx` (Google Fit section still rendered). Delete-candidate: hide UI section first, then remove functions.
 
 ---
 

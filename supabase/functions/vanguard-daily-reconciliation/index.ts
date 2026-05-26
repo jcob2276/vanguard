@@ -4,7 +4,7 @@ import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDayBoundaries } from "../_shared/time.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
-const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '2031950629');
+const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 const VANGUARD_USER_ID = getVanguardUserId();
 
 const supabase = createServiceClient();
