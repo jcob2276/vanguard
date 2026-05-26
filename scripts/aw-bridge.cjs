@@ -1,9 +1,22 @@
+/**
+ * aw-bridge.cjs — ActivityWatch → Supabase sync bridge
+ *
+ * STATUS: DEPRECATED — ActivityWatch integration no longer active.
+ * Kept as local dev tool if needed.
+ *
+ * USAGE: SUPABASE_KEY=xxx node scripts/aw-bridge.cjs
+ */
+
 const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
-// KONFIGURACJA SUPABASE
-const SUPABASE_URL = 'https://pdvqkgfsqziqlhptatgf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdnFrZ2ZzcXppcWxocHRhdGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODQ0NzgsImV4cCI6MjA5Mjk2MDQ3OH0.vM69FS8w1K3N_eJjD7LLYxi59T2xCnMH1STEsAICyqU';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pdvqkgfsqziqlhptatgf.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+if (!SUPABASE_KEY) {
+  console.error("❌  SUPABASE_KEY env var is required. Run: SUPABASE_KEY=xxx node scripts/aw-bridge.cjs");
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
