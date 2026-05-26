@@ -38,12 +38,12 @@ export function useDashboardData() {
 
       if (sessions && sessions.length > 0) {
         sessions.forEach(s => {
-          if (!feedbackMap[s.day_key]) {
-            feedbackMap[s.day_key] = s.msp_passed;
+          if (!feedbackMap[s.workout_day]) {
+            feedbackMap[s.workout_day] = s.msp_passed;
           }
         });
 
-        const lastAEntry = sessions.find(s => s.day_key === 'A');
+        const lastAEntry = sessions.find(s => s.workout_day === 'A');
         if (lastAEntry) {
           lastA = {
             ...lastAEntry,

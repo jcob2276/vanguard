@@ -33,16 +33,13 @@ CREATE TABLE IF NOT EXISTS strava_tokens (
   updated_at      timestamptz DEFAULT now()
 );
 
--- Seed initial tokens for Vanguard user
-INSERT INTO strava_tokens (user_id, refresh_token, access_token, expires_at)
-VALUES (
-  '165ae341-670c-46ce-82dc-434c4dbfcdfd',
-  '22e2a2652282ff25029b516618b56b85c43fb9dc',
-  'f9ab16f5d277963bd7fbfb962b7a9e2a016e4697',
-  1779850069
-)
-ON CONFLICT (user_id) DO UPDATE SET
-  refresh_token = EXCLUDED.refresh_token,
-  access_token  = EXCLUDED.access_token,
-  expires_at    = EXCLUDED.expires_at,
-  updated_at    = now();
+-- Manual setup required: insert Strava tokens via Supabase Dashboard or after OAuth flow.
+-- Do NOT seed credentials in migrations — tokens expire and rotate automatically.
+-- Run after first OAuth connect:
+--   INSERT INTO strava_tokens (user_id, refresh_token, access_token, expires_at)
+--   VALUES ('<user_id>', '<refresh_token>', '<access_token>', <expires_at_unix>)
+--   ON CONFLICT (user_id) DO UPDATE SET
+--     refresh_token = EXCLUDED.refresh_token,
+--     access_token  = EXCLUDED.access_token,
+--     expires_at    = EXCLUDED.expires_at,
+--     updated_at    = now();

@@ -26,13 +26,13 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on Supabase project `pdvqkgfsqziqlhptatgf`.
 
-Local ↔ Supabase sync: **28** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-05-26**.
+Local ↔ Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-05-27**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |
 | Practice Dojo | Voice drills, curriculum, evaluation | `supabase/functions/dojo-*`, `setter.yaml` |
-| Integrations | Oura, Yazio, Calendar, Todoist, Google Fit | `supabase/functions/sync-*` |
+| Integrations | Oura, Yazio, Calendar, Todoist, Strava; Google Fit deprecated | `supabase/functions/sync-*`, `analyze-training` |
 | Legacy workout | Original fitness tracking UI/tables | `src/` + `workout_*` tables |
 
 ## CRITICAL RULES
@@ -45,7 +45,8 @@ Deploy:
   vanguard-telegram, dojo-telegram, dojo-scheduler,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   ingest-vault-log, vanguard-friction-qa,
-  vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis
+  vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
+  sync-strava, analyze-training
 - After deploy: `npm run smoke` (or `node scripts/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
 Isolation:
@@ -62,7 +63,7 @@ DB constraints (verify before INSERT):
 Edge function gotchas:
 - EdgeRuntime.waitUntil does NOT keep background tasks alive after HTTP response
 - Telegram webhook timeout: 30s — long voice processing must be synchronous
-- vanguard-telegram is a monolith — change surgically, one flow at a time
+- vanguard-telegram is a thin router with handlers; change surgically, one flow at a time
 - Do NOT store deploy version numbers in rules/docs — they go stale weekly
 ```
 

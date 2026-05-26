@@ -17,6 +17,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'No content to classify' }), { status: 200 })
     }
 
+    // Skip system-generated entries (anchors, planning summaries, Oracle responses, etc.)
+    // These are written by Vanguard itself and don't represent user behaviour to classify.
+    if (record.source === 'system') {
+      console.log(`[auto-classify] skipping system record: ${record.id}`)
+      return new Response(JSON.stringify({ message: 'system source, skipped' }), { status: 200 })
+    }
+
     // Idempotency gate: skip if already classified (webhook retry / double-trigger protection)
     if (record.classification && record.importance_score) {
       console.log(`[auto-classify] already classified, skipping: ${record.id}`)
@@ -243,29 +250,41 @@ Przykłady:
     // === INSERT friction_event jeśli wykryto mikrotarcie, gest lub obserwację ===
     const shouldLog = friction.is_relevant && friction.event_kind
     if (shouldLog) {
-      await safeExecute(
+      const existingFriction = await safeExecute(
         supabase
           .from('friction_events')
-          .insert({
-            user_id: record.user_id,
-            stream_record_id: record.id,
-            occurred_at: record.created_at || new Date().toISOString(),
-            raw_text: record.content,
-            event_kind: friction.event_kind,
-            friction_type: friction.friction_type || 'other',
-            declared_intention: friction.declared_intention || null,
-            actual_behavior: friction.actual_behavior || null,
-            deviation: friction.deviation || null,
-            immediate_cost: friction.immediate_cost || null,
-            emotional_state: friction.emotional_state || null,
-            people_involved: friction.people_involved?.length > 0 ? friction.people_involved : null,
-            location_context: friction.location_context || null,
-            confidence_source: 'inferred',
-            confidence: null,
-            status: 'raw'
-          })
+          .select('id')
+          .eq('stream_record_id', record.id)
+          .maybeSingle()
       )
-      console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type}`)
+
+      if (existingFriction) {
+        console.log(`[auto-classify] friction_event already exists for stream record: ${record.id}`)
+      } else {
+        await safeExecute(
+          supabase
+            .from('friction_events')
+            .insert({
+              user_id: record.user_id,
+              stream_record_id: record.id,
+              occurred_at: record.created_at || new Date().toISOString(),
+              raw_text: record.content,
+              event_kind: friction.event_kind,
+              friction_type: friction.friction_type || 'other',
+              declared_intention: friction.declared_intention || null,
+              actual_behavior: friction.actual_behavior || null,
+              deviation: friction.deviation || null,
+              immediate_cost: friction.immediate_cost || null,
+              emotional_state: friction.emotional_state || null,
+              people_involved: friction.people_involved?.length > 0 ? friction.people_involved : null,
+              location_context: friction.location_context || null,
+              confidence_source: 'inferred',
+              confidence: null,
+              status: 'raw'
+            })
+        )
+        console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type}`)
+      }
     }
 
     return new Response(JSON.stringify({

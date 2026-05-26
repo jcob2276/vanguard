@@ -10,7 +10,7 @@ Supabase project: `pdvqkgfsqziqlhptatgf` · Frontend: React + Vite · Deploy: Ve
 |---|---|---|
 | **Vanguard Core** | Telegram bot, stream, oracle, reconciliation, planning | `supabase/functions/vanguard-*` |
 | **Practice Dojo** | Separate Telegram bot, voice drills, curriculum | `supabase/functions/dojo-*`, `setter.yaml` |
-| **Integrations** | Oura, Yazio, Calendar, Todoist, Google Fit | `supabase/functions/sync-*` |
+| **Integrations** | Oura, Yazio, Calendar, Todoist, Strava; Google Fit deprecated | `supabase/functions/sync-*`, `analyze-training` |
 | **Legacy workout** | Original fitness tracking | `src/` + `workout_*` tables |
 
 ## Quick links

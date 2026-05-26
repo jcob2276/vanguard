@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { VanguardCore, computeSignals } from '../_shared/vanguardCore.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { getWarsawDayBoundaries } from '../_shared/time.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -39,13 +40,16 @@ serve(async (req) => {
       safeExecute(supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()),
-      // Strava: aktywności z widoku clean dla danego dnia (Warsaw timezone)
-      safeExecute(supabase.from('strava_activities_clean')
-        .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories,suffer_score')
-        .eq('user_id', userId)
-        .gte('start_date', `${today}T00:00:00+02:00`)
-        .lt('start_date', `${today}T23:59:59+02:00`)
-        .order('start_date', { ascending: true })),
+      // Strava: aktywności z widoku clean dla danego dnia (Warsaw timezone, DST-safe)
+      (() => {
+        const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(today);
+        return safeExecute(supabase.from('strava_activities_clean')
+          .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories,suffer_score')
+          .eq('user_id', userId)
+          .gte('start_date', dayStart)
+          .lt('start_date', dayEnd)
+          .order('start_date', { ascending: true }));
+      })(),
     ])
 
     const stayfree: any[] = stayfreeRaw || []

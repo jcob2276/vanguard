@@ -138,6 +138,18 @@ serve(async (req) => {
       .maybeSingle()
 
     let rawEventId = existingRawEvent?.id ?? null
+    if (existingRawEvent) {
+      console.log(`[VAULT INGEST] duplicate raw_hash, skipping stream insert: ${rawEventId}`)
+      return new Response(JSON.stringify({
+        success: true,
+        duplicate: true,
+        raw_event_id: rawEventId,
+        chunks: 0,
+        triads: 0,
+        message: "Ten vault log byl juz zaimportowany; pominieto duplikat.",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
     if (!existingRawEvent) {
       const { data: rawInserted, error: rawInsertError } = await supabase.from("vanguard_raw_events").insert({
         user_id: userId,

@@ -7,7 +7,7 @@ Project: `pdvqkgfsqziqlhptatgf`
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls → **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 29 function folders (+ `_shared/`) · Last registry pass: **2026-05-26**
+**Inventory:** 30 function folders (+ `_shared/`) · Last registry pass: **2026-05-27**
 
 ---
 
@@ -120,6 +120,8 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
+| `sync-strava` | **active** | pg_cron `30 20 * * *` UTC (22:30 Warsaw) / manual | **false** | `strava_activities`, `strava_tokens` | 182 | 2026-05-26 |
+| `analyze-training` | **active** | HTTP POST | **false** | `training_plan_workouts`, `strava_activities_clean` | 172 | 2026-05-26 |
 | `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 155 | 2026-05-26 |
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 144 | 2026-05-26 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 143 | 2026-05-26 |

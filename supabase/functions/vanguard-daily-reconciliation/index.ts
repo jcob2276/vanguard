@@ -71,10 +71,10 @@ Deno.serve(async (req) => {
         .from('vanguard_stream')
         .select('content')
         .eq('user_id', VANGUARD_USER_ID)
-        .gte('timestamp', dayStart)
-        .lt('timestamp', dayEnd)
+        .gte('created_at', dayStart)
+        .lt('created_at', dayEnd)
         .ilike('content', 'anchor:%')
-        .order('timestamp', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       // Today's plan = planning session from yesterday evening

@@ -67,6 +67,7 @@ export async function closePlanningSession(
 
     let planJson: any = null;
     let rawPlan = '';
+    let planGenerationErrorStatus: number | null = null;
 
     // Fast-path: Check if the last assistant message in history is already a valid JSON string (our draft)
     const lastAssistantMsg = [...closureHistory].reverse().find(h => h.role === 'assistant');
@@ -117,6 +118,7 @@ export async function closePlanningSession(
           } catch (_) {}
         }
       } else {
+        planGenerationErrorStatus = dsRes.status;
         console.error('[planning] DeepSeek plan generation failed:', dsRes.status);
       }
     }
@@ -197,8 +199,20 @@ export async function closePlanningSession(
         if (rawErr) console.error('[planning] failed to save atomic raw fallback:', rawErr);
         telegramText = rawPlan.length > 4000 ? rawPlan.substring(0, 4000) + '…' : rawPlan;
       }
+    } else if (rawPlan) {
+      // JSON parse failed - save raw fallback
+      console.warn('[planning] plan JSON parse failed, saving raw');
+      const { error: rawErr } = await supabase.from('daily_reconciliations')
+        .update({
+          planning_status: 'completed',
+          planning_summary: { raw: rawPlan, parse_error: true, target_date: tomorrowWarsawDate },
+          planning_history: closureHistory
+        })
+        .eq('id', closureId);
+      if (rawErr) console.error('[planning] failed to save atomic raw fallback:', rawErr);
+      telegramText = rawPlan.length > 4000 ? rawPlan.substring(0, 4000) + '...' : rawPlan;
     } else {
-      console.error('[planning] DeepSeek plan generation failed:', dsRes.status);
+      console.error('[planning] DeepSeek plan generation failed or returned empty output:', planGenerationErrorStatus ?? 'no status');
     }
   } catch (planSummaryErr) {
     console.error('[planning] plan summary error:', planSummaryErr);
@@ -299,4 +313,3 @@ export async function handlePlanningCallback(
     }
   }
 }
-

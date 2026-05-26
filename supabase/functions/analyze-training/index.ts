@@ -14,6 +14,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
+import { getWarsawDayBoundaries } from "../_shared/time.ts";
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || '';
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
@@ -58,12 +59,14 @@ serve(async (req) => {
     const fromDate = dates[0];
     const toDate   = new Date(new Date(dates[dates.length - 1]).getTime() + 7 * 86400000).toISOString().split('T')[0];
 
+    const { start: fromStart } = getWarsawDayBoundaries(fromDate);
+    const { end: toEnd } = getWarsawDayBoundaries(toDate);
     const { data: activities } = await supabase
       .from('strava_activities_clean')
       .select('*')
       .eq('user_id', VANGUARD_USER_ID)
-      .gte('start_date', `${fromDate}T00:00:00+02:00`)
-      .lte('start_date', `${toDate}T23:59:59+02:00`)
+      .gte('start_date', fromStart)
+      .lt('start_date', toEnd)
       .order('start_date', { ascending: true });
 
     // 3. Zbuduj kontekst tekstowy dla LLM

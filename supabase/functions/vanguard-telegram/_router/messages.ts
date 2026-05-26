@@ -98,21 +98,18 @@ export async function handleIncomingMessage(
       else if (text.startsWith('!!')) { shouldRespond = true; mode = 'deep';      cleanText = text.substring(2).trim(); }
       else if (text.startsWith('##')) { shouldRespond = false; mode = 'knowledge'; cleanText = text.substring(2).trim(); }
       else if (text.toLowerCase().trim() === '@trening') {
-        // Shortcut: call analyze-training and return immediately
-        await safeSendTelegram(chatId, '⏳ Analizuję plan vs Strava...', telegramToken);
-        try {
-          const res = await fetch(`${supabaseUrl}/functions/v1/analyze-training`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ telegram: true })
-          });
-          if (!res.ok) throw new Error('analyze-training HTTP ' + res.status);
-        } catch (e) {
-          await safeSendTelegram(chatId, '❌ Błąd analizy treningu: ' + (e as Error).message, telegramToken);
-        }
+        // Fire-and-forget: acknowledge immediately, analyze-training sends results via Telegram itself
+        await safeSendTelegram(chatId, '⏳ Analizuję plan vs Strava — wyślę wyniki za chwilę...', telegramToken);
+        fetch(`${supabaseUrl}/functions/v1/analyze-training`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ telegram: true })
+        }).catch((e: Error) => {
+          console.error('[telegram] analyze-training dispatch failed:', e.message);
+        });
         return;
       }
       else if (text.startsWith('@'))  { shouldRespond = true; mode = 'report';    cleanText = text.substring(1).trim(); }
@@ -229,10 +226,11 @@ export async function handleIncomingMessage(
             })
           ]);
 
-          if (embedRes.ok) {
-            const embedData = await embedRes.json();
-            streamEmbedding = embedData.data?.[0]?.embedding;
-          } else { console.warn(`[telegram] OpenAI embedding HTTP error: ${embedRes.status}`); }
+          if (Array.isArray(embedRes) && typeof embedRes[0] === 'number') {
+            streamEmbedding = embedRes;
+          } else {
+            console.warn('[telegram] OpenAI embedding returned empty result');
+          }
 
           if (emotionRes && (emotionRes as Response).ok) {
             const emotionJson = await (emotionRes as Response).json().catch((e) => {

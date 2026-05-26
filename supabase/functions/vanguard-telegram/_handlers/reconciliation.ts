@@ -81,6 +81,42 @@ export async function handleReconciliation(
     console.warn('[reconciliation] evening extraction failed:', extractErr);
   }
 
+  // --- Reality Adversary ---
+  let adversaryOutput: import('../_utils/adversary.ts').AdversaryResult | null = null;
+  try {
+    const yesterdayStr = (() => {
+      const d = new Date(reconciliationDate + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() - 1);
+      return d.toISOString().split('T')[0];
+    })();
+    const cutoff72h = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+
+    const [planRes, streamRes] = await Promise.all([
+      supabase
+        .from('daily_reconciliations')
+        .select('planning_summary')
+        .eq('user_id', userId)
+        .eq('date', yesterdayStr)
+        .not('planning_summary', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('vanguard_stream')
+        .select('content, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', cutoff72h)
+        .order('created_at', { ascending: false })
+        .limit(30)
+    ]);
+
+    const yesterdayPlan = planRes.data?.planning_summary ?? null;
+    const stream72h = streamRes.data ?? [];
+    adversaryOutput = await runRealityAdversary(yesterdayPlan, stream72h, deepseekApiKey);
+  } catch (adversaryErr) {
+    console.warn('[reconciliation] adversary failed (non-fatal):', adversaryErr);
+  }
+
   // --- 1. Construct unified Bridge Message ---
   try {
     const first90Str = eveningExtraction?.first_90_protected ? "chronione" : "przerwane stymulacją";

@@ -43,6 +43,11 @@ serve(async (req) => {
       fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { headers })
     ])
 
+    if (!readinessRes.ok) throw new Error(`Oura readiness API error: ${readinessRes.status}`);
+    if (!sleepRes.ok)     throw new Error(`Oura sleep API error: ${sleepRes.status}`);
+    if (!sleepStagesRes.ok) throw new Error(`Oura sleep stages API error: ${sleepStagesRes.status}`);
+    if (!activityRes.ok)  throw new Error(`Oura activity API error: ${activityRes.status}`);
+
     const readinessData = await readinessRes.json();
     const sleepData = await sleepRes.json();
     const sleepStagesData = await sleepStagesRes.json();
