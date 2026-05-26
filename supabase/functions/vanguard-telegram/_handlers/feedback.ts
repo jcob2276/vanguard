@@ -28,21 +28,7 @@ export async function handleFeedbackCallback(
     metadata: { callback_data: data },
   });
 
-  if (isOk) {
-    const { data: lastKnowledge } = await ctx.supabase
-      .from("vanguard_knowledge")
-      .select("id")
-      .eq("user_id", ctx.vanguardUserId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (lastKnowledge) {
-      await ctx.supabase
-        .from("vanguard_knowledge")
-        .update({ is_verified: true })
-        .eq("id", lastKnowledge.id);
-    }
-  }
+
 
   await answerCallbackQuery(ctx.telegramToken, callbackId, {
     text: isOk

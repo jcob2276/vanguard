@@ -15,11 +15,9 @@ serve(async (req) => {
     const ctx = createTelegramContext();
 
     if (payload.callback_query) {
-      EdgeRuntime.waitUntil(
-        handleCallbackQuery(payload.callback_query, ctx).catch((err) => {
-          console.error("[telegram] callback error:", err);
-        }),
-      );
+      await handleCallbackQuery(payload.callback_query, ctx).catch((err) => {
+        console.error("[telegram] callback error:", err);
+      });
       return new Response("OK", { status: 200 });
     }
 

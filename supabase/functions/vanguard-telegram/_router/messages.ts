@@ -158,8 +158,7 @@ export async function handleIncomingMessage(
             shouldRespond = false;
             mode = 'stream';
             
-            // @ts-ignore
-            EdgeRuntime.waitUntil(closePlanningSession(
+            await closePlanningSession(
               finalHistory,
               activePlanning.id,
               activePlanning.date,
@@ -167,7 +166,9 @@ export async function handleIncomingMessage(
               supabase,
               telegramToken,
               deepseekApiKey
-            ));
+            ).catch((err) => {
+              console.error("[telegram] closePlanningSession error:", err);
+            });
           } else {
             activePlanningSession = { id: activePlanning.id, history: activePlanning.history };
             shouldRespond = true;

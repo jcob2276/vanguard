@@ -13,10 +13,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { getVanguardUserId } from "../_shared/constants.ts";
 
 const STRAVA_CLIENT_ID     = Deno.env.get('STRAVA_CLIENT_ID') || '';
 const STRAVA_CLIENT_SECRET = Deno.env.get('STRAVA_CLIENT_SECRET') || '';
-const VANGUARD_USER_ID     = Deno.env.get('VANGUARD_USER_ID') || '165ae341-670c-46ce-82dc-434c4dbfcdfd';
+const VANGUARD_USER_ID     = getVanguardUserId();
 
 // Initial sync cutoff: 2026-05-20 00:00:00 Warsaw (UTC+2)
 const INITIAL_SYNC_FROM = Math.floor(new Date('2026-05-19T22:00:00Z').getTime() / 1000);
