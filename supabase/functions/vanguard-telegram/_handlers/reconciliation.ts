@@ -7,6 +7,7 @@
 
 import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
+import { logCriticalError } from '../../_shared/errorLogging.ts';
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -271,7 +272,11 @@ Potwierdzasz?`;
 
     console.log('[reconciliation] planning session started (bridge message sent) for:', reconciliationId);
   } catch (planErr) {
-    console.error('[reconciliation] planning session trigger error:', planErr);
+    await logCriticalError({
+      area: 'reconciliation-handler',
+      error: planErr,
+      message: 'Planning session trigger error from reconciliation',
+    });
   }
 }
 

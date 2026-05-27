@@ -25,10 +25,10 @@ export async function handleSaturdayCheckin(
     answers.input = cleanText;
     const nextStep = 'integration';
     
-    const { error: updateErr } = await supabase.from('daily_reconciliations').update({
+    const { error: updateErrInput } = await supabase.from('daily_reconciliations').update({
       parsed_response: { step: nextStep, answers }
     }).eq('id', reconciliationId);
-    if (updateErr) console.error('[saturday] failed to update step to integration:', updateErr);
+    if (updateErrInput) console.error('[saturday] failed to update step to integration:', updateErrInput);
 
     const messageText = 
       `🔄 *Saturday Check-In: WEEKLY INTEGRATION + REALITY REVIEW* 🔄\n\n` +
@@ -47,10 +47,10 @@ export async function handleSaturdayCheckin(
     answers.integration = cleanText;
     const nextStep = 'reality';
 
-    const { error: updateErr } = await supabase.from('daily_reconciliations').update({
+    const { error: updateErrIntegration } = await supabase.from('daily_reconciliations').update({
       parsed_response: { step: nextStep, answers }
     }).eq('id', reconciliationId);
-    if (updateErr) console.error('[saturday] failed to update step to reality:', updateErr);
+    if (updateErrIntegration) console.error('[saturday] failed to update step to reality:', updateErrIntegration);
 
     const messageText = 
       `📍 *Saturday Check-In: WEEKLY INTEGRATION + REALITY REVIEW* 📍\n\n` +
@@ -69,10 +69,10 @@ export async function handleSaturdayCheckin(
     answers.reality = cleanText;
     const nextStep = 'system';
 
-    const { error: updateErr } = await supabase.from('daily_reconciliations').update({
+    const { error: updateErrReality } = await supabase.from('daily_reconciliations').update({
       parsed_response: { step: nextStep, answers }
     }).eq('id', reconciliationId);
-    if (updateErr) console.error('[saturday] failed to update step to system:', updateErr);
+    if (updateErrReality) console.error('[saturday] failed to update step to system:', updateErrReality);
 
     const messageText = 
       `⚙️ *Saturday Check-In: WEEKLY INTEGRATION + REALITY REVIEW* ⚙️\n\n` +
@@ -91,13 +91,13 @@ export async function handleSaturdayCheckin(
     answers.system = cleanText;
     
     // Save final answers and mark reconciliation answered
-    const { error: updateErr } = await supabase.from('daily_reconciliations').update({
+    const { error: updateErrSystem } = await supabase.from('daily_reconciliations').update({
       status: 'answered',
       user_response: JSON.stringify(answers),
       parsed_response: { step: 'completed', answers },
       answered_at: new Date().toISOString()
     }).eq('id', reconciliationId);
-    if (updateErr) console.error('[saturday] failed to save final answers:', updateErr);
+    if (updateErrSystem) console.error('[saturday] failed to save final answers:', updateErrSystem);
 
     await sendChatAction(telegramToken, chatId, "typing");
 
@@ -279,11 +279,11 @@ ${streamLines || 'brak'}`
     ];
 
     // Update reconciliation row to launch the planning session
-    const { error: updateErr } = await supabase.from('daily_reconciliations').update({
+    const { error: updateErrPlanning } = await supabase.from('daily_reconciliations').update({
       planning_status: 'active',
       planning_history: initialHistory
     }).eq('id', reconciliationId);
-    if (updateErr) console.error('[saturday] failed to activate planning session:', updateErr);
+    if (updateErrPlanning) console.error('[saturday] failed to activate planning session:', updateErrPlanning);
 
     const bridgeText = 
       `${synthesisText}\n\n` +

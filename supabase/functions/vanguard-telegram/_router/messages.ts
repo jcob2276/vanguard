@@ -6,6 +6,8 @@ import { transcribeAudio } from "../_utils/whisper.ts";
 import { PLANNING_END_PHRASES, getActivePlanningSession, closePlanningSession } from "../_handlers/planning.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { runAntiAnalysisGuard } from "../_handlers/antiAnalysis.ts";
+import { logAuditEvent } from "../../_shared/audit.ts";
+import { logCriticalError } from "../../_shared/errorLogging.ts";
 
 export async function handleIncomingMessage(
   message: {
@@ -49,7 +51,7 @@ export async function handleIncomingMessage(
         // Check if we are handling a pending reconciliation response or active planning to prevent sending '🎤 Słucham...' again.
         const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
         
-        let pendingReconciliation = null;
+        pendingReconciliation = null;
         if (!activePlanning) {
           const { data: reconciliation } = await supabase
             .from('daily_reconciliations')
@@ -82,7 +84,11 @@ export async function handleIncomingMessage(
         }
         if (existing) return;
       } catch (err) {
-        console.error('[telegram] Idempotency check exception caught:', err);
+        await logCriticalError({
+          area: 'telegram-messages',
+          error: err,
+          message: 'Idempotency check failed',
+        });
       }
 
       // --- Mode routing ---
@@ -244,7 +250,13 @@ export async function handleIncomingMessage(
               console.error('[telegram] Failed to parse emotion text content to JSON:', err, rawEmotion);
             }
           }
-        } catch (err) { console.error('[Vanguard] Stream embedding/emotion failed:', err); }
+        } catch (err) {
+          await logCriticalError({
+            area: 'telegram-messages',
+            error: err,
+            message: 'Stream embedding or emotion extraction failed',
+          });
+        }
 
         const { data: streamInserted, error: streamInsertError } = await supabase.from('vanguard_stream').insert({
           user_id: vanguardUserId,
@@ -283,6 +295,12 @@ export async function handleIncomingMessage(
             supabase, telegramToken, deepseekApiKey, vanguardUserId,
             pendingReconciliation.parsed_response
           );
+        } else if (pendingReconciliation.mode === 'morning_rescue') {
+          const { handleMorningRescue } = await import('../_handlers/morningRescue.ts');
+          await handleMorningRescue(
+            pendingReconciliation.id, cleanText, chatId,
+            supabase, telegramToken, deepseekApiKey,
+          );
         } else {
           await handleReconciliation(
             pendingReconciliation.id, cleanText, streamRecordId, chatId,
@@ -313,22 +331,25 @@ export async function handleIncomingMessage(
         } else if (isIdentityUpdate) {
           await supabase.from('user_fundament').upsert({ user_id: vanguardUserId, identity: rawContent }, { onConflict: 'user_id' });
         } else {
+          // Route all user corrections / lessons through the proper ingestion path
+          // (ingest-vault-log) instead of direct write to vanguard_knowledge.
+          // This fixes the dual-write violation.
           const wordCount = rawContent.trim().split(/\s+/).filter(Boolean).length;
-          if (!isGeneralPoprawka && wordCount > 120) {
-            deferredVaultIngest = { text: rawContent, category: inferVaultCategory(rawContent) };
-          } else {
-            let embedding = null;
-            try {
-                embedding = await getEmbedding(cleanText, openAiKey);
-            } catch (e) { console.warn("Failed to generate embedding for knowledge:", e); }
+          const category = isGeneralPoprawka ? 'lesson' : inferVaultCategory(rawContent);
 
-            await supabase.from('vanguard_knowledge').insert({
-              user_id: vanguardUserId,
-              title: isGeneralPoprawka ? 'Poprawka użytkownika' : cleanText.substring(0, 50),
-              content: cleanText, category: 'lesson', importance_score: 10,
-              is_verified: true, embedding, source_type: 'TELEGRAM',
-              metadata: { telegram_message_id: messageId }
+          if (wordCount > 80 || isGeneralPoprawka) {
+            // Always go through controlled ingestion for corrections and long notes
+            deferredVaultIngest = { text: rawContent, category };
+
+            logAuditEvent({
+              eventType: 'knowledge_ingest_deferred',
+              severity: 'info',
+              message: isGeneralPoprawka ? 'User correction routed via ingest-vault-log' : 'Long vault note routed via proper path',
+              metadata: { category, length: rawContent.length, source: 'telegram' }
             });
+          } else {
+            // Very short non-correction vault notes still go to stream (existing behavior)
+            deferredVaultIngest = { text: rawContent, category };
           }
         }
       }
@@ -337,9 +358,11 @@ export async function handleIncomingMessage(
       let responseText = "";
       if (!shouldRespond) {
         responseText = mode === 'knowledge'
-          ? '📖 Zaktualizowano moją wiedzę.'
+          ? '📖 Zapisano w wiedzy (przez kontrolowany ingest).'
           : mode === 'daily_reconciliation_response'
-            ? '✅ Reconciliation zapisane.'
+            ? pendingReconciliation?.mode === 'morning_rescue'
+              ? '⏳ Analizuję plan...'
+              : '✅ Reconciliation zapisane.'
             : planningEnded
               ? '⏳ Zaraz generuję plan na jutro...'
               : '💭 Zapisano w Strumieniu.';
@@ -484,7 +507,14 @@ export async function handleIncomingMessage(
             body: { userId: vanguardUserId, text: deferredVaultIngest.text, category: deferredVaultIngest.category }
           });
           if (ingestError) console.error("Long knowledge ingest failed:", ingestError);
-        } catch (err) { console.error("Long knowledge background ingest error:", err); }
+        } catch (err) {
+          await logCriticalError({
+            area: 'telegram-messages',
+            error: err,
+            message: 'Long knowledge background ingest error',
+            metadata: { nonFatal: true },
+          });
+        }
       }
 
       // --- Architect invoke ---
@@ -494,10 +524,21 @@ export async function handleIncomingMessage(
             body: { type: 'stream', record_id: streamRecordId, limit: 1 }
           });
           if (architectError) console.error("[telegram] architect invoke failed:", architectError);
-        } catch (err) { console.error("[telegram] architect background error:", err); }
+        } catch (err) {
+          await logCriticalError({
+            area: 'telegram-messages',
+            error: err,
+            message: 'Architect background invoke error',
+            metadata: { nonFatal: true },
+          });
+        }
       }
   } catch (innerErr) {
-    console.error("Background error:", innerErr);
+    await logCriticalError({
+      area: 'telegram-messages',
+      error: innerErr,
+      message: 'Unhandled error in handleIncomingMessage',
+    });
     await safeSendTelegram(chatId, `⚠️ Błąd: ${(innerErr as Error).message}`, telegramToken);
   }
 }

@@ -16,6 +16,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
+import { logAuditEvent } from "../_shared/audit.ts";
+import { getPlanQualitySignal } from "../_shared/planQuality.ts";
+import { logCriticalError } from "../_shared/errorLogging.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const VANGUARD_USER_ID = getVanguardUserId();
@@ -50,9 +53,28 @@ serve(async () => {
       !r.planning_summary?.parse_error
     );
 
+    const plan = row?.planning_summary as Record<string, any> | undefined;
+
+    const qualitySignal = getPlanQualitySignal(plan);
+    const isLowQualityPlan = qualitySignal.isLowQuality;
+
     if (!row) {
       console.log(`[midday-check] No plan for ${todayWarsawDate}, skipping.`);
       return new Response('ok');
+    }
+
+    if (isLowQualityPlan) {
+      logAuditEvent({
+        eventType: 'midday_check_low_quality_plan',
+        severity: 'warning',
+        message: 'Midday check przy niskiej jakości planu z poprzedniego wieczoru',
+        metadata: {
+          date: todayWarsawDate,
+          plan_quality: qualitySignal.quality,
+          plan_failure_reason: qualitySignal.failureReason,
+          mode: qualitySignal.mode,
+        }
+      });
     }
 
     if (row.midday_sent_at || row.midday_status) {
@@ -60,11 +82,15 @@ serve(async () => {
       return new Response('ok');
     }
 
-    const plan = row.planning_summary as Record<string, any>;
-    const prodArtifact = plan.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
+    const planForMidday = row.planning_summary as Record<string, any>;
+    const prodArtifact = planForMidday.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
     const prodArtifactName = prodArtifact?.artifact || '—';
-    const ta = plan.tension_action as { action?: string; status?: string } | undefined;
+    const ta = planForMidday.tension_action as { action?: string; status?: string } | undefined;
     const taAction = ta?.action || '—';
+
+    const lowQualityNote = isLowQualityPlan
+      ? `\n\n⚠️ Plan był wczorajszy awaryjny/minimum — traktuj ten check jako okazję do korekty.`
+      : '';
 
     const text =
       `Check.\n\n` +
@@ -72,7 +98,7 @@ serve(async () => {
       `${prodArtifactName}\n` +
       `Status?\n\n` +
       `Tension action:\n` +
-      `${taAction}`;
+      `${taAction}${lowQualityNote}`;
 
     const inlineKeyboard = [
       [
@@ -99,15 +125,20 @@ serve(async () => {
     }
 
     // Mark as sent — prevents duplicate sends if cron fires twice
-    await supabase
+    const { error: updateErr } = await supabase
       .from('daily_reconciliations')
       .update({ midday_sent_at: new Date().toISOString() })
       .eq('id', row.id);
+    if (updateErr) console.error('[midday-check] failed to update midday_sent_at:', updateErr.message);
 
     console.log(`[midday-check] Check sent for ${todayWarsawDate}.`);
     return new Response('ok');
   } catch (err) {
-    console.error('[midday-check] error:', err);
+    await logCriticalError({
+      area: 'midday-check',
+      error: err,
+      message: 'Midday check cron failed',
+    });
     return new Response('error', { status: 500 });
   }
 });

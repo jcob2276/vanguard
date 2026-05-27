@@ -6,6 +6,9 @@ import {
   formatOracleStreamBlock,
 } from "../_shared/streamContext.ts"
 import { getStreamCutoffs } from "../_shared/time.ts"
+import { logAuditEvent } from "../_shared/audit.ts"
+import { getPlanQualitySignal } from "../_shared/planQuality.ts"
+import { logCriticalError } from "../_shared/errorLogging.ts"
 
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
@@ -24,7 +27,7 @@ function stripJsonFence(text = '') {
 function buildGraphSeeds(query = '', intent = 'open_reflection', mentionedEntities: string[] = []) {
   const q = query.toLowerCase();
   const seeds = new Set<string>((mentionedEntities || []).filter(Boolean));
-  const selfReference = /\b(ja|mnie|mi|moje|moja|moj|u mnie|o mnie|mĂłj|mój)\b/.test(q);
+  const selfReference = /\b(ja|mnie|mi|moje|moja|moj|u mnie|o mnie|mój)\b/.test(q);
   const broadSelfIntent = ['identity', 'person', 'recent_pattern', 'biometric', 'open_reflection'].includes(intent);
 
   if (selfReference || broadSelfIntent) {
@@ -60,26 +63,38 @@ serve(async (req) => {
     const fourteenDaysAgoDate = new Date(now.getTime() - (13 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
     const todayDate = now.toISOString().split('T')[0];
 
+    // === PLAN QUALITY AWARENESS (added for weak plan visibility) ===
+    let recentPlanQuality: any = null;
+    if (mode === 'planning' || classifyIntentSafe(current_query || '').includes('recent')) {
+      const { data: recentPlan } = await supabase
+        .from('daily_reconciliations')
+        .select('planning_summary')
+        .eq('user_id', user_id)
+        .not('planning_summary', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentPlan?.planning_summary) {
+        const signal = getPlanQualitySignal(recentPlan.planning_summary);
+        recentPlanQuality = {
+          ...signal,
+          target_date: (recentPlan.planning_summary as any).target_date || null,
+        };
+      }
+    }
+
     // STATIC CONTEXT
-    const [fundamentRes, ironRulesRes, patternsRes, personsRes, intentionsRes, preferencesRes, oura14dRes, nutrition14dRes] = await Promise.all([
+    // Fix #003: Usunięto ładowanie martwych/pustych tabel z kontekstu Oracla
+    // (iron_rules, repeated_patterns, known_persons, intentions).
+    // Tabele te od dłuższego czasu nie zawierały danych, a mimo to były
+    // odpytwane przy każdym zapytaniu do Oracla.
+    // Zostawiono tylko `vanguard_preferences` (ma dane z poprawek użytkownika).
+    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes] = await Promise.all([
       supabase.from('user_fundament')
         .select('identity, philosophy, vision')
         .eq('user_id', user_id)
         .maybeSingle(),
-      supabase.from('vanguard_iron_rules')
-        .select('content')
-        .eq('user_id', user_id)
-        .eq('is_active', true),
-      supabase.from('vanguard_repeated_patterns')
-        .select('pattern_name, description')
-        .eq('user_id', user_id),
-      supabase.from('vanguard_known_persons')
-        .select('name, relation, context')
-        .eq('user_id', user_id),
-      supabase.from('vanguard_intentions')
-        .select('text, type')
-        .eq('user_id', user_id)
-        .eq('status', 'active'),
       supabase.from('vanguard_preferences')
         .select('value')
         .eq('user_id', user_id)
@@ -98,10 +113,6 @@ serve(async (req) => {
 
     if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
     if (preferencesRes.error) console.error('[oracle] vanguard_preferences query error:', preferencesRes.error);
-    if (ironRulesRes.error) console.error('[oracle] vanguard_iron_rules query error:', ironRulesRes.error);
-    if (patternsRes.error) console.error('[oracle] vanguard_behavioral_patterns query error:', patternsRes.error);
-    if (personsRes.error) console.error('[oracle] vanguard_known_persons query error:', personsRes.error);
-    if (intentionsRes.error) console.error('[oracle] vanguard_intentions query error:', intentionsRes.error);
     if (oura14dRes.error) console.error('[oracle] oura_daily_summary query error:', oura14dRes.error);
     if (nutrition14dRes.error) console.error('[oracle] daily_nutrition query error:', nutrition14dRes.error);
 
@@ -112,10 +123,6 @@ ${fundamentRes.data?.philosophy || 'Brak danych'}
 ${fundamentRes.data?.vision || 'Brak danych'}
     `;
 
-    const ironRulesText = ironRulesRes.data?.map(r => `- ${r.content}`).join('\n');
-    const repeatedPatterns = patternsRes.data?.map(p => `- ${p.pattern_name}: ${p.description}`).join('\n');
-    const knownPersons = personsRes.data?.map(p => `- ${p.name} (${p.relation}): ${p.context}`).join('\n');
-    const activeIntentions = intentionsRes.data?.map(i => `- [${i.type}] ${i.text}`).join('\n');
     const responsePrefs = preferencesRes.data?.map(p => `- ${p.value}`).join('\n') || '';
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
@@ -142,8 +149,6 @@ Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'b
 Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}
 Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
 Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
-
-    const knownPersonsLine = knownPersons ? `ZNASZ NASTĘPUJĄCE OSOBY:\n${knownPersons}` : '';
 
     // DYNAMIC CONTEXT (RAG)
     let semanticContext = "";
@@ -255,6 +260,20 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
         matchesRes = { data: rankedSemanticMatches };
         graphRes = { data: rankedGraphData };
 
+        // Fix #004 – logujemy gdy RAG nie zwrócił nic (częsty przypadek degradacji)
+        if (rankedSemanticMatches.length === 0 && rankedGraphData.length === 0) {
+          logAuditEvent({
+            eventType: 'oracle_rag_empty',
+            severity: 'warning',
+            message: 'Oracle otrzymał zapytanie bez żadnego kontekstu z RAG/grafu',
+            userId: user_id,
+            metadata: {
+              query_preview: current_query?.substring(0, 180) || null,
+              intent: intentForGraph,
+            },
+          });
+        }
+
         // --- DETERMINISTIC SOURCES ---
         retrievedSources = rankedSemanticMatches.map((m: any) => ({
           table: m.table_name,
@@ -332,7 +351,12 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
         }
 
       } catch (err) {
-        console.error("[oracle] RAG_ERROR — retrieval failed, continuing without context:", err);
+        await logCriticalError({
+          area: 'oracle',
+          error: err,
+          message: 'RAG retrieval failed – continuing with degraded context',
+          metadata: { nonFatal: true },
+        });
         semanticContext += "\n\n[SYSTEM: RAG niedostępny — odpowiedź bez pamięci semantycznej/grafu. Nie twierdź o faktach ze strumienia bez świeżego potwierdzenia.]";
       }
     }
@@ -347,7 +371,7 @@ MÓWISZ TYLKO PO POLSKU.
 TON ABSOLUTNY:
 Dozwolone: zimne fakty, krótkie challenge, "To jest analiza", "Jaki artefakt powstanie?", "Nie nadrabiamy dnia", "Ratujemy pierwszy artefakt".
 Zakazane: motywacyjne gadki, psychoanaliza, moralizowanie, diagnozy, długie eseje, wzmacnianie self-analysis, rozbudowywanie nowych frameworków w odpowiedzi na drift. Max 1 pytanie na odpowiedź, skupione na konkretnym artefakcie (production_artifact) lub ruchu napięciowym (tension_action). Odpowiedzi muszą być krótkie, surowe i konkretne. Zawsze dąż do konfrontacji analizy z fizycznym działaniem.
-${mode === 'mirror' ? `\nTRYB OBSERWACJI: Opisujesz co widzisz w danych. Nie pytasz. Kończysz obserwacją lub wnioskiem.\n` : ''}${mode === 'planning' ? `\nTRYB PLANOWANIA WIECZORNEGO:\nJesteś facylitatorem planowania — pomagasz Jakubowi zaplanować jutrzejszy dzień.\n\nZASADY:\n- Odwołaj się do reconciliation (co dziś poszło źle/dobrze) — krótko, bez oceniania\n- Przejrzyj jego aktywne intencje i listę zadań z [KONTEKST SYSTEMOWY]\n- Zadaj konkretne pytania: co MUSI jutro zostać zrobione? co może nie wyjść? jest coś pilnego?\n- Pomóż ustalić TOP 3 priorytety na jutro\n- Zidentyfikuj potencjalne przeszkody i dlaczego może się nie udać\n- Jeśli masz dane z Todoist — wymień nieukończone zadania i zapytaj o priorytety\n- Możesz zaproponować konkretne godziny w harmonogramie\n\nFORMAT: Bezpośredni, konkretny, po polsku. Max 220 słów na jedną odpowiedź. Kończ pytaniem lub konkretną propozycją do potwierdzenia.\nZAKAZ: Moralizowania, psychoanalizy, ogólnych rad bez zakorzenienia w danych.\n` : ''}
+${mode === 'mirror' ? `\nTRYB OBSERWACJI: Opisujesz co widzisz w danych. Nie pytasz. Kończysz obserwacją lub wnioskiem.\n` : ''}${mode === 'planning' ? `\nTRYB PLANOWANIA WIECZORNEGO:\nJesteś facylitatorem planowania — pomagasz Jakubowi zaplanować jutrzejszy dzień.\n\nZASADY:\n- Odwołaj się do reconciliation (co dziś poszło źle/dobrze) — krótko, bez oceniania\n- Jeśli wczorajszy plan był niskiej jakości (plan_quality=minimum/rescue lub ma failure_reason) — wyraźnie to odnotuj i pomóż skorygować zamiast budować na słabym planie\n- Przejrzyj jego aktywne intencje i listę zadań z [KONTEKST SYSTEMOWY]\n- Zadaj konkretne pytania: co MUSI jutro zostać zrobione? co może nie wyjść? jest coś pilnego?\n- Pomóż ustalić TOP 3 priorytety na jutro\n- Zidentyfikuj potencjalne przeszkody i dlaczego może się nie udać\n- Jeśli masz dane z Todoist — wymień nieukończone zadania i zapytaj o priorytety\n- Możesz zaproponować konkretne godziny w harmonogramie\n\nFORMAT: Bezpośredni, konkretny, po polsku. Max 220 słów na jedną odpowiedź. Kończ pytaniem lub konkretną propozycją do potwierdzenia.\nZAKAZ: Moralizowania, psychoanalizy, ogólnych rad bez zakorzenienia w danych.\n` : ''}
 ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
 {
   "answer": "Twoja odpowiedź",
@@ -378,6 +402,16 @@ Minimum viable day: ${state_vector.today_plan.minimum_viable_day || '—'}
 Ryzyko: ${state_vector.today_plan.biggest_risk || state_vector.today_plan.ryzyko || '—'}
 Kontrplan: ${state_vector.today_plan.counterplan || state_vector.today_plan.kontrplan || '—'}${(state_vector.today_plan.open_loops as string[] || []).filter(Boolean).length > 0 ? `\nOtwarte petle: ${(state_vector.today_plan.open_loops as string[]).join(', ')}` : ''}
 ZASADA: Gdy Jakub opisuje działania wyraźnie niezgodne z Top 3 — odnotuj, bez moralizowania.
+` : ''}
+
+${recentPlanQuality ? `
+[JAKOŚĆ OSTATNIEGO PLANU — WAŻNE]:
+plan_quality: ${recentPlanQuality.plan_quality || 'unknown'}
+mode: ${recentPlanQuality.mode || 'unknown'}
+failure_reason: ${recentPlanQuality.plan_failure_reason || 'none'}
+was_fallback: ${recentPlanQuality.plan_fallback}
+parse_error: ${recentPlanQuality.parse_error}
+Jeśli plan_quality jest 'minimum' lub 'rescue' albo jest failure_reason — traktuj ten plan jako słaby sygnał. Nie buduj na nim silnych założeń. Pytaj o korektę.
 ` : ''}
 [STATUS WIEDZY — używaj przy każdej tezie]:
 - current: potwierdzone danymi <14 dni
@@ -412,10 +446,7 @@ ${graphContext}
 [GRAPH IS EVIDENCE MEMORY, NOT TRUTH]:
 Graf to pamięć dowodów. Krawędź w grafie to nie fakt — to zapamiętana obserwacja z datą i statusem.
 
-${ironRulesText ? `[ŻELAZNE ZASADY]:\n${ironRulesText}` : ''}
-${repeatedPatterns ? `[WZORCE (z danych — nie interpretować jako aktualne bez świeżego potwierdzenia)]:\n${repeatedPatterns}` : ''}
 ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
-${mode !== 'mirror' && knownPersonsLine ? `\n${knownPersonsLine}` : ''}
 `;
 
     const messages = [
@@ -501,7 +532,11 @@ ${mode !== 'mirror' && knownPersonsLine ? `\n${knownPersonsLine}` : ''}
         state_vector: state_vector || {},
       });
     } catch (e) {
-      console.error("[oracle] audit log insert failed:", e);
+      await logCriticalError({
+        area: 'oracle',
+        error: e,
+        message: 'Failed to insert oracle run audit log',
+      });
     }
 
     console.log(`[oracle] response returned`, Date.now() - t0);
@@ -515,7 +550,11 @@ ${mode !== 'mirror' && knownPersonsLine ? `\n${knownPersonsLine}` : ''}
     });
 
   } catch (error: any) {
-    console.error("Oracle Error:", error);
+    await logCriticalError({
+      area: 'oracle',
+      error,
+      message: 'Oracle function fatal error',
+    });
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500

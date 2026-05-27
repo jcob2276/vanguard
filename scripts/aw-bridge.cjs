@@ -37,7 +37,7 @@ async function performSync() {
 
     const payload = { window: null, afk: null, web: null };
 
-    for (const [id, bucket] of Object.entries(buckets)) {
+    for (const [id, _bucket] of Object.entries(buckets)) {
       // Używamy formatu bez ukośnika przed events, jak w testach
       const endpoint = `${AW_URL}/api/0/buckets/${id}/events?limit=1`;
       
@@ -46,7 +46,7 @@ async function performSync() {
           let data = '';
           res.on('data', chunk => data += chunk);
           res.on('end', () => {
-            try { resolve(JSON.parse(data)); } catch(e) { resolve([]); }
+            try { resolve(JSON.parse(data)); } catch { resolve([]); }
           });
         }).on('error', () => resolve([]));
       });

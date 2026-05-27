@@ -1,6 +1,11 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { sendMessage } from '../_shared/telegram.ts'
+import { logCriticalError } from '../_shared/errorLogging.ts'
+
+const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
+const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -213,20 +218,39 @@ Przykłady:
           .map((m: any) => m.id)
         if (idsToClose.length > 0) {
           // Human gate: LLM inference cannot mutate evidence layer without confirmation.
-          // Actual valid_until update happens only after status='approved' (P3).
-          await safeExecute(
-            supabase
-              .from('vanguard_stream_closure_proposals')
-              .insert({
-                user_id: record.user_id,
-                proposed_by_record_id: record.id,
-                target_record_ids: idsToClose,
-                closed_topic_description: classification.closed_topic_description,
-                similarity_threshold: CLOSURE_THRESHOLD,
-                status: 'pending'
-              })
-          )
+          // Telegram notification sent immediately — user approves/rejects via buttons.
+          const { data: proposalData } = await supabase
+            .from('vanguard_stream_closure_proposals')
+            .insert({
+              user_id: record.user_id,
+              proposed_by_record_id: record.id,
+              target_record_ids: idsToClose,
+              closed_topic_description: classification.closed_topic_description,
+              similarity_threshold: CLOSURE_THRESHOLD,
+              status: 'pending'
+            })
+            .select('id')
+            .single();
+
           console.log(`[auto-classify] closure proposal created for ${idsToClose.length} record(s), topic: ${classification.closed_topic_description}`)
+
+          // Send Telegram notification with approve/reject buttons
+          if (proposalData?.id && TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
+            const proposalId = proposalData.id;
+            const topicSnippet = (classification.closed_topic_description as string || '').substring(0, 120);
+            await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
+              `🔄 *Zamknięcie wątku?*\n\nSystem wykrył że ta notatka może zamykać temat:\n_${topicSnippet}_\n\nDotyczy ${idsToClose.length} wpis(ów) w strumieniu.\n\nZatwierdzić? Wpisy przestaną być widoczne dla Oracle.`,
+              {
+                parseMode: 'Markdown',
+                replyMarkup: {
+                  inline_keyboard: [[
+                    { text: '✅ Zamknij wątek', callback_data: `closure_approve_${proposalId}` },
+                    { text: '❌ Zostaw otwarty', callback_data: `closure_reject_${proposalId}` }
+                  ]]
+                }
+              }
+            ).catch((err: Error) => console.warn('[auto-classify] closure Telegram notify failed:', err.message));
+          }
         }
       }
     }
@@ -248,9 +272,15 @@ Przykłady:
     )
 
     // === INSERT friction_event jeśli wykryto mikrotarcie, gest lub obserwację ===
-    const shouldLog = friction.is_relevant && friction.event_kind
+    // Wstawiamy rekord zawsze gdy model zwrócił poprawne event_kind (nawet jeśli is_relevant=false).
+    // Dzięki temu wspieramy pełną taksonomię z promptu (w tym state_observation, micro_behavior_observation, reflection).
+    const shouldLog = friction.event_kind !== null && friction.event_kind !== undefined
+
+    // Declare outside shouldLog block so it's available in the response JSON
+    let extractionQuality: number | null = null;
+
     if (shouldLog) {
-      const existingFriction = await safeExecute(
+      const { data: existingFriction } = await safeExecute(
         supabase
           .from('friction_events')
           .select('id')
@@ -261,6 +291,29 @@ Przykłady:
       if (existingFriction) {
         console.log(`[auto-classify] friction_event already exists for stream record: ${record.id}`)
       } else {
+        // Compute extraction quality tailored to event_kind to surface prompt vs reality drift
+        let criticalFields: string[] = [];
+
+        if (friction.event_kind === 'friction_event') {
+          criticalFields = ['declared_intention', 'actual_behavior', 'deviation'];
+        } else if (friction.event_kind === 'positive_micro_action') {
+          criticalFields = ['actual_behavior'];
+        } else if (friction.event_kind === 'state_observation' || friction.event_kind === 'micro_behavior_observation') {
+          criticalFields = ['actual_behavior', 'emotional_state'];
+        } else {
+          criticalFields = ['actual_behavior'];
+        }
+
+        const present = criticalFields.filter(f => friction[f] && String(friction[f]).trim().length > 3);
+        extractionQuality = criticalFields.length > 0
+          ? Math.round((present.length / criticalFields.length) * 100)
+          : 70;
+
+        // For friction_event we are stricter – very weak extractions get lower status
+        const finalStatus = (friction.event_kind === 'friction_event' && extractionQuality < 50) 
+          ? 'weak_extraction' 
+          : 'raw';
+
         await safeExecute(
           supabase
             .from('friction_events')
@@ -280,10 +333,11 @@ Przykłady:
               location_context: friction.location_context || null,
               confidence_source: 'inferred',
               confidence: null,
-              status: 'raw'
+              status: finalStatus,
+              extraction_quality: extractionQuality
             })
         )
-        console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type}`)
+        console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type} | quality=${extractionQuality}% | status=${finalStatus}`)
       }
     }
 
@@ -292,13 +346,18 @@ Przykłady:
       classification,
       friction_detected: friction.is_relevant && (friction.event_kind === 'friction_event' || friction.event_kind === 'positive_micro_action'),
       event_kind: friction.event_kind || null,
-      friction_type: friction.friction_type || null
+      friction_type: friction.friction_type || null,
+      extraction_quality: extractionQuality   // exposed for monitoring drift
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error: any) {
-    console.error('[auto-classify] error:', error)
+    await logCriticalError({
+      area: 'auto-classify',
+      error,
+      message: 'Auto-classify function error',
+    });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

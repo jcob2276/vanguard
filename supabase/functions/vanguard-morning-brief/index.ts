@@ -11,6 +11,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
+import { logAuditEvent } from "../_shared/audit.ts";
+import { getPlanQualitySignal } from "../_shared/planQuality.ts";
+import { logCriticalError } from "../_shared/errorLogging.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const VANGUARD_USER_ID = getVanguardUserId();
@@ -45,8 +48,90 @@ serve(async () => {
       !r.planning_summary?.parse_error
     );
 
-    if (!row) {
-      console.log(`[morning-brief] No plan for ${todayWarsawDate}, skipping.`);
+    // Sprawdź jakość planu z poprzedniego wieczoru (używamy wspólnej warstwy)
+    const plan = row?.planning_summary as Record<string, any> | undefined;
+    const qualitySignal = getPlanQualitySignal(plan);
+    const isLowQualityPlan = qualitySignal.isLowQuality;
+
+    if (!row || isLowQualityPlan) {
+      // No good plan (or only low-quality/rescue/minimum plan) for today
+      const { data: rescueExisting } = await supabase
+        .from('daily_reconciliations')
+        .select('id')
+        .eq('user_id', VANGUARD_USER_ID)
+        .eq('date', todayWarsawDate)
+        .eq('mode', 'morning_rescue')
+        .maybeSingle();
+
+      if (rescueExisting) {
+        console.log(`[morning-brief] Rescue already sent for ${todayWarsawDate}, skipping.`);
+        return new Response('ok');
+      }
+
+      const reason = !row ? 'no_plan' : 'low_quality_plan';
+      const qualityInfo = plan ? {
+        plan_quality: qualitySignal.quality,
+        mode: qualitySignal.mode,
+        plan_failure_reason: qualitySignal.failureReason,
+      } : null;
+
+      const isVeryWeak = qualitySignal.isVeryWeak;
+
+      logAuditEvent({
+        eventType: 'morning_rescue_sent',
+        severity: isVeryWeak ? 'error' : 'warning',
+        message: !row
+          ? 'Brak planu na dziś – wysłano rescue brief'
+          : 'Słaby plan z poprzedniego wieczoru – wymuszono mocniejszy rescue',
+        metadata: { date: todayWarsawDate, reason, previous_plan: qualityInfo, very_weak: isVeryWeak }
+      });
+
+      const rescueText = isVeryWeak
+        ? `Wczorajszy plan był bardzo słaby (awaria/minimum).\n\n` +
+          `Zanim ruszysz dziś — nagraj **lepszą** wersję:\n` +
+          `1. Co ma realnie powstać po pierwszym bloku?\n` +
+          `2. Jaki ruch napięciowy odkładasz?`
+        : `Wczorajszy plan był słaby.\n\n` +
+          `Zanim zaczniesz — nagraj:\n` +
+          `1. Co ma fizycznie istnieć po pierwszym bloku?\n` +
+          `2. Jaki jest ruch napięciowy na dziś?`;
+
+      const rescueRes = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, rescueText, {
+        disableNotification: false,
+      });
+
+      if (!rescueRes.ok) {
+        console.error('[morning-brief] rescue sendMessage failed:', rescueRes.status);
+        return new Response('ok');
+      }
+
+      const rescueBody = await rescueRes.json().catch(() => ({}));
+      const rescueMsgId = rescueBody?.result?.message_id ?? null;
+
+      const { error: rescueInsertErr } = await supabase
+        .from('daily_reconciliations')
+        .insert({
+          user_id:             VANGUARD_USER_ID,
+          date:                todayWarsawDate,
+          mode:                'morning_rescue',
+          status:              'sent',
+          morning_sent_at:     new Date().toISOString(),
+          telegram_message_id: rescueMsgId,
+          // Placeholder planning_summary so morning-ping can detect this row
+          planning_summary: {
+            target_date:        todayWarsawDate,
+            mode:               'rescue',
+            one_clear_move:     'Zdefiniuj plan dnia',
+            production_artifact: { minimum_version: 'Nagraj plan' },
+          },
+        });
+
+      if (rescueInsertErr) {
+        console.error('[morning-brief] rescue insert failed:', rescueInsertErr.message);
+      } else {
+        console.log(`[morning-brief] Rescue brief sent for ${todayWarsawDate}, msg_id=${rescueMsgId}.`);
+      }
+
       return new Response('ok');
     }
 
@@ -55,12 +140,16 @@ serve(async () => {
       return new Response('ok');
     }
 
-    const plan = row.planning_summary as Record<string, any>;
-    const oneClearMove = plan.one_clear_move || '—';
-    const prodArtifact = plan.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
+    const planForBrief = row.planning_summary as Record<string, any>;
+    const oneClearMove = planForBrief.one_clear_move || '—';
+    const prodArtifact = planForBrief.production_artifact as { artifact?: string; minimum_version?: string } | undefined;
     const prodArtifactName = prodArtifact?.artifact || '—';
-    const ta = plan.tension_action as { action?: string; status?: string } | undefined;
+    const ta = planForBrief.tension_action as { action?: string; status?: string } | undefined;
     const taAction = ta?.action || '—';
+
+    const qualityNote = isLowQualityPlan
+      ? `\n\n⚠️ Wczorajszy plan był awaryjny / minimum. Warto doprecyzować dziś rano.`
+      : '';
 
     const text = 
       `Start dnia.\n\n` +
@@ -75,7 +164,7 @@ serve(async () => {
       `Artefakt po bloku:\n` +
       `${prodArtifactName}\n\n` +
       `⚡ Ruch napięciowy:\n` +
-      `${taAction}`;
+      `${taAction}${qualityNote}`;
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
       replyMarkup: {
@@ -99,15 +188,20 @@ serve(async () => {
       return new Response('error', { status: 500 });
     }
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from('daily_reconciliations')
       .update({ morning_sent_at: new Date().toISOString() })
       .eq('id', row.id);
+    if (updateErr) console.error('[morning-brief] failed to update morning_sent_at:', updateErr.message);
 
     console.log(`[morning-brief] Start message sent for ${todayWarsawDate}, row ${row.id}.`);
     return new Response('ok');
   } catch (err) {
-    console.error('[morning-brief] error:', err);
+    await logCriticalError({
+      area: 'morning-brief',
+      error: err,
+      message: 'Morning brief cron failed',
+    });
     return new Response('error', { status: 500 });
   }
 });

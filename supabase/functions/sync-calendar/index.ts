@@ -63,6 +63,7 @@ serve(async (req) => {
       })
     })
 
+    if (!refreshRes.ok) throw new Error(`Google token refresh failed: ${refreshRes.status}`);
     const { access_token } = await refreshRes.json()
 
     // Helper to get Warsaw offset (e.g. "+02:00" or "+01:00") dynamically
@@ -98,6 +99,7 @@ serve(async (req) => {
     const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
+    if (!calRes.ok) console.error('[sync-calendar] Calendar API error:', calRes.status);
     const calData = await calRes.json()
     const calendarEvents = (calData.items || []).map((e: any) => ({
       user_id: userId,
@@ -118,6 +120,7 @@ serve(async (req) => {
     const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/activities?part=snippet,contentDetails&mine=true&maxResults=10`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
+    if (!ytRes.ok) console.error('[sync-calendar] YouTube API error:', ytRes.status);
     const ytData = await ytRes.json()
     const ytActivities = (ytData.items || [])
       .filter((item: any) => item.snippet.type === 'playlistItem' || item.snippet.type === 'like')

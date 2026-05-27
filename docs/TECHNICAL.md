@@ -58,6 +58,9 @@ pg_cron 0 0 * * 0  (UTC)  →  vanguard-intentions-cleanup
                                 └─► DeepSeek: audit active intentions
                                       └─► vanguard_intentions (UPDATE status)
 
+pg_cron 30 20 * * * (UTC) →  sync-strava
+                                └─► strava_activities (upsert)
+
 Brak cron (HTTP manual):
   vanguard-briefing     →  DeepSeek → Telegram
   vanguard-backfill     →  OpenAI embeddings backfill
@@ -65,7 +68,8 @@ Brak cron (HTTP manual):
   vanguard-debug-retrieval
   vanguard-eval-runner
   vanguard-friction-qa
-  sync-oura / sync-yazio / sync-todoist / sync-calendar / sync-google-fit
+  analyze-training      →  DeepSeek plan vs Strava → Telegram
+  sync-oura / sync-yazio / sync-todoist / sync-calendar
 ```
 
 ### 1.3 Edge functions — aktywne vs wyłączone
@@ -87,7 +91,9 @@ Brak cron (HTTP manual):
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | gpt-5-mini bug |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
-| sync-google-fit | ⚠️ deprecated | HTTP manual | superseded by Strava; UI caller w Stats.jsx nadal istnieje |
+| sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
+| analyze-training | ✅ aktywna | HTTP manual | plan vs Strava DeepSeek analysis → Telegram |
+| sync-google-fit | ⚠️ deprecated | HTTP manual | superseded by Strava; UI caller usunięty ze Stats.jsx 2026-05-26 |
 | google-fit-auth | ⚠️ deprecated | HTTP GET (OAuth callback) | superseded by Strava |
 | weekly-report | ❌ nie istnieje | — | ghost — brak folderu; legacy PDF raport nigdy nie wdrożony |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
@@ -358,11 +364,11 @@ Brak user_id — tabela referencyjna.
 | vanguard_footprint | ✅ | mig. 008 (ALTER IF EXISTS) |
 | vanguard_correlations | ✅ | mig. 008 (ALTER IF EXISTS) |
 | vanguard_temporal_links | ✅ | mig. 008 (ALTER IF EXISTS) |
-| daily_wins | nieznane | brak CREATE TABLE |
-| daily_nutrition | nieznane | brak CREATE TABLE |
-| user_fundament | nieznane | brak CREATE TABLE |
-| stayfree_usage | nieznane | brak CREATE TABLE |
-| oura_daily_summary | nieznane | brak CREATE TABLE |
+| daily_wins | ✅ | mig. 20260527000001 |
+| daily_nutrition | ✅ | mig. 20260527000001 |
+| user_fundament | ✅ | mig. 20260527000001 |
+| stayfree_usage | ✅ | mig. 20260527000001 |
+| oura_daily_summary | ✅ | mig. 20260527000001 |
 
 ---
 
@@ -609,9 +615,9 @@ if (embedRes.ok) {
 
 | # | Problem | Lokalizacja | Efekt |
 |---|---------|-------------|-------|
-| 1 | **friction_type CHECK mismatch** | DDL vs auto-classify | INSERT może failować dla: training_drop, social_hesitation, communication_drift, self_control_break, positive_micro_action |
-| 2 | **friction_events brakujące kolumny** | DDL vs auto-classify | INSERT failuje jeśli kolumny nie zostały dodane poza migracjami |
-| 3 | **find_entity_seeds_by_embedding RPC** | oracle linia ~152 | Oracle Faza 1 retrieval działa bez entity seed layer — degraded, nie crash (Promise.resolve({data:[]}) fallback) |
+| 1 | ~~**friction_type CHECK mismatch**~~ | **FIXED** — constraint ma wszystkie typy: training_drop, social_hesitation, communication_drift, self_control_break, positive_micro_action | — |
+| 2 | ~~**friction_events brakujące kolumny**~~ | **FIXED** — declared_intention, actual_behavior, deviation, immediate_cost, emotional_state, people_involved, location_context, status, review_status istnieją w DB | — |
+| 3 | ~~**find_entity_seeds_by_embedding RPC**~~ | **FIXED** — RPC istnieje w DB (`query_embedding vector, match_user_id uuid, match_count int DEFAULT 6`) | — |
 
 ### P1 — Istotne
 
@@ -620,13 +626,13 @@ if (embedRes.ok) {
 | 4 | ~~Duplicate cron — vanguard-analyst~~ | **FIXED** mig. `20260525170000` | `vanguard-daily-shadow-analysis` usunięty; potwierdź przez `scripts/ops/cron-check.sql` query #2 |
 | 5 | ~~vanguard_intentions is_active vs status~~ | **FIXED 2026-05-26** | Oracle używa `.eq('status', 'active')` — poprawna kolumna |
 | 6 | **Hardcoded JWT w migracjach** | mig. 005, 006, 009 | Service role key w git history — wymaga rotacji jeśli repo publiczne |
-| 7 | **gpt-5-mini w eval-runner** | eval-runner linia ~52 | Prawdopodobnie literówka — powinno być gpt-4o-mini |
+| 7 | ~~**gpt-5-mini w eval-runner**~~ | **FIXED** — używa `gpt-4o-mini` (TECHNICAL.md był nieaktualny) | — |
 
 ### P2 — Pending do implementacji
 
 | # | Problem / Feature | Status |
 |---|-------------------|--------|
-| 8 | `confirmed_friction_events` VIEW + kolumna `review_status` | PENDING |
+| 8 | ~~`confirmed_friction_events` VIEW~~  | **FIXED 2026-05-27** — VIEW istnieje, poprawiony filter `review_status IN ('good','user_confirmed','user_corrected')` (poprzedni filtrował `status` — zawsze pusty) |
 | 9 | Closure proposals approval flow | PENDING — tabela gotowa, brak mechanizmu approve |
 | 10 | P2 parser w vanguard-daily-reconciliation | PENDING — funkcja nie istnieje w filesystem |
 | 11 | `vanguard_correlations` tabela | brak DDL — `computePredictions()` w VanguardCore ją referencjonuje |
@@ -674,4 +680,4 @@ if (embedRes.ok) {
 
 ---
 
-*Ostatnia aktualizacja: 2026-05-19 | Cursora: Claude Sonnet 4.6*
+*Ostatnia aktualizacja: 2026-05-27 | Claude Sonnet 4.6*

@@ -17,7 +17,8 @@ function getAnonKey() {
         if (match) return match[2];
       }
     }
-  } catch (e) {}
+  } catch { // no-op
+  }
   return "";
 }
 

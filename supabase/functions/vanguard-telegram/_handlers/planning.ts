@@ -7,6 +7,103 @@
 
 import { safeSendTelegram, getWarsawDateStr } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
+import { logAuditEvent } from '../../_shared/audit.ts';
+import { logCriticalError } from '../../_shared/errorLogging.ts';
+
+/**
+ * Waliduje czy plan JSON zawiera minimalne wymagane pola.
+ * Używane w guardrails przed zapisem planu.
+ */
+export function validatePlanJson(planJson: any): { valid: boolean; missing: string[]; completeness: 'low' | 'medium' | 'high' } {
+  const missing: string[] = [];
+
+  // Hard requirements (the absolute minimum the prompt and system expect)
+  if (!planJson?.production_artifact?.artifact?.trim()) {
+    missing.push('production_artifact.artifact');
+  }
+  if (!planJson?.tension_action?.action?.trim()) {
+    missing.push('tension_action.action');
+  }
+
+  // Richness checks – the prompt explicitly asks for these details
+  const artifact = planJson?.production_artifact || {};
+  const tension = planJson?.tension_action || {};
+
+  const hasDecentArtifact =
+    artifact.artifact?.trim()?.length > 8 &&
+    (artifact.minimum_version?.trim()?.length > 5 || artifact.definition_of_done?.trim()?.length > 5);
+
+  const hasDecentTension =
+    tension.action?.trim()?.length > 8 &&
+    (tension.why_it_matters?.trim()?.length > 5 || tension.minimum_version?.trim()?.length > 5);
+
+  // Additional important fields the prompt cares about
+  const hasOneClearMove = !!planJson?.one_clear_move?.trim();
+  const hasMinimumViable = !!planJson?.minimum_viable_day?.trim();
+
+  let completeness: 'low' | 'medium' | 'high' = 'low';
+
+  if (missing.length === 0) {
+    const richCount = [hasDecentArtifact, hasDecentTension, hasOneClearMove, hasMinimumViable].filter(Boolean).length;
+
+    if (richCount >= 3 && hasDecentArtifact && hasDecentTension) {
+      completeness = 'high';
+    } else if (richCount >= 2) {
+      completeness = 'medium';
+    }
+  }
+
+  return {
+    valid: missing.length === 0,
+    missing,
+    completeness,
+  };
+}
+
+/**
+ * Tworzy minimalny, ale poprawny strukturalnie plan na wypadek całkowitej porażki LLM.
+ * Używane jako fallback zamiast zapisywania śmieci.
+ */
+export function createMinimumViablePlan(targetDate: string): any {
+  return {
+    target_date: targetDate,
+    date: targetDate,
+    plan_prompt_version: '2026-05-28',
+    top3: ['Zdefiniuj plan dnia'],
+    one_clear_move: 'Zdefiniuj pierwszy ruch na dziś',
+    production_artifact: {
+      artifact: 'Podstawowy plan dnia',
+      minimum_version: 'Nagraj plan',
+      status: 'planned'
+    },
+    tension_action: {
+      action: 'Zdefiniuj ruch napięciowy',
+      minimum_version: 'Określ co odkładasz',
+      status: 'planned'
+    },
+    minimum_viable_day: 'Zdefiniuj absolutne minimum na dziś',
+    plan_fallback: true
+  };
+}
+
+/**
+ * Tworzy ustandaryzowany obiekt minimum viable plan + informacje o błędzie.
+ * Używane przy całkowitej porażce LLM lub parsowania.
+ */
+export function createFallbackPlan(targetDate: string, options: {
+  reason: 'parse_failed' | 'llm_error' | 'empty_output';
+  rawOutput?: string;
+  completeness?: 'low' | 'medium' | 'high';
+}): any {
+  return {
+    ...createMinimumViablePlan(targetDate),
+    plan_quality: 'minimum',
+    plan_failure_reason: options.reason,
+    parse_error: options.reason === 'parse_failed',
+    raw_llm_output: options.rawOutput ? options.rawOutput.substring(0, 2000) : undefined,
+    plan_completeness: options.completeness || 'low',
+  };
+}
 
 export const PLANNING_END_PHRASES = /^(koniec|done|gotowe|wystarczy|stop|dziękuję|dziekuje|ok dzięki)\b/i;
 export const PLANNING_WINDOW_MS = 120 * 60 * 1000; // 2h
@@ -97,7 +194,7 @@ export async function closePlanningSession(
           messages: [
             {
               role: 'system',
-              content: 'Jesteś asystentem planowania. Na podstawie sesji planowania wygeneruj plan jutra. Odpowiedz TYLKO poprawnym JSON-em, zero markdown, zero dodatkowego tekstu.'
+              content: 'Jesteś asystentem planowania. Na podstawie sesji planowania wygeneruj plan jutra. Odpowiedz TYLKO poprawnym JSON-em, zero markdown, zero dodatkowego tekstu.\n\nBARDZO WAŻNE ANTY-DRIFT ZASADY:\n- NIE używaj żadnych placeholderów typu "Zdefiniuj...", "Nagraj plan", "Określ co odkładasz", "Podstawowy plan dnia".\n- Jeśli czegoś nie wiesz z sesji — napisz to szczerze w reconciliation_notes zamiast wymyślać.\n- Kluczowe pola (production_artifact.artifact i tension_action.action) muszą być konkretne i sensowne (min. 8-10 znaków).'
             },
             ...closureHistory,
             {
@@ -125,35 +222,48 @@ export async function closePlanningSession(
 
     if (planJson) {
       if (planJson.top3) {
-        // GUARDRAIL: production_artifact.artifact is required
-        if (!planJson?.production_artifact?.artifact) {
-          console.warn('[planning] production_artifact missing — reverting to active');
+        const validation = validatePlanJson(planJson);
+
+        if (!validation.valid) {
+          console.warn('[planning] plan validation failed:', validation.missing);
+
+          logAuditEvent({
+            eventType: 'planning_validation_failed',
+            severity: 'warning',
+            message: `Plan odrzucony przez walidację: brakuje ${validation.missing.join(', ')}`,
+            relatedTable: 'daily_reconciliations',
+            relatedId: closureId,
+            metadata: { missing_fields: validation.missing }
+          });
+
+          const missingField = validation.missing[0];
+          const message = missingField.includes('production_artifact')
+            ? 'Brakuje artefaktu na jutro. Co ma istnieć w świecie po pierwszym bloku?'
+            : 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?';
+
           const revertHistory = [
             ...closureHistory,
             { role: 'user', content: 'koniec' },
-            { role: 'assistant', content: 'Brakuje artefaktu na jutro. Co ma istnieć w świecie po pierwszym bloku?' }
+            { role: 'assistant', content: message }
           ];
+
           await supabase.from('daily_reconciliations')
             .update({ planning_status: 'active', planning_history: revertHistory })
             .eq('id', closureId);
-          telegramText = 'Brakuje artefaktu na jutro. Co ma istnieć w świecie po pierwszym bloku?';
 
-        // GUARDRAIL: tension_action.action is required
-        } else if (!planJson?.tension_action?.action) {
-          console.warn('[planning] tension_action missing — reverting to active');
-          const revertHistory = [
-            ...closureHistory,
-            { role: 'user', content: 'koniec' },
-            { role: 'assistant', content: 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?' }
-          ];
-          await supabase.from('daily_reconciliations')
-            .update({ planning_status: 'active', planning_history: revertHistory })
-            .eq('id', closureId);
-          telegramText = 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?';
-
+          telegramText = message;
         } else {
-          // All guardrails passed — save plan
-          const summaryToSave = { ...planJson, target_date: tomorrowWarsawDate, date: tomorrowWarsawDate };
+          // All guardrails passed — save plan + explicit completeness to surface drift
+          const finalQuality = validation.completeness === 'high' ? 'good' : 'medium';
+
+          const summaryToSave = { 
+            ...planJson, 
+            target_date: tomorrowWarsawDate, 
+            date: tomorrowWarsawDate,
+            plan_prompt_version: '2026-05-28',
+            plan_quality: finalQuality,
+            plan_completeness: validation.completeness
+          };
           const { error: completeErr } = await supabase.from('daily_reconciliations')
             .update({ 
               planning_status: 'completed',
@@ -162,6 +272,15 @@ export async function closePlanningSession(
             })
             .eq('id', closureId);
           if (completeErr) console.error('[planning] failed to save atomic plan summary:', completeErr);
+
+          logAuditEvent({
+            eventType: 'planning_saved_successfully',
+            severity: 'info',
+            message: 'Plan na jutro zapisany z pełną jakością',
+            relatedTable: 'daily_reconciliations',
+            relatedId: closureId,
+            metadata: { plan_quality: 'good' }
+          });
 
           // Format summary message
           const top3 = (planJson.top3 as string[]).map((t: string, i: number) => `${i + 1}. ${t}`).join('\n');
@@ -182,40 +301,101 @@ export async function closePlanningSession(
           telegramText = `Plan jutra zapisany.\n\nFirst move:\n${planJson.first_move_morning || '—'}${oneClearMoveSection}\n\nTop 3:\n${top3}\n\nMinimum viable day:\n${planJson.minimum_viable_day || '—'}\n\nRyzyko: ${planJson.biggest_risk || '—'}\nKontrplan: ${planJson.counterplan || '—'}${tensionSection}${adversaryNoteSection}${urgentSection}${notDoingSection}${openLoopsSection}\n\nEnergia: ${planJson.energy_state || '—'} | Pewnosc: ${planJson.confidence || '—'}${dayModeSection}`;
         }
       } else {
-        // JSON parse failed — save raw fallback
-        console.warn('[planning] plan JSON parse failed, saving raw');
-        const tomorrowWarsawDate2 = (() => {
-          const d = new Date(reconDate + 'T12:00:00Z');
-          d.setUTCDate(d.getUTCDate() + 1);
-          return d.toISOString().split('T')[0];
-        })();
+        // JSON parse failed — use standardized fallback
+        console.warn('[planning] plan JSON parse failed, using fallback');
+
+        const fallbackPlan = createFallbackPlan(tomorrowWarsawDate, {
+          reason: 'parse_failed',
+          rawOutput: rawPlan,
+        });
+
         const { error: rawErr } = await supabase.from('daily_reconciliations')
-          .update({ 
+          .update({
             planning_status: 'completed',
-            planning_summary: { raw: rawPlan, parse_error: true, target_date: tomorrowWarsawDate2 },
+            planning_summary: fallbackPlan,
             planning_history: closureHistory
           })
           .eq('id', closureId);
-        if (rawErr) console.error('[planning] failed to save atomic raw fallback:', rawErr);
-        telegramText = rawPlan.length > 4000 ? rawPlan.substring(0, 4000) + '…' : rawPlan;
+
+        logAuditEvent({
+          eventType: 'planning_saved_minimum',
+          severity: 'warning',
+          message: 'Plan wieczorny — błąd parsowania JSON, użyto minimum viable',
+          relatedTable: 'daily_reconciliations',
+          relatedId: closureId,
+          metadata: { reason: 'parse_failed' }
+        });
+
+        if (rawErr) console.error('[planning] failed to save fallback plan:', rawErr);
+
+        // Lepsza wiadomość dla użytkownika zamiast dumpa surowego outputu LLM
+        telegramText = 'Nie udało się poprawnie odczytać planu z modelu.\n\nZapisano podstawowy plan awaryjny. Możesz go poprawić rano lub wieczorem.';
       }
     } else if (rawPlan) {
-      // JSON parse failed - save raw fallback
-      console.warn('[planning] plan JSON parse failed, saving raw');
+      // Inny przypadek błędu parsowania
+      console.warn('[planning] plan JSON parse failed (secondary path)');
+
+      const fallbackPlan = {
+        ...createFallbackPlan(tomorrowWarsawDate, {
+          reason: 'parse_failed',
+          rawOutput: rawPlan,
+        }),
+        plan_completeness: 'low',
+      };
+
+      logAuditEvent({
+        eventType: 'planning_parse_error',
+        severity: 'warning',
+        message: 'Nie udało się sparsować planu z LLM – użyto minimum viable plan',
+        relatedTable: 'daily_reconciliations',
+        relatedId: closureId,
+        metadata: { reason: 'parse_failed' }
+      });
+
       const { error: rawErr } = await supabase.from('daily_reconciliations')
         .update({
           planning_status: 'completed',
-          planning_summary: { raw: rawPlan, parse_error: true, target_date: tomorrowWarsawDate },
+          planning_summary: fallbackPlan,
           planning_history: closureHistory
         })
         .eq('id', closureId);
-      if (rawErr) console.error('[planning] failed to save atomic raw fallback:', rawErr);
-      telegramText = rawPlan.length > 4000 ? rawPlan.substring(0, 4000) + '...' : rawPlan;
+
+      if (rawErr) console.error('[planning] failed to save fallback plan:', rawErr);
+
+      telegramText = 'Nie udało się poprawnie odczytać planu.\nZapisano plan awaryjny.';
     } else {
       console.error('[planning] DeepSeek plan generation failed or returned empty output:', planGenerationErrorStatus ?? 'no status');
+
+      const fallbackPlan = {
+        ...createFallbackPlan(tomorrowWarsawDate, { reason: 'llm_error' }),
+        plan_completeness: 'low',
+      };
+
+      await supabase.from('daily_reconciliations')
+        .update({
+          planning_status: 'completed',
+          planning_summary: fallbackPlan,
+          planning_history: closureHistory
+        })
+        .eq('id', closureId);
+
+      logAuditEvent({
+        eventType: 'planning_saved_minimum',
+        severity: 'error',
+        message: 'Plan wieczorny — błąd LLM, użyto minimum viable',
+        relatedTable: 'daily_reconciliations',
+        relatedId: closureId,
+        metadata: { reason: 'llm_error' }
+      });
+
+      telegramText = 'Wystąpił problem z generowaniem planu.\nZapisano podstawowy plan awaryjny.';
     }
   } catch (planSummaryErr) {
-    console.error('[planning] plan summary error:', planSummaryErr);
+    await logCriticalError({
+      area: 'planning-handler',
+      error: planSummaryErr,
+      message: 'Planning session summary error',
+    });
   }
 
   await safeSendTelegram(chatId, telegramText, telegramToken, { disable_notification: false });
@@ -307,7 +487,11 @@ export async function handlePlanningCallback(
           deepseekApiKey
         );
       } catch (err) {
-        console.error('[planning] failed to process planning_show_minimum:', err);
+        await logCriticalError({
+          area: 'planning-handler',
+          error: err,
+          message: 'Failed to process planning_show_minimum',
+        });
         await safeSendTelegram(chatId, '⚠️ Nie udało się automatycznie zatwierdzić planu minimum.', telegramToken);
       }
     }

@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";
+import { logCriticalError } from "../_shared/errorLogging.ts";
 
 serve(async (req) => {
   try {
@@ -31,7 +32,11 @@ serve(async (req) => {
     await handleIncomingMessage(message, ctx);
     return new Response("OK", { status: 200 });
   } catch (err) {
-    console.error("[telegram] parse error:", err);
+    await logCriticalError({
+      area: 'telegram-webhook',
+      error: err,
+      message: 'Top-level Telegram webhook error',
+    });
     return new Response("OK", { status: 200 });
   }
 });

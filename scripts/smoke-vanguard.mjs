@@ -161,7 +161,7 @@ for (const target of SMOKE_TARGETS) {
   if (withServiceRole && serviceRole) authModes.push("service_role");
 
   for (const mode of authModes) {
-    const { status, text } = await request(target.name, "OPTIONS", mode);
+    const { status, text: _text } = await request(target.name, "OPTIONS", mode);
     record(target.name, "OPTIONS", mode, status, status === 401 ? "verify_jwt likely ON" : "");
   }
 

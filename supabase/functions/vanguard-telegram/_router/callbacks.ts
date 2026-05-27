@@ -17,6 +17,10 @@ import {
   handleFeedbackCallback,
   isFeedbackCallback,
 } from "../_handlers/feedback.ts";
+import {
+  handleClosureCallback,
+  isClosureCallback,
+} from "../_handlers/closureProposal.ts";
 
 type CallbackQuery = {
   id: string;
@@ -127,6 +131,18 @@ export async function handleCallbackQuery(
       chatId,
       callbackId,
       ctx,
+    );
+    return;
+  }
+
+  if (isClosureCallback(data)) {
+    await handleClosureCallback(
+      data,
+      chatId,
+      messageId,
+      callbackId,
+      supabase,
+      telegramToken,
     );
     return;
   }

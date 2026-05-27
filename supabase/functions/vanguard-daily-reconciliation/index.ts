@@ -2,6 +2,9 @@ import { sendMessageParsed } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDayBoundaries } from "../_shared/time.ts";
+import { logAuditEvent } from "../_shared/audit.ts";
+import { getPlanQualitySignal } from "../_shared/planQuality.ts";
+import { logCriticalError } from "../_shared/errorLogging.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
@@ -143,6 +146,25 @@ Deno.serve(async (req) => {
     const oneClearMove = planningSummary?.one_clear_move || (planningSummary?.top3 as string[] || [])[0] || null;
     const tensionAction = (planningSummary?.tension_action as { action?: string } | undefined)?.action || planningSummary?.tension_action?.task || null;
 
+    // Log when yesterday's planning session was weak or incomplete
+    const qualitySignal = getPlanQualitySignal(planningSummary);
+    const isLowQualityPlan = qualitySignal.isLowQuality;
+
+    if (planningSummary?.parse_error || isLowQualityPlan || (!prodArtifactName && !oneClearMove)) {
+      logAuditEvent({
+        eventType: 'previous_planning_not_completed',
+        severity: 'warning',
+        message: 'Wczorajsza sesja planowania była słaba lub niekompletna',
+        metadata: {
+          date: yesterdayStr,
+          had_parse_error: !!planningSummary?.parse_error,
+          plan_quality: qualitySignal.quality,
+          plan_failure_reason: qualitySignal.failureReason,
+          mode: qualitySignal.mode,
+        }
+      });
+    }
+
     console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'} plan=${oneClearMove ? 'yes' : 'no'}`);
 
     let messageText: string;
@@ -197,6 +219,14 @@ Deno.serve(async (req) => {
     });
     if (reconInsertErr) {
       console.error('[reconciliation] evening insert failed:', reconInsertErr);
+    } else {
+      logAuditEvent({
+        eventType: 'evening_reconciliation_created',
+        severity: 'info',
+        message: 'Utworzono wieczorne reconciliation',
+        metadata: { date: todayStr, mode }
+      });
+    }
       throw new Error(`Insert failed: ${reconInsertErr.message}`);
     }
 
@@ -204,7 +234,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, mode, events_count: evList.length, anchor: !!anchorText }), { status: 200 });
 
   } catch (err) {
-    console.error('[reconciliation] fatal:', err);
+    await logCriticalError({
+      area: 'daily-reconciliation',
+      error: err,
+      message: 'Daily reconciliation failed',
+    });
     return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500 });
   }
 });

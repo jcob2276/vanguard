@@ -17,14 +17,15 @@ function getAnonKey() {
         if (match) return match[2];
       }
     }
-  } catch (e) {}
+  } catch { // no-op
+  }
   return "";
 }
 
 const SUPABASE_URL = "https://pdvqkgfsqziqlhptatgf.supabase.co";
 const ANON_KEY = getAnonKey();
 const BATCH_SIZE = 8;
-const BATCH_WAIT_MS = 95000; // 95s — batch potrzebuje ~80-90s, czekamy aż skończy
+// const BATCH_WAIT_MS = 95000; // 95s — batch potrzebuje ~80-90s, czekamy aż skończy (unused)
 
 async function callRunner(body) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/vanguard-eval-runner`, {
@@ -110,7 +111,7 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
 
     // Czekaj aż pierwszy batch dobiegnie
     console.log(`\n⏳ Batch 1/${Math.ceil(total/BATCH_SIZE)} (pytania 1–${BATCH_SIZE})...`);
-    let status = await waitForBatch(run_id, BATCH_SIZE);
+    await waitForBatch(run_id, BATCH_SIZE);
 
     // Łańcuchuj kolejne batche
     while (!finished) {
@@ -120,7 +121,7 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
       finished = batchRes.finished;
       const expected = batchRes.offset_next;
       console.log(`⏳ Batch ${offset}–${expected - 1} z ${total}...`);
-      status = await waitForBatch(run_id, expected);
+      await waitForBatch(run_id, expected);
       offset = expected;
     }
 

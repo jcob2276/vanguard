@@ -19,7 +19,7 @@ export async function handleFeedbackCallback(
   const isOk = data.startsWith("fb_ok");
   const score = isOk ? 1 : -1;
 
-  await ctx.supabase.from("vanguard_feedback").insert({
+  const { error: fbErr } = await ctx.supabase.from("vanguard_feedback").insert({
     user_id: ctx.vanguardUserId,
     message_id: message.message_id.toString(),
     query: message.reply_to_message?.text || "Unknown",
@@ -27,6 +27,7 @@ export async function handleFeedbackCallback(
     score,
     metadata: { callback_data: data },
   });
+  if (fbErr) console.error("[feedback] insert failed:", fbErr.message);
 
 
 
