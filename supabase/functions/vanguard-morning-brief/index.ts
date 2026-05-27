@@ -32,11 +32,22 @@ serve(async () => {
 
     const { data: rows, error } = await supabase
       .from('daily_reconciliations')
-      .select('id, planning_summary, answered_at, morning_sent_at')
+      .select('id, planning_summary, answered_at, morning_sent_at, p2_parsed')
       .eq('user_id', VANGUARD_USER_ID)
       .not('planning_summary', 'is', null)
       .order('created_at', { ascending: false })
       .limit(5);
+
+    // BACKLOG-03: Check if we have fresh Oura data for last night
+    const { data: ouraLatest } = await supabase
+      .from('oura_daily_summary')
+      .select('date, total_sleep_hours, readiness_score')
+      .eq('user_id', VANGUARD_USER_ID)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const sleepDataStatus = ouraLatest?.date === todayWarsawDate ? 'current' : 'pending';
 
     if (error) {
       console.error('[morning-brief] DB error:', error.message);
@@ -151,8 +162,24 @@ serve(async () => {
       ? `\n\n⚠️ Wczorajszy plan był awaryjny / minimum. Warto doprecyzować dziś rano.`
       : '';
 
+    // Light P2 adoption: yesterday evening's own reflection (if confident)
+    const p2 = row?.p2_parsed as any;
+    let p2Note = '';
+    if (p2 && p2.parse_confidence >= 0.5 && (p2.biggest_cost || p2.best_move || p2.blocker_candidates?.length)) {
+      p2Note = `\n\nWczorajsza Twoja refleksja:`;
+      if (p2.biggest_cost) p2Note += `\n• Największy koszt: ${p2.biggest_cost}`;
+      if (p2.best_move) p2Note += `\n• Najlepszy ruch: ${p2.best_move}`;
+      if (p2.blocker_candidates?.length) {
+        const blockers = p2.blocker_candidates.slice(0, 3).join('; ');
+        p2Note += `\n• Blokery, które nazwałeś: ${blockers}`;
+      }
+    }
+
     const text = 
       `Start dnia.\n\n` +
+      (sleepDataStatus === 'pending' 
+        ? `Sen z ostatniej nocy (Oura): pending — dane jeszcze nie zsynchronizowane\n\n`
+        : '') +
       `Telefon nie jest pierwszy.\n\n` +
       `Pierwsze 90 minut:\n` +
       `→ bez scrolla\n` +
@@ -164,7 +191,7 @@ serve(async () => {
       `Artefakt po bloku:\n` +
       `${prodArtifactName}\n\n` +
       `⚡ Ruch napięciowy:\n` +
-      `${taAction}${qualityNote}`;
+      `${taAction}${qualityNote}${p2Note}`;
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
       replyMarkup: {

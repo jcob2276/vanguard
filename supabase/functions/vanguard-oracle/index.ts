@@ -65,10 +65,11 @@ serve(async (req) => {
 
     // === PLAN QUALITY AWARENESS (added for weak plan visibility) ===
     let recentPlanQuality: any = null;
+    let lastEveningReflection: any = null;
     if (mode === 'planning' || classifyIntentSafe(current_query || '').includes('recent')) {
       const { data: recentPlan } = await supabase
         .from('daily_reconciliations')
-        .select('planning_summary')
+        .select('planning_summary, p2_parsed, date')
         .eq('user_id', user_id)
         .not('planning_summary', 'is', null)
         .order('created_at', { ascending: false })
@@ -81,6 +82,21 @@ serve(async (req) => {
           ...signal,
           target_date: (recentPlan.planning_summary as any).target_date || null,
         };
+      }
+
+      // P2 adoption: last evening's user reflection (biggest_cost, best_move, blockers)
+      if (recentPlan?.p2_parsed) {
+        const p2 = recentPlan.p2_parsed as any;
+        if (p2.parse_confidence >= 0.4 && (p2.biggest_cost || p2.best_move || p2.blocker_candidates?.length)) {
+          lastEveningReflection = {
+            date: recentPlan.date,
+            biggest_cost: p2.biggest_cost,
+            best_move: p2.best_move,
+            blocker_candidates: p2.blocker_candidates?.slice(0, 3) || [],
+            day_score: p2.day_score,
+            needs_manual_review: !!p2.needs_manual_review,
+          };
+        }
       }
     }
 
@@ -412,6 +428,12 @@ failure_reason: ${recentPlanQuality.plan_failure_reason || 'none'}
 was_fallback: ${recentPlanQuality.plan_fallback}
 parse_error: ${recentPlanQuality.parse_error}
 Jeśli plan_quality jest 'minimum' lub 'rescue' albo jest failure_reason — traktuj ten plan jako słaby sygnał. Nie buduj na nim silnych założeń. Pytaj o korektę.
+` : ''}
+
+${lastEveningReflection ? `
+[WCZORAJSZA REFLEKSJA UŻYTKOWNIKA (z wieczornej reconciliation — surowe dane)]:
+Data: ${lastEveningReflection.date}
+${lastEveningReflection.biggest_cost ? `Największy koszt (użytkownik): ${lastEveningReflection.biggest_cost}\n` : ''}${lastEveningReflection.best_move ? `Najlepszy ruch (użytkownik): ${lastEveningReflection.best_move}\n` : ''}${lastEveningReflection.blocker_candidates?.length ? `Blokery, które użytkownik sam nazwał: ${lastEveningReflection.blocker_candidates.join('; ')}\n` : ''}${lastEveningReflection.day_score ? `Ocena dnia (użytkownik): ${lastEveningReflection.day_score}/5\n` : ''}To są słowa użytkownika, nie interpretacja systemu. Używaj tylko jako kontekst tego, co sam zauważył wieczorem. Jeśli needs_manual_review — traktuj z rezerwą.
 ` : ''}
 [STATUS WIEDZY — używaj przy każdej tezie]:
 - current: potwierdzone danymi <14 dni

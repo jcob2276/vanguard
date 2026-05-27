@@ -194,7 +194,10 @@ export async function closePlanningSession(
           messages: [
             {
               role: 'system',
-              content: 'Jesteś asystentem planowania. Na podstawie sesji planowania wygeneruj plan jutra. Odpowiedz TYLKO poprawnym JSON-em, zero markdown, zero dodatkowego tekstu.\n\nBARDZO WAŻNE ANTY-DRIFT ZASADY:\n- NIE używaj żadnych placeholderów typu "Zdefiniuj...", "Nagraj plan", "Określ co odkładasz", "Podstawowy plan dnia".\n- Jeśli czegoś nie wiesz z sesji — napisz to szczerze w reconciliation_notes zamiast wymyślać.\n- Kluczowe pola (production_artifact.artifact i tension_action.action) muszą być konkretne i sensowne (min. 8-10 znaków).'
+              content: 'Jesteś asystentem planowania. Na podstawie sesji planowania wygeneruj plan jutra. Odpowiedz TYLKO poprawnym JSON-em, zero markdown, zero dodatkowego tekstu.\n\nBARDZO WAŻNE ANTY-DRIFT ZASADY:\n- NIE używaj żadnych placeholderów typu "Zdefiniuj...", "Nagraj plan", "Określ co odkładasz", "Podstawowy plan dnia".\n- Jeśli czegoś nie wiesz z sesji — napisz to szczerze w reconciliation_notes zamiast wymyślać.\n- Kluczowe pola (production_artifact.artifact i tension_action.action) muszą być konkretne i sensowne (min. 8-10 znaków).\n- W planningDraft masz teraz wyraźny podział:
+  • operational_facts — fakty operacyjne z wieczornej odpowiedzi (co się wydarzyło)
+  • user_reflection — refleksja użytkownika (biggest_cost, best_move, blocker_candidates itp.)
+  • user_named_blockers — surowe hipotezy użytkownika o blokadach (zawsze traktuj jako jego słowa, nie jako prawdę systemu). Używaj tego przy planowaniu tension_action / not_doing / risks.'
             },
             ...closureHistory,
             {

@@ -38,11 +38,16 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
 2. `state_observation` — stan bez odchylenia
 3. `micro_behavior_observation` — zaobserwowane zachowanie bez jawnej intencji
 
-**Opcje implementacji (do decyzji po Sprint 1):**
-- Kolumna `event_kind` w `friction_events` (częściowo wdrożone — monitoruj precision)
-- Prompt update w auto-classify
+**Stan na 2026-06 (po wdrożeniu):**
+- Kolumna `event_kind` + pełna taksonomia wdrożona (mig. 20260525 + 20260528).
+- Prompt w auto-classify zawiera wyraźne rozróżnienie + przykłady (w tym te z backlogu).
+- `confirmed_friction_events` VIEW + wszystkie core consumery (reconciliation, analyst, weekly-synthesis, Oracle) filtrują wyłącznie `friction_event` + `positive_micro_action`.
+- `friction-qa` raportuje rozkład wszystkich 5 typów co uruchomienie.
+- Dodatkowe zaostrzenie reguł w promptcie (czerwiec 2026) po rewizji BACKLOG-01.
 
-**Nie kasować tych obserwacji ze streamu** — materiał do reprocessingu.
+**Aktualny tryb:** monitorowanie precision + okazjonalne ostrzenie promptu przy powtarzających się błędach w QA.
+
+**Nie kasować obserwacji innych typów ze streamu** — cenny materiał do późniejszej analizy wzorców.
 
 ---
 
@@ -59,14 +64,21 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
 
 **Kontekst:** Briefing przed sync Oura może używać wczorajszego snu.
 
-**Do zrobienia:** `sleep_data_status: pending` w briefingu gdy brak dzisiejszego Oura.
+**Stan na 2026-06:** Wdrożone w `vanguard-morning-brief`.
+- Dodano jawne sprawdzenie najnowszego rekordu z `oura_daily_summary`.
+- Gdy data najnowszego wpisu != dzisiejsza data warszawska → w briefie pojawia się:
+  > Sen z ostatniej nocy (Oura): pending — dane jeszcze nie zsynchronizowane
+
+Interaktywny kontekst (Oracle via Telegram) już wcześniej miał podobny flag (`sleep_data_status` w state_vector).
+
+Automatyczny StayFree nie jest priorytetem (użytkownik wrzuca ręcznie).
 
 ---
 
-## [BACKLOG-01a] Trigger: mini-patch event_kind przed Sprint 1
+## [BACKLOG-01a] Trigger: mini-patch event_kind (zarchiwizowane)
 
-**Warunek:** ≥3 kolejne `to_fix` z tego samego powodu (self_control bez momentu, communication_drift bez momentu, obserwacja bez deviation).
+**Pierwotny warunek:** ≥3 kolejne `to_fix` z tego samego powodu.
 
-**Aktualny stan (2026-05-17):** próg nie spełniony. Monitorować.
+**Stan na czerwiec 2026:** Podstawowa taksonomia została wdrożona proaktywnie (nawet bez spełnienia progu). Dalsze poprawki promptu robimy reaktywnie na podstawie raportów `vanguard-friction-qa`.
 
-**Nie implementować dopóki warunek nie jest spełniony.**
+Wpis pozostawiony dla historii. Nie wymaga już aktywnego monitoringu jako osobny backlog item.

@@ -8,7 +8,7 @@
 import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
-import { parseReconciliationResponse } from '../../_shared/reconciliationParser.ts';
+import { parseReconciliationResponse, type P2ParsedResponse } from '../../_shared/reconciliationParser.ts';
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -85,6 +85,7 @@ export async function handleReconciliation(
 
   // --- Reality Adversary + P2 Parser (parallel) ---
   let adversaryOutput: import('../_utils/adversary.ts').AdversaryResult | null = null;
+  let p2Parsed: P2ParsedResponse | null = null;
 
   const yesterdayStr = (() => {
     const d = new Date(reconciliationDate + 'T12:00:00Z');
@@ -130,14 +131,14 @@ export async function handleReconciliation(
   }
 
   if (p2Result.status === 'fulfilled') {
-    const p2 = p2Result.value;
+    p2Parsed = p2Result.value;
     // Persist P2 results (non-blocking — best effort)
     supabase.from('daily_reconciliations')
-      .update({ p2_parsed: p2 })
+      .update({ p2_parsed: p2Parsed })
       .eq('id', reconciliationId)
       .then(({ error }: { error: any }) => {
         if (error) console.warn('[reconciliation] p2_parsed save failed:', error.message);
-        else console.log(`[reconciliation] p2_parsed saved: score=${p2.day_score} confidence=${p2.parse_confidence} review=${p2.needs_manual_review}`);
+        else console.log(`[reconciliation] p2_parsed saved: score=${p2Parsed!.day_score} confidence=${p2Parsed!.parse_confidence} review=${p2Parsed!.needs_manual_review}`);
       });
   } else {
     console.warn('[reconciliation] p2 parser failed (non-fatal):', p2Result.reason);
@@ -189,7 +190,27 @@ Fakty dnia:
 - Artefakt: ${artifactStr}.
 - First 90: ${first90Str}.
 - Tension action: ${tensionStr}.
-- Drift: ${driftType}.
+- Drift: ${driftType}.`;
+
+    // Enrich with P2 reflective signals (user's own evening synthesis)
+    if (p2Parsed && (p2Parsed.biggest_cost || p2Parsed.best_move || p2Parsed.blocker_candidates?.length)) {
+      bridgeText += `\n\nTwoja refleksja:`;
+      if (p2Parsed.biggest_cost) {
+        bridgeText += `\n• Największy koszt: ${p2Parsed.biggest_cost}`;
+      }
+      if (p2Parsed.best_move) {
+        bridgeText += `\n• Najlepszy ruch: ${p2Parsed.best_move}`;
+      }
+      if (p2Parsed.blocker_candidates?.length) {
+        const blockers = p2Parsed.blocker_candidates.slice(0, 3).join('; ');
+        bridgeText += `\n• Blokery, które sam nazwałeś: ${blockers}`;
+      }
+      if (p2Parsed.needs_manual_review || p2Parsed.parse_confidence < 0.5) {
+        bridgeText += `\n_(refleksja dość chaotyczna — parser ma niską pewność)_`;
+      }
+    }
+
+    bridgeText += `
 
 Jutro nie zaczynamy od planowania.
 Jutro nie definiujemy całego dnia.
@@ -239,7 +260,30 @@ Potwierdzasz?`;
       confidence: "high",
       open_loops: [],
       energy_state: "średnia",
-      reconciliation_notes: `Dzisiejszy dryf: ${driftType}. Artefakt: ${artifactStr}.`,
+      reconciliation_notes: `Dzisiejszy dryf: ${driftType}. Artefakt: ${artifactStr}.${p2Parsed?.biggest_cost ? ` Największy koszt (użytkownik): ${p2Parsed.biggest_cost}.` : ''}${p2Parsed?.best_move ? ` Najlepszy ruch (użytkownik): ${p2Parsed.best_move}.` : ''}${p2Parsed?.blocker_candidates?.length ? ` Użytkownik nazwał jako blokery: ${p2Parsed.blocker_candidates.slice(0,4).join('; ')}.` : ''}`,
+      user_named_blockers: p2Parsed?.blocker_candidates?.length ? p2Parsed.blocker_candidates : [],
+      // === DUALISM MODEL (Operational vs Reflective layer) ===
+      // operational_facts  = what actually happened (from evening_extraction)
+      // user_reflection    = what the user thinks about it (from p2_parsed)
+      // This separation is intentional and should be maintained.
+      operational_facts: {
+        artifact: artifactStr,
+        first_90_protected: eveningExtraction?.first_90_protected ?? null,
+        tension_action_result: eveningExtraction?.tension_action_result ?? null,
+        phone_first: eveningExtraction?.phone_first ?? null,
+        analysis_substitution: eveningExtraction?.analysis_substitution ?? [],
+        tomorrow_first_artifact: tomorrowArtifact,
+      },
+      user_reflection: p2Parsed ? {
+        day_score: p2Parsed.day_score,
+        biggest_cost: p2Parsed.biggest_cost,
+        best_move: p2Parsed.best_move,
+        blocker_candidates: p2Parsed.blocker_candidates,
+        correction: p2Parsed.correction,
+        resource: p2Parsed.resource,
+        parse_confidence: p2Parsed.parse_confidence,
+        needs_manual_review: p2Parsed.needs_manual_review,
+      } : null,
       adversary_note: adversaryOutput?.biggest_inconsistency || "Brak głębszego rozjazdu.",
       tension_action: {
         action: tomorrowTension,

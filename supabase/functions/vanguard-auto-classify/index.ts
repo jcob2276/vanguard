@@ -103,7 +103,8 @@ serve(async (req) => {
 Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_kind\`):
 
 1. \`friction_event\` — konkretne tarcie behawioralne (odchylenie zachowania od intencji).
-   - Wymaga: intencji (co miało być zrobione) oraz rozbieżnego zachowania (co się stało).
+   - **Musi** zawierać jednocześnie: (a) intencję/zamiar co miało być zrobione + (b) wyraźne odchylenie w zachowaniu.
+   - Jeśli brak jednej z tych dwóch rzeczy → nie dawaj `friction_event`, daj `state_observation` lub `micro_behavior_observation`.
    - Przykład: "miałem napisać raport ale znowu odłożyłem" lub "chciałem poprosić do tańca ale się zawahałem".
 2. \`positive_micro_action\` — dobry mikrogest, pozytywne mikrozachowanie.
    - Przykład: "podałem ramię przy schodach" lub "powiedziałem komplement".
@@ -116,6 +117,11 @@ Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_ki
 
 Jeśli tekst nie opisuje żadnego z powyższych (np. jest to zwykłe neutralne powiadomienie, suchy plan dnia bez opisu wykonania, pytanie) → set \`is_relevant = false\` i \`event_kind = null\`.
 W przeciwnym wypadku set \`is_relevant = true\`.
+
+**Krytyczna zasada anty-fałszywych tarć:**
+- `friction_event` tylko gdy w tekście jest **jawna lub jasno implikowana intencja** + **odchylenie od niej**.
+- Czysty stan (ból, zmęczenie, stres) bez odchylenia → `state_observation`.
+- Zaobserwowane nawykowe zachowanie bez intencji w momencie → `micro_behavior_observation`.
 
 SŁOWNIK friction_type (dla wszystkich typów oprócz 'reflection' i neutralnych, jeśli pasuje):
 - sleep_disruption: późne spanie, zaspanie, nocny ekran zamiast snu
@@ -155,6 +161,7 @@ Przykłady:
 "siedziałem do 2 w nocy" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", actual_behavior="siedział do 2 w nocy"
 "boli mnie dziś brzuch i się stresuję" → is_relevant=true, event_kind="state_observation", friction_type="other", actual_behavior="boli brzuch, stresuje się", emotional_state="stres"
 "zauważyłem, że krzyżuję ręce podczas prezentacji" → is_relevant=true, event_kind="micro_behavior_observation", friction_type="other", actual_behavior="krzyżuje ręce"
+"nie patrzę w oczy podczas rozmów" → is_relevant=true, event_kind="micro_behavior_observation", friction_type="other"   ← zaobserwowane zachowanie, brak intencji w tym momencie
 "pytam co słychać" → is_relevant=false (pytanie, nie zdarzenie)
 "planuję jutro pobiec" → is_relevant=false (plan, nie zdarzenie)
 "dzisiaj był dobry trening" → is_relevant=false (neutralna obserwacja bez odchylenia)`
