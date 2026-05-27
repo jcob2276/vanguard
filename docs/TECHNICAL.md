@@ -635,8 +635,8 @@ if (embedRes.ok) {
 | 8 | ~~`confirmed_friction_events` VIEW~~  | **FIXED 2026-05-27** — VIEW istnieje, poprawiony filter `review_status IN ('good','user_confirmed','user_corrected')` (poprzedni filtrował `status` — zawsze pusty) |
 | 9 | ~~Closure proposals approval flow~~ | **FIXED 2026-05-27** — `closureProposal.ts` handler + Telegram ✅/❌ buttons wdrożone; auto-classify wysyła powiadomienie z przyciskami po utworzeniu propozycji |
 | 10 | ~~P2 parser w vanguard-daily-reconciliation~~ | **FIXED 2026-05-27** — `_shared/reconciliationParser.ts`; extrahuje: day_score, biggest_cost, best_move, correction, resource, blocker_candidates, parse_confidence, needs_manual_review, unparsed_notes; wynik w `daily_reconciliations.p2_parsed`; uruchamiany równolegle z adversary |
-| 11 | `vanguard_correlations` tabela | brak DDL — `computePredictions()` w VanguardCore ją referencjonuje |
-| 12 | `vanguard_temporal_links` tabela | brak DDL — `analyzeInterventions()` w VanguardCore ją referencjonuje |
+| 11 | ~~`vanguard_correlations` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, signal_name); RLS enabled |
+| 12 | ~~`vanguard_temporal_links` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, source_date, target_date); RLS enabled |
 | 13 | `vanguard-transurfing-reset` funkcja | referencjonowana w rules jako "live v1" — brak pliku |
 
 ### P3 — Dług techniczny
