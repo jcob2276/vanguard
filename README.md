@@ -1,6 +1,8 @@
 # Vanguard
 
-Personal operating system: health data, daily stream, knowledge graph, AI coaching, evening planning — plus **Practice Dojo** (30-day voice training).
+Vanguard OS — prywatny behavioral operating system.
+
+System, który zbiera rzeczywiste dane behawioralne (głosówki, planowanie, biometria, decyzje, aktywność) i buduje z nich długoterminową warstwę dowodów o zachowaniu. AI nie motywuje ani nie coachuje — strukturyzuje dane, wykrywa rozjazdy między deklaracją a działaniem i utrzymuje ciągłość pamięci w czasie.
 
 Supabase project: `pdvqkgfsqziqlhptatgf` · Frontend: React + Vite · Deploy: Vercel
 

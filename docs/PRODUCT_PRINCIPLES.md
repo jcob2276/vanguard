@@ -197,9 +197,9 @@ Użytkownik musi zawsze wiedzieć:
 Vanguard nie ma być:
 - symulatorem samodoskonalenia
 - dashboardem aspiracji
-- AI wyrocznią
-- coachem osobistym
+- AI wyrocznią / mentorem / coachem osobistym
 - systemem gamifikacji zachowań
+- narzędziem do "poprawy siebie" przez interpretację
 
 Ma pomagać:
 - utrzymywać kierunek
@@ -300,7 +300,19 @@ GPT/Claude mogą być genialnym reasoning engine w jednej rozmowie — ale nie u
 
 To jest docelowa nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memory.**
 
-Ale to jest aspiracja, nie obecny stan. Największy błąd jaki można zrobić: uwierzyć za wcześnie, że system już rozumie użytkownika.
+### Wersja 10/10 (aspiracyjna)
+
+Pełna wersja tej wizji opisana jest tutaj:
+
+→ [docs/VISION_10_10.md](./VISION_10_10.md)
+
+W skrócie: Vanguard przestaje być aplikacją i staje się czymś bliższym zewnętrznemu układowi nerwowemu + pamięci operacyjnej. System nie tylko zapisuje dane — rozumie trajektorię życia w czasie, wykrywa wzorce zanim użytkownik je nazwie i działa jako warstwa anty-self-deception.
+
+Ale to jest aspiracja na wiele lat. Największy błąd: udawać, że jesteśmy już blisko tej wersji.
+
+---
+
+**Bieżący priorytet:** budować solidną, rygorystyczną warstwę dowodów i ciągłości, zanim zaczniemy udawać, że system „zna” użytkownika.
 
 ---
 

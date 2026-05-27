@@ -9,6 +9,7 @@ import { getStreamCutoffs } from "../_shared/time.ts"
 import { logAuditEvent } from "../_shared/audit.ts"
 import { getPlanQualitySignal } from "../_shared/planQuality.ts"
 import { logCriticalError } from "../_shared/errorLogging.ts"
+import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
 
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
@@ -41,7 +42,7 @@ function classifyIntentSafe(query = '') {
   const q = query.toLowerCase();
   if (/wiek|urodzin|studi|kim jestem|fundament|identity|tozsamosc|tożsamość/.test(q)) return 'identity';
   if (/jul|toman|tomań|ekiert|klaud|pawel|paweł|osob|relac|dziewczyn|babci|rodzin/.test(q)) return 'person';
-  if (/ostatnio|7 dni|trend|history/.test(q)) return 'recent_pattern';
+  if (/ostatnio|7 dni|trend|history|wzorzec|schemat|powtarza|powtarzaln|dlaczego znowu|co się dzieje z/.test(q)) return 'recent_pattern';
   if (/sen|hrv|oura|execution|biometr|tetno|tętno|recovery|krok|kalor|jedz|jem|yazio|białk|bialk/.test(q)) return 'biometric';
   return 'open_reflection';
 }
@@ -381,6 +382,24 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
     let intent = classifyIntentSafe(current_query);
     console.log(`[oracle] intent classified: ${intent}`, Date.now() - t0);
 
+    // === Etap 1: Behavioral Patterns context (z detektorów S1/S4 zapisanych w reconciliation) ===
+    let behavioralPatternsContext = '';
+    const wantsPatterns = intent === 'recent_pattern' ||
+      /\b(wzorzec|schemat|powtarza|powtarzaln|trend|dlaczego znowu|co się dzieje z|ostatnio mam problem)\b/.test((current_query || '').toLowerCase());
+
+    if (wantsPatterns) {
+      try {
+        const strongPatterns = await getRecentStrongBehavioralPatterns(supabase, user_id, 3);
+        if (strongPatterns.length > 0) {
+          behavioralPatternsContext = strongPatterns
+            .map((p, i) => `${i + 1}. ${p.text} (N=${p.sampleSize}, pewność=${Math.round(p.confidence * 100)}%)`)
+            .join('\n');
+        }
+      } catch (e) {
+        console.warn('[oracle] getRecentStrongBehavioralPatterns failed (non-fatal):', e);
+      }
+    }
+
     const systemPrompt = `Jesteś Vanguard OS — systemem current-first do logowania mikrotarć i wykrywania wzorców behawioralnych.
 MÓWISZ TYLKO PO POLSKU.
 
@@ -435,6 +454,13 @@ ${lastEveningReflection ? `
 Data: ${lastEveningReflection.date}
 ${lastEveningReflection.biggest_cost ? `Największy koszt (użytkownik): ${lastEveningReflection.biggest_cost}\n` : ''}${lastEveningReflection.best_move ? `Najlepszy ruch (użytkownik): ${lastEveningReflection.best_move}\n` : ''}${lastEveningReflection.blocker_candidates?.length ? `Blokery, które użytkownik sam nazwał: ${lastEveningReflection.blocker_candidates.join('; ')}\n` : ''}${lastEveningReflection.day_score ? `Ocena dnia (użytkownik): ${lastEveningReflection.day_score}/5\n` : ''}To są słowa użytkownika, nie interpretacja systemu. Używaj tylko jako kontekst tego, co sam zauważył wieczorem. Jeśli needs_manual_review — traktuj z rezerwą.
 ` : ''}
+
+${behavioralPatternsContext ? `
+[POWTARZALNE WZORCE BEHAWIORALNE — TYLKO DOWODY Z TWOICH DANYCH (Etap 1)]:
+${behavioralPatternsContext}
+Zasada: To są powtarzalne obserwacje wykryte przez system na podstawie Twoich wieczornych odpowiedzi (p2) + tarć + planów. Zawsze cytuj N i poziom pewności. Używaj wyłącznie jako faktograficzny kontekst. Zero interpretacji, zero diagnoz, zero rad bez wyraźnego pytania użytkownika.
+` : ''}
+
 [STATUS WIEDZY — używaj przy każdej tezie]:
 - current: potwierdzone danymi <14 dni
 - historical: kiedyś prawda, może nieaktualne

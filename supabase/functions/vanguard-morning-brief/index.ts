@@ -14,6 +14,7 @@ import { getVanguardUserId } from "../_shared/constants.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
 import { getPlanQualitySignal } from "../_shared/planQuality.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
+import { getRecentStrongBehavioralPatterns, markPatternAsShown } from "../_shared/vanguardPatterns.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const VANGUARD_USER_ID = getVanguardUserId();
@@ -175,6 +176,45 @@ serve(async () => {
       }
     }
 
+    // Etap 1: Lekka iniekcja najsilniejszego powtarzalnego wzorca (jeśli jest bardzo mocny)
+    let patternNote = '';
+    try {
+      const strongPatterns = await getRecentStrongBehavioralPatterns(supabase, VANGUARD_USER_ID, 1);
+      if (strongPatterns.length > 0 && strongPatterns[0].confidence >= 0.65) {
+        const p = strongPatterns[0];
+        const short = p.text.length > 160 ? p.text.substring(0, 157) + '...' : p.text;
+        patternNote = `\n\nSchemat z Twoich danych:\n${short}`;
+      }
+    } catch (e) {
+      console.warn('[morning-brief] pattern fetch failed (non-fatal)');
+    }
+
+    // Etap 1: Lekkie Early Warning w porannym briefie (gdy sygnał jest aktywny)
+    let earlyWarningNote = '';
+    try {
+      const recentWarnings = await getRecentEarlyWarnings(supabase, VANGUARD_USER_ID, 1);
+
+      if (recentWarnings.length > 0) {
+        const w = recentWarnings[0];
+        const today = new Date().toISOString().split('T')[0];
+
+        // Nie pokazuj tego samego ostrzeżenia dwa razy w ciągu jednego dnia
+        if (w.last_shown === today) {
+          // już pokazane dzisiaj → nic nie dodajemy
+        } else {
+          const short = w.evidence_text.length > 140 ? w.evidence_text.substring(0, 137) + '...' : w.evidence_text;
+          earlyWarningNote = `\n\n⚠️ Wczesny sygnał aktywny:\n${short}`;
+
+          // Podstawowe logowanie/audyt: zaznaczamy, że ostrzeżenie zostało pokazane rano
+          if (w.id) {
+            await markPatternAsShown(supabase, w.id);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[morning-brief] early warning fetch failed (non-fatal)');
+    }
+
     const text = 
       `Start dnia.\n\n` +
       (sleepDataStatus === 'pending' 
@@ -191,7 +231,7 @@ serve(async () => {
       `Artefakt po bloku:\n` +
       `${prodArtifactName}\n\n` +
       `⚡ Ruch napięciowy:\n` +
-      `${taAction}${qualityNote}${p2Note}`;
+      `${taAction}${qualityNote}${p2Note}${patternNote}${earlyWarningNote}`;
 
     const res = await sendMessage(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
       replyMarkup: {

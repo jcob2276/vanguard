@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { sendMessageParsed } from "../_shared/telegram.ts"
 import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
+import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
 
 const VANGUARD_USER_ID = getVanguardUserId()
 
@@ -65,6 +66,13 @@ serve(async (req) => {
         .limit(35),
     )
 
+    // Etap 1: Powtarzalne wzorce behawioralne (z dedykowanej tabeli)
+    const strongPatterns = await getRecentStrongBehavioralPatterns(
+      supabase,
+      VANGUARD_USER_ID,
+      4
+    )
+
     // --- Aggregate friction by type ---
     const frictionByType: Record<string, number> = {}
     for (const e of (frictionEvents || [])) {
@@ -113,6 +121,10 @@ serve(async (req) => {
         ).join('\n')
       : 'Brak hipotez w kolejce.'
 
+    const patternsText = strongPatterns.length > 0
+      ? strongPatterns.map((p, i) => `${i+1}. ${p.text} (N=${p.sampleSize}, pewność=${Math.round(p.confidence*100)}%)`).join('\n')
+      : 'Brak silnych powtarzalnych wzorców w tym okresie.'
+
     const streamText = (stream || [])
       .map(s => `[${s.created_at?.split('T')[0]}][${s.category || '—'}] ${s.content}`)
       .join('\n')
@@ -136,7 +148,7 @@ serve(async (req) => {
 ZASADY ABSOLUTNE:
 1. Tylko to co jawnie widać w danych — bez psychoanalizy motywów
 2. Liczby są źródłem prawdy — podaj je konkretnie
-3. Jeden wzorzec który naprawdę widać w danych (nie spekuluj)
+3. Jeden wzorzec który naprawdę widać w danych (nie spekuluj). Możesz odwołać się do sekcji POWTARZALNE WZORCE jeśli pasują do tego tygodnia.
 4. Hipoteza systemu: wybierz jedną z kolejki TYLKO jeśli pasuje do danych tygodnia. Jeśli żadna nie pasuje — napisz "brak pasującej hipotezy"
 5. Pytanie na następne 7 dni: konkretne, operacyjne — nie motywacyjne, nie ogólne
 
@@ -150,7 +162,7 @@ LICZBY
 • Plany wieczorne: [liczba] z 7 dni
 
 WZORZEC TYGODNIA
-[1-3 zdania. Tylko obserwacja z danych. Brak ocen i interpretacji motywów.]
+[1-3 zdania. Tylko obserwacja z danych. Możesz odwołać się do sekcji POWTARZALNE WZORCE jeśli są aktualne w tym tygodniu. Brak ocen i interpretacji motywów.]
 
 HIPOTEZA SYSTEMU
 [Jedna hipoteza z kolejki lub "brak pasującej hipotezy"]
@@ -175,6 +187,9 @@ SESJE PLANOWANIA WIECZORNEGO: ${(plannings || []).length} z 7 dni
 
 HIPOTEZY Z KOLEJKI (top 3 wg confidence):
 ${hypothesesText}
+
+POWTARZALNE WZORCE (Etap 1 — wykryte wcześniej i potwierdzone danymi):
+${patternsText}
 
 STRUMIEŃ (ostatnie 7 dni):
 ${streamText || 'brak wpisów'}`

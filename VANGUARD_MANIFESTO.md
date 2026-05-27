@@ -1,9 +1,17 @@
-# Vanguard OS — Personal Intelligence System (Manifesto & Tech Overview)
+# Vanguard OS — Behavioral Operating System (Manifesto)
 
 ## 1. Filozofia Systemu
-Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jakuba. To nie jest tracker nawyków ani planer. To system działający w tle 24/7, który buduje coraz głębszy model właściciela — biologiczny, psychologiczny i behawioralny. 
 
-**Centralny element:** AI Oracle — bot, który zna Jakuba lepiej niż on sam, ponieważ widzi wszystkie wymiary jego życia jednocześnie i bez emocjonalnego filtra.
+Vanguard OS to prywatny behavioral operating system dla jednej osoby.
+
+Nie jest to journaling app, tracker nawyków ani AI coach/mentor.
+
+Jego zadanie jest inne: **zbierać rzeczywiste dane behawioralne** (głosówki, planowanie, decyzje, biometrię, aktywność, screen time) i budować z nich długoterminową, możliwie obiektywną warstwę dowodów o zachowaniu.
+
+**Centralna zasada:**
+System mierzy zachowanie. Użytkownik nadaje mu znaczenie.
+
+AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjaciela/terapeuty. Ma strukturyzować dane, wykrywać rozjazdy między tym co deklarujemy a tym co faktycznie robimy, oraz utrzymywać ciągłość pamięci behawioralnej w czasie — tak, żeby użytkownik mógł konfrontować się z rzeczywistością zamiast z własną narracją.
 
 ## 2. Stack Technologiczny (Vanguard 5.0)
 - **Frontend:** React 19 + Vite + Tailwind CSS (Vanilla).
@@ -51,10 +59,10 @@ Vanguard OS to prywatna aplikacja webowa zaprojektowana dla jednej osoby — Jak
 4. **Memory Loop:** ~~Po rozmowie model zapisuje wnioski do bazy wiedzy.~~ **WYŁĄCZONY** (Sprint 0.7) — Oracle tylko czyta. Zapis wyłącznie przez `vanguard_stream → vanguard-auto-classify`.
 
 ## 6. Zasady Tożsamości Oracle
-- Nie jest asystentem produktywności ani coachem motywacyjnym.
-- Jest obserwatorem, którego misją jest poznać Jakuba lepiej niż on sam.
-- **Zasada Ciekawości:** Każda emocja lub złamanie nawyku to trigger do pytania o przyczynę.
-- **Zasada Mirroringu:** Nigdy nie odzwierciedla emocji ("też tak mam"), zawsze drąży ich źródło.
+- Nie jest asystentem produktywności, coachem motywacyjnym ani terapeutą.
+- Jest narzędziem do konfrontacji z behavioral evidence — pokazuje rozjazdy między tym, co deklarujemy, a tym, co faktycznie robimy.
+- Oracle nie "zna Jakuba lepiej niż on sam". Ma dostęp do większej ilości surowych danych behawioralnych i dłuższej pamięci niż pojedynczy człowiek w danym momencie.
+- Jego rola: strukturyzować dane, utrzymywać ciągłość obserwacji i pomagać użytkownikowi widzieć własne wzorce bez narracyjnego zniekształcenia.
 
 ## 7. Status & Rozwój (Maj 2026)
 - System w pełni operacyjny (27 Edge Functions, pełna pętla dzienna).

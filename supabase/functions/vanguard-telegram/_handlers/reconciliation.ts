@@ -9,6 +9,7 @@ import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
 import { parseReconciliationResponse, type P2ParsedResponse } from '../../_shared/reconciliationParser.ts';
+import { detectRecurringBlockers, detectPlanAdherenceGaps, detectMorningProtocolImpact, detectSleepFrictionLink, detectEarlyWarningSignals, shouldSurfaceInsight, recordBehavioralPattern, markPatternAsShown } from '../../_shared/vanguardPatterns.ts';
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -144,6 +145,53 @@ export async function handleReconciliation(
     console.warn('[reconciliation] p2 parser failed (non-fatal):', p2Result.reason);
   }
 
+  // === Etap 1: Detekcja powtarzalnych wzorców (S1 + S4) ===
+  let recurringBlockerInsights: Awaited<ReturnType<typeof detectRecurringBlockers>> = [];
+  let planAdherenceInsights: Awaited<ReturnType<typeof detectPlanAdherenceGaps>> = [];
+
+  if (p2Parsed?.blocker_candidates?.length) {
+    try {
+      recurringBlockerInsights = await detectRecurringBlockers(supabase, userId, {
+        lookbackDays: 21,
+        correlationWindowDays: 5,
+        minOccurrences: 3,
+      });
+    } catch (e) {
+      console.warn('[reconciliation] detectRecurringBlockers failed (non-fatal):', e);
+    }
+  }
+
+  // S4 — rozjazd planu z wczoraj vs dzisiejsza rzeczywistość
+  try {
+    planAdherenceInsights = await detectPlanAdherenceGaps(supabase, userId, yesterdayStr);
+  } catch (e) {
+    console.warn('[reconciliation] detectPlanAdherenceGaps failed (non-fatal):', e);
+  }
+
+  // S2 — wpływ porannego protokołu (first 90 / phone first) na następny dzień
+  let morningProtocolInsights: Awaited<ReturnType<typeof detectMorningProtocolImpact>> = [];
+  try {
+    morningProtocolInsights = await detectMorningProtocolImpact(supabase, userId, { lookbackDays: 25 });
+  } catch (e) {
+    console.warn('[reconciliation] detectMorningProtocolImpact failed (non-fatal):', e);
+  }
+
+  // S3 — sen → następnego dnia dominujący typ tarcia
+  let sleepFrictionInsights: Awaited<ReturnType<typeof detectSleepFrictionLink>> = [];
+  try {
+    sleepFrictionInsights = await detectSleepFrictionLink(supabase, userId, { lookbackDays: 30 });
+  } catch (e) {
+    console.warn('[reconciliation] detectSleepFrictionLink failed (non-fatal):', e);
+  }
+
+  // Pierwszy Early Warning (prosty reżim)
+  let earlyWarningInsights: Awaited<ReturnType<typeof detectEarlyWarningSignals>> = [];
+  try {
+    earlyWarningInsights = await detectEarlyWarningSignals(supabase, userId);
+  } catch (e) {
+    console.warn('[reconciliation] detectEarlyWarningSignals failed (non-fatal):', e);
+  }
+
   // --- 1. Construct unified Bridge Message ---
   try {
     const first90Str = eveningExtraction?.first_90_protected ? "chronione" : "przerwane stymulacją";
@@ -209,6 +257,58 @@ Fakty dnia:
         bridgeText += `\n_(refleksja dość chaotyczna — parser ma niską pewność)_`;
       }
     }
+
+    // === Etap 1: Iniekcja powtarzalnych wzorców (S1 recurring blockers + S4 plan adherence) ===
+    const strongBlockerInsights = recurringBlockerInsights.filter(i => shouldSurfaceInsight(i));
+    const strongAdherenceInsights = planAdherenceInsights.filter(i => shouldSurfaceInsight(i));
+    const strongMorningInsights = morningProtocolInsights.filter(i => shouldSurfaceInsight(i));
+    const strongSleepInsights = sleepFrictionInsights.filter(i => shouldSurfaceInsight(i));
+
+    const surfacedPatternIds: string[] = [];
+
+    if (strongBlockerInsights.length > 0 || strongAdherenceInsights.length > 0 || strongMorningInsights.length > 0 || strongSleepInsights.length > 0) {
+      bridgeText += `\n\nW Twoich danych:`;
+
+      for (const insight of strongBlockerInsights) {
+        bridgeText += `\n• ${insight.evidenceText}`;
+        const id = await recordBehavioralPattern(supabase, userId, insight);
+        if (id) surfacedPatternIds.push(id);
+      }
+      for (const insight of strongAdherenceInsights) {
+        bridgeText += `\n• ${insight.evidenceText}`;
+        const id = await recordBehavioralPattern(supabase, userId, insight);
+        if (id) surfacedPatternIds.push(id);
+      }
+      for (const insight of strongMorningInsights) {
+        bridgeText += `\n• ${insight.evidenceText}`;
+        const id = await recordBehavioralPattern(supabase, userId, insight);
+        if (id) surfacedPatternIds.push(id);
+      }
+      for (const insight of strongSleepInsights) {
+        bridgeText += `\n• ${insight.evidenceText}`;
+        const id = await recordBehavioralPattern(supabase, userId, insight);
+        if (id) surfacedPatternIds.push(id);
+      }
+
+      bridgeText += `\n_(to nie interpretacja — tylko powtarzalna obserwacja z Twoich danych. N = liczba Twoich wieczornych odpowiedzi)`;
+    }
+
+    // Early Warning (jeśli sygnały się nakładają)
+    const strongWarning = earlyWarningInsights[0];
+    if (strongWarning) {
+      bridgeText += `\n\n⚠️ Wczesny sygnał:\n${strongWarning.evidenceText}`;
+      bridgeText += `\nTo nie straszenie — po prostu widzimy ten schemat u Ciebie wystarczająco często.`;
+
+      // Zapisujemy ostrzeżenie jako pełnoprawny wzorzec (żeby było w historii i w komendzie "wzorce")
+      const warningId = await recordBehavioralPattern(supabase, userId, strongWarning);
+      if (warningId) {
+        surfacedPatternIds.push(warningId);
+
+        // Podstawowe logowanie/audyt: zaznaczamy, że ostrzeżenie zostało faktycznie pokazane
+        await markPatternAsShown(supabase, warningId);
+      }
+    }
+
 
     bridgeText += `
 
@@ -324,15 +424,29 @@ Potwierdzasz?`;
     }).eq('id', reconciliationId);
 
     // Send message with options/buttons if artifact is ready, or simple keyboard prompt if missing
-    const replyMarkup = promptMissingArtifact ? undefined : {
-      inline_keyboard: [
+    let replyMarkup: any = undefined;
+
+    if (!promptMissingArtifact) {
+      const keyboard: any[][] = [
         [
           { text: '✅ Tak', callback_data: 'planning_confirm_tak' },
           { text: '🔧 Zmień', callback_data: 'planning_change_request' },
           { text: '📉 Minimum', callback_data: 'planning_show_minimum' }
         ]
-      ]
-    };
+      ];
+
+      // Etap 1: Pattern feedback buttons (dla pierwszego mocnego insightu)
+      if (surfacedPatternIds.length > 0) {
+        const firstId = surfacedPatternIds[0];
+        keyboard.push([
+          { text: '👍 Ma sens', callback_data: `pat_confirm_${firstId}` },
+          { text: '👎 Nie mój', callback_data: `pat_reject_${firstId}` },
+          { text: '⏸ Ciszej', callback_data: `pat_snooze_${firstId}` }
+        ]);
+      }
+
+      replyMarkup = { inline_keyboard: keyboard };
+    }
 
     await safeSendTelegram(chatId, bridgeText, telegramToken, {
       reply_markup: replyMarkup,
