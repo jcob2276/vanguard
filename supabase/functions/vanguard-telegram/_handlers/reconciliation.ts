@@ -8,6 +8,7 @@
 import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
+import { parseReconciliationResponse } from '../../_shared/reconciliationParser.ts';
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -82,40 +83,64 @@ export async function handleReconciliation(
     console.warn('[reconciliation] evening extraction failed:', extractErr);
   }
 
-  // --- Reality Adversary ---
+  // --- Reality Adversary + P2 Parser (parallel) ---
   let adversaryOutput: import('../_utils/adversary.ts').AdversaryResult | null = null;
-  try {
-    const yesterdayStr = (() => {
-      const d = new Date(reconciliationDate + 'T12:00:00Z');
-      d.setUTCDate(d.getUTCDate() - 1);
-      return d.toISOString().split('T')[0];
-    })();
-    const cutoff72h = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
 
-    const [planRes, streamRes] = await Promise.all([
-      supabase
-        .from('daily_reconciliations')
-        .select('planning_summary')
-        .eq('user_id', userId)
-        .eq('date', yesterdayStr)
-        .not('planning_summary', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('vanguard_stream')
-        .select('content, created_at')
-        .eq('user_id', userId)
-        .gte('created_at', cutoff72h)
-        .order('created_at', { ascending: false })
-        .limit(30)
-    ]);
+  const yesterdayStr = (() => {
+    const d = new Date(reconciliationDate + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().split('T')[0];
+  })();
 
-    const yesterdayPlan = planRes.data?.planning_summary ?? null;
-    const stream72h = streamRes.data ?? [];
-    adversaryOutput = await runRealityAdversary(yesterdayPlan, stream72h, deepseekApiKey);
-  } catch (adversaryErr) {
-    console.warn('[reconciliation] adversary failed (non-fatal):', adversaryErr);
+  const [adversaryResult, p2Result] = await Promise.allSettled([
+    // Adversary — needs yesterday's plan + 72h stream
+    (async () => {
+      const cutoff72h = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+      const [planRes, streamRes] = await Promise.all([
+        supabase
+          .from('daily_reconciliations')
+          .select('planning_summary')
+          .eq('user_id', userId)
+          .eq('date', yesterdayStr)
+          .not('planning_summary', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('vanguard_stream')
+          .select('content, created_at')
+          .eq('user_id', userId)
+          .gte('created_at', cutoff72h)
+          .order('created_at', { ascending: false })
+          .limit(30)
+      ]);
+      const yesterdayPlan = planRes.data?.planning_summary ?? null;
+      const stream72h = streamRes.data ?? [];
+      return runRealityAdversary(yesterdayPlan, stream72h, deepseekApiKey);
+    })(),
+
+    // P2 parser — extract structured fields from raw voice response
+    parseReconciliationResponse(cleanText, deepseekApiKey),
+  ]);
+
+  if (adversaryResult.status === 'fulfilled') {
+    adversaryOutput = adversaryResult.value;
+  } else {
+    console.warn('[reconciliation] adversary failed (non-fatal):', adversaryResult.reason);
+  }
+
+  if (p2Result.status === 'fulfilled') {
+    const p2 = p2Result.value;
+    // Persist P2 results (non-blocking — best effort)
+    supabase.from('daily_reconciliations')
+      .update({ p2_parsed: p2 })
+      .eq('id', reconciliationId)
+      .then(({ error }: { error: any }) => {
+        if (error) console.warn('[reconciliation] p2_parsed save failed:', error.message);
+        else console.log(`[reconciliation] p2_parsed saved: score=${p2.day_score} confidence=${p2.parse_confidence} review=${p2.needs_manual_review}`);
+      });
+  } else {
+    console.warn('[reconciliation] p2 parser failed (non-fatal):', p2Result.reason);
   }
 
   // --- 1. Construct unified Bridge Message ---
