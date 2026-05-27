@@ -637,16 +637,16 @@ if (embedRes.ok) {
 | 10 | ~~P2 parser w vanguard-daily-reconciliation~~ | **FIXED 2026-05-27** — `_shared/reconciliationParser.ts`; extrahuje: day_score, biggest_cost, best_move, correction, resource, blocker_candidates, parse_confidence, needs_manual_review, unparsed_notes; wynik w `daily_reconciliations.p2_parsed`; uruchamiany równolegle z adversary |
 | 11 | ~~`vanguard_correlations` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, signal_name); RLS enabled |
 | 12 | ~~`vanguard_temporal_links` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, source_date, target_date); RLS enabled |
-| 13 | `vanguard-transurfing-reset` funkcja | referencjonowana w rules jako "live v1" — brak pliku |
+| 13 | ~~`vanguard-transurfing-reset` funkcja~~ | **CLOSED** — ghost reference; zero śladów w kodzie, migracjach ani rules; żadna istniejąca funkcja jej nie wywołuje |
 
 ### P3 — Dług techniczny
 
 | # | Problem | Lokalizacja |
 |---|---------|-------------|
-| 14 | Hardcoded user_id fallback `165ae341-...` | architect, graph-embedder, telegram, eval-runner |
-| 15 | Dwa klasyfikatory stanów | VanguardCore (z-score) vs save-daily-aggregate (hardcoded thresholds) |
-| 16 | `ARCHITECTURE.md` stale schedules | doc twierdzi analyst co 6h na Monday — rzeczywistość: raz dziennie 03:00 UTC, Sunday |
-| 17 | Brakujące tabele (referenced, no DDL) | Brak (wszystkie tabele zostały utworzone w migracji lub istnieją w bazie produkcyjnej) |
+| 14 | ~~Hardcoded user_id fallback `165ae341-...`~~ | **FIXED** — wszystkie funkcje używają `getVanguardUserId()` z `_shared/constants.ts`; fallback UUID żyje tylko tam z komentarzem i jest nadpisywalny przez env `VANGUARD_USER_ID` |
+| 15 | ~~Dwa klasyfikatory stanów~~ | **CLOSED** — save-daily-aggregate deleguje do `core.determineState()` (z-score, linia ~110); hardcoded progi istnieją TYLKO w gałęzi `bl.calibrating=true` jako fallback przy <5 dniach historii — celowe zachowanie |
+| 16 | ~~`ARCHITECTURE.md` stale schedules~~ | **CLOSED** — stale reference do analysta "co 6h na Monday" nie istnieje w aktualnym ARCHITECTURE.md; cron table jest poprawna |
+| 17 | ~~Brakujące tabele (referenced, no DDL)~~ | **FIXED** — vanguard_correlations + vanguard_temporal_links mają DDL w mig. 20260531000001 |
 
 ---
 
