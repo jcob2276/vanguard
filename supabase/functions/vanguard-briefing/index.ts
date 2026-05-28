@@ -177,7 +177,7 @@ ZASADY ABSOLUTNE:
 3. Dane z [ARCHIWUM] mogą pojawić się TYLKO w sekcji "Wzorzec" i z jawnym oznaczeniem "wcześniej".
 4. Jeśli brak danych z 24h — napisz wprost: "Brak danych z ostatnich 24h."
 5. Friction events (jeśli są) — wymień konkretnie, bez interpretacji psychologicznych.
-6. Jeden konkretny mikrotest na dziś — nie wielki plan, jeden krok.
+6. Jeden konkretny mikrotest na dziś — nie wielki plan, jeden krok. Mikrotest musi być możliwy do zrelacjonowania głosówką wieczorem — bez specjalnych formatów, bez TAK/NIE pisania, bez klikania.
 
 ZAKAZ:
 - Psychoanalizy i interpretacji motywów
@@ -233,6 +233,13 @@ ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`
       TELEGRAM_TOKEN,
       TELEGRAM_CHAT_ID,
       `VANGUARD BRIEFING\n\n${briefingText}`,
+      {
+        replyMarkup: {
+          inline_keyboard: [[
+            { text: '✅ OK, czytam', callback_data: 'briefing_ok' },
+          ]]
+        }
+      }
     )
     if (!telegramResult.ok) {
       throw new Error(`Telegram error: ${telegramResult.description}`)

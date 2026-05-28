@@ -1,4 +1,5 @@
 import type { TelegramRouterContext } from "./config.ts";
+import { answerCallbackQuery, clearInlineKeyboard } from "../../_shared/telegram.ts";
 import { MORNING_CALLBACKS, handleMorningCallback } from "../_handlers/morning.ts";
 import {
   MIDDAY_ARTIFACT_CALLBACKS,
@@ -159,6 +160,12 @@ export async function handleCallbackQuery(
       supabase,
       telegramToken,
     );
+    return;
+  }
+
+  if (data === 'briefing_ok') {
+    await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zapisane' });
+    await clearInlineKeyboard(telegramToken, chatId, messageId);
     return;
   }
 
