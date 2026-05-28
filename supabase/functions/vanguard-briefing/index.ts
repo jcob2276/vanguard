@@ -245,6 +245,21 @@ ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`
       throw new Error(`Telegram error: ${telegramResult.description}`)
     }
 
+    // Leave a pending record so the Telegram router knows the user is in
+    // "briefing response" context for the next 2h. Voice notes sent in this
+    // window go to stream (not knowledge) and are tagged as briefing reactions.
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    await supabase.from('daily_reconciliations').insert({
+      user_id:             userId,
+      date:                todayStr,
+      mode:                'briefing_response',
+      status:              'sent',
+      morning_sent_at:     new Date().toISOString(),
+      telegram_message_id: telegramResult.messageId ?? null,
+    }).then(({ error }: { error: any }) => {
+      if (error) console.warn('[briefing] failed to insert briefing_response record:', error.message)
+    })
+
     console.log(`[briefing] done`)
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

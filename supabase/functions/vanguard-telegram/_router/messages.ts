@@ -271,8 +271,34 @@ export async function handleIncomingMessage(
       if (isVoice && !explicitVoiceCommand && mode !== 'daily_reconciliation_response' && mode !== 'planning') {
         const transcriptWordCount = text.trim().split(/\s+/).filter(Boolean).length;
         shouldRespond = false;
-        mode = transcriptWordCount > 120 ? 'knowledge' : 'stream';
         cleanText = text.trim();
+
+        // Check if user is responding to a briefing sent in the last 2h.
+        // If so, force stream regardless of word count — this is a reaction,
+        // not a knowledge update.
+        const twoHoursAgo = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+        const { data: pendingBriefing } = await supabase
+          .from('daily_reconciliations')
+          .select('id')
+          .eq('user_id', vanguardUserId)
+          .eq('mode', 'briefing_response')
+          .eq('status', 'sent')
+          .gte('morning_sent_at', twoHoursAgo)
+          .maybeSingle();
+
+        if (pendingBriefing) {
+          mode = 'stream';
+          // Mark as answered so subsequent voice notes in the same window
+          // don't keep re-triggering (best-effort, non-blocking)
+          supabase.from('daily_reconciliations')
+            .update({ status: 'answered', answered_at: new Date().toISOString() })
+            .eq('id', pendingBriefing.id)
+            .then(({ error: e }: { error: any }) => {
+              if (e) console.warn('[telegram] briefing_response update failed:', e.message);
+            });
+        } else {
+          mode = transcriptWordCount > 120 ? 'knowledge' : 'stream';
+        }
       }
 
       // --- Stream recording ---
