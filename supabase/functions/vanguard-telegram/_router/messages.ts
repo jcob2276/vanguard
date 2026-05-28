@@ -287,15 +287,9 @@ export async function handleIncomingMessage(
           .maybeSingle();
 
         if (pendingBriefing) {
+          // All voice notes within the 2h window go to stream.
+          // Window stays open until it expires naturally — no early close.
           mode = 'stream';
-          // Mark as answered so subsequent voice notes in the same window
-          // don't keep re-triggering (best-effort, non-blocking)
-          supabase.from('daily_reconciliations')
-            .update({ status: 'answered', answered_at: new Date().toISOString() })
-            .eq('id', pendingBriefing.id)
-            .then(({ error: e }: { error: any }) => {
-              if (e) console.warn('[telegram] briefing_response update failed:', e.message);
-            });
         } else {
           mode = transcriptWordCount > 120 ? 'knowledge' : 'stream';
         }
