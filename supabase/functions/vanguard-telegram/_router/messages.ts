@@ -351,6 +351,9 @@ export async function handleIncomingMessage(
       }
 
       // --- Reconciliation response ---
+      // All three handlers below send their own Telegram messages via safeSendTelegram.
+      // Set handlerResponded=true so the final responseText send at the bottom is skipped.
+      let handlerResponded = false;
       if (pendingReconciliation) {
         if (pendingReconciliation.parsed_response?.mode === 'saturday_checkin') {
           const { handleSaturdayCheckin } = await import('../_handlers/saturdayCheckin.ts');
@@ -359,12 +362,14 @@ export async function handleIncomingMessage(
             supabase, telegramToken, deepseekApiKey, vanguardUserId,
             pendingReconciliation.parsed_response
           );
+          handlerResponded = true;
         } else if (pendingReconciliation.mode === 'morning_rescue') {
           const { handleMorningRescue } = await import('../_handlers/morningRescue.ts');
           await handleMorningRescue(
             pendingReconciliation.id, cleanText, chatId,
             supabase, telegramToken, deepseekApiKey,
           );
+          handlerResponded = true;
         } else {
           await handleReconciliation(
             pendingReconciliation.id, cleanText, streamRecordId, chatId,
@@ -372,6 +377,7 @@ export async function handleIncomingMessage(
             supabaseUrl, supabaseServiceRoleKey, vanguardUserId,
             pendingReconciliation.date
           );
+          handlerResponded = true;
         }
       }
 
@@ -539,6 +545,12 @@ export async function handleIncomingMessage(
       }
 
       // --- Send response ---
+      // Skip if a dedicated handler (reconciliation/rescue/saturday) already sent its own message.
+      if (handlerResponded) {
+        console.log('[telegram] handler already responded — skipping final responseText send');
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+
       const hasButtons = shouldRespond && !responseText.startsWith('⚠️') && mode !== 'planning';
       const telegramPayload = {
         chat_id: chatId,
