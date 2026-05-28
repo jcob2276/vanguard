@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
 
     const messageId = await sendTelegram(messageText);
 
-    const { error: reconInsertErr } = await supabase.from('daily_reconciliations').insert({
+    const { error: reconInsertErr } = await supabase.from('daily_reconciliations').upsert({
       user_id:             VANGUARD_USER_ID,
       date:                todayStr,
       status:              'sent',
@@ -215,10 +215,13 @@ Deno.serve(async (req) => {
         behavior:      String(e.actual_behavior || '').substring(0, 100)
       })),
       telegram_message_id: messageId,
-      parsed_response:     anchorText ? { anchor: anchorText } : null
-    });
+      parsed_response:     anchorText ? { anchor: anchorText } : null,
+      user_response:       null,
+      answered_at:         null
+    }, { onConflict: 'user_id, date' });
     if (reconInsertErr) {
-      console.error('[reconciliation] evening insert failed:', reconInsertErr);
+      console.error('[reconciliation] evening upsert failed:', reconInsertErr);
+      throw new Error(`Upsert failed: ${reconInsertErr.message}`);
     } else {
       logAuditEvent({
         eventType: 'evening_reconciliation_created',
@@ -226,8 +229,6 @@ Deno.serve(async (req) => {
         message: 'Utworzono wieczorne reconciliation',
         metadata: { date: todayStr, mode }
       });
-    }
-      throw new Error(`Insert failed: ${reconInsertErr.message}`);
     }
 
     console.log(`[reconciliation] sent mode=${mode} events=${evList.length} anchor=${!!anchorText} msg_id=${messageId}`);

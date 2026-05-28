@@ -8,11 +8,17 @@
  * Token rotation: Strava rotates refresh_token on every use.
  * Tokens are stored in strava_tokens table and updated after each refresh.
  *
+ * HR architecture:
+ *   - Primary source: Strava GPS watch (hr_source='strava')
+ *   - Fallback: Oura Ring auto-sync duplicate (hr_source='oura')
+ *   - Frozen sensor detection: >60% of splits locked at hr_max → hr_frozen=true
+ *   - splits_with_hr: Strava pace/GAP/elev merged with Oura per-split HR
+ *
  * Trigger: HTTP (manual) or cron (optional)
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createServiceClient } from "../_shared/supabase.ts";
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 
 const STRAVA_CLIENT_ID     = Deno.env.get('STRAVA_CLIENT_ID') || '';
@@ -23,6 +29,10 @@ const VANGUARD_USER_ID     = getVanguardUserId();
 const INITIAL_SYNC_FROM = Math.floor(new Date('2026-05-19T22:00:00Z').getTime() / 1000);
 
 const supabase = createServiceClient();
+
+// ---------------------------------------------------------------------------
+// Token management
+// ---------------------------------------------------------------------------
 
 async function getAccessToken(): Promise<string> {
   const { data: tokenRow } = await supabase
@@ -57,7 +67,6 @@ async function getAccessToken(): Promise<string> {
     throw new Error('[sync-strava] Token refresh failed: ' + JSON.stringify(data));
   }
 
-  // Persist rotated tokens
   await supabase.from('strava_tokens').upsert({
     user_id:       VANGUARD_USER_ID,
     access_token:  data.access_token,
@@ -69,6 +78,10 @@ async function getAccessToken(): Promise<string> {
   console.log('[sync-strava] Token refreshed, expires:', new Date(data.expires_at * 1000).toISOString());
   return data.access_token;
 }
+
+// ---------------------------------------------------------------------------
+// Strava API helpers
+// ---------------------------------------------------------------------------
 
 async function fetchActivities(accessToken: string, after: number): Promise<any[]> {
   const activities: any[] = [];
@@ -97,7 +110,6 @@ async function fetchActivities(accessToken: string, after: number): Promise<any[
   return activities;
 }
 
-/** Fetch detailed activity (splits, best_efforts, cadence etc.) */
 async function fetchActivityDetail(accessToken: string, activityId: number): Promise<any | null> {
   try {
     const res = await fetch(
@@ -115,21 +127,6 @@ async function fetchActivityDetail(accessToken: string, activityId: number): Pro
   }
 }
 
-function fmtTime(sec: number): string {
-  if (!sec) return '—';
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  return h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    : `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function fmtPace(speed: number): string {
-  if (!speed) return '—';
-  const sec = 1000 / speed;
-  return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}/km`;
-}
-
-/** Fetch HR stream for zone computation */
 async function fetchHRStream(accessToken: string, activityId: number): Promise<number[] | null> {
   try {
     const res = await fetch(
@@ -142,7 +139,75 @@ async function fetchHRStream(accessToken: string, activityId: number): Promise<n
   } catch { return null; }
 }
 
-/** Compute HR zone distribution (Z1–Z5) from raw HR stream */
+// ---------------------------------------------------------------------------
+// HR quality & merge logic
+// ---------------------------------------------------------------------------
+
+/** True when activity name or device indicates it's an Oura auto-sync */
+function isOuraDuplicate(activity: any): boolean {
+  const name = (activity.name || '').toLowerCase();
+  const device = (activity.device_name || '').toLowerCase();
+  return device.includes('oura') || /\d+%.*oura/i.test(name);
+}
+
+/**
+ * Detect frozen Oura sensor:
+ * >60% of splits have HR within 0.5 bpm of hr_max  →  sensor locked
+ */
+function detectFrozenSensor(splits: any[], hrMax: number | null): boolean {
+  if (!hrMax) return false;
+  const hrValues = splits.map(s => s.average_heartrate).filter(h => h != null) as number[];
+  if (hrValues.length < 3) return false;
+  const frozenCount = hrValues.filter(h => Math.abs(h - hrMax) < 0.5).length;
+  return frozenCount / hrValues.length > 0.6;
+}
+
+/**
+ * Overlay Oura per-split HR onto Strava splits (pace/GAP/elev from Strava).
+ * Uses split index to align — tolerates slight distance differences.
+ */
+function mergeHRIntoSplits(stravaSplits: any[], ouraSplits: any[]): any[] {
+  if (!ouraSplits?.length) return stravaSplits;
+  const ouraByIdx = new Map<number, number>(
+    ouraSplits.map(s => [s.split, s.average_heartrate])
+  );
+  return stravaSplits.map(s => ({
+    ...s,
+    average_heartrate: ouraByIdx.get(s.split) ?? s.average_heartrate ?? null,
+  }));
+}
+
+/**
+ * Build a map: primary_strava_id → oura_detail
+ * Matches by sport_type + start_date within 120s.
+ */
+function pairOuraDuplicates(
+  primaries: any[],
+  ouras: any[],
+  detailMap: Record<number, any>
+): Map<number, any> {
+  const pairs = new Map<number, any>();
+  for (const oura of ouras) {
+    const ouraStart = new Date(oura.start_date).getTime();
+    const primary = primaries.find(p => {
+      const pStart = new Date(p.start_date).getTime();
+      return (
+        p.sport_type === oura.sport_type &&
+        Math.abs(pStart - ouraStart) < 120_000
+      );
+    });
+    if (primary) {
+      const ouraDetail = detailMap[oura.id] || oura;
+      pairs.set(primary.id, ouraDetail);
+    }
+  }
+  return pairs;
+}
+
+// ---------------------------------------------------------------------------
+// HR zone computation
+// ---------------------------------------------------------------------------
+
 function computeHRZones(hrStream: number[], hrMax: number): Record<string, number> {
   const z = { Z1: 0, Z2: 0, Z3: 0, Z4: 0, Z5: 0 };
   for (const hr of hrStream) {
@@ -163,7 +228,30 @@ function computeHRZones(hrStream: number[], hrMax: number): Record<string, numbe
   };
 }
 
-function buildActivityReport(detail: any, oura: any | null, zones: Record<string, number> | null): string {
+// ---------------------------------------------------------------------------
+// Telegram report builder
+// ---------------------------------------------------------------------------
+
+function fmtTime(sec: number): string {
+  if (!sec) return '—';
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function fmtPace(speed: number): string {
+  if (!speed) return '—';
+  const sec = 1000 / speed;
+  return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}/km`;
+}
+
+function buildActivityReport(
+  detail: any,
+  oura: any | null,
+  zones: Record<string, number> | null,
+  hrFrozen: boolean,
+): string {
   const name       = detail.name || 'Trening';
   const sport      = detail.sport_type || detail.type || '';
   const distKm     = detail.distance ? (detail.distance / 1000).toFixed(2) : '—';
@@ -171,55 +259,52 @@ function buildActivityReport(detail: any, oura: any | null, zones: Record<string
   const elapsedFmt = fmtTime(detail.elapsed_time);
   const stopped    = (detail.elapsed_time || 0) - (detail.moving_time || 0);
   const pace       = fmtPace(detail.average_speed);
-  const hrAvg      = detail.average_heartrate ? Math.round(detail.average_heartrate) : null;
-  const hrMax      = detail.max_heartrate     ? Math.round(detail.max_heartrate)     : null;
+  const hrAvg      = oura?.average_heartrate
+    ? Math.round(oura.average_heartrate)
+    : (detail.average_heartrate ? Math.round(detail.average_heartrate) : null);
+  const hrMax      = oura?.max_heartrate
+    ? Math.round(oura.max_heartrate)
+    : (detail.max_heartrate ? Math.round(detail.max_heartrate) : null);
+  const hrSource   = oura ? 'Oura' : (detail.average_heartrate ? 'Strava' : null);
   const elev       = detail.total_elevation_gain != null ? detail.total_elevation_gain : null;
-  const elevHigh   = detail.elev_high != null ? detail.elev_high : null;
-  const elevLow    = detail.elev_low  != null ? detail.elev_low  : null;
   const cadence    = detail.average_cadence ? Math.round(detail.average_cadence * 2) : null;
   const calories   = detail.calories && detail.calories > 0 ? Math.round(detail.calories) : null;
   const suffer     = detail.suffer_score || null;
   const device     = detail.device_name  || null;
   const rpe        = detail.perceived_exertion || null;
+  const gearName   = detail.gear?.name || null;
 
   const startLocal = detail.start_date_local
     ? new Date(detail.start_date_local).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
     : '';
 
-  // --- HEADER ---
   let t = `🏃 *${name}* (${sport}) — ${startLocal}\n`;
   t += `━━━━━━━━━━━━━━━━━━━━\n`;
 
-  // --- SUMMARY ---
   t += `*${distKm} km* | ${movingFmt} moving`;
   if (stopped > 30) t += ` | ⏸ ${fmtTime(stopped)} pauz`;
   t += `\n`;
   t += `Tempo: *${pace}*`;
-  if (hrAvg) t += ` | HR: *${hrAvg}* / max *${hrMax}*`;
+  if (hrAvg) {
+    t += ` | HR: *${hrAvg}* / max *${hrMax}*`;
+    if (hrSource) t += ` [${hrSource}]`;
+    if (hrFrozen) t += ` ⚠️ sensor lock`;
+  }
   if (elev != null) t += ` | ↑${elev}m`;
   t += `\n`;
-  if (elevHigh && elevLow) t += `Wys: ${elevLow}–${elevHigh}m n.p.m.\n`;
   if (cadence) t += `Kadencja: ${cadence} spm\n`;
   if (calories) t += `Kalorie: ${calories} kcal\n`;
-  if (suffer)  t += `Suffer score: ${suffer}\n`;
-  if (rpe)     t += `RPE: ${rpe}/10\n`;
-  if (device)  t += `Urządzenie: ${device}\n`;
+  if (suffer)   t += `Suffer score: ${suffer}\n`;
+  if (rpe)      t += `RPE: ${rpe}/10\n`;
+  if (gearName) t += `Buty: ${gearName}\n`;
+  if (device && device !== 'Strava App') t += `Urządzenie: ${device}\n`;
 
-  // --- OURA (noc przed treningiem) ---
+  // Oura recovery context
   if (oura) {
-    t += `\n━━ 🛌 REGENERACJA (noc przed) ━━\n`;
-    if (oura.readiness_score != null) t += `Readiness: *${oura.readiness_score}*`;
-    if (oura.hrv_avg != null)         t += ` | HRV: *${Math.round(oura.hrv_avg)}ms*`;
-    if (oura.rhr_avg != null)         t += ` | RHR: *${Math.round(oura.rhr_avg)}bpm*`;
-    t += `\n`;
-    if (oura.total_sleep_hours != null) t += `Sen: *${oura.total_sleep_hours.toFixed(1)}h*`;
-    if (oura.deep_sleep_hours  != null) t += ` | Deep: ${oura.deep_sleep_hours.toFixed(1)}h`;
-    if (oura.rem_sleep_hours   != null) t += ` | REM: ${oura.rem_sleep_hours.toFixed(1)}h`;
-    if (oura.sleep_efficiency  != null) t += ` | Eff: ${oura.sleep_efficiency}%`;
-    t += `\n`;
+    // nothing extra here — HR already shown above
   }
 
-  // --- HR ZONES ---
+  // HR Zones
   if (zones && hrMax) {
     t += `\n━━ ❤️ STREFY HR (max ${hrMax}) ━━\n`;
     t += `Z1 <${Math.round(hrMax * 0.60)}: ${zones.Z1}% `;
@@ -229,33 +314,34 @@ function buildActivityReport(detail: any, oura: any | null, zones: Record<string
     t += `Z5 >${Math.round(hrMax * 0.90)}: ${zones.Z5}%\n`;
   }
 
-  // --- SPLITS ---
+  // Splits — use merged (Strava pace + Oura HR) if available
+  const ouraSplits = oura?.splits_metric || [];
+  const ouraByIdx  = new Map<number, number>(ouraSplits.map((s: any) => [s.split, s.average_heartrate]));
   const splits: any[] = detail.splits_metric || [];
+
   if (splits.length > 0) {
     t += `\n━━ 📍 SPLITS (km) ━━\n`;
 
-    // Cardiac drift: first km HR vs last full km HR (skip paused km)
-    const fullSplits = splits.filter(s => (s.elapsed_time - s.moving_time) < 30);
-    if (fullSplits.length >= 2 && fullSplits[0].average_heartrate && fullSplits[fullSplits.length - 1].average_heartrate) {
-      const driftStart = Math.round(fullSplits[0].average_heartrate);
-      const driftEnd   = Math.round(fullSplits[fullSplits.length - 1].average_heartrate);
-      const driftDiff  = driftEnd - driftStart;
-      const driftNote  = driftDiff > 5
-        ? `⬆️ +${driftDiff}bpm (serce rosło przy stałym tempie — zmęczenie/odwodnienie)`
-        : driftDiff < -5
-        ? `⬇️ ${driftDiff}bpm (HR spadało — rozgrzewka lub negatywny split)`
-        : `✅ stabilny (${driftDiff > 0 ? '+' : ''}${driftDiff}bpm)`;
-      t += `Cardiac drift: ${driftNote}\n`;
+    const fullSplits = splits.filter((s: any) => (s.elapsed_time - s.moving_time) < 30);
+    if (fullSplits.length >= 2) {
+      const firstHR = ouraByIdx.get(fullSplits[0].split) ?? fullSplits[0].average_heartrate;
+      const lastHR  = ouraByIdx.get(fullSplits[fullSplits.length - 1].split) ?? fullSplits[fullSplits.length - 1].average_heartrate;
+      if (firstHR && lastHR) {
+        const driftDiff = Math.round(lastHR) - Math.round(firstHR);
+        const driftNote = driftDiff > 5
+          ? `⬆️ +${driftDiff}bpm (cardiac drift — zmęczenie/odwodnienie)`
+          : driftDiff < -5
+          ? `⬇️ ${driftDiff}bpm (HR spadało — rozgrzewka / neg split)`
+          : `✅ stabilny (${driftDiff > 0 ? '+' : ''}${driftDiff}bpm)`;
+        t += `Cardiac drift: ${driftNote}\n`;
+      }
     }
 
-    // Positive/negative split analysis
     if (splits.length >= 2) {
       const half = Math.floor(splits.length / 2);
-      const firstHalf  = splits.slice(0, half);
-      const secondHalf = splits.slice(half);
-      const avgFirst  = firstHalf.reduce((s, k) => s + k.average_speed, 0) / firstHalf.length;
-      const avgSecond = secondHalf.reduce((s, k) => s + k.average_speed, 0) / secondHalf.length;
-      const diff = avgFirst - avgSecond; // positive = getting slower
+      const avgFirst  = splits.slice(0, half).reduce((s: number, k: any) => s + k.average_speed, 0) / half;
+      const avgSecond = splits.slice(half).reduce((s: number, k: any) => s + k.average_speed, 0) / (splits.length - half);
+      const diff = avgFirst - avgSecond;
       const splitNote = diff > 0.1
         ? `⚠️ Positive split — zwalniasz (${fmtPace(avgFirst)} → ${fmtPace(avgSecond)})`
         : diff < -0.1
@@ -268,18 +354,19 @@ function buildActivityReport(detail: any, oura: any | null, zones: Record<string
     for (const s of splits) {
       const pause  = s.elapsed_time - s.moving_time;
       const paused = pause > 20 ? ` ⏸${fmtTime(pause)}` : '';
-      const hr     = s.average_heartrate ? ` | ${Math.round(s.average_heartrate)}bpm` : '';
+      const hr     = ouraByIdx.get(s.split) ?? s.average_heartrate;
+      const hrStr  = hr ? ` | ${Math.round(hr)}bpm` : '';
       const gap    = s.average_grade_adjusted_speed && Math.abs(s.average_grade_adjusted_speed - s.average_speed) > 0.05
         ? ` | GAP ${fmtPace(s.average_grade_adjusted_speed)}`
         : '';
       const el     = s.elevation_difference != null
         ? ` | ${s.elevation_difference >= 0 ? '↑' : '↓'}${Math.abs(s.elevation_difference).toFixed(1)}m`
         : '';
-      t += `  km${s.split}: *${fmtPace(s.average_speed)}* (${fmtTime(s.moving_time)})${hr}${gap}${el}${paused}\n`;
+      t += `  km${s.split}: *${fmtPace(s.average_speed)}* (${fmtTime(s.moving_time)})${hrStr}${gap}${el}${paused}\n`;
     }
   }
 
-  // --- BEST EFFORTS ---
+  // Best efforts
   const KEY_DISTS = [400, 1000, 1609, 5000, 10000];
   const efforts = (detail.best_efforts || [])
     .filter((e: any) => KEY_DISTS.includes(Math.round(e.distance)));
@@ -292,7 +379,7 @@ function buildActivityReport(detail: any, oura: any | null, zones: Record<string
     }
   }
 
-  // --- SEGMENT PRs ---
+  // Segment PRs
   const prSegments = (detail.segment_efforts || [])
     .filter((s: any) => s.pr_rank && s.pr_rank <= 3)
     .sort((a: any, b: any) => a.pr_rank - b.pr_rank)
@@ -302,19 +389,24 @@ function buildActivityReport(detail: any, oura: any | null, zones: Record<string
     for (const s of prSegments) {
       const medal = s.pr_rank === 1 ? '🥇' : s.pr_rank === 2 ? '🥈' : '🥉';
       const distM = s.distance < 1000 ? `${Math.round(s.distance)}m` : `${(s.distance / 1000).toFixed(1)}km`;
-      t += `  ${medal} ${s.name} (${distM}): *${fmtTime(s.elapsed_time)}* | HR ${Math.round(s.average_heartrate || 0)}\n`;
+      t += `  ${medal} ${s.name} (${distM}): *${fmtTime(s.elapsed_time)}*\n`;
     }
   }
 
   return t;
 }
 
+// ---------------------------------------------------------------------------
+// Main handler
+// ---------------------------------------------------------------------------
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
   try {
     const url = new URL(req.url);
     const forceFrom = url.searchParams.get('from');
 
-    // Determine sync window: from param > latest in DB > initial cutoff
     let after: number;
 
     if (forceFrom) {
@@ -325,6 +417,7 @@ serve(async (req) => {
         .from('strava_activities')
         .select('start_date')
         .eq('user_id', VANGUARD_USER_ID)
+        .eq('is_oura_duplicate', false)
         .order('start_date', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -342,20 +435,61 @@ serve(async (req) => {
     if (activities.length === 0) {
       console.log('[sync-strava] No new activities');
       return new Response(JSON.stringify({ ok: true, synced: 0 }), {
-        status: 200, headers: { 'Content-Type': 'application/json' }
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // For each new activity, fetch detailed data (splits, best_efforts, cadence)
-    // Sequential to avoid Strava rate-limit (100 req/15min)
+    // Fetch detail for all activities (sequential to respect rate limit)
     const detailMap: Record<number, any> = {};
     for (const a of activities) {
       const detail = await fetchActivityDetail(accessToken, a.id);
       if (detail) detailMap[a.id] = detail;
     }
 
+    // Partition: primary activities vs Oura auto-sync duplicates
+    const primaryActivities = activities.filter(a => !isOuraDuplicate(a));
+    const ouraActivities    = activities.filter(a => isOuraDuplicate(a));
+    const ouraPairs         = pairOuraDuplicates(primaryActivities, ouraActivities, detailMap);
+
+    console.log(`[sync-strava] ${primaryActivities.length} primary, ${ouraActivities.length} Oura duplicates, ${ouraPairs.size} paired`);
+
     const rows = activities.map((a: any) => {
-      const detail = detailMap[a.id] || a;
+      const detail    = detailMap[a.id] || a;
+      const isDup     = isOuraDuplicate(a);
+      const ouraDetail = isDup ? null : ouraPairs.get(a.id) ?? null;
+
+      // --- HR resolution ---
+      // Priority: Strava native HR (GPS watch) > Oura overlay
+      let hrAvg: number | null    = null;
+      let hrMax: number | null    = null;
+      let hrSource: string | null = null;
+      let hrFrozen                = false;
+      let splitsWithHR: any[]     = detail.splits_metric || [];
+
+      if (detail.average_heartrate && detail.has_heartrate) {
+        // Strava has real HR from a watch
+        hrAvg    = detail.average_heartrate;
+        hrMax    = detail.max_heartrate;
+        hrSource = 'strava';
+        // Frozen check on strava HR too (unlikely but possible)
+        hrFrozen = detectFrozenSensor(detail.splits_metric || [], hrMax);
+      } else if (ouraDetail?.average_heartrate) {
+        // Overlay Oura HR
+        hrAvg    = ouraDetail.average_heartrate;
+        hrMax    = ouraDetail.max_heartrate;
+        hrSource = 'oura';
+        hrFrozen = detectFrozenSensor(ouraDetail.splits_metric || [], hrMax);
+        // Merge Oura per-split HR into Strava splits
+        splitsWithHR = mergeHRIntoSplits(
+          detail.splits_metric || [],
+          ouraDetail.splits_metric || []
+        );
+      }
+
+      // Strip segment_efforts from raw_data to keep storage lean
+      // (segment PRs are signalled via pr_count + achievement_count)
+      const { segment_efforts: _seg, ...detailLean } = detail;
+
       return {
         strava_id:            a.id,
         user_id:              VANGUARD_USER_ID,
@@ -365,17 +499,29 @@ serve(async (req) => {
         elapsed_time:         a.elapsed_time ?? null,
         moving_time:          a.moving_time ?? null,
         distance:             a.distance ?? null,
-        average_heartrate:    a.average_heartrate ?? null,
-        max_heartrate:        a.max_heartrate ?? null,
+        // Native Strava HR (from watch) — null if Strava App without HRM
+        average_heartrate:    detail.has_heartrate ? (detail.average_heartrate ?? null) : null,
+        max_heartrate:        detail.has_heartrate ? (detail.max_heartrate ?? null) : null,
         average_speed:        a.average_speed ?? null,
         max_speed:            a.max_speed ?? null,
         total_elevation_gain: a.total_elevation_gain ?? null,
-        calories:             detail.calories ?? a.calories ?? null,
-        suffer_score:         detail.suffer_score ?? a.suffer_score ?? null,
-        perceived_exertion:   detail.perceived_exertion ?? a.perceived_exertion ?? null,
+        calories:             (detail.calories && detail.calories > 0) ? detail.calories : null,
+        suffer_score:         detail.suffer_score ?? null,
+        perceived_exertion:   detail.perceived_exertion ?? null,
         manual:               a.manual ?? false,
-        // Store full detail (includes splits_metric, best_efforts, average_cadence)
-        raw_data:             detail,
+        // Resolved HR (best available source)
+        hr_avg:               hrAvg,
+        hr_max:               hrMax,
+        hr_source:            hrSource,
+        hr_frozen:            hrFrozen,
+        splits_with_hr:       splitsWithHR.length > 0 ? splitsWithHR : null,
+        // Gear
+        gear_name:            detail.gear?.name ?? null,
+        gear_distance_km:     detail.gear?.converted_distance ?? null,
+        // Duplicate flag
+        is_oura_duplicate:    isDup,
+        // Raw data (without heavy segment_efforts array)
+        raw_data:             detailLean,
         synced_at:            new Date().toISOString()
       };
     });
@@ -387,55 +533,28 @@ serve(async (req) => {
     if (error) {
       console.error('[sync-strava] Upsert error:', error);
       return new Response(JSON.stringify({ error: error.message }), {
-        status: 500, headers: { 'Content-Type': 'application/json' }
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`[sync-strava] Synced ${rows.length} activities with full detail`);
+    console.log(`[sync-strava] Synced ${rows.length} activities (${primaryActivities.length} primary + ${ouraActivities.length} Oura dups)`);
 
-    // Send Telegram report for each new activity
-    const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
-    const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')   || '';
+    // Telegram activity reports removed — data is available in the app widget instead.
 
-    if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
-      for (const a of activities) {
-        const detail = detailMap[a.id] || a;
-        try {
-          // Fetch HR stream for zone computation (sequential, same token)
-          let zones: Record<string, number> | null = null;
-          if (detail.average_heartrate && detail.max_heartrate) {
-            const hrStream = await fetchHRStream(accessToken, a.id);
-            if (hrStream && hrStream.length > 0) {
-              zones = computeHRZones(hrStream, detail.max_heartrate);
-            }
-          }
-
-          const reportText = buildActivityReport(detail, null, zones);
-          await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id:    TELEGRAM_CHAT_ID,
-              text:       reportText,
-              parse_mode: 'Markdown',
-              disable_notification: false
-            })
-          });
-          console.log(`[sync-strava] Telegram report sent for activity ${a.id} zones=${!!zones}`);
-        } catch (tErr) {
-          console.warn(`[sync-strava] Telegram report failed for ${a.id}:`, tErr);
-        }
-      }
-    }
-
-    return new Response(JSON.stringify({ ok: true, synced: rows.length }), {
-      status: 200, headers: { 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify({
+      ok:              true,
+      synced:          rows.length,
+      primary:         primaryActivities.length,
+      oura_duplicates: ouraActivities.length,
+      paired:          ouraPairs.size,
+    }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (err) {
     console.error('[sync-strava] fatal:', err);
     return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

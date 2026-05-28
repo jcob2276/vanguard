@@ -116,9 +116,9 @@ export default function Stats({ session }) {
   const [nutritionData, setNutritionData] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({ compliance: 0 });
   const [correlation, setCorrelation] = useState(null);
-  const [dateRange, setDateRange] = useState({ 
-    from: format(addWeeks(new Date(), -4), 'yyyy-MM-dd'), 
-    to: format(new Date(), 'yyyy-MM-dd') 
+  const [dateRange, setDateRange] = useState({
+    from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+    to: format(new Date(), 'yyyy-MM-dd')
   });
   const [isExporting, setIsExporting] = useState(false);
   const [includeYazio, setIncludeYazio] = useState(true);
@@ -340,7 +340,7 @@ export default function Stats({ session }) {
         supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
         supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true })
+        supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true })
       ]);
 
       const foodEntries = food || [];
@@ -496,23 +496,107 @@ export default function Stats({ session }) {
         });
 
         if (dayStrava.length > 0) {
-          md += `### 🏃 Bieganie (Strava)\n`;
+          const fmtPaceMd = (secPerKm) => {
+            if (!secPerKm) return '—';
+            const m = Math.floor(secPerKm / 60);
+            const s = Math.round(secPerKm % 60);
+            return `${m}:${String(s).padStart(2, '0')}/km`;
+          };
+          const fmtTimeMd = (sec) => {
+            if (!sec) return '—';
+            const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+            return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+          };
+          md += `### 🏃 Bieganie (Strava)\n\n`;
           dayStrava.forEach(a => {
             const startTime = new Date(a.start_date).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
             const distKm = a.distance ? (a.distance / 1000).toFixed(2) : null;
-            const movSec = a.moving_time || a.elapsed_time || 0;
-            const h = Math.floor(movSec / 3600), m = Math.floor((movSec % 3600) / 60), s = movSec % 60;
-            const durFmt = h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
-            const pace = (a.moving_time && a.distance)
-              ? (() => { const sp = a.moving_time / (a.distance / 1000); return `${Math.floor(sp/60)}:${String(Math.round(sp%60)).padStart(2,'0')} /km`; })()
-              : null;
-            md += `- **${a.name}** (${startTime})\n`;
-            if (distKm)              md += `  - Dystans: **${distKm} km**\n`;
-            if (durFmt !== '0:00')   md += `  - Czas: **${durFmt}**\n`;
-            if (pace)                md += `  - Tempo: **${pace}**\n`;
-            if (a.average_heartrate) md += `  - HR śr.: **${Math.round(a.average_heartrate)} BPM** / max: ${a.max_heartrate ?? '—'} BPM\n`;
-            if (a.total_elevation_gain) md += `  - Przewyższenie: **↑${Math.round(a.total_elevation_gain)} m**\n`;
-            if (a.calories)          md += `  - Kalorie: ${Math.round(a.calories)} kcal\n`;
+            const paceStr = a.pace_sec_per_km
+              ? fmtPaceMd(a.pace_sec_per_km)
+              : (a.moving_time && a.distance ? fmtPaceMd(Math.round(a.moving_time / (a.distance / 1000))) : '—');
+            const movingFmt = fmtTimeMd(a.moving_time);
+            const hrAvg = a.hr_avg ? Math.round(a.hr_avg) : null;
+            const hrMax = a.hr_max ? Math.round(a.hr_max) : null;
+            const hrSrc = a.hr_source === 'oura' ? 'Oura Ring' : a.hr_source === 'strava' ? 'Strava/GPS' : null;
+            const frozen = a.hr_frozen;
+            const paused = (a.pause_seconds || 0) > 30;
+
+            const workoutLabels = { 1: 'Wyścig 🏁', 2: 'Długi bieg 🏔️', 3: 'Trening / Interwały ⚡' };
+            const workoutLabel = workoutLabels[a.workout_type] || null;
+
+            md += `#### ${a.name}${a.has_pr ? ' 🏆 PR' : ''} — ${startTime}${workoutLabel ? ` · ${workoutLabel}` : ''}\n`;
+            md += `| Dystans | Tempo | Czas ruchu | Kadencja |\n`;
+            md += `|---------|-------|------------|----------|\n`;
+            md += `| **${distKm ?? '—'} km** | **${paceStr}** | **${movingFmt}** | **${a.cadence_spm ? a.cadence_spm + ' spm' : '—'}** |\n\n`;
+
+            if (hrAvg) {
+              md += `**Tętno:** ${hrAvg}${hrMax ? `/${hrMax}` : ''} BPM`;
+              if (hrSrc) md += ` _(źródło: ${hrSrc})_`;
+              if (frozen) md += ` ⚠️ **sensor lock** — czujnik zamrożony, dane HR nierzetelne`;
+              md += `\n`;
+            }
+            if (a.perceived_exertion) md += `**RPE:** ${a.perceived_exertion}/10\n`;
+
+            // HRV context from Oura: pre-run (day of run) + post-run (day after)
+            const runDate = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+            const nextDate = new Date(new Date(runDate).getTime() + 86400000).toISOString().split('T')[0];
+            const ouraPreRun  = ouraData?.find(o => o.date === runDate);
+            const ouraPostRun = ouraData?.find(o => o.date === nextDate);
+            if (ouraPreRun?.hrv_avg || ouraPostRun?.hrv_avg) {
+              md += `**HRV (Oura):**`;
+              if (ouraPreRun?.hrv_avg)  md += ` przed: **${Math.round(ouraPreRun.hrv_avg)} ms**${ouraPreRun.rhr_avg ? ` (RHR ${Math.round(ouraPreRun.rhr_avg)} bpm)` : ''}`;
+              if (ouraPostRun?.hrv_avg) md += ` → po: **${Math.round(ouraPostRun.hrv_avg)} ms**${ouraPostRun.rhr_avg ? ` (RHR ${Math.round(ouraPostRun.rhr_avg)} bpm)` : ''}`;
+              const hrvDelta = (ouraPreRun?.hrv_avg && ouraPostRun?.hrv_avg)
+                ? Math.round(ouraPostRun.hrv_avg - ouraPreRun.hrv_avg) : null;
+              if (hrvDelta !== null) md += ` _(${hrvDelta >= 0 ? '+' : ''}${hrvDelta} ms regeneracja)_`;
+              md += `\n`;
+            }
+
+            if (a.total_elevation_gain) md += `**Przewyższenie:** +${Math.round(a.total_elevation_gain)} m\n`;
+            if (a.gear_name)            md += `**Buty:** ${a.gear_name}${a.gear_distance_km ? ` (${Math.round(a.gear_distance_km)} km przebiegu)` : ''}\n`;
+            if (paused)                 md += `**Przerwy:** ${fmtTimeMd(a.pause_seconds)}\n`;
+
+            // Splits table
+            const splits = a.splits_with_hr;
+            if (splits && splits.length > 0) {
+              const hasGapMd = splits.some(s => s.average_grade_adjusted_speed != null);
+              md += `\n**Splity:**\n`;
+              md += hasGapMd
+                ? `| km | Clock | GAP | HR | Elev |\n|----|-------|-----|-----|------|\n`
+                : `| km | Clock | HR | Elev |\n|----|-------|-----|------|\n`;
+              splits.forEach(s => {
+                const clockSec = s.moving_time && s.distance
+                  ? Math.round(s.moving_time / (s.distance / 1000))
+                  : s.average_speed ? Math.round(1000 / s.average_speed) : null;
+                const gapSec = s.average_grade_adjusted_speed
+                  ? Math.round(1000 / s.average_grade_adjusted_speed) : null;
+                const sPace = clockSec ? fmtPaceMd(clockSec) : '—';
+                const sGap  = hasGapMd ? (gapSec ? fmtPaceMd(gapSec) : '—') : null;
+                const sHR   = s.average_heartrate ? Math.round(s.average_heartrate) : '—';
+                const sElev = s.elevation_difference != null
+                  ? `${s.elevation_difference >= 0 ? '+' : ''}${s.elevation_difference.toFixed(1)}m`
+                  : '—';
+                const sPause = (s.elapsed_time || 0) - (s.moving_time || 0);
+                const pauseStr = sPause > 20 ? ` ⏸${fmtTimeMd(sPause)}` : '';
+                md += hasGapMd
+                  ? `| ${s.split} | ${sPace}${pauseStr} | ${sGap} | ${sHR} | ${sElev} |\n`
+                  : `| ${s.split} | ${sPace}${pauseStr} | ${sHR} | ${sElev} |\n`;
+              });
+            }
+
+            // Best efforts
+            const bestEffortNames = ['400m', '1K', '1 mile', '2 mile', '5K', '10K'];
+            const efforts = (a.best_efforts || []).filter(e => bestEffortNames.includes(e.name));
+            if (efforts.length > 0) {
+              md += `\n**Best Efforts:**\n`;
+              efforts.forEach(e => {
+                const t = fmtTimeMd(e.moving_time);
+                const pr = e.pr_rank === 1 ? ' 🥇 PR#1' : e.pr_rank === 2 ? ' 🥈 PR#2' : e.pr_rank === 3 ? ' 🥉 PR#3' : '';
+                md += `- **${e.name}**: ${t}${pr}\n`;
+              });
+            }
+
+            md += `\n`;
           });
           md += `\n`;
         }

@@ -24,6 +24,7 @@ import WorkoutExecution from './WorkoutExecution';
 import Stats from './Stats';
 import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
+import StravaWidget from './StravaWidget';
 import AIInsight from './AIInsight';
 import GraphMind from './GraphMind';
 import Photos from './Photos';
@@ -330,6 +331,7 @@ export default function Dashboard({ session }) {
                 detail="Kroki, sen, kalorie, trening i eksport danych. To jest twarda warstwa, nie miejsce na rozmowę z Oracle."
               />
               <OuraWidget session={session} />
+              <StravaWidget session={session} />
 
               <div className="rounded-2xl border border-white/5 bg-neutral-950/70 p-5">
                 <div className="mb-4 flex items-center justify-between">

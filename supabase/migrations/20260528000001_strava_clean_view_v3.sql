@@ -1,13 +1,11 @@
--- strava_activities_clean v2
--- Deduplicates Oura-synced vs manual activity pairs (within 120s, same sport_type).
---
--- HR architecture:
---   1. Pre-resolved hr_avg/hr_max/hr_source columns (populated by sync-strava)
---   2. Fallback: join to Oura duplicate within 120s
---   3. Fallback: native Strava average_heartrate (from GPS watch)
---
--- Frozen sensor flag: hr_frozen=true when Oura locked at hr_max (>60% splits identical)
--- splits_with_hr: Strava pace/GAP/elev merged with Oura per-split HR
+-- strava_activities_clean v3
+-- Fixes:
+--   1. HR fallback now uses COALESCE(o.hr_avg, o.average_heartrate) so native Oura
+--      average_heartrate is picked up even when hr_avg column wasn't pre-resolved.
+--   2. splits_with_hr now pulls Oura duplicate's splits_metric (which has per-km HR)
+--      when primary activity has no splits_with_hr.
+--   3. best_efforts exposed from raw_data.
+--   4. hr_source detection also checks native average_heartrate on Oura row.
 
 DROP VIEW IF EXISTS strava_activities_clean;
 
@@ -48,15 +46,16 @@ enriched AS (
     a.gear_distance_km,
     COALESCE((a.raw_data->>'pr_count')::int, 0) > 0          AS has_pr,
     COALESCE((a.raw_data->>'achievement_count')::int, 0)     AS achievement_count,
-    -- HR: pre-resolved > Oura join > native Strava
+    a.raw_data->'best_efforts'                               AS best_efforts,
+    -- HR: pre-resolved > Oura join (hr_avg OR native average_heartrate) > own native HR
     COALESCE(
       a.hr_avg,
-      (SELECT o.hr_avg
+      (SELECT COALESCE(o.hr_avg, o.average_heartrate)
        FROM tagged o
        WHERE o.user_id       = a.user_id
          AND o.sport_type    = a.sport_type
          AND o.is_oura       = true
-         AND o.hr_avg        IS NOT NULL
+         AND COALESCE(o.hr_avg, o.average_heartrate) IS NOT NULL
          AND ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date))) < 120
        ORDER BY ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date)))
        LIMIT 1),
@@ -64,12 +63,12 @@ enriched AS (
     )                                                         AS hr_avg,
     COALESCE(
       a.hr_max,
-      (SELECT o.hr_max
+      (SELECT COALESCE(o.hr_max, o.max_heartrate)
        FROM tagged o
        WHERE o.user_id       = a.user_id
          AND o.sport_type    = a.sport_type
          AND o.is_oura       = true
-         AND o.hr_max        IS NOT NULL
+         AND COALESCE(o.hr_max, o.max_heartrate) IS NOT NULL
          AND ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date))) < 120
        ORDER BY ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date)))
        LIMIT 1),
@@ -84,14 +83,27 @@ enriched AS (
           WHERE o.user_id    = a.user_id
             AND o.sport_type = a.sport_type
             AND o.is_oura    = true
-            AND o.hr_avg     IS NOT NULL
+            AND COALESCE(o.hr_avg, o.average_heartrate) IS NOT NULL
             AND ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date))) < 120
         ) THEN 'oura'
         ELSE NULL
       END
     )                                                         AS hr_source,
     COALESCE(a.hr_frozen, false)                              AS hr_frozen,
-    COALESCE(a.splits_with_hr, a.raw_data->'splits_metric')  AS splits_with_hr,
+    -- splits_with_hr: pre-resolved > Oura duplicate's splits_metric (has HR) > own raw splits
+    COALESCE(
+      a.splits_with_hr,
+      (SELECT o.raw_data->'splits_metric'
+       FROM tagged o
+       WHERE o.user_id       = a.user_id
+         AND o.sport_type    = a.sport_type
+         AND o.is_oura       = true
+         AND o.raw_data->'splits_metric' IS NOT NULL
+         AND ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date))) < 120
+       ORDER BY ABS(EXTRACT(EPOCH FROM (o.start_date - a.start_date)))
+       LIMIT 1),
+      a.raw_data->'splits_metric'
+    )                                                         AS splits_with_hr,
     a.synced_at
   FROM tagged a
   WHERE
@@ -99,10 +111,9 @@ enriched AS (
       a.is_oura = true
       AND EXISTS (
         SELECT 1 FROM tagged b
-        WHERE b.user_id    = a.user_id
-          AND b.sport_type = a.sport_type
-          AND b.is_oura    = false
-          AND ABS(EXTRACT(EPOCH FROM (b.start_date - a.start_date))) < 120
+        WHERE b.user_id  = a.user_id
+          AND b.is_oura  = false
+          AND ABS(EXTRACT(EPOCH FROM (b.start_date - a.start_date))) < 5400
       )
     )
 )

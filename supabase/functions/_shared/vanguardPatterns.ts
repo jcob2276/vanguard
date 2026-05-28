@@ -196,31 +196,6 @@ export async function detectRecurringBlockers(
     blockerGroups.set(k, v);
   }
 
-  // Po zbudowaniu grup — wybierz lepszego reprezentanta dla każdej grupy
-  const improvedGroups = new Map<string, string[]>();
-  for (const [oldKey, dates] of blockerGroups) {
-    // Zbierz wszystkie oryginalne frazy, które trafiły do tej grupy
-    const phrasesInGroup = blockerOccurrences
-      .filter(o => dates.includes(o.date))
-      .map(o => o.blocker);
-
-    const bestPhrase = pickBestRepresentativePhrase(phrasesInGroup);
-    const finalKey = bestPhrase.length > 60 ? bestPhrase.substring(0, 60) : bestPhrase;
-
-    if (improvedGroups.has(finalKey)) {
-      improvedGroups.get(finalKey)!.push(...dates);
-    } else {
-      improvedGroups.set(finalKey, [...dates]);
-    }
-  }
-
-  // Użyj ulepszonych grup do dalszego przetwarzania
-  blockerGroups.clear();
-  for (const [k, v] of improvedGroups) {
-    blockerGroups.set(k, v);
-  }
-  }
-
   const insights: PatternInsight[] = [];
 
   // Dla każdej grupy sprawdzamy korelację z friction_events
@@ -257,6 +232,7 @@ export async function detectRecurringBlockers(
 
     const sample = dates.length;
     const pct = Math.round(ratio * 100);
+    const blockerTheme = getBlockerTheme(blockerPhrase);
 
     const themeLabel = blockerTheme !== 'other' ? ` (temat: ${blockerTheme})` : '';
     const evidenceText =
@@ -311,7 +287,6 @@ function pickBestRepresentativePhrase(phrases: string[]): string {
   });
 
   return sorted[0][0];
-}
 }
 
 /**
