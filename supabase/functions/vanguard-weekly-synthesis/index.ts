@@ -122,7 +122,7 @@ serve(async (req) => {
       : 'Brak hipotez w kolejce.'
 
     const patternsText = strongPatterns.length > 0
-      ? strongPatterns.map((p, i) => `${i+1}. ${p.text} (N=${p.sampleSize}, pewność=${Math.round(p.confidence*100)}%)`).join('\n')
+      ? strongPatterns.map((p, i) => `${i+1}. ${p.evidence_text} (N=${p.occurrence_count}, pewność=${Math.round(p.confidence*100)}%)`).join('\n')
       : 'Brak silnych powtarzalnych wzorców w tym okresie.'
 
     const streamText = (stream || [])
