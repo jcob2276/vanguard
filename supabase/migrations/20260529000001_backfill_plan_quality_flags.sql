@@ -12,6 +12,11 @@
 --   - Run the PREVIEW QUERIES below first to see impact
 -- ============================================================================
 
+-- 0. Ensure columns exist on daily_reconciliations
+ALTER TABLE public.daily_reconciliations
+  ADD COLUMN IF NOT EXISTS plan_quality text,
+  ADD COLUMN IF NOT EXISTS plan_failure_reason text;
+
 -- ----------------------------------------------------------------------------
 -- PREVIEW QUERIES (run these first to see what will be affected)
 -- Even better: run `node scripts/analyze-weak-plans.mjs` (with SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
@@ -31,7 +36,7 @@ UPDATE daily_reconciliations
 SET 
   plan_quality = 'minimum',
   plan_failure_reason = 'parse_failed'
-WHERE parse_error = true
+WHERE (planning_summary->>'parse_error')::boolean = true
   AND (plan_quality IS NULL OR plan_quality = 'good');
 
 -- ----------------------------------------------------------------------------
@@ -41,7 +46,7 @@ UPDATE daily_reconciliations
 SET 
   plan_quality = COALESCE(plan_quality, 'minimum'),
   plan_failure_reason = COALESCE(plan_failure_reason, 'llm_fallback')
-WHERE plan_fallback = true
+WHERE (planning_summary->>'plan_fallback')::boolean = true
   AND plan_quality IS NULL;
 
 -- ----------------------------------------------------------------------------
