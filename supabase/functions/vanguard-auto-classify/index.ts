@@ -104,7 +104,7 @@ Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_ki
 
 1. \`friction_event\` — konkretne tarcie behawioralne (odchylenie zachowania od intencji).
    - **Musi** zawierać jednocześnie: (a) intencję/zamiar co miało być zrobione + (b) wyraźne odchylenie w zachowaniu.
-   - Jeśli brak jednej z tych dwóch rzeczy → nie dawaj `friction_event`, daj `state_observation` lub `micro_behavior_observation`.
+   - Jeśli brak jednej z tych dwóch rzeczy → nie dawaj \`friction_event\`, daj \`state_observation\` lub \`micro_behavior_observation\`.
    - Przykład: "miałem napisać raport ale znowu odłożyłem" lub "chciałem poprosić do tańca ale się zawahałem".
 2. \`positive_micro_action\` — dobry mikrogest, pozytywne mikrozachowanie.
    - Przykład: "podałem ramię przy schodach" lub "powiedziałem komplement".
@@ -119,9 +119,9 @@ Jeśli tekst nie opisuje żadnego z powyższych (np. jest to zwykłe neutralne p
 W przeciwnym wypadku set \`is_relevant = true\`.
 
 **Krytyczna zasada anty-fałszywych tarć:**
-- `friction_event` tylko gdy w tekście jest **jawna lub jasno implikowana intencja** + **odchylenie od niej**.
-- Czysty stan (ból, zmęczenie, stres) bez odchylenia → `state_observation`.
-- Zaobserwowane nawykowe zachowanie bez intencji w momencie → `micro_behavior_observation`.
+- \`friction_event\` tylko gdy w tekście jest **jawna lub jasno implikowana intencja** + **odchylenie od niej**.
+- Czysty stan (ból, zmęczenie, stres) bez odchylenia → \`state_observation\`.
+- Zaobserwowane nawykowe zachowanie bez intencji w momencie → \`micro_behavior_observation\`.
 
 SŁOWNIK friction_type (dla wszystkich typów oprócz 'reflection' i neutralnych, jeśli pasuje):
 - sleep_disruption: późne spanie, zaspanie, nocny ekran zamiast snu
