@@ -875,14 +875,13 @@ export async function detectEarlyWarningSignals(
     }
   }
 
-  // 2. Sprawdź czy był niski sen w ostatnich dniach (S3)
+  // 2. Sprawdź czy był niski sen/fragmentacja/słaby stan w ostatnich dniach (S3 + nowości)
   const { data: recentAggs } = await safeExecute(
     supabase
       .from('vanguard_daily_aggregates')
-      .select('date, sleep_hours')
+      .select('date, sleep_hours, fragmentation_index, execution_score, final_state')
       .eq('user_id', userId)
       .gte('date', cutoff)
-      .not('sleep_hours', 'is', null)
       .order('date', { ascending: false })
       .limit(5)
   );
@@ -959,6 +958,7 @@ export async function detectEarlyWarningSignals(
       .in('status', ['visible', 'user_confirmed'])
       .gte('last_seen', cutoff)
       .order('last_seen', { ascending: false })
+      .limit(5)
   );
 
   const recentAdherenceCount = recentAdherenceWarnings ? recentAdherenceWarnings.length : 0;
@@ -988,6 +988,115 @@ export async function detectEarlyWarningSignals(
         metadata: {
           regime: 'repeated_adherence_failures',
           adherenceGapDays: recentAdherenceCount,
+        },
+      }];
+    }
+  }
+
+  // Reżim 3: Wysoka fragmentacja + niski sen
+  let fragmentationSleepDays = 0;
+  let lastFragSleepDate = '';
+  if (recentAggs) {
+    for (const a of recentAggs) {
+      if (a.sleep_hours != null && a.sleep_hours < 6.5 && a.fragmentation_index != null && a.fragmentation_index > 0.55) {
+        fragmentationSleepDays++;
+        if (!lastFragSleepDate) lastFragSleepDate = a.date;
+      }
+    }
+  }
+
+  if (fragmentationSleepDays >= 2) {
+    const { data: recentWarning } = await safeExecute(
+      supabase
+        .from('vanguard_behavioral_patterns')
+        .select('last_seen, status')
+        .eq('user_id', userId)
+        .eq('pattern_type', 'early_warning')
+        .eq('metadata->>regime', 'fragmentation_sleep')
+        .gte('last_seen', cooldownCutoff)
+        .order('last_seen', { ascending: false })
+        .limit(1)
+    );
+    const shouldSuppress = recentWarning?.some((w: any) => 
+      w.status === 'user_rejected' || w.last_seen >= cooldownCutoff
+    );
+    if (!shouldSuppress) {
+      return [{
+        type: 'early_warning',
+        title: 'Wczesny sygnał: wysoka fragmentacja + niski sen',
+        evidenceText: `W ostatnich 5 dniach odnotowaliśmy ${fragmentationSleepDays} dni z krótkim snem (<6.5h) i podwyższoną fragmentacją uwagi (>0.55). Ta kombinacja silnie obniża odporność na dryf i unikanie trudnych zadań.`,
+        confidence: 0.73,
+        sampleSize: fragmentationSleepDays,
+        lastSeenDate: lastFragSleepDate || null,
+        metadata: {
+          regime: 'fragmentation_sleep',
+          daysCount: fragmentationSleepDays,
+        },
+      }];
+    }
+  }
+
+  // Reżim 4: Przeniesienie unikania z weekendu na tydzień roboczy (Weekend Avoidance Spillover)
+  let weekendAvoidance = false;
+  let weekendDate = '';
+  if (recentAggs) {
+    for (const a of recentAggs) {
+      const day = new Date(a.date).getDay();
+      if (day === 0 || day === 6) { // Niedziela lub Sobota
+        if ((a.execution_score != null && a.execution_score < 0.45) || a.final_state === 'AVOIDANCE' || a.final_state === 'CHAOS') {
+          weekendAvoidance = true;
+          weekendDate = a.date;
+          break;
+        }
+      }
+    }
+  }
+
+  let mondayTuesdayDrift = false;
+  let driftDate = '';
+  if (recentRecs) {
+    for (const r of recentRecs) {
+      const day = new Date(r.date).getDay();
+      if (day === 1 || day === 2) { // Poniedziałek lub Wtorek
+        const ops = (r.planning_summary as any)?.operational_facts || {};
+        const phoneFirst = ops.phone_first === true;
+        const first90Broken = r.first_90_protected === false;
+        if (phoneFirst || first90Broken) {
+          mondayTuesdayDrift = true;
+          driftDate = r.date;
+          break;
+        }
+      }
+    }
+  }
+
+  if (weekendAvoidance && mondayTuesdayDrift) {
+    const { data: recentWarning } = await safeExecute(
+      supabase
+        .from('vanguard_behavioral_patterns')
+        .select('last_seen, status')
+        .eq('user_id', userId)
+        .eq('pattern_type', 'early_warning')
+        .eq('metadata->>regime', 'weekend_spillover')
+        .gte('last_seen', cooldownCutoff)
+        .order('last_seen', { ascending: false })
+        .limit(1)
+    );
+    const shouldSuppress = recentWarning?.some((w: any) => 
+      w.status === 'user_rejected' || w.last_seen >= cooldownCutoff
+    );
+    if (!shouldSuppress) {
+      return [{
+        type: 'early_warning',
+        title: 'Wczesny sygnał: przeniesienie unikania z weekendu',
+        evidenceText: `Twój weekend (${weekendDate}) przyniósł spadek wykonania lub stan avoidance/chaos, a na początku tygodnia roboczego (${driftDate}) pojawił się poranny dryf (telefon/przerwane pierwsze 90). Grozi to zainfekowaniem całego tygodnia roboczego.`,
+        confidence: 0.75,
+        sampleSize: 2,
+        lastSeenDate: driftDate,
+        metadata: {
+          regime: 'weekend_spillover',
+          weekendDate,
+          driftDate,
         },
       }];
     }
