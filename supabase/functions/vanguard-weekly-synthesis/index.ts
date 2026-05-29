@@ -41,10 +41,11 @@ serve(async (req) => {
 
     const plannings = await safeExecute(
       supabase.from('daily_reconciliations')
-        .select('date')
+        .select('date, planning_summary, p2_parsed')
         .eq('user_id', VANGUARD_USER_ID)
         .gte('date', weekStart)
-        .not('planning_summary', 'is', null),
+        .not('planning_summary', 'is', null)
+        .order('date', { ascending: false }),
     )
 
     const topHypotheses = await safeExecute(
@@ -115,6 +116,18 @@ serve(async (req) => {
       `Wykonanie Top3: ${avgExec != null ? avgExec + '%' : 'brak'} (${execDays.length} dni)`,
     ].join(' | ')
 
+    const planningsText = (plannings || []).map(p => {
+      const plan = p.planning_summary || {};
+      const prodArtifact = plan.production_artifact?.artifact || plan.one_clear_move || '—';
+      const minViable = plan.minimum_viable_day || '—';
+      
+      const p2 = p.p2_parsed || {};
+      const biggestCost = p2.biggest_cost || '—';
+      const blockers = p2.blocker_candidates?.join('; ') || '—';
+      
+      return `[Data: ${p.date}]\n- Plan (artefakt): ${prodArtifact} | Minimum: ${minViable}\n- Rzeczywistość (koszt): ${biggestCost} | Nazwane blokery: ${blockers}`;
+    }).join('\n\n');
+
     const hypothesesText = (topHypotheses || []).length > 0
       ? (topHypotheses || []).map(h =>
           `[${h.category}, conf=${h.confidence_score?.toFixed(2)}] ${h.hypothesis}`
@@ -139,18 +152,19 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'deepseek-v4-flash',
         temperature: 0.4,
-        max_tokens: 600,
+        max_tokens: 700,
         messages: [
           {
             role: 'system',
             content: `Jesteś Vanguard OS. Generujesz TYGODNIOWĄ SYNTEZĘ behawioralną.
 
 ZASADY ABSOLUTNE:
-1. Tylko to co jawnie widać w danych — bez psychoanalizy motywów
-2. Liczby są źródłem prawdy — podaj je konkretnie
+1. Tylko to co jawnie widać w danych — bez psychoanalizy motywów.
+2. Liczby są źródłem prawdy — podaj je konkretnie.
 3. Jeden wzorzec który naprawdę widać w danych (nie spekuluj). Możesz odwołać się do sekcji POWTARZALNE WZORCE jeśli pasują do tego tygodnia.
-4. Hipoteza systemu: wybierz jedną z kolejki TYLKO jeśli pasuje do danych tygodnia. Jeśli żadna nie pasuje — napisz "brak pasującej hipotezy"
-5. Pytanie na następne 7 dni: konkretne, operacyjne — nie motywacyjne, nie ogólne
+4. Deklaracje vs dane: Porównaj plany i nazwane blokery z rzeczywistym kosztem i tarciami. Pokaż rozjazdy i samooszukiwanie bez ogródek, posługując się cytatami z planów i kosztów. Szczególnie odnieś się do tego, czy zapowiedziane blokery faktycznie się zmaterializowały lub czy pojawiły się niespodziewane tarcia.
+5. Hipoteza systemu: wybierz jedną z kolejki TYLKO jeśli pasuje do danych tygodnia. Jeśli żadna nie pasuje — napisz "brak pasującej hipotezy".
+6. Pytanie na następne 7 dni: konkretne, operacyjne — nie motywacyjne, nie ogólne.
 
 FORMAT (trzymaj się dokładnie tej struktury, po polsku):
 
@@ -163,6 +177,9 @@ LICZBY
 
 WZORZEC TYGODNIA
 [1-3 zdania. Tylko obserwacja z danych. Możesz odwołać się do sekcji POWTARZALNE WZORCE jeśli są aktualne w tym tygodniu. Brak ocen i interpretacji motywów.]
+
+DEKLARACJE VS DANE (Anty-Self-Deception)
+[Analiza rozjazdów planów z kosztami i tarciami z cytatami. Porównaj zadeklarowane blokery z rzeczywistością.]
 
 HIPOTEZA SYSTEMU
 [Jedna hipoteza z kolejki lub "brak pasującej hipotezy"]
@@ -182,6 +199,9 @@ ${frictionText}
 
 FRICTION DETAILS:
 ${frictionDetails || 'brak'}
+
+PLANY I DEKLARACJE VS RZECZYWISTOŚĆ KOŃCA DNIA:
+${planningsText || 'brak danych o planach'}
 
 SESJE PLANOWANIA WIECZORNEGO: ${(plannings || []).length} z 7 dni
 
