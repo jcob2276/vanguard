@@ -398,7 +398,7 @@ Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
         const strongPatterns = await getRecentStrongBehavioralPatterns(supabase, user_id, 3);
         if (strongPatterns.length > 0) {
           behavioralPatternsContext = strongPatterns
-            .map((p, i) => `${i + 1}. ${p.text} (N=${p.sampleSize}, pewność=${Math.round(p.confidence * 100)}%)`)
+            .map((p, i) => `${i + 1}. ${p.evidence_text} (N=${p.occurrence_count}, pewność=${Math.round(p.confidence * 100)}%)`)
             .join('\n');
         }
       } catch (e) {
