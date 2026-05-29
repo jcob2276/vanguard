@@ -264,7 +264,7 @@ Fakty dnia:
     const strongMorningInsights = morningProtocolInsights.filter(i => shouldSurfaceInsight(i));
     const strongSleepInsights = sleepFrictionInsights.filter(i => shouldSurfaceInsight(i));
 
-    const surfacedPatternIds: string[] = [];
+    const surfacedPatterns: Array<{ id: string; type: string }> = [];
 
     if (strongBlockerInsights.length > 0 || strongAdherenceInsights.length > 0 || strongMorningInsights.length > 0 || strongSleepInsights.length > 0) {
       bridgeText += `\n\nW Twoich danych:`;
@@ -272,22 +272,22 @@ Fakty dnia:
       for (const insight of strongBlockerInsights) {
         bridgeText += `\n• ${insight.evidenceText}`;
         const id = await recordBehavioralPattern(supabase, userId, insight);
-        if (id) surfacedPatternIds.push(id);
+        if (id) surfacedPatterns.push({ id, type: 'recurring_blocker' });
       }
       for (const insight of strongAdherenceInsights) {
         bridgeText += `\n• ${insight.evidenceText}`;
         const id = await recordBehavioralPattern(supabase, userId, insight);
-        if (id) surfacedPatternIds.push(id);
+        if (id) surfacedPatterns.push({ id, type: 'plan_adherence_gap' });
       }
       for (const insight of strongMorningInsights) {
         bridgeText += `\n• ${insight.evidenceText}`;
         const id = await recordBehavioralPattern(supabase, userId, insight);
-        if (id) surfacedPatternIds.push(id);
+        if (id) surfacedPatterns.push({ id, type: 'morning_protocol_impact' });
       }
       for (const insight of strongSleepInsights) {
         bridgeText += `\n• ${insight.evidenceText}`;
         const id = await recordBehavioralPattern(supabase, userId, insight);
-        if (id) surfacedPatternIds.push(id);
+        if (id) surfacedPatterns.push({ id, type: 'sleep_friction_link' });
       }
 
       bridgeText += `\n_(to nie interpretacja — tylko powtarzalna obserwacja z Twoich danych. N = liczba Twoich wieczornych odpowiedzi)`;
@@ -302,7 +302,7 @@ Fakty dnia:
       // Zapisujemy ostrzeżenie jako pełnoprawny wzorzec (żeby było w historii i w komendzie "wzorce")
       const warningId = await recordBehavioralPattern(supabase, userId, strongWarning);
       if (warningId) {
-        surfacedPatternIds.push(warningId);
+        surfacedPatterns.push({ id: warningId, type: 'early_warning' });
 
         // Podstawowe logowanie/audyt: zaznaczamy, że ostrzeżenie zostało faktycznie pokazane
         await markPatternAsShown(supabase, warningId);
@@ -436,13 +436,21 @@ Potwierdzasz?`;
       ];
 
       // Etap 1: Pattern feedback buttons (dla pierwszego mocnego insightu)
-      if (surfacedPatternIds.length > 0) {
-        const firstId = surfacedPatternIds[0];
-        keyboard.push([
-          { text: '👍 Ma sens', callback_data: `pat_confirm_${firstId}` },
-          { text: '👎 Nie mój', callback_data: `pat_reject_${firstId}` },
-          { text: '⏸ Ciszej', callback_data: `pat_snooze_${firstId}` }
-        ]);
+      if (surfacedPatterns.length > 0) {
+        const firstPat = surfacedPatterns[0];
+        if (firstPat.type === 'plan_adherence_gap') {
+          keyboard.push([
+            { text: '🛠 Wyjątek / Świadomy', callback_data: `pat_exception_${firstPat.id}` },
+            { text: '🧠 Samooszukiwanie', callback_data: `pat_deception_${firstPat.id}` },
+            { text: '⏸ Ciszej', callback_data: `pat_snooze_${firstPat.id}` }
+          ]);
+        } else {
+          keyboard.push([
+            { text: '👍 Ma sens', callback_data: `pat_confirm_${firstPat.id}` },
+            { text: '👎 Nie mój', callback_data: `pat_reject_${firstPat.id}` },
+            { text: '⏸ Ciszej', callback_data: `pat_snooze_${firstPat.id}` }
+          ]);
+        }
       }
 
       replyMarkup = { inline_keyboard: keyboard };

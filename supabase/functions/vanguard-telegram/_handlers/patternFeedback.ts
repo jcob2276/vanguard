@@ -21,7 +21,9 @@ import { updatePatternFeedback } from "../../_shared/vanguardPatterns.ts";
 export function isPatternFeedbackCallback(data: string): boolean {
   return data.startsWith("pat_confirm_") ||
          data.startsWith("pat_reject_") ||
-         data.startsWith("pat_snooze_");
+         data.startsWith("pat_snooze_") ||
+         data.startsWith("pat_exception_") ||
+         data.startsWith("pat_deception_");
 }
 
 export async function handlePatternFeedbackCallback(
@@ -33,12 +35,14 @@ export async function handlePatternFeedbackCallback(
 ): Promise<void> {
   const { supabase, telegramToken, vanguardUserId } = ctx;
 
-  let action: 'confirm' | 'reject' | 'snooze';
+  let action: 'confirm' | 'reject' | 'snooze' | 'exception' | 'deception';
   if (data.startsWith("pat_confirm_")) action = 'confirm';
   else if (data.startsWith("pat_reject_")) action = 'reject';
-  else action = 'snooze';
+  else if (data.startsWith("pat_snooze_")) action = 'snooze';
+  else if (data.startsWith("pat_exception_")) action = 'exception';
+  else action = 'deception';
 
-  const patternId = data.replace(/^pat_(confirm|reject|snooze)_/, '');
+  const patternId = data.replace(/^pat_(confirm|reject|snooze|exception|deception)_/, '');
 
   if (!patternId) {
     await answerCallbackQuery(telegramToken, callbackId, { text: "Błąd: brak ID wzorca" });
@@ -56,6 +60,12 @@ export async function handlePatternFeedbackCallback(
       break;
     case 'snooze':
       userMessage = "⏸ Wyciszony na jakiś czas. Nie będę go pokazywał przez najbliższe dni.";
+      break;
+    case 'exception':
+      userMessage = "✍️ Zapisane jako świadomy wybór / wyjątek.";
+      break;
+    case 'deception':
+      userMessage = "🧠 Zarejestrowano jako samooszukiwanie.";
       break;
   }
 
