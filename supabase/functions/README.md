@@ -59,7 +59,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst → confirmed_friction_event
 | `vanguard-briefing` | **manual** | HTTP POST `{ userId }` — long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 219 | 2026-05-26 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (**confirm** `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 197 | 2026-05-26 |
 | `vanguard-friction-qa` | **active** | pg_cron periodic QA (**confirm** schedule) | **false** | `vanguard_stream`, `friction_events` | 149 | 2026-05-26 |
-| `vanguard-intentions-cleanup` | **active** | pg_cron `0 0 * * 0` UTC (Sunday) | **false** | `vanguard_intentions`, `vanguard_stream` | 97 | 2026-05-26 |
+| `vanguard-intentions-cleanup` | **deprecated (410)** | cron usunięty 2026-05-29 (`20260603000001`) — łamał Transurfing Guardrail (auto `manifested`). Zastąpione blokiem [DEKLAROWANE INTENCJE] w Oracle | **false** | — | 41 | 2026-05-29 |
 
 > **`vanguard-briefing` vs `vanguard-morning-brief`:**  
 > - **morning-brief** = krótki start dnia na Telegram (cron, plan z `planning_summary`).  
@@ -159,12 +159,11 @@ Flat layout: one folder = one deployed function name (except `vanguard-telegram/
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
 | `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
 | `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
-| `vanguard-weekly-intentions-cleanup` | `0 0 * * 0` | `vanguard-intentions-cleanup` |
 
 Also verify: [`scripts/ops/cron-check.sql`](../../scripts/ops/cron-check.sql) against [`scripts/ops/smoke-manifest.mjs`](../../scripts/ops/smoke-manifest.mjs).  
 Post-deploy smoke: `npm run smoke` — see [`docs/runbooks/post-deploy-smoke.md`](../../docs/runbooks/post-deploy-smoke.md).
 
-Removed: `vanguard-daily-shadow-analysis` (duplicate analyst), `vanguard-reset-prompt` cron.
+Removed: `vanguard-daily-shadow-analysis` (duplicate analyst), `vanguard-reset-prompt` cron, `vanguard-weekly-intentions-cleanup` (auto `manifested` — łamał Transurfing Guardrail).
 
 ---
 

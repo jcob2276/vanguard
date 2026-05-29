@@ -4,6 +4,8 @@ import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import {
   fetchOracleStreamSlices,
   formatOracleStreamBlock,
+  fetchDeclaredIntentions,
+  formatDeclaredIntentionsBlock,
 } from "../_shared/streamContext.ts"
 import { getStreamCutoffs } from "../_shared/time.ts"
 import { logAuditEvent } from "../_shared/audit.ts"
@@ -103,11 +105,12 @@ serve(async (req) => {
 
     // STATIC CONTEXT
     // Fix #003: Usunięto ładowanie martwych/pustych tabel z kontekstu Oracla
-    // (iron_rules, repeated_patterns, known_persons, intentions).
-    // Tabele te od dłuższego czasu nie zawierały danych, a mimo to były
-    // odpytwane przy każdym zapytaniu do Oracla.
-    // Zostawiono tylko `vanguard_preferences` (ma dane z poprawek użytkownika).
-    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes] = await Promise.all([
+    // (iron_rules, repeated_patterns, known_persons).
+    // Re-wpięto `vanguard_intentions` (2026-05-29): tabela jest ponownie używana
+    // jako warstwa DEKLARACJI (declared-vs-actual). Wchodzi tylko gdy są aktywne
+    // intencje — fetchDeclaredIntentions zwraca [] dla pustej, więc blok znika.
+    // Zostawiono `vanguard_preferences` (ma dane z poprawek użytkownika).
+    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, declaredIntentions] = await Promise.all([
       supabase.from('user_fundament')
         .select('identity, philosophy, vision')
         .eq('user_id', user_id)
@@ -126,7 +129,10 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
+      fetchDeclaredIntentions(supabase, user_id),
     ]);
+
+    const declaredIntentionsBlock = formatDeclaredIntentionsBlock(declaredIntentions);
 
     if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
     if (preferencesRes.error) console.error('[oracle] vanguard_preferences query error:', preferencesRes.error);
@@ -426,6 +432,7 @@ ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
 ${fundamentRes.data?.identity || 'Brak danych'}
 ${fundamentRes.data?.philosophy || 'Brak danych'}
 ${fundamentRes.data?.vision || 'Brak danych'}
+${declaredIntentionsBlock}
 
 [LOGIKA CZASU]:
 Dziś: ${localTimeString} (Warsaw). Zakaz meta-komentarzy.

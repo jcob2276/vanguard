@@ -526,6 +526,9 @@ Slajd procesu musi dotyczyć procesu, nie fantazji wyniku:
 - ✓ "widzę siebie, jak robię 45 minut pracy bez telefonu"
 - ✗ "jestem bogaty, pewny siebie i wszystko mi wychodzi"
 
+**Declared intentions w warstwie dowodów (2026-05-29):**
+Deklarowane intencje (`vanguard_intentions`: modlitwy, afirmacje, cele) wchodzą do kontekstu Oracle po stronie **DEKLARACJI** osi *deklaracja-vs-działanie* — jako materiał do konfrontacji z faktycznym zachowaniem, nie jako prawda. **Status intencji zmienia wyłącznie użytkownik** (UI); żaden cron ani LLM nie orzeka autonomicznie, że intencja „się zmanifestowała”. Ta sekcja jest SSOT — ma pierwszeństwo nad blankietowym sformułowaniem w `AGENTS.md`/`ARCHITECTURE.md`.
+
 ---
 
 ## Timezone — zasada wyświetlania

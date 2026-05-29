@@ -1,4 +1,6 @@
--- vanguard_intentions: manifestacja, transurfing, rozwój zawodowy
+-- vanguard_intentions: declared intentions — strona DEKLARACJI osi deklaracja-vs-działanie
+-- (modlitwy, afirmacje, cele). Warstwa praktyki/deklaracji, NIE prawdy.
+-- Status zmienia wyłącznie użytkownik. Zob. docs/PRODUCT_PRINCIPLES.md "Transurfing Layer Guardrail".
 CREATE TABLE IF NOT EXISTS vanguard_intentions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,

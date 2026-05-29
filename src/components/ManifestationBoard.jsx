@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Sparkles, Plus, X, CheckCircle, Wind, ChevronDown, ChevronUp } from 'lucide-react';
+import { Compass, Plus, X, CheckCircle, Wind, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TYPES = {
@@ -90,12 +90,12 @@ export default function ManifestationBoard({ session }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-          <Sparkles size={12} className="text-primary" />
-          Manifestacja & Intencje
+          <Compass size={12} className="text-primary" />
+          Deklaracje / Intencje
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-[8px] font-black text-neutral-600 uppercase">
-            {active.length} aktywnych · {manifested.length} zmanifestowanych
+            {active.length} aktywnych · {manifested.length} domkniętych
           </span>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -214,13 +214,13 @@ export default function ManifestationBoard({ session }) {
                     onClick={() => manifest(intention.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-green-500/30 bg-green-500/10 text-[9px] font-black uppercase text-green-400 hover:bg-green-500/20 transition-all"
                   >
-                    <CheckCircle size={11} /> Zmanifestowane
+                    <CheckCircle size={11} /> Domknięte
                   </button>
                   <button
                     onClick={() => release(intention.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-neutral-700 bg-neutral-950 text-[9px] font-black uppercase text-neutral-500 hover:text-white transition-all"
                   >
-                    <Wind size={11} /> Uwolnij
+                    <Wind size={11} /> Odpuść
                   </button>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function ManifestationBoard({ session }) {
             onClick={() => setShowManifested(!showManifested)}
             className="w-full flex items-center justify-between py-2 text-[9px] font-black text-neutral-600 uppercase tracking-widest hover:text-white transition-colors"
           >
-            <span>✅ Zmanifestowane ({manifested.length})</span>
+            <span>✅ Domknięte ({manifested.length})</span>
             {showManifested ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 

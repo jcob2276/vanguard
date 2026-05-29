@@ -154,7 +154,7 @@ Skip for implementation: `docs/legacy/*` (history only).
 ## What we do not build (constitution)
 
 - Shadow engine / brutal provocation  
-- Manifestation tracker / pendulum detector  
+- System auto-orzekający „manifestacja zadziałała” / pendulum detector (intencja jako **deklaracja** do konfrontacji — TAK; jako mechanizm magii / auto-status — NIE; patrz „Transurfing Layer Guardrail” w PRODUCT_PRINCIPLES)  
 - Oracle auto-writing to graph or `vanguard_knowledge` on every turn  
 - Second friction pipeline in architect or telegram  
 - “Confirmed pattern” language without explicit N  
