@@ -14,7 +14,7 @@ import { getVanguardUserId } from "../_shared/constants.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
 import { getPlanQualitySignal } from "../_shared/planQuality.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
-import { getRecentStrongBehavioralPatterns, markPatternAsShown } from "../_shared/vanguardPatterns.ts";
+import { getRecentStrongBehavioralPatterns, markPatternAsShown, getRecentEarlyWarnings } from "../_shared/vanguardPatterns.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
 const VANGUARD_USER_ID = getVanguardUserId();
@@ -182,7 +182,7 @@ serve(async () => {
       const strongPatterns = await getRecentStrongBehavioralPatterns(supabase, VANGUARD_USER_ID, 1);
       if (strongPatterns.length > 0 && strongPatterns[0].confidence >= 0.65) {
         const p = strongPatterns[0];
-        const short = p.text.length > 160 ? p.text.substring(0, 157) + '...' : p.text;
+        const short = p.evidence_text.length > 160 ? p.evidence_text.substring(0, 157) + '...' : p.evidence_text;
         patternNote = `\n\nSchemat z Twoich danych:\n${short}`;
       }
     } catch (e) {
