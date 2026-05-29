@@ -316,10 +316,8 @@ Przykłady:
           ? Math.round((present.length / criticalFields.length) * 100)
           : 70;
 
-        // For friction_event we are stricter – very weak extractions get lower status
-        const finalStatus = (friction.event_kind === 'friction_event' && extractionQuality < 50) 
-          ? 'weak_extraction' 
-          : 'raw';
+        // extraction_quality (0-100) already captures quality — status stays 'raw' always
+        const finalStatus = 'raw';
 
         await safeExecute(
           supabase
