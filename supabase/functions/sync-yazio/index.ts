@@ -41,7 +41,7 @@ serve(async (req) => {
 
       try {
         let foodEntries: any[] = [];
-        let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0;
+        let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0, totalFiber = 0, totalSugar = 0;
 
         console.log(`[Yazio] Syncing ${dateStr}...`);
         const consumed: any = await yazio.user.getConsumedItems({ date: targetDate });
@@ -72,29 +72,49 @@ serve(async (req) => {
           }
 
           if (!name) name = 'Unknown Item';
-          const amount = parseFloat(item.amount) || 0;
-          let c = Math.round(nutrients["energy.energy"] || 0);
+          const amount = parseFloat(item.amount ?? item.serving_quantity) || 0;
+          // energy.energy may be kJ in some products; try kcal key first
+          const energyRaw = nutrients["energy.energy_kcal"] ?? nutrients["energy.kcal"] ?? nutrients["energy.energy"] ?? 0;
+          if ((energyRaw || 0) === 0 && (nutrients["nutrient.protein"] || nutrients["nutrient.carb"] || nutrients["nutrient.fat"])) {
+            console.log(`[Yazio] 0-energy debug — name: ${name}, keys: ${JSON.stringify(Object.keys(nutrients))}, raw: ${JSON.stringify(nutrients)}`);
+          }
+          let c = Math.round(energyRaw || 0);
           let p = nutrients["nutrient.protein"] || 0;
           let w = nutrients["nutrient.carb"] || 0;
           let t = nutrients["nutrient.fat"] || 0;
+          let f = nutrients["nutrient.dietaryfiber"] || 0;
+          let s = nutrients["nutrient.sugar"] || 0;
 
           if (item.product_id && amount > 0 && !nutrients._scaled) {
              c = Math.round(c * amount);
              p = p * amount;
              w = w * amount;
              t = t * amount;
+             f = f * amount;
+             s = s * amount;
           }
-          
-          p = parseFloat(p.toFixed(2)); w = parseFloat(w.toFixed(2)); t = parseFloat(t.toFixed(2));
-          totalCals += c; totalProt += p; totalCarbs += w; totalFat += t;
 
-          const unitMap: any = { 'gram': 'g', 'milliliter': 'ml', 'portion': 'g/porcja', 'package': 'opak.', 'cup': 'szt/opak', 'roll': 'szt', 'whole': 'szt/całość', 'piece': 'szt', 'bottle': 'but.' };
+          p = parseFloat(p.toFixed(2)); w = parseFloat(w.toFixed(2)); t = parseFloat(t.toFixed(2));
+          f = parseFloat(f.toFixed(2)); s = parseFloat(s.toFixed(2));
+          if (c === 0 && (p > 0 || w > 0 || t > 0)) {
+            c = Math.round(p * 4 + w * 4 + t * 9);
+          }
+          totalCals += c; totalProt += p; totalCarbs += w; totalFat += t; totalFiber += f; totalSugar += s;
+
+          const unitMap: any = {
+            'gram': 'g', 'milliliter': 'ml', 'portion': 'g/porcja',
+            'package': 'opak.', 'cup': 'ml', 'roll': 'szt', 'whole': 'szt',
+            'piece': 'szt', 'bottle': 'but.', 'can': 'ml', 'slice': 'plaster',
+            'bar': 'szt', 'tablet': 'tabl.', 'scoop': 'miarka',
+          };
           const unit = unitMap[item.serving] || item.serving || '';
-          const amountStr = `${item.amount}${unit ? ' ' + unit : ''}`;
+          const rawAmount = item.amount ?? item.serving_quantity;
+          const amountStr = rawAmount != null ? `${rawAmount}${unit ? ' ' + unit : ''}` : unit || '';
 
           foodEntries.push({
             user_id: userId, date: dateStr, name, calories: c, protein: p, carbs: w, fat: t,
-            meal_type: item.meal_type || 'snack', amount: amountStr
+            fiber: f || null, sugar: s || null,
+            meal_type: item.daytime || 'snack', amount: amountStr
           });
         }
 
@@ -118,7 +138,7 @@ serve(async (req) => {
           await safeExecute(
             supabase
               .from('daily_nutrition')
-              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt }, { onConflict: 'user_id,date' })
+              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null }, { onConflict: 'user_id,date' })
           );
 
           await safeExecute(

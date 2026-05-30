@@ -125,8 +125,8 @@ export default function Stats({ session }) {
   const [includeJournal, setIncludeJournal] = useState(true);
   const [includeOura, setIncludeOura] = useState(true);
   const [includeHabits, setIncludeHabits] = useState(true);
-  const [includePhotos, setIncludePhotos] = useState(false);
-  const [includeLocation, setIncludeLocation] = useState(false);
+  const [includeWorkouts, setIncludeWorkouts] = useState(true);
+  const [includeBody, setIncludeBody] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
@@ -326,21 +326,21 @@ export default function Stats({ session }) {
         { data: fundament },
         { data: stravaData }
       ] = await Promise.all([
-        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
-        supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }),
+        includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeYazio ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeYazio ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve({ data: [] }),
         supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
         supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('habits').select('*').eq('user_id', session.user.id),
-        supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
-        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
+        includeHabits ? supabase.from('habits').select('*').eq('user_id', session.user.id) : Promise.resolve({ data: [] }),
+        includeHabits ? supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [] }),
+        includeOura ? supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [] }),
         supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
         supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true })
+        includeWorkouts ? supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] })
       ]);
 
       const foodEntries = food || [];
@@ -419,7 +419,7 @@ export default function Stats({ session }) {
         });
 
         // Header and Lose Day Logic
-        const hasAnyData = daySessions.length > 0 || (includeYazio && (dayFood.length > 0 || dayNutrition)) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || dayBody || (includeOura && dayOura) || (includePhotos && dayPhotos?.length > 0);
+        const hasAnyData = (includeWorkouts && (daySessions.length > 0 || dayStrava.length > 0)) || (includeYazio && (dayFood.length > 0 || dayNutrition)) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || (includeBody && dayBody) || (includeOura && dayOura) || dayPhotos?.length > 0;
 
         if (!hasAnyData) {
           md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n`;
@@ -439,7 +439,7 @@ export default function Stats({ session }) {
           md += `- **Dyscyplina:** ${dayOura.is_disciplined ? 'TAK' : 'NIE'}\n\n`;
         }
 
-        if (includePhotos && dayPhotos && dayPhotos.length > 0) {
+        if (dayPhotos && dayPhotos.length > 0) {
           md += `### 📸 Zdjęcia Postępu\n`;
           dayPhotos.forEach((p, idx) => {
             md += `![Zdjęcie ${idx + 1}](${p.image_url})\n`;
@@ -447,8 +447,7 @@ export default function Stats({ session }) {
           md += `\n`;
         }
 
-
-        if (dayBody) {
+        if (includeBody && dayBody) {
           md += `### ⚖️ Pomiary Ciała\n`;
           if (dayBody.weight) md += `- **Waga:** ${dayBody.weight} kg\n`;
           if (dayBody.waist) md += `- **Talia:** ${dayBody.waist} cm\n`;
@@ -466,20 +465,17 @@ export default function Stats({ session }) {
         }
 
         const dayLocations = locationHistory?.filter(l => l.created_at.startsWith(dateStr));
-        const visitedPOIs = userPOI.filter(poi => 
+        const visitedPOIs = userPOI.filter(poi =>
           dayLocations?.some(loc => getDistance(loc.latitude, loc.longitude, poi.lat, poi.lng) < poi.radius)
         );
-        
-        // Wykryte inteligentnie przez API Google Maps
         const detectedPlaces = [...new Set(dayLocations?.filter(l => l.place_name).map(l => l.place_name))];
 
-        if (includeLocation && (visitedPOIs.length > 0 || detectedPlaces.length > 0)) {
+        if (visitedPOIs.length > 0 || detectedPlaces.length > 0) {
           md += `### 📍 Potwierdzone Lokalizacje\n`;
           visitedPOIs.forEach(poi => {
             md += `- ✅ Obecność w: **${poi.name}**\n`;
           });
           detectedPlaces.forEach(place => {
-            // Unikaj dublowania jeśli nazwa POI i PlaceName są podobne
             if (!visitedPOIs.some(p => p.name === place)) {
               md += `- 🤖 Wykryto: **${place}**\n`;
             }
@@ -487,7 +483,7 @@ export default function Stats({ session }) {
           md += `\n`;
         }
 
-        daySessions.forEach(s => {
+        if (includeWorkouts) daySessions.forEach(s => {
           md += `### 🏋️ Trening: Dzień ${s.workout_day}\n`;
           s.exercise_logs.forEach(l => {
             md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (MSP: ${l.rpe ?? '--'}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
@@ -495,7 +491,7 @@ export default function Stats({ session }) {
           md += `\n`;
         });
 
-        if (dayStrava.length > 0) {
+        if (includeWorkouts && dayStrava.length > 0) {
           const fmtPaceMd = (secPerKm) => {
             if (!secPerKm) return '—';
             const m = Math.floor(secPerKm / 60);
@@ -613,7 +609,8 @@ export default function Stats({ session }) {
               if (mealItems.length > 0) {
                 md += `#### ${label}\n`;
                 mealItems.forEach(item => {
-                  md += `- ${item.name} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g\n`;
+                  const extras = [item.fiber != null ? `Bł: ${item.fiber}g` : null, item.sugar != null ? `Cuk: ${item.sugar}g` : null].filter(Boolean).join(' | ');
+                  md += `- ${item.name} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
                 });
               }
             });
@@ -622,7 +619,10 @@ export default function Stats({ session }) {
             const totalProt = dayFood.reduce((sum, f) => sum + (Number(f.protein) || 0), 0);
             const totalCarb = dayFood.reduce((sum, f) => sum + (Number(f.carbs) || 0), 0);
             const totalFat = dayFood.reduce((sum, f) => sum + (Number(f.fat) || 0), 0);
-            md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g**\n`;
+            const totalFiber = dayFood.reduce((sum, f) => sum + (Number(f.fiber) || 0), 0);
+            const totalSugar = dayFood.reduce((sum, f) => sum + (Number(f.sugar) || 0), 0);
+            const fiberSugarStr = [totalFiber > 0 ? `Bł: ${totalFiber.toFixed(1)}g` : null, totalSugar > 0 ? `Cuk: ${totalSugar.toFixed(1)}g` : null].filter(Boolean).join(' | ');
+            md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
@@ -903,6 +903,20 @@ export default function Stats({ session }) {
         </div>
 
         <div className="flex flex-wrap gap-4">
+          <button onClick={() => setIncludeWorkouts(!includeWorkouts)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeWorkouts ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeWorkouts && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Trening (Siłka/Strava)</span>
+          </button>
+
+          <button onClick={() => setIncludeBody(!includeBody)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeBody ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeBody && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Pomiary Ciała</span>
+          </button>
+
           <button onClick={() => setIncludeYazio(!includeYazio)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
             <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeYazio ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
               {includeYazio && <CheckSquare size={10} />}
@@ -931,19 +945,6 @@ export default function Stats({ session }) {
             <span className="text-[10px] font-black uppercase">Nawyki</span>
           </button>
 
-          <button onClick={() => setIncludePhotos(!includePhotos)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includePhotos ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includePhotos && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Zdjęcia</span>
-          </button>
-
-          <button onClick={() => setIncludeLocation(!includeLocation)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeLocation ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeLocation && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Lokalizacja</span>
-          </button>
         </div>
 
         <div className="flex justify-between items-center pt-2">

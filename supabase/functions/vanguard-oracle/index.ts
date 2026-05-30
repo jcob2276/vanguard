@@ -110,7 +110,7 @@ serve(async (req) => {
     // jako warstwa DEKLARACJI (declared-vs-actual). Wchodzi tylko gdy są aktywne
     // intencje — fetchDeclaredIntentions zwraca [] dla pustej, więc blok znika.
     // Zostawiono `vanguard_preferences` (ma dane z poprawek użytkownika).
-    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, declaredIntentions] = await Promise.all([
+    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, declaredIntentions] = await Promise.all([
       supabase.from('user_fundament')
         .select('identity, philosophy, vision')
         .eq('user_id', user_id)
@@ -125,7 +125,12 @@ serve(async (req) => {
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
       supabase.from('daily_nutrition')
-        .select('date, calories, protein')
+        .select('date, calories, protein, carbs, fat, fiber, sugar')
+        .eq('user_id', user_id)
+        .gte('date', fourteenDaysAgoDate)
+        .order('date', { ascending: false }),
+      supabase.from('daily_food_entries')
+        .select('date, meal_type, name, calories, protein, carbs, fat, fiber, sugar')
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
@@ -149,6 +154,12 @@ ${fundamentRes.data?.vision || 'Brak danych'}
     const responsePrefs = preferencesRes.data?.map(p => `- ${p.value}`).join('\n') || '';
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
+    const foodEntries14d = foodEntries14dRes.data || [];
+    const foodByDate: Record<string, any[]> = {};
+    for (const e of foodEntries14d) {
+      if (!foodByDate[e.date]) foodByDate[e.date] = [];
+      foodByDate[e.date].push({ meal: e.meal_type, name: e.name, kcal: e.calories, B: e.protein, W: e.carbs, T: e.fat, Bl: e.fiber ?? undefined, Cuk: e.sugar ?? undefined });
+    }
     const healthSummary14d = {
       date_from: fourteenDaysAgoDate,
       date_to: todayDate,
@@ -159,6 +170,10 @@ ${fundamentRes.data?.vision || 'Brak danych'}
       avg_total_calories_burned: avg(oura14d, 'total_calories'),
       avg_food_calories: avg(nutrition14d, 'calories'),
       avg_protein: avg(nutrition14d, 'protein'),
+      avg_carbs: avg(nutrition14d, 'carbs'),
+      avg_fat: avg(nutrition14d, 'fat'),
+      avg_fiber: avg(nutrition14d, 'fiber'),
+      avg_sugar: avg(nutrition14d, 'sugar'),
       avg_sleep_hours: avg(oura14d, 'total_sleep_hours'),
       avg_hrv: avg(oura14d, 'hrv_avg'),
       avg_readiness: avg(oura14d, 'readiness_score'),
@@ -169,9 +184,10 @@ ${fundamentRes.data?.vision || 'Brak danych'}
 Zakres: ${healthSummary14d.date_from} - ${healthSummary14d.date_to}
 Dni Oura: ${healthSummary14d.oura_days_logged}; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
 Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'brak danych'}h; srednie HRV: ${healthSummary14d.avg_hrv ?? 'brak danych'}; sredni readiness: ${healthSummary14d.avg_readiness ?? 'brak danych'}
-Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}
+Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}; srednie wegle: ${healthSummary14d.avg_carbs ?? 'brak danych'}; sredni tluszcz: ${healthSummary14d.avg_fat ?? 'brak danych'}; sredni blonnik: ${healthSummary14d.avg_fiber ?? 'brak danych'}; sredni cukier: ${healthSummary14d.avg_sugar ?? 'brak danych'}
 Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
-Jedzenie dzien po dniu: ${JSON.stringify(healthSummary14d.nutrition_daily)}`;
+Jedzenie dzien po dniu (agregat): ${JSON.stringify(healthSummary14d.nutrition_daily)}
+Jedzenie dzien po dniu (produkty): ${JSON.stringify(foodByDate)}`;
 
     // DYNAMIC CONTEXT (RAG)
     let semanticContext = "";
