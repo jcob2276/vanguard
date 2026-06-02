@@ -325,7 +325,8 @@ export default function Stats({ session }) {
         { data: photos },
         { data: locationHistory },
         { data: fundament },
-        { data: stravaData }
+        { data: stravaData },
+        { data: stravaRawData }
       ] = await Promise.all([
         includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
@@ -341,7 +342,8 @@ export default function Stats({ session }) {
         supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
         supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
-        includeWorkouts ? supabase.from('strava_activities_clean').select('name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] })
+        includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] }),
+        includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [] })
       ]);
 
       const foodEntries = food || [];
@@ -349,6 +351,10 @@ export default function Stats({ session }) {
       const journalEntries = journal || [];
       const telegramEntries = telegramLogs || [];
       const weeklyReviews = reviews || [];
+      const stravaCommentById = new Map((stravaRawData || []).map(a => [
+        a.strava_id,
+        (a.raw_data?.description || a.raw_data?.athlete_comment || '').trim()
+      ]).filter(([, comment]) => comment));
       const toWarsawDate = (value) => new Date(value).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
       const toWarsawTime = (value) => new Date(value).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
 
@@ -552,6 +558,8 @@ export default function Stats({ session }) {
             if (a.total_elevation_gain) md += `**Przewyższenie:** +${Math.round(a.total_elevation_gain)} m\n`;
             if (a.gear_name)            md += `**Buty:** ${a.gear_name}${a.gear_distance_km ? ` (${Math.round(a.gear_distance_km)} km przebiegu)` : ''}\n`;
             if (paused)                 md += `**Przerwy:** ${fmtTimeMd(a.pause_seconds)}\n`;
+            const athleteComment = stravaCommentById.get(a.strava_id);
+            if (athleteComment)          md += `**Komentarz zawodnika:** ${athleteComment}\n`;
 
             // Splits table
             const splits = a.splits_with_hr;
