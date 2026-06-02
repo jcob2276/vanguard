@@ -121,6 +121,7 @@ export default function Stats({ session }) {
     to: format(new Date(), 'yyyy-MM-dd')
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingOura, setIsExportingOura] = useState(false);
   const [includeYazio, setIncludeYazio] = useState(true);
   const [includeJournal, setIncludeJournal] = useState(true);
   const [includeOura, setIncludeOura] = useState(true);
@@ -703,7 +704,59 @@ export default function Stats({ session }) {
       const a = document.createElement('a'); a.href = url; a.download = `raport_kuba_${dateRange.from}.md`; a.click();
     } finally { setIsExporting(false); }
   }
-  
+
+  async function exportOuraCSV() {
+    setIsExportingOura(true);
+    try {
+      const columns = [
+        'date',
+        'sleep_score', 'readiness_score',
+        'total_sleep_hours', 'time_in_bed_hours', 'deep_sleep_hours', 'rem_sleep_hours',
+        'light_sleep_hours', 'awake_time_minutes', 'restless_periods', 'sleep_efficiency',
+        'sleep_latency_minutes', 'bedtime_start', 'bedtime_end',
+        'sleep_average_heart_rate', 'sleep_lowest_heart_rate', 'sleep_average_hrv', 'sleep_average_breath',
+        'activity_score', 'steps', 'active_calories', 'total_calories', 'target_calories',
+        'equivalent_walking_distance', 'high_activity_minutes', 'medium_activity_minutes',
+        'low_activity_minutes', 'sedentary_minutes', 'resting_minutes', 'non_wear_minutes',
+        'average_met_minutes', 'inactivity_alerts',
+        'stress_high_minutes', 'recovery_high_minutes', 'stress_day_summary',
+        'resilience_level', 'spo2_percentage', 'breathing_disturbance_index',
+        'vascular_age', 'vo2_max',
+        'temperature_deviation', 'temperature_trend_deviation'
+      ];
+
+      const { data, error } = await supabase
+        .from('oura_enhanced')
+        .select(columns.join(','))
+        .eq('user_id', session.user.id)
+        .gte('date', dateRange.from)
+        .lte('date', dateRange.to)
+        .order('date', { ascending: true });
+
+      if (error) { alert('Błąd pobierania Oura: ' + error.message); return; }
+      if (!data || data.length === 0) { alert('Brak danych Oura w wybranym zakresie dat.'); return; }
+
+      const escape = (val) => {
+        if (val === null || val === undefined) return '';
+        const s = String(val);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const round = (val) => (typeof val === 'number' && !Number.isInteger(val)) ? Math.round(val * 100) / 100 : val;
+
+      const headerRow = columns.join(',');
+      const rows = data.map(r => columns.map(c => escape(round(r[c]))).join(','));
+      const csv = '﻿' + [headerRow, ...rows].join('\n'); // BOM dla poprawnego UTF-8 w Excelu
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oura_${dateRange.from}_${dateRange.to}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally { setIsExportingOura(false); }
+  }
+
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
   const isSunday = new Date().getDay() === 0;
@@ -955,6 +1008,10 @@ export default function Stats({ session }) {
             {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
           </button>
         </div>
+
+        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full border border-neutral-800 text-neutral-300 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-colors">
+          {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
+        </button>
 
       </section>
     </div>
