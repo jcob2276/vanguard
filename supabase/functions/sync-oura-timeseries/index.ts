@@ -69,6 +69,21 @@ function expandPhase(str: string, timestamp: string, intervalSec = 300) {
   return out
 }
 
+// heartrate endpoint odrzuca duże zakresy — pobieramy w oknach po N dni
+async function fetchHeartrateWindowed(
+  headers: Record<string, string>, startMs: number, endMs: number, windowDays = 7
+): Promise<any[]> {
+  let all: any[] = []
+  const step = windowDays * 24 * 3600 * 1000
+  for (let s = startMs; s < endMs; s += step) {
+    const ws = new Date(s).toISOString()
+    const we = new Date(Math.min(s + step, endMs)).toISOString()
+    const url = `${OURA_BASE}/heartrate?start_datetime=${encodeURIComponent(ws)}&end_datetime=${encodeURIComponent(we)}`
+    all = all.concat(await fetchAllPages(url, headers))
+  }
+  return all
+}
+
 function avgOf(obj: any): number | null {
   if (!obj || !Array.isArray(obj.items)) return null
   const vals = obj.items.filter((v: any) => v !== null && v !== undefined)
@@ -113,7 +128,6 @@ serve(async (req) => {
     const dateRange = `start_date=${startDate}&end_date=${endDate}`
     const startDt = new Date(now.getTime() - days * 24 * 3600 * 1000).toISOString()
     const endDt = new Date(now.getTime() + 24 * 3600 * 1000).toISOString()
-    const dtRange = `start_datetime=${encodeURIComponent(startDt)}&end_datetime=${encodeURIComponent(endDt)}`
 
     const results: any[] = []
 
@@ -122,8 +136,13 @@ serve(async (req) => {
       const uid = u.user_id
       const counts: Record<string, number> = {}
 
-      // ── 1. heartrate (high-res, paginowane, datetime params) ──────────────
-      const hr = await fetchAllPages(`${OURA_BASE}/heartrate?${dtRange}`, headers)
+      // ── 1. heartrate (high-res, paginowane, w oknach 7-dniowych) ──────────
+      const hr = await fetchHeartrateWindowed(
+        headers,
+        new Date(startDt).getTime(),
+        new Date(endDt).getTime(),
+        7
+      )
       const hrRows = hr
         .filter((it: any) => it.timestamp && it.bpm != null)
         .map((it: any) => ({ user_id: uid, ts: it.timestamp, bpm: it.bpm, source: it.source || null }))
