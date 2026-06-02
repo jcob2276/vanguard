@@ -24,7 +24,7 @@ No `db push` required.
 2. Run repair as CLI suggests (marks remote-only versions as reverted in **local** history tracking):
 
 ```powershell
-cd C:\Users\jakub\Desktop\Vanguard
+cd path/to/Vanguard
 supabase migration repair --status reverted 20260514121539 20260514122346 ...
 ```
 

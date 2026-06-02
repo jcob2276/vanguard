@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Flame, BatteryCharging, Utensils, Gauge } from 'lucide-react';
+import DataStateNotice from './DataStateNotice';
 
 const LIMITER_PL = {
   sleep: 'sen', calories: 'kalorie', carbs: 'węgle',
@@ -54,23 +55,70 @@ function Metric({ icon: Icon, label, value, max, tone, note }) {
 export default function DailyStrainCard({ session }) {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('daily_strain')
+      setLoading(true);
+      setError(null);
+      const { data, error: queryError } = await supabase.from('daily_strain')
         .select('*').eq('user_id', session.user.id)
         .order('date', { ascending: false }).limit(1).maybeSingle();
-      setRow(data);
+      if (queryError) {
+        console.error('DailyStrainCard:', queryError);
+        setError(queryError.message);
+        setRow(null);
+      } else {
+        setRow(data);
+      }
       setLoading(false);
     })();
   }, [session.user.id]);
 
-  if (loading || !row) return null;
+  if (loading) {
+    return (
+      <section className="rounded-2xl border border-white/5 bg-neutral-950 p-5">
+        <DataStateNotice
+          tone="loading"
+          title="Daily strain sie liczy"
+          detail="Laduje ostatni wynik obciazenia, regeneracji i fuelingu."
+        />
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="rounded-2xl border border-red-500/15 bg-neutral-950 p-5">
+        <DataStateNotice
+          tone="warning"
+          title="Daily strain niedostepny"
+          detail={`Nie moge odczytac daily_strain: ${error}`}
+        />
+      </section>
+    );
+  }
+
+  if (!row) {
+    return (
+      <section className="rounded-2xl border border-white/5 bg-neutral-950 p-5">
+        <DataStateNotice
+          title="Daily strain niepoliczony"
+          detail="Brak wiersza daily_strain. Uruchom sync Oura/Yazio/Strava i compute-daily-strain."
+        />
+      </section>
+    );
+  }
 
   const d = decision(row.daily_status, row.main_limiter, Number(row.strain_score), row.fueling_provisional);
   const strainTone = row.strain_score >= 15 ? 'text-orange-400' : row.strain_score >= 8 ? 'text-white' : 'text-white/70';
   const recovTone = row.recovery_score >= 75 ? 'text-emerald-400' : row.recovery_score >= 55 ? 'text-amber-400' : 'text-red-400';
   const fuelTone = row.fueling_score >= 70 ? 'text-emerald-400' : row.fueling_score >= 45 ? 'text-amber-400' : 'text-red-400';
+  const missingSignals = [
+    row.strain_score == null ? 'strain niepoliczony' : null,
+    row.recovery_score == null ? 'recovery bez danych Oura' : null,
+    row.fueling_score == null ? 'fueling bez Yazio' : null,
+  ].filter(Boolean);
 
   return (
     <section className={`relative overflow-hidden rounded-2xl border ${STATUS_RING[row.daily_status]} bg-neutral-950 p-5`}>
@@ -98,6 +146,13 @@ export default function DailyStrainCard({ session }) {
           <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-400/60">
             Fueling tymczasowy — jeśli dzień niezamknięty, finalny po domknięciu Yazio.
           </p>
+        )}
+
+        {missingSignals.length > 0 && (
+          <DataStateNotice
+            title="Niepelne dane"
+            detail={missingSignals.join(' | ')}
+          />
         )}
 
         {row.explanation && (

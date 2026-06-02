@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION public.trigger_vanguard_classification()
 RETURNS TRIGGER AS $$
 BEGIN
   PERFORM net.http_post(
-    url := 'https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-auto-classify',
+    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-auto-classify',
     headers := jsonb_build_object(
       'Content-Type', 'application/json'
     ),

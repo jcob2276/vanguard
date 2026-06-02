@@ -2,7 +2,7 @@
  * aw-phone-import.cjs — Import danych ActivityWatch z telefonu do Supabase
  *
  * USAGE:
- *   node scripts/aw-phone-import.cjs "C:\Users\jakub\Downloads\aw-buckets-export (2).json"
+ *   node scripts/aw-phone-import.cjs "path/to/aw-buckets-export.json"
  */
 
 const https = require('https');
@@ -20,7 +20,7 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://pdvqkgfsqziqlhptatgf.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const USER_ID = process.env.VANGUARD_USER_ID;
 
@@ -29,8 +29,8 @@ if (!filePath) {
   console.error('❌ Podaj ścieżkę do pliku: node scripts/aw-phone-import.cjs "ścieżka/do/pliku.json"');
   process.exit(1);
 }
-if (!SUPABASE_KEY || !USER_ID) {
-  console.error('❌ Uzupełnij SUPABASE_SERVICE_ROLE_KEY i VANGUARD_USER_ID w .env');
+if (!SUPABASE_URL || !SUPABASE_KEY || !USER_ID) {
+  console.error('Uzupelnij SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY i VANGUARD_USER_ID w .env');
   process.exit(1);
 }
 

@@ -9,7 +9,7 @@ SELECT cron.schedule(
   $$
   select
     net.http_post(
-      url:='https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-analyst',
+      url:='https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-analyst',
       headers:='{"Content-Type": "application/json"}'::jsonb
     ) as request_id;
   $$

@@ -13,7 +13,7 @@ Goal: catch **401 Unauthorized** from `verify_jwt: true` on functions that pg_cr
 From repo root, with env loaded (`.env` or `.env.local`):
 
 ```powershell
-cd C:\Users\jakub\Desktop\Vanguard
+cd path/to/Vanguard
 node scripts/smoke-vanguard.mjs --with-service-role
 ```
 

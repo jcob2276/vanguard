@@ -445,7 +445,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 **Friction extraction:** DEAD CODE — funkcja `extractFrictionEvent()` zdefiniowana (linie 466–545) ale nigdy nie wywoływana (Sprint 0.7 disabled block linie 700–703).
 
-**Hardcoded user_id fallback:** `165ae341-670c-46ce-82dc-434c4dbfcdfd`
+**Hardcoded user_id fallback:** removed for public readiness; use `VANGUARD_USER_ID`.
 
 ---
 

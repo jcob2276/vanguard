@@ -17,7 +17,7 @@ DECLARE
 BEGIN
   FOR r IN SELECT user_id FROM public.user_settings LOOP
     PERFORM net.http_post(
-      url := 'https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/save-daily-aggregate',
+      url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/save-daily-aggregate',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || secret_key

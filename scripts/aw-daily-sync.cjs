@@ -25,12 +25,12 @@ if (fs.existsSync(envPath)) {
 }
 
 const AW_URL = 'http://localhost:5600';
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://pdvqkgfsqziqlhptatgf.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const USER_ID = process.env.VANGUARD_USER_ID;
 
-if (!SUPABASE_KEY || !USER_ID) {
-  console.error('❌ Uzupełnij w .env: SUPABASE_SERVICE_ROLE_KEY i VANGUARD_USER_ID');
+if (!SUPABASE_URL || !SUPABASE_KEY || !USER_ID) {
+  console.error('Uzupelnij w .env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY i VANGUARD_USER_ID');
   process.exit(1);
 }
 

@@ -17,11 +17,11 @@
 const https = require('https');
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const SUPABASE_URL   = process.env.SUPABASE_URL   || "https://pdvqkgfsqziqlhptatgf.supabase.co";
+const SUPABASE_URL   = process.env.SUPABASE_URL;
 const SUPABASE_KEY   = process.env.SUPABASE_KEY;
-const USER_ID        = process.env.VANGUARD_USER_ID || "165ae341-670c-46ce-82dc-434c4dbfcdfd";
+const USER_ID        = process.env.VANGUARD_USER_ID;
 
-if (!TELEGRAM_TOKEN || !SUPABASE_KEY) {
+if (!TELEGRAM_TOKEN || !SUPABASE_URL || !SUPABASE_KEY || !USER_ID) {
   console.error("❌  Missing env vars: TELEGRAM_TOKEN and SUPABASE_KEY are required.");
   console.error("    Run: TELEGRAM_TOKEN=xxx SUPABASE_KEY=yyy node scripts/telegram-bridge.cjs");
   process.exit(1);

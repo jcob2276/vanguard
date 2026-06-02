@@ -1,6 +1,6 @@
 # Supabase Edge Functions — registry (SSOT)
 
-Project: `pdvqkgfsqziqlhptatgf`
+Project: configured per deployment through environment variables.
 
 **Agents:** If a folder exists here but is missing from this table, or status is not `active` / `manual`, **stop** — update this file first.  
 **Architecture:** [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) · **Deploy:** [`AGENTS.md`](../../AGENTS.md) · **Do not build list:** [below](#do-not-build)

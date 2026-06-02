@@ -1,54 +1,87 @@
-# Vanguard
+# Vanguard OS
 
-Vanguard OS — prywatny behavioral operating system.
+Vanguard OS is an evidence-based personal operating system prototype.
 
-System, który zbiera rzeczywiste dane behawioralne (głosówki, planowanie, biometria, decyzje, aktywność) i buduje z nich długoterminową warstwę dowodów o zachowaniu. AI nie motywuje ani nie coachuje — strukturyzuje dane, wykrywa rozjazdy między deklaracją a działaniem i utrzymuje ciągłość pamięci w czasie.
+It combines daily planning, Telegram/voice capture, biometric integrations, and
+LLM-assisted reflection into one loop. The core product principle is strict:
+the system records behavior and measured signals; the user gives meaning.
 
-Supabase project: `pdvqkgfsqziqlhptatgf` · Frontend: React + Vite · Deploy: Vercel
+Vanguard is not an AI therapist, personality profiler, or autonomous coach. It
+is a longitudinal memory layer for noticing drift, friction, recovery, and the
+gap between declared intent and actual behavior.
 
-## Subsystems
+## What It Does
 
-| Subsystem | What it does | Entry points |
-|---|---|---|
-| **Vanguard Core** | Telegram bot, stream, oracle, reconciliation, planning | `supabase/functions/vanguard-*` |
-| **Practice Dojo** | Separate Telegram bot, voice drills, curriculum | `supabase/functions/dojo-*`, `setter.yaml` |
-| **Integrations** | Oura, Yazio, Calendar, Todoist, Strava; Google Fit deprecated | `supabase/functions/sync-*`, `analyze-training` |
-| **Legacy workout** | Original fitness tracking | `src/` + `workout_*` tables |
+- Captures raw behavioral stream entries through Telegram and web surfaces.
+- Runs a daily loop: morning brief, midday check, evening reconciliation, and tomorrow planning.
+- Extracts friction events through one canonical pipeline with human correction gates.
+- Integrates biometric and activity sources such as Oura, Yazio, Strava, workouts, and ActivityWatch.
+- Computes deterministic daily strain/recovery/fueling signals.
+- Gives LLMs structured evidence instead of letting them invent profile claims.
 
-## Quick links
+## Architecture
 
-### AI agents
-- [AGENTS.md](./AGENTS.md) — start here
-- [.cursor/rules/vanguard-context.mdc](./.cursor/rules/vanguard-context.mdc) — philosophy
-- [.cursor/rules/vanguard-ops.mdc](./.cursor/rules/vanguard-ops.mdc) — deploy rules
-
-### Operations
-- [supabase/functions/README.md](./supabase/functions/README.md) — edge functions map
-- [docs/DEV_GUIDE.md](./docs/DEV_GUIDE.md) — how to develop: conventions, checklists, rules
-- [docs/runbooks/](./docs/runbooks/) — incident fixes
-
-### Deep context
-- [docs/PRODUCT_PRINCIPLES.md](./docs/PRODUCT_PRINCIPLES.md) — full guardrails
-- [docs/vanguard-core.md](./docs/vanguard-core.md) — daily loop + telegram
-- [docs/legacy/](./docs/legacy/) — older docs (may be stale)
-
-## Daily loop (Vanguard)
-
-```
-Morning brief → stream all day → midday check → evening reconciliation → planning session → plan jutra
+```text
+Telegram / Web / Voice
+        |
+        v
+vanguard_stream -> auto-classify -> friction_events
+        |
+        +-> daily reconciliation -> planning_summary
+        +-> biometric sync -> daily_strain
+        +-> Oracle / Analyst read-only reasoning context
 ```
 
-## Practice Dojo (separate)
+Main stack:
 
+- React + Vite frontend
+- Supabase Postgres
+- Supabase Edge Functions
+- Telegram Bot API
+- OpenAI/DeepSeek model calls
+- Vercel deployment
+
+## Core Guardrails
+
+- Evidence layer and reasoning layer stay separate.
+- Friction writes go through one path: `vanguard_stream -> vanguard-auto-classify`.
+- Patterns need explicit evidence, count, confidence, and date range.
+- Missing or provisional data must be shown as missing or provisional.
+- LLM output must not mutate the evidence layer without user confirmation.
+
+See [docs/PRODUCT_PRINCIPLES.md](./docs/PRODUCT_PRINCIPLES.md) and
+[docs/surface-contracts/BIOMETRICS.md](./docs/surface-contracts/BIOMETRICS.md).
+
+## Open Source Status
+
+This repository is being prepared for public open-source release. Before
+publishing, run the public-readiness checklist:
+
+```bash
+npm run oss:audit
 ```
-/start → Day 0 baseline → Rep A/B → transfer → Day 1+ LLM evaluation
-```
 
-Dojo uses its **own Telegram bot** — see [docs/practice-dojo.md](./docs/practice-dojo.md).
+Also read [docs/OPEN_SOURCE.md](./docs/OPEN_SOURCE.md). The current private
+workspace may contain personal notes, local artifacts, or project-specific
+deployment references that should not be published.
 
-## Dev
+## Development
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
+
+Useful checks:
+
+```bash
+npm run build
+npm run oss:audit
+```
+
+`npm run typecheck` requires Deno to be installed.
+
+## License
+
+MIT. See [LICENSE](./LICENSE).

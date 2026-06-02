@@ -2,7 +2,7 @@
  * aw-desktop-import.cjs — Import historii ActivityWatch z desktop export JSON
  *
  * USAGE:
- *   node scripts/aw-desktop-import.cjs "C:\Users\jakub\Downloads\aw-buckets-export.json"
+ *   node scripts/aw-desktop-import.cjs "path/to/aw-buckets-export.json"
  */
 
 const https = require('https');
@@ -20,13 +20,13 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://pdvqkgfsqziqlhptatgf.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const USER_ID = process.env.VANGUARD_USER_ID;
 
 const filePath = process.argv[2];
 if (!filePath) { console.error('❌ Podaj ścieżkę do pliku eksportu'); process.exit(1); }
-if (!SUPABASE_KEY || !USER_ID) { console.error('❌ Brak SUPABASE_SERVICE_ROLE_KEY / VANGUARD_USER_ID w .env'); process.exit(1); }
+if (!SUPABASE_URL || !SUPABASE_KEY || !USER_ID) { console.error('Brak SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / VANGUARD_USER_ID w .env'); process.exit(1); }
 
 // ── Klasyfikacja (identyczna jak w live sync) ─────────────────────────────────
 

@@ -26,7 +26,7 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 ## What this repo is
 
-Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on Supabase project `pdvqkgfsqziqlhptatgf`.
+Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on a Supabase project configured through environment variables.
 
 Local ↔ Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-05-27**.
 

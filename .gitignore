@@ -36,6 +36,16 @@ temp_fn_*
 .claude/
 dev-server.log
 
+# Private local artifacts
+poranek*.txt
+wizualizacja_sen*.txt
+run-chart-*.html
+run-points-*.json
+run-streams-*.json
+aw-*-export*.json
+*.goosebundle
+*.goosebundle.zip
+
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md

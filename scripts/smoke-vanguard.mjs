@@ -71,11 +71,16 @@ loadEnvFiles();
 
 const supabaseUrl =
   process.env.SUPABASE_URL?.replace(/\/$/, "") ||
-  `https://${PROJECT_REF}.supabase.co`;
+  (PROJECT_REF !== "YOUR_PROJECT_REF" ? `https://${PROJECT_REF}.supabase.co` : "");
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const cronSecret = process.env.VANGUARD_CRON_SECRET || "";
 const vanguardUserId =
-  process.env.VANGUARD_USER_ID || "165ae341-670c-46ce-82dc-434c4dbfcdfd";
+  process.env.VANGUARD_USER_ID || "";
+
+if (!supabaseUrl) {
+  console.error("Missing SUPABASE_URL or SUPABASE_PROJECT_REF.");
+  process.exit(1);
+}
 
 function headers(mode) {
   const h = { "Content-Type": "application/json" };

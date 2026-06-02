@@ -22,9 +22,14 @@ function getAnonKey() {
   return "";
 }
 
-const SUPABASE_URL = "https://pdvqkgfsqziqlhptatgf.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const ANON_KEY = getAnonKey();
 const BATCH_SIZE = 8;
+
+if (!SUPABASE_URL || !ANON_KEY) {
+  console.error("Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY");
+  process.exit(1);
+}
 // const BATCH_WAIT_MS = 95000; // 95s — batch potrzebuje ~80-90s, czekamy aż skończy (unused)
 
 async function callRunner(body) {

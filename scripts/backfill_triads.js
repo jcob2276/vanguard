@@ -22,8 +22,14 @@ function getAnonKey() {
   return "";
 }
 
-const URL = "https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-architect";
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const URL = SUPABASE_URL ? `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/vanguard-architect` : "";
 const KEY = getAnonKey();
+
+if (!URL || !KEY) {
+  console.error("Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY");
+  process.exit(1);
+}
 
 async function backfill() {
   let offset = 0;

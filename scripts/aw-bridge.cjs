@@ -10,11 +10,11 @@
 const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pdvqkgfsqziqlhptatgf.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-if (!SUPABASE_KEY) {
-  console.error("❌  SUPABASE_KEY env var is required. Run: SUPABASE_KEY=xxx node scripts/aw-bridge.cjs");
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("SUPABASE_URL and SUPABASE_KEY env vars are required.");
   process.exit(1);
 }
 

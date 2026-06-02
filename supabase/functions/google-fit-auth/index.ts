@@ -34,9 +34,11 @@ serve(async (req) => {
       return new Response('Nie znaleziono konfiguracji Google Fit w bazie danych.', { status: 500 })
     }
 
-    const redirectUri = Deno.env.get('SUPABASE_URL')
-      ? `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-fit-auth`
-      : `https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/google-fit-auth`
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    if (!supabaseUrl) {
+      return new Response('SUPABASE_URL is required for Google Fit auth.', { status: 500 })
+    }
+    const redirectUri = `${supabaseUrl}/functions/v1/google-fit-auth`
 
     // 2. Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

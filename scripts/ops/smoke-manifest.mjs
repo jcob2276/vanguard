@@ -3,7 +3,7 @@
  * Sync: docs/ARCHITECTURE.md (cron table), AGENTS.md (deploy rule).
  */
 
-export const PROJECT_REF = "pdvqkgfsqziqlhptatgf";
+export const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "YOUR_PROJECT_REF";
 
 /** Edge functions that MUST use verify_jwt: false in production. */
 export const NO_VERIFY_JWT_FUNCTIONS = [

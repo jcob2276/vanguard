@@ -6,7 +6,7 @@
 
 1. Check edge function logs for `vanguard-telegram`
 2. Verify webhook is set: `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`
-3. Webhook URL should point to: `https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/vanguard-telegram`
+3. Webhook URL should point to: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-telegram`
 4. Check for **401** in logs → redeploy with `--no-verify-jwt`
 
 ### Symptom: "Słucham..." then silence (voice)

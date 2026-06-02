@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine
 } from 'recharts';
 import { ChevronDown, ChevronUp, Link2, Flame, Heart } from 'lucide-react';
+import DataStateNotice from './DataStateNotice';
 
 // Korelacje cross-system (oura_correlations) — to czego Oura app nie ma
 const CORR_LABELS = {
@@ -34,8 +35,9 @@ export default function OuraEnhanced({ session }) {
   const [strainCorr, setStrainCorr] = useState(null);
   const [vascularTrend, setVascularTrend] = useState([]);
   const [loadVsRecovery, setLoadVsRecovery] = useState([]);
+  const [dataIssues, setDataIssues] = useState([]);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [session.user.id]);
 
   async function fetchAll() {
     setLoading(true);
@@ -52,9 +54,17 @@ export default function OuraEnhanced({ session }) {
           .eq('user_id', uid).order('date', { ascending: false }).limit(30),
       ]);
 
+      const issues = [
+        z.error ? `oura_hr_zones_daily: ${z.error.message}` : null,
+        c.error ? `oura_correlations: ${c.error.message}` : null,
+        sc.error ? `strain_correlations: ${sc.error.message}` : null,
+        enh.error ? `oura_enhanced: ${enh.error.message}` : null,
+      ].filter(Boolean);
+
+      setDataIssues(issues);
       setZones(z.data || []);
-      setCorr(c.data);
-      setStrainCorr(sc.data);
+      setCorr(c.data || null);
+      setStrainCorr(sc.data || null);
 
       // Wiek naczyniowy — trend w czasie (tylko dni gdzie mamy wartość)
       const vt = (enh.data || [])
@@ -79,12 +89,23 @@ export default function OuraEnhanced({ session }) {
 
     } catch (err) {
       console.error('OuraEnhanced:', err);
+      setDataIssues([err.message || 'Nieznany blad pobierania danych.']);
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <section className="rounded-2xl border border-white/5 bg-neutral-950/40 p-4">
+        <DataStateNotice
+          tone="loading"
+          title="Laduje trening i regeneracje"
+          detail="Sprawdzam Oura, strain correlations i strefy HR."
+        />
+      </section>
+    );
+  }
 
   // Strefy HR — ostatnie 14 dni jako wykres słupkowy
   const zonesChart = [...zones].reverse().map(z => ({
@@ -107,6 +128,13 @@ export default function OuraEnhanced({ session }) {
     .filter(x => x.r != null && Math.abs(x.r) >= 0.25)
     .sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
   const corrN = strainCorr?.n_dni || corr?.n_dni;
+  const dataNotices = [
+    zones.length === 0 ? 'Brak stref HR z ostatnich 14 dni.' : null,
+    vascularTrend.length < 3 ? 'Wiek naczyniowy: za malo punktow na trend.' : null,
+    loadVsRecovery.length < 2 ? 'Z4/Z5 vs readiness: za malo dni do wykresu.' : null,
+    !corrN ? 'Korelacje: brak widoku albo brak danych.' : null,
+    corrN && corrN < 60 ? `Korelacje: n=${corrN}, sensowny prog to 60-90 dni.` : null,
+  ].filter(Boolean);
 
   const tooltipStyle = {
     backgroundColor: '#0a0a0a',
@@ -130,13 +158,33 @@ export default function OuraEnhanced({ session }) {
 
       {open && (
         <div className="px-4 pb-5 space-y-7">
+          {dataIssues.length > 0 && (
+            <DataStateNotice
+              tone="warning"
+              title="Czesc danych niedostepna"
+              detail={dataIssues.join(' | ')}
+            />
+          )}
+
+          {dataNotices.length > 0 && (
+            <DataStateNotice
+              title="Status danych"
+              detail={dataNotices.join(' | ')}
+            />
+          )}
 
           {/* ── Strefy HR — 14 dni ──────────────────────────────── */}
           <div className="space-y-2">
             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">
               Strefy tętna — 14 dni (min)
             </p>
-            <div className="h-40 -ml-2">
+            {zonesChart.length === 0 && (
+              <DataStateNotice
+                title="Brak stref HR"
+                detail="Uruchom sync-oura-timeseries albo poczekaj na dane z Oura."
+              />
+            )}
+            <div className={`h-40 -ml-2 ${zonesChart.length === 0 ? 'hidden' : ''}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={zonesChart} barSize={8}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
@@ -150,7 +198,7 @@ export default function OuraEnhanced({ session }) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex gap-4 flex-wrap">
+            <div className={`flex gap-4 flex-wrap ${zonesChart.length === 0 ? 'hidden' : ''}`}>
               {[['Z2', '#84cc16'], ['Z3', '#eab308'], ['Z4', '#f97316'], ['Z5', '#ef4444']].map(([z, c]) => (
                 <div key={z} className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: c }} />

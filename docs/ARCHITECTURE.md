@@ -4,7 +4,7 @@
 > This file is the **one-page map**: data flow, crons, subsystems.  
 > Do **not** implement from `docs/legacy/` without verifying against the files above.
 
-Supabase project: `pdvqkgfsqziqlhptatgf`
+Supabase project: configured per deployment through environment variables.
 
 ---
 

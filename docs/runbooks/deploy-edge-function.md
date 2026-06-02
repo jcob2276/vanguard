@@ -9,7 +9,7 @@
 
 ```
 deploy_edge_function(
-  project_id: pdvqkgfsqziqlhptatgf,
+  project_id: YOUR_PROJECT_REF,
   name: <function-slug>,
   verify_jwt: false,   # for cron/webhook functions
   files: [{ name: "index.ts", content: "..." }]
