@@ -77,6 +77,40 @@ serve(async (req) => {
       .limit(20)
     if (graphErr) console.error('[analyst] graph query error:', graphErr);
 
+    // 3b. ZALEŻNOŚCI BIOMETRYCZNE — auto-liczone korelacje + obciążenie (Oura)
+    const [correlations, hrZones7d, ouraRecent] = await Promise.all([
+      supabase.from('oura_correlations').select('*').eq('user_id', user_id).maybeSingle(),
+      supabase.from('oura_hr_zones_daily')
+        .select('day, z3_tempo_min, z4_prog_min, z5_max_min, hr_max')
+        .eq('user_id', user_id).order('day', { ascending: false }).limit(7),
+      supabase.from('oura_enhanced')
+        .select('date, readiness_score, sleep_score, stress_high_minutes, resilience_level, sleep_average_hrv')
+        .eq('user_id', user_id).order('date', { ascending: false }).limit(7),
+    ])
+    if (correlations.error) console.error('[analyst] correlations query error:', correlations.error);
+    if (hrZones7d.error) console.error('[analyst] hrZones query error:', hrZones7d.error);
+    if (ouraRecent.error) console.error('[analyst] ouraRecent query error:', ouraRecent.error);
+
+    // Tylko istotne zależności (|r| >= 0.25); reszta to szum przy małym n
+    const corr: any = correlations.data
+    let corrText = 'Brak danych korelacyjnych.'
+    if (corr) {
+      const strong = Object.entries(corr)
+        .filter(([k, v]) => k !== 'user_id' && k !== 'n_dni' && v !== null && Math.abs(Number(v)) >= 0.25)
+        .map(([k, v]) => `${k}: r=${v}`)
+      corrText = strong.length
+        ? `n=${corr.n_dni} dni. Istotne (|r|≥0.25): ${strong.join('; ')}`
+        : `n=${corr.n_dni} dni — brak istotnych korelacji (|r|<0.25). Za mało danych na pewne wnioski biometryczne.`
+    }
+
+    const loadText = (hrZones7d.data || [])
+      .map((z: any) => `${z.day}: Z3 ${z.z3_tempo_min || 0}min, Z4 ${z.z4_prog_min || 0}min, Z5 ${z.z5_max_min || 0}min, max ${z.hr_max || '—'}`)
+      .join('\n')
+
+    const recoveryText = (ouraRecent.data || [])
+      .map((o: any) => `${o.date}: readiness ${o.readiness_score ?? '—'}, sen-score ${o.sleep_score ?? '—'}, stres ${o.stress_high_minutes != null ? Math.round(o.stress_high_minutes) + 'min' : '—'}, resilience ${o.resilience_level || '—'}`)
+      .join('\n')
+
     // --- BUDOWANIE KONTEKSTU ---
     const frictionList = (frictionRecent.data || [])
     const frictionText = frictionList.length > 0
@@ -132,6 +166,7 @@ ZASADY:
 4. Bez evidence → piszesz "Hipoteza słaba — za mało danych."
 5. Nie psychoanalizujesz. Nie generujesz "głębokich prawd". Szukasz powtórzeń.
 6. Jeden mikrotest na kolejną okazję — konkretne zachowanie, nie ogólna rada.
+7. BIOMETRIA: Masz zmierzone zależności (auto-liczone korelacje) + obciążenie treningowe (strefy HR) + regenerację. Jeśli dane pokazują koszt regeneracyjny (spadek readiness/HRV lub wzrost stresu po obciążeniu) — uwzględnij to w mikroteście (np. lżejszy wieczór po dniu w Z4/Z5). NIGDY nie wymyślaj korelacji, której nie ma na liście istotnych — jeśli "za mało danych", to tak napisz.
 
 ZAKAZ:
 - "holistyczna analiza"
@@ -195,7 +230,16 @@ BIOMETRIA — ostatnie 14 dni:
 ${biometricsText || 'Brak.'}
 
 GRAF (current/declared <21d):
-${graphText || 'Brak aktywnych krawędzi.'}`
+${graphText || 'Brak aktywnych krawędzi.'}
+
+ZALEŻNOŚCI BIOMETRYCZNE (auto-liczone korelacje):
+${corrText}
+
+OBCIĄŻENIE TRENINGOWE — strefy HR, ostatnie 7 dni:
+${loadText || 'Brak danych o strefach tętna.'}
+
+REGENERACJA — ostatnie 7 dni:
+${recoveryText || 'Brak danych Oura.'}`
           }
         ]
       }),
