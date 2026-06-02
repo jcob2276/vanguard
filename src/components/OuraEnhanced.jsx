@@ -6,15 +6,24 @@ import {
 } from 'recharts';
 import { ChevronDown, ChevronUp, Link2, Flame, Heart } from 'lucide-react';
 
-// Korelacje które łączą dane z RÓŻNYCH źródeł — to czego Oura app nie ma
+// Korelacje cross-system (oura_correlations) — to czego Oura app nie ma
 const CORR_LABELS = {
   trening_vs_jutro_hrv: { label: 'Trening → HRV jutro', src: 'Oura+Strava' },
   trening_vs_jutro_readiness: { label: 'Trening → Readiness jutro', src: 'Oura+Strava' },
-  trening_vs_jutro_stres: { label: 'Trening → Stres jutro', src: 'Oura+Strava' },
   bialko_vs_sen: { label: 'Białko → Jakość snu', src: 'YAZIO+Oura' },
-  kalorie_vs_jutro_hrv: { label: 'Kalorie → HRV jutro', src: 'YAZIO+Oura' },
   siedzenie_vs_sen: { label: 'Siedzenie → Jakość snu', src: 'Oura' },
   kroki_vs_sen: { label: 'Kroki → Jakość snu', src: 'Oura' },
+};
+
+// Korelacje strain (strain_correlations) — composite, najmocniejszy sygnał
+const STRAIN_CORR_LABELS = {
+  sen_to_readiness: { label: 'Sen → Readiness', src: 'Oura' },
+  kcal_to_rpe: { label: 'Kalorie → RPE biegu', src: 'YAZIO+Strava' },
+  wegle_to_rpe: { label: 'Węgle → RPE biegu', src: 'YAZIO+Strava' },
+  fueling_to_hr_biegu: { label: 'Fueling → HR biegu', src: 'Strain+Strava' },
+  strain_to_jutro_hrv: { label: 'Strain → HRV jutro', src: 'Strain+Oura' },
+  strain_to_jutro_readiness: { label: 'Strain → Readiness jutro', src: 'Strain+Oura' },
+  nogi_to_jutro_hr_biegu: { label: 'Nogi → HR biegu jutro', src: 'Siłownia+Strava' },
 };
 
 export default function OuraEnhanced({ session }) {
@@ -22,6 +31,7 @@ export default function OuraEnhanced({ session }) {
   const [loading, setLoading] = useState(true);
   const [zones, setZones] = useState([]);
   const [corr, setCorr] = useState(null);
+  const [strainCorr, setStrainCorr] = useState(null);
   const [vascularTrend, setVascularTrend] = useState([]);
   const [loadVsRecovery, setLoadVsRecovery] = useState([]);
 
@@ -31,11 +41,12 @@ export default function OuraEnhanced({ session }) {
     setLoading(true);
     try {
       const uid = session.user.id;
-      const [z, c, enh] = await Promise.all([
+      const [z, c, sc, enh] = await Promise.all([
         supabase.from('oura_hr_zones_daily')
           .select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max')
           .eq('user_id', uid).order('day', { ascending: false }).limit(14),
         supabase.from('oura_correlations').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('strain_correlations').select('*').eq('user_id', uid).maybeSingle(),
         supabase.from('oura_enhanced')
           .select('date, vascular_age, readiness_score')
           .eq('user_id', uid).order('date', { ascending: false }).limit(30),
@@ -43,6 +54,7 @@ export default function OuraEnhanced({ session }) {
 
       setZones(z.data || []);
       setCorr(c.data);
+      setStrainCorr(sc.data);
 
       // Wiek naczyniowy — trend w czasie (tylko dni gdzie mamy wartość)
       const vt = (enh.data || [])
@@ -84,13 +96,17 @@ export default function OuraEnhanced({ session }) {
     max: z.z5_max_min || 0,
   }));
 
-  // Zależności — tylko cross-system + |r| >= 0.2
-  const corrItems = corr
-    ? Object.entries(CORR_LABELS)
-        .map(([k, meta]) => ({ ...meta, r: corr[k] != null ? Number(corr[k]) : null }))
-        .filter(x => x.r != null && Math.abs(x.r) >= 0.2)
-        .sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
+  // Zależności — łączymy strain_correlations (mocniejsze) + oura_correlations
+  const fromStrain = strainCorr
+    ? Object.entries(STRAIN_CORR_LABELS).map(([k, m]) => ({ ...m, r: strainCorr[k] != null ? Number(strainCorr[k]) : null }))
     : [];
+  const fromOura = corr
+    ? Object.entries(CORR_LABELS).map(([k, m]) => ({ ...m, r: corr[k] != null ? Number(corr[k]) : null }))
+    : [];
+  const corrItems = [...fromStrain, ...fromOura]
+    .filter(x => x.r != null && Math.abs(x.r) >= 0.25)
+    .sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+  const corrN = strainCorr?.n_dni || corr?.n_dni;
 
   const tooltipStyle = {
     backgroundColor: '#0a0a0a',
@@ -196,7 +212,7 @@ export default function OuraEnhanced({ session }) {
             <div className="flex items-center gap-1.5">
               <Link2 size={11} className="text-white/30" />
               <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">
-                Zależności cross-system {corr?.n_dni ? `· ${corr.n_dni} dni` : ''}
+                Zależności cross-system {corrN ? `· ${corrN} dni` : ''}
               </p>
             </div>
             {corrItems.length > 0 ? (
@@ -208,11 +224,11 @@ export default function OuraEnhanced({ session }) {
                       <p className="text-[8px] font-bold text-white/25 uppercase tracking-wider">{x.src}</p>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-black ${Math.abs(x.r) >= 0.4 ? (x.r > 0 ? 'text-primary' : 'text-orange-400') : 'text-white/60'}`}>
+                      <p className={`text-sm font-black ${Math.abs(x.r) >= 0.4 ? 'text-primary' : 'text-white/55'}`}>
                         {x.r > 0 ? '+' : ''}{x.r}
                       </p>
                       <p className="text-[7px] uppercase text-white/25">
-                        {Math.abs(x.r) >= 0.4 ? 'mocna' : 'słaba'}
+                        {Math.abs(x.r) >= 0.4 ? 'mocna' : 'umiark.'}
                       </p>
                     </div>
                   </div>
@@ -222,7 +238,7 @@ export default function OuraEnhanced({ session }) {
               <div className="bg-neutral-950/40 border border-white/5 rounded-xl p-4">
                 <p className="text-[10px] font-semibold text-white/35 leading-relaxed">
                   Zbiera się automatycznie — potrzeba ~60–90 dni danych.
-                  Dziś masz {corr?.n_dni ?? 0} dni.
+                  Dziś masz {corrN ?? 0} dni.
                 </p>
               </div>
             )}
