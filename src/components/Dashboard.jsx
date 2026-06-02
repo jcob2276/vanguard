@@ -20,7 +20,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { useDashboardData } from '../hooks/useDashboardData';
-import WorkoutExecution from './WorkoutExecution';
+import WorkoutLogger from './WorkoutLogger';
 import Stats from './Stats';
 import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
@@ -89,7 +89,7 @@ function PlanningGuide() {
 
 export default function Dashboard({ session }) {
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [selectedDataTab, setSelectedDataTab] = useState(() => localStorage.getItem('vanguard_data_tab') || 'charts');
   const { isSyncing, setSyncing } = useStore();
   const {
@@ -97,7 +97,6 @@ export default function Dashboard({ session }) {
     todayWin,
     syncYazio,
     loading,
-    nextSuggestedDay,
     refresh,
     readiness,
     stability,
@@ -193,8 +192,8 @@ export default function Dashboard({ session }) {
     );
   }
 
-  if (selectedDay) {
-    return <WorkoutExecution dayKey={selectedDay} session={session} onBack={() => setSelectedDay(null)} />;
+  if (showWorkoutLogger) {
+    return <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />;
   }
 
   const doneCount = todayWin ? [1, 2, 3, 4, 5].filter((i) => todayWin[`done_${i}`]).length : 0;
@@ -271,7 +270,7 @@ export default function Dashboard({ session }) {
                 <SectionHeader title="Next Move" detail="Jedna akcja, nie kolejna lista do ręcznego uzupełniania." />
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => setSelectedDay(nextSuggestedDay)}
+                    onClick={() => setShowWorkoutLogger(true)}
                     className="col-span-2 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/10 p-4 text-left transition-colors hover:bg-primary/15"
                   >
                     <div className="flex items-center gap-3">
@@ -280,7 +279,7 @@ export default function Dashboard({ session }) {
                       </div>
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">Physical Protocol</p>
-                        <p className="text-sm font-black uppercase italic">Trening dzień {nextSuggestedDay}</p>
+                        <p className="text-sm font-black uppercase italic">Zaloguj Trening</p>
                       </div>
                     </div>
                     <Play size={16} className="text-primary" fill="currentColor" />

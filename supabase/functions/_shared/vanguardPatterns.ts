@@ -516,10 +516,11 @@ export async function updatePatternFeedback(
   supabase: any,
   userId: string,
   patternId: string,
-  action: 'confirm' | 'reject' | 'snooze'
+  action: 'confirm' | 'reject' | 'snooze' | 'exception' | 'deception'
 ): Promise<void> {
   let newStatus: string;
   let confidenceDelta = 0;
+  let extraMetadata: Record<string, any> = {};
 
   switch (action) {
     case 'confirm':
@@ -534,12 +535,22 @@ export async function updatePatternFeedback(
       newStatus = 'snoozed';
       confidenceDelta = -0.08;
       break;
+    case 'exception':
+      newStatus = 'user_rejected';
+      confidenceDelta = -0.15;
+      extraMetadata = { adherence_type: 'conscious_exception' };
+      break;
+    case 'deception':
+      newStatus = 'user_confirmed';
+      confidenceDelta = 0.20;
+      extraMetadata = { adherence_type: 'self_deception' };
+      break;
   }
 
   try {
     const { data: current } = await supabase
       .from('vanguard_behavioral_patterns')
-      .select('confidence, occurrence_count')
+      .select('confidence, occurrence_count, metadata')
       .eq('id', patternId)
       .eq('user_id', userId)
       .single();
@@ -553,6 +564,10 @@ export async function updatePatternFeedback(
       .update({
         status: newStatus,
         confidence: newConfidence,
+        metadata: {
+          ...(current?.metadata || {}),
+          ...extraMetadata,
+        },
         updated_at: new Date().toISOString(),
       })
       .eq('id', patternId)

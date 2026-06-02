@@ -6,8 +6,6 @@ import { VanguardCore } from '../lib/vanguardCore';
 
 export function useDashboardData() {
   const [data, setData] = useState({
-    mspFeedbackMap: {},
-    lastDayASession: null,
     weeklyCalories: 0,
     todayWin: null,
     proteinToday: 0,
@@ -24,39 +22,8 @@ export function useDashboardData() {
     if (!session) return;
     
     try {
-      const { data: sessions } = await supabase
-        .from('workout_sessions')
-        .select('*, exercise_logs(*)')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      const feedbackMap = {};
       let totalCal = 0;
-      let lastA = null;
       let todayData = null;
-      let nextDay = 'A';
-
-      if (sessions && sessions.length > 0) {
-        sessions.forEach(s => {
-          if (!feedbackMap[s.workout_day]) {
-            feedbackMap[s.workout_day] = s.msp_passed;
-          }
-        });
-
-        const lastAEntry = sessions.find(s => s.workout_day === 'A');
-        if (lastAEntry) {
-          lastA = {
-            ...lastAEntry,
-            benchLogs: lastAEntry.exercise_logs.filter(l => l.exercise_name.includes('Wyciskanie płaskie'))
-          };
-        }
-
-        // Sekwencyjna logika następnego dnia: A -> B -> C -> D -> A
-        const lastSession = sessions[0];
-        const sequence = ['A', 'B', 'C', 'D'];
-        const currentIndex = sequence.indexOf(lastSession.workout_day);
-        nextDay = sequence[(currentIndex + 1) % sequence.length];
-      }
 
 
       const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -130,8 +97,6 @@ export function useDashboardData() {
 
       if (!mountedRef.current) return;
       setData({
-        mspFeedbackMap: feedbackMap,
-        lastDayASession: lastA,
         weeklyCalories: totalCal,
         todayWin: todayData,
         proteinToday: protData?.protein || 0,
@@ -140,7 +105,6 @@ export function useDashboardData() {
         readiness: ouraData?.[0]?.readiness_score || 0,
         stability: realStability,
         operationalState: realState,
-        nextSuggestedDay: nextDay,
         loading: false
       });
 
@@ -154,27 +118,40 @@ export function useDashboardData() {
   };
 
   const syncYazio = async () => {
+    console.log('[syncYazio] kliknięto');
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      console.error('[syncYazio] brak sesji — zaloguj się ponownie');
+      alert('Brak sesji — odśwież stronę i zaloguj się ponownie.');
+      return;
+    }
+    console.log('[syncYazio] sesja ok, wywołuję funkcję...');
 
     setSyncing(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-yazio`, {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-yazio`;
+      console.log('[syncYazio] POST →', url);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ userId: session.user.id })
+        body: JSON.stringify({ userId: session.user.id, days: 2 })
       });
 
       const res = await response.json();
+      console.log('[syncYazio] odpowiedź:', res);
       if (res.success) {
+        const total = (res.results || []).reduce((s, r) => s + (r.calories || 0), 0);
+        const dates = (res.results || []).map(r => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
+        alert(`Sync OK\n${dates}`);
         await fetchData();
       } else {
         alert('Błąd synchronizacji: ' + (res.error || 'Nieznany błąd'));
       }
     } catch (err) {
+      console.error('[syncYazio] błąd:', err);
       alert('Błąd synchronizacji: ' + err.message);
     } finally {
       setSyncing(false);

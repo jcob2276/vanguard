@@ -73,12 +73,6 @@ serve(async (req) => {
 
           if (!name) name = 'Unknown Item';
           const amount = parseFloat(item.amount ?? item.serving_quantity) || 0;
-          // energy.energy may be kJ in some products; try kcal key first
-          const energyRaw = nutrients["energy.energy_kcal"] ?? nutrients["energy.kcal"] ?? nutrients["energy.energy"] ?? 0;
-          if ((energyRaw || 0) === 0 && (nutrients["nutrient.protein"] || nutrients["nutrient.carb"] || nutrients["nutrient.fat"])) {
-            console.log(`[Yazio] 0-energy debug — name: ${name}, keys: ${JSON.stringify(Object.keys(nutrients))}, raw: ${JSON.stringify(nutrients)}`);
-          }
-          let c = Math.round(energyRaw || 0);
           let p = nutrients["nutrient.protein"] || 0;
           let w = nutrients["nutrient.carb"] || 0;
           let t = nutrients["nutrient.fat"] || 0;
@@ -86,7 +80,6 @@ serve(async (req) => {
           let s = nutrients["nutrient.sugar"] || 0;
 
           if (item.product_id && amount > 0 && !nutrients._scaled) {
-             c = Math.round(c * amount);
              p = p * amount;
              w = w * amount;
              t = t * amount;
@@ -96,9 +89,8 @@ serve(async (req) => {
 
           p = parseFloat(p.toFixed(2)); w = parseFloat(w.toFixed(2)); t = parseFloat(t.toFixed(2));
           f = parseFloat(f.toFixed(2)); s = parseFloat(s.toFixed(2));
-          if (c === 0 && (p > 0 || w > 0 || t > 0)) {
-            c = Math.round(p * 4 + w * 4 + t * 9);
-          }
+          // kalorie z makrów — energy.energy bywa w kJ dla niektórych produktów
+          const c = Math.round(p * 4 + w * 4 + t * 9);
           totalCals += c; totalProt += p; totalCarbs += w; totalFat += t; totalFiber += f; totalSugar += s;
 
           const unitMap: any = {
