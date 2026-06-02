@@ -716,8 +716,8 @@ export default function Stats({ session }) {
   async function exportOuraCSV() {
     setIsExportingOura(true);
     try {
-      const columns = [
-        'date',
+      // Dzienne agregaty (oura_enhanced)
+      const enhancedCols = [
         'sleep_score', 'readiness_score',
         'total_sleep_hours', 'time_in_bed_hours', 'deep_sleep_hours', 'rem_sleep_hours',
         'light_sleep_hours', 'awake_time_minutes', 'restless_periods', 'sleep_efficiency',
@@ -732,17 +732,43 @@ export default function Stats({ session }) {
         'vascular_age', 'vo2_max',
         'temperature_deviation', 'temperature_trend_deviation'
       ];
+      // Metryki pochodne z szeregów czasowych (oura_derived_daily)
+      const derivedCols = [
+        'sleep_hr_min', 'sleep_hr_avg', 'sleep_hr_max',
+        'sleep_hrv_min', 'sleep_hrv_avg', 'sleep_hrv_peak',
+        'awakenings', 'deep_blocks',
+        'met_peak', 'met_avg', 'vigorous_min', 'moderate_min', 'light_min',
+        'hr_min_day', 'hr_avg_day', 'hr_max_day',
+        'workout_count', 'workout_minutes', 'workout_calories'
+      ];
 
-      const { data, error } = await supabase
-        .from('oura_enhanced')
-        .select(columns.join(','))
-        .eq('user_id', session.user.id)
-        .gte('date', dateRange.from)
-        .lte('date', dateRange.to)
-        .order('date', { ascending: true });
+      const [enhancedRes, derivedRes] = await Promise.all([
+        supabase.from('oura_enhanced')
+          .select(['date', ...enhancedCols].join(','))
+          .eq('user_id', session.user.id)
+          .gte('date', dateRange.from).lte('date', dateRange.to)
+          .order('date', { ascending: true }),
+        supabase.from('oura_derived_daily')
+          .select(['day', ...derivedCols].join(','))
+          .eq('user_id', session.user.id)
+          .gte('day', dateRange.from).lte('day', dateRange.to)
+          .order('day', { ascending: true }),
+      ]);
 
-      if (error) { alert('Błąd pobierania Oura: ' + error.message); return; }
-      if (!data || data.length === 0) { alert('Brak danych Oura w wybranym zakresie dat.'); return; }
+      if (enhancedRes.error) { alert('Błąd pobierania Oura: ' + enhancedRes.error.message); return; }
+      const enhanced = enhancedRes.data || [];
+      const derived = derivedRes.data || [];
+      if (enhanced.length === 0 && derived.length === 0) {
+        alert('Brak danych Oura w wybranym zakresie dat.'); return;
+      }
+
+      // Scalanie po dacie — jeden wiersz na dzień
+      const byDate = {};
+      enhanced.forEach(r => { byDate[r.date] = { date: r.date, ...r }; });
+      derived.forEach(r => { byDate[r.day] = { ...(byDate[r.day] || { date: r.day }), ...r }; });
+      const merged = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+
+      const columns = ['date', ...enhancedCols, ...derivedCols];
 
       const escape = (val) => {
         if (val === null || val === undefined) return '';
@@ -752,7 +778,7 @@ export default function Stats({ session }) {
       const round = (val) => (typeof val === 'number' && !Number.isInteger(val)) ? Math.round(val * 100) / 100 : val;
 
       const headerRow = columns.join(',');
-      const rows = data.map(r => columns.map(c => escape(round(r[c]))).join(','));
+      const rows = merged.map(r => columns.map(c => escape(round(r[c]))).join(','));
       const csv = '﻿' + [headerRow, ...rows].join('\n'); // BOM dla poprawnego UTF-8 w Excelu
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
