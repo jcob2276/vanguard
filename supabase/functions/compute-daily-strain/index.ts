@@ -33,6 +33,7 @@ serve(async (req) => {
     if (uErr) throw uErr
 
     const now = new Date()
+    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
     const endStr = now.toISOString().split('T')[0]
     const startStr = new Date(now.getTime() - days * 864e5).toISOString().split('T')[0]
     const start90 = new Date(now.getTime() - 90 * 864e5).toISOString().split('T')[0]
@@ -90,6 +91,8 @@ serve(async (req) => {
       const upserts: any[] = []
 
       for (const date of dayList) {
+        // Dzień bieżący (Europe/Warsaw): Yazio jeszcze niedomknięte → fueling tymczasowy.
+        const fuelingProvisional = date === todayWarsaw
         const z = zones[date]?.[0]
         const e = enh[date]?.[0]
         const s = summ[date]?.[0]
@@ -132,7 +135,8 @@ serve(async (req) => {
         const hadLoad = cardioRaw > 80 || strengthPts > 30
 
         let fuelingPenalty = 0
-        if (hadLoad) {
+        // Dzień trwa — nie karzemy strain za "niedожywienie" jeszcze niezamkniętego dnia.
+        if (hadLoad && !fuelingProvisional) {
           if (kcal != null) { if (kcal < 1600) fuelingPenalty += 30; else if (kcal < 2000) fuelingPenalty += 15 }
           if (isRunDay && carbs != null && carbs < 150) fuelingPenalty += 15
           if (protein != null && protein / weight < 1.6) fuelingPenalty += 10
@@ -176,7 +180,7 @@ serve(async (req) => {
         let status = 'yellow'
         if ((recovery != null && recovery < 55) ||
             (strain != null && strain > 15 && recovery != null && recovery < 70) ||
-            (fuelingScore != null && fuelingScore < 40 && hadLoad)) {
+            (fuelingScore != null && fuelingScore < 40 && hadLoad && !fuelingProvisional)) {
           status = 'red'
         } else if (recovery != null && recovery >= 75 && (strain == null || strain < 14)) {
           status = 'green'
@@ -186,16 +190,18 @@ serve(async (req) => {
         // Priorytet: najpierw akcjonowalne braki paliwa w dni z obciążeniem,
         // potem węgle, dopiero potem sen (próg <6h — bo chroniczne ~6.4h
         // zagłuszałoby realny problem), na końcu koszt fizyczny / mental.
+        // Gdy fueling tymczasowy (dziś) — calories/carbs NIE mogą być limiterem
+        // (dzień jeszcze trwa), przepuszczamy do kolejnego w priorytecie.
         let limiter = 'recovery_ok'
-        if (hadLoad && kcal != null && kcal < 1700) limiter = 'calories'
-        else if (isRunDay && carbs != null && carbs < 150) limiter = 'carbs'
+        if (hadLoad && kcal != null && kcal < 1700 && !fuelingProvisional) limiter = 'calories'
+        else if (isRunDay && carbs != null && carbs < 150 && !fuelingProvisional) limiter = 'carbs'
         else if (sleep != null && sleep < 6.0) limiter = 'sleep'
         else if (strain != null && strain > 15 && recovery != null && recovery < 65) {
           limiter = cardioRaw >= strengthPts ? 'cardio_load' : 'strength_load'
         }
         else if (mentalLoad != null && mentalLoad >= 7) limiter = 'mental_load'
         else if (sleep != null && sleep < 6.8) limiter = 'sleep'
-        else if (kcal != null && kcal < 1500) limiter = 'calories'
+        else if (kcal != null && kcal < 1500 && !fuelingProvisional) limiter = 'calories'
 
         // ── EXPLANATION (regułowa) ──
         const parts: string[] = []
@@ -211,11 +217,13 @@ serve(async (req) => {
           recovery_ok: 'regeneracja OK',
         }
         const explanation = `${ctx}. Strain ${strain ?? '—'}/21, recovery ${recovery ?? '—'} — ${limiterPL[limiter]}.`
+          + (fuelingProvisional ? ' (fueling jeszcze niepełny)' : '')
 
         const row = {
           user_id: uid, date,
           strain_score: strain, recovery_score: recovery, fueling_score: fuelingScore,
           mental_load_score: mentalLoad, daily_status: status, main_limiter: limiter,
+          fueling_provisional: fuelingProvisional,
           explanation,
           cardio_load: Math.round(cardioRaw * 10) / 10,
           strength_load: strengthPts, leg_load: legPts, cns_load: cnsPts,

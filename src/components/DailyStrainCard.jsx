@@ -9,16 +9,20 @@ const LIMITER_PL = {
 };
 
 // status + limiter → jednozdaniowa decyzja
-function decision(status, limiter, strain) {
+// provisional=true (dzień bieżący, Yazio niedomknięte) → fueling NIE jest finalnym limiterem
+function decision(status, limiter, strain, provisional) {
+  const fuelingLimiter = limiter === 'calories' || limiter === 'carbs';
   if (status === 'green') return { text: 'Możesz cisnąć', tone: 'text-emerald-400' };
   if (status === 'red') {
-    if (limiter === 'calories') return { text: 'Odpuść — najpierw dojedz', tone: 'text-red-400' };
+    if (limiter === 'calories' && !provisional) return { text: 'Odpuść — najpierw dojedz', tone: 'text-red-400' };
     if (limiter === 'sleep') return { text: 'Odpuść — sen za krótki', tone: 'text-red-400' };
     return { text: 'Regeneracja, nie trening', tone: 'text-red-400' };
   }
   // yellow
-  if (limiter === 'calories') return { text: 'Tylko easy — dobierz kalorie', tone: 'text-amber-400' };
-  if (limiter === 'carbs') return { text: 'Tylko easy — mało węgli', tone: 'text-amber-400' };
+  if (fuelingLimiter && !provisional) {
+    if (limiter === 'calories') return { text: 'Tylko easy — dobierz kalorie', tone: 'text-amber-400' };
+    return { text: 'Tylko easy — mało węgli', tone: 'text-amber-400' };
+  }
   if (limiter === 'sleep') return { text: 'Tylko easy — sen poniżej normy', tone: 'text-amber-400' };
   if (limiter === 'cardio_load' || limiter === 'strength_load')
     return { text: 'Umiarkowanie — wczoraj duży koszt', tone: 'text-amber-400' };
@@ -28,13 +32,14 @@ function decision(status, limiter, strain) {
 const STATUS_RING = { green: 'border-emerald-500/40', yellow: 'border-amber-500/40', red: 'border-red-500/50' };
 const STATUS_GLOW = { green: 'bg-emerald-500/10', yellow: 'bg-amber-500/10', red: 'bg-red-500/10' };
 
-function Metric({ icon: Icon, label, value, max, tone }) {
+function Metric({ icon: Icon, label, value, max, tone, note }) {
   const pct = max ? Math.min((Number(value) / max) * 100, 100) : 0;
   return (
     <div className="flex-1">
       <div className="flex items-center gap-1 mb-1">
         <Icon size={11} className="text-white/30" />
         <span className="text-[7px] font-black uppercase tracking-widest text-white/35">{label}</span>
+        {note && <span className="text-[7px] font-black uppercase tracking-widest text-amber-400/70">· {note}</span>}
       </div>
       <p className={`text-lg font-black italic ${tone}`}>
         {value ?? '--'}<span className="text-[9px] text-white/25 not-italic ml-0.5">/{max}</span>
@@ -62,7 +67,7 @@ export default function DailyStrainCard({ session }) {
 
   if (loading || !row) return null;
 
-  const d = decision(row.daily_status, row.main_limiter, Number(row.strain_score));
+  const d = decision(row.daily_status, row.main_limiter, Number(row.strain_score), row.fueling_provisional);
   const strainTone = row.strain_score >= 15 ? 'text-orange-400' : row.strain_score >= 8 ? 'text-white' : 'text-white/70';
   const recovTone = row.recovery_score >= 75 ? 'text-emerald-400' : row.recovery_score >= 55 ? 'text-amber-400' : 'text-red-400';
   const fuelTone = row.fueling_score >= 70 ? 'text-emerald-400' : row.fueling_score >= 45 ? 'text-amber-400' : 'text-red-400';
@@ -85,8 +90,15 @@ export default function DailyStrainCard({ session }) {
         <div className="flex gap-4">
           <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
-          <Metric icon={Utensils} label="Fueling" value={row.fueling_score} max={100} tone={fuelTone} />
+          <Metric icon={Utensils} label="Fueling" value={row.fueling_score} max={100} tone={fuelTone}
+            note={row.fueling_provisional ? 'niepełny' : undefined} />
         </div>
+
+        {row.fueling_provisional && (
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-400/60">
+            Fueling tymczasowy — jeśli dzień niezamknięty, finalny po domknięciu Yazio.
+          </p>
+        )}
 
         {row.explanation && (
           <div className="flex items-start gap-2 pt-1">
