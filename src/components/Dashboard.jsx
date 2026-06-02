@@ -25,6 +25,7 @@ import Stats from './Stats';
 import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
 import OuraEnhanced from './OuraEnhanced';
+import DailyStrainCard from './DailyStrainCard';
 import StravaWidget from './StravaWidget';
 import AIInsight from './AIInsight';
 import GraphMind from './GraphMind';
@@ -330,6 +331,7 @@ export default function Dashboard({ session }) {
                 title="Body"
                 detail="Kroki, sen, kalorie, trening i eksport danych. To jest twarda warstwa, nie miejsce na rozmowę z Oracle."
               />
+              <DailyStrainCard session={session} />
               <OuraWidget session={session} />
               <OuraEnhanced session={session} />
               <StravaWidget session={session} />
