@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Flame, BatteryCharging, Utensils, Gauge } from 'lucide-react';
+import { Flame, BatteryCharging, Utensils, Gauge, RefreshCw } from 'lucide-react';
 import DataStateNotice from './DataStateNotice';
 
 const LIMITER_PL = {
@@ -56,24 +56,63 @@ export default function DailyStrainCard({ session }) {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function fetchRow() {
+    const { data, error: queryError } = await supabase.from('daily_strain')
+      .select('*').eq('user_id', session.user.id)
+      .order('date', { ascending: false }).limit(1).maybeSingle();
+    if (queryError) {
+      console.error('DailyStrainCard:', queryError);
+      setError(queryError.message);
+      setRow(null);
+    } else {
+      setRow(data);
+    }
+  }
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError(null);
-      const { data, error: queryError } = await supabase.from('daily_strain')
-        .select('*').eq('user_id', session.user.id)
-        .order('date', { ascending: false }).limit(1).maybeSingle();
-      if (queryError) {
-        console.error('DailyStrainCard:', queryError);
-        setError(queryError.message);
-        setRow(null);
-      } else {
-        setRow(data);
-      }
+      await fetchRow();
       setLoading(false);
     })();
   }, [session.user.id]);
+
+  // Pełny refresh: sync źródeł → warstwy pochodne Oura → przelicz strain → odśwież
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const token = s?.access_token;
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const call = (fn, body) => fetch(`${base}/functions/v1/${fn}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      // 1. źródła surowe (równolegle)
+      await Promise.allSettled([
+        call('sync-yazio', { userId: session.user.id }),
+        call('sync-strava', {}),
+        call('sync-oura', { userId: session.user.id }),
+      ]);
+      // 2. warstwy pochodne Oura (strefy HR zasilają cardio load)
+      await Promise.allSettled([
+        call('sync-oura-enhanced', { days: 2 }),
+        call('sync-oura-timeseries', { days: 2 }),
+      ]);
+      // 3. przelicz Daily Strain
+      await call('compute-daily-strain', { days: 2 });
+      // 4. odśwież kartę
+      await fetchRow();
+    } catch (e) {
+      console.error('DailyStrainCard refresh:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -124,14 +163,21 @@ export default function DailyStrainCard({ session }) {
     <section className={`relative overflow-hidden rounded-2xl border ${STATUS_RING[row.daily_status]} bg-neutral-950 p-5`}>
       <div className={`absolute right-0 top-0 h-28 w-28 rounded-full blur-3xl ${STATUS_GLOW[row.daily_status]}`} />
       <div className="relative space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">Trening dziś</p>
             <h3 className={`text-xl font-black uppercase italic tracking-tight ${d.tone}`}>{d.text}</h3>
           </div>
-          <div className="text-right">
-            <p className="text-[7px] font-black uppercase tracking-widest text-white/30">Limiter</p>
-            <p className="text-[11px] font-black uppercase text-white/70">{LIMITER_PL[row.main_limiter] || row.main_limiter}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-[7px] font-black uppercase tracking-widest text-white/30">Limiter</p>
+              <p className="text-[11px] font-black uppercase text-white/70">{LIMITER_PL[row.main_limiter] || row.main_limiter}</p>
+            </div>
+            <button onClick={refresh} disabled={refreshing}
+              title="Sync + przelicz"
+              className="rounded-xl border border-white/5 bg-white/5 p-2 text-white/45 transition-colors hover:text-white disabled:opacity-50">
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
 
