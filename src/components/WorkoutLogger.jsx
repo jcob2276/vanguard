@@ -326,6 +326,14 @@ export default function WorkoutLogger({ session, onBack }) {
   const [notes, setNotes]             = useState('');
   const [saving, setSaving]           = useState(false);
   const [timerStart, setTimerStart]   = useState(null);
+  
+  // Custom manual time overrides
+  const [manualTime, setManualTime] = useState(false);
+  const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
+  const [workoutDate, setWorkoutDate] = useState(todayStr);
+  const [startTimeManual, setStartTimeManual] = useState('18:00');
+  const [endTimeManual, setEndTimeManual] = useState('19:00');
+
   const elapsed = useStopwatch(timerStart);
   const userId  = session?.user?.id;
 
@@ -358,11 +366,21 @@ export default function WorkoutLogger({ session, onBack }) {
         set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null, rir: null, muscle_tags: [],
       }));
 
+      let finalStart = new Date().toISOString();
+      let finalEnd = new Date().toISOString();
+
+      if (manualTime) {
+        finalStart = new Date(`${workoutDate}T${startTimeManual}:00`).toISOString();
+        finalEnd = new Date(`${workoutDate}T${endTimeManual}:00`).toISOString();
+      } else if (timerStart) {
+        finalStart = new Date(timerStart).toISOString();
+      }
+
       const { error } = await supabase.rpc('save_workout_atomic', {
         p_user_id:    userId,
         p_day_key:    workoutName.trim() || 'Trening',
-        p_start_time: timerStart ? new Date(timerStart).toISOString() : new Date().toISOString(),
-        p_end_time:   new Date().toISOString(),
+        p_start_time: finalStart,
+        p_end_time:   finalEnd,
         p_notes:      notes,
         p_msp_passed: false,
         p_logs:       [...exLogs, ...acLogs],
@@ -402,6 +420,59 @@ export default function WorkoutLogger({ session, onBack }) {
           <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
             className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all placeholder:text-white/35" />
+        </div>
+
+        {/* Manual Time Picker Row */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-white/50" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-white/70">Wpisz godziny ręcznie</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={manualTime}
+              onChange={(e) => {
+                setManualTime(e.target.checked);
+                if (e.target.checked && timerStart) {
+                  setTimerStart(null); // turn off stopwatch
+                }
+              }}
+              className="accent-primary h-4 w-4 rounded border-white/[0.1] bg-white/[0.05]"
+            />
+          </div>
+
+          {manualTime && (
+            <div className="grid grid-cols-3 gap-2 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Data</label>
+                <input
+                  type="date"
+                  value={workoutDate}
+                  onChange={(e) => setWorkoutDate(e.target.value)}
+                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Start</label>
+                <input
+                  type="time"
+                  value={startTimeManual}
+                  onChange={(e) => setStartTimeManual(e.target.value)}
+                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Koniec</label>
+                <input
+                  type="time"
+                  value={endTimeManual}
+                  onChange={(e) => setEndTimeManual(e.target.value)}
+                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">

@@ -58,16 +58,16 @@ function statusPalette(state, readiness) {
   return { rail: 'bg-primary', text: 'text-primary', soft: 'bg-primary/10 border-primary/20', label: 'Ready' };
 }
 
-function StateBrief({ state, readiness, doneCount, hasWorkoutToday, weeklyCalories, weeklyBudget }) {
+function StateBrief({ state, readiness, doneCount, hasWorkoutToday, weeklyCalories, weeklyBudget, onWorkoutClick }) {
   const palette = statusPalette(state, readiness);
   const displayState = state ? state.replaceAll('_', ' ') : 'Analysis Pending';
   const caloriePct = weeklyBudget > 0 ? Math.round((weeklyCalories / weeklyBudget) * 100) : 0;
 
   const signals = [
-    { label: 'Readiness', value: readiness ? `${readiness}` : '—', icon: Gauge },
-    { label: 'Plan', value: `${doneCount}/5`, icon: CheckCircle2 },
-    { label: 'Training', value: hasWorkoutToday ? 'Done' : 'Open', icon: Dumbbell },
-    { label: 'Fuel', value: `${Math.min(caloriePct, 999)}%`, icon: Sparkles },
+    { label: 'Readiness', value: readiness ? `${readiness}` : '—', icon: Gauge, clickable: false },
+    { label: 'Plan', value: `${doneCount}/5`, icon: CheckCircle2, clickable: false },
+    { label: 'Training', value: hasWorkoutToday ? 'Done' : 'Open', icon: Dumbbell, clickable: true },
+    { label: 'Fuel', value: `${Math.min(caloriePct, 999)}%`, icon: Sparkles, clickable: false },
   ];
 
   return (
@@ -91,15 +91,35 @@ function StateBrief({ state, readiness, doneCount, hasWorkoutToday, weeklyCalori
       </div>
 
       <div className="mt-5 grid grid-cols-4 gap-2">
-        {signals.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="rounded-md border border-white/[0.055] bg-black/22 px-2.5 py-2">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[7px] font-black uppercase tracking-widest text-white/25">{label}</span>
-              <Icon size={10} className="text-white/22" />
+        {signals.map(({ label, value, icon: Icon, clickable }) => {
+          const content = (
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[7px] font-black uppercase tracking-widest text-white/25">{label}</span>
+                <Icon size={10} className={clickable && !hasWorkoutToday ? "text-primary animate-pulse" : "text-white/22"} />
+              </div>
+              <p className={`text-[12px] font-black uppercase ${clickable && !hasWorkoutToday ? "text-primary" : "text-white/78"}`}>{value}</p>
+            </>
+          );
+
+          if (clickable) {
+            return (
+              <button
+                key={label}
+                onClick={onWorkoutClick}
+                className="rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 active:scale-[0.98] transition-all px-2.5 py-2 text-left w-full"
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <div key={label} className="rounded-md border border-white/[0.055] bg-black/22 px-2.5 py-2">
+              {content}
             </div>
-            <p className="text-[12px] font-black uppercase text-white/78">{value}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -316,6 +336,7 @@ export default function Dashboard({ session }) {
                   hasWorkoutToday={hasWorkoutToday}
                   weeklyCalories={weeklyCalories}
                   weeklyBudget={weeklyBudget}
+                  onWorkoutClick={() => setShowWorkoutLogger(true)}
                 />
               </section>
 
