@@ -1,97 +1,370 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, ChevronLeft, Save, Dumbbell, Zap } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, Save, Dumbbell, Zap, ChevronDown, ChevronUp, Clock, Play, Square, Trophy, X } from 'lucide-react';
 
-const newSet = (prevName = '') => ({ id: Date.now() + Math.random(), name: prevName, kg: '', rir: '' });
+import { EXERCISES, ALL_TAGS, tagClass, normalize } from '../data/exercises';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', rir: '' });
+const newExercise = () => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
 const newActivity = () => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
 
-function SectionLabel({ icon: Icon, label }) {
+const numInput = "h-11 w-full bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm font-black text-white text-center outline-none focus:border-primary/60 focus:bg-white/[0.09] transition-all placeholder:text-white/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+
+function epley(kg, reps) {
+  const k = parseFloat(kg), r = parseInt(reps);
+  if (!k || !r || r <= 0) return null;
+  return r === 1 ? k : k * (1 + r / 30);
+}
+
+function useStopwatch(startTs) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!startTs) return;
+    setElapsed(Math.floor((Date.now() - startTs) / 1000));
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTs) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTs]);
+  if (!startTs) return null;
+  const h = Math.floor(elapsed / 3600), m = Math.floor((elapsed % 3600) / 60), s = elapsed % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function useExerciseHistory(name, userId) {
+  const [lastSession, setLastSession]     = useState(null);
+  const [allTimeBest1RM, setAllTimeBest1RM] = useState(null);
+
+  useEffect(() => {
+    const trimmed = name.trim();
+    if (!userId || trimmed.length < 2) { setLastSession(null); setAllTimeBest1RM(null); return; }
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase
+        .from('exercise_logs')
+        .select('weight, reps, set_number, session_id, workout_sessions!inner(start_time)')
+        .eq('user_id', userId)
+        .eq('exercise_name', trimmed)
+        .order('start_time', { foreignTable: 'workout_sessions', ascending: false })
+        .limit(60);
+
+      if (!data?.length) { setLastSession(null); setAllTimeBest1RM(null); return; }
+
+      const bySession = {};
+      for (const row of data) {
+        if (!bySession[row.session_id]) bySession[row.session_id] = [];
+        bySession[row.session_id].push(row);
+      }
+      const last = Object.values(bySession)[0].sort((a, b) => a.set_number - b.set_number);
+      setLastSession(last);
+
+      const best = data.reduce((max, r) => { const e = epley(r.weight, r.reps); return e && e > max ? e : max; }, 0);
+      setAllTimeBest1RM(best > 0 ? best : null);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [name, userId]);
+
+  return { lastSession, allTimeBest1RM };
+}
+
+function formatLastSession(sets) {
+  if (!sets?.length) return null;
+  const ws = [...new Set(sets.map(s => s.weight))];
+  const rs = [...new Set(sets.map(s => s.reps))];
+  if (ws.length === 1 && rs.length === 1) return `${ws[0]}kg × ${rs[0]} × ${sets.length} ser.`;
+  return sets.map(s => `${s.weight}×${s.reps}`).join(' · ');
+}
+
+// ─── Autocomplete input ───────────────────────────────────────────────────────
+
+function ExerciseNameInput({ value, tags, onChange }) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  // Sync external value → local query (e.g. on reset)
+  useEffect(() => { setQuery(value); }, [value]);
+
+  const matches = query.trim().length === 0 ? [] :
+    EXERCISES.filter(e => normalize(e.name).includes(normalize(query))).slice(0, 8);
+
+  function select(ex) {
+    setQuery(ex.name);
+    onChange(ex.name, ex.tags);
+    setOpen(false);
+  }
+
+  function handleChange(e) {
+    const v = e.target.value;
+    setQuery(v);
+    onChange(v, tags); // keep existing tags when typing freely
+    setOpen(true);
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <Icon size={11} className="text-white/30" />
-      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">{label}</span>
+    <div ref={ref} className="relative flex-1 min-w-0">
+      <input
+        type="text"
+        value={query}
+        onChange={handleChange}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Nazwa ćwiczenia..."
+        className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/35"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-white/[0.1] bg-zinc-900 shadow-xl overflow-hidden">
+          {matches.map(ex => (
+            <button
+              key={ex.name}
+              onMouseDown={() => select(ex)}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors gap-3"
+            >
+              <span className="text-sm text-white/80 font-medium">{ex.name}</span>
+              <div className="flex gap-1 shrink-0">
+                {ex.tags.slice(0, 3).map(t => (
+                  <span key={t} className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${tagClass(t)}`}>{t}</span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function WorkoutLogger({ session, onBack }) {
-  const [workoutName, setWorkoutName] = useState('');
-  const [sets, setSets] = useState([newSet()]);
-  const [activities, setActivities] = useState([]);
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [startTime] = useState(() => new Date());
+// ─── Tag editor ───────────────────────────────────────────────────────────────
 
-  // ── Sets ──────────────────────────────────────────────────────────────────
+function TagRow({ tags, onChange }) {
+  const [picking, setPicking] = useState(false);
+  const available = ALL_TAGS.filter(t => !tags.includes(t));
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2.5">
+      {tags.map(t => (
+        <button
+          key={t}
+          onClick={() => onChange(tags.filter(x => x !== t))}
+          className={`flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(t)} transition-opacity hover:opacity-70`}
+        >
+          {t} <X size={8} />
+        </button>
+      ))}
+      {available.length > 0 && (
+        <div className="relative">
+          <button
+            onClick={() => setPicking(p => !p)}
+            onBlur={() => setTimeout(() => setPicking(false), 150)}
+            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-dashed border-white/[0.15] text-white/30 hover:text-white/60 hover:border-white/30 transition-colors"
+          >
+            + tag
+          </button>
+          {picking && (
+            <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-white/[0.1] bg-zinc-900 shadow-xl p-2 flex flex-wrap gap-1 w-52">
+              {available.map(t => (
+                <button
+                  key={t}
+                  onMouseDown={() => { onChange([...tags, t]); setPicking(false); }}
+                  className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(t)} hover:opacity-80 transition-opacity`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Exercise card ────────────────────────────────────────────────────────────
+
+function ExerciseCard({ exercise, onChange, onRemove, userId }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const sets = exercise.sets ?? [];
+  const tags = exercise.tags ?? [];
+  const { lastSession, allTimeBest1RM } = useExerciseHistory(exercise.name ?? '', userId);
+
   function addSet() {
-    setSets(prev => [...prev, newSet(prev[prev.length - 1]?.name || '')]);
+    const last = sets[sets.length - 1];
+    onChange({ ...exercise, sets: [...exercise.sets, { ...newSet(), kg: last.kg, rir: last.rir }] });
   }
   function removeSet(id) {
-    setSets(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
+    if (sets.length <= 1) return;
+    onChange({ ...exercise, sets: sets.filter(s => s.id !== id) });
   }
   function updateSet(id, field, value) {
-    setSets(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    onChange({ ...exercise, sets: sets.map(s => s.id === id ? { ...s, [field]: value } : s) });
   }
 
-  // ── Activities ────────────────────────────────────────────────────────────
-  function addActivity() {
-    setActivities(prev => [...prev, newActivity()]);
-  }
-  function removeActivity(id) {
-    setActivities(prev => prev.filter(a => a.id !== id));
-  }
-  function updateActivity(id, field, value) {
-    setActivities(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
-  }
+  const current1RM = sets.reduce((best, s) => { const e = epley(s.kg, s.reps); return e && e > best ? e : best; }, 0);
 
-  // ── Save ──────────────────────────────────────────────────────────────────
+  return (
+    <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+        <ExerciseNameInput
+          value={exercise.name}
+          tags={exercise.tags}
+          onChange={(name, tags) => onChange({ ...exercise, name, tags })}
+        />
+        <button onClick={() => setCollapsed(c => !c)} className="p-1 text-white/30 hover:text-white/60 transition-colors">
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+        <button onClick={onRemove} className="p-1 text-white/25 hover:text-red-400 transition-colors">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* Tags */}
+      {(tags.length > 0 || (exercise.name ?? '').trim().length > 0) && (
+        <TagRow tags={tags} onChange={t => onChange({ ...exercise, tags: t })} />
+      )}
+
+      {/* Ostatnio */}
+      {lastSession && (
+        <div className="px-4 py-1.5 border-t border-white/[0.04] flex items-center gap-1.5">
+          <span className="text-[9px] font-black uppercase tracking-widest text-white/25">Ostatnio</span>
+          <span className="text-[10px] font-bold text-white/40">{formatLastSession(lastSession)}</span>
+        </div>
+      )}
+
+      {/* Sets */}
+      {!collapsed && (
+        <div className="px-4 pb-3 pt-2 space-y-2">
+          <div className="grid grid-cols-[28px_1fr_1fr_1fr_28px] gap-2 px-0.5">
+            <span />
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">KG</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">Pow.</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">RIR</span>
+            <span />
+          </div>
+
+          {exercise.sets.map((set, idx) => {
+            const set1RM = epley(set.kg, set.reps);
+            const isPR = set1RM && allTimeBest1RM && set1RM > allTimeBest1RM;
+            return (
+              <div key={set.id} className="grid grid-cols-[28px_1fr_1fr_1fr_28px] gap-2 items-center">
+                <span className="text-[11px] font-black text-white/35 text-center">{idx + 1}</span>
+                <input type="number" min={0} step={0.5} value={set.kg}
+                  onChange={e => updateSet(set.id, 'kg', e.target.value)}
+                  placeholder="—" className={numInput} />
+                <div className="relative">
+                  <input type="number" min={0} step={1} value={set.reps}
+                    onChange={e => updateSet(set.id, 'reps', e.target.value)}
+                    placeholder="—" className={numInput} />
+                  {isPR && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-yellow-400 rounded-full p-0.5 pointer-events-none">
+                      <Trophy size={8} className="text-black" />
+                    </div>
+                  )}
+                </div>
+                <input type="number" min={0} max={5} step={0.5} value={set.rir}
+                  onChange={e => updateSet(set.id, 'rir', e.target.value)}
+                  placeholder="—" className={numInput} />
+                <button onClick={() => removeSet(set.id)} className="flex items-center justify-center text-white/25 hover:text-red-400 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            );
+          })}
+
+          <button onClick={addSet}
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/[0.12] py-2 text-[10px] font-black uppercase tracking-widest text-white/35 hover:border-primary/40 hover:text-primary transition-colors">
+            <Plus size={11} /> Dodaj serię
+          </button>
+
+          {current1RM > 0 && (
+            <div className="flex justify-end pt-0.5">
+              <span className="text-[9px] font-black text-white/25 tabular-nums">~{current1RM.toFixed(1)} kg 1RM</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Activity card ────────────────────────────────────────────────────────────
+
+function ActivityCard({ activity, onChange, onRemove }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] px-4 py-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <input type="text" value={activity.name} onChange={e => onChange({ ...activity, name: e.target.value })}
+          placeholder="np. Sauna, Rower, Spacer..."
+          className="flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/35 min-w-0" />
+        <button onClick={onRemove} className="p-1 text-white/25 hover:text-red-400 transition-colors">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
+          <Clock size={11} className="text-white/35" />
+          <input type="number" min={0} value={activity.min} onChange={e => onChange({ ...activity, min: e.target.value })}
+            placeholder="0"
+            className="w-16 h-9 bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm font-black text-white text-center outline-none focus:border-primary/60 transition-all placeholder:text-white/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+          <span className="text-[11px] font-bold text-white/40">min</span>
+        </div>
+        <input type="text" value={activity.note} onChange={e => onChange({ ...activity, note: e.target.value })}
+          placeholder="notatka (opcjonalnie)..."
+          className="flex-1 h-9 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 text-xs text-white outline-none focus:border-primary/60 transition-all placeholder:text-white/30" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function WorkoutLogger({ session, onBack }) {
+  const [workoutName, setWorkoutName] = useState('');
+  const [exercises, setExercises]     = useState([newExercise()]);
+  const [activities, setActivities]   = useState([]);
+  const [notes, setNotes]             = useState('');
+  const [saving, setSaving]           = useState(false);
+  const [timerStart, setTimerStart]   = useState(null);
+  const elapsed = useStopwatch(timerStart);
+  const userId  = session?.user?.id;
+
+  const addExercise    = () => setExercises(p => [...p, newExercise()]);
+  const removeExercise = id => { if (exercises.length > 1) setExercises(p => p.filter(e => e.id !== id)); };
+  const updateExercise = u  => setExercises(p => p.map(e => e.id === u.id ? u : e));
+
+  const addActivity    = () => setActivities(p => [...p, newActivity()]);
+  const removeActivity = id => setActivities(p => p.filter(a => a.id !== id));
+  const updateActivity = u  => setActivities(p => p.map(a => a.id === u.id ? u : a));
+
   async function save() {
-    const validSets = sets.filter(r => r.name.trim());
-    const validActivities = activities.filter(a => a.name.trim());
-
-    if (!validSets.length && !validActivities.length) {
-      alert('Dodaj przynajmniej jedno ćwiczenie lub aktywność');
-      return;
-    }
+    const validEx = exercises.filter(e => e.name.trim());
+    const validAc = activities.filter(a => a.name.trim());
+    if (!validEx.length && !validAc.length) { alert('Dodaj przynajmniej jedno ćwiczenie lub aktywność'); return; }
 
     setSaving(true);
     try {
-      const setCount = {};
-      const exerciseLogs = validSets.map(r => {
-        const name = r.name.trim();
-        setCount[name] = (setCount[name] || 0) + 1;
-        return {
-          exercise_name: name,
-          set_number: setCount[name],
-          weight: parseFloat(r.kg) || 0,
-          reps: 0,
-          rpe: r.rir !== '' ? parseFloat(r.rir) : null,
-        };
-      });
-
-      const activityLogs = validActivities.map((a, i) => {
-        const label = a.note.trim() ? `${a.name.trim()} — ${a.note.trim()}` : a.name.trim();
-        return {
-          exercise_name: label,
-          set_number: i + 1,
-          weight: 0,
-          reps: parseInt(a.min) || 0,
-          rpe: null,
-        };
-      });
-
-      const logs = [...exerciseLogs, ...activityLogs];
+      const exLogs = validEx.flatMap(ex =>
+        ex.sets.map((s, i) => ({
+          exercise_name: ex.name.trim(), set_number: i + 1,
+          weight: parseFloat(s.kg) || 0, reps: parseInt(s.reps) || 0,
+          rpe: s.rir !== '' ? parseFloat(s.rir) : null,
+        }))
+      );
+      const acLogs = validAc.map((a, i) => ({
+        exercise_name: a.note.trim() ? `${a.name.trim()} — ${a.note.trim()}` : a.name.trim(),
+        set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null,
+      }));
 
       const { error } = await supabase.rpc('save_workout_atomic', {
-        p_user_id: session.user.id,
-        p_day_key: workoutName.trim() || 'Trening',
-        p_start_time: startTime.toISOString(),
-        p_end_time: new Date().toISOString(),
-        p_notes: notes,
+        p_user_id:    userId,
+        p_day_key:    workoutName.trim() || 'Trening',
+        p_start_time: timerStart ? new Date(timerStart).toISOString() : new Date().toISOString(),
+        p_end_time:   new Date().toISOString(),
+        p_notes:      notes,
         p_msp_passed: false,
-        p_logs: logs,
+        p_logs:       [...exLogs, ...acLogs],
       });
-
       if (error) throw error;
       onBack();
     } catch (err) {
@@ -103,143 +376,70 @@ export default function WorkoutLogger({ session, onBack }) {
 
   return (
     <div className="flex-1 bg-black flex flex-col min-h-screen pb-32">
-      <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-md border-b border-white/5 p-4 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/40 hover:text-white transition-colors">
+      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-md border-b border-white/[0.07] p-4 flex items-center gap-3">
+        <button onClick={onBack} className="p-2 -ml-2 text-white/50 hover:text-white transition-colors">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-xs font-black uppercase tracking-[0.2em] text-white">Zaloguj Trening</h1>
+        <h1 className="text-xs font-black uppercase tracking-[0.2em] text-white flex-1">Zaloguj Trening</h1>
+        {timerStart ? (
+          <button onClick={() => setTimerStart(null)} className="flex items-center gap-1.5 text-primary hover:text-white transition-colors">
+            <span className="text-[11px] font-black tabular-nums">{elapsed}</span>
+            <Square size={11} className="fill-current" />
+          </button>
+        ) : (
+          <button onClick={() => setTimerStart(Date.now())} className="flex items-center gap-1.5 text-white/35 hover:text-white/70 transition-colors">
+            <Play size={13} className="fill-current" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Start</span>
+          </button>
+        )}
       </header>
 
-      <main className="flex-1 p-5 space-y-7">
-
-        {/* Nazwa treningu */}
-        <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-widest text-white/35">Nazwa (opcjonalnie)</label>
-          <input
-            type="text"
-            value={workoutName}
-            onChange={e => setWorkoutName(e.target.value)}
+      <main className="flex-1 p-5 space-y-8">
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/50">Nazwa (opcjonalnie)</label>
+          <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
-            className="w-full bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-bold text-white outline-none focus:border-primary transition-colors placeholder:text-white/20"
-          />
+            className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all placeholder:text-white/35" />
         </div>
 
-        {/* ── Ćwiczenia ─────────────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <SectionLabel icon={Dumbbell} label="Ćwiczenia" />
-
-          <div className="grid grid-cols-[1fr_64px_56px_32px] gap-2 px-1">
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Ćwiczenie</span>
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 text-center">KG</span>
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 text-center">RIR</span>
-            <span />
+          <div className="flex items-center gap-2">
+            <Dumbbell size={12} className="text-white/50" />
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/50">Ćwiczenia</span>
           </div>
-
-          {sets.map(r => (
-            <div key={r.id} className="grid grid-cols-[1fr_64px_56px_32px] gap-2 items-center">
-              <input
-                type="text"
-                value={r.name}
-                onChange={e => updateSet(r.id, 'name', e.target.value)}
-                placeholder="Nazwa ćwiczenia"
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-bold text-white outline-none focus:border-primary transition-colors placeholder:text-white/20"
-              />
-              <input
-                type="number" min={0} step={0.5}
-                value={r.kg}
-                onChange={e => updateSet(r.id, 'kg', e.target.value)}
-                placeholder="—"
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-black text-white text-center outline-none focus:border-primary transition-colors placeholder:text-white/15"
-              />
-              <input
-                type="number" min={0} max={5} step={0.5}
-                value={r.rir}
-                onChange={e => updateSet(r.id, 'rir', e.target.value)}
-                placeholder="—"
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-black text-white text-center outline-none focus:border-primary transition-colors placeholder:text-white/15"
-              />
-              <button onClick={() => removeSet(r.id)} className="flex items-center justify-center text-white/20 hover:text-red-400 transition-colors">
-                <Trash2 size={14} />
-              </button>
-            </div>
+          {exercises.map(ex => (
+            <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} />
           ))}
-
-          <button
-            onClick={addSet}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 p-3 text-[10px] font-black uppercase tracking-widest text-white/30 hover:border-primary/40 hover:text-primary transition-colors"
-          >
-            <Plus size={14} /> Dodaj serię
+          <button onClick={addExercise}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.12] p-3.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-primary/50 hover:text-primary transition-colors">
+            <Plus size={13} /> Dodaj ćwiczenie
           </button>
         </div>
 
-        {/* ── Inne aktywności ───────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <SectionLabel icon={Zap} label="Inne aktywności" />
-
-          {activities.length > 0 && (
-            <div className="grid grid-cols-[1fr_56px_1fr_32px] gap-2 px-1">
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Aktywność</span>
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/20 text-center">Min</span>
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Notatka</span>
-              <span />
-            </div>
-          )}
-
+          <div className="flex items-center gap-2">
+            <Zap size={12} className="text-white/50" />
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/50">Inne aktywności</span>
+          </div>
           {activities.map(a => (
-            <div key={a.id} className="grid grid-cols-[1fr_56px_1fr_32px] gap-2 items-center">
-              <input
-                type="text"
-                value={a.name}
-                onChange={e => updateActivity(a.id, 'name', e.target.value)}
-                placeholder="np. Sauna"
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-bold text-white outline-none focus:border-primary transition-colors placeholder:text-white/20"
-              />
-              <input
-                type="number" min={0}
-                value={a.min}
-                onChange={e => updateActivity(a.id, 'min', e.target.value)}
-                placeholder="—"
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm font-black text-white text-center outline-none focus:border-primary transition-colors placeholder:text-white/15"
-              />
-              <input
-                type="text"
-                value={a.note}
-                onChange={e => updateActivity(a.id, 'note', e.target.value)}
-                placeholder="opcjonalnie..."
-                className="bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white outline-none focus:border-primary transition-colors placeholder:text-white/20"
-              />
-              <button onClick={() => removeActivity(a.id)} className="flex items-center justify-center text-white/20 hover:text-red-400 transition-colors">
-                <Trash2 size={14} />
-              </button>
-            </div>
+            <ActivityCard key={a.id} activity={a} onChange={updateActivity} onRemove={() => removeActivity(a.id)} />
           ))}
-
-          <button
-            onClick={addActivity}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 p-3 text-[10px] font-black uppercase tracking-widest text-white/30 hover:border-orange-500/40 hover:text-orange-400 transition-colors"
-          >
-            <Plus size={14} /> Dodaj aktywność
+          <button onClick={addActivity}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.12] p-3.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-orange-500/50 hover:text-orange-400 transition-colors">
+            <Plus size={13} /> Dodaj aktywność
           </button>
         </div>
 
-        {/* Notatki */}
-        <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-widest text-white/35">Notatki</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="Jak poszło?..."
-            className="w-full bg-neutral-950 border border-white/5 rounded-xl p-3 text-sm text-white min-h-[90px] outline-none focus:border-primary transition-colors resize-none placeholder:text-white/20"
-          />
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/50">Notatki</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
+            className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm text-white min-h-[100px] outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all resize-none placeholder:text-white/35" />
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-white/5">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
-        >
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-white/[0.07]">
+        <button onClick={save} disabled={saving}
+          className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
           <Save size={15} />
           {saving ? 'Zapisywanie...' : 'Zapisz'}
         </button>

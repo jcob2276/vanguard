@@ -29,6 +29,7 @@ import DailyStrainCard from './DailyStrainCard';
 import StravaWidget from './StravaWidget';
 import AIInsight from './AIInsight';
 import GraphMind from './GraphMind';
+import MuscleHeatmap from './MuscleHeatmap';
 import Photos from './Photos';
 import Direction from './Direction';
 import PowerList from './PowerList';
@@ -358,7 +359,7 @@ export default function Dashboard({ session }) {
                 <div className="flex gap-3">
                   {[
                     { id: 'charts', label: 'Analytics', icon: BarChart2 },
-                    { id: 'graph', label: 'Graph', icon: Brain }
+                    { id: 'graph', label: 'Graph', icon: Brain },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -374,11 +375,8 @@ export default function Dashboard({ session }) {
                     </button>
                   ))}
                 </div>
-                {selectedDataTab === 'charts' ? (
-                  <Stats session={session} />
-                ) : (
-                  <GraphMind session={session} />
-                )}
+                {selectedDataTab === 'charts' && <Stats session={session} />}
+                {selectedDataTab === 'graph'  && <GraphMind session={session} />}
               </div>
             </section>
           )}
@@ -393,7 +391,12 @@ export default function Dashboard({ session }) {
             </section>
           )}
 
-          {view === 'photos' && <Photos session={session} />}
+          {view === 'photos' && (
+            <section className="space-y-5">
+              <Photos session={session} />
+              <MuscleHeatmap session={session} />
+            </section>
+          )}
         </main>
 
         <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-neutral-950/90 p-2 shadow-2xl backdrop-blur-2xl">
