@@ -1,5 +1,4 @@
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
-import StayFreeSync from './StayFreeSync';
 import TodoistSync from './TodoistSync';
 import BrainHealth from './BrainHealth';
 
@@ -20,7 +19,6 @@ export default function DataHub({ session, onBack, embedded = false }) {
         </header>
       )}
 
-      <StayFreeSync session={session} />
       <TodoistSync session={session} />
       <BrainHealth session={session} />
 

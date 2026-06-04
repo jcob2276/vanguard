@@ -36,7 +36,7 @@ serve(async (req) => {
     // Pobierz dane z wszystkich źródeł (StayFree, Oura, Wins, Nutrition, Last Workout, Strava)
     const [oura, stayfreeRaw, wins, nutrition, lastWorkout, stravaRaw] = await Promise.all([
       safeExecute(supabase.from('oura_daily_summary').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
-      safeExecute(supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today)),
+      Promise.resolve(null),
       safeExecute(supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()),

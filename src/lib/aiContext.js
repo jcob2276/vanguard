@@ -19,7 +19,7 @@ export async function gatherUserContext(session) {
     const fourteenDaysAgo = format(subDays(new Date(), 13), 'yyyy-MM-dd');
     
     const [stayfreeRes, latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes] = await Promise.all([
-      supabase.from('stayfree_usage').select('*').eq('user_id', userId).eq('date', today),
+      Promise.resolve({ data: [] }),
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).order('date', { ascending: true }),
@@ -81,9 +81,9 @@ export async function gatherUserContext(session) {
           readiness: currentMetrics.readiness || 0
         },
         digital: {
-          dopamine_z: currentMetrics.dopamine_load ? (currentMetrics.dopamine_load - personalBaseline.means.dopamine_load) / (personalBaseline.stdDevs.dopamine_load || 1) : 0,
-          fragmentation_z: currentMetrics.fragmentation ? (currentMetrics.fragmentation - personalBaseline.means.fragmentation) / (personalBaseline.stdDevs.fragmentation || 1) : 0,
-          screen_time: currentMetrics.screen_time_min || 0
+          dopamine_z: 0,
+          fragmentation_z: 0,
+          screen_time: 0
         }
       },
       last_14_days: {

@@ -1,0 +1,44 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/yazio": "https://esm.sh/yazio@1.1.3"
+  },
+  "remote": {
+    "https://esm.sh/yazio@1.1.3": "b56d560eeaedc3eb4ab679f973ae279a16b82d0aeaa4ab7f4e288edd7e34379c",
+    "https://esm.sh/yazio@1.1.3/denonext/yazio.mjs": "c72660aae680fafaa070a9adf807374afd31926a131c882fab3ffb3986be1a1c"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@eslint/js@^10.0.1",
+        "npm:@supabase/supabase-js@^2.105.1",
+        "npm:@tailwindcss/postcss@^4.2.4",
+        "npm:@types/react-dom@^19.2.3",
+        "npm:@types/react@^19.2.14",
+        "npm:@vitejs/plugin-react@^6.0.1",
+        "npm:autoprefixer@^10.5.0",
+        "npm:clsx@^2.1.1",
+        "npm:date-fns@^4.1.0",
+        "npm:eslint-plugin-react-hooks@^7.1.1",
+        "npm:eslint-plugin-react-refresh@~0.5.2",
+        "npm:eslint@^10.2.1",
+        "npm:globals@^17.5.0",
+        "npm:js-yaml@^4.1.1",
+        "npm:lucide-react@^1.11.0",
+        "npm:postcss@^8.5.12",
+        "npm:react-dom@^19.2.5",
+        "npm:react-is@^19.2.5",
+        "npm:react-router-dom@^7.14.2",
+        "npm:react@^19.2.5",
+        "npm:recharts@^3.8.1",
+        "npm:supabase@^2.98.2",
+        "npm:tailwind-merge@^3.5.0",
+        "npm:tailwindcss@^4.2.4",
+        "npm:vite-plugin-pwa@^1.2.0",
+        "npm:vite@^8.0.10",
+        "npm:ws@^8.20.1",
+        "npm:zustand@^5.0.13"
+      ]
+    }
+  }
+}

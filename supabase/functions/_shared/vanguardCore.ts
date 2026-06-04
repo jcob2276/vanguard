@@ -40,27 +40,11 @@ export function computeSignals(
   nutrition: any = null,
   lastTrainingDate: string | null = null
 ) {
-  const totalSeconds = stayfree.reduce((a, b) => a + (b.duration_seconds || 0), 0);
-
-  const byDevice = stayfree.reduce((acc: any, curr: any) => {
-    acc[curr.device_name] = (acc[curr.device_name] || 0) + curr.duration_seconds;
-    return acc;
-  }, {});
-  const realTimeSeconds = Object.values(byDevice).length > 0
-    ? Math.max(...(Object.values(byDevice) as number[]))
-    : totalSeconds;
-
-  const overlapFactor = realTimeSeconds > 0 ? totalSeconds / realTimeSeconds : 1.0;
-  const unlocks = stayfree.length > 0 ? Math.max(...stayfree.map(d => d.unlocks || 0)) : 0;
-  const fragmentation = unlocks / ((realTimeSeconds / 3600) || 1);
-
-  const socialSeconds = stayfree
-    .filter(i => /messenger|facebook|instagram|tiktok|youtube|shorts/i.test(i.app_name))
-    .reduce((a, b) => a + b.duration_seconds, 0);
-
-  const dopamineLoad = totalSeconds > 0
-    ? (socialSeconds / totalSeconds) * overlapFactor * Math.max(fragmentation, 0.1)
-    : 0;
+  // StayFree signals are removed
+  const totalSeconds = 0;
+  const fragmentation = 0;
+  const dopamineLoad = 0;
+  const overlapFactor = 1.0;
 
   // Biological Vector
   const sleep = oura?.total_sleep_hours ?? null;
@@ -107,10 +91,10 @@ export function computeSignals(
   }
 
   return {
-    screen_time_min: Math.round(totalSeconds / 60),
-    fragmentation: parseFloat(fragmentation.toFixed(3)),
-    dopamine_load: parseFloat(dopamineLoad.toFixed(3)),
-    overlap_factor: parseFloat(overlapFactor.toFixed(2)),
+    screen_time_min: 0,
+    fragmentation: 0.0,
+    dopamine_load: 0.0,
+    overlap_factor: 1.0,
     sleep,
     hrv,
     rhr,
@@ -121,7 +105,7 @@ export function computeSignals(
     protein_grams: proteinConsumed,
     training_ratio: trainingRatio,
     confidence: {
-      digital: stayfree.length > 0 ? 0.95 : 0.1,
+      digital: 0.1,
       biometrics: sleep != null ? 0.9 : 0.2,
       execution: todayWin != null ? 1.0 : 0.5,
       nutrition: nutrition != null ? 1.0 : 0.0,
@@ -220,25 +204,22 @@ export class VanguardCore {
   calculateStabilityScore(current: any, baseline: any): number {
     const bl = baseline;
     
-    const executionScore = (current.execution_ratio || 0) * 30;
+    const executionScore = (current.execution_ratio || 0) * 35;
     const trainingScore = (current.training_ratio || 0) * 20;
     const proteinScore = (current.protein_ratio || 0) * 15;
 
     const zSleep = this._zScore(current.sleep, bl.means.sleep, bl.stdDevs.sleep);
-    const sleepScore = Math.max(0, Math.min(15, (zSleep + 2) * 3.75));
+    const sleepScore = Math.max(0, Math.min(20, (zSleep + 2) * 5.0));
 
     const zHrv = this._zScore(current.hrv, bl.means.hrv, bl.stdDevs.hrv);
     const hrvScore = Math.max(0, Math.min(10, (zHrv + 2) * 2.5));
-
-    const zDopa = this._zScore(current.dopamine_load, bl.means.dopamine_load, bl.stdDevs.dopamine_load);
-    const digitalScore = Math.max(0, Math.min(10, (2 - zDopa) * 2.5));
 
     let balanceModifier = 1.0;
     if (current.daily_rpe >= 8 && (current.sleep < 6.5 || current.hrv < bl.means.hrv)) {
       balanceModifier = 0.8;
     }
 
-    const total = (executionScore + trainingScore + proteinScore + sleepScore + hrvScore + digitalScore) * balanceModifier;
+    const total = (executionScore + trainingScore + proteinScore + sleepScore + hrvScore) * balanceModifier;
     return Math.round(total);
   }
 
@@ -272,18 +253,14 @@ export class VanguardCore {
 
     const zSleep = this._zScore(currentSignals.sleep,         bl.means.sleep,        bl.stdDevs.sleep);
     const zHrv   = this._zScore(currentSignals.hrv,           bl.means.hrv,          bl.stdDevs.hrv);
-    const zFrag  = -this._zScore(currentSignals.fragmentation, bl.means.fragmentation, bl.stdDevs.fragmentation);
-    const zDopa  = -this._zScore(currentSignals.dopamine_load, bl.means.dopamine_load, bl.stdDevs.dopamine_load);
 
     const biologicalScore = (zSleep + zHrv) / 2;
-    const digitalScore    = (zFrag + zDopa) / 2;
     const exec = currentSignals.execution_ratio ?? 0;
 
     let state = VANGUARD_STATES.MOMENTUM;
 
     if (biologicalScore < -2.0 && exec < 0.4)  state = VANGUARD_STATES.CHAOS;
     else if (biologicalScore < -1.0 && exec < 0.2)  state = VANGUARD_STATES.RECOVERY;
-    else if (digitalScore < -1.5)                   state = VANGUARD_STATES.CONSUMING;
     else if (exec === 1.0 && biologicalScore >= 0)  state = VANGUARD_STATES.LOCKED_IN;
     else if (exec >= 0.8)                           state = VANGUARD_STATES.MOMENTUM;
     else if (biologicalScore >= -0.5 && exec < 0.4) state = VANGUARD_STATES.AVOIDANCE;

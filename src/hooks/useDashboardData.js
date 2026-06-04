@@ -66,12 +66,8 @@ export function useDashboardData() {
       // --- NOWY SILNIK VANGUARD CORE ---
       const core = new VanguardCore(session.user.id, supabase);
       
-      // Pobieramy StayFree (Dopamina/Focus)
-      const { data: stayfreeData } = await supabase
-        .from('stayfree_usage')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('date', today);
+      // Pobieramy StayFree (Dopamina/Focus) - StayFree is dropped, using mock empty array
+      const stayfreeData = [];
 
       // Pobieramy datę ostatniego treningu
       const { data: lastWorkout } = await supabase
@@ -143,7 +139,6 @@ export function useDashboardData() {
       const res = await response.json();
       console.log('[syncYazio] odpowiedź:', res);
       if (res.success) {
-        const total = (res.results || []).reduce((s, r) => s + (r.calories || 0), 0);
         const dates = (res.results || []).map(r => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
         alert(`Sync OK\n${dates}`);
         await fetchData();

@@ -210,7 +210,7 @@ export default function Direction({ session }) {
 
       const [ouraRes, stayfreeRes, nutritionRes, lastWorkoutRes] = await Promise.all([
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today),
+        Promise.resolve({ data: [] }),
         supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
         supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ]);

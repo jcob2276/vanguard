@@ -124,6 +124,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [includeHabits, setIncludeHabits] = useState(true);
   const [includeWorkouts, setIncludeWorkouts] = useState(true);
   const [includeBody, setIncludeBody] = useState(true);
+  const [includeActivityWatch, setIncludeActivityWatch] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
@@ -310,11 +311,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         { data: habits },
         { data: habitLogs },
         { data: ouraData },
+        { data: ouraEnhanced },
+        { data: ouraDerived },
         { data: photos },
         { data: locationHistory },
         { data: fundament },
         { data: stravaData },
-        { data: stravaRawData }
+        { data: stravaRawData },
+        { data: awSummary }
       ] = await Promise.all([
         includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
@@ -327,11 +331,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         includeHabits ? supabase.from('habits').select('*').eq('user_id', session.user.id) : Promise.resolve({ data: [] }),
         includeHabits ? supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [] }),
         includeOura ? supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [] }),
+        includeOura ? supabase.from('oura_enhanced').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [] }),
+        includeOura ? supabase.from('oura_derived_daily').select('*').eq('user_id', session.user.id).gte('day', dateRange.from).lte('day', dateRange.to) : Promise.resolve({ data: [] }),
         supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
         supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
         supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
         includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] }),
-        includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [] })
+        includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [] }),
+        includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] })
       ]);
 
       const foodEntries = food || [];
@@ -374,6 +381,35 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       md += `# RAPORT TRENINGOWY I LIFESTYLE\n`;
       md += `Okres: ${dateRange.from} do ${dateRange.to}\n\n`;
 
+      // Averages helper for the new weekly dashboard
+      const getAvg = (arr, key, decimalPlaces = null) => {
+        const valid = (arr || []).filter(x => x[key] != null && Number(x[key]) > 0);
+        if (valid.length === 0) return '--';
+        const sum = valid.reduce((acc, x) => acc + Number(x[key]), 0);
+        const avg = sum / valid.length;
+        return decimalPlaces !== null ? avg.toFixed(decimalPlaces) : Math.round(avg);
+      };
+
+      const avgWeight = getAvg(bodyMetrics, 'weight', 2);
+      const avgWaist = getAvg(bodyMetrics, 'waist', 1);
+      const avgCalories = getAvg(nutritionEntries, 'calories');
+      const avgProtein = getAvg(nutritionEntries, 'protein');
+      const avgSteps = getAvg(ouraData, 'steps');
+      const avgSleep = getAvg(ouraData, 'total_sleep_hours', 2);
+      const avgReadiness = getAvg(ouraData, 'readiness_score');
+
+      md += `## 📊 PODSUMOWANIE TYGODNIA (DASHBOARD)\n\n`;
+      md += `| Metryka | Średnia Wartość |\n`;
+      md += `| :--- | :--- |\n`;
+      md += `| **Średnia waga** | ${avgWeight} kg |\n`;
+      md += `| **Średnia talia** | ${avgWaist} cm |\n`;
+      md += `| **Średnie kcal** | ${avgCalories} kcal |\n`;
+      md += `| **Średnie białko** | ${avgProtein} g |\n`;
+      md += `| **Treningi (siłowe)** | ${sessions.length} |\n`;
+      md += `| **Średnie kroki** | ${avgSteps} |\n`;
+      md += `| **Średni sen** | ${avgSleep} h |\n`;
+      md += `| **Średni Readiness** | ${avgReadiness} |\n\n`;
+
       if (goals) {
         md += `## 🎯 TWOJE CELE (KONTEKST)\n`;
         md += `- **Ciało:** ${goals.goal_cialo}\n`;
@@ -387,7 +423,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         ...nutritionEntries.map(n => n.date),
         ...journalEntries.map(j => j.date),
         ...telegramEntries.map(t => toWarsawDate(t.created_at)),
-        ...bodyMetrics.map(b => b.date)
+        ...bodyMetrics.map(b => b.date),
+        ...(awSummary || []).map(a => a.date)
       ])].sort();
 
       // Generate full date range to detect missing days
@@ -407,14 +444,23 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         const dayTelegramLogs = telegramEntries.filter(t => toWarsawDate(t.created_at) === dateStr);
         const dayBody = bodyMetrics.find(b => b.date === dateStr);
         const dayOura = ouraData?.find(o => o.date === dateStr);
+        const dayOuraEnhanced = (ouraEnhanced || []).find(o => o.date === dateStr);
+        const dayOuraDerived = (ouraDerived || []).find(o => o.day === dateStr);
         const dayPhotos = photos?.filter(p => p.date === dateStr);
         const dayStrava = (stravaData || []).filter(a => {
           const d = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
           return d === dateStr;
         });
+        const dayAw = includeActivityWatch ? (awSummary || []).find(a => a.date === dateStr) : null;
 
         // Header and Lose Day Logic
-        const hasAnyData = (includeWorkouts && (daySessions.length > 0 || dayStrava.length > 0)) || (includeYazio && (dayFood.length > 0 || dayNutrition)) || (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || (includeBody && dayBody) || (includeOura && dayOura) || dayPhotos?.length > 0;
+        const hasAnyData = (includeWorkouts && (daySessions.length > 0 || dayStrava.length > 0)) || 
+                           (includeYazio && (dayFood.length > 0 || dayNutrition)) || 
+                           (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || 
+                           (includeBody && dayBody) || 
+                           (includeOura && dayOura) || 
+                           dayPhotos?.length > 0 ||
+                           !!dayAw;
 
         if (!hasAnyData) {
           md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n`;
@@ -428,10 +474,92 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
         if (includeOura && dayOura) {
           md += `### 💍 Oura Ring\n`;
-          md += `- **Readiness:** ${dayOura.readiness_score || '--'}\n`;
-          md += `- **Sen:** ${dayOura.total_sleep_hours || '--'}h\n`;
-          md += `- **Kroki:** ${dayOura.steps || '--'}\n`;
+          md += `- **Readiness:** ${dayOura.readiness_score || '--'} | **Sleep Score:** ${dayOuraEnhanced?.sleep_score || '--'} | **Activity Score:** ${dayOuraEnhanced?.activity_score || '--'}\n`;
+          md += `- **Sen:** ${dayOura.total_sleep_hours || '--'}h`;
+          if (dayOuraEnhanced) {
+            const deepH = dayOuraEnhanced.deep_sleep_hours ? `${dayOuraEnhanced.deep_sleep_hours.toFixed(1)}h` : '--';
+            const remH = dayOuraEnhanced.rem_sleep_hours ? `${dayOuraEnhanced.rem_sleep_hours.toFixed(1)}h` : '--';
+            const lightH = dayOuraEnhanced.light_sleep_hours ? `${dayOuraEnhanced.light_sleep_hours.toFixed(1)}h` : '--';
+            const latencyMin = dayOuraEnhanced.sleep_latency_minutes ? `${dayOuraEnhanced.sleep_latency_minutes}m` : '--';
+            const efficiency = dayOuraEnhanced.sleep_efficiency ? `${dayOuraEnhanced.sleep_efficiency}%` : '--';
+            md += ` (Głęboki: ${deepH}, REM: ${remH}, Lekki: ${lightH}, Latencja: ${latencyMin}, Wydajność: ${efficiency})`;
+          }
+          md += `\n`;
+          md += `- **Kroki:** ${dayOura.steps || '--'}`;
+          if (dayOuraEnhanced?.active_calories) {
+            md += ` | **Aktywne kalorie:** ${dayOuraEnhanced.active_calories} kcal (Suma: ${dayOuraEnhanced.total_calories || '--'} kcal)`;
+          }
+          md += `\n`;
+          
+          if (dayOuraEnhanced || dayOuraDerived) {
+            const hrMin = dayOuraDerived?.sleep_hr_min || dayOuraEnhanced?.sleep_lowest_heart_rate || '--';
+            const hrAvg = dayOuraDerived?.sleep_hr_avg || dayOuraEnhanced?.sleep_average_heart_rate || '--';
+            const hrvAvg = dayOuraDerived?.sleep_hrv_avg || dayOuraEnhanced?.sleep_average_hrv || '--';
+            const hrvPeak = dayOuraDerived?.sleep_hrv_peak || '--';
+            md += `- **Tętno i HRV (Sen):** Min: ${hrMin} bpm | Średnie: ${hrAvg} bpm || Średnie HRV: ${hrvAvg} ms`;
+            if (hrvPeak !== '--') md += ` | Szczytowe HRV: ${hrvPeak} ms`;
+            md += `\n`;
+          }
+          
+          if (dayOuraEnhanced) {
+            const stressMin = dayOuraEnhanced.stress_high_minutes || 0;
+            const recovMin = dayOuraEnhanced.recovery_high_minutes || 0;
+            const resilience = dayOuraEnhanced.resilience_level || '--';
+            md += `- **Stres i Regeneracja:** Stres (wysoki): ${stressMin} min | Regeneracja: ${recovMin} min | Odporność (Resilience): ${resilience}\n`;
+            
+            const tempDev = dayOuraEnhanced.temperature_deviation != null ? `${dayOuraEnhanced.temperature_deviation > 0 ? '+' : ''}${dayOuraEnhanced.temperature_deviation.toFixed(2)}°C` : '--';
+            const vo2 = dayOuraEnhanced.vo2_max || '--';
+            const breathDisturb = dayOuraEnhanced.breathing_disturbance_index || '--';
+            md += `- **Biomarkery:** Temp: ${tempDev} | VO2 Max: ${vo2} | Zaburzenia oddychania: ${breathDisturb}\n`;
+          }
+          
           md += `- **Dyscyplina:** ${dayOura.is_disciplined ? 'TAK' : 'NIE'}\n\n`;
+        }
+
+        if (dayAw) {
+          const fmtSeconds = (totalSecs) => {
+            if (!totalSecs) return '0m';
+            const h = Math.floor(totalSecs / 3600);
+            const m = Math.floor((totalSecs % 3600) / 60);
+            if (h > 0) return `${h}h ${m}m`;
+            return `${m}m`;
+          };
+
+          const makeProgressBar = (ratio) => {
+            const size = 10;
+            const dots = Math.round(ratio * size);
+            const emptyDots = size - dots;
+            return '`[' + '█'.repeat(dots) + '░'.repeat(emptyDots) + ']`';
+          };
+
+          md += `### 💻 Aktywność na komputerze (ActivityWatch)\n`;
+          md += `- **Czas aktywności (PC):** ${fmtSeconds(dayAw.total_active_seconds)} (AFK: ${fmtSeconds(dayAw.total_afk_seconds)})\n`;
+          if (dayAw.phone_active_seconds) {
+            md += `- **Czas aktywności (telefon):** ${fmtSeconds(dayAw.phone_active_seconds)}\n`;
+          }
+          if (dayAw.productivity_ratio != null) {
+            const pct = Math.round(dayAw.productivity_ratio * 100);
+            md += `- **Ratio produktywności:** ${makeProgressBar(dayAw.productivity_ratio)} **${pct}%**\n`;
+          }
+          
+          if (dayAw.top_apps && dayAw.top_apps.length > 0) {
+            md += `- **Top aplikacje:**\n`;
+            dayAw.top_apps.slice(0, 5).forEach((app, idx) => {
+              const appSec = app.seconds || 0;
+              const appPct = dayAw.total_active_seconds ? Math.round((appSec / dayAw.total_active_seconds) * 100) : 0;
+              md += `  ${idx + 1}. \`${app.app}\` — ${fmtSeconds(appSec)} (${appPct}%)\n`;
+            });
+          }
+
+          if (dayAw.web_domains && dayAw.web_domains.length > 0) {
+            md += `- **Top domeny:**\n`;
+            dayAw.web_domains.slice(0, 5).forEach((domain, idx) => {
+              const domSec = domain.seconds || 0;
+              const domPct = dayAw.total_active_seconds ? Math.round((domSec / dayAw.total_active_seconds) * 100) : 0;
+              md += `  ${idx + 1}. \`${domain.domain}\` — ${fmtSeconds(domSec)} (${domPct}%)\n`;
+            });
+          }
+          md += `\n`;
         }
 
         if (dayPhotos && dayPhotos.length > 0) {
@@ -534,14 +662,26 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             const nextDate = new Date(new Date(runDate).getTime() + 86400000).toISOString().split('T')[0];
             const ouraPreRun  = ouraData?.find(o => o.date === runDate);
             const ouraPostRun = ouraData?.find(o => o.date === nextDate);
-            if (ouraPreRun?.hrv_avg || ouraPostRun?.hrv_avg) {
-              md += `**HRV (Oura):**`;
-              if (ouraPreRun?.hrv_avg)  md += ` przed: **${Math.round(ouraPreRun.hrv_avg)} ms**${ouraPreRun.rhr_avg ? ` (RHR ${Math.round(ouraPreRun.rhr_avg)} bpm)` : ''}`;
-              if (ouraPostRun?.hrv_avg) md += ` → po: **${Math.round(ouraPostRun.hrv_avg)} ms**${ouraPostRun.rhr_avg ? ` (RHR ${Math.round(ouraPostRun.rhr_avg)} bpm)` : ''}`;
-              const hrvDelta = (ouraPreRun?.hrv_avg && ouraPostRun?.hrv_avg)
-                ? Math.round(ouraPostRun.hrv_avg - ouraPreRun.hrv_avg) : null;
-              if (hrvDelta !== null) md += ` _(${hrvDelta >= 0 ? '+' : ''}${hrvDelta} ms regeneracja)_`;
-              md += `\n`;
+            const enhancedPre = (ouraEnhanced || [])?.find(o => o.date === runDate);
+
+            if (ouraPreRun?.hrv_avg || ouraPostRun?.hrv_avg || enhancedPre?.vo2_max || enhancedPre?.temperature_deviation != null) {
+              md += `**Kontekst Biometryczny (Oura):**\n`;
+              if (ouraPreRun?.hrv_avg || ouraPostRun?.hrv_avg) {
+                md += `- **HRV:**`;
+                if (ouraPreRun?.hrv_avg)  md += ` przed: **${Math.round(ouraPreRun.hrv_avg)} ms**${ouraPreRun.rhr_avg ? ` (RHR ${Math.round(ouraPreRun.rhr_avg)} bpm)` : ''}`;
+                if (ouraPostRun?.hrv_avg) md += ` → po: **${Math.round(ouraPostRun.hrv_avg)} ms**${ouraPostRun.rhr_avg ? ` (RHR ${Math.round(ouraPostRun.rhr_avg)} bpm)` : ''}`;
+                const hrvDelta = (ouraPreRun?.hrv_avg && ouraPostRun?.hrv_avg)
+                  ? Math.round(ouraPostRun.hrv_avg - ouraPreRun.hrv_avg) : null;
+                if (hrvDelta !== null) md += ` _(${hrvDelta >= 0 ? '+' : ''}${hrvDelta} ms regeneracja)_`;
+                md += `\n`;
+              }
+              if (enhancedPre?.vo2_max) {
+                md += `- **VO2 Max:** ${enhancedPre.vo2_max} ml/kg/min\n`;
+              }
+              if (enhancedPre?.temperature_deviation != null) {
+                const tempDev = enhancedPre.temperature_deviation;
+                md += `- **Odchylenie temperatury ciała:** ${tempDev > 0 ? '+' : ''}${tempDev.toFixed(2)}°C\n`;
+              }
             }
 
             if (a.total_elevation_gain) md += `**Przewyższenie:** +${Math.round(a.total_elevation_gain)} m\n`;
@@ -619,14 +759,26 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             const totalFat = dayFood.reduce((sum, f) => sum + (Number(f.fat) || 0), 0);
             const totalFiber = dayFood.reduce((sum, f) => sum + (Number(f.fiber) || 0), 0);
             const totalSugar = dayFood.reduce((sum, f) => sum + (Number(f.sugar) || 0), 0);
-            const fiberSugarStr = [totalFiber > 0 ? `Bł: ${totalFiber.toFixed(1)}g` : null, totalSugar > 0 ? `Cuk: ${totalSugar.toFixed(1)}g` : null].filter(Boolean).join(' | ');
+
+            const proteinDensity = totalCal > 0 ? ((totalProt / totalCal) * 100).toFixed(1) : '0.0';
+            const sugarAlert = totalSugar > 50 ? ' ⚠️ (Wysoki cukier!)' : '';
+            const fiberSugarStr = [
+              totalFiber > 0 ? `Bł: ${totalFiber.toFixed(1)}g` : null,
+              totalSugar > 0 ? `Cuk: ${totalSugar.toFixed(1)}g${sugarAlert}` : null
+            ].filter(Boolean).join(' | ');
+
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal_\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
               ? `Nie udało się pobrać szczegółowych produktów z \`daily_food_entries\`: ${foodError.message}\n\n`
               : `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;
-            md += `**Suma dnia: ${dayNutrition.calories || 0} kcal | B: ${Number(dayNutrition.protein || 0).toFixed(1)}g**\n`;
+            const calories = dayNutrition.calories || 0;
+            const protein = Number(dayNutrition.protein || 0);
+            const density = calories > 0 ? ((protein / calories) * 100).toFixed(1) : '0.0';
+            md += `**Suma dnia: ${calories} kcal | B: ${protein.toFixed(1)}g**\n`;
+            md += `_Gęstość białka: ${density}g / 100 kcal_\n\n`;
           }
         }
         if (includeJournal && dayTelegramLogs.length > 0) {
@@ -1017,6 +1169,13 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               {includeHabits && <CheckSquare size={10} />}
             </div>
             <span className="text-[10px] font-black uppercase">Nawyki</span>
+          </button>
+
+          <button onClick={() => setIncludeActivityWatch(!includeActivityWatch)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeActivityWatch ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
+              {includeActivityWatch && <CheckSquare size={10} />}
+            </div>
+            <span className="text-[10px] font-black uppercase">Aktywność komputera (ActivityWatch)</span>
           </button>
 
         </div>
