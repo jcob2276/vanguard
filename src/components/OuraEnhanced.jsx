@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -37,9 +37,7 @@ export default function OuraEnhanced({ session }) {
   const [loadVsRecovery, setLoadVsRecovery] = useState([]);
   const [dataIssues, setDataIssues] = useState([]);
 
-  useEffect(() => { fetchAll(); }, [session.user.id]);
-
-  async function fetchAll() {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const uid = session.user.id;
@@ -68,9 +66,9 @@ export default function OuraEnhanced({ session }) {
 
       // Wiek naczyniowy — trend w czasie (tylko dni gdzie mamy wartość)
       const vt = (enh.data || [])
-        .filter(r => r.vascular_age != null)
-        .reverse()
-        .map(r => ({ date: r.date.slice(5), age: r.vascular_age }));
+         .filter(r => r.vascular_age != null)
+         .reverse()
+         .map(r => ({ date: r.date.slice(5), age: r.vascular_age }));
       setVascularTrend(vt);
 
       // Obciążenie treningowe vs Readiness nazajutrz
@@ -93,7 +91,13 @@ export default function OuraEnhanced({ session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      fetchAll();
+    }, 0);
+  }, [fetchAll]);
 
   if (loading) {
     return (
@@ -185,7 +189,7 @@ export default function OuraEnhanced({ session }) {
               />
             )}
             <div className={`h-40 -ml-2 ${zonesChart.length === 0 ? 'hidden' : ''}`}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={160} minWidth={0}>
                 <BarChart data={zonesChart} barSize={8}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                   <XAxis dataKey="date" stroke="#525252" fontSize={7} />
@@ -215,7 +219,7 @@ export default function OuraEnhanced({ session }) {
                 Min. intensywnych (Z4+Z5) → Readiness następnego dnia
               </p>
               <div className="h-36 -ml-2">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={144} minWidth={0}>
                   <LineChart data={loadVsRecovery}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                     <XAxis dataKey="date" stroke="#525252" fontSize={7} />
@@ -239,7 +243,7 @@ export default function OuraEnhanced({ session }) {
                 <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">Wiek naczyniowy — trend</p>
               </div>
               <div className="h-28 -ml-2">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={112} minWidth={0}>
                   <LineChart data={vascularTrend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                     <XAxis dataKey="date" stroke="#525252" fontSize={7} />

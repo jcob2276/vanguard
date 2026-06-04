@@ -54,10 +54,6 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchIdentity();
-  }, []);
-
   async function fetchIdentity() {
     const { data: auth } = await supabase.auth.getSession();
     if (!auth.session) return;
@@ -78,6 +74,12 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    setTimeout(() => {
+      fetchIdentity();
+    }, 0);
+  }, []);
 
   async function saveIdentity() {
     setSaving(true);

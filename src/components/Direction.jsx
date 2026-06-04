@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   AlertCircle,
   Calendar,
@@ -145,11 +145,7 @@ export default function Direction({ session }) {
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-  useEffect(() => {
-    if (session?.user?.id) fetchData();
-  }, [session?.user?.id]);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const today = todayDate();
 
@@ -198,7 +194,13 @@ export default function Direction({ session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session, isSunday, currentWeekStart]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (session?.user?.id) fetchData();
+    }, 0);
+  }, [session?.user?.id, fetchData]);
 
   useEffect(() => {
     async function checkDrift() {
@@ -290,7 +292,7 @@ export default function Direction({ session }) {
   );
 
   async function saveLifeGoals() {
-    const { id, created_at, ...goalsToSave } = lifeGoals;
+    const { id: _id, created_at: _created_at, ...goalsToSave } = lifeGoals;
     const { error } = await supabase
       .from('life_goals')
       .upsert({ user_id: session.user.id, ...goalsToSave }, { onConflict: 'user_id' });

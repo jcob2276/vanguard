@@ -93,8 +93,6 @@ export default function StravaWidget({ session }) {
 
   const fetchActivities = useCallback(async () => {
     if (!session?.user?.id) return;
-    setLoading(true);
-    setError(null);
 
     try {
       const { data, error: err } = await supabase
@@ -116,7 +114,9 @@ export default function StravaWidget({ session }) {
   }, [session]);
 
   useEffect(() => {
-    fetchActivities();
+    setTimeout(() => {
+      fetchActivities();
+    }, 0);
   }, [fetchActivities]);
 
   async function handleSync() {
@@ -132,6 +132,7 @@ export default function StravaWidget({ session }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setLoading(true);
       await fetchActivities();
     } catch (e) {
       console.error('[StravaWidget] sync error:', e);

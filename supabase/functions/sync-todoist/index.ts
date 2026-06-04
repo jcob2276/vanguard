@@ -27,7 +27,7 @@ serve(async (req) => {
     const token = settings.todoist_token
 
     // 2. Pobierz aktywne zadania z Todoist
-    const response = await fetch('https://api.todoist.com/rest/v2/tasks', {
+    const response = await fetch('https://api.todoist.com/api/v1/tasks', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
