@@ -319,7 +319,10 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
           </button>
 
           {current1RM > 0 && (
-            <div className="flex justify-end pt-0.5">
+            <div className="flex justify-between items-center pt-1 border-t border-white/[0.04] mt-2">
+              <span className="text-[9px] font-black text-white/30 uppercase tracking-wider">
+                Objętość: {sets.reduce((sum, s) => sum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0).toLocaleString()} kg
+              </span>
               <span className="text-[9px] font-black text-white/25 tabular-nums">~{current1RM.toFixed(1)} kg 1RM</span>
             </div>
           )}
@@ -551,7 +554,20 @@ export default function WorkoutLogger({ session, onBack }) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-white/[0.07]">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-white/[0.07] space-y-3">
+        {(() => {
+          const totalVol = exercises.reduce((sum, ex) => {
+            const exVol = (ex.sets || []).reduce((sSum, s) => sSum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0);
+            return sum + exVol;
+          }, 0);
+          if (totalVol === 0) return null;
+          return (
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Suma Objętości:</span>
+              <span className="text-[12px] font-black text-primary tracking-wide">{totalVol.toLocaleString()} kg</span>
+            </div>
+          );
+        })()}
         <button onClick={save} disabled={saving}
           className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
           <Save size={15} />

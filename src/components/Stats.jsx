@@ -608,11 +608,33 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
         if (includeWorkouts) daySessions.forEach(s => {
           md += `### 🏋️ Trening: Dzień ${s.workout_day}\n`;
+          let totalSessionVolume = 0;
+          
+          // Group logs by exercise to calculate individual tonnage
+          const exerciseGroups = {};
           s.exercise_logs.forEach(l => {
-            const effort = l.rir ?? l.rpe ?? '--';
-            md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (RIR/MSP: ${effort}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
+            if (!exerciseGroups[l.exercise_name]) {
+              exerciseGroups[l.exercise_name] = [];
+            }
+            exerciseGroups[l.exercise_name].push(l);
           });
-          md += `\n`;
+
+          Object.entries(exerciseGroups).forEach(([name, logs]) => {
+            const exVolume = logs.reduce((sum, l) => sum + (Number(l.weight) || 0) * (Number(l.reps) || 0), 0);
+            totalSessionVolume += exVolume;
+            
+            md += `- **${name}** (Objętość: ${exVolume.toLocaleString()} kg):\n`;
+            logs.forEach((l, idx) => {
+              const effort = l.rir ?? l.rpe ?? '--';
+              md += `  - Seria ${idx + 1}: ${l.weight}kg x ${l.reps} (RIR/MSP: ${effort}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
+            });
+          });
+
+          if (totalSessionVolume > 0) {
+            md += `**Łączna objętość treningu:** **${totalSessionVolume.toLocaleString()} kg**\n\n`;
+          } else {
+            md += `\n`;
+          }
         });
 
         if (includeWorkouts && dayStrava.length > 0) {
