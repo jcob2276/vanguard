@@ -13,7 +13,7 @@ import { getRecentStrongBehavioralPatterns, getRecentEarlyWarnings } from "../..
 export async function handleIncomingMessage(
   message: {
     text?: string;
-    voice?: { file_id: string };
+    voice?: { file_id: string; duration?: number };
     message_id: number;
     chat: { id: number };
   },
@@ -73,7 +73,7 @@ export async function handleIncomingMessage(
         if (!skipListenMsg) {
           await safeSendTelegram(chatId, "🎤 Słucham...", telegramToken, { disable_notification: true });
         }
-        text = await transcribeAudio(message.voice.file_id, telegramToken, openAiKey);
+        text = await transcribeAudio(message.voice!.file_id, telegramToken, openAiKey);
       }
 
       // Idempotency guard
@@ -283,7 +283,14 @@ export async function handleIncomingMessage(
       // --- Stream recording ---
       if (mode !== 'knowledge') {
         let streamEmbedding = null;
-        let emotionData: { valence: number; arousal: number; state: string } | null = null;
+        let emotionData: { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null = null;
+
+        const voiceDurationSec = message.voice?.duration || 0;
+        let voiceWpm: number | null = null;
+        if (isVoice && voiceDurationSec > 0) {
+          const wordCount = cleanText.trim().split(/\s+/).filter(Boolean).length;
+          voiceWpm = Math.round(wordCount / (voiceDurationSec / 60));
+        }
 
         try {
           const [embedRes, emotionRes] = await Promise.all([
@@ -292,8 +299,8 @@ export async function handleIncomingMessage(
               method: 'POST',
               headers: { 'Authorization': `Bearer ${deepseekApiKey}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                model: 'deepseek-v4-flash', temperature: 0.1, max_tokens: 80,
-                messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"state":"nazwa"}\nvalence: -1.0(bardzo negatywny)→1.0(bardzo pozytywny), arousal: 0.0(spokojny)→1.0(bardzo pobudzony), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość).\nTEKST: "${cleanText.substring(0, 400)}"` }]
+                model: 'deepseek-v4-flash', temperature: 0.1, max_tokens: 100,
+                messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"` }]
               })
             }).catch((e) => {
               console.error('[telegram] Deepseek emotion fetch exception:', e);
@@ -337,6 +344,7 @@ export async function handleIncomingMessage(
             telegram_message_id: messageId,
             mode,
             ...(pendingReconciliation ? { reconciliation_id: pendingReconciliation.id, reconciliation_date: pendingReconciliation.date } : {}),
+            ...(isVoice && voiceDurationSec > 0 ? { voice_duration_seconds: voiceDurationSec, voice_wpm: voiceWpm } : {}),
             ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
           }
         }).select('id').single();
@@ -540,7 +548,7 @@ export async function handleIncomingMessage(
             if (chatInsertRes.error) { console.error('[telegram] ai_chat_messages insert error:', chatInsertRes.error); }
             else {
               const { data: oldMsgs } = await supabase.from('ai_chat_messages').select('id').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).range(200, 9999);
-              if (oldMsgs?.length > 0) {
+              if (oldMsgs && oldMsgs.length > 0) {
                 await supabase.from('ai_chat_messages').delete().in('id', oldMsgs.map((m: any) => m.id))
                   .then(({ error: e }: any) => { if (e) console.error('[telegram] ai_chat_messages trim error:', e); });
               }
@@ -553,7 +561,7 @@ export async function handleIncomingMessage(
       // Skip if a dedicated handler (reconciliation/rescue/saturday) already sent its own message.
       if (handlerResponded) {
         console.log('[telegram] handler already responded — skipping final responseText send');
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return;
       }
 
       const hasButtons = shouldRespond && !responseText.startsWith('⚠️') && mode !== 'planning';
