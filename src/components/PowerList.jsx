@@ -84,17 +84,20 @@ export default function PowerList({ session, todayWin, onUpdate }) {
   return (
     <section className="space-y-4">
       <div className="flex justify-between items-end">
-        <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-          <Target size={12} className="text-primary" /> Power List Execution
+        <h3 className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
+          <Target size={12} className="text-primary" /> 5 zwycięstw
         </h3>
         {todayWin?.result === 'Z' && (
-          <div className="bg-dayC/10 text-dayC px-2 py-0.5 rounded text-[8px] font-black uppercase border border-dayC/20 animate-pulse">Executed</div>
+          <div className="rounded-md border border-dayC/20 bg-dayC/10 px-2 py-0.5 text-[8px] font-black uppercase text-dayC">Executed</div>
         )}
       </div>
 
       {!todayWin ? (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h3 className="text-[10px] font-black text-white uppercase tracking-widest text-center">Zdefiniuj 5 Zwycięstw</h3>
+        <div className="space-y-4 rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(12,12,13,0.96))] p-5 shadow-2xl shadow-black/30">
+          <div>
+            <h3 className="text-[13px] font-black uppercase tracking-[0.12em] text-white">Zdefiniuj 5 zwycięstw</h3>
+            <p className="mt-1 text-[10px] font-bold leading-relaxed text-white/35">To zostaje na głównym ekranie jako plan dnia.</p>
+          </div>
           <div className="space-y-3">
             {newTaskForm.map((t, i) => (
               <input 
@@ -104,12 +107,12 @@ export default function PowerList({ session, todayWin, onUpdate }) {
                 onChange={(e) => {
                   const n = [...newTaskForm]; n[i].task = e.target.value; setNewTaskForm(n);
                 }}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[11px] font-bold text-white outline-none focus:border-primary placeholder:text-neutral-800 transition-all"
+                className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none transition-all placeholder:text-white/16 focus:border-primary/70 focus:bg-black/65"
               />
             ))}
           </div>
-          <button onClick={startNewDay} className="w-full bg-primary text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <Upload size={14} /> Zatwierdź Operację
+          <button onClick={startNewDay} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.99]">
+            <Upload size={14} /> Zatwierdź operację
           </button>
         </div>
       ) : (
@@ -123,16 +126,16 @@ export default function PowerList({ session, todayWin, onUpdate }) {
               <button 
                 key={i} 
                 onClick={() => toggleTask(i)}
-                className={`w-full bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex items-center justify-between group transition-all ${done ? 'opacity-30 grayscale' : 'hover:bg-neutral-800/50 hover:border-primary/30'}`}
+                className={`group flex w-full items-center justify-between rounded-lg border border-white/[0.07] bg-neutral-950/80 p-4 transition-all ${done ? 'opacity-38 grayscale' : 'hover:border-primary/30 hover:bg-white/[0.04]'}`}
               >
                 <div className="flex items-center gap-4 text-left">
-                  <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${done ? 'bg-dayC border-dayC text-white shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'border-neutral-800 text-transparent'}`}>
+                  <div className={`flex h-6 w-6 items-center justify-center rounded-md border transition-all ${done ? 'bg-dayC border-dayC text-white shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'border-white/[0.1] text-transparent'}`}>
                     <CheckSquare size={14} />
                   </div>
-                  <div>
-                    <p className={`text-[12px] font-black uppercase italic tracking-tight ${done ? 'line-through text-neutral-600' : 'text-white'}`}>{task}</p>
+                  <div className="min-w-0">
+                    <p className={`text-[12px] font-black uppercase tracking-[0.04em] ${done ? 'line-through text-white/25' : 'text-white/88'}`}>{task}</p>
                     {done && completedAt && (
-                      <p className="text-[8px] font-bold text-dayC/60 mt-0.5">COMPLETED AT {format(new Date(completedAt), 'HH:mm')}</p>
+                      <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-dayC/60">Completed at {format(new Date(completedAt), 'HH:mm')}</p>
                     )}
                   </div>
                 </div>
@@ -141,9 +144,9 @@ export default function PowerList({ session, todayWin, onUpdate }) {
           })}
 
           {/* RPE Selector */}
-          <div className="mt-8 pt-6 border-t border-neutral-800 space-y-4">
+          <div className="mt-6 space-y-4 border-t border-white/[0.07] pt-5">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Daily Effort (RPE)</h4>
+              <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Daily Effort</h4>
               <span className="text-[14px] font-black text-primary">{todayWin.daily_rpe || '-'}</span>
             </div>
             <div className="flex justify-between gap-1">
@@ -151,13 +154,13 @@ export default function PowerList({ session, todayWin, onUpdate }) {
                 <button
                   key={val}
                   onClick={() => updateRPE(val)}
-                  className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${todayWin.daily_rpe === val ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-neutral-950 text-neutral-600 hover:bg-neutral-800'}`}
+                  className={`flex-1 rounded-md py-2 text-[10px] font-black transition-all ${todayWin.daily_rpe === val ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-neutral-950 text-white/28 hover:bg-white/[0.06]'}`}
                 >
                   {val}
                 </button>
               ))}
             </div>
-            <p className="text-[8px] font-bold text-neutral-600 text-center uppercase tracking-tighter">
+            <p className="text-center text-[8px] font-bold uppercase tracking-tighter text-white/22">
               1 = Spacer w słońcu | 10 = Walka o życie (Kortyzol Peak)
             </p>
           </div>

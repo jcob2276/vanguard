@@ -348,12 +348,14 @@ export default function WorkoutLogger({ session, onBack }) {
         ex.sets.map((s, i) => ({
           exercise_name: ex.name.trim(), set_number: i + 1,
           weight: parseFloat(s.kg) || 0, reps: parseInt(s.reps) || 0,
+          rir: s.rir !== '' ? parseFloat(s.rir) : null,
           rpe: s.rir !== '' ? parseFloat(s.rir) : null,
+          muscle_tags: ex.tags ?? [],
         }))
       );
       const acLogs = validAc.map((a, i) => ({
         exercise_name: a.note.trim() ? `${a.name.trim()} — ${a.note.trim()}` : a.name.trim(),
-        set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null,
+        set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null, rir: null, muscle_tags: [],
       }));
 
       const { error } = await supabase.rpc('save_workout_atomic', {

@@ -1,19 +1,127 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  Calendar,
+  CheckSquare,
+  Compass,
+  Edit2,
+  Flag,
+  Plus,
+  RotateCw,
+  Save,
+  Shield,
+  Square,
+  Target,
+  Trash2,
+  TrendingUp,
+  Trophy,
+  Wallet,
+  X,
+  Zap,
+} from 'lucide-react';
+import { differenceInDays, endOfWeek, format, isWithinInterval, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import { Compass, Target, Shield, Wallet, CheckSquare, Square, Save, Edit2, TrendingUp, Calendar, Zap, AlertCircle, Plus, Trash2, X, Smile, Meh, Frown, Laugh, Angry, Star, Mic, RotateCw, Trophy, Activity } from 'lucide-react';
-import { format, subDays, startOfDay, parseISO, differenceInDays, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
-import StayFreeSync from './StayFreeSync';
-import ManifestationBoard from './ManifestationBoard';
 
-const TrendArrow = ({ current, previous, better = 'up' }) => {
-  if (previous === undefined || previous === null || current === undefined || current === null) return null;
-  const diff = current - previous;
-  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
-  const isImproving = better === 'up' ? diff > 0 : diff < 0;
-  return <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>{diff > 0 ? '↑' : '↓'}</span>;
-};
+const todayDate = () => format(new Date(), 'yyyy-MM-dd');
+
+function daysUntil(date) {
+  if (!date) return null;
+  return differenceInDays(parseISO(date), new Date());
+}
+
+function SectionTitle({ icon: Icon, title, detail, action }) {
+  return (
+    <header className="flex items-end justify-between gap-4">
+      <div>
+        <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
+          <Icon size={12} /> {title}
+        </p>
+        {detail && <p className="mt-1 text-[11px] font-semibold leading-relaxed text-white/38">{detail}</p>}
+      </div>
+      {action}
+    </header>
+  );
+}
+
+function MiniStat({ label, value, tone = 'text-white', detail }) {
+  return (
+    <div className="rounded-lg border border-white/[0.07] bg-neutral-950/70 p-4">
+      <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">{label}</p>
+      <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone}`}>{value}</p>
+      {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-white/25">{detail}</p>}
+    </div>
+  );
+}
+
+function GoalCard({ goal, isEditing, lifeGoals, setLifeGoals }) {
+  const left = daysUntil(lifeGoals[goal.dateKey]);
+  const urgent = left !== null && left <= 45;
+
+  return (
+    <article className="rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(10,10,11,0.96))] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className={`flex h-7 w-7 items-center justify-center rounded-lg border ${goal.border} ${goal.bg}`}>
+            <goal.icon size={14} className={goal.tone} />
+          </div>
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/36">{goal.label}</p>
+        </div>
+        {left !== null && (
+          <span className={`rounded-md border px-2 py-1 text-[8px] font-black uppercase tracking-widest ${urgent ? 'border-orange-400/25 bg-orange-400/10 text-orange-300' : 'border-primary/20 bg-primary/10 text-primary'}`}>
+            {left} dni
+          </span>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          <textarea
+            value={lifeGoals[goal.key] || ''}
+            onChange={(e) => setLifeGoals({ ...lifeGoals, [goal.key]: e.target.value })}
+            rows={2}
+            className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none focus:border-primary/70"
+          />
+          <input
+            type="date"
+            value={lifeGoals[goal.dateKey] || ''}
+            onChange={(e) => setLifeGoals({ ...lifeGoals, [goal.dateKey]: e.target.value })}
+            className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[11px] font-bold text-white outline-none focus:border-primary/70"
+          />
+        </div>
+      ) : (
+        <p className="min-h-[44px] text-[13px] font-black uppercase leading-tight text-white">
+          {lifeGoals[goal.key] || 'Brak zdefiniowanego celu'}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function HabitStrip({ habit, logs }) {
+  return (
+    <div className="flex h-3 gap-1 overflow-hidden">
+      {Array.from({ length: 30 }).map((_, index) => {
+        const date = format(subDays(new Date(), 29 - index), 'yyyy-MM-dd');
+        const hasLog = logs.some((log) => log.habit_id === habit.id && log.date === date);
+        const status = habit.is_positive ? (hasLog ? 'good' : date === todayDate() ? 'open' : 'miss') : hasLog ? 'miss' : 'good';
+        return (
+          <div
+            key={date}
+            title={date}
+            className={`flex-1 rounded-sm ${
+              status === 'good'
+                ? 'bg-dayC'
+                : status === 'miss'
+                ? 'bg-dayB'
+                : 'border border-white/[0.08] bg-neutral-950'
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Direction({ session }) {
   const [loading, setLoading] = useState(true);
@@ -21,75 +129,61 @@ export default function Direction({ session }) {
   const [isEditingGoals, setIsEditingGoals] = useState(false);
   const [todayWin, setTodayWin] = useState(null);
   const [history, setHistory] = useState([]);
-  const [newTaskForm, setNewTaskForm] = useState([
-    { task: '', category: 'cialo' },
-    { task: '', category: 'duch' },
-    { task: '', category: 'konto' },
-    { task: '', category: 'cialo' },
-    { task: '', category: 'duch' },
-  ]);
   const [habits, setHabits] = useState([]);
   const [habitLogs, setHabitLogs] = useState([]);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
-  const [newHabit, setNewHabit] = useState({ name: '', icon: '💪', is_positive: true });
-  const [tomorrowWin, setTomorrowWin] = useState(null);
-  const [isPlanningTomorrow, setIsPlanningTomorrow] = useState(false);
+  const [newHabit, setNewHabit] = useState({ name: '', icon: 'X', is_positive: true });
   const [currentReview, setCurrentReview] = useState(null);
   const [reviewForm, setReviewForm] = useState({ proud_of: '', sabotage: '', do_differently: '' });
+  const [currentState, setCurrentState] = useState('CALIBRATING');
+  const [lenieForm, setLenieForm] = useState({
+    date: todayDate(),
+    final_stimulus: '',
+    context_note: '',
+  });
+
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const [showStayFree, setShowStayFree] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchData();
-    }
+    if (session?.user?.id) fetchData();
   }, [session?.user?.id]);
 
   async function fetchData() {
     setLoading(true);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const tomorrow = format(subDays(new Date(), -1), 'yyyy-MM-dd');
+    const today = todayDate();
 
     try {
       const [
         { data: goals },
         { data: todayData },
-        { data: tomorrowData },
         { data: historyData },
         { data: habitsData },
         { data: logsData },
-        { data: reviewData }
+        { data: reviewData },
       ] = await Promise.all([
         supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', tomorrow).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('habits').select('*').eq('user_id', session.user.id),
-        supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', subDays(new Date(), 30).toISOString().split('T')[0]),
-        isSunday ? supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).eq('week_start', currentWeekStart).maybeSingle() : Promise.resolve({ data: null })
+        supabase.from('habits').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }),
+        supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', subDays(new Date(), 45).toISOString().split('T')[0]),
+        isSunday
+          ? supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).eq('week_start', currentWeekStart).maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
-      
+
       if (goals) setLifeGoals(goals);
       setTodayWin(todayData);
-      setTomorrowWin(tomorrowData);
       setHistory(historyData || []);
       setHabits(habitsData || []);
       setHabitLogs(logsData || []);
       if (reviewData) setCurrentReview(reviewData);
 
-      // Auto-finalize logic - only for PAST days
-      const pastUnfinished = historyData?.filter(d => d.date < today && d.result === null) || [];
-      
+      const pastUnfinished = historyData?.filter((day) => day.date < today && day.result === null) || [];
       if (pastUnfinished.length > 0) {
-        const ids = pastUnfinished.map(d => d.id);
-        const { error: updateError } = await supabase
-          .from('daily_wins')
-          .update({ result: 'P' })
-          .in('id', ids);
-
-        if (!updateError) {
-          // Refresh history with a single efficient query
+        const ids = pastUnfinished.map((day) => day.id);
+        const { error } = await supabase.from('daily_wins').update({ result: 'P' }).in('id', ids);
+        if (!error) {
           const { data: updatedHistory } = await supabase
             .from('daily_wins')
             .select('*')
@@ -100,599 +194,512 @@ export default function Direction({ session }) {
         }
       }
     } catch (err) {
-      console.error('Fetch Data Error:', err);
+      console.error('Fetch Direction Error:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  const stats = useMemo(() => {
-    if (!history.length) return { streak: 0, weeklyWin: false, monthlyWin: false, weeks: [] };
-
-    // Streak
-    let streak = 0;
-    const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-    
-    if (sortedHistory[0]?.date === todayStr || sortedHistory[0]?.date === yesterdayStr) {
-      for (const day of sortedHistory) {
-        if (day.result === 'Z') streak++;
-        else if (day.date !== todayStr) break;
-      }
-    }
-
-    // Weekly/Monthly logic
-    const START_DATE_OBJ = parseISO('2026-05-03');
-    const weeks = [];
-    for (let i = 0; i < 4; i++) {
-      const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
-      const end = endOfWeek(start, { weekStartsOn: 1 });
-      const weekDays = history.filter(d => {
-        const dDate = parseISO(d.date);
-        return dDate >= start && dDate <= end;
-      });
-      
-      const today = startOfDay(new Date());
-      let expectedPastDays;
-      
-      if (isWithinInterval(today, { start, end })) {
-        expectedPastDays = differenceInDays(today, start);
-      } else {
-        expectedPastDays = 7;
-      }
-
-      // Liczymy ile dni w historii tego tygodnia to porażki 'P' 
-      // ORAZ ile dni w przeszłości tego tygodnia w ogóle nie ma wpisu
-      const zCount = weekDays.filter(d => d.result === 'Z').length;
-      const explicitPCount = weekDays.filter(d => d.result === 'P').length;
-      
-      // Sprawdzamy brakujące dni TYLKO dla dat < dzisiaj
-      let missingDaysCount = 0;
-      for (let d = 0; d < expectedPastDays; d++) {
-        const checkDate = format(subDays(today, expectedPastDays - d), 'yyyy-MM-dd');
-        const hasEntry = weekDays.some(wd => wd.date === checkDate);
-        if (!hasEntry && checkDate >= '2026-05-03') {
-          missingDaysCount++;
-        }
-      }
-
-      const pCount = explicitPCount + missingDaysCount;
-      weeks.push({ isWeekWin: pCount <= 2 && (expectedPastDays > 0 || weekDays.length > 0), pCount, zCount, start });
-    }
-
-    return { streak, weeklyWin: weeks[0]?.isWeekWin, weeklyP: weeks[0]?.pCount, monthlyWin: weeks.filter(w => w.isWeekWin).length >= 3, weeks };
-  }, [history]);
-
-  const { streak, weeklyWin, weeklyP, monthlyWin, weeks } = stats;
-
-  const [currentState, setCurrentState] = useState('CALIBRATING');
-
   useEffect(() => {
     async function checkDrift() {
       if (loading || !session?.user?.id) return;
-      
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const today = todayDate();
       const core = new VanguardCore(session.user.id, supabase);
 
       const [ouraRes, stayfreeRes, nutritionRes, lastWorkoutRes] = await Promise.all([
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('stayfree_usage').select('*').eq('user_id', session.user.id).eq('date', today),
         supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle()
+        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       const signals = computeSignals(
-        stayfreeRes.data || [], 
-        ouraRes.data, 
+        stayfreeRes.data || [],
+        ouraRes.data,
         todayWin,
         nutritionRes.data,
         lastWorkoutRes.data?.date
       );
       const baseline = await core.getPersonalBaseline();
       const { state } = await core.determineState(signals, baseline);
-      
       setCurrentState(state);
     }
+
     checkDrift();
   }, [loading, todayWin, session?.user?.id]);
 
+  const stats = useMemo(() => {
+    if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
+
+    let streak = 0;
+    const sorted = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const today = todayDate();
+    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+    if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
+      for (const day of sorted) {
+        if (day.result === 'Z') streak++;
+        else if (day.date !== today) break;
+      }
+    }
+
+    const weeks = [];
+    for (let i = 0; i < 4; i++) {
+      const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
+      const end = endOfWeek(start, { weekStartsOn: 1 });
+      const weekDays = history.filter((day) => {
+        const date = parseISO(day.date);
+        return date >= start && date <= end;
+      });
+
+      const now = startOfDay(new Date());
+      const expectedPastDays = isWithinInterval(now, { start, end }) ? differenceInDays(now, start) : 7;
+      const explicitP = weekDays.filter((day) => day.result === 'P').length;
+      let missing = 0;
+
+      for (let day = 0; day < expectedPastDays; day++) {
+        const checkDate = format(subDays(now, expectedPastDays - day), 'yyyy-MM-dd');
+        const hasEntry = weekDays.some((entry) => entry.date === checkDate);
+        if (!hasEntry && checkDate >= '2026-05-03') missing++;
+      }
+
+      const pCount = explicitP + missing;
+      weeks.push({ isWeekWin: pCount <= 2 && (expectedPastDays > 0 || weekDays.length > 0), pCount, start });
+    }
+
+    return {
+      streak,
+      weeklyP: weeks[0]?.pCount || 0,
+      monthlyWin: weeks.filter((week) => week.isWeekWin).length >= 3,
+      weeks,
+    };
+  }, [history]);
+
+  const doneCount = todayWin ? [1, 2, 3, 4, 5].filter((i) => todayWin[`done_${i}`]).length : 0;
+  const directionScore = Math.max(0, Math.min(100, 42 + doneCount * 9 + Math.min(stats.streak, 8) * 3 - stats.weeklyP * 10));
+  const directionTone = directionScore >= 75 ? 'text-dayC' : directionScore >= 50 ? 'text-orange-300' : 'text-dayB';
   const isDrifting = ['CHAOS', 'AVOIDANCE'].includes(currentState);
 
+  const lenieHabit = useMemo(
+    () => habits.find((habit) => (habit.name || '').toLowerCase().includes('lenie')),
+    [habits]
+  );
+  const lenieLogs = useMemo(
+    () => habitLogs.filter((log) => log.habit_id === lenieHabit?.id).sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [habitLogs, lenieHabit?.id]
+  );
+
   async function saveLifeGoals() {
-    // Remove ID if present to avoid conflict, rely on user_id for upsert
     const { id, created_at, ...goalsToSave } = lifeGoals;
     const { error } = await supabase
       .from('life_goals')
       .upsert({ user_id: session.user.id, ...goalsToSave }, { onConflict: 'user_id' });
-    
+
     if (!error) {
       setIsEditingGoals(false);
       fetchData();
     } else {
       console.error(error);
-      alert('Błąd zapisu celów: ' + error.message);
+      alert('Blad zapisu celow: ' + error.message);
     }
-  }
-
-  async function startNewDay() {
-    if (newTaskForm.some(t => !t.task.trim())) {
-      alert('Wypełnij wszystkie 5 zadań!');
-      return;
-    }
-
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const entry = {
-      user_id: session.user.id,
-      date: today,
-      task_1: newTaskForm[0].task, category_1: newTaskForm[0].category,
-      task_2: newTaskForm[1].task, category_2: newTaskForm[1].category,
-      task_3: newTaskForm[2].task, category_3: newTaskForm[2].category,
-      task_4: newTaskForm[3].task, category_4: newTaskForm[3].category,
-      task_5: newTaskForm[4].task, category_5: newTaskForm[4].category,
-      result: null // Initial state
-    };
-
-    const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
-    if (!error) {
-      setTodayWin(data);
-      setNewTaskForm([
-        { task: '', category: 'cialo' },
-        { task: '', category: 'duch' },
-        { task: '', category: 'konto' },
-        { task: '', category: 'cialo' },
-        { task: '', category: 'duch' },
-      ]);
-    }
-    else alert('Błąd startu dnia');
-  }
-
-  async function planTomorrow() {
-    if (newTaskForm.some(t => !t.task.trim())) {
-      alert('Wypełnij wszystkie 5 zadań na jutro!');
-      return;
-    }
-
-    const tomorrow = format(subDays(new Date(), -1), 'yyyy-MM-dd');
-    const entry = {
-      user_id: session.user.id,
-      date: tomorrow,
-      task_1: newTaskForm[0].task, category_1: newTaskForm[0].category,
-      task_2: newTaskForm[1].task, category_2: newTaskForm[1].category,
-      task_3: newTaskForm[2].task, category_3: newTaskForm[2].category,
-      task_4: newTaskForm[3].task, category_4: newTaskForm[3].category,
-      task_5: newTaskForm[4].task, category_5: newTaskForm[4].category,
-      result: null
-    };
-
-    const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
-    if (!error) {
-      setTomorrowWin(data);
-      setIsPlanningTomorrow(false);
-      setNewTaskForm([
-        { task: '', category: 'cialo' },
-        { task: '', category: 'duch' },
-        { task: '', category: 'konto' },
-        { task: '', category: 'cialo' },
-        { task: '', category: 'duch' },
-      ]);
-    }
-    else alert('Błąd planowania jutra');
-  }
-
-  async function toggleTask(index) {
-    if (!todayWin) return;
-    const field = `done_${index + 1}`;
-    const newValue = !todayWin[field];
-    
-    // Check if all 5 will be done
-    const allDone = [1, 2, 3, 4, 5].every(i => {
-      if (i === index + 1) return newValue;
-      return todayWin[`done_${i}`];
-    });
-
-    const updates = { [field]: newValue };
-    if (allDone) {
-      updates.result = 'Z';
-    } else {
-      // If we are past 23:00, any change that isn't 5/5 keeps/sets the status to 'P'
-      const isPastDeadline = new Date().getHours() >= 23;
-      updates.result = isPastDeadline ? 'P' : null;
-    }
-
-    const { data, error } = await supabase
-      .from('daily_wins')
-      .update(updates)
-      .eq('id', todayWin.id)
-      .select()
-      .single();
-    
-    if (!error) setTodayWin(data);
   }
 
   async function addHabit() {
-    if (!newHabit.name) return;
-    const { data, error } = await supabase.from('habits').insert({ user_id: session.user.id, ...newHabit }).select().single();
+    if (!newHabit.name.trim()) return;
+    const { data, error } = await supabase
+      .from('habits')
+      .insert({ user_id: session.user.id, ...newHabit, name: newHabit.name.trim() })
+      .select()
+      .single();
+
     if (!error) {
       setHabits([...habits, data]);
-      setNewHabit({ name: '', icon: '💪', is_positive: true });
+      setNewHabit({ name: '', icon: 'X', is_positive: true });
       setIsAddingHabit(false);
     }
   }
 
   async function deleteHabit(id) {
-    if (!confirm('Usunąć nawyk?')) return;
+    if (!confirm('Usunac nawyk?')) return;
     await supabase.from('habits').delete().eq('id', id);
-    setHabits(habits.filter(h => h.id !== id));
+    setHabits(habits.filter((habit) => habit.id !== id));
   }
 
   async function toggleHabit(habitId) {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const existing = habitLogs.find(l => l.habit_id === habitId && l.date === today);
+    const today = todayDate();
+    const existing = habitLogs.find((log) => log.habit_id === habitId && log.date === today);
 
     if (existing) {
       const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
-      if (!error) setHabitLogs(habitLogs.filter(l => l.id !== existing.id));
+      if (!error) setHabitLogs(habitLogs.filter((log) => log.id !== existing.id));
     } else {
-      const { data, error } = await supabase.from('habit_logs').insert({ user_id: session.user.id, habit_id: habitId, date: today, completed: true }).select().single();
+      const { data, error } = await supabase
+        .from('habit_logs')
+        .insert({ user_id: session.user.id, habit_id: habitId, date: today, completed: true })
+        .select()
+        .single();
       if (!error) setHabitLogs([...habitLogs, data]);
     }
   }
 
-  const saveWeeklyReview = async () => {
+  async function ensureLenieHabit() {
+    if (lenieHabit) return lenieHabit;
+    const { data, error } = await supabase
+      .from('habits')
+      .insert({ user_id: session.user.id, name: 'Lenie', icon: 'L', is_positive: false })
+      .select()
+      .single();
+    if (error) throw error;
+    setHabits([...habits, data]);
+    return data;
+  }
+
+  async function saveLenieLog() {
+    const habit = await ensureLenieHabit();
+    const existing = habitLogs.find((log) => log.habit_id === habit.id && log.date === lenieForm.date);
+    const payload = {
+      user_id: session.user.id,
+      habit_id: habit.id,
+      date: lenieForm.date,
+      completed: true,
+      final_stimulus: lenieForm.final_stimulus.trim() || null,
+      context_note: lenieForm.context_note.trim() || null,
+      logged_at: new Date().toISOString(),
+    };
+
+    const query = existing
+      ? supabase.from('habit_logs').update(payload).eq('id', existing.id).select().single()
+      : supabase.from('habit_logs').insert(payload).select().single();
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Lenie save error:', error);
+      alert('Blad zapisu mikrowzorca: ' + error.message);
+      return;
+    }
+
+    setHabitLogs(existing ? habitLogs.map((log) => (log.id === existing.id ? data : log)) : [...habitLogs, data]);
+    setLenieForm({ date: todayDate(), final_stimulus: '', context_note: '' });
+  }
+
+  async function saveWeeklyReview() {
     if (currentReview) return;
-    
     const { data, error } = await supabase
       .from('weekly_reviews')
-      .upsert({
-        user_id: session.user.id,
-        week_start: currentWeekStart,
-        ...reviewForm
-      }, { onConflict: 'user_id,week_start' })
+      .upsert({ user_id: session.user.id, week_start: currentWeekStart, ...reviewForm }, { onConflict: 'user_id,week_start' })
       .select()
       .maybeSingle();
-    
-    if (!error) {
-      setCurrentReview(data);
-      alert('Tydzień zamknięty pomyślnie!');
-    } else {
-      console.error('Weekly Review Save Error Details:', error);
-      alert(`Błąd zapisu przeglądu: ${error.message || 'Nieznany błąd'}\n\nSzczegóły: ${JSON.stringify(error)}`);
-    }
-  };
 
-  if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
+    if (!error) setCurrentReview(data);
+  }
+
+  if (loading) {
+    return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
+  }
+
+  const goals = [
+    { key: 'goal_cialo', dateKey: 'date_cialo', label: 'Cialo', icon: Shield, tone: 'text-dayC', border: 'border-dayC/25', bg: 'bg-dayC/10' },
+    { key: 'goal_duch', dateKey: 'date_duch', label: 'Duch', icon: Zap, tone: 'text-primary', border: 'border-primary/25', bg: 'bg-primary/10' },
+    { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: Wallet, tone: 'text-orange-300', border: 'border-orange-400/25', bg: 'bg-orange-400/10' },
+  ];
 
   return (
-    <div className="flex-1 p-6 space-y-10 pb-24 overflow-y-auto">
-      {/* Header: Life Goals */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <Compass size={12} /> Twoje Cele (Context)
-          </h2>
-          <button onClick={() => isEditingGoals ? saveLifeGoals() : setIsEditingGoals(true)} className="text-neutral-500 hover:text-white p-2">
-            {isEditingGoals ? <Save size={16} /> : <Edit2 size={16} />}
-          </button>
+    <div className="flex-1 space-y-6 overflow-y-auto p-5 pb-24">
+      <section className="rounded-lg border border-white/[0.08] bg-[linear-gradient(135deg,rgba(23,23,25,0.98),rgba(6,8,12,0.98))] p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">Kierunek</p>
+            <h2 className="mt-2 text-[26px] font-black uppercase leading-none tracking-tight text-white">
+              {directionScore >= 75 ? 'Idziemy dobrze' : directionScore >= 50 ? 'Kurs wymaga korekty' : 'Dryf do korekty'}
+            </h2>
+          </div>
+          <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
+            <Compass size={20} />
+          </div>
         </div>
 
-        <div className="grid gap-4">
-          {[
-            { key: 'goal_cialo', dateKey: 'date_cialo', label: 'Ciało', icon: <Shield size={14} className="text-dayC" /> },
-            { key: 'goal_duch', dateKey: 'date_duch', label: 'Duch', icon: <Zap size={14} className="text-dayA" /> },
-            { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: <Wallet size={14} className="text-dayD" /> },
-          ].map((g) => {
-            const daysLeft = lifeGoals[g.dateKey] ? differenceInDays(parseISO(lifeGoals[g.dateKey]), new Date()) : null;
-            
-            return (
-              <div key={g.key} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 space-y-3 relative overflow-hidden">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-950 flex items-center justify-center border border-neutral-800">
-                      {g.icon}
-                    </div>
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{g.label}</p>
-                  </div>
-                  {daysLeft !== null && (
-                    <div className="bg-neutral-950 px-2 py-1 rounded border border-neutral-800">
-                      <p className="text-[8px] font-black text-primary uppercase">Zostało {daysLeft} dni</p>
-                    </div>
-                  )}
-                </div>
+        <p className="mt-4 text-[12px] font-semibold leading-relaxed text-white/48">
+          Ten ekran ma pokazywac kierunek, odchylenia i mikrowzorce. Nie chodzi o ladna serie, tylko o to, czy zachowanie z tygodnia wspiera cele.
+        </p>
 
-                <div className="min-h-[40px]">
-                  {isEditingGoals ? (
-                    <div className="space-y-2">
-                      <textarea 
-                        value={lifeGoals[g.key]} 
-                        onChange={(e) => setLifeGoals({...lifeGoals, [g.key]: e.target.value})}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-[12px] font-bold text-white outline-none focus:border-primary resize-none"
-                        rows={2}
-                      />
-                      <input 
-                        type="date"
-                        value={lifeGoals[g.dateKey] || ''}
-                        onChange={(e) => setLifeGoals({...lifeGoals, [g.dateKey]: e.target.value})}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-[10px] font-bold text-white outline-none"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-[14px] font-black text-white uppercase italic leading-tight break-words">
-                      {lifeGoals[g.key] || 'Brak zdefiniowanego celu'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <MiniStat label="Kurs" value={`${directionScore}%`} tone={directionTone} detail={currentState.replaceAll('_', ' ')} />
+          <MiniStat label="Dzisiaj" value={`${doneCount}/5`} tone={doneCount >= 3 ? 'text-dayC' : 'text-orange-300'} detail="Power List" />
+          <MiniStat label="Tydzien" value={`${stats.weeklyP}/2 P`} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={stats.weeklyP > 2 ? 'limit pekl' : 'w limicie'} />
         </div>
       </section>
 
-      {/* Weekly Review Section (Sunday Only) */}
-      {isSunday && !currentReview && (
-        <section className="space-y-6 animate-in slide-in-from-top-4 duration-500">
-          <header className="flex justify-between items-center">
-            <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
-              <Calendar size={12} /> Przegląd Tygodnia
-            </h2>
-            {currentReview && <span className="text-[8px] font-black text-dayC uppercase">Tydzień Zamknięty</span>}
-          </header>
-
-          <div className="bg-neutral-900 border border-primary/20 rounded-2xl p-6 space-y-6 shadow-xl shadow-primary/5">
-            {[
-              { key: 'proud_of', label: 'Co zrobiłem w tym tygodniu z czego jestem dumny?', icon: <Trophy size={14} className="text-dayD" /> },
-              { key: 'sabotage', label: 'Co sabotowało mój postęp — i dlaczego na to pozwoliłem?', icon: <AlertCircle size={14} className="text-dayB" /> },
-              { key: 'do_differently', label: 'Gdybym mógł powtórzyć ten tydzień — co zrobiłbym inaczej?', icon: <RotateCw size={14} className="text-dayA" /> },
-            ].map((q) => (
-              <div key={q.key} className="space-y-3">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center justify-between">
-                  <span className="flex items-center gap-2">{q.icon} {q.label}</span>
-                  {!currentReview && <Mic size={10} className="text-neutral-700 hover:text-primary cursor-pointer" />}
-                </label>
-                {currentReview ? (
-                  <div className="bg-neutral-950/50 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-neutral-400 italic leading-relaxed">
-                    {currentReview[q.key]}
-                  </div>
-                ) : (
-                  <textarea 
-                    value={reviewForm[q.key]}
-                    onChange={(e) => setReviewForm({...reviewForm, [q.key]: e.target.value})}
-                    placeholder="Wpisz swoje przemyślenia..."
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-[12px] font-bold text-white outline-none focus:border-primary resize-none min-h-[80px] transition-all"
-                  />
-                )}
-              </div>
-            ))}
-
-            {!currentReview && (
-              <button 
-                onClick={saveWeeklyReview}
-                className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
-              >
-                Zamknij Tydzień
-              </button>
-            )}
+      {isDrifting && (
+        <section className="rounded-lg border border-dayB/35 bg-dayB/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={18} className="mt-0.5 text-dayB" />
+            <div>
+              <h3 className="text-[12px] font-black uppercase tracking-tight text-dayB">Wykryty dryf</h3>
+              <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/58">
+                Obecny stan ({currentState}) nie spina sie z deklarowanym kierunkiem. Wroc do najprostszego ruchu: sen, plan, trening albo zamkniecie zaleglosci.
+              </p>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Identity Drift Alert */}
-      {isDrifting && (
-        <div className="bg-dayB/20 border-2 border-dayB rounded-2xl p-6 animate-pulse mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <AlertCircle className="text-dayB" size={24} />
-            <h3 className="text-lg font-black text-dayB uppercase italic tracking-tighter">Identity Alert: Drift Detected</h3>
-          </div>
-          <p className="text-[11px] font-bold text-white uppercase leading-tight italic">
-            Twoje obecne działania (Stan: {currentState}) przestają być zgodne z Twoim Fundamentem. 
-            Mówisz o dyscyplinie, ale system wykrywa regres. Wróć do bazy.
-          </p>
+      <section className="space-y-3">
+        <SectionTitle
+          icon={Flag}
+          title="Cele kierunkowe"
+          detail="Trzy kotwice. One maja odpowiadac na pytanie: po co dzisiejszy plan?"
+          action={(
+            <button
+              onClick={() => (isEditingGoals ? saveLifeGoals() : setIsEditingGoals(true))}
+              className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-2.5 text-white/45 transition-colors hover:text-white"
+              title={isEditingGoals ? 'Zapisz cele' : 'Edytuj cele'}
+            >
+              {isEditingGoals ? <Save size={15} /> : <Edit2 size={15} />}
+            </button>
+          )}
+        />
+        <div className="grid gap-3">
+          {goals.map((goal) => (
+            <GoalCard key={goal.key} goal={goal} isEditing={isEditingGoals} lifeGoals={lifeGoals} setLifeGoals={setLifeGoals} />
+          ))}
         </div>
-      )}
+      </section>
 
-      {/* Habits Section */}
-      <section className="space-y-6">
-        <header className="flex justify-between items-center">
-          <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <Target size={12} /> Twoje Nawyki
-          </h2>
-          <button onClick={() => setIsAddingHabit(true)} className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 text-[10px] font-black uppercase text-primary hover:bg-primary hover:text-white transition-all">
-            <Plus size={12} /> Dodaj
-          </button>
-        </header>
+      <section className="space-y-3">
+        <SectionTitle
+          icon={Target}
+          title="Mikrowzorce"
+          detail="Backfill i opis bodzca. To ma dac material do wzorcow po tygodniu i miesiacu."
+        />
+        <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-dayB">Lenie</p>
+              <h3 className="mt-1 text-[15px] font-black uppercase tracking-tight text-white">Zapis bodzca</h3>
+            </div>
+            <span className="rounded-md border border-dayB/25 bg-dayB/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-dayB">
+              unikac
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <input
+              type="date"
+              value={lenieForm.date}
+              onChange={(e) => setLenieForm({ ...lenieForm, date: e.target.value })}
+              className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[11px] font-bold text-white outline-none focus:border-dayB/70"
+            />
+            <input
+              value={lenieForm.final_stimulus}
+              onChange={(e) => setLenieForm({ ...lenieForm, final_stimulus: e.target.value })}
+              placeholder="Finalny bodziec / do czego?"
+              className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none placeholder:text-white/18 focus:border-dayB/70"
+            />
+            <textarea
+              value={lenieForm.context_note}
+              onChange={(e) => setLenieForm({ ...lenieForm, context_note: e.target.value })}
+              placeholder="Kontekst: pora, emocja, zmeczenie, trigger, co bylo przed?"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold leading-relaxed text-white outline-none placeholder:text-white/18 focus:border-dayB/70"
+            />
+            <button
+              onClick={saveLenieLog}
+              className="w-full rounded-lg bg-dayB px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-dayB/20 transition-transform active:scale-[0.99]"
+            >
+              Zapisz mikrowzorzec
+            </button>
+          </div>
+
+          {lenieLogs.length > 0 && (
+            <div className="mt-5 space-y-2 border-t border-white/[0.06] pt-4">
+              {lenieLogs.slice(0, 4).map((log) => (
+                <div key={log.id} className="rounded-lg bg-black/25 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{format(parseISO(log.date), 'dd.MM')}</p>
+                    <p className="truncate text-[11px] font-black uppercase text-white/78">{log.final_stimulus || 'bez opisu bodzca'}</p>
+                  </div>
+                  {log.context_note && <p className="mt-1 text-[10px] font-semibold leading-relaxed text-white/42">{log.context_note}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle
+          icon={Target}
+          title="Nawyki"
+          detail="Nie jako checklista dla samej checklisty. To sa sygnaly, ktore maja pokazac powtarzalnosc."
+          action={(
+            <button
+              onClick={() => setIsAddingHabit(true)}
+              className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary"
+            >
+              <Plus size={12} /> Dodaj
+            </button>
+          )}
+        />
 
         {isAddingHabit && (
-          <div className="bg-neutral-900 border-2 border-primary rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-black uppercase text-white">Nowy Nawyk</span>
-              <button onClick={() => setIsAddingHabit(false)} className="text-neutral-500"><X size={16} /></button>
+          <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white">Nowy sygnal</p>
+              <button onClick={() => setIsAddingHabit(false)} className="text-white/35 hover:text-white">
+                <X size={15} />
+              </button>
             </div>
-            <div className="grid gap-4">
-              <div className="flex gap-3">
-                <input 
-                  value={newHabit.icon} 
-                  onChange={e => setNewHabit({...newHabit, icon: e.target.value})}
-                  className="w-12 h-12 bg-neutral-950 border border-neutral-800 rounded-xl text-center text-xl"
-                  placeholder="🔥"
-                />
-                <input 
-                  placeholder="Nazwa nawyku..."
-                  value={newHabit.name}
-                  onChange={e => setNewHabit({...newHabit, name: e.target.value})}
-                  className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-[12px] font-bold text-white outline-none"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setNewHabit({...newHabit, is_positive: true})}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${newHabit.is_positive ? 'bg-dayC/10 border-dayC text-dayC' : 'bg-neutral-950 border-neutral-800 text-neutral-600'}`}
-                >
-                  Zrób (Dobre)
-                </button>
-                <button 
-                  onClick={() => setNewHabit({...newHabit, is_positive: false})}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${!newHabit.is_positive ? 'bg-dayB/10 border-dayB text-dayB' : 'bg-neutral-950 border-neutral-800 text-neutral-600'}`}
-                >
-                  Unikaj (Złe)
-                </button>
-              </div>
-              <button onClick={addHabit} className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20">Dodaj do listy</button>
+            <div className="grid grid-cols-[56px_1fr] gap-2">
+              <input
+                value={newHabit.icon}
+                onChange={(e) => setNewHabit({ ...newHabit, icon: e.target.value })}
+                className="rounded-lg border border-white/[0.08] bg-black/45 p-3 text-center text-[14px] font-black text-white outline-none"
+                placeholder="X"
+              />
+              <input
+                value={newHabit.name}
+                onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
+                className="rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none placeholder:text-white/18"
+                placeholder="Nazwa"
+              />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setNewHabit({ ...newHabit, is_positive: true })}
+                className={`rounded-lg border py-3 text-[9px] font-black uppercase tracking-widest ${newHabit.is_positive ? 'border-dayC/35 bg-dayC/10 text-dayC' : 'border-white/[0.08] bg-black/25 text-white/35'}`}
+              >
+                Wzmacniac
+              </button>
+              <button
+                onClick={() => setNewHabit({ ...newHabit, is_positive: false })}
+                className={`rounded-lg border py-3 text-[9px] font-black uppercase tracking-widest ${!newHabit.is_positive ? 'border-dayB/35 bg-dayB/10 text-dayB' : 'border-white/[0.08] bg-black/25 text-white/35'}`}
+              >
+                Unikac
+              </button>
+            </div>
+            <button onClick={addHabit} className="w-full rounded-lg bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-white">
+              Dodaj
+            </button>
           </div>
         )}
 
         <div className="grid gap-3">
-          {habits.map(h => {
-            const isDoneToday = habitLogs.some(l => l.habit_id === h.id && l.date === format(new Date(), 'yyyy-MM-dd'));
-            const logsLast30 = Array.from({ length: 30 }).map((_, i) => {
-              const date = format(subDays(new Date(), 29 - i), 'yyyy-MM-dd');
-              const log = habitLogs.find(l => l.habit_id === h.id && l.date === date);
-              if (h.is_positive) return log ? 'S' : (date === format(new Date(), 'yyyy-MM-dd') ? 'N' : 'F');
-              return log ? 'F' : 'S';
-            });
-
+          {habits.map((habit) => {
+            const doneToday = habitLogs.some((log) => log.habit_id === habit.id && log.date === todayDate());
             return (
-              <div key={h.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{h.icon}</div>
-                    <div>
-                      <p className="text-[12px] font-black uppercase text-white leading-none">{h.name}</p>
-                      <p className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">{h.is_positive ? 'Cel: Wykonać' : 'Cel: Unikać'}</p>
+              <article key={habit.id} className="rounded-lg border border-white/[0.07] bg-neutral-950/70 p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-[15px] font-black text-white/80">
+                      {habit.icon || 'X'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-black uppercase text-white">{habit.name}</p>
+                      <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-white/30">
+                        {habit.is_positive ? 'wzmacniac' : 'unikac'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => toggleHabit(h.id)}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2 ${isDoneToday ? (h.is_positive ? 'bg-dayC border-dayC text-white' : 'bg-dayB border-dayB text-white') : 'bg-neutral-950 border-neutral-800 text-neutral-700'}`}
+                    <button
+                      onClick={() => toggleHabit(habit.id)}
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+                        doneToday
+                          ? habit.is_positive
+                            ? 'border-dayC bg-dayC text-white'
+                            : 'border-dayB bg-dayB text-white'
+                          : 'border-white/[0.08] bg-black/35 text-white/35'
+                      }`}
                     >
-                      {isDoneToday ? <CheckSquare size={20} /> : <Square size={20} />}
+                      {doneToday ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
-                    <button onClick={() => deleteHabit(h.id)} className="p-2 text-neutral-800 hover:text-red-500 transition-colors">
-                      <Trash2 size={14} />
+                    <button onClick={() => deleteHabit(habit.id)} className="p-2 text-white/16 transition-colors hover:text-dayB">
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
-
-                {/* Heatmap Bar */}
-                <div className="flex gap-1 overflow-hidden h-3">
-                  {logsLast30.map((status, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`flex-1 rounded-sm ${status === 'S' ? 'bg-dayC' : status === 'F' ? 'bg-dayB' : 'bg-neutral-950 border border-neutral-800'}`}
-                    />
-                  ))}
-                </div>
-              </div>
+                <HabitStrip habit={habit} logs={habitLogs} />
+              </article>
             );
           })}
         </div>
       </section>
 
-      {/* Power List Stats (New Section) */}
-      <section className="space-y-6">
-        <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-          <TrendingUp size={12} /> Status Power List
-        </h2>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className={`bg-neutral-900 border ${weeklyP > 2 ? 'border-dayB/30' : 'border-dayC/30'} rounded-2xl p-5 space-y-3`}>
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Tydzień</p>
-            <div className="flex justify-between items-end">
-              <h3 className={`text-xl font-black uppercase italic ${weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>
-                {weeklyP > 2 ? 'PRZEGRANY' : (isSunday ? 'WYGRANY' : 'W TRAKCIE')}
-              </h3>
-              <p className="text-[10px] font-black text-white">{weeklyP} / 2 P</p>
-            </div>
-            <div className="w-full h-1.5 bg-neutral-950 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all ${weeklyP > 2 ? 'bg-dayB' : 'bg-dayC'}`}
-                style={{ width: `${Math.max(10, 100 - (weeklyP * 33))}%` }}
-              />
-            </div>
-          </div>
+      <section className="space-y-3">
+        <SectionTitle icon={TrendingUp} title="Status Power List" detail="Czy dzienne wykonanie realnie niesie kierunek." />
+        <div className="grid grid-cols-2 gap-3">
+          <MiniStat
+            label="Tydzien"
+            value={stats.weeklyP > 2 ? 'Przegrany' : isSunday ? 'Wygrany' : 'W trakcie'}
+            tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}
+            detail={`${stats.weeklyP}/2 P`}
+          />
+          <MiniStat
+            label="Miesiac"
+            value={stats.monthlyWin ? 'Wygrany' : 'W trakcie'}
+            tone={stats.monthlyWin ? 'text-dayC' : 'text-orange-300'}
+            detail={`${stats.weeks.filter((week) => week.isWeekWin).length}/3 W`}
+          />
+        </div>
 
-          <div className={`bg-neutral-900 border ${monthlyWin ? 'border-dayC/30' : 'border-dayB/30'} rounded-2xl p-5 space-y-3`}>
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Miesiąc</p>
-            <div className="flex justify-between items-end">
-              <h3 className={`text-xl font-black uppercase italic ${monthlyWin ? 'text-dayC' : 'text-dayB'}`}>
-                {monthlyWin ? 'WYGRANY' : 'W TRAKCIE'}
-              </h3>
-              <p className="text-[10px] font-black text-white">{weeks.filter(w => w.isWeekWin).length} / 3 W</p>
-            </div>
-            <div className="w-full h-1.5 bg-neutral-950 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-dayA transition-all"
-                style={{ width: `${(weeks.filter(w => w.isWeekWin).length / 3) * 100}%` }}
-              />
-            </div>
-          </div>
+        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/55 p-4">
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 28 }).map((_, index) => {
+              const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
+              const dateObj = subDays(gridStart, -index);
+              const date = format(dateObj, 'yyyy-MM-dd');
+              const dayData = history.find((day) => day.date === date);
+              const isFuture = dateObj > new Date();
+              const isMissingLoss = date < todayDate() && !dayData && date >= '2026-05-03';
+              const color = isFuture
+                ? 'border border-white/[0.05] bg-transparent'
+                : dayData?.result === 'Z'
+                ? 'bg-dayC'
+                : dayData?.result === 'P' || isMissingLoss
+                ? 'bg-dayB'
+                : 'border border-white/[0.06] bg-neutral-900';
 
+              return (
+                <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-md ${color}`}>
+                  {date === todayDate() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <MiniStat label="Streak" value={stats.streak} tone="text-primary" detail="zwyciestw" />
+            <MiniStat label="Ten tydzien" value={stats.weeklyP > 2 ? 'Nie' : 'OK'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP} porazek`} />
+          </div>
         </div>
       </section>
 
-      {/* Visualization & Stats */}
-      <section className="space-y-6 pt-4 border-t border-neutral-900">
-        <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-          <Calendar size={12} /> Postęp (30 Dni)
-        </h2>
-
-        {/* Grid 30-dniowy */}
-        {/* Grid 28-dniowy (Wyrównany do Poniedziałków) */}
-        <div className="grid grid-cols-7 gap-2 w-fit mx-auto">
-          {Array.from({ length: 28 }).map((_, i) => {
-            // Grid zaczyna się 3 tygodnie temu w poniedziałek
-            const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
-            const dateObj = subDays(gridStart, -i);
-            const date = format(dateObj, 'yyyy-MM-dd');
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const dayData = history.find(d => d.date === date);
-            const isFuture = dateObj > new Date();
-            
-            const START_DATE = '2026-05-03';
-            let color = 'bg-neutral-900';
-            if (isFuture) color = 'bg-transparent border border-white/5';
-            else if (dayData?.result === 'Z') color = 'bg-dayC';
-            else if (dayData?.result === 'P') color = 'bg-dayB';
-            else if (date < today && !dayData && date >= START_DATE) color = 'bg-dayB'; 
-
-            const isActive = !isFuture && (dayData?.result != null || (date < today && !dayData && date >= START_DATE));
-
-            return (
-              <div 
-                key={i} 
-                className={`w-8 h-8 rounded-md ${color} ${!isActive && !isFuture && 'border border-neutral-900'} relative group transition-colors duration-500 flex items-center justify-center`}
-              >
-                {!isFuture && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-950 px-2 py-1 rounded text-[8px] font-black text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 border border-neutral-800">
-                    {format(parseISO(date), 'dd.MM')} {dayData?.result === 'Z' ? '(WIN)' : (dayData?.result === 'P' || (date < today && !dayData)) ? '(LOSS)' : '(EMPTY)'}
-                  </div>
-                )}
-                {date === today && <div className="w-1 h-1 bg-white rounded-full absolute bottom-1" />}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="card bg-neutral-900/30 p-5 text-center">
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mb-1">Aktualny Streak</p>
-            <div className="flex items-center justify-center gap-2">
-              <Zap size={16} className="text-dayA" />
-              <span className="text-2xl font-black italic text-white">{streak}</span>
-            </div>
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mt-1">Zwycięstw</p>
+      {isSunday && !currentReview && (
+        <section className="space-y-3">
+          <SectionTitle icon={Calendar} title="Przeglad tygodnia" detail="Krotkie zamkniecie, bez rozbudowanego rytualu." />
+          <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            {[
+              { key: 'proud_of', label: 'Co wzmocnilo kierunek?', icon: Trophy },
+              { key: 'sabotage', label: 'Co bylo glownym odchyleniem?', icon: AlertCircle },
+              { key: 'do_differently', label: 'Co zmienic w nastepnym tygodniu?', icon: RotateCw },
+            ].map((item) => (
+              <label key={item.key} className="block space-y-2">
+                <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/35">
+                  <item.icon size={11} /> {item.label}
+                </span>
+                <textarea
+                  value={reviewForm[item.key]}
+                  onChange={(e) => setReviewForm({ ...reviewForm, [item.key]: e.target.value })}
+                  rows={3}
+                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none"
+                />
+              </label>
+            ))}
+            <button onClick={saveWeeklyReview} className="w-full rounded-lg bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-white">
+              Zamknij tydzien
+            </button>
           </div>
-
-          <div className="card bg-neutral-900/30 p-5 text-center">
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mb-1">Tydzień Wygrany?</p>
-            <div className={`text-xl font-black italic uppercase ${weeklyP > 2 ? 'text-dayB' : (isSunday ? 'text-dayC' : 'text-blue-400')}`}>
-              {weeklyP > 2 ? 'NIE' : (isSunday ? 'TAK' : 'W TRAKCIE')}
-            </div>
-            <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest mt-1">{weeklyP} Porażek</p>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

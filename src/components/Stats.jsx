@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
-} from 'recharts';
 import { Trophy, Clock, Trash2, FileText, ChevronDown, ChevronUp, Scale, Ruler, Activity, Zap, TrendingUp, Target, Battery, CheckSquare } from 'lucide-react';
 import { format, differenceInDays, parseISO, startOfWeek, addWeeks, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -106,13 +103,12 @@ const generateNarrative = (body, oura, sessions) => {
 
 import { useStore } from '../store/useStore';
 
-export default function Stats({ session }) {
+export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
-  const [ouraTrend, setOuraTrend] = useState([]);
   const [nutritionData, setNutritionData] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({ compliance: 0 });
   const [correlation, setCorrelation] = useState(null);
@@ -167,14 +163,6 @@ export default function Stats({ session }) {
 
       if (body) setBodyData(body);
       
-      if (oura) {
-        setOuraTrend(oura.reverse().map(o => ({
-          date: format(parseISO(o.date), 'dd.MM'),
-          readiness: o.readiness_score,
-          sleep: o.total_sleep_hours
-        })));
-      }
-
       if (nutrition) {
         setNutritionData(nutrition.reverse().map(n => ({
           date: format(parseISO(n.date), 'dd.MM'),
@@ -493,7 +481,8 @@ export default function Stats({ session }) {
         if (includeWorkouts) daySessions.forEach(s => {
           md += `### 🏋️ Trening: Dzień ${s.workout_day}\n`;
           s.exercise_logs.forEach(l => {
-            md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (MSP: ${l.rpe ?? '--'}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
+            const effort = l.rir ?? l.rpe ?? '--';
+            md += `- **${l.exercise_name}**: ${l.weight}kg x ${l.reps} (RIR/MSP: ${effort}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
           });
           md += `\n`;
         });
@@ -794,136 +783,128 @@ export default function Stats({ session }) {
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
   const isSunday = new Date().getDay() === 0;
+  const latestBody = bodyData?.[bodyData.length - 1] || null;
+  const latestNutrition = nutritionData?.[nutritionData.length - 1] || null;
+  const proteinGoal = 150;
+  const proteinPct = latestNutrition?.protein ? Math.min((Number(latestNutrition.protein) / proteinGoal) * 100, 100) : 0;
+  const recentProtein = nutritionData.slice(-7);
 
   return (
-    <div className="flex-1 p-6 space-y-12 pb-24">
+    <div className="space-y-6 pb-4">
       {/* Raport Psychologiczny - Tylko w Niedzielę */}
       {narrative && isSunday && (
-        <section className="animate-in fade-in zoom-in duration-1000">
-          <div className="bg-neutral-900 border-l-4 border-primary p-6 rounded-r-2xl shadow-xl">
-            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <section className="animate-in fade-in zoom-in duration-700">
+          <div className="rounded-lg border border-primary/15 bg-primary/5 p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-primary">
               <Zap size={12} className="text-primary" /> Analiza Behawioralna
             </h3>
-            <p className="text-lg font-black text-white leading-tight uppercase italic tracking-tighter">
-              „{narrative}”
-            </p>
+            <p className="text-[13px] font-bold leading-relaxed text-white/78">"{narrative}"</p>
           </div>
         </section>
       )}
 
-      <section className="space-y-6">
-        <header className="flex justify-between items-end">
+      <section className="space-y-3">
+        <header className="flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Parametry</h2>
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Pomiary</p>
+            <h2 className="mt-1 text-[18px] font-black uppercase tracking-tight text-white">Waga i talia</h2>
           </div>
-          <Activity className="text-primary/20" size={32} />
+          <Activity className="text-primary/35" size={22} />
         </header>
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-4 rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.9),rgba(10,10,11,0.96))] p-5 shadow-2xl shadow-black/30">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest flex items-center">
+              <label className="flex items-center text-[8px] font-black uppercase tracking-widest text-white/35">
                 Waga (kg) <TrendArrow current={trends.weight?.cur} previous={trends.weight?.prev} better="down" />
               </label>
-              <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-primary" />
+              <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-lg font-black text-white outline-none transition-all placeholder:text-white/16 focus:border-primary/70 focus:bg-black/65" placeholder={latestBody?.weight ? String(latestBody.weight) : '--'} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-neutral-500 uppercase tracking-widest flex items-center">
+              <label className="flex items-center text-[8px] font-black uppercase tracking-widest text-white/35">
                 Talia (cm) <TrendArrow current={trends.waist?.cur} previous={trends.waist?.prev} better="down" />
               </label>
-              <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-primary" />
+              <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-lg font-black text-white outline-none transition-all placeholder:text-white/16 focus:border-primary/70 focus:bg-black/65" placeholder={latestBody?.waist ? String(latestBody.waist) : '--'} />
             </div>
           </div>
-          <button onClick={saveMetrics} className="w-full bg-primary text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest">Zapisz Pomiary</button>
+          <button onClick={saveMetrics} className="w-full rounded-lg bg-primary py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.99]">Zapisz pomiary</button>
         </div>
       </section>
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Body Trends</h2>
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          {bodyData?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={224}>
-              <LineChart data={bodyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="date" hide />
-                <YAxis yAxisId="left" domain={['dataMin - 1', 'dataMax + 1']} stroke="#ffffff" fontSize={8} />
-                <YAxis yAxisId="right" orientation="right" domain={['dataMin - 1', 'dataMax + 1']} stroke="#3b82f6" fontSize={8} />
-                <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }} />
-                <Line yAxisId="left" type="monotone" dataKey="weight" name="Waga (kg)" stroke="#ffffff" strokeWidth={3} dot={{ fill: '#ffffff', r: 2 }} connectNulls={true} />
-                <Line yAxisId="right" type="monotone" dataKey="waist" name="Talia (cm)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 2 }} connectNulls={true} />
-                <Line yAxisId="right" type="monotone" dataKey="body_fat" name="Tłuszcz (%)" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={true} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych trendu</div>
+      <section className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/80 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">Waga</p>
+            <Scale size={13} className="text-white/24" />
+          </div>
+          <p className="text-[20px] font-black text-white">{latestBody?.weight ?? '--'}<span className="ml-1 text-[10px] text-white/25">kg</span></p>
+          {projections?.weight && <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/25">6w: {projections.weight.value} kg</p>}
+        </div>
+        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/80 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">Talia</p>
+            <Ruler size={13} className="text-white/24" />
+          </div>
+          <p className="text-[20px] font-black text-white">{latestBody?.waist ?? '--'}<span className="ml-1 text-[10px] text-white/25">cm</span></p>
+          {projections?.waist && <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/25">6w: {projections.waist.value} cm</p>}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Fueling</p>
+            <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Białko dzisiaj</h2>
+          </div>
+          <p className="text-[13px] font-black text-primary">{latestNutrition?.protein ?? '--'}g</p>
+        </div>
+        <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Cel {proteinGoal}g</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">{Math.round(proteinPct)}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+            <div className="h-full rounded-full bg-primary shadow-[0_0_12px_rgba(59,130,246,0.35)]" style={{ width: `${proteinPct}%` }} />
+          </div>
+          {recentProtein.length > 0 && (
+            <div className="mt-4 grid grid-cols-7 gap-1.5">
+              {recentProtein.map((d) => {
+                const pct = Math.min((Number(d.protein || 0) / proteinGoal) * 100, 100);
+                return (
+                  <div key={d.date} className="flex h-14 flex-col justify-end gap-1">
+                    <div className="rounded-sm bg-primary/70" style={{ height: `${Math.max(pct, 6)}%` }} />
+                    <span className="text-center text-[7px] font-bold text-white/25">{d.date.slice(0, 2)}</span>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </section>
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter flex items-center gap-4">
-          Oura Readiness <TrendArrow current={trends.readiness?.cur} previous={trends.readiness?.prev} />
-        </h2>
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          {ouraTrend?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={224}>
-              <LineChart data={ouraTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="date" stroke="#525252" fontSize={8} />
-                <YAxis domain={[50, 100]} stroke="#525252" fontSize={8} />
-                <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '12px' }} />
-                <Line type="monotone" dataKey="readiness" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych Oura</div>
-          )}
-        </div>
-      </section>
+      {topSlot}
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter flex items-center gap-4">
-          Protein Intake <TrendArrow current={trends.protein?.cur} previous={trends.protein?.prev} />
-        </h2>
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 h-64 overflow-hidden">
-          {nutritionData?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={224}>
-              <LineChart data={nutritionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="date" stroke="#525252" fontSize={8} />
-                <YAxis domain={[0, 200]} stroke="#525252" fontSize={8} />
-                <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '12px' }} />
-                <ReferenceLine y={150} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'GOAL', position: 'right', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }} />
-                <Line type="monotone" dataKey="protein" name="Białko (g)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3, fill: '#3b82f6' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-neutral-700 uppercase">Brak danych żywieniowych</div>
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Historia</h2>
-        <div className="overflow-hidden rounded-2xl border border-neutral-900 bg-neutral-900/30">
+      <section className="space-y-3">
+        <h2 className="text-[16px] font-black uppercase tracking-tight text-white">Historia treningów</h2>
+        <div className="overflow-hidden rounded-lg border border-white/[0.07] bg-neutral-950/60">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-neutral-900 text-[8px] font-black text-neutral-500 uppercase tracking-widest">
-                <th className="p-4">Data</th>
-                <th className="p-4 text-center">Dzień</th>
-                <th className="p-4 text-right">Akcja</th>
+              <tr className="bg-white/[0.03] text-[8px] font-black uppercase tracking-widest text-white/30">
+                <th className="p-3">Data</th>
+                <th className="p-3 text-center">Dzień</th>
+                <th className="p-3 text-right">Akcja</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-900 text-[10px] font-bold text-white">
-              {recentSessions.slice(0, 40).map(s => (
-                <tr key={s.id} className="hover:bg-neutral-900/50 transition-colors">
-                  <td className="p-4">
+            <tbody className="divide-y divide-white/[0.05] text-[10px] font-bold text-white">
+              {recentSessions.slice(0, 12).map(s => (
+                <tr key={s.id} className="transition-colors hover:bg-white/[0.03]">
+                  <td className="p-3">
                     {editingSession === s.id ? (
                       <input type="date" value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})} className="bg-neutral-950 border border-neutral-800 rounded p-1 text-[10px] text-white" />
                     ) : (
                       format(parseISO(s.date), 'dd.MM')
                     )}
                   </td>
-                  <td className="p-4 text-center text-neutral-400">
+                  <td className="p-3 text-center text-white/45">
                     {editingSession === s.id ? (
                       <div className="space-y-2 text-left">
                         {editForm.logs.map((log, idx) => (
@@ -950,7 +931,7 @@ export default function Stats({ session }) {
                       s.workout_day
                     )}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-3 text-right">
                     {editingSession !== s.id && (
                       <div className="flex justify-end gap-1">
                         <button onClick={() => startEditing(s)} className="text-neutral-700 hover:text-primary p-2"><Zap size={12} /></button>
@@ -965,7 +946,13 @@ export default function Stats({ session }) {
         </div>
       </section>
 
-      <section className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+      {runningSlot}
+
+      <section className="space-y-4 rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Eksport</p>
+          <h2 className="mt-1 text-[15px] font-black uppercase tracking-tight text-white">Raport danych</h2>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="relative group">
             <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-hover:text-primary transition-colors" size={14} />
@@ -974,7 +961,7 @@ export default function Stats({ session }) {
               value={dateRange.from} 
               onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={e => setDateRange({...dateRange, from: e.target.value})} 
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 pl-10 text-[10px] font-bold text-white outline-none focus:border-primary transition-all cursor-pointer appearance-none" 
+              className="w-full cursor-pointer appearance-none rounded-lg border border-white/[0.08] bg-black/35 p-3 pl-10 text-[10px] font-bold text-white outline-none transition-all focus:border-primary/70"
             />
           </div>
           <div className="relative group">
@@ -984,7 +971,7 @@ export default function Stats({ session }) {
               value={dateRange.to} 
               onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={e => setDateRange({...dateRange, to: e.target.value})} 
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 pl-10 text-[10px] font-bold text-white outline-none focus:border-primary transition-all cursor-pointer appearance-none" 
+              className="w-full cursor-pointer appearance-none rounded-lg border border-white/[0.08] bg-black/35 p-3 pl-10 text-[10px] font-bold text-white outline-none transition-all focus:border-primary/70"
             />
           </div>
         </div>
@@ -1034,16 +1021,16 @@ export default function Stats({ session }) {
 
         </div>
 
-        <div className="flex justify-between items-center pt-2">
+        <div className="flex items-center justify-between pt-2">
           <button onClick={syncHistory} disabled={isSyncing} className="text-[8px] font-black uppercase text-neutral-600 hover:text-primary transition-colors">
-            {isSyncing ? 'Syncing...' : 'Wymuś Sync Yazio (30 dni)'}
+            {isSyncing ? 'Syncing...' : 'Sync Yazio'}
           </button>
-          <button onClick={exportData} disabled={isExporting} className="bg-primary text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-xl shadow-primary/20 flex-1 ml-4">
+          <button onClick={exportData} disabled={isExporting} className="ml-4 flex-1 rounded-lg bg-primary px-6 py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-primary/20 transition-transform hover:scale-[1.01]">
             {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
           </button>
         </div>
 
-        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full border border-neutral-800 text-neutral-300 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-colors">
+        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-lg border border-white/[0.08] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/45 transition-colors hover:border-primary/40 hover:text-primary">
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
         </button>
 

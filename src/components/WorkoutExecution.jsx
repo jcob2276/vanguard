@@ -140,7 +140,9 @@ export default function WorkoutExecution({ session, dayKey, onBack }) {
             set_number: idx + 1,
             weight: w,
             reps: r,
-            rpe: s.rpe ? parseFloat(s.rpe) : null
+            rpe: s.rpe ? parseFloat(s.rpe) : null,
+            rir: s.rpe ? parseFloat(s.rpe) : null,
+            muscle_tags: []
           };
         })
       );

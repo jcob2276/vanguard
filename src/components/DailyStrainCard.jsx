@@ -116,7 +116,7 @@ export default function DailyStrainCard({ session }) {
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-white/5 bg-neutral-950 p-5">
+      <section className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
         <DataStateNotice
           tone="loading"
           title="Daily strain sie liczy"
@@ -128,7 +128,7 @@ export default function DailyStrainCard({ session }) {
 
   if (error) {
     return (
-      <section className="rounded-2xl border border-red-500/15 bg-neutral-950 p-5">
+      <section className="rounded-lg border border-red-500/15 bg-neutral-950/80 p-5">
         <DataStateNotice
           tone="warning"
           title="Daily strain niedostepny"
@@ -140,7 +140,7 @@ export default function DailyStrainCard({ session }) {
 
   if (!row) {
     return (
-      <section className="rounded-2xl border border-white/5 bg-neutral-950 p-5">
+      <section className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
         <DataStateNotice
           title="Daily strain niepoliczony"
           detail="Brak wiersza daily_strain. Uruchom sync Oura/Yazio/Strava i compute-daily-strain."
@@ -160,13 +160,13 @@ export default function DailyStrainCard({ session }) {
   ].filter(Boolean);
 
   return (
-    <section className={`relative overflow-hidden rounded-2xl border ${STATUS_RING[row.daily_status]} bg-neutral-950 p-5`}>
-      <div className={`absolute right-0 top-0 h-28 w-28 rounded-full blur-3xl ${STATUS_GLOW[row.daily_status]}`} />
+    <section className={`relative overflow-hidden rounded-lg border ${STATUS_RING[row.daily_status]} bg-[linear-gradient(180deg,rgba(24,24,27,0.9),rgba(10,10,11,0.96))] p-5 shadow-2xl shadow-black/30`}>
+      <div className={`absolute right-0 top-0 h-20 w-20 blur-3xl ${STATUS_GLOW[row.daily_status]}`} />
       <div className="relative space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35">Trening dziś</p>
-            <h3 className={`text-xl font-black uppercase italic tracking-tight ${d.tone}`}>{d.text}</h3>
+            <h3 className={`text-[19px] font-black uppercase tracking-tight ${d.tone}`}>{d.text}</h3>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -175,7 +175,7 @@ export default function DailyStrainCard({ session }) {
             </div>
             <button onClick={refresh} disabled={refreshing}
               title="Sync + przelicz"
-              className="rounded-xl border border-white/5 bg-white/5 p-2 text-white/45 transition-colors hover:text-white disabled:opacity-50">
+              className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-2 text-white/45 transition-colors hover:text-white disabled:opacity-50">
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             </button>
           </div>

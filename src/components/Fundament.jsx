@@ -1,18 +1,55 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { 
-  ArrowLeft, Target, Shield, Zap, Info, Database, Brain, Fingerprint, 
-  ChevronLeft, Save 
+import { useEffect, useState } from 'react';
+import {
+  Brain,
+  Calendar,
+  ChevronLeft,
+  Database,
+  Fingerprint,
+  RefreshCw,
+  Save,
+  Shield,
+  Target,
+  UploadCloud,
+  Zap,
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import IdentityVault from './IdentityVault';
 import DataHub from './DataHub';
 
-export default function Fundament({ onBack, session }) {
+function SectionHeader({ icon: Icon, title, detail }) {
+  return (
+    <header className="space-y-1">
+      <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
+        <Icon size={12} /> {title}
+      </p>
+      {detail && <p className="text-[11px] font-semibold leading-relaxed text-white/40">{detail}</p>}
+    </header>
+  );
+}
+
+function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className={`w-full resize-none rounded-lg border bg-black/45 p-4 text-[12px] font-bold leading-relaxed text-white outline-none transition-colors placeholder:text-white/18 ${
+          danger ? 'border-dayB/25 focus:border-dayB/70' : 'border-white/[0.08] focus:border-primary/70'
+        }`}
+      />
+    </label>
+  );
+}
+
+export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }) {
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
     avoidance_triggers: '',
-    behavioral_baseline: ''
+    behavioral_baseline: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,13 +59,13 @@ export default function Fundament({ onBack, session }) {
   }, []);
 
   async function fetchIdentity() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    const { data: auth } = await supabase.auth.getSession();
+    if (!auth.session) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('vanguard_identity')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', auth.session.user.id)
       .maybeSingle();
 
     if (data) {
@@ -36,7 +73,7 @@ export default function Fundament({ onBack, session }) {
         long_term_mission: data.long_term_mission || '',
         pillars: data.pillars || ['', '', ''],
         avoidance_triggers: data.avoidance_triggers || '',
-        behavioral_baseline: data.behavioral_baseline ? JSON.stringify(data.behavioral_baseline, null, 2) : ''
+        behavioral_baseline: data.behavioral_baseline ? JSON.stringify(data.behavioral_baseline, null, 2) : '',
       });
     }
     setLoading(false);
@@ -45,35 +82,32 @@ export default function Fundament({ onBack, session }) {
   async function saveIdentity() {
     setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Brak aktywnej sesji.');
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session) throw new Error('Brak aktywnej sesji.');
 
       let baselineJson = null;
-      if (identity.behavioral_baseline) {
+      if (identity.behavioral_baseline.trim()) {
         try {
           baselineJson = JSON.parse(identity.behavioral_baseline);
-        } catch (e) {
-          throw new Error('BŁĄD FORMATU JSON: Upewnij się, że wkleiłeś poprawny kod ze skryptu Python.');
+        } catch {
+          throw new Error('Baseline musi byc poprawnym JSON.');
         }
       }
-      
-      const { error } = await supabase
-        .from('vanguard_identity')
-        .upsert({
-          user_id: session.user.id,
-          long_term_mission: identity.long_term_mission,
-          pillars: identity.pillars,
-          avoidance_triggers: identity.avoidance_triggers,
-          behavioral_baseline: baselineJson,
-          updated_at: new Date().toISOString()
-        });
+
+      const { error } = await supabase.from('vanguard_identity').upsert({
+        user_id: auth.session.user.id,
+        long_term_mission: identity.long_term_mission,
+        pillars: identity.pillars,
+        avoidance_triggers: identity.avoidance_triggers,
+        behavioral_baseline: baselineJson,
+        updated_at: new Date().toISOString(),
+      });
 
       if (error) throw error;
-      
-      alert('IDENTYFIKACJA ZAPISANA. Digital Twin zsynchronizowany.');
+      alert('Fundament zapisany.');
     } catch (err) {
       console.error('Save Identity Error:', err);
-      alert(`BŁĄD ZAPISU: ${err.message}`);
+      alert(`Blad zapisu: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -82,114 +116,136 @@ export default function Fundament({ onBack, session }) {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-8 animate-in fade-in duration-500">
-      <header className="flex items-center gap-4">
-        <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
-          <ChevronLeft size={24} />
-        </button>
-        <div>
-          <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Identity Fundament</h1>
-          <p className="text-[10px] text-primary font-black uppercase tracking-widest">Digital Twin Core v2.0</p>
-        </div>
-      </header>
-
-      <div className="space-y-6">
-        {/* Misja */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <Target size={14} className="text-primary" /> Long-Term Mission
-          </h3>
-          <textarea 
-            value={identity.long_term_mission}
-            onChange={(e) => setIdentity({...identity, long_term_mission: e.target.value})}
-            placeholder="Jaki jest Twój ostateczny cel operacyjny?"
-            className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-xs font-bold text-white outline-none focus:border-primary min-h-[100px] transition-all"
-          />
-        </section>
-
-        {/* Filary */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <Shield size={14} className="text-primary" /> Identity Pillars (Kim jesteś?)
-          </h3>
-          <div className="space-y-2">
-            {identity.pillars.map((p, i) => (
-              <input 
-                key={i}
-                value={p}
-                onChange={(e) => {
-                  const n = [...identity.pillars]; n[i] = e.target.value; setIdentity({...identity, pillars: n});
-                }}
-                placeholder={`Filar ${i+1} (np. High-Stakes Entrepreneur)`}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-xs font-bold text-white outline-none focus:border-primary transition-all"
-              />
-            ))}
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-white/5 pb-8">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/5 bg-black/80 px-5 py-4 backdrop-blur-xl">
+          <button
+            onClick={onBack}
+            className="rounded-full border border-white/5 bg-white/5 p-2.5 text-white/45 transition-colors hover:text-white"
+            title="Wroc"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="truncate text-[16px] font-black uppercase tracking-tight text-white">Identity Fundament</h1>
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Core context</p>
           </div>
-        </section>
+        </header>
 
-        {/* Triggery unikania */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-            <Zap size={14} className="text-red-500" /> System Drifters (Co Cię niszczy?)
-          </h3>
-          <textarea 
-            value={identity.avoidance_triggers}
-            onChange={(e) => setIdentity({...identity, avoidance_triggers: e.target.value})}
-            placeholder="Wymień zachowania, które AI ma wykrywać jako błąd systemu (np. masturbacja, scrolling, brak snu)."
-            className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-xs font-bold text-white outline-none focus:border-red-500/50 min-h-[100px] transition-all"
-          />
-        </section>
+        <main className="flex-1 space-y-6 p-5">
+          <section className="rounded-lg border border-white/[0.08] bg-[linear-gradient(135deg,rgba(23,23,25,0.98),rgba(6,8,12,0.98))] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">Fundament</p>
+                <h2 className="mt-2 text-[24px] font-black uppercase leading-none tracking-tight text-white">
+                  Prawda systemu
+                </h2>
+              </div>
+              <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
+                <Fingerprint size={20} />
+              </div>
+            </div>
+            <p className="mt-4 text-[12px] font-semibold leading-relaxed text-white/48">
+              To nie jest dashboard. To baza kontekstu, ktora ma ustawic interpretacje Mirror, Kierunku i raportow.
+            </p>
+          </section>
 
-        {/* Vault */}
-        <div className="pt-8 border-t border-white/5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="text-primary" size={16} />
-            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Identity Vault (Głęboki Kontekst)</h3>
-          </div>
-          <p className="text-[9px] text-neutral-500 font-bold uppercase">Wgraj tutaj swoje ankiety, wyniki testów i notatki o sobie. AI będzie ich używać do każdej analizy.</p>
-          <IdentityVault session={session} />
-        </div>
+          <section className="space-y-3">
+            <SectionHeader icon={Target} title="Misja" detail="Jedno zdanie lub akapit, ktory ustawia dlugi kierunek." />
+            <TextAreaBlock
+              label="Long-term mission"
+              value={identity.long_term_mission}
+              onChange={(value) => setIdentity({ ...identity, long_term_mission: value })}
+              placeholder="Jaki jest ostateczny kierunek operacyjny?"
+              rows={5}
+            />
+          </section>
 
-        {/* Memory Ingest (NEW) */}
-        <div className="pt-8 border-t border-white/5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Zap className="text-primary" size={16} />
-            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Behavioral Memory Ingest (Takeout JSON)</h3>
-          </div>
-          <p className="text-[9px] text-neutral-500 font-bold uppercase">Wklej tutaj wynik ze skryptu signal_engine.py. To zbuduje Twój statystyczny baseline.</p>
-          <textarea 
-            value={identity.behavioral_baseline}
-            onChange={(e) => setIdentity({...identity, behavioral_baseline: e.target.value})}
-            placeholder='{"baselineMode": "THE_BUILDER", ...}'
-            className="w-full bg-black border border-neutral-800 rounded-xl p-4 text-[10px] font-mono text-primary outline-none focus:border-primary min-h-[150px] transition-all"
-          />
-        </div>
+          <section className="space-y-3">
+            <SectionHeader icon={Shield} title="Filary identity" detail="Trzy stabilne deklaracje: kim jestes, kiedy system ma oceniac zachowanie." />
+            <div className="space-y-2">
+              {identity.pillars.map((pillar, index) => (
+                <input
+                  key={index}
+                  value={pillar}
+                  onChange={(event) => {
+                    const next = [...identity.pillars];
+                    next[index] = event.target.value;
+                    setIdentity({ ...identity, pillars: next });
+                  }}
+                  placeholder={`Filar ${index + 1}`}
+                  className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none transition-colors placeholder:text-white/18 focus:border-primary/70"
+                />
+              ))}
+            </div>
+          </section>
 
-        <div className="pt-8 border-t border-white/5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="text-primary" size={16} />
-            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Importy i synchronizacje</h3>
-          </div>
-          <p className="text-[9px] text-neutral-500 font-bold uppercase">
-            Narzędzia zasilające bota i warstwę danych: StayFree, Todoist oraz health check pamięci.
-          </p>
-          <DataHub session={session} embedded />
-        </div>
+          <section className="space-y-3">
+            <SectionHeader icon={Zap} title="Drifters" detail="Zachowania, ktore system ma traktowac jako odchylenie od kierunku." />
+            <TextAreaBlock
+              label="System drifters"
+              value={identity.avoidance_triggers}
+              onChange={(value) => setIdentity({ ...identity, avoidance_triggers: value })}
+              placeholder="Np. scrolling, lenie, brak snu, unikanie pracy, chaotyczne jedzenie."
+              danger
+              rows={5}
+            />
+          </section>
 
-        <button 
-          onClick={saveIdentity}
-          disabled={saving}
-          className="w-full bg-primary text-white py-4 rounded-xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          <Fingerprint size={18} /> {saving ? 'SYNCHRONIZACJA...' : 'ZAPISZ CAŁY FUNDAMENT I MEMORY'}
-        </button>
-      </div>
+          <section className="space-y-3">
+            <SectionHeader icon={Database} title="Zrodla danych" detail="Tu trafia kalendarz i importy, zamiast wisiec jako globalna ikona w headerze." />
+            <div className="grid gap-3">
+              <button
+                onClick={onSyncCalendar}
+                disabled={isSyncing}
+                className="flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4 text-left transition-colors hover:border-primary/35 disabled:opacity-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04] text-white/52">
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">Calendar</p>
+                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-white">Synchronizuj kalendarz</p>
+                  </div>
+                </div>
+                <RefreshCw size={15} className={`text-primary ${isSyncing ? 'animate-spin' : ''}`} />
+              </button>
 
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-        <Brain className="text-primary mt-1" size={16} />
-        <p className="text-[9px] font-bold text-neutral-400 uppercase leading-relaxed">
-          Uwaga: Te dane są przekazywane bezpośrednio do AI Advisor. Bot będzie ich używał jako Twojej "Prawdy Ostatecznej" przy każdej diagnozie Mirror Mode.
-        </p>
+              <DataHub session={session} embedded />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i dlugi kontekst do analiz." />
+            <IdentityVault session={session} />
+          </section>
+
+          <section className="space-y-3">
+            <SectionHeader icon={Brain} title="Behavioral baseline" detail="Opcjonalny JSON z baseline zachowania." />
+            <textarea
+              value={identity.behavioral_baseline}
+              onChange={(event) => setIdentity({ ...identity, behavioral_baseline: event.target.value })}
+              placeholder='{"baselineMode": "THE_BUILDER"}'
+              rows={8}
+              className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-4 font-mono text-[10px] font-bold leading-relaxed text-primary outline-none placeholder:text-white/18 focus:border-primary/70"
+            />
+          </section>
+
+          <button
+            onClick={saveIdentity}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-transform active:scale-[0.99] disabled:opacity-50"
+          >
+            <Save size={16} /> {saving ? 'Zapisywanie...' : 'Zapisz fundament'}
+          </button>
+
+          <section className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <p className="text-[10px] font-bold uppercase leading-relaxed text-white/45">
+              Te dane sa warstwa deklaracji i kontekstu. System nadal powinien konfrontowac je z zachowaniem, nie traktowac jako automatycznej prawdy o wykonaniu.
+            </p>
+          </section>
+        </main>
       </div>
     </div>
   );

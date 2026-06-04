@@ -72,6 +72,22 @@ export const EXERCISE_MAP = new Map(
 
 export const ALL_TAGS = [...new Set(EXERCISES.flatMap(e => e.tags))].sort();
 
+export const MUSCLE_TAGS = [
+  'klatka',
+  'plecy',
+  'barki',
+  'biceps',
+  'triceps',
+  'brzuch',
+  'czworogłowe',
+  'dwugłowe ud',
+  'pośladki',
+  'łydki',
+  'przedramiona',
+];
+
+export const TAG_SET_WEIGHTS = [1, 0.55, 0.35, 0.25];
+
 export const TAG_COLOR = {
   klatka:        'bg-blue-500/15 text-blue-300 border-blue-500/25',
   plecy:         'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',

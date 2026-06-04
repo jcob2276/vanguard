@@ -65,7 +65,7 @@ serve(async (req) => {
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
         supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours').eq('user_id', uid).gte('date', winStart),
         supabase.from('daily_nutrition').select('date, calories, protein, carbs').eq('user_id', uid).gte('date', winStart),
-        supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe)').eq('user_id', uid).gte('date', winStart),
+        supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe, rir)').eq('user_id', uid).gte('date', winStart),
         supabase.from('strava_activities_clean').select('start_date, perceived_exertion, has_pr, sport_type, is_oura').eq('user_id', uid).eq('is_oura', false).gte('start_date', winStart + 'T00:00:00'),
       ])
 
@@ -117,7 +117,8 @@ serve(async (req) => {
         for (const set of wsets) {
           const isLeg = matches(set.exercise_name, LEG_KW)
           const isCns = matches(set.exercise_name, CNS_KW)
-          const nearFailure = set.rpe != null && Number(set.rpe) <= 1
+          const setRir = set.rir ?? set.rpe
+          const nearFailure = setRir != null && Number(setRir) <= 1
           const pts = 3 + (isLeg ? 2 : 0) + (isCns ? 2 : 0) + (nearFailure ? 2 : 0)
           strengthPts += pts
           if (isLeg) legPts += pts

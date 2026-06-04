@@ -114,7 +114,7 @@ export default function OuraWidget({ session }) {
     return (
       <button 
         onClick={() => setShowTokenInput(true)}
-        className="card w-full flex items-center justify-between p-4 border-dashed border-neutral-700 bg-neutral-900/20 text-neutral-500 hover:text-white transition-colors"
+        className="flex w-full items-center justify-between rounded-lg border border-dashed border-white/[0.1] bg-neutral-950/60 p-4 text-white/40 transition-colors hover:text-white"
       >
         <div className="flex items-center gap-3">
           <Key size={20} />
@@ -127,8 +127,8 @@ export default function OuraWidget({ session }) {
 
   if (showTokenInput) {
     return (
-      <div className="card space-y-4">
-        <h3 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Konfiguracja Oura PAT</h3>
+      <div className="space-y-4 rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/35">Konfiguracja Oura PAT</h3>
         <input 
           type="password" 
           value={tempToken}
@@ -154,22 +154,22 @@ export default function OuraWidget({ session }) {
   const insights = VanguardCore.translateBiometrics(activeOura, baselineMeans);
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+    <div className="animate-in fade-in slide-in-from-top-4 duration-700">
       
       {/* Readiness Widget */}
-      <section className="card bg-gradient-to-br from-neutral-900 to-neutral-950 overflow-hidden relative border-primary/20 shadow-lg shadow-primary/5 p-6">
-        <div className="flex justify-between items-start mb-6">
+      <section className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.9),rgba(10,10,11,0.96))] p-5 shadow-2xl shadow-black/30">
+        <div className="mb-5 flex items-start justify-between">
           <div className="flex items-center gap-2">
             <Battery size={18} className={activeReadiness < 70 ? 'text-red-500' : 'text-primary'} />
-            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Body Battery / Readiness</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Oura baseline</h3>
           </div>
-          <button onClick={handleSync} disabled={syncing} className={`text-neutral-500 hover:text-white ${syncing ? 'animate-spin' : ''}`}>
+          <button onClick={handleSync} disabled={syncing} className={`rounded-md p-1 text-white/30 hover:bg-white/[0.06] hover:text-white ${syncing ? 'animate-spin' : ''}`}>
             <RefreshCw size={14} />
           </button>
         </div>
 
-        <div className="flex items-end gap-4 mb-6">
-          <span className="text-5xl font-black text-white italic tracking-tighter">
+        <div className="mb-5 flex items-end gap-4">
+          <span className="text-[42px] font-black tracking-tighter text-white">
             {activeReadiness || '--'}
             <TrendArrow current={data?.today?.readiness_score} previous={data?.yesterday?.readiness_score} />
           </span>
@@ -178,13 +178,13 @@ export default function OuraWidget({ session }) {
               (() => {
                 const isDownTrend = data?.today?.readiness_score < data?.yesterday?.readiness_score;
                 if (activeReadiness >= 85 && !isDownTrend) {
-                  return <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">🚀 Peak Performance Mode</p>;
+                  return <p className="text-[10px] font-black uppercase tracking-wider text-dayC">Peak Performance</p>;
                 } else if (activeReadiness >= 75 && !isDownTrend) {
-                  return <p className="text-[10px] font-black text-dayC uppercase italic tracking-tighter">✅ Gotowy na Solidny Wysiłek</p>;
+                  return <p className="text-[10px] font-black uppercase tracking-wider text-dayC">Gotowy na wysiłek</p>;
                 } else if (activeReadiness >= 70) {
-                  return <p className="text-[10px] font-black text-primary uppercase italic tracking-tighter">⚖️ Optimal Load / Monitor Trend</p>;
+                  return <p className="text-[10px] font-black uppercase tracking-wider text-primary">Monitoruj trend</p>;
                 } else {
-                  return <p className="text-[10px] font-black text-dayB uppercase italic tracking-tighter animate-pulse">⚠️ Sugeruję DELOAD / Recovery</p>;
+                  return <p className="text-[10px] font-black uppercase tracking-wider text-dayB">Deload / recovery</p>;
                 }
               })()
             ) : <p className="text-[10px] text-neutral-600 uppercase">Brak danych</p>}
@@ -193,31 +193,31 @@ export default function OuraWidget({ session }) {
 
         {/* Natural Language Insight */}
         {insights?.length > 0 && (
-          <div className="mb-6 p-3 bg-dayB/5 border-l-2 border-dayB rounded-r-lg">
-             <p className="text-[10px] font-bold text-dayB uppercase italic leading-tight">
+          <div className="mb-5 rounded-lg border border-dayB/15 bg-dayB/5 p-3">
+             <p className="text-[10px] font-bold uppercase leading-relaxed text-dayB">
                {insights[0]}
              </p>
           </div>
         )}
 
         {/* High-Level Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-           <div className="bg-neutral-950/50 p-4 rounded-2xl border border-neutral-800/50">
+        <div className="mb-3 grid grid-cols-2 gap-3">
+           <div className="rounded-lg border border-white/[0.07] bg-black/25 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Zap size={14} className="text-dayA" />
-                <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">HRV (Nervous System)</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-white/32">HRV</span>
               </div>
-              <p className="text-xl font-black text-white italic">
+              <p className="text-xl font-black text-white">
                 {activeOura?.hrv_avg || '--'} <span className="text-[10px] text-neutral-500 not-italic ml-1">ms</span>
                 <TrendArrow current={data?.today?.hrv_avg} previous={data?.yesterday?.hrv_avg} />
               </p>
            </div>
-           <div className="bg-neutral-950/50 p-4 rounded-2xl border border-neutral-800/50">
+           <div className="rounded-lg border border-white/[0.07] bg-black/25 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Activity size={14} className="text-dayB" />
-                <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">RHR (Recovery Load)</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-white/32">RHR</span>
               </div>
-              <p className="text-xl font-black text-white italic">
+              <p className="text-xl font-black text-white">
                 {activeOura?.rhr_avg || '--'} <span className="text-[10px] text-neutral-500 not-italic ml-1">bpm</span>
                 <TrendArrow current={data?.today?.rhr_avg} previous={data?.yesterday?.rhr_avg} better="down" />
               </p>
@@ -226,7 +226,7 @@ export default function OuraWidget({ session }) {
 
         {/* Small Stats Row */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900 relative group">
+          <div className="group relative rounded-lg border border-white/[0.07] bg-black/25 p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <Moon size={10} className="text-dayB" />
@@ -243,7 +243,7 @@ export default function OuraWidget({ session }) {
             </div>
           </div>
 
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
+          <div className="rounded-lg border border-white/[0.07] bg-black/25 p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <Thermometer size={10} className="text-orange-500" />
@@ -255,7 +255,7 @@ export default function OuraWidget({ session }) {
             </p>
           </div>
 
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-900">
+          <div className="rounded-lg border border-white/[0.07] bg-black/25 p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <Footprints size={10} className="text-dayC" />
