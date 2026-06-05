@@ -809,8 +809,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               totalSugar > 0 ? `Cuk: ${totalSugar.toFixed(1)}g${sugarAlert}` : null
             ].filter(Boolean).join(' | ');
 
+            const ilLabel = totalIL < 120 ? 'niski' : totalIL < 200 ? 'umiarkowany' : 'wysoki';
+            const prevDateStr = new Date(new Date(dateStr).getTime() - 86400000).toISOString().split('T')[0];
+            const prevNutrition = nutritionEntries.find(n => n.date === prevDateStr);
+            const prevIL = prevNutrition?.insulin_load ? Number(prevNutrition.insulin_load) : null;
+            const ilDiff = prevIL ? totalIL - prevIL : null;
+            const ilTrend = ilDiff == null ? '' : ilDiff > 15 ? ` ↑ (wczoraj: ${prevIL.toFixed(1)})` : ilDiff < -15 ? ` ↓ (wczoraj: ${prevIL.toFixed(1)})` : ` → (wczoraj: ${prevIL.toFixed(1)})`;
+
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
-            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | Insulin Load (szac.): ${totalIL.toFixed(1)}_\n\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}_\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
