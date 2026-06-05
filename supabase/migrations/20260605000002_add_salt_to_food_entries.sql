@@ -1,0 +1,1 @@
+ALTER TABLE daily_food_entries ADD COLUMN IF NOT EXISTS salt NUMERIC;
