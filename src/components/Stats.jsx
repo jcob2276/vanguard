@@ -475,6 +475,18 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         if (includeOura && dayOura) {
           md += `### 💍 Oura Ring\n`;
           md += `- **Readiness:** ${dayOura.readiness_score || '--'} | **Sleep Score:** ${dayOuraEnhanced?.sleep_score || '--'} | **Activity Score:** ${dayOuraEnhanced?.activity_score || '--'}\n`;
+
+          if (dayOuraEnhanced?.bedtime_start || dayOuraEnhanced?.bedtime_end) {
+            const fmtWaw = (iso) => {
+              if (!iso) return '--';
+              return new Date(iso).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+            };
+            const bedStart = dayOuraEnhanced.bedtime_start;
+            const latMin = dayOuraEnhanced.sleep_latency_minutes || 0;
+            const onsetIso = bedStart ? new Date(new Date(bedStart).getTime() + latMin * 60000).toISOString() : null;
+            md += `- **Harmonogram snu:** 🛏️ Łóżko: ${fmtWaw(bedStart)} → 😴 Zasnął: ${fmtWaw(onsetIso)} (${latMin}m) → ⏰ Wstał: ${fmtWaw(dayOuraEnhanced.bedtime_end)}\n`;
+          }
+
           md += `- **Sen:** ${dayOura.total_sleep_hours || '--'}h`;
           if (dayOuraEnhanced) {
             const deepH = dayOuraEnhanced.deep_sleep_hours ? `${dayOuraEnhanced.deep_sleep_hours.toFixed(1)}h` : '--';
