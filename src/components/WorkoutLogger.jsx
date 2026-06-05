@@ -180,6 +180,37 @@ function TagRow({ tags, onChange }) {
   );
 }
 
+// ─── Volume by muscle tag ─────────────────────────────────────────────────────
+
+function VolumeBar({ exercises }) {
+  const vol = {};
+  exercises.forEach(ex => {
+    const exVol = (ex.sets ?? []).reduce((sum, s) => {
+      const kg = parseFloat(s.kg) || 0;
+      const reps = parseInt(s.reps) || 0;
+      return sum + kg * reps;
+    }, 0);
+    if (exVol > 0) {
+      (ex.tags ?? []).forEach(tag => { vol[tag] = (vol[tag] || 0) + exVol; });
+    }
+  });
+  const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return null;
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+      <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/30 block mb-2">Objętość sesji</span>
+      <div className="flex flex-wrap gap-2">
+        {entries.map(([tag, v]) => (
+          <div key={tag} className="flex items-center gap-1.5">
+            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(tag)}`}>{tag}</span>
+            <span className="text-[10px] font-bold text-white/50">{Math.round(v).toLocaleString()}kg</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Progressive overload suggestion ─────────────────────────────────────────
 
 function getSuggestion(lastSession) {
@@ -554,6 +585,7 @@ export default function WorkoutLogger({ session, onBack }) {
             className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.12] p-3.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-primary/50 hover:text-primary transition-colors">
             <Plus size={13} /> Dodaj ćwiczenie
           </button>
+          <VolumeBar exercises={exercises} />
         </div>
 
         <div className="space-y-3">
