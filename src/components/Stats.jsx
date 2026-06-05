@@ -643,8 +643,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           if (totalSessionVolume > 0) {
             md += `**Łączna objętość treningu:** **${totalSessionVolume.toLocaleString()} kg**\n`;
           }
-          if (s.notes && s.notes.trim()) {
-            md += `**Notatki z treningu:** ${s.notes.trim()}\n`;
+          if (s.session_notes && s.session_notes.trim()) {
+            md += `**Notatki z treningu:** ${s.session_notes.trim()}\n`;
           }
           md += `\n`;
         });
