@@ -888,7 +888,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         });
       }
 
-      const blob = new Blob([md], { type: 'text/markdown' });
+      const blob = new Blob(['\uFEFF' + md], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `raport_kuba_${dateRange.from}.md`; a.click();
     } finally { setIsExporting(false); }
