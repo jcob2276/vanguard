@@ -143,10 +143,17 @@ async function syncDay(buckets, dateStr) {
   if (afkBucket) {
     try {
       const afkEvents = await getEvents(afkBucket, start, end);
-      totalAfkSeconds = Math.round(afkEvents.filter(e => e.data?.status === 'afk').reduce((s, e) => s + e.duration, 0));
       notAfkIntervals = afkEvents
         .filter(e => e.data?.status === 'not-afk')
         .map(e => ({ start: new Date(e.timestamp), end: new Date(new Date(e.timestamp).getTime() + e.duration * 1000) }));
+      // AFK tylko między pierwszą a ostatnią aktywną chwilą — wyklucza noc gdy komputer był włączony
+      if (notAfkIntervals.length > 0) {
+        const firstActive = Math.min(...notAfkIntervals.map(i => i.start.getTime()));
+        const lastActive  = Math.max(...notAfkIntervals.map(i => i.end.getTime()));
+        const timeAtComputer = (lastActive - firstActive) / 1000;
+        const activeInWindow = Math.round(notAfkIntervals.reduce((s, i) => s + (i.end - i.start) / 1000, 0));
+        totalAfkSeconds = Math.max(0, Math.round(timeAtComputer - activeInWindow));
+      }
     } catch {}
   }
 
@@ -231,7 +238,11 @@ async function syncDay(buckets, dateStr) {
       web_domains: webDomains,
       time_of_day: timeOfDay,
       productivity_ratio: productivityRatio,
-      categories: null,
+      categories: {
+        work:          Math.round(workSeconds / 60),
+        entertainment: Math.round(entertainmentSeconds / 60),
+        other:         Math.round(Math.max(0, totalActiveSeconds - workSeconds - entertainmentSeconds) / 60),
+      },
     },
     { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'resolution=merge-duplicates' }
   );
