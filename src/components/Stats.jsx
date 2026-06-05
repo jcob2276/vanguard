@@ -786,7 +786,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                     item.sugar != null ? `Cuk: ${item.sugar}g` : null,
                     item.saturated_fat != null ? `Nas: ${item.saturated_fat}g` : null,
                     item.salt != null ? `Sól: ${item.salt}g` : null,
-                    item.insulin_load != null ? `IL: ${item.insulin_load}g` : null,
+                    item.insulin_load != null ? `IL: ${item.insulin_load}` : null,
                   ].filter(Boolean).join(' | ');
                   const brandStr = item.brand ? ` — ${item.brand}` : '';
                   md += `- ${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
@@ -810,7 +810,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             ].filter(Boolean).join(' | ');
 
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
-            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | Insulin Load (szac.): ${totalIL.toFixed(1)}g_\n\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | Insulin Load (szac.): ${totalIL.toFixed(1)}_\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
