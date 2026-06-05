@@ -318,7 +318,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         { data: fundament },
         { data: stravaData },
         { data: stravaRawData },
-        { data: awSummary }
+        { data: awSummary },
+        { data: phoneUsageData }
       ] = await Promise.all([
         includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
@@ -338,7 +339,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
         includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] }),
         includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [] }),
-        includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] })
+        includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+        supabase.from('phone_usage_daily').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true })
       ]);
 
       const foodEntries = food || [];
@@ -527,6 +529,25 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           }
           
           md += `- **Dyscyplina:** ${dayOura.is_disciplined ? 'TAK' : 'NIE'}\n\n`;
+        }
+
+        const dayPhone = (phoneUsageData || []).find(p => p.date === dateStr);
+        if (dayPhone) {
+          const parts = [
+            dayPhone.entertainment_minutes > 0 ? `🎬 ${dayPhone.entertainment_minutes}m` : null,
+            dayPhone.social_minutes > 0        ? `📲 soc: ${dayPhone.social_minutes}m` : null,
+            dayPhone.messaging_minutes > 0     ? `💬 msg: ${dayPhone.messaging_minutes}m` : null,
+            dayPhone.ai_minutes > 0            ? `🤖 AI: ${dayPhone.ai_minutes}m` : null,
+            dayPhone.unlocks > 0               ? `🔓 ${dayPhone.unlocks}x` : null,
+          ].filter(Boolean).join(' | ');
+          const lnAlert = dayPhone.late_night_minutes > 60 ? ` 🌙 PO 23:00: **${dayPhone.late_night_minutes}m** ⚠️` : dayPhone.late_night_minutes > 0 ? ` 🌙 ${dayPhone.late_night_minutes}m` : '';
+          md += `### 📱 Telefon (AW)\n`;
+          md += `- **Łącznie:** ${dayPhone.total_minutes}min | ${parts}${lnAlert}\n`;
+          if (dayPhone.top_apps?.length) {
+            const top3 = dayPhone.top_apps.slice(0, 3).map(a => `${a.app} (${a.min}m)`).join(', ');
+            md += `- **Top:** ${top3}\n`;
+          }
+          md += `\n`;
         }
 
         if (dayAw) {
