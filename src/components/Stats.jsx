@@ -484,7 +484,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             const bedStart = dayOuraEnhanced.bedtime_start;
             const latMin = dayOuraEnhanced.sleep_latency_minutes || 0;
             const onsetIso = bedStart ? new Date(new Date(bedStart).getTime() + latMin * 60000).toISOString() : null;
-            md += `- **Harmonogram snu:** 🛏️ Łóżko: ${fmtWaw(bedStart)} → 😴 Zasnął: ${fmtWaw(onsetIso)} (${latMin}m) → ⏰ Wstał: ${fmtWaw(dayOuraEnhanced.bedtime_end)}\n`;
+            const wokeUpStr = dayOuraEnhanced.wake_up_timestamp ? ` → 🔔 Obudził się: ${fmtWaw(dayOuraEnhanced.wake_up_timestamp)}` : '';
+            md += `- **Harmonogram snu:** 🛏️ Łóżko: ${fmtWaw(bedStart)} → 😴 Zasnął: ${fmtWaw(onsetIso)} (${latMin}m)${wokeUpStr} → 🚶 Wstał: ${fmtWaw(dayOuraEnhanced.bedtime_end)}\n`;
           }
 
           md += `- **Sen:** ${dayOura.total_sleep_hours || '--'}h`;

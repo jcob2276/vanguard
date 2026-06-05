@@ -118,6 +118,19 @@ serve(async (req) => {
         r.sleep_latency_minutes = it.latency ? it.latency / 60 : null
         r.bedtime_start = it.bedtime_start ?? null
         r.bedtime_end = it.bedtime_end ?? null
+        // Oblicz "obudził się" = koniec ostatniej fazy sennej (ostatnie non-awake w sleep_phase_5_min)
+        let wakeUpTs: string | null = null
+        const phases: string = it.sleep_phase_5_min || ''
+        if (phases && it.bedtime_start) {
+          let lastSleepIdx = -1
+          for (let i = phases.length - 1; i >= 0; i--) {
+            if (phases[i] !== '4') { lastSleepIdx = i; break }
+          }
+          if (lastSleepIdx >= 0) {
+            wakeUpTs = new Date(new Date(it.bedtime_start).getTime() + (lastSleepIdx + 1) * 5 * 60000).toISOString()
+          }
+        }
+        r.wake_up_timestamp = wakeUpTs
         r.sleep_average_heart_rate = it.average_heart_rate ?? null
         r.sleep_lowest_heart_rate = it.lowest_heart_rate ?? null
         r.sleep_average_hrv = it.average_hrv ?? null
