@@ -815,9 +815,13 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             const prevIL = prevNutrition?.insulin_load ? Number(prevNutrition.insulin_load) : null;
             const ilDiff = prevIL ? totalIL - prevIL : null;
             const ilTrend = ilDiff == null ? '' : ilDiff > 15 ? ` ↑ (wczoraj: ${prevIL.toFixed(1)})` : ilDiff < -15 ? ` ↓ (wczoraj: ${prevIL.toFixed(1)})` : ` → (wczoraj: ${prevIL.toFixed(1)})`;
+            const hadTraining = dayStrava && dayStrava.length > 0;
+            const ilContext = totalIL >= 200
+              ? hadTraining ? ' 🏃 dzień treningowy — OK' : ' 🛋️ bez treningu — rozważ'
+              : hadTraining ? ' 🏃' : '';
 
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
-            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}_\n\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}${ilContext}_\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
