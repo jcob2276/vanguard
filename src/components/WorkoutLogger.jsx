@@ -180,6 +180,19 @@ function TagRow({ tags, onChange }) {
   );
 }
 
+// ─── Progressive overload suggestion ─────────────────────────────────────────
+
+function getSuggestion(lastSession) {
+  if (!lastSession?.length) return null;
+  const maxW = Math.max(...lastSession.map(s => s.weight));
+  if (!maxW) return null;
+  const minReps = Math.min(...lastSession.map(s => s.reps));
+  const maxReps = Math.max(...lastSession.map(s => s.reps));
+  const repsConsistent = (maxReps - minReps) <= 1;
+  const increment = maxW >= 40 ? 2.5 : 1.25;
+  return repsConsistent ? maxW + increment : maxW;
+}
+
 // ─── Exercise card ────────────────────────────────────────────────────────────
 
 function ExerciseCard({ exercise, onChange, onRemove, userId }) {
@@ -224,11 +237,21 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
         <TagRow tags={tags} onChange={t => onChange({ ...exercise, tags: t })} />
       )}
 
-      {/* Ostatnio */}
+      {/* Ostatnio + sugestia */}
       {lastSession && (
         <div className="px-4 py-1.5 border-t border-white/[0.04] flex items-center gap-1.5">
           <span className="text-[9px] font-black uppercase tracking-widest text-white/25">Ostatnio</span>
           <span className="text-[10px] font-bold text-white/40">{formatLastSession(lastSession)}</span>
+          {(() => {
+            const s = getSuggestion(lastSession);
+            const lastW = Math.max(...lastSession.map(x => x.weight));
+            const progressed = s > lastW;
+            return s ? (
+              <span className={`ml-auto text-[10px] font-black ${progressed ? 'text-emerald-400' : 'text-white/40'}`}>
+                → {s}kg{progressed ? ' ↑' : ''}
+              </span>
+            ) : null;
+          })()}
         </div>
       )}
 
