@@ -37,7 +37,7 @@ serve(async (req) => {
   try {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
-    const days: number = body.days ?? 3        // okno bezpieczeństwa (dane bywają opóźnione)
+    const days: number = body.days ?? 5        // okno bezpieczeństwa — 5 dni bo Oura opóźnia szczegółowe fazy snu
     const onlyUserId: string | null = body.userId ?? null
 
     // Wszyscy użytkownicy z tokenem Oura (bez wpisanego ID na sztywno)
