@@ -610,31 +610,43 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           md += `### 🏋️ Trening: Dzień ${s.workout_day}\n`;
           let totalSessionVolume = 0;
           
-          // Group logs by exercise to calculate individual tonnage
-          const exerciseGroups = {};
-          s.exercise_logs.forEach(l => {
-            if (!exerciseGroups[l.exercise_name]) {
-              exerciseGroups[l.exercise_name] = [];
-            }
-            exerciseGroups[l.exercise_name].push(l);
-          });
+          // Render exercise logs in their raw chronological order to preserve separate sets of the same exercise
+          let currentExerciseName = "";
+          let currentExerciseVolume = 0;
+          let currentSets = [];
 
-          Object.entries(exerciseGroups).forEach(([name, logs]) => {
-            const exVolume = logs.reduce((sum, l) => sum + (Number(l.weight) || 0) * (Number(l.reps) || 0), 0);
-            totalSessionVolume += exVolume;
-            
-            md += `- **${name}** (Objętość: ${exVolume.toLocaleString()} kg):\n`;
-            logs.forEach((l, idx) => {
-              const effort = l.rir ?? l.rpe ?? '--';
-              md += `  - Seria ${idx + 1}: ${l.weight}kg x ${l.reps} (RIR/MSP: ${effort}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
-            });
+          const renderCurrentExercise = () => {
+            if (currentSets.length > 0) {
+              md += `- **${currentExerciseName}** (Objętość: ${currentExerciseVolume.toLocaleString()} kg):\n`;
+              currentSets.forEach((l, idx) => {
+                const effort = l.rir ?? l.rpe ?? '--';
+                md += `  - Seria ${idx + 1}: ${l.weight}kg x ${l.reps} (RIR/MSP: ${effort}) ${l.is_pws_or_msp ? '🔥' : ''}\n`;
+              });
+              currentSets = [];
+              currentExerciseVolume = 0;
+            }
+          };
+
+          (s.exercise_logs || []).forEach(l => {
+            const setVol = (Number(l.weight) || 0) * (Number(l.reps) || 0);
+            totalSessionVolume += setVol;
+
+            if (l.exercise_name !== currentExerciseName) {
+              renderCurrentExercise();
+              currentExerciseName = l.exercise_name;
+            }
+            currentSets.push(l);
+            currentExerciseVolume += setVol;
           });
+          renderCurrentExercise();
 
           if (totalSessionVolume > 0) {
-            md += `**Łączna objętość treningu:** **${totalSessionVolume.toLocaleString()} kg**\n\n`;
-          } else {
-            md += `\n`;
+            md += `**Łączna objętość treningu:** **${totalSessionVolume.toLocaleString()} kg**\n`;
           }
+          if (s.notes && s.notes.trim()) {
+            md += `**Notatki z treningu:** ${s.notes.trim()}\n`;
+          }
+          md += `\n`;
         });
 
         if (includeWorkouts && dayStrava.length > 0) {
