@@ -1,0 +1,3 @@
+ALTER TABLE daily_food_entries
+  ADD COLUMN IF NOT EXISTS brand TEXT,
+  ADD COLUMN IF NOT EXISTS saturated_fat NUMERIC;

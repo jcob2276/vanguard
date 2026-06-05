@@ -781,8 +781,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               if (mealItems.length > 0) {
                 md += `#### ${label}\n`;
                 mealItems.forEach(item => {
-                  const extras = [item.fiber != null ? `Bł: ${item.fiber}g` : null, item.sugar != null ? `Cuk: ${item.sugar}g` : null].filter(Boolean).join(' | ');
-                  md += `- ${item.name} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
+                  const extras = [
+                    item.fiber != null ? `Bł: ${item.fiber}g` : null,
+                    item.sugar != null ? `Cuk: ${item.sugar}g` : null,
+                    item.saturated_fat != null ? `Nas: ${item.saturated_fat}g` : null,
+                    item.salt != null ? `Sól: ${item.salt}g` : null,
+                  ].filter(Boolean).join(' | ');
+                  const brandStr = item.brand ? ` — ${item.brand}` : '';
+                  md += `- ${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
                 });
               }
             });

@@ -51,21 +51,24 @@ serve(async (req) => {
           let name = item.name || item.product?.name || item.recipe?.name || item.food?.name || item.title;
           let nutrients = item.nutrients || {};
 
-          if ((!name || !nutrients["energy.energy"]) && item.product_id) {
+          let brand: string | null = item.product?.manufacturer || item.manufacturer || null;
+
+          if (item.product_id) {
             const cacheKey = `p_${item.product_id}`;
             if (productCache[cacheKey]) {
               const cachedData = JSON.parse(productCache[cacheKey]);
-              name = cachedData.name; nutrients = cachedData.nutrients;
-            } else {
+              if (!name || !nutrients["energy.energy"]) { name = cachedData.name; nutrients = cachedData.nutrients; }
+              if (!brand) brand = cachedData.brand || null;
+            } else if (!name || !nutrients["energy.energy"] || !brand) {
               try {
                 const pRes = await fetch(`https://yzapi.yazio.com/v15/products/${item.product_id}`, {
                     headers: { "Authorization": `Bearer ${yazioToken}`, "User-Agent": "YAZIO/Android" }
                 });
                 if (pRes.ok) {
                   const pInfo = await pRes.json();
-                  name = pInfo.name;
-                  nutrients = pInfo.nutrients || {};
-                  productCache[cacheKey] = JSON.stringify({ name, nutrients });
+                  if (!name || !nutrients["energy.energy"]) { name = pInfo.name; nutrients = pInfo.nutrients || {}; }
+                  if (!brand) brand = pInfo.manufacturer || pInfo.producer || pInfo.brand || null;
+                  productCache[cacheKey] = JSON.stringify({ name: pInfo.name, nutrients: pInfo.nutrients || {}, brand: brand });
                 }
               } catch (e) { console.log(`[Yazio] Fetch failed for ${item.product_id}:`, e.message); }
             }
@@ -78,6 +81,8 @@ serve(async (req) => {
           let t = nutrients["nutrient.fat"] || 0;
           let f = nutrients["nutrient.dietaryfiber"] || 0;
           let s = nutrients["nutrient.sugar"] || 0;
+          let sf = nutrients["nutrient.saturated"] || 0;
+          let salt = nutrients["nutrient.salt"] || 0;
 
           if (item.product_id && amount > 0 && !nutrients._scaled) {
              p = p * amount;
@@ -85,10 +90,12 @@ serve(async (req) => {
              t = t * amount;
              f = f * amount;
              s = s * amount;
+             sf = sf * amount;
+             salt = salt * amount;
           }
 
           p = parseFloat(p.toFixed(2)); w = parseFloat(w.toFixed(2)); t = parseFloat(t.toFixed(2));
-          f = parseFloat(f.toFixed(2)); s = parseFloat(s.toFixed(2));
+          f = parseFloat(f.toFixed(2)); s = parseFloat(s.toFixed(2)); sf = parseFloat(sf.toFixed(2)); salt = parseFloat(salt.toFixed(2));
           // kalorie z makrów — energy.energy bywa w kJ dla niektórych produktów
           const c = Math.round(p * 4 + w * 4 + t * 9);
           totalCals += c; totalProt += p; totalCarbs += w; totalFat += t; totalFiber += f; totalSugar += s;
@@ -104,8 +111,9 @@ serve(async (req) => {
           const amountStr = rawAmount != null ? `${rawAmount}${unit ? ' ' + unit : ''}` : unit || '';
 
           foodEntries.push({
-            user_id: userId, date: dateStr, name, calories: c, protein: p, carbs: w, fat: t,
-            fiber: f || null, sugar: s || null,
+            user_id: userId, date: dateStr, name, brand: brand || null,
+            calories: c, protein: p, carbs: w, fat: t,
+            fiber: f || null, sugar: s || null, saturated_fat: sf || null, salt: salt || null,
             meal_type: item.daytime || 'snack', amount: amountStr
           });
         }
