@@ -130,7 +130,7 @@ serve(async (req) => {
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
       supabase.from('daily_food_entries')
-        .select('date, meal_type, name, brand, calories, protein, carbs, fat, fiber, sugar, saturated_fat')
+        .select('date, meal_type, name, brand, calories, protein, carbs, fat, fiber, sugar, saturated_fat, insulin_load')
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),

@@ -41,7 +41,7 @@ serve(async (req) => {
 
       try {
         let foodEntries: any[] = [];
-        let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0, totalFiber = 0, totalSugar = 0;
+        let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0, totalFiber = 0, totalSugar = 0, totalIL = 0;
 
         console.log(`[Yazio] Syncing ${dateStr}...`);
         const consumed: any = await yazio.user.getConsumedItems({ date: targetDate });
@@ -98,7 +98,10 @@ serve(async (req) => {
           f = parseFloat(f.toFixed(2)); s = parseFloat(s.toFixed(2)); sf = parseFloat(sf.toFixed(2)); salt = parseFloat(salt.toFixed(2));
           // kalorie z makrów — energy.energy bywa w kJ dla niektórych produktów
           const c = Math.round(p * 4 + w * 4 + t * 9);
-          totalCals += c; totalProt += p; totalCarbs += w; totalFat += t; totalFiber += f; totalSugar += s;
+          // Insulin Load (Food Insulin Index): Net Carbs + 0.56×Protein + 0.1×Fat
+          const netCarbs = Math.max(0, w - f);
+          const il = parseFloat((netCarbs + 0.56 * p + 0.1 * t).toFixed(2));
+          totalCals += c; totalProt += p; totalCarbs += w; totalFat += t; totalFiber += f; totalSugar += s; totalIL += il;
 
           const unitMap: any = {
             'gram': 'g', 'milliliter': 'ml', 'portion': 'g/porcja',
@@ -114,6 +117,7 @@ serve(async (req) => {
             user_id: userId, date: dateStr, name, brand: brand || null,
             calories: c, protein: p, carbs: w, fat: t,
             fiber: f || null, sugar: s || null, saturated_fat: sf || null, salt: salt || null,
+            insulin_load: il,
             meal_type: item.daytime || 'snack', amount: amountStr
           });
         }
@@ -135,10 +139,11 @@ serve(async (req) => {
         let insertedCount = 0;
         let sample: any[] = [];
         if (totalCals > 0 || totalProt > 0) {
+          const totalILRounded = parseFloat(totalIL.toFixed(2));
           await safeExecute(
             supabase
               .from('daily_nutrition')
-              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null }, { onConflict: 'user_id,date' })
+              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null, insulin_load: totalILRounded || null }, { onConflict: 'user_id,date' })
           );
 
           await safeExecute(
