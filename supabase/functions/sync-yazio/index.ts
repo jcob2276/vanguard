@@ -113,13 +113,10 @@ serve(async (req) => {
           const rawAmount = item.amount ?? item.serving_quantity;
           const amountStr = rawAmount != null ? `${rawAmount}${unit ? ' ' + unit : ''}` : unit || '';
 
-          // Czas logowania posiłku (Yazio zwraca created_at jako Unix timestamp lub ISO string)
+          // Czas logowania: item.date = "2026-05-14 13:24:18" (UTC datetime od Yazio)
           let loggedAt: string | null = null;
-          if (item.created_at) {
-            const raw = item.created_at;
-            loggedAt = typeof raw === 'number'
-              ? new Date(raw * 1000).toISOString()
-              : new Date(raw).toISOString();
+          if (item.date && item.date.includes(' ')) {
+            try { loggedAt = new Date(item.date.replace(' ', 'T') + 'Z').toISOString(); } catch {}
           }
 
           foodEntries.push({
