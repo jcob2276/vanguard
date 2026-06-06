@@ -854,8 +854,22 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               ? hadTraining ? ' 🏃 dzień treningowy — OK' : ' 🛋️ bez treningu — rozważ'
               : hadTraining ? ' 🏃' : '';
 
+            // Pierwsze i ostatnie logowanie posiłku
+            const loggedTimes = dayFood.map(f => f.logged_at).filter(Boolean).map(t => new Date(t));
+            let mealWindowStr = '';
+            if (loggedTimes.length >= 2) {
+              const firstTs = new Date(Math.min(...loggedTimes.map(t => t.getTime())));
+              const lastTs  = new Date(Math.max(...loggedTimes.map(t => t.getTime())));
+              const fmtT = (d) => d.toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+              const windowMin = Math.round((lastTs - firstTs) / 60000);
+              const windowH = Math.floor(windowMin / 60);
+              const windowM = windowMin % 60;
+              const windowStr = windowH > 0 ? `${windowH}h${windowM > 0 ? windowM + 'm' : ''}` : `${windowM}m`;
+              mealWindowStr = `\n_⏰ Pierwsze: ${fmtT(firstTs)} → Ostatnie: ${fmtT(lastTs)} | okno żywieniowe: **${windowStr}**_`;
+            }
+
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
-            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}${ilContext}_\n\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}${ilContext}_${mealWindowStr}\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError

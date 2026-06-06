@@ -113,12 +113,22 @@ serve(async (req) => {
           const rawAmount = item.amount ?? item.serving_quantity;
           const amountStr = rawAmount != null ? `${rawAmount}${unit ? ' ' + unit : ''}` : unit || '';
 
+          // Czas logowania posiłku (Yazio zwraca created_at jako Unix timestamp lub ISO string)
+          let loggedAt: string | null = null;
+          if (item.created_at) {
+            const raw = item.created_at;
+            loggedAt = typeof raw === 'number'
+              ? new Date(raw * 1000).toISOString()
+              : new Date(raw).toISOString();
+          }
+
           foodEntries.push({
             user_id: userId, date: dateStr, name, brand: brand || null,
             calories: c, protein: p, carbs: w, fat: t,
             fiber: f || null, sugar: s || null, saturated_fat: sf || null, salt: salt || null,
             insulin_load: il,
-            meal_type: item.daytime || 'snack', amount: amountStr
+            meal_type: item.daytime || 'snack', amount: amountStr,
+            logged_at: loggedAt,
           });
         }
 
