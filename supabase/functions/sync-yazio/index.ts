@@ -160,7 +160,7 @@ serve(async (req) => {
           await safeExecute(
             supabase
               .from('daily_nutrition')
-              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null, insulin_load: totalILRounded || null }, { onConflict: 'user_id,date' })
+              .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null, insulin_load: totalILRounded }, { onConflict: 'user_id,date' })
           );
 
           await safeExecute(

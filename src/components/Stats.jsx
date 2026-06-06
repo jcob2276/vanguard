@@ -820,7 +820,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                     item.sugar != null ? `Cuk: ${item.sugar}g` : null,
                     item.saturated_fat != null ? `Nas: ${item.saturated_fat}g` : null,
                     item.salt != null ? `Sól: ${item.salt}g` : null,
-                    item.insulin_load != null ? `IL: ${item.insulin_load}` : null,
+                    item.insulin_load != null ? `IL_est: ${item.insulin_load}` : null,
                   ].filter(Boolean).join(' | ');
                   const brandStr = item.brand ? ` — ${item.brand}` : '';
                   md += `- ${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
@@ -854,6 +854,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               ? hadTraining ? ' 🏃 dzień treningowy — OK' : ' 🛋️ bez treningu — rozważ'
               : hadTraining ? ' 🏃' : '';
 
+            // Gęstość ładunku insulinowego na 1000 kcal
+            const ilPer1000 = totalCal > 0 ? ((totalIL / totalCal) * 1000).toFixed(1) : '0.0';
+
             // Pierwsze i ostatnie logowanie posiłku
             const loggedTimes = dayFood.map(f => f.logged_at).filter(Boolean).map(t => new Date(t));
             let mealWindowStr = '';
@@ -869,7 +872,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             }
 
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
-            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL (szac.): ${totalIL.toFixed(1)} — ${ilLabel}${ilTrend}${ilContext}_${mealWindowStr}\n\n`;
+            md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL_est: ${totalIL.toFixed(1)} (gęstość: ${ilPer1000} / 1000 kcal) — ${ilLabel}${ilTrend}${ilContext}_${mealWindowStr}\n\n`;
           } else if (dayNutrition) {
             md += `### 🥗 Dieta (Yazio)\n`;
             md += foodError
