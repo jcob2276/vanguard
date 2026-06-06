@@ -113,10 +113,20 @@ serve(async (req) => {
           const rawAmount = item.amount ?? item.serving_quantity;
           const amountStr = rawAmount != null ? `${rawAmount}${unit ? ' ' + unit : ''}` : unit || '';
 
-          // Czas logowania: item.date = "2026-05-14 13:24:18" (UTC datetime od Yazio)
+          // Czas logowania: item.date = "2026-06-05 23:07:00" — czas WARSZAWSKI (local)
+          // Musimy zamienić na UTC: obliczamy offset Warsaw przez Intl, odejmujemy
           let loggedAt: string | null = null;
           if (item.date && item.date.includes(' ')) {
-            try { loggedAt = new Date(item.date.replace(' ', 'T') + 'Z').toISOString(); } catch {}
+            try {
+              const fakeUtc = new Date(item.date.replace(' ', 'T') + 'Z');
+              const warsawStr = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: 'Europe/Warsaw',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+              }).format(fakeUtc);
+              const offsetMs = new Date(warsawStr.replace(' ', 'T') + 'Z').getTime() - fakeUtc.getTime();
+              loggedAt = new Date(fakeUtc.getTime() - offsetMs).toISOString();
+            } catch {}
           }
 
           foodEntries.push({
