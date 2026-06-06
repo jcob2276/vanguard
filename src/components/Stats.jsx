@@ -1037,10 +1037,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
   const isSunday = new Date().getDay() === 0;
   const latestBody = bodyData?.[bodyData.length - 1] || null;
-  const latestNutrition = nutritionData?.[nutritionData.length - 1] || null;
+  const todayStr = format(new Date(), 'dd.MM');
+  const isLatestToday = nutritionData.length > 0 && nutritionData[nutritionData.length - 1].date === todayStr;
+  const todayProtein = isLatestToday ? Number(nutritionData[nutritionData.length - 1].protein || 0) : 0;
   const proteinGoal = 150;
-  const proteinPct = latestNutrition?.protein ? Math.min((Number(latestNutrition.protein) / proteinGoal) * 100, 100) : 0;
-  const recentProtein = nutritionData.slice(-7);
+  const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
+  
+  let recentProtein = [...nutritionData];
+  if (recentProtein.length > 0 && recentProtein[recentProtein.length - 1].date !== todayStr) {
+    recentProtein.push({
+      date: todayStr,
+      protein: 0,
+      calories: 0
+    });
+  }
+  recentProtein = recentProtein.slice(-7);
 
   return (
     <div className="space-y-6 pb-4">
@@ -1108,7 +1119,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Fueling</p>
             <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Białko dzisiaj</h2>
           </div>
-          <p className="text-[13px] font-black text-primary">{latestNutrition?.protein ?? '--'}g</p>
+          <p className="text-[13px] font-black text-primary">{todayProtein}g</p>
         </div>
         <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
           <div className="mb-3 flex items-center justify-between">
