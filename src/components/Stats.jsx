@@ -865,7 +865,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               const windowH = Math.floor(windowMin / 60);
               const windowM = windowMin % 60;
               const windowStr = windowH > 0 ? `${windowH}h${windowM > 0 ? windowM + 'm' : ''}` : `${windowM}m`;
-              mealWindowStr = `\n_⏰ Pierwsze: ${fmtT(firstTs)} → Ostatnie: ${fmtT(lastTs)} | okno żywieniowe: **${windowStr}**_`;
+              mealWindowStr = `\n_⏰ Logowanie: pierwsze ${fmtT(firstTs)} → ostatnie ${fmtT(lastTs)} | okno: **${windowStr}** (czas logowania, ~80% zgodny z czasem jedzenia)_`;
             }
 
             md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
