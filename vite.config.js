@@ -13,8 +13,8 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Digital Twin',
-        short_name: 'DigitalTwin',
+        name: 'Vanguard',
+        short_name: 'Vanguard',
         description: 'Elite performance, discipline and identity tracking system',
         theme_color: '#000000',
         background_color: '#000000',
