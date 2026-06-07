@@ -195,15 +195,24 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
 }
 
 const BORN = new Date('2002-07-06');
+const LIFE_DAYS = 29200; // ~80 lat
+
 function DayCounter() {
   const day = Math.floor((Date.now() - BORN.getTime()) / 86400000) + 1;
+  const pct = (day / LIFE_DAYS) * 100;
+
   return (
-    <div className="pt-1">
-      <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/25">ur. 6 lipca 2002</p>
-      <p className="mt-1 text-[32px] font-black leading-none text-white">
-        Dzień {day.toLocaleString('pl-PL')}
+    <div className="space-y-3 py-1">
+      <p className="text-[64px] font-black leading-none tracking-tight text-white tabular-nums">
+        {day.toLocaleString('pl-PL')}
       </p>
-      <p className="mt-2 text-[11px] font-semibold text-white/35">Żaden się nie powtórzy.</p>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-[2px] rounded-full bg-white/[0.07] overflow-hidden">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${pct.toFixed(2)}%` }} />
+        </div>
+        <span className="text-[9px] font-black tabular-nums text-white/30 shrink-0">{pct.toFixed(1)}%</span>
+      </div>
+      <p className="text-[11px] font-semibold text-white/35">Żaden się nie powtórzy.</p>
     </div>
   );
 }
