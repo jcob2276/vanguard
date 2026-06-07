@@ -419,9 +419,6 @@ export default function Dashboard({ session }) {
                 />
               </section>
 
-              <section className="space-y-4 pt-2">
-                <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
-              </section>
             </>
           )}
 
@@ -455,6 +452,7 @@ export default function Dashboard({ session }) {
                 title="Progress"
                 detail="Tu wraca postęp, tygodniowe wykrywanie, kierunek i wzorce. Nie jest to czat, tylko przegląd trajektorii."
               />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <Direction session={session} />
               </section>
             </Suspense>

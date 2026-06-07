@@ -3,7 +3,6 @@ import {
   AlertCircle,
   Calendar,
   CheckSquare,
-  Compass,
   Edit2,
   Flag,
   Plus,
@@ -21,7 +20,6 @@ import {
 } from 'lucide-react';
 import { differenceInDays, endOfWeek, format, isWithinInterval, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 
 const todayDate = () => format(new Date(), 'yyyy-MM-dd');
 
@@ -135,7 +133,6 @@ export default function Direction({ session }) {
   const [newHabit, setNewHabit] = useState({ name: '', icon: 'X', is_positive: true });
   const [currentReview, setCurrentReview] = useState(null);
   const [reviewForm, setReviewForm] = useState({ proud_of: '', sabotage: '', do_differently: '' });
-  const [currentState, setCurrentState] = useState('CALIBRATING');
   const [lenieForm, setLenieForm] = useState({
     date: todayDate(),
     final_stimulus: '',
@@ -202,32 +199,6 @@ export default function Direction({ session }) {
     }, 0);
   }, [session?.user?.id, fetchData]);
 
-  useEffect(() => {
-    async function checkDrift() {
-      if (loading || !session?.user?.id) return;
-      const today = todayDate();
-      const core = new VanguardCore(session.user.id, supabase);
-
-      const [ouraRes, nutritionRes, lastWorkoutRes] = await Promise.all([
-        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-      ]);
-
-      const signals = computeSignals(
-        ouraRes.data,
-        todayWin,
-        nutritionRes.data,
-        lastWorkoutRes.data?.date
-      );
-      const baseline = await core.getPersonalBaseline();
-      const { state } = await core.determineState(signals, baseline);
-      setCurrentState(state);
-    }
-
-    checkDrift();
-  }, [loading, todayWin, session?.user?.id]);
-
   const stats = useMemo(() => {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
 
@@ -274,11 +245,6 @@ export default function Direction({ session }) {
       weeks,
     };
   }, [history]);
-
-  const doneCount = todayWin ? [1, 2, 3, 4, 5].filter((i) => todayWin[`done_${i}`]).length : 0;
-  const directionScore = Math.max(0, Math.min(100, 42 + doneCount * 9 + Math.min(stats.streak, 8) * 3 - stats.weeklyP * 10));
-  const directionTone = directionScore >= 75 ? 'text-dayC' : directionScore >= 50 ? 'text-orange-300' : 'text-dayB';
-  const isDrifting = ['CHAOS', 'AVOIDANCE'].includes(currentState);
 
   const lenieHabit = useMemo(
     () => habits.find((habit) => (habit.name || '').toLowerCase().includes('lenie')),
@@ -405,44 +371,6 @@ export default function Direction({ session }) {
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-5 pb-24">
-      <section className="rounded-lg border border-white/[0.08] bg-[linear-gradient(135deg,rgba(23,23,25,0.98),rgba(6,8,12,0.98))] p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">Kierunek</p>
-            <h2 className="mt-2 text-[26px] font-black uppercase leading-none tracking-tight text-white">
-              {directionScore >= 75 ? 'Idziemy dobrze' : directionScore >= 50 ? 'Kurs wymaga korekty' : 'Dryf do korekty'}
-            </h2>
-          </div>
-          <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
-            <Compass size={20} />
-          </div>
-        </div>
-
-        <p className="mt-4 text-[12px] font-semibold leading-relaxed text-white/48">
-          Ten ekran ma pokazywac kierunek, odchylenia i mikrowzorce. Nie chodzi o ladna serie, tylko o to, czy zachowanie z tygodnia wspiera cele.
-        </p>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <MiniStat label="Kurs" value={`${directionScore}%`} tone={directionTone} detail={currentState.replaceAll('_', ' ')} />
-          <MiniStat label="Dzisiaj" value={`${doneCount}/5`} tone={doneCount >= 3 ? 'text-dayC' : 'text-orange-300'} detail="Power List" />
-          <MiniStat label="Tydzien" value={`${stats.weeklyP}/2 P`} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={stats.weeklyP > 2 ? 'limit pekl' : 'w limicie'} />
-        </div>
-      </section>
-
-      {isDrifting && (
-        <section className="rounded-lg border border-dayB/35 bg-dayB/10 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="mt-0.5 text-dayB" />
-            <div>
-              <h3 className="text-[12px] font-black uppercase tracking-tight text-dayB">Wykryty dryf</h3>
-              <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/58">
-                Obecny stan ({currentState}) nie spina sie z deklarowanym kierunkiem. Wroc do najprostszego ruchu: sen, plan, trening albo zamkniecie zaleglosci.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="space-y-3">
         <SectionTitle
           icon={Flag}
