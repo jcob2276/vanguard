@@ -24,7 +24,6 @@ import IntentionTracker from './IntentionTracker';
 const WorkoutLogger = lazy(() => import('./WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
 const Fundament = lazy(() => import('./Fundament'));
-const OuraWidget = lazy(() => import('./OuraWidget'));
 const DailyStrainCard = lazy(() => import('./DailyStrainCard'));
 const StravaWidget = lazy(() => import('./StravaWidget'));
 const MuscleHeatmap = lazy(() => import('./MuscleHeatmap'));
@@ -448,7 +447,6 @@ export default function Dashboard({ session }) {
                       syncYazio={syncYazio}
                       isSyncing={isSyncing}
                     />
-                    <OuraWidget session={session} />
                   </>
                 )}
                 runningSlot={<StravaWidget session={session} />}

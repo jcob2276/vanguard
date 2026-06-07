@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Flame, BatteryCharging, Utensils, Gauge, RefreshCw } from 'lucide-react';
+import { Flame, BatteryCharging, Utensils, Gauge, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import DataStateNotice from './DataStateNotice';
 
 const LIMITER_PL = {
@@ -54,20 +54,31 @@ function Metric({ icon: Icon, label, value, max, tone, note }) {
 
 export default function DailyStrainCard({ session }) {
   const [row, setRow] = useState(null);
+  const [oura, setOura] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRow = useCallback(async () => {
-    const { data, error: queryError } = await supabase.from('daily_strain')
-      .select('*').eq('user_id', session.user.id)
-      .order('date', { ascending: false }).limit(1).maybeSingle();
+    const [{ data, error: queryError }, { data: ouraSummaries }] = await Promise.all([
+      supabase.from('daily_strain')
+        .select('*').eq('user_id', session.user.id)
+        .order('date', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('oura_daily_summary')
+        .select('date, hrv_avg, rhr_avg, total_sleep_hours, temp_deviation, steps, readiness_score')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false }).limit(2),
+    ]);
     if (queryError) {
       console.error('DailyStrainCard:', queryError);
       setError(queryError.message);
       setRow(null);
     } else {
       setRow(data);
+    }
+    if (ouraSummaries?.length) {
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      setOura(ouraSummaries.find(s => s.date === todayStr) || ouraSummaries[0]);
     }
   }, [session.user.id]);
 
@@ -213,6 +224,24 @@ export default function DailyStrainCard({ session }) {
           <div className="flex items-start gap-2 pt-1">
             <Gauge size={11} className="text-white/25 mt-0.5 shrink-0" />
             <p className="text-[10px] font-semibold text-white/45 leading-relaxed">{row.explanation}</p>
+          </div>
+        )}
+
+        {oura && (
+          <div className="grid grid-cols-5 gap-2 pt-1 border-t border-white/[0.05]">
+            {[
+              { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: 'text-dayA' },
+              { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: 'text-dayB' },
+              { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: 'text-primary' },
+              { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-dayB' : 'text-white/60' },
+              { icon: Footprints, label: 'Kroki', value: oura.steps ? oura.steps.toLocaleString() : '--', color: 'text-dayC' },
+            ].map(({ icon: Icon, label, value, color }) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <Icon size={10} className={color} />
+                <span className="text-[7px] font-black uppercase tracking-wider text-white/25">{label}</span>
+                <span className={`text-[9px] font-black ${color}`}>{value}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
