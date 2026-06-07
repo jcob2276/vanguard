@@ -195,24 +195,40 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
 }
 
 const BORN = new Date('2002-07-06');
-const LIFE_DAYS = 29200; // ~80 lat
+const LIFE_DAYS = 29200;
+
+const FUEL = [
+  "Dyskomfort dziś. Wyniki jutro.",
+  "Nikt nie pamiętał przeciętnych.",
+  "Za rok będziesz żałował że nie zacząłeś dziś.",
+  "Wersja siebie za 5 lat zaczyna się teraz.",
+  "Każdy dzień to zakład — postaw na siebie.",
+  "Nie czekaj na moment. Stwórz go.",
+  "Mediokracja boli bardziej niż wysiłek.",
+  "Ci co wygrywają też nie mieli ochoty. Wstali.",
+  "Jedna dobra decyzja. Powtórzona tysiąc razy.",
+  "Talent jest powszechny. Konsekwencja — rzadka.",
+  "Przyszłe ty patrzy na to co robisz teraz.",
+  "Zmęczenie mija. Żal zostaje.",
+];
 
 function DayCounter() {
-  const day = Math.floor((Date.now() - BORN.getTime()) / 86400000) + 1;
-  const pct = (day / LIFE_DAYS) * 100;
+  const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000) + 1;
+  const remaining = LIFE_DAYS - lived;
+  const quote = FUEL[lived % FUEL.length];
 
   return (
-    <div className="space-y-3 py-1">
-      <p className="text-[64px] font-black leading-none tracking-tight text-white tabular-nums">
-        {day.toLocaleString('pl-PL')}
-      </p>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-[2px] rounded-full bg-white/[0.07] overflow-hidden">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${pct.toFixed(2)}%` }} />
-        </div>
-        <span className="text-[9px] font-black tabular-nums text-white/30 shrink-0">{pct.toFixed(1)}%</span>
+    <div className="py-2 space-y-5">
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-amber-400/70">Zostało ci</p>
+        <p className="mt-1 text-[54px] font-black leading-none tracking-tight text-white tabular-nums">
+          {remaining.toLocaleString('pl-PL')}
+          <span className="text-[15px] font-bold text-white/30 ml-2">dni</span>
+        </p>
       </div>
-      <p className="text-[11px] font-semibold text-white/35">Żaden się nie powtórzy.</p>
+      <p className="text-[15px] font-bold leading-snug text-white/80 border-l-2 border-primary pl-3">
+        {quote}
+      </p>
     </div>
   );
 }
