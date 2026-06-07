@@ -3,19 +3,41 @@ import { supabase } from '../lib/supabase';
 import { gatherUserContext } from '../lib/aiContext';
 import { ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 
+const CACHE_KEY = 'vanguard_oracle_insight';
+const CACHE_TTL = 60 * 60 * 1000; // 1 godzina
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { text, ts } = JSON.parse(raw);
+    if (Date.now() - ts < CACHE_TTL) return text;
+  } catch {}
+  return null;
+}
+
+function writeCache(text) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ text, ts: Date.now() }));
+  } catch {}
+}
+
 export default function AIInsight({ session }) {
-  const [insight, setInsight] = useState(null);
+  const [insight, setInsight] = useState(() => readCache());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchInsight = useCallback(async () => {
+  const fetchInsight = useCallback(async (force = false) => {
     if (!session?.user?.id) return;
+    if (!force) {
+      const cached = readCache();
+      if (cached) { setInsight(cached); return; }
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      // Jeden shared builder — identyczny state_vector co MentorChat
       const stateVector = await gatherUserContext(session);
 
       const { data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
@@ -28,7 +50,10 @@ export default function AIInsight({ session }) {
       });
 
       if (functionError) throw functionError;
-      if (data?.text) setInsight(data.text);
+      if (data?.text) {
+        setInsight(data.text);
+        writeCache(data.text);
+      }
 
     } catch (err) {
       console.error('Vanguard Oracle Error:', err);
@@ -39,7 +64,7 @@ export default function AIInsight({ session }) {
   }, [session]);
 
   useEffect(() => {
-    fetchInsight();
+    fetchInsight(false);
   }, [fetchInsight]);
 
   if (loading) {
@@ -68,7 +93,7 @@ export default function AIInsight({ session }) {
             <h3 className="text-[10px] font-black text-white/45 uppercase tracking-[0.18em]">Oracle Insight</h3>
           </div>
           <button
-            onClick={fetchInsight}
+            onClick={() => fetchInsight(true)}
             className="rounded-md p-1 text-white/25 transition-colors hover:bg-white/[0.06] hover:text-white"
             title="Odśwież analizę"
           >
