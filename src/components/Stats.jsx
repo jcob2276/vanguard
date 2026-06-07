@@ -31,6 +31,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeDate, setAnalyzeDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
+  const [analyzePeriod, setAnalyzePeriod] = useState(1);
   const [analyzeResult, setAnalyzeResult] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
@@ -159,13 +160,20 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setAnalyzeResult(null);
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
+      const body = analyzePeriod === 1
+        ? { userId: session.user.id, date: analyzeDate }
+        : (() => {
+            const to = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+            const from = new Date(Date.now() - (analyzePeriod - 1) * 864e5).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+            return { userId: session.user.id, dateFrom: from, dateTo: to };
+          })();
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food-quality`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authSession.access_token}`
         },
-        body: JSON.stringify({ userId: session.user.id, date: analyzeDate })
+        body: JSON.stringify(body)
       });
       const res = await response.json();
       if (res.success) {
@@ -1216,23 +1224,43 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <input
-            type="date"
-            value={analyzeDate}
-            onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
-            className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
-          />
+        {/* Period selector */}
+        <div className="flex gap-1 pt-1">
+          {[1, 7, 14, 30].map(p => (
+            <button
+              key={p}
+              onClick={() => { setAnalyzePeriod(p); setAnalyzeResult(null); }}
+              className={`flex-1 rounded-lg border py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${analyzePeriod === p ? 'border-primary/40 bg-primary/10 text-primary' : 'border-white/[0.08] bg-white/[0.02] text-white/35 hover:text-white/60'}`}
+            >
+              {p === 1 ? '1D' : `${p}D`}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {analyzePeriod === 1 && (
+            <input
+              type="date"
+              value={analyzeDate}
+              onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
+              className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
+            />
+          )}
+          {analyzePeriod > 1 && (
+            <p className="flex-1 text-[10px] font-black uppercase text-white/30">
+              Ostatnie {analyzePeriod} dni
+            </p>
+          )}
           <button
             onClick={analyzeFood}
             disabled={isAnalyzing}
             className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase text-white/60 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
           >
-            {isAnalyzing ? 'Analizuję...' : 'Analizuj jedzenie'}
+            {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
           </button>
         </div>
 
-        {analyzeResult && (
+        {analyzeResult && analyzeResult.mode === 'single' && (
           <div className="mt-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
@@ -1253,6 +1281,66 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {analyzeResult && analyzeResult.mode === 'range' && (
+          <div className="mt-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
+            {/* Avg score */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-white/40">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
+              <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                {analyzeResult.avg_score}/100
+              </span>
+            </div>
+
+            {/* Per-day bars */}
+            <div className="space-y-1.5">
+              {analyzeResult.days.map(d => (
+                <div key={d.date} className="flex items-center gap-2">
+                  <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date.slice(5)}</span>
+                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${d.score}%`,
+                        backgroundColor: d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
+                      }}
+                    />
+                  </div>
+                  <span className={`w-6 shrink-0 text-[9px] font-black text-right ${d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    {d.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Pattern analysis */}
+            <p className="text-[11px] text-white/60 leading-relaxed border-t border-white/[0.06] pt-3">{analyzeResult.pattern_analysis}</p>
+
+            {/* Issues + strengths */}
+            <div className="grid grid-cols-2 gap-3">
+              {analyzeResult.top_issues?.length > 0 && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
+                  <ul className="space-y-1">
+                    {analyzeResult.top_issues.map((t, i) => (
+                      <li key={i} className="text-[9px] text-white/50">· {t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {analyzeResult.strengths?.length > 0 && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
+                  <ul className="space-y-1">
+                    {analyzeResult.strengths.map((s, i) => (
+                      <li key={i} className="text-[9px] text-white/50">· {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}

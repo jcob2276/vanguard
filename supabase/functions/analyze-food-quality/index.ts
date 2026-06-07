@@ -37,16 +37,111 @@ serve(async (req) => {
 
   try {
     const supabase = createServiceClient()
-    const { userId, date } = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => ({}))
+    const { userId, date, dateFrom, dateTo } = body
     if (!userId) throw new Error('Missing userId')
     await resolveUserScope(req, userId)
 
-    // Default to today (Warsaw time)
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
+    if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
+
+    // ── Multi-day mode ────────────────────────────────────────────────────────
+    if (dateFrom && dateTo) {
+      const { data: entries, error: rangeErr } = await supabase
+        .from('daily_food_entries')
+        .select('date, name, brand, meal_type, calories, protein, carbs, fat')
+        .eq('user_id', userId)
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
+        .order('date')
+        .order('meal_type')
+
+      if (rangeErr) throw new Error(`DB error: ${rangeErr.message}`)
+      if (!entries || entries.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Brak wpisów żywieniowych dla tego okresu' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Group by date
+      const byDay: Record<string, typeof entries> = {}
+      for (const e of entries) {
+        if (!byDay[e.date]) byDay[e.date] = []
+        byDay[e.date].push(e)
+      }
+
+      // Build condensed prompt (max 40 items per day to stay in token budget)
+      const dayLines = Object.entries(byDay).map(([d, items]) => {
+        const lines = items.slice(0, 40).map(e =>
+          `  - ${e.name}${e.brand ? ` (${e.brand})` : ''} | ${e.calories ?? '?'} kcal | B:${e.protein ?? '?'}g W:${e.carbs ?? '?'}g T:${e.fat ?? '?'}g`
+        ).join('\n')
+        return `DZIEŃ ${d} (${items.length} pozycji):\n${lines}`
+      }).join('\n\n')
+
+      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${Object.keys(byDay).length} dni z danymi)
+
+${dayLines}
+
+ZADANIE:
+1. Dla każdego dnia podaj score (0-100) i jedno zdanie podsumowania (po polsku)
+2. Napisz pattern_analysis (3-5 zdań po polsku): jakie wzorce dominują w tym okresie, co powtarza się dobrze, co negatywnie
+3. Podaj top 3 problemy (top_issues) i top 3 mocne strony (strengths) jako krótkie frazy po polsku
+4. Podaj avg_score (średnia ważona kalorycznie ze wszystkich dni)
+
+Zwróć WYŁĄCZNIE poprawny JSON bez markdown:
+{
+  "days": [
+    {"date": "YYYY-MM-DD", "score": 0-100, "summary": "..."},
+    ...
+  ],
+  "avg_score": 0-100,
+  "pattern_analysis": "...",
+  "top_issues": ["...", "...", "..."],
+  "strengths": ["...", "...", "..."]
+}`
+
+      const result = await deepseekChat({
+        apiKey,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
+        maxTokens: 2000,
+        temperature: 0.1,
+        timeoutMs: 45000,
+      })
+
+      let parsed: {
+        days: Array<{ date: string; score: number; summary: string }>
+        avg_score: number
+        pattern_analysis: string
+        top_issues: string[]
+        strengths: string[]
+      } | null = null
+
+      try {
+        const match = result.content.match(/\{[\s\S]*\}/)
+        if (match) parsed = JSON.parse(match[0])
+      } catch (e) {
+        console.error('[analyze-food-quality] multi JSON parse error:', e)
+        throw new Error('Nie udało się sparsować odpowiedzi AI')
+      }
+      if (!parsed?.days) throw new Error('Nieprawidłowa struktura odpowiedzi AI')
+
+      console.log(`[analyze-food-quality] range ${dateFrom}→${dateTo}: ${parsed.days.length} days, avg ${parsed.avg_score}`)
+
+      return new Response(
+        JSON.stringify({ success: true, mode: 'range', dateFrom, dateTo, ...parsed }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── Single-day mode (original behaviour) ─────────────────────────────────
     const targetDate = date || new Intl.DateTimeFormat('sv', {
       timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit'
     }).format(new Date())
 
-    // 1. Fetch today's food entries
     const { data: todayEntries, error: todayErr } = await supabase
       .from('daily_food_entries')
       .select('id, name, brand, meal_type, calories, protein, carbs, fat, fiber, sugar, saturated_fat, amount')
@@ -62,7 +157,6 @@ serve(async (req) => {
       )
     }
 
-    // 2. Fetch 30-day history for frequency context (exclude target date)
     const thirtyDaysAgo = new Date(targetDate + 'T12:00:00Z')
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
@@ -74,7 +168,6 @@ serve(async (req) => {
       .gte('date', thirtyDaysAgoStr)
       .lt('date', targetDate)
 
-    // Build frequency map: how often each food appeared in the last 30 days
     const freq: Record<string, { count: number; total_kcal: number }> = {}
     for (const e of (history || [])) {
       if (!freq[e.name]) freq[e.name] = { count: 0, total_kcal: 0 }
@@ -88,7 +181,6 @@ serve(async (req) => {
       .map(([name, v]) => `${name}: ${v.count}× w 30 dniach (${Math.round(v.total_kcal)} kcal łącznie)`)
       .join('\n')
 
-    // 3. Build today's food list for the prompt
     const todayLines = todayEntries.map(e => {
       const parts = [
         `- ${e.name}${e.brand ? ` (${e.brand})` : ''}`,
@@ -124,10 +216,6 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
   "day_quality_analysis": "..."
 }`
 
-    // 4. Call DeepSeek
-    const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
-    if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
-
     const result = await deepseekChat({
       apiKey,
       messages: [
@@ -139,7 +227,6 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
       timeoutMs: 40000,
     })
 
-    // 5. Parse response
     let parsed: { items: Array<{ name: string; food_quality_score: number; quality_reason: string }>; day_quality_score: number; day_quality_analysis: string } | null = null
     try {
       const match = result.content.match(/\{[\s\S]*\}/)
@@ -150,8 +237,6 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
     }
     if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error('Nieprawidłowa struktura odpowiedzi AI')
 
-    // 6. Update daily_food_entries with per-item scores
-    // Match by name (case-sensitive, exact) to the entry id
     const nameToId: Record<string, string> = {}
     for (const e of todayEntries) nameToId[e.name] = e.id
 
@@ -160,38 +245,22 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
       .map(item =>
         supabase
           .from('daily_food_entries')
-          .update({
-            food_quality_score: item.food_quality_score,
-            quality_reason: item.quality_reason,
-          })
+          .update({ food_quality_score: item.food_quality_score, quality_reason: item.quality_reason })
           .eq('id', nameToId[item.name])
       )
     await Promise.all(updatePromises)
 
-    // 7. Upsert daily_nutrition with day-level quality summary
     await supabase
       .from('daily_nutrition')
       .upsert(
-        {
-          user_id: userId,
-          date: targetDate,
-          avg_food_quality: parsed.day_quality_score,
-          food_quality_analysis: parsed.day_quality_analysis,
-        },
+        { user_id: userId, date: targetDate, avg_food_quality: parsed.day_quality_score, food_quality_analysis: parsed.day_quality_analysis },
         { onConflict: 'user_id,date' }
       )
 
     console.log(`[analyze-food-quality] ${targetDate}: ${parsed.items.length} items scored, day score ${parsed.day_quality_score}`)
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        date: targetDate,
-        items_scored: parsed.items.length,
-        day_quality_score: parsed.day_quality_score,
-        day_quality_analysis: parsed.day_quality_analysis,
-        items: parsed.items,
-      }),
+      JSON.stringify({ success: true, mode: 'single', date: targetDate, items_scored: parsed.items.length, day_quality_score: parsed.day_quality_score, day_quality_analysis: parsed.day_quality_analysis, items: parsed.items }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error: any) {
