@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Moon, RefreshCw } from 'lucide-react';
 import DataStateNotice from './DataStateNotice';
@@ -62,7 +62,7 @@ export default function SleepDebtCard({ session }) {
   const [error, setError]         = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     const today  = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const cutoff = new Date(Date.now() - 14 * 864e5)
       .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -78,7 +78,7 @@ export default function SleepDebtCard({ session }) {
 
     if (qErr) { setError(qErr.message); setRows(null); }
     else setRows(data || []);
-  }
+  }, [session.user.id]);
 
   useEffect(() => {
     (async () => {
@@ -87,7 +87,7 @@ export default function SleepDebtCard({ session }) {
       await fetchData();
       setLoading(false);
     })();
-  }, [session.user.id]);
+  }, [fetchData]);
 
   async function refresh() {
     setRefreshing(true);
