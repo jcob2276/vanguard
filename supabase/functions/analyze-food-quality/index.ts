@@ -49,7 +49,7 @@ serve(async (req) => {
     if (dateFrom && dateTo) {
       const { data: entries, error: rangeErr } = await supabase
         .from('daily_food_entries')
-        .select('date, name, brand, meal_type, calories, protein, carbs, fat')
+        .select('date, name, brand, meal_type, calories, protein, carbs, fat, saturated_fat, sugar')
         .eq('user_id', userId)
         .gte('date', dateFrom)
         .lte('date', dateTo)
@@ -74,7 +74,7 @@ serve(async (req) => {
       // Build condensed prompt (max 40 items per day to stay in token budget)
       const dayLines = Object.entries(byDay).map(([d, items]) => {
         const lines = items.slice(0, 40).map(e =>
-          `  - ${e.name}${e.brand ? ` (${e.brand})` : ''} | ${e.calories ?? '?'} kcal | B:${e.protein ?? '?'}g W:${e.carbs ?? '?'}g T:${e.fat ?? '?'}g`
+          `  - ${e.name}${e.brand ? ` (${e.brand})` : ''} | ${e.calories ?? '?'} kcal | B:${e.protein ?? '?'}g W:${e.carbs ?? '?'}g T:${e.fat ?? '?'}g${e.saturated_fat != null ? ` Nas:${e.saturated_fat}g` : ''}${e.sugar != null ? ` Cuk:${e.sugar}g` : ''}`
         ).join('\n')
         return `DZIEŃ ${d} (${items.length} pozycji):\n${lines}`
       }).join('\n\n')
@@ -206,6 +206,7 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
       ]
       if (e.fiber != null) parts.push(`Bl:${e.fiber}g`)
       if (e.sugar != null) parts.push(`Cuk:${e.sugar}g`)
+      if (e.saturated_fat != null) parts.push(`Nas:${e.saturated_fat}g`)
       return parts.join(' ')
     }).join('\n')
 
