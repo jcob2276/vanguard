@@ -510,19 +510,6 @@ export default function Direction({ session }) {
             </button>
           </div>
 
-          {lenieLogs.length > 0 && (
-            <div className="mt-5 space-y-2 border-t border-white/[0.06] pt-4">
-              {lenieLogs.slice(0, 4).map((log) => (
-                <div key={log.id} className="rounded-lg bg-black/25 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{format(parseISO(log.date), 'dd.MM')}</p>
-                    <p className="truncate text-[11px] font-black uppercase text-white/78">{log.final_stimulus || 'bez opisu bodzca'}</p>
-                  </div>
-                  {log.context_note && <p className="mt-1 text-[10px] font-semibold leading-relaxed text-white/42">{log.context_note}</p>}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
