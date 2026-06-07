@@ -34,6 +34,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [analyzePeriod, setAnalyzePeriod] = useState(1);
   const [analyzeResult, setAnalyzeResult] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
   const [trends, setTrends] = useState({});
   const [projections, setProjections] = useState(null);
@@ -1082,7 +1083,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.05] text-[10px] font-bold text-white">
-              {recentSessions.slice(0, 12).map(s => (
+              {recentSessions.slice(0, showAllSessions ? 12 : 4).map(s => (
                 <tr key={s.id} className="transition-colors hover:bg-white/[0.03]">
                   <td className="p-3">
                     {editingSession === s.id ? (
@@ -1130,6 +1131,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               ))}
             </tbody>
           </table>
+          {recentSessions.length > 4 && (
+            <button
+              onClick={() => setShowAllSessions(v => !v)}
+              className="w-full py-2.5 text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors border-t border-white/[0.05]"
+            >
+              {showAllSessions ? 'Zwiń ↑' : `Pokaż więcej (${recentSessions.length - 4}) ↓`}
+            </button>
+          )}
         </div>
       </section>
 
