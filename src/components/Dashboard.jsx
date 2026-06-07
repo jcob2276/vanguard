@@ -1,10 +1,10 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import {
-  Activity,
-  Brain,
+  Calendar,
   Camera,
   CheckCircle2,
+  Clock,
   Dumbbell,
   Fingerprint,
   Gauge,
@@ -12,6 +12,7 @@ import {
   Play,
   RefreshCw,
   Sparkles,
+  Sun,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
@@ -29,10 +30,9 @@ const Photos = lazy(() => import('./Photos'));
 const Direction = lazy(() => import('./Direction'));
 
 const normalizeView = (view) => {
-  if (!view || view === 'workout' || view === 'mentor' || view === 'mirror') return 'body';
-  if (view === 'stream' || view === 'plan') return 'body';
-  if (view === 'stats') return 'body';
-  if (view === 'direction') return 'progress';
+  if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
+  if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
+  if (view === 'stats' || view === 'photos') return 'historia';
   return view;
 };
 
@@ -349,9 +349,9 @@ export default function Dashboard({ session }) {
   const weeklyBudget = 12600;
 
   const navItems = [
-    { id: 'body', icon: Activity, label: 'Body' },
-    { id: 'progress', icon: Brain, label: 'Progress' },
-    { id: 'photos', icon: Camera, label: 'Photos' },
+    { id: 'dzis', icon: Sun, label: 'Dziś' },
+    { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
+    { id: 'historia', icon: Clock, label: 'Historia' },
   ];
 
   return (
@@ -380,64 +380,51 @@ export default function Dashboard({ session }) {
           </div>
         </header>
 
-        <main className="flex-1 space-y-6 p-5 animate-in fade-in duration-500">
-          {view === 'body' && (
-            <Suspense fallback={<ViewFallback />}>
-              <section className="space-y-5">
-                <section className="space-y-3">
-                  <StateBrief
-                    state={operationalState}
-                    readiness={readiness}
-                    doneCount={doneCount}
-                    hasWorkoutToday={hasWorkoutToday}
-                    weeklyCalories={weeklyCalories}
-                    weeklyBudget={weeklyBudget}
-                    onWorkoutClick={() => setShowWorkoutLogger(true)}
-                  />
-                </section>
-                <AIInsight session={session} />
-                <CommandButton
-                  icon={Dumbbell}
-                  eyebrow="Physical Protocol"
-                  label="Zaloguj trening"
-                  onClick={() => setShowWorkoutLogger(true)}
-                />
-                <DailyStrainCard session={session} />
-                <Stats
-                  session={session}
-                  topSlot={(
-                    <YazioWeeklyCard
-                      weeklyCalories={weeklyCalories}
-                      weeklyBudget={weeklyBudget}
-                      syncYazio={syncYazio}
-                      isSyncing={isSyncing}
-                    />
-                  )}
-                  runningSlot={<StravaWidget session={session} />}
-                />
-              </section>
-            </Suspense>
-          )}
-
-          {view === 'progress' && (
-            <Suspense fallback={<ViewFallback />}>
-              <section className="space-y-4">
-              <SectionHeader
-                title="Progress"
-                detail="Tu wraca postęp, tygodniowe wykrywanie, kierunek i wzorce. Nie jest to czat, tylko przegląd trajektorii."
+        <main className="flex-1 p-5 pb-8 animate-in fade-in duration-500">
+          {view === 'dzis' && (
+            <div className="space-y-8">
+              <StateBrief
+                state={operationalState}
+                readiness={readiness}
+                doneCount={doneCount}
+                hasWorkoutToday={hasWorkoutToday}
+                weeklyCalories={weeklyCalories}
+                weeklyBudget={weeklyBudget}
+                onWorkoutClick={() => setShowWorkoutLogger(true)}
               />
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
-              <Direction session={session} />
-              </section>
+              <DailyStrainCard session={session} />
+              <CommandButton
+                icon={Dumbbell}
+                eyebrow="Physical Protocol"
+                label="Zaloguj trening"
+                onClick={() => setShowWorkoutLogger(true)}
+              />
+            </div>
+          )}
+
+          {view === 'tydzien' && (
+            <Suspense fallback={<ViewFallback />}>
+              <div className="space-y-8">
+                <AIInsight session={session} />
+                <YazioWeeklyCard
+                  weeklyCalories={weeklyCalories}
+                  weeklyBudget={weeklyBudget}
+                  syncYazio={syncYazio}
+                  isSyncing={isSyncing}
+                />
+                <Direction session={session} />
+              </div>
             </Suspense>
           )}
 
-          {view === 'photos' && (
+          {view === 'historia' && (
             <Suspense fallback={<ViewFallback />}>
-              <section className="space-y-5">
-              <Photos session={session} />
-              <MuscleHeatmap session={session} />
-              </section>
+              <div className="space-y-8">
+                <Stats session={session} runningSlot={<StravaWidget session={session} />} />
+                <Photos session={session} />
+                <MuscleHeatmap session={session} />
+              </div>
             </Suspense>
           )}
         </main>
