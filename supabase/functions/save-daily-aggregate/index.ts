@@ -33,10 +33,9 @@ serve(async (req) => {
       today = yesterday.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
     }
 
-    // Pobierz dane z wszystkich źródeł (StayFree, Oura, Wins, Nutrition, Last Workout, Strava)
-    const [oura, stayfreeRaw, wins, nutrition, lastWorkout, stravaRaw] = await Promise.all([
+    // Pobierz dane z aktywnych źródeł (Oura, Wins, Nutrition, Last Workout, Strava)
+    const [oura, wins, nutrition, lastWorkout, stravaRaw] = await Promise.all([
       safeExecute(supabase.from('oura_daily_summary').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
-      Promise.resolve(null),
       safeExecute(supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle()),
       safeExecute(supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()),
@@ -52,7 +51,6 @@ serve(async (req) => {
       })(),
     ])
 
-    const stayfree: any[] = stayfreeRaw || []
     const lastTrainingDate = lastWorkout?.date || null
 
     // --- Format Strava activities ---
@@ -97,7 +95,6 @@ serve(async (req) => {
 
     // --- Unified Signal Computation (Vanguard Core) ---
     const signals = computeSignals(
-      stayfree,
       oura,
       wins,
       { protein: nutrition?.protein || 0 },
@@ -153,11 +150,11 @@ serve(async (req) => {
       sleep_hours: signals.sleep,
       hrv_avg: signals.hrv,
       rhr_avg: signals.rhr,
-      screen_time_min: signals.screen_time_min || null,
-      dopamine_load_index: stayfree.length > 0 ? signals.dopamine_load : null,
-      fragmentation_index: stayfree.length > 0 ? signals.fragmentation : null,
+      screen_time_min: null,
+      dopamine_load_index: null,
+      fragmentation_index: null,
       final_state: finalState,
-      state_confidence: stayfree.length > 0 && oura ? 0.9 : (oura ? 0.6 : 0.3),
+      state_confidence: oura ? 0.6 : 0.3,
       strava_activities_json: stravaActivities.length > 0 ? stravaActivities : null,
     }
 

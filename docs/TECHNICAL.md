@@ -136,7 +136,7 @@ Następujące tabele istnieją w bazie ale nie mają DDL w `/supabase/migrations
 | `daily_nutrition` | user_id, date, calories, protein | nieznane |
 | `user_fundament` | user_id, identity, philosophy, vision | nieznane |
 | `user_settings` | user_id, todoist_token, google_fit_refresh_token, google_fit_client_id | nieznane |
-| `stayfree_usage` | user_id, date, app_name, device_name, duration_seconds, unlocks | nieznane |
+| `stayfree_usage` | user_id, date, app_name, device_name, duration_seconds, unlocks | DEPRECATED / no active caller |
 | `oura_daily_summary` | user_id, date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes, bedtime_timestamp, steps, active_calories, total_calories, temp_deviation | nieznane |
 | `body_metrics` | id, weight_italia | nieznane (pre-existing) |
 
@@ -367,7 +367,7 @@ Brak user_id — tabela referencyjna.
 | daily_wins | ✅ | mig. 20260527000001 |
 | daily_nutrition | ✅ | mig. 20260527000001 |
 | user_fundament | ✅ | mig. 20260527000001 |
-| stayfree_usage | ✅ | mig. 20260527000001 |
+| stayfree_usage | deprecated | no active ingestion path |
 | oura_daily_summary | ✅ | mig. 20260527000001 |
 
 ---
@@ -480,8 +480,8 @@ Faza 3 — re-ranking z temporal penalty:
 **Auth:** Bearer `VANGUARD_CRON_SECRET` — zwraca 401 jeśli niezgodny.
 
 **Obliczenia:**
-- `dopamine_load` = (social_seconds / total_seconds) × overlap_factor × max(fragmentation, 0.1)
-- `fragmentation` = unlocks / (realTimeSeconds/3600)
+- `dopamine_load` = deprecated historical field; active pipeline writes `NULL`
+- `fragmentation` = deprecated historical field; active pipeline writes `NULL`
 - `execution_score` = completed_tasks / 5
 - `identity_score` (0-100): -30 za failed wins, -10 bez wins, -15 protein < 140g, -15 sleep < 6.5h, -10 readiness < 60
 
@@ -659,7 +659,7 @@ if (embedRes.ok) {
 **`computeSignals()`** — czysta funkcja, zero side-effects. Wejście: surowe dane z 5 źródeł. Wyjście: znormalizowane sygnały z confidence wektorami.
 
 **Confidence flags:**
-- `digital`: 0.95 jeśli stayfree data, 0.1 jeśli brak
+- `digital`: 0.0 until a new active digital telemetry source is defined
 - `biometrics`: 0.9 jeśli sleep != null, 0.2 jeśli brak
 - `is_stale`: true jeśli oura.date ≠ dzisiaj
 
@@ -674,7 +674,7 @@ if (embedRes.ok) {
 | hrv < 50% baseline mean | RECOVERY |
 | sleep < 6.2h | RECOVERY |
 
-**Stability score (0-100):** Execution 30%, Training 20%, Protein 15%, Sleep 15%, HRV 10%, Digital Peace 10%. Modifier ×0.8 jeśli high RPE + low bio.
+**Stability score (0-100):** Execution, training, protein, sleep and HRV. Digital Peace is inactive until a new active telemetry source is defined. Modifier ×0.8 jeśli high RPE + low bio.
 
 **Protein goal:** 160g (hardcoded, linia 78).
 

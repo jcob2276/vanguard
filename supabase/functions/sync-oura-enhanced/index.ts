@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { resolveUserScope } from "../_shared/supabase.ts"
 
 const OURA_BASE = 'https://api.ouraring.com/v2/usercollection'
 
@@ -25,7 +26,7 @@ async function fetchOura(url: string, headers: Record<string, string>): Promise<
       return { data: [] }
     }
     return await res.json()
-  } catch (e) {
+  } catch (e: any) {
     console.warn(`[oura-enh] fetch failed ${url}: ${e.message}`)
     return { data: [] }
   }
@@ -38,7 +39,8 @@ serve(async (req) => {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 5        // okno bezpieczeństwa — 5 dni bo Oura opóźnia szczegółowe fazy snu
-    const onlyUserId: string | null = body.userId ?? null
+    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
+    const onlyUserId: string | null = scopedUserId
 
     // Wszyscy użytkownicy z tokenem Oura (bez wpisanego ID na sztywno)
     let query = supabase
@@ -220,7 +222,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, range: { startDate, endDate }, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[oura-enh] fatal', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,

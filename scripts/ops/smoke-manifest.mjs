@@ -11,7 +11,6 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-morning-ping",
   "vanguard-midday-check",
   "vanguard-daily-reconciliation",
-  "vanguard-intentions-cleanup",
   "vanguard-weekly-synthesis",
   "vanguard-friction-qa",
   "vanguard-telegram",
@@ -37,7 +36,6 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-morning-ping", post: "cron", sideEffects: "May send Telegram nudge" },
   { name: "vanguard-midday-check", post: "cron", sideEffects: "May send midday Telegram" },
   { name: "vanguard-daily-reconciliation", post: "cron", sideEffects: "May send evening reconciliation Telegram" },
-  { name: "vanguard-intentions-cleanup", post: "cron", sideEffects: "LLM + DB writes" },
   { name: "vanguard-weekly-synthesis", post: "cron", sideEffects: "LLM + Telegram report" },
   { name: "vanguard-friction-qa", post: "cron", sideEffects: "LLM + Telegram" },
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
@@ -49,6 +47,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-auto-classify", post: "safe", body: {}, sideEffects: "Returns 200, no classify" },
   { name: "vanguard-architect", post: "safe", body: { limit: 0 }, sideEffects: "DB read only" },
   { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
+  { name: "vanguard-intentions-cleanup", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
   { name: "vanguard-reset-prompt", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
   { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
   { name: "analyze-training", post: "skip", sideEffects: "Calls DeepSeek + Telegram — manual trigger only" },
@@ -60,7 +59,6 @@ export const CRON_FROM_MIGRATIONS = [
   { jobname: "vanguard-daily-analyst", schedule: "0 3 * * *", target: "vanguard-analyst" },
   { jobname: "vanguard-morning-brief", schedule: "0 5 * * *", target: "vanguard-morning-brief" },
   { jobname: "vanguard-morning-ping", schedule: "20 5 * * *", target: "vanguard-morning-ping" },
-  { jobname: "vanguard-weekly-intentions-cleanup", schedule: "0 0 * * 0", target: "vanguard-intentions-cleanup" },
   { jobname: "vanguard-sync-strava", schedule: "30 20 * * *", target: "sync-strava" },
 ];
 
@@ -78,4 +76,5 @@ export const CRON_REMOVED = [
   "vanguard-reset-prompt",
   "vanguard-reset-prompt-cron",
   "vanguard-daily-shadow-analysis",
+  "vanguard-weekly-intentions-cleanup",
 ];

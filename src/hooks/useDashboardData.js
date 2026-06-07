@@ -66,9 +66,6 @@ export function useDashboardData() {
       // --- NOWY SILNIK VANGUARD CORE ---
       const core = new VanguardCore(session.user.id, supabase);
       
-      // Pobieramy StayFree (Dopamina/Focus) - StayFree is dropped, using mock empty array
-      const stayfreeData = [];
-
       // Pobieramy datę ostatniego treningu
       const { data: lastWorkout } = await supabase
         .from('workout_sessions')
@@ -81,7 +78,6 @@ export function useDashboardData() {
       const signals = await (async () => {
         const { computeSignals } = await import('../lib/vanguardCore');
         return computeSignals(
-          stayfreeData || [],
           ouraData?.[0] || null,
           todayData,
           { protein: protData?.protein || 0 },

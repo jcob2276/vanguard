@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls → **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 30 function folders (+ `_shared/`) · Last registry pass: **2026-05-27**
+**Inventory:** 34 function folders (+ `_shared/`) · Last registry pass: **2026-06-07**
 
 ---
 
@@ -49,7 +49,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst → confirmed_friction_event
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-architect` | **active** | HTTP batch (`offset`/`limit`) after stream | **false** | `vanguard_entity_links` | 584 | 2026-05-26 |
 | `ingest-vault-log` | **active** | HTTP from telegram (long voice / vault) | **false** | `vanguard_stream`, `vanguard_raw_events`, `vanguard_entity_links` | 229 | 2026-05-26 |
-| `save-daily-aggregate` | **active** | pg_cron `vanguard-daily-snapshot` `0 4 * * *` UTC | **false** | `vanguard_daily_aggregates` | 117 | 2026-05-26 |
+| `save-daily-aggregate` | **active** | pg_cron `vanguard-daily-snapshot` `0 4 * * *` UTC | **false** | `vanguard_daily_aggregates` | 155 | 2026-06-07 |
 
 ### Vanguard Core — analysis & reports
 
@@ -123,7 +123,11 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 | `sync-strava` | **active** | pg_cron `30 20 * * *` UTC (22:30 Warsaw) / manual | **false** | `strava_activities`, `strava_tokens` | 182 | 2026-05-26 |
 | `analyze-training` | **active** | HTTP POST | **false** | `training_plan_workouts`, `strava_activities_clean` | 172 | 2026-05-26 |
 | `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 155 | 2026-05-26 |
+| `sync-oura-enhanced` | **active** | Frontend / manual | true | `oura_enhanced`, `user_settings` | 207 | 2026-06-07 |
+| `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-07 |
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 144 | 2026-05-26 |
+| `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 177 | 2026-06-07 |
+| `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 231 | 2026-06-07 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 143 | 2026-05-26 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 132 | 2026-05-26 |
 | `sync-google-fit` | **deprecated** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
@@ -137,7 +141,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 
 | Module | Exports | Use when |
 |--------|---------|----------|
-| `supabase.ts` | `createServiceClient`, `safeExecute`, `requireEnv` | **All** DB access |
+| `supabase.ts` | `createServiceClient`, `safeExecute`, `requireEnv`, `resolveUserScope` | **All** DB access and user-token scope checks |
 | `constants.ts` | `getVanguardUserId` | Single-user default ID |
 | `time.ts` | `getWarsawDateString`, `getWarsawDayBoundaries`, `getStreamCutoffs` | Warsaw day ranges |
 | `streamContext.ts` | `fetchBriefingStreamLayers`, `fetchOracleStreamSlices`, formatters | Stream context (current-first) |

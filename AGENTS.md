@@ -28,7 +28,7 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on a Supabase project configured through environment variables.
 
-Local ↔ Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-05-27**.
+Local ↔ Supabase sync: **34** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-07**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -43,7 +43,7 @@ Local ↔ Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supab
 Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
 - Affected: vanguard-morning-brief, vanguard-midday-check,
-  vanguard-daily-reconciliation, vanguard-intentions-cleanup,
+  vanguard-daily-reconciliation,
   vanguard-telegram, dojo-telegram, dojo-scheduler,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   ingest-vault-log, vanguard-friction-qa,

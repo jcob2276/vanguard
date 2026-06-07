@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vanguard OS — Audit Map</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080a0f; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
+
+  /* HEADER */
+  .header { padding: 20px 32px; border-bottom: 1px solid #1e2533; display: flex; align-items: center; justify-content: space-between; background: #0a0d15; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 13px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase; color: #fff; }
+  .header p { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: .15em; }
+  .legend { display: flex; gap: 16px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #718096; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* MAIN LAYOUT */
+  .layout { display: grid; grid-template-columns: 1fr 320px; min-height: calc(100vh - 61px); }
+
+  /* DIAGRAM AREA */
+  .diagram { padding: 32px; overflow: auto; }
+
+  /* LAYER */
+  .layer { margin-bottom: 24px; }
+  .layer-label { font-size: 9px; font-weight: 900; letter-spacing: .25em; text-transform: uppercase; color: #2d3748; margin-bottom: 12px; padding-left: 4px; }
+  .nodes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* NODE */
+  .node {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all .15s;
+    position: relative;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .node:hover { transform: translateY(-1px); filter: brightness(1.2); }
+  .node.selected { box-shadow: 0 0 0 2px #fff; }
+
+  /* node types */
+  .node-component { background: #0f1729; border-color: #1e3a5f; color: #90cdf4; }
+  .node-edge     { background: #0f1f29; border-color: #1a4a5e; color: #76e4f7; }
+  .node-table    { background: #1a0f1f; border-color: #4a1a5e; color: #d6bcfa; }
+  .node-external { background: #1a1a0f; border-color: #5e4e1a; color: #fbd38d; }
+  .node-rpc      { background: #0f1f0f; border-color: #1a5e1a; color: #9ae6b4; }
+  .node-shared   { background: #1f1a0f; border-color: #5e3a1a; color: #f6ad55; }
+
+  /* issue badges */
+  .node-warn::after { content: '⚠'; font-size: 9px; position: absolute; top: -5px; right: -5px; background: #c05621; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; line-height: 14px; text-align: center; }
+  .node-crit::after { content: '🔴'; font-size: 8px; position: absolute; top: -5px; right: -5px; }
+
+  /* DETAIL PANEL */
+  .panel {
+    border-left: 1px solid #1e2533;
+    background: #0a0d15;
+    padding: 24px;
+    overflow-y: auto;
+    height: calc(100vh - 61px);
+    position: sticky;
+    top: 61px;
+  }
+  .panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #2d3748; font-size: 12px; gap: 8px; }
+  .panel-title { font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .panel-sub   { font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 16px; }
+  .panel-section { margin-bottom: 16px; }
+  .panel-section h4 { font-size: 9px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase; color: #4a5568; margin-bottom: 8px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid; }
+  .pill-read  { background: #1a0f29; border-color: #4a1a6e; color: #c4b5fd; }
+  .pill-write { background: #0f1a0f; border-color: #1a5e1a; color: #9ae6b4; }
+  .pill-call  { background: #0f1a29; border-color: #1a3a6e; color: #93c5fd; }
+  .pill-table { background: #1a1a0f; border-color: #5e5e1a; color: #fbbf24; }
+  .issue-list { display: flex; flex-direction: column; gap: 8px; }
+  .issue { border-radius: 6px; padding: 8px 10px; font-size: 11px; line-height: 1.5; }
+  .issue-crit { background: #1f0505; border: 1px solid #7f1d1d; color: #fca5a5; }
+  .issue-warn { background: #1f1005; border: 1px solid #7c2d12; color: #fdba74; }
+  .issue-info { background: #0f1729; border: 1px solid #1e3a5f; color: #93c5fd; }
+  .flow-arrow { font-size: 10px; color: #4a5568; margin: 0 4px; }
+
+  /* CONNECTIONS SVG overlay */
+  #arrows { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 50; }
+
+  /* search */
+  .search-bar { padding: 12px 32px; border-bottom: 1px solid #1e2533; background: #0a0d15; }
+  .search-bar input { width: 300px; background: #0f1220; border: 1px solid #1e2533; border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #e2e8f0; outline: none; }
+  .search-bar input:focus { border-color: #3b82f6; }
+
+  /* filter tabs */
+  .filter-row { display: flex; gap: 8px; padding: 12px 32px; border-bottom: 1px solid #1e2533; background: #0a0d15; }
+  .ftab { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; border: 1px solid #1e2533; color: #4a5568; cursor: pointer; transition: all .15s; }
+  .ftab.active, .ftab:hover { background: #1e2533; color: #e2e8f0; }
+
+  .dimmed { opacity: .18; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Vanguard OS — Architecture Audit Map</h1>
+    <p>Kliknij węzeł żeby zobaczyć szczegóły · czerwone = krytyczny problem · pomarańczowe = ostrzeżenie</p>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:#90cdf4"></div>Frontend</div>
+    <div class="leg"><div class="leg-dot" style="background:#76e4f7"></div>Edge Fn</div>
+    <div class="leg"><div class="leg-dot" style="background:#d6bcfa"></div>DB Table</div>
+    <div class="leg"><div class="leg-dot" style="background:#fbd38d"></div>External API</div>
+    <div class="leg"><div class="leg-dot" style="background:#9ae6b4"></div>RPC</div>
+    <div class="leg"><div class="leg-dot" style="background:crimson"></div>Krytyczny bug</div>
+    <div class="leg"><div class="leg-dot" style="background:#c05621"></div>Ostrzeżenie</div>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="search" placeholder="Szukaj węzła…" oninput="filterNodes(this.value)">
+</div>
+
+<div class="filter-row" id="filter-row">
+  <div class="ftab active" onclick="setFilter('all', this)">Wszystko</div>
+  <div class="ftab" onclick="setFilter('component', this)">Frontend</div>
+  <div class="ftab" onclick="setFilter('edge', this)">Edge Functions</div>
+  <div class="ftab" onclick="setFilter('table', this)">Tabele DB</div>
+  <div class="ftab" onclick="setFilter('external', this)">External APIs</div>
+  <div class="ftab issues-tab" onclick="setFilter('issues', this)" style="border-color:#7f1d1d; color:#fca5a5">⚠ Problemy</div>
+</div>
+
+<div class="layout">
+  <div class="diagram" id="diagram">
+
+    <div class="layer" data-layer="external">
+      <div class="layer-label">🌐 External APIs / Data Sources</div>
+      <div class="nodes" id="layer-external"></div>
+    </div>
+
+    <div class="layer" data-layer="sync">
+      <div class="layer-label">🔄 Sync & Compute Edge Functions</div>
+      <div class="nodes" id="layer-sync"></div>
+    </div>
+
+    <div class="layer" data-layer="ai">
+      <div class="layer-label">🧠 AI / Telegram Edge Functions</div>
+      <div class="nodes" id="layer-ai"></div>
+    </div>
+
+    <div class="layer" data-layer="db">
+      <div class="layer-label">🗄 Database Tables (Supabase / Postgres)</div>
+      <div class="nodes" id="layer-db"></div>
+    </div>
+
+    <div class="layer" data-layer="rpc">
+      <div class="layer-label">⚡ RPC Functions</div>
+      <div class="nodes" id="layer-rpc"></div>
+    </div>
+
+    <div class="layer" data-layer="shared">
+      <div class="layer-label">📦 Shared Libraries</div>
+      <div class="nodes" id="layer-shared"></div>
+    </div>
+
+    <div class="layer" data-layer="component">
+      <div class="layer-label">⚛ Frontend Components (React)</div>
+      <div class="nodes" id="layer-component"></div>
+    </div>
+
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="panel-empty">
+      <div style="font-size:32px">🗺</div>
+      <div>Kliknij węzeł</div>
+      <div style="font-size:10px; color:#2d3748">aby zobaczyć szczegóły, połączenia i znane problemy</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NODES = [
+  // ─── EXTERNAL ───────────────────────────────────────────────────
+  {
+    id: 'oura-api', label: 'Oura Ring API', layer: 'external', type: 'external',
+    desc: 'Oura v2 REST API — readiness, sleep, activity, HR zones.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['sync-oura', 'sync-oura-enhanced', 'sync-oura-timeseries'],
+    issues: []
+  },
+  {
+    id: 'yazio-api', label: 'YAZIO API', layer: 'external', type: 'external',
+    desc: 'YAZIO REST API — daily consumed foods, macros.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['sync-yazio'],
+    issues: [{ level: 'crit', text: 'Credentiale (username + password) przechowywane plaintext w tabeli user_settings. Wystarczy RLS bypass lub SQL injection żeby wyciec hasła.' }]
+  },
+  {
+    id: 'strava-api', label: 'Strava API', layer: 'external', type: 'external',
+    desc: 'Strava API v3 — activities z HR, distance, perceived_exertion.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['sync-strava'],
+    issues: []
+  },
+  {
+    id: 'deepseek-api', label: 'DeepSeek API', layer: 'external', type: 'external',
+    desc: 'DeepSeek chat/reasoner — główny model LLM dla Oracle, Architekta, analizy.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['vanguard-oracle', 'vanguard-architect', 'analyze-food-quality', 'vanguard-briefing'],
+    issues: [{ level: 'crit', text: 'Brak circuit breaker. Jeśli DeepSeek zwróci błąd, Oracle propaguje 500 do użytkownika bez fallbacku i bez retry.' }]
+  },
+  {
+    id: 'openai-api', label: 'OpenAI API', layer: 'external', type: 'external',
+    desc: 'OpenAI text-embedding-3-small — embeddingi dla HippoRAG retrieval.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['vanguard-oracle', 'vanguard-architect'],
+    issues: []
+  },
+  {
+    id: 'telegram-api', label: 'Telegram Bot API', layer: 'external', type: 'external',
+    desc: 'Telegram Bot API — wejście (webhook) i wyjście (sendMessage).',
+    reads: [], writes: [],
+    calls: ['vanguard-telegram'], calledBy: ['vanguard-morning-ping', 'vanguard-briefing', 'vanguard-midday-check', 'vanguard-analyst', 'vanguard-weekly-synthesis'],
+    issues: []
+  },
+  {
+    id: 'todoist-api', label: 'Todoist API', layer: 'external', type: 'external',
+    desc: 'Todoist REST API — tasks.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['sync-todoist'],
+    issues: []
+  },
+  {
+    id: 'google-calendar', label: 'Google Calendar API', layer: 'external', type: 'external',
+    desc: 'Google Calendar API — events.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['sync-calendar'],
+    issues: []
+  },
+
+  // ─── SYNC EDGE FUNCTIONS ────────────────────────────────────────
+  {
+    id: 'sync-oura', label: 'sync-oura', layer: 'sync', type: 'edge',
+    desc: 'Pobiera readiness/sleep/activity z Oura API za ostatnie 7 dni. Używa UTC + 1 dzień buforu na end_date.',
+    reads: ['user_settings'], writes: ['oura_daily_summary'],
+    calls: ['oura-api'], calledBy: ['DailyStrainCard'],
+    issues: [{ level: 'warn', text: 'Brak retry po błędzie Oura API — DailyStrainCard refresh chain nie ma mechanizmu ponawiania.' }]
+  },
+  {
+    id: 'sync-oura-enhanced', label: 'sync-oura-enhanced', layer: 'sync', type: 'edge',
+    desc: 'Pobiera vascular_age, resilience_level z Oura enhanced endpoint.',
+    reads: ['user_settings'], writes: ['oura_enhanced'],
+    calls: ['oura-api'], calledBy: ['DailyStrainCard'],
+    issues: []
+  },
+  {
+    id: 'sync-oura-timeseries', label: 'sync-oura-timeseries', layer: 'sync', type: 'edge',
+    desc: 'Pobiera HR zones (z1–z5 minuty) z Oura timeseries.',
+    reads: ['user_settings'], writes: ['oura_hr_zones_daily'],
+    calls: ['oura-api'], calledBy: ['DailyStrainCard'],
+    issues: []
+  },
+  {
+    id: 'sync-yazio', label: 'sync-yazio', layer: 'sync', type: 'edge',
+    desc: 'Pobiera consumed items z YAZIO. Liczy kalorie, białko, węgle, insulin_load. Wylicza IL_est per produkt.',
+    reads: ['user_settings'], writes: ['daily_food_entries', 'daily_nutrition'],
+    calls: ['yazio-api', 'analyze-food-quality'], calledBy: ['DailyStrainCard', 'useDashboardData'],
+    issues: [{ level: 'warn', text: 'Brak idempotency na poziomie food_entries — re-sync tego samego dnia może duplikować wpisy jeśli upsert nie trafia po kluczu.' }]
+  },
+  {
+    id: 'sync-strava', label: 'sync-strava', layer: 'sync', type: 'edge',
+    desc: 'Pobiera aktywności Strava. Mapuje sport_type, HR, perceived_exertion, has_pr.',
+    reads: ['user_settings'], writes: ['strava_activities_clean'],
+    calls: ['strava-api'], calledBy: ['DailyStrainCard'],
+    issues: []
+  },
+  {
+    id: 'sync-todoist', label: 'sync-todoist', layer: 'sync', type: 'edge',
+    desc: 'Pobiera tasks z Todoist.',
+    reads: ['user_settings'], writes: ['todoist_tasks'],
+    calls: ['todoist-api'], calledBy: [],
+    issues: [{ level: 'info', text: 'Brak powiązania z daily_wins — dane Todoist nie są widoczne w głównym dashboardzie.' }]
+  },
+  {
+    id: 'sync-calendar', label: 'sync-calendar', layer: 'sync', type: 'edge',
+    desc: 'Pobiera eventy z Google Calendar do vanguard_calendar.',
+    reads: ['user_settings'], writes: ['vanguard_calendar'],
+    calls: ['google-calendar'], calledBy: ['useDashboardData'],
+    issues: []
+  },
+  {
+    id: 'analyze-food-quality', label: 'analyze-food-quality', layer: 'sync', type: 'edge',
+    desc: 'Wywołuje DeepSeek żeby ocenić jakość jedzenia (0–100) na podstawie składu produktów.',
+    reads: ['daily_food_entries'], writes: ['daily_food_entries', 'daily_nutrition'],
+    calls: ['deepseek-api'], calledBy: ['sync-yazio'],
+    issues: [{ level: 'warn', text: 'Wywołuje LLM per produkt — przy dużej liczbie pozycji (30+) może przekroczyć timeout edge function (50s). Brak batching.' }]
+  },
+  {
+    id: 'compute-daily-strain', label: 'compute-daily-strain', layer: 'sync', type: 'edge',
+    desc: 'Główne engine: łączy dane Oura (zones, enhanced, summary) + Strava + żywienie + siłownię → strain_score (0–21), recovery_score (0–100), fueling_score (0–100), daily_status (green/yellow/red), main_limiter.',
+    reads: ['oura_hr_zones_daily', 'oura_enhanced', 'oura_daily_summary', 'daily_nutrition', 'workout_sessions', 'strava_activities_clean', 'body_metrics', 'user_settings'],
+    writes: ['daily_strain'],
+    calls: [], calledBy: ['DailyStrainCard'],
+    issues: [
+      { level: 'crit', text: 'Iteruje ALL users sekwencyjnie w jednym request (for loop). Jeden wolny user blokuje resztę. Przy 5+ userach może timeout.' },
+      { level: 'crit', text: 'Brak auth guard — przyjmuje userId z request body. Każdy może wstrzyknąć cudzy userId i przeliczać/nadpisywać strain.' },
+      { level: 'warn', text: 'Jeśli którykolwiek sync (Oura/Yazio/Strava) się nie uda, compute-daily-strain działa na starych danych bez żadnej informacji o tym.' }
+    ]
+  },
+  {
+    id: 'save-daily-aggregate', label: 'save-daily-aggregate', layer: 'sync', type: 'edge',
+    desc: 'Pobiera wszystkie źródła dla danego dnia → computeSignals → determineState → zapisuje vanguard_daily_aggregates (final_state, hrv_avg, sleep_hours, execution_score, dopamine_load_index).',
+    reads: ['oura_daily_summary', 'daily_wins', 'daily_nutrition', 'workout_sessions', 'strava_activities_clean'],
+    writes: ['vanguard_daily_aggregates'],
+    calls: ['vanguardCore'], calledBy: ['vanguard-daily-reconciliation'],
+    issues: [{ level: 'crit', text: 'Brak idempotency guard — jeśli użytkownik dwukrotnie odpowie na wieczorny reconciliation (np. wiadomość splitsuje się na 2), powstają duplikaty w vanguard_daily_aggregates. Brak UNIQUE na (user_id, date).' }]
+  },
+  {
+    id: 'analyze-training', label: 'analyze-training', layer: 'sync', type: 'edge',
+    desc: 'Analizuje sesje treningowe z ostatnich 7 dni przez DeepSeek i wysyła insighty na Telegram.',
+    reads: ['workout_sessions', 'exercise_logs'], writes: [],
+    calls: ['deepseek-api', 'telegram-api'], calledBy: [],
+    issues: [{ level: 'info', text: 'Nie jest wywoływana przez żaden komponent ani cron — martwa funkcja?' }]
+  },
+
+  // ─── AI / TELEGRAM EDGE FUNCTIONS ───────────────────────────────
+  {
+    id: 'vanguard-oracle', label: 'vanguard-oracle', layer: 'ai', type: 'edge',
+    desc: 'Główny AI endpoint. HippoRAG 3-fazowy retrieval: (1) embedding similarity na vanguard_knowledge, (2) entity seeds z grafu, (3) graph hop po krawędziach. Buduje state_vector z biometrią 7d. Odpowiada przez DeepSeek.',
+    reads: ['vanguard_knowledge', 'vanguard_entity_links', 'vanguard_daily_aggregates', 'vanguard_stream', 'daily_reconciliations', 'daily_wins', 'oura_daily_summary', 'workout_sessions'],
+    writes: [],
+    calls: ['deepseek-api', 'openai-api', 'vanguardPatterns', 'planQuality'],
+    calledBy: ['AIInsight', 'MentorChat', 'vanguard-telegram', 'vanguard-briefing'],
+    issues: [
+      { level: 'crit', text: 'Brak circuit breaker / fallback dla DeepSeek. Timeout API = 500 do użytkownika.' },
+      { level: 'warn', text: 'Graph hop faza (3) bez limitu głębokości — głęboki graf może powodować timeout (default 50s edge fn limit).' },
+      { level: 'warn', text: '245 legacy edges poza ontologią zaśmieca retrieval — stare relacje zwracają fałszywe wyniki w phase (2).' }
+    ]
+  },
+  {
+    id: 'vanguard-architect', label: 'vanguard-architect', layer: 'ai', type: 'edge',
+    desc: 'Przetwarza vanguard_stream → ekstraktuje encje i relacje (DeepSeek) → zapisuje vanguard_knowledge + vanguard_entity_links z embeddingami (OpenAI).',
+    reads: ['vanguard_stream', 'vanguard_knowledge', 'vanguard_entity_links', 'vanguard_relation_ontology'],
+    writes: ['vanguard_knowledge', 'vanguard_entity_links'],
+    calls: ['deepseek-api', 'openai-api'], calledBy: ['vanguard-telegram'],
+    issues: [{ level: 'warn', text: 'Nie aktualizuje is_primary ani superseded_by starych faktów. Stary fakt (np. "analiza danych") ma status=active obok nowego — Oracle może zwrócić oba.' }]
+  },
+  {
+    id: 'vanguard-telegram', label: 'vanguard-telegram', layer: 'ai', type: 'edge',
+    desc: 'Główny webhook Telegram. Router: voice/text → stream ingestion lub planning/reconciliation handler. Przetwarza whisper (voice→text), wywołuje Oracle, pisze do vanguard_stream.',
+    reads: ['vanguard_stream', 'vanguard_daily_aggregates', 'daily_wins', 'oura_daily_summary', 'daily_reconciliations', 'user_settings'],
+    writes: ['vanguard_stream', 'daily_reconciliations'],
+    calls: ['vanguard-oracle', 'vanguard-architect', 'telegram-api'],
+    calledBy: ['telegram-api'],
+    issues: [
+      { level: 'crit', text: 'Brak rate limiting — flood wiadomości (np. błąd sieciowy który retry\'uje) tworzy duplikaty w vanguard_stream i wywołuje Oracle wielokrotnie.' },
+      { level: 'warn', text: 'Brak deduplication na message_id — Telegram może dostarczyć ten sam update 2x (retry webhook).' }
+    ]
+  },
+  {
+    id: 'vanguard-briefing', label: 'vanguard-briefing', layer: 'ai', type: 'edge',
+    desc: 'Poranny briefing (07:05). Czyta Oura + Strava + żywienie + stream → wywołuje Oracle → pisze do daily_reconciliations jako placeholder planowania dnia → wysyła na Telegram.',
+    reads: ['oura_daily_summary', 'strava_activities_clean', 'daily_nutrition', 'vanguard_stream', 'vanguard_daily_aggregates'],
+    writes: ['daily_reconciliations'],
+    calls: ['deepseek-api', 'telegram-api', 'vanguard-oracle'], calledBy: [],
+    issues: [{ level: 'warn', text: 'Jeśli cron odpali 2x (np. Supabase cron bug), tworzy 2 wiersze daily_reconciliations na ten sam dzień. Brak unique constraint.' }]
+  },
+  {
+    id: 'vanguard-morning-ping', label: 'vanguard-morning-ping', layer: 'ai', type: 'edge',
+    desc: 'Cron 07:00 — sprawdza czy Oura ma dane na dziś → pyta użytkownika o stan poranny przez Telegram.',
+    reads: ['oura_daily_summary', 'user_settings'], writes: [],
+    calls: ['telegram-api'], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard-midday-check', label: 'vanguard-midday-check', layer: 'ai', type: 'edge',
+    desc: 'Cron 12:00 — sprawdza postęp daily_wins + żywienie → krótki status na Telegram.',
+    reads: ['daily_wins', 'daily_nutrition', 'oura_daily_summary'], writes: [],
+    calls: ['telegram-api'], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard-daily-reconciliation', label: 'vanguard-daily-reconciliation', layer: 'ai', type: 'edge',
+    desc: 'Wieczorny reconciliation — parsuje odpowiedź użytkownika, extraktuje insight przez DeepSeek, wywołuje save-daily-aggregate.',
+    reads: ['daily_reconciliations', 'vanguard_stream'], writes: ['daily_reconciliations', 'vanguard_behavioral_patterns'],
+    calls: ['deepseek-api', 'save-daily-aggregate'], calledBy: ['vanguard-telegram'],
+    issues: [{ level: 'crit', text: 'Wywołuje save-daily-aggregate bez idempotency — patrz problem duplikatów w aggregates.' }]
+  },
+  {
+    id: 'vanguard-analyst', label: 'vanguard-analyst', layer: 'ai', type: 'edge',
+    desc: 'Generuje insighty biometryczne z 72h streamu + friction events + biometria → DeepSeek → Telegram.',
+    reads: ['vanguard_stream', 'friction_events', 'vanguard_daily_aggregates', 'vanguard_knowledge'],
+    writes: [], calls: ['deepseek-api', 'telegram-api'], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard-weekly-synthesis', label: 'vanguard-weekly-synthesis', layer: 'ai', type: 'edge',
+    desc: 'Cotygodniowa synteza — friction events + biometria + stream 7d → LLM → Telegram.',
+    reads: ['friction_events', 'vanguard_daily_aggregates', 'vanguard_stream'], writes: [],
+    calls: ['deepseek-api', 'telegram-api'], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard-morning-brief', label: 'vanguard-morning-brief', layer: 'ai', type: 'edge',
+    desc: 'Alternatywna ścieżka briefingu — early warning patterns z vanguard_behavioral_patterns → briefing przez Telegram.',
+    reads: ['vanguard_behavioral_patterns', 'oura_daily_summary'], writes: ['vanguard_behavioral_patterns'],
+    calls: ['telegram-api'], calledBy: [],
+    issues: []
+  },
+
+  // ─── DATABASE TABLES ─────────────────────────────────────────────
+  {
+    id: 'workout_sessions', label: 'workout_sessions', layer: 'db', type: 'table',
+    desc: 'Sesje treningowe. Kolumny: id, user_id, date DATE, start_time TIMESTAMPTZ, end_time TIMESTAMPTZ, workout_day VARCHAR, msp_passed BOOLEAN, importance_score INT (1–10, DEFAULT 5), duration_minutes.',
+    reads: ['vanguard-oracle', 'compute-daily-strain', 'save-daily-aggregate', 'Stats', 'MuscleHeatmap', 'WorkoutLogger'],
+    writes: ['save_workout_atomic'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'warn', text: 'start_time może być NULL (trening bez stopera) — stare zapytania sortujące po start_time (zamiast date) zwracały złą kolejność. Naprawione w useExerciseHistory.' }]
+  },
+  {
+    id: 'exercise_logs', label: 'exercise_logs', layer: 'db', type: 'table',
+    desc: 'Logi ćwiczeń. Kolumny: id, session_id, user_id, exercise_name, set_number, reps, weight, rpe, rir, is_pws_or_msp BOOLEAN, muscle_tags TEXT[].',
+    reads: ['Stats', 'WorkoutLogger', 'compute-daily-strain', 'MuscleHeatmap'],
+    writes: ['save_workout_atomic'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'daily_strain', label: 'daily_strain', layer: 'db', type: 'table',
+    desc: 'Wynik dnia: strain_score (0–21 TRIMP-style), recovery_score (0–100 z Oura), fueling_score (0–100 z YAZIO), daily_status (green/yellow/red), main_limiter, fueling_provisional BOOLEAN, explanation TEXT.',
+    reads: ['DailyStrainCard'], writes: ['compute-daily-strain'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'oura_daily_summary', label: 'oura_daily_summary', layer: 'db', type: 'table',
+    desc: 'Dzienne dane Oura: readiness_score, hrv_avg, rhr_avg, total_sleep_hours, deep_sleep_hours, rem_sleep_hours, steps, temp_deviation, sleep_efficiency, latency_minutes.',
+    reads: ['OuraWidget', 'compute-daily-strain', 'vanguard-oracle', 'vanguard-briefing', 'save-daily-aggregate'],
+    writes: ['sync-oura'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'oura_hr_zones_daily', label: 'oura_hr_zones_daily', layer: 'db', type: 'table',
+    desc: 'Minuty w strefach HR: z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max.',
+    reads: ['compute-daily-strain', 'OuraEnhanced'], writes: ['sync-oura-timeseries'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'oura_enhanced', label: 'oura_enhanced', layer: 'db', type: 'table',
+    desc: 'Enhanced Oura dane: vascular_age, resilience_level, steps (bardziej precyzyjne).',
+    reads: ['compute-daily-strain', 'OuraEnhanced'], writes: ['sync-oura-enhanced'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'daily_nutrition', label: 'daily_nutrition', layer: 'db', type: 'table',
+    desc: 'Dzienne makro: calories, protein, carbs, fat, fiber, sugar, insulin_load, avg_food_quality (0–100).',
+    reads: ['compute-daily-strain', 'Stats', 'useDashboardData', 'save-daily-aggregate'],
+    writes: ['sync-yazio', 'analyze-food-quality'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'daily_food_entries', label: 'daily_food_entries', layer: 'db', type: 'table',
+    desc: 'Indywidualne pozycje żywieniowe: name, calories, protein, carbs, meal_type, logged_at TIMESTAMPTZ, food_quality_score (0–100), insulin_load, IL_density_per_1000kcal.',
+    reads: ['analyze-food-quality'], writes: ['sync-yazio', 'analyze-food-quality'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'daily_wins', label: 'daily_wins', layer: 'db', type: 'table',
+    desc: 'Dziennik celów: task_1..5, done_1..5 BOOLEAN, result TEXT, date DATE, user_id.',
+    reads: ['PowerList', 'Direction', 'vanguard-telegram', 'save-daily-aggregate', 'vanguard-midday-check', 'vanguard-oracle'],
+    writes: ['PowerList', 'MentorChat'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'crit', text: 'Brak UNIQUE constraint na (user_id, date). Concurrent save lub duplikat requestu tworzy 2 wiersze. Odczyt przez maybeSingle() zwraca losowy wiersz.' }]
+  },
+  {
+    id: 'vanguard_stream', label: 'vanguard_stream', layer: 'db', type: 'table',
+    desc: 'Surowe wpisy (głos→tekst, Telegram). ~180 rekordów. content TEXT, category, created_at, emotion_signal.',
+    reads: ['vanguard-oracle', 'vanguard-architect', 'vanguard-analyst', 'ThoughtStream'],
+    writes: ['vanguard-telegram'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard_knowledge', label: 'vanguard_knowledge', layer: 'db', type: 'table',
+    desc: 'Przetworzona wiedza o użytkowniku. entity TEXT, content TEXT, embedding VECTOR(1536). Podstawa retrieval w Oracle.',
+    reads: ['vanguard-oracle'], writes: ['vanguard-architect'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard_entity_links', label: 'vanguard_entity_links', layer: 'db', type: 'table',
+    desc: 'Krawędzie grafu wiedzy. from_entity, relation (FK do ontologii), to_entity, valid_from, valid_until, status (active/deprecated), source_episode_id.',
+    reads: ['vanguard-oracle', 'GraphMind'], writes: ['vanguard-architect'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'warn', text: '245 legacy edges poza ontologią — FK NOT VALID, są read-only ale zaśmiecają retrieval graph hop w Oracle. Nigdy nie zostały usunięte.' }]
+  },
+  {
+    id: 'vanguard_relation_ontology', label: 'vanguard_relation_ontology', layer: 'db', type: 'table',
+    desc: '71 dozwolonych relacji. FK guard aktywny — nowe inserty poza ontologią są blokowane na poziomie DB.',
+    reads: ['vanguard-architect'], writes: [],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'vanguard_daily_aggregates', label: 'vanguard_daily_aggregates', layer: 'db', type: 'table',
+    desc: 'Zagregowane dane dnia: final_state, hrv_avg, sleep_hours, execution_score, dopamine_load_index. Wejście dla state_vector w Oracle.',
+    reads: ['vanguard-oracle', 'OuraWidget', 'save-daily-aggregate'],
+    writes: ['save-daily-aggregate'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'crit', text: 'Brak UNIQUE (user_id, date) — duplikaty możliwe przy double-send na Telegram. Oracle robi LIMIT 1 ORDER BY date DESC więc bierze losowy z duplikatów tego samego dnia.' }]
+  },
+  {
+    id: 'daily_reconciliations', label: 'daily_reconciliations', layer: 'db', type: 'table',
+    desc: 'Planowanie + wieczorna refleksja. planning_summary JSONB (target_date, production_artifact, tension_action, one_clear_move…), user_response TEXT, evening_extraction JSONB, day_score INT, answered_at.',
+    reads: ['vanguard-oracle', 'vanguard-briefing', 'vanguard-telegram'],
+    writes: ['vanguard-briefing', 'vanguard-telegram', 'vanguard-daily-reconciliation'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'warn', text: 'Brak UNIQUE (user_id, date) dla planowania — cron odpalony 2x tworzy 2 wiersze. Oracle filtruje po target_date więc może znaleźć oba.' }]
+  },
+  {
+    id: 'vanguard_behavioral_patterns', label: 'vanguard_behavioral_patterns', layer: 'db', type: 'table',
+    desc: 'Wzorce behawioralne. pattern_type, signature (deduplication key), title, evidence_text, first_seen, last_seen, last_shown, metadata JSONB.',
+    reads: ['vanguard-morning-brief'], writes: ['vanguardPatterns', 'vanguard-daily-reconciliation'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'body_metrics', label: 'body_metrics', layer: 'db', type: 'table',
+    desc: 'Pomiary ciała: weight, body_fat, muscle_mass, date. Używane w Stats i compute-daily-strain (jako podstawa do protein target).',
+    reads: ['compute-daily-strain', 'Stats'], writes: ['Stats'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'user_settings', label: 'user_settings', layer: 'db', type: 'table',
+    desc: 'Ustawienia użytkownika: oura_token, yazio_username, yazio_password (PLAINTEXT!), calorie_budget, protein_target, timezone.',
+    reads: ['sync-oura', 'sync-yazio', 'compute-daily-strain'], writes: ['OuraWidget'],
+    calls: [], calledBy: [],
+    issues: [{ level: 'crit', text: 'yazio_username i yazio_password przechowywane plaintext. Powinny być w Supabase Vault lub co najmniej zaszyfrowane. RLS bypass = wyciek haseł YAZIO.' }]
+  },
+  {
+    id: 'strava_activities_clean', label: 'strava_activities_clean', layer: 'db', type: 'table',
+    desc: 'Aktywności Strava po transformacji: sport_type, distance, hr, perceived_exertion, has_pr, is_oura, start_date.',
+    reads: ['compute-daily-strain', 'save-daily-aggregate', 'StravaWidget'], writes: ['sync-strava'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+  {
+    id: 'friction_events', label: 'friction_events', layer: 'db', type: 'table',
+    desc: 'Zdarzenia friction (odchylenia od planu) i positive_micro_actions. deviation, declared_intention, actual_behavior, occurred_at.',
+    reads: ['vanguard-analyst', 'vanguard-weekly-synthesis'], writes: ['vanguard-telegram'],
+    calls: [], calledBy: [],
+    issues: []
+  },
+
+  // ─── RPC ────────────────────────────────────────────────────────
+  {
+    id: 'save_workout_atomic', label: 'save_workout_atomic()', layer: 'rpc', type: 'rpc',
+    desc: 'Atomowy zapis sesji treningowej. INSERT workout_sessions + INSERT exercise_logs (pętla) + UPDATE importance_score (1–10 z set_count/MSP/RIR). Security: sprawdza auth.uid() === p_user_id.',
+    reads: [], writes: ['workout_sessions', 'exercise_logs'],
+    calls: [], calledBy: ['WorkoutLogger'],
+    issues: [{ level: 'info', text: 'Gdy p_start_time = NULL (brak stopera), date = CURRENT_DATE w UTC (serwer Supabase). Naprawione przez COALESCE na Warsaw timezone.' }]
+  },
+
+  // ─── SHARED LIBS ────────────────────────────────────────────────
+  {
+    id: 'vanguardPatterns', label: '_shared/vanguardPatterns', layer: 'shared', type: 'shared',
+    desc: 'Detekcja wzorców behawioralnych. recordBehavioralPattern, markPatternAsShown, detectEarlyWarningSignals, getRecentStrongBehavioralPatterns.',
+    reads: ['vanguard_behavioral_patterns'], writes: ['vanguard_behavioral_patterns'],
+    calls: [], calledBy: ['vanguard-daily-reconciliation', 'vanguard-morning-brief'],
+    issues: []
+  },
+  {
+    id: 'vanguardCore', label: '_shared/vanguardCore', layer: 'shared', type: 'shared',
+    desc: 'computeSignals (aggreguje biometrię + trening + wins → signal score) + determineState (green/yellow/red) + analyzeInterventions.',
+    reads: [], writes: [],
+    calls: [], calledBy: ['save-daily-aggregate', 'useDashboardData'],
+    issues: []
+  },
+  {
+    id: 'planQuality', label: '_shared/planQuality', layer: 'shared', type: 'shared',
+    desc: 'getPlanQualitySignal — czyta ostatni planning_summary i ocenia jakość planu dnia.',
+    reads: ['daily_reconciliations'], writes: [],
+    calls: [], calledBy: ['vanguard-oracle'],
+    issues: []
+  },
+
+  // ─── FRONTEND COMPONENTS ────────────────────────────────────────
+  {
+    id: 'Dashboard', label: 'Dashboard', layer: 'component', type: 'component',
+    desc: 'Główny orchestrator UI. Renderuje wszystkie widgety. Używa useDashboardData hook.',
+    reads: [], writes: [],
+    calls: ['useDashboardData', 'WorkoutLogger', 'Stats', 'OuraWidget', 'DailyStrainCard', 'AIInsight', 'MuscleHeatmap'],
+    calledBy: [],
+    issues: []
+  },
+  {
+    id: 'WorkoutLogger', label: 'WorkoutLogger', layer: 'component', type: 'component',
+    desc: 'Logger treningowy. Stopwatch, manual time, MSP toggle, RIR input, progressive overload suggestion. Wysyła do save_workout_atomic.',
+    reads: ['exercise_logs', 'workout_sessions'], writes: [],
+    calls: ['save_workout_atomic'],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'Stats', label: 'Stats', layer: 'component', type: 'component',
+    desc: 'Widok statystyk: wykresy treningowe, bilans kaloryczny, body metrics, eksport danych, analiza biegów (HRV korelacja). Trigger analyze-training.',
+    reads: ['workout_sessions', 'exercise_logs', 'body_metrics', 'oura_daily_summary', 'daily_nutrition'],
+    writes: ['body_metrics'],
+    calls: ['analyze-training'],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'DailyStrainCard', label: 'DailyStrainCard', layer: 'component', type: 'component',
+    desc: 'Karta daily_strain z przyciskiem Refresh który triggeruje cały pipeline sync. Pokazuje strain/recovery/fueling + główny limiter + decyzję (Możesz cisnąć / Regeneracja...).',
+    reads: ['daily_strain'], writes: [],
+    calls: ['sync-yazio', 'sync-strava', 'sync-oura', 'sync-oura-enhanced', 'sync-oura-timeseries', 'compute-daily-strain'],
+    calledBy: ['Dashboard'],
+    issues: [{ level: 'warn', text: 'Chain sync nie ma error propagation — jeśli sync-oura się wywróci, compute-daily-strain jest wywoływany na starych danych bez ostrzeżenia.' }]
+  },
+  {
+    id: 'OuraWidget', label: 'OuraWidget', layer: 'component', type: 'component',
+    desc: 'Widget Oura: Readiness, HRV, RHR, sen, kroki, temp. Porównuje today vs yesterday z rolling 90d baseliną.',
+    reads: ['oura_daily_summary', 'vanguard_daily_aggregates'], writes: ['user_settings'],
+    calls: [],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'OuraEnhanced', label: 'OuraEnhanced', layer: 'component', type: 'component',
+    desc: 'Wykresy vascular_age, HR zones (14d), korelacje cross-system (trening→HRV, białko→sen).',
+    reads: ['oura_hr_zones_daily', 'oura_correlations', 'strain_correlations', 'oura_enhanced'],
+    writes: [],
+    calls: [],
+    calledBy: ['Stats'],
+    issues: []
+  },
+  {
+    id: 'AIInsight', label: 'AIInsight', layer: 'component', type: 'component',
+    desc: 'AI Oracle snapshot — wysyła state_vector do Oracle w trybie mirror, wyświetla odpowiedź jako insight.',
+    reads: [], writes: [],
+    calls: ['vanguard-oracle', 'gatherUserContext'],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'MentorChat', label: 'MentorChat', layer: 'component', type: 'component',
+    desc: 'Chat z Oracle — pełny konwersacyjny interfejs z historią. Tryby: chat, planning. Auto-tagging (# hashtagi) do daily_wins.',
+    reads: ['daily_wins'], writes: ['daily_wins'],
+    calls: ['vanguard-oracle'],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'MuscleHeatmap', label: 'MuscleHeatmap', layer: 'component', type: 'component',
+    desc: 'SVG body map z heat-overlay na podstawie muscle_tags z exercise_logs. Filtruje po date (nie start_time — było bug).',
+    reads: ['workout_sessions', 'exercise_logs'],
+    writes: [],
+    calls: [],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'PowerList', label: 'PowerList', layer: 'component', type: 'component',
+    desc: 'Daily wins checklist (5 celów dnia). Toggle done_1..5, timestamp ukończenia.',
+    reads: ['daily_wins'], writes: ['daily_wins'],
+    calls: [],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'Direction', label: 'Direction', layer: 'component', type: 'component',
+    desc: 'Widok kierunku: life goals (termin countdown), habits tracker (45d log), weekly reviews.',
+    reads: ['daily_wins', 'habits', 'habit_logs', 'weekly_reviews'],
+    writes: ['habits', 'habit_logs'],
+    calls: [],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'StravaWidget', label: 'StravaWidget', layer: 'component', type: 'component',
+    desc: 'Ostatnie aktywności Strava z metrykami.',
+    reads: ['strava_activities_clean'],
+    writes: [],
+    calls: [],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+  {
+    id: 'useDashboardData', label: 'useDashboardData (hook)', layer: 'component', type: 'component',
+    desc: 'Główny hook danych dashboardu. Fetch: weekly calories, daily_wins, protein, hasWorkoutToday, oura. Wywołuje VanguardCore.computeSignals + determineState. Auto-sync kalendarza.',
+    reads: ['daily_nutrition', 'daily_wins', 'workout_sessions', 'oura_daily_summary'],
+    writes: [],
+    calls: ['sync-yazio', 'sync-calendar', 'vanguardCore'],
+    calledBy: ['Dashboard'],
+    issues: []
+  },
+];
+
+let currentFilter = 'all';
+let selectedId = null;
+
+function getIssueLevel(node) {
+  if (!node.issues || node.issues.length === 0) return null;
+  if (node.issues.some(i => i.level === 'crit')) return 'crit';
+  if (node.issues.some(i => i.level === 'warn')) return 'warn';
+  return 'info';
+}
+
+function buildNodes() {
+  const layers = { external: [], sync: [], ai: [], db: [], rpc: [], shared: [], component: [] };
+  NODES.forEach(n => { if (layers[n.layer]) layers[n.layer].push(n); });
+
+  Object.entries(layers).forEach(([layerId, nodes]) => {
+    const container = document.getElementById(`layer-${layerId}`);
+    if (!container) return;
+    container.innerHTML = '';
+    nodes.forEach(n => {
+      const div = document.createElement('div');
+      div.className = `node node-${n.type}`;
+      div.id = `node-${n.id}`;
+      div.dataset.id = n.id;
+      div.dataset.type = n.type;
+      div.dataset.hasIssue = n.issues?.length > 0 ? 'true' : 'false';
+      div.textContent = n.label;
+      const lvl = getIssueLevel(n);
+      if (lvl === 'crit') div.classList.add('node-crit');
+      else if (lvl === 'warn') div.classList.add('node-warn');
+      div.addEventListener('click', () => selectNode(n.id));
+      container.appendChild(div);
+    });
+  });
+}
+
+function selectNode(id) {
+  // deselect previous
+  document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+  const node = NODES.find(n => n.id === id);
+  if (!node) return;
+  selectedId = id;
+  document.getElementById(`node-${id}`)?.classList.add('selected');
+  renderPanel(node);
+}
+
+function pillsHTML(items, cls, label) {
+  if (!items || items.length === 0) return '';
+  return `<div class="pill-row">${items.map(i => `<span class="pill ${cls}">${i}</span>`).join('')}</div>`;
+}
+
+function renderPanel(node) {
+  const lvl = getIssueLevel(node);
+  const lvlColor = { crit: '#fca5a5', warn: '#fdba74', info: '#93c5fd', null: '#76e4f7' }[lvl] || '#76e4f7';
+  const typeLabels = { component: 'Frontend Component', edge: 'Edge Function', table: 'DB Table', external: 'External API', rpc: 'RPC / Postgres Fn', shared: 'Shared Library' };
+
+  const issuesHTML = node.issues?.length
+    ? `<div class="panel-section">
+        <h4>⚠ Problemy (${node.issues.length})</h4>
+        <div class="issue-list">
+          ${node.issues.map(i => `<div class="issue issue-${i.level}">${i.text}</div>`).join('')}
+        </div>
+      </div>`
+    : `<div class="panel-section"><div class="issue issue-info">✅ Brak znanych problemów</div></div>`;
+
+  const readsHTML = node.reads?.length
+    ? `<div class="panel-section"><h4>📖 Czyta</h4>${pillsHTML(node.reads, 'pill-read', 'reads')}</div>` : '';
+  const writesHTML = node.writes?.length
+    ? `<div class="panel-section"><h4>✍ Pisze</h4>${pillsHTML(node.writes, 'pill-write', 'writes')}</div>` : '';
+  const callsHTML = node.calls?.length
+    ? `<div class="panel-section"><h4>→ Wywołuje</h4>${pillsHTML(node.calls, 'pill-call', 'calls')}</div>` : '';
+  const calledByHTML = node.calledBy?.length
+    ? `<div class="panel-section"><h4>← Wywoływany przez</h4>${pillsHTML(node.calledBy, 'pill-table', 'calledBy')}</div>` : '';
+
+  document.getElementById('panel').innerHTML = `
+    <div style="border-left: 3px solid ${lvlColor}; padding-left: 12px; margin-bottom: 16px;">
+      <div class="panel-title">${node.label}</div>
+      <div class="panel-sub" style="color: ${lvlColor}">${typeLabels[node.type] || node.type}</div>
+    </div>
+    <div class="panel-section">
+      <h4>Opis</h4>
+      <p style="font-size: 12px; line-height: 1.6; color: #a0aec0;">${node.desc}</p>
+    </div>
+    ${readsHTML}${writesHTML}${callsHTML}${calledByHTML}
+    <div class="panel-section"><h4>Status</h4>${issuesHTML}</div>
+    <div style="margin-top: 24px; padding-top: 12px; border-top: 1px solid #1e2533;">
+      <div style="font-size: 9px; color: #2d3748; text-transform: uppercase; letter-spacing: .15em;">
+        Powiązane węzły: ${[...(node.reads||[]), ...(node.writes||[]), ...(node.calls||[]), ...(node.calledBy||[])].length}
+      </div>
+    </div>
+  `;
+}
+
+function filterNodes(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.node').forEach(el => {
+    const id = el.dataset.id;
+    const node = NODES.find(n => n.id === id);
+    if (!node) return;
+    const matches = !q || node.label.toLowerCase().includes(q) || node.desc?.toLowerCase().includes(q);
+    const typeOk = currentFilter === 'all' || currentFilter === node.type ||
+      (currentFilter === 'issues' && node.issues?.length > 0);
+    el.classList.toggle('dimmed', !matches || !typeOk);
+  });
+}
+
+function setFilter(type, tabEl) {
+  currentFilter = type;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  filterNodes(document.getElementById('search').value);
+}
+
+// Stats bar
+function renderStats() {
+  const total = NODES.length;
+  const crits = NODES.filter(n => n.issues?.some(i => i.level === 'crit')).length;
+  const warns = NODES.filter(n => n.issues?.some(i => i.level === 'warn') && !n.issues?.some(i => i.level === 'crit')).length;
+
+  const bar = document.createElement('div');
+  bar.style.cssText = 'padding: 8px 32px; border-bottom: 1px solid #1e2533; background: #0a0d15; display: flex; gap: 16px; font-size: 10px; font-weight: 700; color: #4a5568;';
+  bar.innerHTML = `
+    <span>${total} węzłów</span>
+    <span style="color: #fca5a5">🔴 ${crits} krytycznych</span>
+    <span style="color: #fdba74">⚠ ${warns} ostrzeżeń</span>
+    <span style="color: #9ae6b4">✅ ${total - crits - warns} OK</span>
+  `;
+  document.querySelector('.search-bar').insertAdjacentElement('afterend', bar);
+  document.querySelector('.filter-row').insertAdjacentElement('beforebegin', bar);
+}
+
+buildNodes();
+renderStats();
+</script>
+</body>
+</html>

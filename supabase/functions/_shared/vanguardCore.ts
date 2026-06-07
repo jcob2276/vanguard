@@ -34,18 +34,11 @@ export const VANGUARD_STATES = {
 
 // --- SIGNAL COMPUTATION ---
 export function computeSignals(
-  stayfree: any[] = [],
   oura: any = null,
   todayWin: any = null,
   nutrition: any = null,
   lastTrainingDate: string | null = null
 ) {
-  // StayFree signals are removed
-  const totalSeconds = 0;
-  const fragmentation = 0;
-  const dopamineLoad = 0;
-  const overlapFactor = 1.0;
-
   // Biological Vector
   const sleep = oura?.total_sleep_hours ?? null;
   const hrv = oura?.hrv_avg ?? null;
@@ -91,9 +84,9 @@ export function computeSignals(
   }
 
   return {
-    screen_time_min: 0,
-    fragmentation: 0.0,
-    dopamine_load: 0.0,
+    screen_time_min: null,
+    fragmentation: null,
+    dopamine_load: null,
     overlap_factor: 1.0,
     sleep,
     hrv,
@@ -105,7 +98,7 @@ export function computeSignals(
     protein_grams: proteinConsumed,
     training_ratio: trainingRatio,
     confidence: {
-      digital: 0.1,
+      digital: 0.0,
       biometrics: sleep != null ? 0.9 : 0.2,
       execution: todayWin != null ? 1.0 : 0.5,
       nutrition: nutrition != null ? 1.0 : 0.0,

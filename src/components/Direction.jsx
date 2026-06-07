@@ -208,15 +208,13 @@ export default function Direction({ session }) {
       const today = todayDate();
       const core = new VanguardCore(session.user.id, supabase);
 
-      const [ouraRes, stayfreeRes, nutritionRes, lastWorkoutRes] = await Promise.all([
+      const [ouraRes, nutritionRes, lastWorkoutRes] = await Promise.all([
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
-        Promise.resolve({ data: [] }),
         supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
         supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       const signals = computeSignals(
-        stayfreeRes.data || [],
         ouraRes.data,
         todayWin,
         nutritionRes.data,

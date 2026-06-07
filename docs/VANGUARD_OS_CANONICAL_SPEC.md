@@ -280,7 +280,6 @@ Kanaly wejscia:
 - glosowki,
 - tekst,
 - Oura,
-- StayFree,
 - Yazio / nutrition,
 - ActivityWatch / footprint,
 - Power List,
@@ -343,9 +342,6 @@ Najwazniejsze tabele systemu:
 
 - `oura_daily_summary`
   - surowe / polsurowe dane Oura.
-
-- `stayfree_usage`
-  - czas w aplikacjach mobilnych.
 
 - `daily_wins`
   - Power List, wykonanie dnia, journal/mood.

@@ -12,6 +12,29 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+export async function resolveUserScope(
+  req: Request,
+  requestedUserId: string | null = null,
+): Promise<{ userId: string | null; isServiceRole: boolean }> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : "";
+  if (!token) throw new Error("Missing Authorization bearer token");
+
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (serviceRoleKey && token === serviceRoleKey) {
+    return { userId: requestedUserId, isServiceRole: true };
+  }
+
+  const { data, error } = await createServiceClient().auth.getUser(token);
+  if (error || !data.user) throw new Error("Invalid user token");
+
+  if (requestedUserId && requestedUserId !== data.user.id) {
+    throw new Error("Forbidden userId mismatch");
+  }
+
+  return { userId: data.user.id, isServiceRole: false };
+}
+
 /**
  * Wraps a Supabase query promise.
  * Logs the error to console.error and throws an exception if the query fails,

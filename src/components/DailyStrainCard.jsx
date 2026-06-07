@@ -87,28 +87,36 @@ export default function DailyStrainCard({ session }) {
       const { data: { session: s } } = await supabase.auth.getSession();
       const token = s?.access_token;
       const base = import.meta.env.VITE_SUPABASE_URL;
-      const call = (fn, body) => fetch(`${base}/functions/v1/${fn}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
+      const call = async (fn, body) => {
+        const response = await fetch(`${base}/functions/v1/${fn}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(`${fn} failed: ${payload.error || response.statusText || response.status}`);
+        }
+        return response;
+      };
       // 1. źródła surowe (równolegle)
-      await Promise.allSettled([
+      await Promise.all([
         call('sync-yazio', { userId: session.user.id }),
         call('sync-strava', {}),
         call('sync-oura', { userId: session.user.id }),
       ]);
       // 2. warstwy pochodne Oura (strefy HR zasilają cardio load)
-      await Promise.allSettled([
-        call('sync-oura-enhanced', { days: 2 }),
-        call('sync-oura-timeseries', { days: 2 }),
+      await Promise.all([
+        call('sync-oura-enhanced', { userId: session.user.id, days: 2 }),
+        call('sync-oura-timeseries', { userId: session.user.id, days: 2 }),
       ]);
       // 3. przelicz Daily Strain
-      await call('compute-daily-strain', { days: 2 });
+      await call('compute-daily-strain', { userId: session.user.id, days: 2 });
       // 4. odśwież kartę
       await fetchRow();
     } catch (e) {
       console.error('DailyStrainCard refresh:', e);
+      setError(e.message || 'Refresh failed');
     } finally {
       setRefreshing(false);
     }

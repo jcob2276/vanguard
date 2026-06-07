@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { resolveUserScope } from "../_shared/supabase.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +26,8 @@ serve(async (req) => {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 2
-    const onlyUserId: string | null = body.userId ?? null
+    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
+    const onlyUserId: string | null = scopedUserId
 
     let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null)
     if (onlyUserId) uq = uq.eq('user_id', onlyUserId)
@@ -39,10 +41,9 @@ serve(async (req) => {
     const startStr = toWarsaw(new Date(now.getTime() - days * 864e5))
     const start90 = toWarsaw(new Date(now.getTime() - 90 * 864e5))
 
-    const results: any[] = []
-
-    for (const u of (users || [])) {
+    const computeForUser = async (u: any) => {
       const uid = u.user_id
+      try {
 
       // ── Waga (ostatnia) ──
       const { data: bw } = await supabase.from('body_metrics')
@@ -244,15 +245,23 @@ serve(async (req) => {
 
       if (upserts.length) {
         const { error: upErr } = await supabase.from('daily_strain').upsert(upserts, { onConflict: 'user_id,date' })
-        if (upErr) { results.push({ user_id: uid, error: upErr.message }); continue }
+        if (upErr) return { user_id: uid, error: upErr.message }
       }
-      results.push({ user_id: uid, days: upserts.length, latest: upserts[upserts.length - 1] })
+      return { user_id: uid, days: upserts.length, latest: upserts[upserts.length - 1] }
+      } catch (error: any) {
+        console.error(`[strain] user ${uid} failed`, error)
+        return { user_id: uid, error: error.message || String(error) }
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    const results = await Promise.all((users || []).map(computeForUser))
+    const scopedError = scopedUserId && results.length === 1 && results[0]?.error
+
+    return new Response(JSON.stringify({ success: !scopedError, results, error: scopedError || undefined }), {
+      status: scopedError ? 400 : 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[strain] fatal', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }

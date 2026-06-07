@@ -82,7 +82,6 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` (per user) |
 | `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
 | `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
-| `vanguard-weekly-intentions-cleanup` | `0 0 * * 0` (Sun) | `vanguard-intentions-cleanup` |
 
 **Documented in README / ops, confirm in dashboard:**
 
@@ -96,6 +95,7 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | ~~`weekly-report`~~ | ❌ ghost — function folder does not exist |
 
 Deprecated: `vanguard-reset-prompt` → HTTP **410** (cron off; `20260526100000_unschedule_reset_prompt.sql`).  
+Deprecated: `vanguard-intentions-cleanup` → HTTP **410** (cron off; `20260603000001_unschedule_intentions_cleanup.sql`).
 Removed duplicate cron: `vanguard-daily-shadow-analysis` (`20260525170000_evaluation_fixes.sql`).
 
 ---
@@ -132,7 +132,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **29 functions**, last pass 2026-05-26.
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **34 functions**, last pass 2026-06-07.
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 
