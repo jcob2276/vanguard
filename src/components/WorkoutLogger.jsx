@@ -6,7 +6,7 @@ import { EXERCISES, ALL_TAGS, tagClass, normalize } from '../data/exercises';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', rir: '' });
+const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', rir: '', msp: false });
 const newExercise = () => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
 const newActivity = () => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
 
@@ -43,10 +43,10 @@ function useExerciseHistory(name, userId) {
     const timeout = setTimeout(async () => {
       const { data } = await supabase
         .from('exercise_logs')
-        .select('weight, reps, set_number, session_id, workout_sessions!inner(start_time)')
+        .select('weight, reps, rir, set_number, session_id, workout_sessions!inner(date)')
         .eq('user_id', userId)
         .eq('exercise_name', trimmed)
-        .order('start_time', { foreignTable: 'workout_sessions', ascending: false })
+        .order('date', { foreignTable: 'workout_sessions', ascending: false })
         .limit(60);
 
       if (!data?.length) { setLastSession(null); setAllTimeBest1RM(null); return; }
@@ -221,7 +221,17 @@ function getSuggestion(lastSession) {
   const maxReps = Math.max(...lastSession.map(s => s.reps));
   const repsConsistent = (maxReps - minReps) <= 1;
   const increment = maxW >= 40 ? 2.5 : 1.25;
-  return repsConsistent ? maxW + increment : maxW;
+
+  if (!repsConsistent) return maxW;
+
+  const rirValues = lastSession.map(s => s.rir).filter(r => r != null && r !== '');
+  const avgRir = rirValues.length > 0
+    ? rirValues.reduce((a, b) => a + parseFloat(b), 0) / rirValues.length
+    : null;
+
+  // RIR 0 — failed/near-failure, don't increase
+  if (avgRir !== null && avgRir < 1) return maxW;
+  return maxW + increment;
 }
 
 // ─── Exercise card ────────────────────────────────────────────────────────────
@@ -234,7 +244,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
   function addSet() {
     const last = sets[sets.length - 1];
-    onChange({ ...exercise, sets: [...exercise.sets, { ...newSet(), kg: last.kg, rir: last.rir }] });
+    onChange({ ...exercise, sets: [...exercise.sets, { ...newSet(), kg: last.kg, reps: last.reps, rir: last.rir }] });
   }
   function removeSet(id) {
     if (sets.length <= 1) return;
@@ -318,7 +328,11 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
             return (
               <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_1fr_24px] gap-1.5 items-center">
-                <span className="text-[10px] font-black text-white/30 text-center">{idx + 1}</span>
+                <button
+                  onClick={() => updateSet(set.id, 'msp', !set.msp)}
+                  title="Oznacz jako MSP (kluczowy set)"
+                  className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors ${set.msp ? 'text-amber-400' : 'text-white/30 hover:text-white/50'}`}
+                >{set.msp ? '★' : idx + 1}</button>
                 
                 {/* KG Column */}
                 <div className="flex flex-col gap-1">
@@ -455,7 +469,8 @@ export default function WorkoutLogger({ session, onBack }) {
           exercise_name: ex.name.trim(), set_number: i + 1,
           weight: parseFloat(s.kg) || 0, reps: parseInt(s.reps) || 0,
           rir: s.rir !== '' ? parseFloat(s.rir) : null,
-          rpe: s.rir !== '' ? parseFloat(s.rir) : null,
+          rpe: null,
+          is_pws_or_msp: s.msp === true,
           muscle_tags: ex.tags ?? [],
         }))
       );
@@ -464,15 +479,18 @@ export default function WorkoutLogger({ session, onBack }) {
         set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null, rir: null, muscle_tags: [],
       }));
 
-      let finalStart = new Date().toISOString();
-      let finalEnd = new Date().toISOString();
+      let finalStart = null;
+      let finalEnd = null;
 
       if (manualTime) {
         finalStart = new Date(`${workoutDate}T${startTimeManual}:00`).toISOString();
         finalEnd = new Date(`${workoutDate}T${endTimeManual}:00`).toISOString();
       } else if (timerStart) {
         finalStart = new Date(timerStart).toISOString();
+        finalEnd = new Date().toISOString();
       }
+
+      const mspPassed = exLogs.some(l => l.is_pws_or_msp);
 
       const { error } = await supabase.rpc('save_workout_atomic', {
         p_user_id:    userId,
@@ -480,7 +498,7 @@ export default function WorkoutLogger({ session, onBack }) {
         p_start_time: finalStart,
         p_end_time:   finalEnd,
         p_notes:      notes,
-        p_msp_passed: false,
+        p_msp_passed: mspPassed,
         p_logs:       [...exLogs, ...acLogs],
       });
       if (error) throw error;

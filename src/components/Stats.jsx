@@ -126,6 +126,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [includeBody, setIncludeBody] = useState(true);
   const [includeActivityWatch, setIncludeActivityWatch] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeDate, setAnalyzeDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
+  const [analyzeResult, setAnalyzeResult] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', logs: [] });
   const [trends, setTrends] = useState({});
@@ -140,25 +143,23 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setLoading(true);
     try {
       const [
-        { data: logs },
         { data: body },
         { data: sessions },
         { data: oura },
         { data: nutrition },
         { data: settings }
       ] = await Promise.all([
-        supabase.from('exercise_logs').select('*, workout_sessions(created_at, workout_day, msp_passed)').eq('user_id', session.user.id).order('created_at', { ascending: true }),
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('daily_nutrition').select('*').order('date', { ascending: false }).limit(60),
+        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
         supabase.from('user_settings').select('*').eq('user_id', session.user.id).maybeSingle()
       ]);
-      
-      if (logs) {
+
+      if (sessions) {
         const now = new Date();
         const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-        const thisWeekSessions = sessions?.filter(s => parseISO(s.created_at) >= thisWeekStart).length || 0;
+        const thisWeekSessions = sessions.filter(s => parseISO(s.date) >= thisWeekStart).length;
         setWeeklyStats({ compliance: thisWeekSessions });
       }
 
@@ -216,7 +217,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
   async function saveMetrics(e) {
     e.preventDefault();
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
     const { error } = await supabase.from('body_metrics').upsert({
       user_id: session.user.id,
       date: today,
@@ -256,6 +257,32 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       alert('Błąd połączenia z funkcją');
     } finally {
       setIsSyncing(false);
+    }
+  }
+
+  async function analyzeFood() {
+    setIsAnalyzing(true);
+    setAnalyzeResult(null);
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food-quality`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authSession.access_token}`
+        },
+        body: JSON.stringify({ userId: session.user.id, date: analyzeDate })
+      });
+      const res = await response.json();
+      if (res.success) {
+        setAnalyzeResult(res);
+      } else {
+        alert('Błąd analizy: ' + (res.error || 'Nieznany błąd'));
+      }
+    } catch (err) {
+      alert('Błąd połączenia: ' + err.message);
+    } finally {
+      setIsAnalyzing(false);
     }
   }
 
@@ -661,7 +688,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             }
           };
 
-          (s.exercise_logs || []).forEach(l => {
+          const sortedLogs = [...(s.exercise_logs || [])].sort((a, b) => a.set_number - b.set_number);
+          sortedLogs.forEach(l => {
             const setVol = (Number(l.weight) || 0) * (Number(l.reps) || 0);
             totalSessionVolume += setVol;
 
@@ -1303,6 +1331,47 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
           </button>
         </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <input
+            type="date"
+            value={analyzeDate}
+            onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
+            className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
+          />
+          <button
+            onClick={analyzeFood}
+            disabled={isAnalyzing}
+            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase text-white/60 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
+          >
+            {isAnalyzing ? 'Analizuję...' : 'Analizuj jedzenie'}
+          </button>
+        </div>
+
+        {analyzeResult && (
+          <div className="mt-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
+              <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                {analyzeResult.day_quality_score}/100
+              </span>
+            </div>
+            <p className="text-[11px] text-white/60 leading-relaxed">{analyzeResult.day_quality_analysis}</p>
+            <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+              {analyzeResult.items.sort((a, b) => b.food_quality_score - a.food_quality_score).map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className={`shrink-0 text-[10px] font-black w-7 text-right ${item.food_quality_score >= 70 ? 'text-dayC' : item.food_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    {item.food_quality_score}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-white/80 truncate">{item.name}</p>
+                    <p className="text-[9px] text-white/35">{item.quality_reason}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-lg border border-white/[0.08] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/45 transition-colors hover:border-primary/40 hover:text-primary">
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}

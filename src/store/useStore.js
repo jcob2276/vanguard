@@ -28,7 +28,7 @@ export const useStore = create((set, get) => ({
     const { session } = get();
     if (!session) return;
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const { data } = await supabase
       .from('daily_wins')
       .select('*')

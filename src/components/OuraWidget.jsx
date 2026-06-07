@@ -46,7 +46,7 @@ export default function OuraWidget({ session }) {
         .limit(2);
       
       if (!summaryError && summaries) {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
         const todayRecord = summaries.find(s => s.date === todayStr);
         const yesterdayRecord = summaries.find(s => s.date !== todayStr);
         

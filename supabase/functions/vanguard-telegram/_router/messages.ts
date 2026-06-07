@@ -462,12 +462,11 @@ export async function handleIncomingMessage(
           : formattedHistory;
 
         // Extended state vector
-        const today = new Date().toISOString().split('T')[0];
         const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
         const [aggregateRes, workoutRes, winRes, planRows, ouraRes] = await Promise.all([
           supabase.from('vanguard_daily_aggregates').select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('workout_sessions').select('created_at, workout_day').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-          supabase.from('daily_wins').select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result').eq('user_id', vanguardUserId).eq('date', today).maybeSingle(),
+          supabase.from('daily_wins').select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result').eq('user_id', vanguardUserId).eq('date', todayWarsawDate).maybeSingle(),
           supabase.from('daily_reconciliations').select('planning_summary, answered_at').eq('user_id', vanguardUserId).not('planning_summary', 'is', null).order('created_at', { ascending: false }).limit(5),
           supabase.from('oura_daily_summary').select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(3)
         ]);

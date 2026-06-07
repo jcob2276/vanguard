@@ -21,6 +21,7 @@ export const EXERCISES = [
   { name: 'Wiosłowanie hantlem', tags: ['plecy', 'biceps'] },
   { name: 'Ściąganie drążka', tags: ['plecy', 'biceps'] },
   { name: 'Face pull', tags: ['plecy', 'barki'] },
+  { name: 'Odwrotne rozpiętki', tags: ['barki'] },
   { name: 'Seal row', tags: ['plecy'] },
   { name: 'Chest-supported row', tags: ['plecy', 'biceps'] },
   // Barki

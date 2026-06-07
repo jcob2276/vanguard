@@ -8,7 +8,7 @@ export default function Photos({ session }) {
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [photoDate, setPhotoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [photoDate, setPhotoDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
   
   // Selection logic for comparison
   const [baseId, setBaseId] = useState(null);

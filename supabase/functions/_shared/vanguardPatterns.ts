@@ -417,7 +417,7 @@ export async function recordBehavioralPattern(
   insight: PatternInsight
 ): Promise<string | null> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     // Prosty signature dla deduplikacji
     const signature = `${insight.type}:${insight.title.toLowerCase().replace(/\s+/g, '_').substring(0, 80)}`;
@@ -586,7 +586,7 @@ export async function updatePatternFeedback(
 export async function markPatternAsShown(
   supabase: any,
   patternId: string,
-  date: string = new Date().toISOString().split('T')[0]
+  date: string = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
 ): Promise<void> {
   try {
     const { data: current } = await supabase

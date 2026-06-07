@@ -84,7 +84,7 @@ export default function MentorChat({ session }) {
       // 5. Zero-UI: Auto-Tagging Extraction
       const tags = userMessage.match(/#\w+/g);
       if (tags && tags.length > 0) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
         const { data: currentWins } = await supabase
           .from('daily_wins')
           .select('tags')

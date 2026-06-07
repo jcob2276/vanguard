@@ -196,7 +196,7 @@ serve(async () => {
 
       if (recentWarnings.length > 0) {
         const w = recentWarnings[0];
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
         // Nie pokazuj tego samego ostrzeżenia dwa razy w ciągu jednego dnia
         if (w.last_shown === today) {

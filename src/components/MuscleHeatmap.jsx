@@ -155,14 +155,15 @@ export default function MuscleHeatmap({ session }) {
 
     async function load() {
       setLoading(true);
-      const since = new Date(Date.now() - period * 86_400_000).toISOString();
+      const sinceDate = new Date(Date.now() - period * 86_400_000)
+        .toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
 
-      // 1. Get sessions in window
+      // 1. Get sessions in window (filter by date, not start_time — start_time can be NULL)
       const { data: sessions } = await supabase
         .from('workout_sessions')
         .select('id')
         .eq('user_id', userId)
-        .gte('start_time', since);
+        .gte('date', sinceDate);
 
       if (!sessions?.length) {
         if (!cancelled) { setIntensity({}); setSetsByTag({}); setLoadByTag({}); setLoading(false); }

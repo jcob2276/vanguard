@@ -34,9 +34,10 @@ serve(async (req) => {
 
     const now = new Date()
     const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-    const endStr = now.toISOString().split('T')[0]
-    const startStr = new Date(now.getTime() - days * 864e5).toISOString().split('T')[0]
-    const start90 = new Date(now.getTime() - 90 * 864e5).toISOString().split('T')[0]
+    const toWarsaw = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const endStr = toWarsaw(now)
+    const startStr = toWarsaw(new Date(now.getTime() - days * 864e5))
+    const start90 = toWarsaw(new Date(now.getTime() - 90 * 864e5))
 
     const results: any[] = []
 
@@ -59,7 +60,7 @@ serve(async (req) => {
       const rhrBase = mean(rhrVals)
 
       // ── Źródła w oknie (z buforem -1 dnia na "wczoraj") ──
-      const winStart = new Date(now.getTime() - (days + 1) * 864e5).toISOString().split('T')[0]
+      const winStart = toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
       const [zonesR, enhR, summR, nutrR, wsR, stravaR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),

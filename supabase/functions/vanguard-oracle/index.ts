@@ -64,7 +64,7 @@ serve(async (req) => {
     const localTimeString = now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
     const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000)).toISOString();
     const fourteenDaysAgoDate = new Date(now.getTime() - (13 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
-    const todayDate = now.toISOString().split('T')[0];
+    const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     // === PLAN QUALITY AWARENESS (added for weak plan visibility) ===
     let recentPlanQuality: any = null;
@@ -125,12 +125,12 @@ serve(async (req) => {
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
       supabase.from('daily_nutrition')
-        .select('date, calories, protein, carbs, fat, fiber, sugar')
+        .select('date, calories, protein, carbs, fat, fiber, sugar, avg_food_quality, food_quality_analysis')
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
       supabase.from('daily_food_entries')
-        .select('date, meal_type, name, brand, calories, protein, carbs, fat, fiber, sugar, saturated_fat, insulin_load')
+        .select('date, meal_type, name, brand, calories, protein, carbs, fat, fiber, sugar, saturated_fat, insulin_load, food_quality_score, quality_reason')
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
@@ -163,7 +163,7 @@ ${fundamentRes.data?.vision || 'Brak danych'}
     const foodByDate: Record<string, any[]> = {};
     for (const e of foodEntries14d) {
       if (!foodByDate[e.date]) foodByDate[e.date] = [];
-      foodByDate[e.date].push({ meal: e.meal_type, name: e.name, kcal: e.calories, B: e.protein, W: e.carbs, T: e.fat, Bl: e.fiber ?? undefined, Cuk: e.sugar ?? undefined });
+      foodByDate[e.date].push({ meal: e.meal_type, name: e.name, kcal: e.calories, B: e.protein, W: e.carbs, T: e.fat, Bl: e.fiber ?? undefined, Cuk: e.sugar ?? undefined, q: e.food_quality_score ?? undefined });
     }
     const healthSummary14d = {
       date_from: fourteenDaysAgoDate,
@@ -190,9 +190,10 @@ Zakres: ${healthSummary14d.date_from} - ${healthSummary14d.date_to}
 Dni Oura: ${healthSummary14d.oura_days_logged}; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
 Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'brak danych'}h; srednie HRV: ${healthSummary14d.avg_hrv ?? 'brak danych'}; sredni readiness: ${healthSummary14d.avg_readiness ?? 'brak danych'}
 Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}; srednie wegle: ${healthSummary14d.avg_carbs ?? 'brak danych'}; sredni tluszcz: ${healthSummary14d.avg_fat ?? 'brak danych'}; sredni blonnik: ${healthSummary14d.avg_fiber ?? 'brak danych'}; sredni cukier: ${healthSummary14d.avg_sugar ?? 'brak danych'}
+Jakosc jedzenia: avg_food_quality to srednia wazona kalorycznie (0-100, real-food dietitian scale) — jesli null, analiza nie zostala jeszcze uruchomiona dla tego dnia. Pole q przy produkcie = jego food_quality_score.
 Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
-Jedzenie dzien po dniu (agregat): ${JSON.stringify(healthSummary14d.nutrition_daily)}
-Jedzenie dzien po dniu (produkty): ${JSON.stringify(foodByDate)}`;
+Jedzenie dzien po dniu (agregat, zawiera avg_food_quality i food_quality_analysis jesli analiza byla wykonana): ${JSON.stringify(healthSummary14d.nutrition_daily)}
+Jedzenie dzien po dniu (produkty, pole q = food_quality_score jesli analiza byla wykonana): ${JSON.stringify(foodByDate)}`;
 
     // DAILY STRAIN — zintegrowany wskaźnik obciążenia/regeneracji (system decyzyjny)
     const strain14d = strainRes.data || [];
