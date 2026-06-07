@@ -228,15 +228,15 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
         // Generate embedding for RAG
         const embedding = await getEmbedding(current_query.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
 
-        // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds
-        const [matchesResRaw, semanticGraphRes, entitySeedsRes] = await Promise.all([
+        // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds, fulltext (Graphiti RRF pattern)
+        const [matchesResRaw, semanticGraphRes, entitySeedsRes, fulltextGraphRes] = await Promise.all([
           embedding ? supabase.rpc('match_vanguard_content', {
             query_embedding: embedding,
             match_threshold: 0.35,
             match_count: 5,
             user_id_param: user_id
           }) : Promise.resolve({ data: [], error: null } as any),
-          // Semantyczne szukanie trójek po embeddingach
+          // Semantyczne szukanie trójek po embeddingach (vector path)
           embedding ? supabase.rpc('search_entity_links', {
             query_embedding: embedding,
             match_user_id: user_id,
@@ -247,12 +247,20 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
             query_embedding: embedding,
             match_user_id: user_id,
             match_count: 6
-          }) : Promise.resolve({ data: [], error: null } as any)
+          }) : Promise.resolve({ data: [], error: null } as any),
+          // Full-text BM25-like path (Graphiti RRF pattern — równoległa ścieżka)
+          supabase.rpc('search_entity_links_fulltext', {
+            query_text: current_query.substring(0, 500),
+            match_user_id: user_id,
+            match_count: 10
+          })
         ]);
 
         if (matchesResRaw.error) throw matchesResRaw.error;
         if (semanticGraphRes.error) throw semanticGraphRes.error;
         if (entitySeedsRes.error) throw entitySeedsRes.error;
+        // fulltextGraphRes errors are non-fatal — log and continue
+        if (fulltextGraphRes.error) console.warn('[oracle] fulltext search error (non-fatal):', fulltextGraphRes.error);
 
         matchesRes = matchesResRaw;
 
@@ -277,9 +285,32 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
 
         if ((graphResRaw as any).error) throw (graphResRaw as any).error;
 
-        // Merge graph results: entity-traversal + semantic, deduplikacja
+        // Merge graph results: entity-traversal + semantic + fulltext (RRF dedup)
+        // RRF score = 1/(rank+1) per list, sumowane po triple key
         const entityGraphData = graphResRaw.data || [];
-        const semanticGraphData = (semanticGraphRes.data || []).filter((sg: any) =>
+
+        const tripleKey = (r: any) => `${r.source_entity}|${r.relation}|${r.target_entity}`;
+        const rrfScores: Record<string, number> = {};
+        const rrfMap: Record<string, any> = {};
+
+        // Vector semantic results — primary signal
+        (semanticGraphRes.data || []).forEach((r: any, i: number) => {
+          const k = tripleKey(r);
+          rrfScores[k] = (rrfScores[k] || 0) + 1 / (i + 1);
+          rrfMap[k] = r;
+        });
+        // Full-text BM25-like results — secondary signal
+        (fulltextGraphRes.data || []).forEach((r: any, i: number) => {
+          const k = tripleKey(r);
+          rrfScores[k] = (rrfScores[k] || 0) + 1 / (i + 2); // k=2 constant, slight down-weight
+          if (!rrfMap[k]) rrfMap[k] = r;
+        });
+
+        const rrfRanked = Object.entries(rrfScores)
+          .sort(([, a], [, b]) => b - a)
+          .map(([k]) => rrfMap[k]);
+
+        const semanticGraphData = rrfRanked.filter((sg: any) =>
           !entityGraphData.some((eg: any) =>
             eg.source_entity === sg.source_entity &&
             eg.relation === sg.relation &&
