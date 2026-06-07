@@ -5,26 +5,36 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function getAnonKey() {
-  if (process.env.SUPABASE_ANON_KEY) return process.env.SUPABASE_ANON_KEY;
-  if (process.env.VITE_SUPABASE_ANON_KEY) return process.env.VITE_SUPABASE_ANON_KEY;
+function readEnvFile() {
   try {
     const envPath = path.resolve(__dirname, "../.env");
     if (fs.existsSync(envPath)) {
-      const lines = fs.readFileSync(envPath, "utf8").split("\n");
-      for (const line of lines) {
-        const match = line.match(/^\s*VITE_SUPABASE_ANON_KEY\s*=\s*(["']?)(.*?)\1\s*$/);
-        if (match) return match[2];
+      const result = {};
+      for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+        const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(["']?)(.*?)\2\s*$/);
+        if (match) result[match[1]] = match[3];
       }
+      return result;
     }
-  } catch { // no-op
-  }
-  return "";
+  } catch { /* no-op */ }
+  return {};
 }
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const dotenv = readEnvFile();
+
+function getAnonKey() {
+  return process.env.SUPABASE_ANON_KEY
+    || process.env.VITE_SUPABASE_ANON_KEY
+    || dotenv.SUPABASE_ANON_KEY
+    || dotenv.VITE_SUPABASE_ANON_KEY
+    || "";
+}
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  || dotenv.SUPABASE_URL || dotenv.VITE_SUPABASE_URL || "";
 const ANON_KEY = getAnonKey();
-const BATCH_SIZE = 8;
+const VANGUARD_USER_ID = process.env.VANGUARD_USER_ID || dotenv.VANGUARD_USER_ID || "";
+const BATCH_SIZE = Number(process.env.EVAL_BATCH_SIZE || dotenv.EVAL_BATCH_SIZE || 4);
 
 if (!SUPABASE_URL || !ANON_KEY) {
   console.error("Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY");
@@ -38,7 +48,10 @@ async function callRunner(body) {
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${ANON_KEY}` },
     body: JSON.stringify(body)
   });
-  return res.json();
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!res.ok) throw new Error(data.error || text || `HTTP ${res.status}`);
+  return data;
 }
 
 async function getStatus(run_id) {
@@ -92,12 +105,13 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
     const status = await getStatus(run_id).catch(() => null);
     if (status) {
       renderProgress(status);
+      if (status.run?.status === 'failed') throw new Error(`Run failed: ${JSON.stringify(status.run.summary || {})}`);
       if ((status.results_count || 0) >= expected_min) return status;
-      if (status.run?.status === 'completed' || status.run?.status === 'failed') return status;
+      if (status.run?.status === 'completed') return status;
     }
     await sleep(5000);
   }
-  return null;
+  throw new Error(`Timed out waiting for batch to reach ${expected_min} results`);
 }
 
 (async () => {
@@ -105,7 +119,7 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
     console.log("🚀 Uruchamiam eval (batch mode)...");
 
     // Batch 0 — tworzy nowy run
-    const first = await callRunner({ batch_size: BATCH_SIZE });
+    const first = await callRunner({ batch_size: BATCH_SIZE, user_id: VANGUARD_USER_ID || undefined });
     if (!first.run_id) throw new Error("Brak run_id: " + JSON.stringify(first));
     const run_id = first.run_id;
     const total = first.total;
@@ -121,7 +135,7 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
     // Łańcuchuj kolejne batche
     while (!finished) {
       console.log(`\n🔄 Uruchamiam batch offset=${offset}...`);
-      const batchRes = await callRunner({ run_id, offset, batch_size: BATCH_SIZE });
+      const batchRes = await callRunner({ run_id, offset, batch_size: BATCH_SIZE, user_id: VANGUARD_USER_ID || undefined });
       if (batchRes.error) throw new Error("Batch error: " + batchRes.error);
       finished = batchRes.finished;
       const expected = batchRes.offset_next;
@@ -133,6 +147,9 @@ async function waitForBatch(run_id, expected_min, timeout_ms = 100000) {
     // Końcowy raport
     const final = await getStatus(run_id);
     renderProgress(final, total);
+    if (final.run?.status !== 'completed') {
+      throw new Error(`Eval did not complete cleanly: ${JSON.stringify(final.run || {})}`);
+    }
 
     if (final.run?.status === 'completed' && final.run?.summary) {
       const s = final.run.summary;
