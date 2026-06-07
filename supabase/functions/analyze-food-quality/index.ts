@@ -79,27 +79,19 @@ serve(async (req) => {
         return `DZIEŃ ${d} (${items.length} pozycji):\n${lines}`
       }).join('\n\n')
 
-      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${Object.keys(byDay).length} dni z danymi)
+      const numDays = Object.keys(byDay).length
+      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${numDays} dni z danymi)
 
 ${dayLines}
 
-ZADANIE:
-1. Dla każdego dnia podaj score (0-100) i jedno zdanie podsumowania (po polsku)
-2. Napisz pattern_analysis (3-5 zdań po polsku): jakie wzorce dominują w tym okresie, co powtarza się dobrze, co negatywnie
-3. Podaj top 3 problemy (top_issues) i top 3 mocne strony (strengths) jako krótkie frazy po polsku
-4. Podaj avg_score (średnia ważona kalorycznie ze wszystkich dni)
+ZADANIE — zwróć JSON z dokładnie tymi polami:
+- "days": tablica ${numDays} obiektów, jeden na każdy dzień z danymi: {"date":"YYYY-MM-DD","score":0-100,"summary":"1 zdanie PL"}
+- "avg_score": liczba całkowita 0-100 (średnia ze wszystkich dni)
+- "pattern_analysis": string, 3-4 zdania PL o dominujących wzorcach
+- "top_issues": tablica 3 krótkich fraz PL (problemy)
+- "strengths": tablica 3 krótkich fraz PL (mocne strony)
 
-Zwróć WYŁĄCZNIE poprawny JSON bez markdown:
-{
-  "days": [
-    {"date": "YYYY-MM-DD", "score": 0-100, "summary": "..."},
-    ...
-  ],
-  "avg_score": 0-100,
-  "pattern_analysis": "...",
-  "top_issues": ["...", "...", "..."],
-  "strengths": ["...", "...", "..."]
-}`
+WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu przed ani po.`
 
       const result = await deepseekChat({
         apiKey,
@@ -107,10 +99,13 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown:
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
         ],
-        maxTokens: 2000,
+        maxTokens: 4000,
         temperature: 0.1,
-        timeoutMs: 45000,
+        timeoutMs: 60000,
+        responseFormat: { type: 'json_object' },
       })
+
+      console.log('[analyze-food-quality] range raw (full):', result.content)
 
       let parsed: {
         days: Array<{ date: string; score: number; summary: string }>
@@ -121,13 +116,34 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown:
       } | null = null
 
       try {
-        const match = result.content.match(/\{[\s\S]*\}/)
-        if (match) parsed = JSON.parse(match[0])
-      } catch (e) {
-        console.error('[analyze-food-quality] multi JSON parse error:', e)
-        throw new Error('Nie udało się sparsować odpowiedzi AI')
+        // Try direct parse first (response_format should give clean JSON)
+        parsed = JSON.parse(result.content)
+      } catch {
+        // Fallback: extract JSON block
+        try {
+          const match = result.content.match(/\{[\s\S]*\}/)
+          if (match) parsed = JSON.parse(match[0])
+        } catch (e2) {
+          console.error('[analyze-food-quality] JSON parse error:', e2)
+          console.error('[analyze-food-quality] Raw content:', result.content)
+          throw new Error('Nie udało się sparsować odpowiedzi AI')
+        }
       }
-      if (!parsed?.days) throw new Error('Nieprawidłowa struktura odpowiedzi AI')
+
+      console.log('[analyze-food-quality] parsed keys:', parsed ? Object.keys(parsed) : 'null')
+
+      if (!parsed?.days || !Array.isArray(parsed.days)) {
+        // Try to recover: maybe DeepSeek returned days under a different key
+        const raw = parsed as Record<string, unknown> | null
+        const altDays = raw?.results || raw?.result || raw?.data
+        if (Array.isArray(altDays)) {
+          parsed = { ...raw, days: altDays } as typeof parsed
+        } else {
+          console.error('[analyze-food-quality] missing days. Keys:', parsed ? Object.keys(parsed) : 'null')
+          console.error('[analyze-food-quality] full parsed:', JSON.stringify(parsed).slice(0, 500))
+          throw new Error('Nieprawidłowa struktura odpowiedzi AI')
+        }
+      }
 
       console.log(`[analyze-food-quality] range ${dateFrom}→${dateTo}: ${parsed.days.length} days, avg ${parsed.avg_score}`)
 

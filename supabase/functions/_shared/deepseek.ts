@@ -10,6 +10,7 @@ export interface DeepSeekChatParams {
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
+  responseFormat?: { type: 'json_object' };
 }
 
 export interface DeepSeekChatResult {
@@ -36,6 +37,7 @@ export async function deepseekChat(
         messages: params.messages,
         max_tokens: params.maxTokens ?? 500,
         temperature: params.temperature ?? 0.2,
+        ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
       }),
       signal: controller.signal,
     });
