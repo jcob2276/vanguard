@@ -30,7 +30,9 @@ ZASADY:
 5. Cukier z owoców traktowany łagodniej niż HFCS lub cukier dodany.
 6. Fermentacja, kiełkowanie = premia punktów.
 7. "High protein" w nazwie nie znaczy lepsza jakość — to często marketing na izolaty.
-8. Jeśli nie znasz produktu — szacuj po kategorii i dostępnych makrach.`
+8. Jeśli nie znasz produktu — szacuj po kategorii i dostępnych makrach.
+9. Nas (nasycone) wysokie + produkt zwierzęcy = dobry tłuszcz. Nas niskie + olej roślinny/uwodorniony = czerwona flaga.
+10. TEF (efekt termiczny): białko spala ~30% własnych kalorii podczas trawienia, węgle ~8%, tłuszcz ~3%. 100 kcal z białka = realnie ~70 kcal netto. Uwzględniaj to w uzasadnieniach — produkty wysokobiałkowe mają realnie niższy ładunek kaloryczny niż wskazuje licznik.`
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
