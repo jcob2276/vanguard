@@ -215,10 +215,6 @@ export default function Dashboard({ session }) {
     syncYazio,
     loading,
     refresh,
-    readiness,
-    stability,
-    operationalState,
-    hasWorkoutToday
   } = useDashboardData();
 
   useEffect(() => {
@@ -355,7 +351,6 @@ export default function Dashboard({ session }) {
     );
   }
 
-  const doneCount = todayWin ? [1, 2, 3, 4, 5].filter((i) => todayWin[`done_${i}`]).length : 0;
   const weeklyBudget = 12600;
 
   const navItems = [
@@ -397,17 +392,8 @@ export default function Dashboard({ session }) {
           >
           {view === 'dzis' && (
             <div className="space-y-8">
-              <StateBrief
-                state={operationalState}
-                readiness={readiness}
-                doneCount={doneCount}
-                hasWorkoutToday={hasWorkoutToday}
-                weeklyCalories={weeklyCalories}
-                weeklyBudget={weeklyBudget}
-                onWorkoutClick={() => setShowWorkoutLogger(true)}
-              />
-              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <DailyStrainCard session={session} />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <CommandButton
                 icon={Dumbbell}
                 eyebrow="Physical Protocol"
