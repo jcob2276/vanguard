@@ -511,31 +511,37 @@ serve(async (req) => {
 
       const systemPrompt = `Jestes rygorystycznym Architektem Grafu Vanguard OS. Z tekstu i biometrii wyciagnij triady relacji.
 
-Zasady:
-- Uzywaj "Jakub" jako kanonicznej encji uzytkownika.
-- Tylko konkretne encje nazwane, zlozone koncepty i konkretne stany biologiczne.
-- Nie tworz wezlow z pospolitych rzeczownikow, dat ani przyslowkow.
-- Jesli wniosek nie jest powiedziany wprost, ustaw memory_type="hypothesis".
+ZASADY EKSTRAKCJI (Graphiti + LightRAG patterns):
+- Encja = konkretna, nazwana rzecz. ZAWSZE uzywaj NAJSPECYFICZNIEJSZEJ formy: "Cyberbezpieczenstwo magisterskie URz" nie "studia", "trening biegu 10km" nie "sport".
+- Uzywaj "Jakub" jako kanonicznej encji uzytkownika. Nigdy: "ja", "uzytkownik", "on".
+- Encje piszemy z Wielkiej Litery (Title Case): "Babcia z Krosna", "Gavronify", "Sprzedaz SaaS".
+- NIE twórz wezlów z: pospolitych rzeczowników (dzien, zycie, ludzie, rzeczy, czas), dat, przyslowkow, emocji bez konkretnego targetu.
+- Deduplication (Graphiti rule): jesli dwie encje sa TYM SAMYM obiektem realnym, uzywaj pelniejszej nazwy. "NYC" = "New York City" → "New York City".
+- NIGDY nie fabrykuj encji spoza tekstu.
+- Jesli wniosek nie jest wprost powiedzany → memory_type="hypothesis", confidence_score <= 0.65.
 - Relacja MUSI byc jedna z listy:
 ${allowedRelations.join(", ")}
-- Jesli tekst zawiera osoby, miejsca albo relacje rodzinne, NIE zwracaj pustej listy.
-- Dla rodziny uzywaj relacji: ma_relacje_z, zna_osobe, mieszka_w, pamieta, wywoluje.
-- Dla miejsc uzywaj konkretnego wezla miejsca, np. "Krosno", "Zeglice", "Rzeszow".
-- Dla osob rodzinnych tworz konkretne wezly opisowe, np. "Babcia z Krosna", "Babcia z Zeglic", "Kuzynka Wiolka".
+- Dla rodziny: ma_relacje_z, zna_osobe, mieszka_w, pamieta, wywoluje.
+- Dla miejsc: konkretny wezel miejsca np. "Krosno", "Zeglice", "Rzeszow".
+- Dla osob rodzinnych: opisowe wezly np. "Babcia z Krosna", "Kuzynka Wiolka".
 
-Format odpowiedzi, tylko JSON:
-{"triads":[{"source":"Jakub","source_type":"person","relation":"czuje","target":"Stres","target_type":"concept","memory_type":"fact","confidence_score":0.8}]}
+POLE KEYWORDS (LightRAG pattern):
+Dla kazdej triady dodaj "keywords" — 2-4 slowa kluczowe tematyczne oddzielone przecinkiem.
+Sluza do full-text search. Np.: "studia, cyberbezpieczenstwo, edukacja" | "sprzedaz, kariara, praca" | "rodzina, relacje, babcia"
+
+Format odpowiedzi, TYLKO JSON:
+{"triads":[{"source":"Jakub","source_type":"person","relation":"czuje","target":"Stres przed egzaminem","target_type":"state","memory_type":"fact","confidence_score":0.8,"keywords":"stres, emocje, egzamin"}]}
 
 Przyklady:
 - Tekst: "mam dwie babcie, jedna mieszka w Krosnie, druga w Zeglicach"
   -> {"triads":[
-    {"source":"Jakub","source_type":"person","relation":"ma_relacje_z","target":"Babcia z Krosna","target_type":"person","memory_type":"fact","confidence_score":0.9},
-    {"source":"Babcia z Krosna","source_type":"person","relation":"mieszka_w","target":"Krosno","target_type":"place","memory_type":"fact","confidence_score":0.9},
-    {"source":"Jakub","source_type":"person","relation":"ma_relacje_z","target":"Babcia z Zeglic","target_type":"person","memory_type":"fact","confidence_score":0.9},
-    {"source":"Babcia z Zeglic","source_type":"person","relation":"mieszka_w","target":"Zeglice","target_type":"place","memory_type":"fact","confidence_score":0.9}
+    {"source":"Jakub","source_type":"person","relation":"ma_relacje_z","target":"Babcia z Krosna","target_type":"person","memory_type":"fact","confidence_score":0.9,"keywords":"rodzina, babcia, relacje"},
+    {"source":"Babcia z Krosna","source_type":"person","relation":"mieszka_w","target":"Krosno","target_type":"place","memory_type":"fact","confidence_score":0.9,"keywords":"miejsce, Krosno, babcia"},
+    {"source":"Jakub","source_type":"person","relation":"ma_relacje_z","target":"Babcia z Zeglic","target_type":"person","memory_type":"fact","confidence_score":0.9,"keywords":"rodzina, babcia, relacje"},
+    {"source":"Babcia z Zeglic","source_type":"person","relation":"mieszka_w","target":"Zeglice","target_type":"place","memory_type":"fact","confidence_score":0.9,"keywords":"miejsce, Zeglice, babcia"}
   ]}
-- Tekst: "moja kuzynka Wiolka"
-  -> {"triads":[{"source":"Jakub","source_type":"person","relation":"ma_relacje_z","target":"Kuzynka Wiolka","target_type":"person","memory_type":"fact","confidence_score":0.85}]}`;
+- Tekst: "chce przejsc ze sfera marketingowej do sprzedazy na zywo"
+  -> {"triads":[{"source":"Jakub","source_type":"person","relation":"planuje","target":"Przejscie z marketingu do sprzedazy bezposredniej","target_type":"goal","memory_type":"fact","confidence_score":0.85,"keywords":"sprzedaz, kariera, zmiana, cel"}]}`;
 
       try {
         const llmRes = await fetch("https://api.deepseek.com/chat/completions", {
@@ -595,7 +601,11 @@ Przyklady:
             p_confidence_score: triad.confidence_score || 0.7,
             p_memory_type: triad.memory_type || "fact",
             p_layer: "intelligence",
-            p_metadata: { source: "vanguard_architect", input_type: type },
+            p_metadata: {
+              source: "vanguard_architect",
+              input_type: type,
+              ...(triad.keywords ? { keywords: triad.keywords } : {}),
+            },
             p_observed_at: record.created_at,
             p_source_episode_id: record.id,
           })

@@ -26,6 +26,7 @@ function buildFactText(link: {
   memory_type: string | null;
   confidence_score: number | null;
   evidence_count: number | null;
+  metadata?: Record<string, any> | null;
 }): string {
   const relationHuman = link.relation.replace(/_/g, ' ');
   const sourceLabel = link.source_type ? `${link.source_entity} (${link.source_type})` : link.source_entity;
@@ -36,7 +37,9 @@ function buildFactText(link: {
     ? `Potwierdzony ${link.evidence_count} razy.` : '';
   const typeNote = link.memory_type && link.memory_type !== 'fact'
     ? ` Typ: ${link.memory_type}.` : '';
-  return `${sourceLabel} ${relationHuman} ${targetLabel}.${typeNote} Pewność: ${confLabel}. ${evidenceNote}`.trim();
+  const keywordsNote = link.metadata?.keywords
+    ? ` Tematy: ${link.metadata.keywords}.` : '';
+  return `${sourceLabel} ${relationHuman} ${targetLabel}.${typeNote} Pewność: ${confLabel}. ${evidenceNote}${keywordsNote}`.trim();
 }
 
 /**
@@ -88,7 +91,7 @@ async function runBackfillBatch(
 
   const query = supabase
     .from('vanguard_entity_links')
-    .select('id, source_entity, source_type, relation, target_entity, target_type, memory_type, confidence_score, evidence_count')
+    .select('id, source_entity, source_type, relation, target_entity, target_type, memory_type, confidence_score, evidence_count, metadata')
     .eq('user_id', user_id)
     .limit(batch_size);
 
