@@ -4,6 +4,7 @@ import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
+const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
 
 async function embedBatch(texts: string[]): Promise<number[][]> {
   const embeddings = await getEmbedding(texts, OPENAI_API_KEY);
@@ -12,11 +13,9 @@ async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 /**
- * Graphiti-inspired: embed the full fact sentence, not just "source relation target".
- * Richer text = better semantic coverage across diverse question formulations.
- *
+ * Graphiti-inspired: rich fact sentence (not just "source relation target").
  * Before: "Jakub studiuje Cyberbezpieczeństwo"
- * After:  "Jakub (osoba) studiuje Cyberbezpieczeństwo (kierunek). Fakt potwierdzony 5 razy. Pewność: wysoka."
+ * After:  "Jakub (person) studiuje Cyberbezpieczeństwo (kierunek). Pewność: wysoka. Potwierdzony 5 razy."
  */
 function buildFactText(link: {
   source_entity: string;
@@ -31,17 +30,51 @@ function buildFactText(link: {
   const relationHuman = link.relation.replace(/_/g, ' ');
   const sourceLabel = link.source_type ? `${link.source_entity} (${link.source_type})` : link.source_entity;
   const targetLabel = link.target_type ? `${link.target_entity} (${link.target_type})` : link.target_entity;
-
   const conf = link.confidence_score ?? 0.8;
   const confLabel = conf >= 0.9 ? 'wysoka' : conf >= 0.7 ? 'średnia' : 'niska';
   const evidenceNote = link.evidence_count && link.evidence_count > 1
-    ? `Potwierdzony ${link.evidence_count} razy.`
-    : '';
+    ? `Potwierdzony ${link.evidence_count} razy.` : '';
   const typeNote = link.memory_type && link.memory_type !== 'fact'
-    ? ` Typ: ${link.memory_type}.`
-    : '';
-
+    ? ` Typ: ${link.memory_type}.` : '';
   return `${sourceLabel} ${relationHuman} ${targetLabel}.${typeNote} Pewność: ${confLabel}. ${evidenceNote}`.trim();
+}
+
+/**
+ * HyPE (Hypothetical Prompt Embeddings — NirDiamant/RAG_Techniques #8)
+ * At indexing time, generate questions this fact answers → embed fact+questions together.
+ * Bridges "question space" ↔ "fact space" gap — same problem HyDE solves at query time.
+ *
+ * Before embedding: "Jakub (person) studiuje Cyberbezpieczeństwo (kierunek)."
+ * After HyPE:       "[fact]\nPytania: Co studiuje Jakub? Jaki kierunek wybrał Jakub? Gdzie Jakub chodzi na studia?"
+ */
+async function generateHypeQuestions(factText: string): Promise<string> {
+  try {
+    const res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "deepseek-v4-flash",
+        max_tokens: 80,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content: "Wygeneruj 3 krótkie pytania po polsku, które BEZPOŚREDNIO odpytują o podany fakt. Tylko pytania, oddzielone ' | ', bez numeracji.",
+          },
+          { role: "user", content: factText },
+        ],
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return '';
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content?.trim() ?? '';
+  } catch {
+    return '';
+  }
 }
 
 /** One batch per invocation — caller re-invokes until remaining is 0. */
@@ -49,6 +82,7 @@ async function runBackfillBatch(
   user_id: string,
   batch_size: number,
   force_reembed: boolean,
+  hype_mode: boolean,
 ): Promise<{ processed: number; updated: number; remaining: number | null }> {
   const supabase = createServiceClient();
 
@@ -58,7 +92,6 @@ async function runBackfillBatch(
     .eq('user_id', user_id)
     .limit(batch_size);
 
-  // force_reembed=true: re-embed all (fact_text changed); otherwise only missing embeddings
   if (!force_reembed) {
     query.is('embedding', null);
   } else {
@@ -67,22 +100,33 @@ async function runBackfillBatch(
 
   const { data: links, error } = await query;
 
-  if (error) {
-    console.error('[embedder] Fetch error:', error);
-    throw error;
-  }
+  if (error) { console.error('[embedder] Fetch error:', error); throw error; }
   if (!links || links.length === 0) {
     console.log('[embedder] All done');
     return { processed: 0, updated: 0, remaining: 0 };
   }
 
+  // Build fact texts
   const factTexts = links.map(buildFactText);
-  const embeddings = await embedBatch(factTexts);
+
+  // HyPE mode: enrich each fact_text with generated hypothetical questions
+  let enrichedTexts = factTexts;
+  if (hype_mode && DEEPSEEK_API_KEY) {
+    enrichedTexts = await Promise.all(
+      factTexts.map(async (ft) => {
+        const questions = await generateHypeQuestions(ft);
+        return questions ? `${ft}\nPytania: ${questions}` : ft;
+      })
+    );
+    console.log(`[embedder] HyPE enriched ${links.length} facts with hypothetical questions`);
+  }
+
+  const embeddings = await embedBatch(enrichedTexts);
 
   for (let i = 0; i < links.length; i++) {
     const { error: updateErr } = await supabase
       .from('vanguard_entity_links')
-      .update({ embedding: embeddings[i], fact_text: factTexts[i] })
+      .update({ embedding: embeddings[i], fact_text: enrichedTexts[i] })
       .eq('id', links[i].id);
     if (updateErr) console.error(`[embedder] Update error id=${links[i].id}:`, updateErr);
   }
@@ -97,7 +141,7 @@ async function runBackfillBatch(
 
   const { count: remaining } = await countQuery;
 
-  console.log(`[embedder] Batch done: ${links.length} updated, ~${remaining ?? '?'} remaining`);
+  console.log(`[embedder] Batch done: ${links.length} updated (hype=${hype_mode}), ~${remaining ?? '?'} remaining`);
   return { processed: links.length, updated: links.length, remaining: remaining ?? null };
 }
 
@@ -108,9 +152,10 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const user_id = body.user_id || getVanguardUserId();
     const batch_size = body.batch_size ? Number(body.batch_size) : 50;
-    const force_reembed = body.force_reembed === true; // re-embed all with new fact_text
+    const force_reembed = body.force_reembed === true;
+    const hype_mode = body.hype_mode === true; // HyPE: generate questions at index time
 
-    const result = await runBackfillBatch(user_id, batch_size, force_reembed);
+    const result = await runBackfillBatch(user_id, batch_size, force_reembed, hype_mode);
 
     return new Response(JSON.stringify({
       success: true,

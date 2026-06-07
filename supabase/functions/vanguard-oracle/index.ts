@@ -1,4 +1,5 @@
 import { getEmbedding } from "../_shared/openai.ts";
+import { deepseekChat } from "../_shared/deepseek.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import {
@@ -225,8 +226,32 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
         const graphSeeds = buildGraphSeeds(current_query, intentForGraph, entitiesInQuery);
         const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
 
-        // Generate embedding for RAG
-        const embedding = await getEmbedding(current_query.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
+        // HyDE (Hypothetical Document Embedding — NirDiamant/RAG_Techniques #7)
+        // Problem: Oracle embeds a QUESTION, entity_links contain FACTS — different vector spaces.
+        // Fix: generate a hypothetical fact first, embed question+fact together → fact-to-fact matching.
+        // Runs in parallel with Phase 1 to avoid adding latency.
+        const hydeFactPromise = deepseekChat({
+          apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
+          model: 'deepseek-v4-flash',
+          maxTokens: 80,
+          temperature: 0.1,
+          timeoutMs: 4000,
+          messages: [{
+            role: 'system',
+            content: 'Jesteś bazą wiedzy o Jakubie (23 lata, Rzeszów, cyberbezpieczeństwo). Na podstawie pytania napisz JEDEN krótki fakt (max 2 zdania), który bezpośrednio odpowiada. Tylko fakt, bez wstępu.',
+          }, {
+            role: 'user',
+            content: current_query.substring(0, 300),
+          }],
+        }).then(r => r.content.trim()).catch(() => '');
+
+        // Generate embedding for RAG (HyDE: embed query + hypothetical fact together)
+        const hydeFact = await hydeFactPromise;
+        const queryForEmbedding = hydeFact
+          ? `${current_query}\n${hydeFact}`
+          : current_query;
+        if (hydeFact) console.log(`[oracle] HyDE fact: "${hydeFact.substring(0, 80)}…"`);
+        const embedding = await getEmbedding(queryForEmbedding.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
 
         // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds, fulltext (Graphiti RRF pattern)
         const [matchesResRaw, semanticGraphRes, entitySeedsRes, fulltextGraphRes] = await Promise.all([
