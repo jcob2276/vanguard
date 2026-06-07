@@ -194,6 +194,20 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
   );
 }
 
+const BORN = new Date('2002-07-06');
+function DayCounter() {
+  const day = Math.floor((Date.now() - BORN.getTime()) / 86400000) + 1;
+  return (
+    <div className="pt-1">
+      <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/25">ur. 6 lipca 2002</p>
+      <p className="mt-1 text-[32px] font-black leading-none text-white">
+        Dzień {day.toLocaleString('pl-PL')}
+      </p>
+      <p className="mt-2 text-[11px] font-semibold text-white/35">Żaden się nie powtórzy.</p>
+    </div>
+  );
+}
+
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
@@ -392,6 +406,7 @@ export default function Dashboard({ session }) {
           >
           {view === 'dzis' && (
             <div className="space-y-8">
+              <DayCounter />
               <DailyStrainCard session={session} />
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <CommandButton
