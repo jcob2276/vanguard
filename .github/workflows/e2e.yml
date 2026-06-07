@@ -1,0 +1,30 @@
+name: E2E Daily Loop
+
+on:
+  workflow_dispatch:          # ← manual trigger only (no auto Telegram sends)
+  schedule:
+    - cron: '0 7 * * *'      # 07:00 UTC = 08:00/09:00 Warsaw — after morning crons settle
+
+jobs:
+  e2e-loop:
+    name: Daily loop pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run E2E daily loop
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VANGUARD_USER_ID: ${{ secrets.VANGUARD_USER_ID }}
+        run: npm run e2e:loop

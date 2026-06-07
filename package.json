@@ -14,7 +14,8 @@
     "smoke:ui": "node scripts/smoke-ui.mjs",
     "oss:audit": "node scripts/oss-audit.mjs",
     "smoke": "node scripts/smoke-vanguard.mjs --with-service-role",
-    "smoke:safe": "node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe"
+    "smoke:safe": "node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe",
+    "e2e:loop": "node scripts/e2e-daily-loop.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",
