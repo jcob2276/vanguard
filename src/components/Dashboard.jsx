@@ -26,7 +26,6 @@ const Stats = lazy(() => import('./Stats'));
 const Fundament = lazy(() => import('./Fundament'));
 const OuraWidget = lazy(() => import('./OuraWidget'));
 const DailyStrainCard = lazy(() => import('./DailyStrainCard'));
-const SleepDebtCard = lazy(() => import('./SleepDebtCard'));
 const StravaWidget = lazy(() => import('./StravaWidget'));
 const MuscleHeatmap = lazy(() => import('./MuscleHeatmap'));
 const Photos = lazy(() => import('./Photos'));
@@ -395,7 +394,6 @@ export default function Dashboard({ session }) {
               <section className="space-y-5">
               <SectionHeader title="Body" detail="Pomiary, regeneracja i podstawowe sygnały. Bez wykresów dla wykresów." />
               <DailyStrainCard session={session} />
-              <SleepDebtCard session={session} />
               <Stats
                 session={session}
                 topSlot={(

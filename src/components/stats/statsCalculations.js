@@ -52,21 +52,21 @@ export function generateNarrative(body, oura, sessions) {
   const bodyDiffWeight = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
   const bodyDiffWaist = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
 
-  let text = `To byĹ‚ ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzieĹ„. `;
-  text += `ZrealizowaĹ‚eĹ› ${lastWeekSessions} treningi. `;
+  let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
+  text += `Zrealizowałeś ${lastWeekSessions} treningi. `;
 
   if (sleepDiffMin !== 0) {
-    text += `TwĂłj sen ${sleepDiffMin > 0 ? 'poprawiĹ‚ siÄ™' : 'pogorszyĹ‚ siÄ™'} Ĺ›rednio o ${Math.abs(sleepDiffMin)} min na dobÄ™. `;
+    text += `Twój sen ${sleepDiffMin > 0 ? 'poprawił się' : 'pogorszył się'} średnio o ${Math.abs(sleepDiffMin)} min na dobę. `;
   } else if (avgSleepLast > 0) {
-    text += `Ĺšrednio sypiaĹ‚eĹ› po ${Math.floor(avgSleepLast)}h ${Math.round((avgSleepLast % 1) * 60)}m. `;
+    text += `Średnio sypiałeś po ${Math.floor(avgSleepLast)}h ${Math.round((avgSleepLast % 1) * 60)}m. `;
   }
 
   if (bodyDiffWaist && bodyDiffWaist != 0) {
-    text += `W obwodzie pasa ${bodyDiffWaist < 0 ? 'zeszĹ‚o' : 'przybyĹ‚o'} ${Math.abs(bodyDiffWaist)} cm. `;
+    text += `W obwodzie pasa ${bodyDiffWaist < 0 ? 'zeszło' : 'przybyło'} ${Math.abs(bodyDiffWaist)} cm. `;
   } else if (bodyDiffWeight && bodyDiffWeight != 0) {
-    text += `Waga ${bodyDiffWeight < 0 ? 'spadĹ‚a' : 'wzrosĹ‚a'} o ${Math.abs(bodyDiffWeight)} kg. `;
+    text += `Waga ${bodyDiffWeight < 0 ? 'spadła' : 'wzrosła'} o ${Math.abs(bodyDiffWeight)} kg. `;
   }
 
-  text += `RĂłb swoje, proces dziaĹ‚a.`;
+  text += `Rób swoje, proces działa.`;
   return text;
 }
