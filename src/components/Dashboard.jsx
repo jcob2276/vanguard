@@ -29,6 +29,8 @@ const MuscleHeatmap = lazy(() => import('./MuscleHeatmap'));
 const Photos = lazy(() => import('./Photos'));
 const Direction = lazy(() => import('./Direction'));
 
+const TAB_ORDER = ['dzis', 'tydzien', 'historia'];
+
 const normalizeView = (view) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
   if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
@@ -196,8 +198,16 @@ export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
+  const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+
+  const navigateTo = (newView) => {
+    const fromIdx = TAB_ORDER.indexOf(view);
+    const toIdx = TAB_ORDER.indexOf(newView);
+    setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
+    setView(newView);
+  };
   const { isSyncing, setSyncing } = useStore();
   const {
     weeklyCalories,
@@ -380,7 +390,11 @@ export default function Dashboard({ session }) {
           </div>
         </header>
 
-        <main className="flex-1 p-5 pb-8 animate-in fade-in duration-500">
+        <main className="flex-1 overflow-hidden">
+          <div
+            key={view}
+            className={`p-5 pb-8 animate-in fade-in duration-300 ${slideDir === 'right' ? 'slide-in-from-right-4' : 'slide-in-from-left-4'}`}
+          >
           {view === 'dzis' && (
             <div className="space-y-8">
               <StateBrief
@@ -427,13 +441,14 @@ export default function Dashboard({ session }) {
               </div>
             </Suspense>
           )}
+          </div>
         </main>
 
         <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-neutral-950/90 p-2 shadow-2xl backdrop-blur-2xl">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setView(item.id)}
+              onClick={() => navigateTo(item.id)}
               className={`flex flex-1 flex-col items-center gap-1 rounded-full py-2 transition-all ${
                 view === item.id ? 'scale-110 bg-white/5 text-primary' : 'text-white/40 hover:text-white'
               }`}
