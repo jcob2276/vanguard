@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { useDashboardData } from '../hooks/useDashboardData';
 import AIInsight from './AIInsight';
+import GoalsCard from './GoalsCard';
 import PowerList from './PowerList';
 
 const WorkoutLogger = lazy(() => import('./WorkoutLogger'));
@@ -427,6 +428,7 @@ export default function Dashboard({ session }) {
           {view === 'dzis' && (
             <div className="space-y-8">
               <DayCounter />
+              <GoalsCard session={session} />
               <DailyStrainCard session={session} />
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <CommandButton

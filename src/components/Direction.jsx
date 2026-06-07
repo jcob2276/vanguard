@@ -3,30 +3,19 @@ import {
   AlertCircle,
   Calendar,
   CheckSquare,
-  Edit2,
-  Flag,
   Plus,
   RotateCw,
-  Save,
-  Shield,
   Square,
   Target,
   Trash2,
   TrendingUp,
   Trophy,
-  Wallet,
   X,
-  Zap,
 } from 'lucide-react';
 import { differenceInDays, endOfWeek, format, isWithinInterval, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { supabase } from '../lib/supabase';
 
 const todayDate = () => format(new Date(), 'yyyy-MM-dd');
-
-function daysUntil(date) {
-  if (!date) return null;
-  return differenceInDays(parseISO(date), new Date());
-}
 
 function SectionTitle({ icon: Icon, title, detail, action }) {
   return (
@@ -49,50 +38,6 @@ function MiniStat({ label, value, tone = 'text-white', detail }) {
       <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone}`}>{value}</p>
       {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-white/25">{detail}</p>}
     </div>
-  );
-}
-
-function GoalCard({ goal, isEditing, lifeGoals, setLifeGoals }) {
-  const left = daysUntil(lifeGoals[goal.dateKey]);
-  const urgent = left !== null && left <= 45;
-
-  return (
-    <article className="rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(10,10,11,0.96))] p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg border ${goal.border} ${goal.bg}`}>
-            <goal.icon size={14} className={goal.tone} />
-          </div>
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/36">{goal.label}</p>
-        </div>
-        {left !== null && (
-          <span className={`rounded-md border px-2 py-1 text-[8px] font-black uppercase tracking-widest ${urgent ? 'border-orange-400/25 bg-orange-400/10 text-orange-300' : 'border-primary/20 bg-primary/10 text-primary'}`}>
-            {left} dni
-          </span>
-        )}
-      </div>
-
-      {isEditing ? (
-        <div className="space-y-2">
-          <textarea
-            value={lifeGoals[goal.key] || ''}
-            onChange={(e) => setLifeGoals({ ...lifeGoals, [goal.key]: e.target.value })}
-            rows={2}
-            className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none focus:border-primary/70"
-          />
-          <input
-            type="date"
-            value={lifeGoals[goal.dateKey] || ''}
-            onChange={(e) => setLifeGoals({ ...lifeGoals, [goal.dateKey]: e.target.value })}
-            className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[11px] font-bold text-white outline-none focus:border-primary/70"
-          />
-        </div>
-      ) : (
-        <p className="min-h-[44px] text-[13px] font-black uppercase leading-tight text-white">
-          {lifeGoals[goal.key] || 'Brak zdefiniowanego celu'}
-        </p>
-      )}
-    </article>
   );
 }
 
@@ -123,9 +68,6 @@ function HabitStrip({ habit, logs }) {
 
 export default function Direction({ session }) {
   const [loading, setLoading] = useState(true);
-  const [lifeGoals, setLifeGoals] = useState({ goal_cialo: '', goal_duch: '', goal_konto: '' });
-  const [isEditingGoals, setIsEditingGoals] = useState(false);
-  const [todayWin, setTodayWin] = useState(null);
   const [history, setHistory] = useState([]);
   const [habits, setHabits] = useState([]);
   const [habitLogs, setHabitLogs] = useState([]);
@@ -133,11 +75,6 @@ export default function Direction({ session }) {
   const [newHabit, setNewHabit] = useState({ name: '', icon: 'X', is_positive: true });
   const [currentReview, setCurrentReview] = useState(null);
   const [reviewForm, setReviewForm] = useState({ proud_of: '', sabotage: '', do_differently: '' });
-  const [lenieForm, setLenieForm] = useState({
-    date: todayDate(),
-    final_stimulus: '',
-    context_note: '',
-  });
 
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -148,14 +85,12 @@ export default function Direction({ session }) {
 
     try {
       const [
-        { data: goals },
         { data: todayData },
         { data: historyData },
         { data: habitsData },
         { data: logsData },
         { data: reviewData },
       ] = await Promise.all([
-        supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
         supabase.from('habits').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true }),
@@ -165,8 +100,6 @@ export default function Direction({ session }) {
           : Promise.resolve({ data: null }),
       ]);
 
-      if (goals) setLifeGoals(goals);
-      setTodayWin(todayData);
       setHistory(historyData || []);
       setHabits(habitsData || []);
       setHabitLogs(logsData || []);
@@ -246,30 +179,6 @@ export default function Direction({ session }) {
     };
   }, [history]);
 
-  const lenieHabit = useMemo(
-    () => habits.find((habit) => (habit.name || '').toLowerCase().includes('lenie')),
-    [habits]
-  );
-  const lenieLogs = useMemo(
-    () => habitLogs.filter((log) => log.habit_id === lenieHabit?.id).sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [habitLogs, lenieHabit?.id]
-  );
-
-  async function saveLifeGoals() {
-    const { id: _id, created_at: _created_at, ...goalsToSave } = lifeGoals;
-    const { error } = await supabase
-      .from('life_goals')
-      .upsert({ user_id: session.user.id, ...goalsToSave }, { onConflict: 'user_id' });
-
-    if (!error) {
-      setIsEditingGoals(false);
-      fetchData();
-    } else {
-      console.error(error);
-      alert('Blad zapisu celow: ' + error.message);
-    }
-  }
-
   async function addHabit() {
     if (!newHabit.name.trim()) return;
     const { data, error } = await supabase
@@ -308,46 +217,6 @@ export default function Direction({ session }) {
     }
   }
 
-  async function ensureLenieHabit() {
-    if (lenieHabit) return lenieHabit;
-    const { data, error } = await supabase
-      .from('habits')
-      .insert({ user_id: session.user.id, name: 'Lenie', icon: 'L', is_positive: false })
-      .select()
-      .single();
-    if (error) throw error;
-    setHabits([...habits, data]);
-    return data;
-  }
-
-  async function saveLenieLog() {
-    const habit = await ensureLenieHabit();
-    const existing = habitLogs.find((log) => log.habit_id === habit.id && log.date === lenieForm.date);
-    const payload = {
-      user_id: session.user.id,
-      habit_id: habit.id,
-      date: lenieForm.date,
-      completed: true,
-      final_stimulus: lenieForm.final_stimulus.trim() || null,
-      context_note: lenieForm.context_note.trim() || null,
-      logged_at: new Date().toISOString(),
-    };
-
-    const query = existing
-      ? supabase.from('habit_logs').update(payload).eq('id', existing.id).select().single()
-      : supabase.from('habit_logs').insert(payload).select().single();
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('Lenie save error:', error);
-      alert('Blad zapisu mikrowzorca: ' + error.message);
-      return;
-    }
-
-    setHabitLogs(existing ? habitLogs.map((log) => (log.id === existing.id ? data : log)) : [...habitLogs, data]);
-    setLenieForm({ date: todayDate(), final_stimulus: '', context_note: '' });
-  }
-
   async function saveWeeklyReview() {
     if (currentReview) return;
     const { data, error } = await supabase
@@ -363,84 +232,8 @@ export default function Direction({ session }) {
     return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
   }
 
-  const goals = [
-    { key: 'goal_cialo', dateKey: 'date_cialo', label: 'Cialo', icon: Shield, tone: 'text-dayC', border: 'border-dayC/25', bg: 'bg-dayC/10' },
-    { key: 'goal_duch', dateKey: 'date_duch', label: 'Duch', icon: Zap, tone: 'text-primary', border: 'border-primary/25', bg: 'bg-primary/10' },
-    { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: Wallet, tone: 'text-orange-300', border: 'border-orange-400/25', bg: 'bg-orange-400/10' },
-  ];
-
   return (
     <div className="flex-1 space-y-6 overflow-y-auto p-5 pb-24">
-      <section className="space-y-3">
-        <SectionTitle
-          icon={Flag}
-          title="Cele kierunkowe"
-          detail="Trzy kotwice. One maja odpowiadac na pytanie: po co dzisiejszy plan?"
-          action={(
-            <button
-              onClick={() => (isEditingGoals ? saveLifeGoals() : setIsEditingGoals(true))}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-2.5 text-white/45 transition-colors hover:text-white"
-              title={isEditingGoals ? 'Zapisz cele' : 'Edytuj cele'}
-            >
-              {isEditingGoals ? <Save size={15} /> : <Edit2 size={15} />}
-            </button>
-          )}
-        />
-        <div className="grid gap-3">
-          {goals.map((goal) => (
-            <GoalCard key={goal.key} goal={goal} isEditing={isEditingGoals} lifeGoals={lifeGoals} setLifeGoals={setLifeGoals} />
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle
-          icon={Target}
-          title="Mikrowzorce"
-          detail="Backfill i opis bodzca. To ma dac material do wzorcow po tygodniu i miesiacu."
-        />
-        <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-dayB">Lenie</p>
-              <h3 className="mt-1 text-[15px] font-black uppercase tracking-tight text-white">Zapis bodzca</h3>
-            </div>
-            <span className="rounded-md border border-dayB/25 bg-dayB/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-dayB">
-              unikac
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            <input
-              type="date"
-              value={lenieForm.date}
-              onChange={(e) => setLenieForm({ ...lenieForm, date: e.target.value })}
-              className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[11px] font-bold text-white outline-none focus:border-dayB/70"
-            />
-            <input
-              value={lenieForm.final_stimulus}
-              onChange={(e) => setLenieForm({ ...lenieForm, final_stimulus: e.target.value })}
-              placeholder="Finalny bodziec / do czego?"
-              className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none placeholder:text-white/18 focus:border-dayB/70"
-            />
-            <textarea
-              value={lenieForm.context_note}
-              onChange={(e) => setLenieForm({ ...lenieForm, context_note: e.target.value })}
-              placeholder="Kontekst: pora, emocja, zmeczenie, trigger, co bylo przed?"
-              rows={3}
-              className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold leading-relaxed text-white outline-none placeholder:text-white/18 focus:border-dayB/70"
-            />
-            <button
-              onClick={saveLenieLog}
-              className="w-full rounded-lg bg-dayB px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-dayB/20 transition-transform active:scale-[0.99]"
-            >
-              Zapisz mikrowzorzec
-            </button>
-          </div>
-
-        </div>
-      </section>
-
       <section className="space-y-3">
         <SectionTitle
           icon={Target}

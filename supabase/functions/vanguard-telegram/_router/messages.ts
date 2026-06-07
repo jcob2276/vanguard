@@ -170,6 +170,55 @@ export async function handleIncomingMessage(
         return;
       }
 
+      // --- /lenie command ---
+      if (lowerText.startsWith('/lenie')) {
+        try {
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          const rest = text.slice('/lenie'.length).trim();
+          // Format: "bodziec | kontekst" or just "opis"
+          const [finalStimulus, contextNote] = rest.includes('|')
+            ? rest.split('|').map(s => s.trim())
+            : [rest, null];
+
+          // Find or create Lenie habit
+          let { data: habit } = await supabase
+            .from('habits')
+            .select('id')
+            .eq('user_id', vanguardUserId)
+            .ilike('name', '%lenie%')
+            .maybeSingle();
+
+          if (!habit) {
+            const { data: newHabit, error: hErr } = await supabase
+              .from('habits')
+              .insert({ user_id: vanguardUserId, name: 'Lenie', icon: 'L', is_positive: false })
+              .select('id').single();
+            if (hErr) throw hErr;
+            habit = newHabit;
+          }
+
+          // Upsert log for today
+          const { error: logErr } = await supabase.from('habit_logs').upsert({
+            user_id: vanguardUserId,
+            habit_id: habit.id,
+            date: today,
+            completed: true,
+            final_stimulus: finalStimulus || null,
+            context_note: contextNote || null,
+            logged_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,habit_id,date' });
+
+          if (logErr) throw logErr;
+
+          const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
+          await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken);
+        } catch (err) {
+          console.error('[messages] /lenie failed:', err);
+          await safeSendTelegram(chatId, '❌ Błąd zapisu lenie: ' + (err as Error).message, telegramToken);
+        }
+        return;
+      }
+
       if (!hasCommandPrefix && mode === 'stream') {
         // Check active planning session
         const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
