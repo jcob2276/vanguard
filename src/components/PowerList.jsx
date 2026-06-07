@@ -142,28 +142,6 @@ export default function PowerList({ session, todayWin, onUpdate }) {
               </button>
             );
           })}
-
-          {/* RPE Selector */}
-          <div className="mt-6 space-y-4 border-t border-white/[0.07] pt-5">
-            <div className="flex justify-between items-center">
-              <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Daily Effort</h4>
-              <span className="text-[14px] font-black text-primary">{todayWin.daily_rpe || '-'}</span>
-            </div>
-            <div className="flex justify-between gap-1">
-              {[1,2,3,4,5,6,7,8,9,10].map(val => (
-                <button
-                  key={val}
-                  onClick={() => updateRPE(val)}
-                  className={`flex-1 rounded-md py-2 text-[10px] font-black transition-all ${todayWin.daily_rpe === val ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-neutral-950 text-white/28 hover:bg-white/[0.06]'}`}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
-            <p className="text-center text-[8px] font-bold uppercase tracking-tighter text-white/22">
-              1 = Spacer w słońcu | 10 = Walka o życie (Kortyzol Peak)
-            </p>
-          </div>
         </div>
       )}
     </section>

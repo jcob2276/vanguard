@@ -19,7 +19,6 @@ import { useStore } from '../store/useStore';
 import { useDashboardData } from '../hooks/useDashboardData';
 import AIInsight from './AIInsight';
 import PowerList from './PowerList';
-import IntentionTracker from './IntentionTracker';
 
 const WorkoutLogger = lazy(() => import('./WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
@@ -421,12 +420,6 @@ export default function Dashboard({ session }) {
               </section>
 
               <section className="space-y-4 pt-2">
-                <IntentionTracker
-                  session={session}
-                  todayWin={todayWin}
-                  stability={stability}
-                  operationalState={operationalState}
-                />
                 <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               </section>
             </>
