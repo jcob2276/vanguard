@@ -69,7 +69,7 @@ export default function SleepDebtCard({ session }) {
 
     const { data, error: qErr } = await supabase
       .from('oura_daily_summary')
-      .select('date, total_sleep_hours, sleep_score')
+      .select('date, total_sleep_hours, readiness_score')
       .eq('user_id', session.user.id)
       .gte('date', cutoff)
       .lte('date', today)
@@ -149,7 +149,7 @@ export default function SleepDebtCard({ session }) {
   const prev    = rows.slice(7, 14);
   const debtNow  = calcDebt(week);
   const debtPrev = prev.length >= 5 ? calcDebt(prev) : null;
-  const scores   = week.map(r => r.sleep_score).filter(Boolean);
+  const scores   = week.map(r => r.readiness_score).filter(Boolean);
   const avgScore = scores.length
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
     : null;
