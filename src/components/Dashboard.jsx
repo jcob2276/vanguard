@@ -195,40 +195,35 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
 }
 
 const BORN = new Date('2002-07-06');
-const LIFE_DAYS = 29200;
 
 const FUEL = [
-  "Dyskomfort dziś. Wyniki jutro.",
-  "Nikt nie pamiętał przeciętnych.",
-  "Za rok będziesz żałował że nie zacząłeś dziś.",
-  "Wersja siebie za 5 lat zaczyna się teraz.",
-  "Każdy dzień to zakład — postaw na siebie.",
-  "Nie czekaj na moment. Stwórz go.",
-  "Mediokracja boli bardziej niż wysiłek.",
-  "Ci co wygrywają też nie mieli ochoty. Wstali.",
-  "Jedna dobra decyzja. Powtórzona tysiąc razy.",
-  "Talent jest powszechny. Konsekwencja — rzadka.",
-  "Przyszłe ty patrzy na to co robisz teraz.",
-  "Zmęczenie mija. Żal zostaje.",
+  "Przyszłe ty ma nadzieję,\nże dzisiejsze ty nie odpuści.",
+  "Nie żałujesz decyzji które podjąłeś.\nTylko tych których nie podjąłeś.",
+  "Za rok będziesz tu\nalbo znacznie dalej.\nTy decydujesz dziś.",
+  "Każda wielka zmiana zaczęła się\nod jednego zwykłego dnia.",
+  "Entuzjazm to nie nastrój.\nTo decyzja którą podejmujesz rano.",
+  "Dyskomfort który czujesz\nto dowód że rośniesz.",
+  "Nie musisz mieć ochoty.\nMusisz tylko zacząć.",
+  "Jedyne o czym będziesz żałować\nto że nie zacząłeś wcześniej.",
+  "Twoje najlepsze lata\nnie są za tobą.",
+  "Za 5 lat docenisz\nkażdą decyzję którą podjąłeś dziś.",
+  "To nie jest próba.\nTo jest twoje życie.",
+  "Nikt za ciebie nie będzie żałował\nże nie spróbowałeś.",
 ];
 
 function DayCounter() {
-  const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000) + 1;
-  const remaining = LIFE_DAYS - lived;
+  const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000);
   const quote = FUEL[lived % FUEL.length];
+  const today = new Date().toLocaleDateString('pl-PL', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw'
+  });
 
   return (
-    <div className="py-2 space-y-5">
-      <div>
-        <p className="text-[8px] font-black uppercase tracking-[0.35em] text-amber-400/70">Zostało ci</p>
-        <p className="mt-1 text-[54px] font-black leading-none tracking-tight text-white tabular-nums">
-          {remaining.toLocaleString('pl-PL')}
-          <span className="text-[15px] font-bold text-white/30 ml-2">dni</span>
-        </p>
-      </div>
-      <p className="text-[15px] font-bold leading-snug text-white/80 border-l-2 border-primary pl-3">
+    <div className="py-3 space-y-5">
+      <p className="text-[22px] font-black leading-[1.3] text-white whitespace-pre-line">
         {quote}
       </p>
+      <p className="text-[9px] font-black uppercase tracking-[0.28em] text-white/25">{today}</p>
     </div>
   );
 }
