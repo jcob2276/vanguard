@@ -226,66 +226,95 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
         const graphSeeds = buildGraphSeeds(current_query, intentForGraph, entitiesInQuery);
         const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
 
-        // HyDE (Hypothetical Document Embedding — NirDiamant/RAG_Techniques #7)
-        // Problem: Oracle embeds a QUESTION, entity_links contain FACTS — different vector spaces.
-        // Fix: generate a hypothetical fact first, embed question+fact together → fact-to-fact matching.
-        // Runs in parallel with Phase 1 to avoid adding latency.
-        const hydeFactPromise = deepseekChat({
+        // QUERY EXPANSION — single LLM call, 3 techniques combined (NirDiamant/RAG_Techniques #7 #8 + step-back):
+        // 1. HyDE: hypothetical fact → fact-to-fact vector matching (bridges question↔fact space)
+        // 2. Step-back: broader background query → retrieves foundational context
+        // 3. Sub-queries: 2 focused decompositions → each retrieves specific slice
+        const queryExpansionPromise = deepseekChat({
           apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
           model: 'deepseek-v4-flash',
-          maxTokens: 80,
+          maxTokens: 150,
           temperature: 0.1,
-          timeoutMs: 4000,
+          timeoutMs: 5000,
+          responseFormat: { type: 'json_object' },
           messages: [{
             role: 'system',
-            content: 'Jesteś bazą wiedzy o Jakubie (23 lata, Rzeszów, cyberbezpieczeństwo). Na podstawie pytania napisz JEDEN krótki fakt (max 2 zdania), który bezpośrednio odpowiada. Tylko fakt, bez wstępu.',
+            content: `Jesteś asystentem retrieval dla bazy wiedzy o Jakubie (23l, Rzeszów, cyberbezpieczeństwo, sprzedaż, sport).
+Zwróć JSON z polami:
+- "hyde": JEDEN krótki fakt (1 zdanie) który bezpośrednio odpowiada na pytanie
+- "stepback": szersze pytanie-tło (ogólniejsza wersja pytania, max 8 słów)
+- "sub": tablica 2 konkretnych pod-pytań które razem pokrywają temat
+Tylko JSON, bez komentarzy.`,
           }, {
             role: 'user',
             content: current_query.substring(0, 300),
           }],
-        }).then(r => r.content.trim()).catch(() => '');
+        }).then(r => {
+          try { return JSON.parse(r.content); } catch { return null; }
+        }).catch(() => null);
 
-        // Generate embedding for RAG (HyDE: embed query + hypothetical fact together)
-        const hydeFact = await hydeFactPromise;
-        const queryForEmbedding = hydeFact
-          ? `${current_query}\n${hydeFact}`
-          : current_query;
-        if (hydeFact) console.log(`[oracle] HyDE fact: "${hydeFact.substring(0, 80)}…"`);
+        // Generate primary embedding (HyDE: query + hypothetical fact = fact-to-fact matching)
+        const expansion = await queryExpansionPromise;
+        const hydeFact: string = expansion?.hyde || '';
+        const stepbackQuery: string = expansion?.stepback || '';
+        const subQueries: string[] = Array.isArray(expansion?.sub) ? expansion.sub.slice(0, 2) : [];
+
+        const queryForEmbedding = hydeFact ? `${current_query}\n${hydeFact}` : current_query;
+        if (expansion) console.log(`[oracle] QExp hyde="${hydeFact.substring(0,60)}" stepback="${stepbackQuery}" subs=${subQueries.length}`);
         const embedding = await getEmbedding(queryForEmbedding.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
 
-        // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds, fulltext (Graphiti RRF pattern)
-        const [matchesResRaw, semanticGraphRes, entitySeedsRes, fulltextGraphRes] = await Promise.all([
+        // HIPPOGRAPH PHASE 1: równolegle — content, semantic triples, entity seeds, fulltext paths
+        // Phase 1 runs all retrieval paths in parallel (vector + BM25 + step-back + sub-queries)
+        const [matchesResRaw, semanticGraphRes, entitySeedsRes, fulltextGraphRes, stepbackRes, ...subQueryResults] = await Promise.all([
           embedding ? supabase.rpc('match_vanguard_content', {
             query_embedding: embedding,
             match_threshold: 0.35,
             match_count: 5,
             user_id_param: user_id
           }) : Promise.resolve({ data: [], error: null } as any),
-          // Semantyczne szukanie trójek po embeddingach (vector path)
+          // Vector path — primary semantic signal
           embedding ? supabase.rpc('search_entity_links', {
             query_embedding: embedding,
             match_user_id: user_id,
             match_count: 15
           }) : Promise.resolve({ data: [], error: null } as any),
-          // HippoRAG: znajdź encje semantycznie bliskie pytaniu → użyj jako seeds
+          // HippoRAG entity seeds
           embedding ? supabase.rpc('find_entity_seeds_by_embedding', {
             query_embedding: embedding,
             match_user_id: user_id,
             match_count: 6
           }) : Promise.resolve({ data: [], error: null } as any),
-          // Full-text BM25-like path (Graphiti RRF pattern — równoległa ścieżka)
+          // BM25 fulltext — original query (Graphiti RRF pattern)
           supabase.rpc('search_entity_links_fulltext', {
             query_text: current_query.substring(0, 500),
             match_user_id: user_id,
             match_count: 10
-          })
+          }),
+          // Step-back fulltext — broader background context (NirDiamant step-back prompting)
+          stepbackQuery ? supabase.rpc('search_entity_links_fulltext', {
+            query_text: stepbackQuery,
+            match_user_id: user_id,
+            match_count: 6
+          }) : Promise.resolve({ data: [], error: null } as any),
+          // Sub-query 1 fulltext (NirDiamant sub-query decomposition)
+          subQueries[0] ? supabase.rpc('search_entity_links_fulltext', {
+            query_text: subQueries[0],
+            match_user_id: user_id,
+            match_count: 6
+          }) : Promise.resolve({ data: [], error: null } as any),
+          // Sub-query 2 fulltext
+          subQueries[1] ? supabase.rpc('search_entity_links_fulltext', {
+            query_text: subQueries[1],
+            match_user_id: user_id,
+            match_count: 6
+          }) : Promise.resolve({ data: [], error: null } as any),
         ]);
 
         if (matchesResRaw.error) throw matchesResRaw.error;
         if (semanticGraphRes.error) throw semanticGraphRes.error;
         if (entitySeedsRes.error) throw entitySeedsRes.error;
-        // fulltextGraphRes errors are non-fatal — log and continue
-        if (fulltextGraphRes.error) console.warn('[oracle] fulltext search error (non-fatal):', fulltextGraphRes.error);
+        if (fulltextGraphRes.error) console.warn('[oracle] fulltext error (non-fatal):', fulltextGraphRes.error);
+        if (stepbackRes.error) console.warn('[oracle] stepback error (non-fatal):', stepbackRes.error);
 
         matchesRes = matchesResRaw;
 
@@ -310,30 +339,44 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
 
         if ((graphResRaw as any).error) throw (graphResRaw as any).error;
 
-        // Merge graph results: entity-traversal + semantic + fulltext (RRF dedup)
-        // RRF score = 1/(rank+1) per list, sumowane po triple key
+        // MULTI-SIGNAL RRF MERGE (Graphiti + Mem0 + NirDiamant patterns)
+        // RRF formula: score += 1/(rank + k) per list; k=1 primary, k=2 secondary, k=3 background
         const entityGraphData = graphResRaw.data || [];
 
         const tripleKey = (r: any) => `${r.source_entity}|${r.relation}|${r.target_entity}`;
         const rrfScores: Record<string, number> = {};
         const rrfMap: Record<string, any> = {};
 
-        // Vector semantic results — primary signal
-        (semanticGraphRes.data || []).forEach((r: any, i: number) => {
-          const k = tripleKey(r);
-          rrfScores[k] = (rrfScores[k] || 0) + 1 / (i + 1);
-          rrfMap[k] = r;
-        });
-        // Full-text BM25-like results — secondary signal
-        (fulltextGraphRes.data || []).forEach((r: any, i: number) => {
-          const k = tripleKey(r);
-          rrfScores[k] = (rrfScores[k] || 0) + 1 / (i + 2); // k=2 constant, slight down-weight
-          if (!rrfMap[k]) rrfMap[k] = r;
-        });
+        // Entity boost (Mem0 pattern): entities mentioned in query get score boost
+        // Inverse of evidence_count to avoid over-boosting popular entities
+        const queryLower = current_query.toLowerCase();
+        const entityBoost = (r: any): number => {
+          const srcMatch = queryLower.includes((r.source_entity || '').toLowerCase());
+          const tgtMatch = queryLower.includes((r.target_entity || '').toLowerCase());
+          const evidence = r.evidence_count || 1;
+          if (srcMatch || tgtMatch) return 0.4 / Math.sqrt(evidence); // Mem0: boost ÷ sqrt(popularity)
+          return 0;
+        };
+
+        const addToRRF = (results: any[], k: number, weight = 1.0) => {
+          (results || []).forEach((r: any, i: number) => {
+            const key = tripleKey(r);
+            const boost = entityBoost(r);
+            rrfScores[key] = (rrfScores[key] || 0) + weight * (1 / (i + k)) + boost;
+            if (!rrfMap[key]) rrfMap[key] = r;
+          });
+        };
+
+        addToRRF(semanticGraphRes.data, 1, 1.0);          // vector — primary (k=1, w=1.0)
+        addToRRF(fulltextGraphRes.data, 2, 0.8);          // BM25 original query (k=2, w=0.8)
+        addToRRF(stepbackRes.data, 2, 0.5);               // step-back broader context (w=0.5)
+        subQueryResults.forEach(r => addToRRF(r?.data, 2, 0.4)); // sub-queries (w=0.4 each)
 
         const rrfRanked = Object.entries(rrfScores)
           .sort(([, a], [, b]) => b - a)
           .map(([k]) => rrfMap[k]);
+
+        console.log(`[oracle] RRF pool: vector=${semanticGraphRes.data?.length||0} ft=${fulltextGraphRes.data?.length||0} stepback=${stepbackRes.data?.length||0} subs=${subQueryResults.reduce((a,r)=>a+(r?.data?.length||0),0)} → merged=${rrfRanked.length}`);
 
         const semanticGraphData = rrfRanked.filter((sg: any) =>
           !entityGraphData.some((eg: any) =>
@@ -445,7 +488,14 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
         }
 
         if (rankedGraphData.length > 0) {
-          graphContext = "\n[GRAF POWIĄZAŃ (Re-ranked, top 20)]:\n" + rankedGraphData.map((g: any) => `- ${g.source_entity} ${g.relation} ${g.target_entity}`).join('\n');
+          // Use fact_text when available (Graphiti-style rich description) → LLM has full context
+          // Fallback to bare triple + metadata for older links without fact_text
+          graphContext = "\n[GRAF POWIĄZAŃ (Re-ranked, top 20)]:\n" + rankedGraphData.map((g: any) => {
+            if (g.fact_text) return `- ${g.fact_text}`;
+            const conf = g.confidence_score ? ` [conf:${g.confidence_score.toFixed(2)}]` : '';
+            const evid = g.evidence_count && g.evidence_count > 1 ? ` N=${g.evidence_count}` : '';
+            return `- ${g.source_entity} ${g.relation} ${g.target_entity}${conf}${evid}`;
+          }).join('\n');
         }
 
         if (graphRes.data && graphRes.data.length > 0) {
