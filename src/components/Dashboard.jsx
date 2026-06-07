@@ -22,6 +22,7 @@ import Stats from './Stats';
 import Fundament from './Fundament';
 import OuraWidget from './OuraWidget';
 import DailyStrainCard from './DailyStrainCard';
+import SleepDebtCard from './SleepDebtCard';
 import StravaWidget from './StravaWidget';
 import AIInsight from './AIInsight';
 import MuscleHeatmap from './MuscleHeatmap';
@@ -374,6 +375,7 @@ export default function Dashboard({ session }) {
             <section className="space-y-5">
               <SectionHeader title="Body" detail="Pomiary, regeneracja i podstawowe sygnały. Bez wykresów dla wykresów." />
               <DailyStrainCard session={session} />
+              <SleepDebtCard session={session} />
               <Stats
                 session={session}
                 topSlot={(
