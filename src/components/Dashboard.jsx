@@ -200,6 +200,7 @@ export default function Dashboard({ session }) {
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
   const { isSyncing, setSyncing } = useStore();
   const {
     weeklyCalories,
@@ -216,6 +217,41 @@ export default function Dashboard({ session }) {
   useEffect(() => {
     localStorage.setItem('vanguard_view', view);
   }, [view]);
+
+  const syncAll = useCallback(async () => {
+    if (isSyncingAll) return;
+    setIsSyncingAll(true);
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    const call = async (fn, body = {}) => {
+      const res = await fetch(`${base}/functions/v1/${fn}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) console.warn(`[syncAll] ${fn} ${res.status}`);
+    };
+    try {
+      // 1. źródła równolegle
+      await Promise.all([
+        call('sync-yazio', { userId, sync_history: true, days: 7 }),
+        call('sync-strava', {}),
+        call('sync-oura', { userId }),
+      ]);
+      // 2. warstwy pochodne Oura
+      await Promise.all([
+        call('sync-oura-enhanced', { userId, days: 2 }),
+        call('sync-oura-timeseries', { userId, days: 2 }),
+      ]);
+      // 3. przelicz strain
+      await call('compute-daily-strain', { userId, days: 2 });
+      // 4. odśwież dane
+      refresh();
+    } catch (err) {
+      console.error('[syncAll] error:', err);
+    } finally {
+      setIsSyncingAll(false);
+    }
+  }, [isSyncingAll, accessToken, userId, refresh]);
 
   const syncCalendar = useCallback(async () => {
     setSyncing(true);
@@ -331,6 +367,14 @@ export default function Dashboard({ session }) {
             <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">{format(new Date(), 'EEEE, d MMMM')}</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={syncAll}
+              disabled={isSyncingAll}
+              className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10 disabled:opacity-40"
+              title="Sync wszystkiego (Oura + Yazio + Strava + Strain)"
+            >
+              <RefreshCw size={16} className={isSyncingAll ? 'animate-spin text-primary' : 'text-white/45'} />
+            </button>
             <button onClick={() => setView('fundament')} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="Fundament">
               <Fingerprint size={16} className="text-primary" />
             </button>
