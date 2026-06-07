@@ -8,7 +8,6 @@ import {
   Dumbbell,
   Fingerprint,
   Gauge,
-  Layout,
   LogOut,
   Play,
   RefreshCw,
@@ -30,8 +29,8 @@ const Photos = lazy(() => import('./Photos'));
 const Direction = lazy(() => import('./Direction'));
 
 const normalizeView = (view) => {
-  if (!view || view === 'workout' || view === 'mentor') return 'mirror';
-  if (view === 'stream' || view === 'plan') return 'mirror';
+  if (!view || view === 'workout' || view === 'mentor' || view === 'mirror') return 'body';
+  if (view === 'stream' || view === 'plan') return 'body';
   if (view === 'stats') return 'body';
   if (view === 'direction') return 'progress';
   return view;
@@ -350,10 +349,9 @@ export default function Dashboard({ session }) {
   const weeklyBudget = 12600;
 
   const navItems = [
-    { id: 'mirror', icon: Layout, label: 'Mirror' },
     { id: 'body', icon: Activity, label: 'Body' },
     { id: 'progress', icon: Brain, label: 'Progress' },
-    { id: 'photos', icon: Camera, label: 'Photos' }
+    { id: 'photos', icon: Camera, label: 'Photos' },
   ];
 
   return (
@@ -383,64 +381,40 @@ export default function Dashboard({ session }) {
         </header>
 
         <main className="flex-1 space-y-6 p-5 animate-in fade-in duration-500">
-          {view === 'mirror' && (
-            <>
-              <section className="space-y-3">
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">System Mirror</p>
-                  <h2 className="mt-1 text-[18px] font-black uppercase tracking-tight text-white">Briefing operacyjny</h2>
-                </div>
-                <StateBrief
-                  state={operationalState}
-                  readiness={readiness}
-                  doneCount={doneCount}
-                  hasWorkoutToday={hasWorkoutToday}
-                  weeklyCalories={weeklyCalories}
-                  weeklyBudget={weeklyBudget}
-                  onWorkoutClick={() => setShowWorkoutLogger(true)}
-                />
-              </section>
-
-              <AIInsight session={session} />
-
-              <section className="space-y-3">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/35">Next Move</p>
-                    <h2 className="mt-1 text-[15px] font-black uppercase tracking-tight text-white">Jedna akcja teraz</h2>
-                  </div>
-                  <p className="pb-0.5 text-[9px] font-bold uppercase tracking-widest text-white/24">Command Area</p>
-                </div>
+          {view === 'body' && (
+            <Suspense fallback={<ViewFallback />}>
+              <section className="space-y-5">
+                <section className="space-y-3">
+                  <StateBrief
+                    state={operationalState}
+                    readiness={readiness}
+                    doneCount={doneCount}
+                    hasWorkoutToday={hasWorkoutToday}
+                    weeklyCalories={weeklyCalories}
+                    weeklyBudget={weeklyBudget}
+                    onWorkoutClick={() => setShowWorkoutLogger(true)}
+                  />
+                </section>
+                <AIInsight session={session} />
                 <CommandButton
                   icon={Dumbbell}
                   eyebrow="Physical Protocol"
                   label="Zaloguj trening"
                   onClick={() => setShowWorkoutLogger(true)}
                 />
-              </section>
-
-            </>
-          )}
-
-          {view === 'body' && (
-            <Suspense fallback={<ViewFallback />}>
-              <section className="space-y-5">
-              <SectionHeader title="Body" detail="Pomiary, regeneracja i podstawowe sygnały. Bez wykresów dla wykresów." />
-              <DailyStrainCard session={session} />
-              <Stats
-                session={session}
-                topSlot={(
-                  <>
+                <DailyStrainCard session={session} />
+                <Stats
+                  session={session}
+                  topSlot={(
                     <YazioWeeklyCard
                       weeklyCalories={weeklyCalories}
                       weeklyBudget={weeklyBudget}
                       syncYazio={syncYazio}
                       isSyncing={isSyncing}
                     />
-                  </>
-                )}
-                runningSlot={<StravaWidget session={session} />}
-              />
+                  )}
+                  runningSlot={<StravaWidget session={session} />}
+                />
               </section>
             </Suspense>
           )}
