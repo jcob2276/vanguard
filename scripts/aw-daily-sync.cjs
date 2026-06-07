@@ -133,7 +133,7 @@ async function syncDay(buckets, dateStr) {
   if (!windowBucket) return null;
 
   // ── Window events ──
-  let windowEvents = [];
+  let windowEvents;
   try { windowEvents = await getEvents(windowBucket, start, end); } catch { return null; }
   if (!Array.isArray(windowEvents) || windowEvents.length === 0) return null;
 
@@ -154,7 +154,9 @@ async function syncDay(buckets, dateStr) {
         const activeInWindow = Math.round(notAfkIntervals.reduce((s, i) => s + (i.end - i.start) / 1000, 0));
         totalAfkSeconds = Math.max(0, Math.round(timeAtComputer - activeInWindow));
       }
-    } catch {}
+    } catch (_err) {
+      // ActivityWatch buckets are optional; missing AFK data should not block window sync.
+    }
   }
 
   // Filtruj przez not-afk
@@ -218,7 +220,9 @@ async function syncDay(buckets, dateStr) {
           .sort((a, b) => b[1] - a[1]).slice(0, 20)
           .map(([domain, seconds]) => ({ domain, seconds: Math.round(seconds) }));
       }
-    } catch {}
+    } catch (_err) {
+      // Browser-domain capture is optional; keep app-level sync when web data is unavailable.
+    }
   }
 
   // ── Productivity ratio ──

@@ -40,9 +40,7 @@ export async function resolveUserScope(
  * Logs the error to console.error and throws an exception if the query fails,
  * preventing silent failures.
  */
-export async function safeExecute<T>(
-  promise: Promise<{ data: T; error: any }>
-): Promise<T> {
+export async function safeExecute(promise: any): Promise<any> {
   const { data, error } = await promise;
   if (error) {
     console.error("[Supabase Error]:", error);

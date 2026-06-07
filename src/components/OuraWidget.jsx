@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { syncOuraData } from '../lib/oura';
-import { Battery, Moon, Footprints, Star, RefreshCw, Key, Plus, Activity, Thermometer, Zap } from 'lucide-react';
+import { Battery, Moon, Footprints, RefreshCw, Key, Plus, Activity, Thermometer, Zap } from 'lucide-react';
 import { VanguardCore } from '../lib/vanguardCore';
 
 const TrendArrow = ({ current, previous, better = 'up' }) => {
@@ -21,11 +21,7 @@ export default function OuraWidget({ session }) {
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [tempToken, setTempToken] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const { data: userSettings, error: settingsError } = await supabase
@@ -77,7 +73,11 @@ export default function OuraWidget({ session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   async function handleSync() {
     if (!settings?.oura_token) {

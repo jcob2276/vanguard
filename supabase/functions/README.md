@@ -109,8 +109,8 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
-| `dojo-telegram` | **disabled** | Telegram webhook (disabled in code) | **false** | `dojo_runs`, `dojo_reps`, `dojo_curricula` | 600 | 2026-05-26 |
-| `dojo-scheduler` | **disabled** | pg_cron unscheduled (disabled in code) | **false** | `dojo_runs`, `dojo_curricula` | 158 | 2026-05-26 |
+| `dojo-telegram` | **disabled** | 410 stub | **false** | — | 14 | 2026-06-07 |
+| `dojo-scheduler` | **disabled** | 410 stub | **false** | — | 14 | 2026-06-07 |
 
 **Never** import `vanguard-*` from `dojo-*`. Separate secrets: `DOJO_TELEGRAM_*`.
 
@@ -131,7 +131,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 143 | 2026-05-26 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 132 | 2026-05-26 |
 | `sync-google-fit` | **deprecated** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
-| `google-fit-auth` | **deprecated** | OAuth redirect HTTP | **false** | — | 78 | 2026-05-26 |
+| `google-fit-auth` | **deprecated** | 410 stub | **false** | — | 18 | 2026-06-07 |
 
 > `sync-google-fit` + `google-fit-auth` — superseded by Strava. UI section removed from `Stats.jsx` (2026-05-26). No active callers. Delete-candidate: confirm no manual usage, then remove function folders.
 

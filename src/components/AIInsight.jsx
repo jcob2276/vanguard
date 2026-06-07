@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { gatherUserContext } from '../lib/aiContext';
 import { ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
@@ -8,7 +8,7 @@ export default function AIInsight({ session }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function fetchInsight() {
+  const fetchInsight = useCallback(async () => {
     if (!session?.user?.id) return;
 
     setLoading(true);
@@ -36,11 +36,11 @@ export default function AIInsight({ session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session]);
 
   useEffect(() => {
     fetchInsight();
-  }, [session?.user?.id]);
+  }, [fetchInsight]);
 
   if (loading) {
     return (

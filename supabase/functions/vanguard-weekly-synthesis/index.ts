@@ -87,18 +87,18 @@ serve(async (req) => {
 
     // --- Biometric averages ---
     const bio = biometrics || []
-    const sleepDays = bio.filter(b => b.sleep_hours != null)
-    const hrvDays = bio.filter(b => b.hrv_avg != null)
-    const execDays = bio.filter(b => b.execution_score != null)
+    const sleepDays = bio.filter((b: any) => b.sleep_hours != null)
+    const hrvDays = bio.filter((b: any) => b.hrv_avg != null)
+    const execDays = bio.filter((b: any) => b.execution_score != null)
 
     const avgSleep = sleepDays.length
-      ? (sleepDays.reduce((s, b) => s + b.sleep_hours, 0) / sleepDays.length).toFixed(1)
+      ? (sleepDays.reduce((s: number, b: any) => s + b.sleep_hours, 0) / sleepDays.length).toFixed(1)
       : null
     const avgHrv = hrvDays.length
-      ? Math.round(hrvDays.reduce((s, b) => s + b.hrv_avg, 0) / hrvDays.length)
+      ? Math.round(hrvDays.reduce((s: number, b: any) => s + b.hrv_avg, 0) / hrvDays.length)
       : null
     const avgExec = execDays.length
-      ? Math.round(execDays.reduce((s, b) => s + b.execution_score, 0) / execDays.length * 100)
+      ? Math.round(execDays.reduce((s: number, b: any) => s + b.execution_score, 0) / execDays.length * 100)
       : null
 
     // --- Build LLM context ---
@@ -107,7 +107,7 @@ serve(async (req) => {
       : 'brak'
 
     const frictionDetails = (frictionEvents || []).slice(0, 12)
-      .map(e => `[${e.occurred_at?.split('T')[0]}] ${e.friction_type}: ${e.deviation || e.actual_behavior || '—'}`)
+      .map((e: any) => `[${e.occurred_at?.split('T')[0]}] ${e.friction_type}: ${e.deviation || e.actual_behavior || '—'}`)
       .join('\n')
 
     const bioText = [
@@ -116,7 +116,7 @@ serve(async (req) => {
       `Wykonanie Top3: ${avgExec != null ? avgExec + '%' : 'brak'} (${execDays.length} dni)`,
     ].join(' | ')
 
-    const planningsText = (plannings || []).map(p => {
+    const planningsText = (plannings || []).map((p: any) => {
       const plan = p.planning_summary || {};
       const prodArtifact = plan.production_artifact?.artifact || plan.one_clear_move || '—';
       const minViable = plan.minimum_viable_day || '—';
@@ -129,7 +129,7 @@ serve(async (req) => {
     }).join('\n\n');
 
     const hypothesesText = (topHypotheses || []).length > 0
-      ? (topHypotheses || []).map(h =>
+      ? (topHypotheses || []).map((h: any) =>
           `[${h.category}, conf=${h.confidence_score?.toFixed(2)}] ${h.hypothesis}`
         ).join('\n')
       : 'Brak hipotez w kolejce.'
@@ -139,7 +139,7 @@ serve(async (req) => {
       : 'Brak silnych powtarzalnych wzorców w tym okresie.'
 
     const streamText = (stream || [])
-      .map(s => `[${s.created_at?.split('T')[0]}][${s.category || '—'}] ${s.content}`)
+      .map((s: any) => `[${s.created_at?.split('T')[0]}][${s.category || '—'}] ${s.content}`)
       .join('\n')
 
     // --- LLM synthesis ---

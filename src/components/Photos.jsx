@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Camera } from 'lucide-react';
+import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { pl } from 'date-fns/locale';
 
 export default function Photos({ session }) {
   const [loading, setLoading] = useState(true);

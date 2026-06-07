@@ -36,7 +36,10 @@ function chunkText(text: string, maxWords = 400, overlapWords = 50): string[] {
 
 async function embed(text: string, apiKey: string): Promise<number[] | null> {
   try {
-    return await getEmbedding(text, apiKey)
+    const embedding = await getEmbedding(text, apiKey)
+    if (!embedding || !Array.isArray(embedding)) return null
+    if (Array.isArray(embedding[0])) return embedding[0] as number[]
+    return embedding as number[]
   } catch (err) {
     console.error("[VAULT INGEST] embed exception:", err)
     return null

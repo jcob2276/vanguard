@@ -6,9 +6,7 @@
 
 export async function encryptData(text) {
   if (!text) return null;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-  
+
   // W uproszczonej wersji na potrzeby lokalne używamy Base64 z prostym przesunięciem 
   // (dla pełnego AES-GCM w Edge Functions potrzebny jest dostęp do Deno.env)
   // Na razie robimy bezpieczny 'Obfuscation Layer', który Claude uzna za poprawę.
@@ -23,7 +21,7 @@ export async function decryptData(encoded) {
   try {
     const reversed = encoded.split('').reverse().join('');
     return decodeURIComponent(escape(atob(reversed)));
-  } catch (e) {
+  } catch (_e) {
     return encoded; // Fallback jeśli dane nie były zaszyfrowane
   }
 }

@@ -1,0 +1,40 @@
+# Feature Lifecycle
+
+This file is the repository-level status map for integrations, subsystems, and legacy features. Use it before reviving old code paths.
+
+## Status Definitions
+
+- **Active**: production path or actively maintained local path. Bugs should be fixed in-place.
+- **Disabled**: intentionally present but not running. Keep isolation, do not extend without explicit reactivation.
+- **Deprecated**: replaced or scheduled for removal. Keep compatibility/stubs only.
+- **Dropped**: no active runtime path. Do not read, write, mock, or mention as an active signal.
+- **Legacy**: historical UI/data model. Build must not break, but new Vanguard Core work should not start here.
+
+## Current Map
+
+| Area | Status | Notes |
+|---|---|---|
+| Vanguard daily loop | Active | Morning brief, midday check, reconciliation, planning summary. |
+| Vanguard stream/friction path | Active | Single write path: `vanguard_stream` -> `vanguard-auto-classify` -> `friction_events`. |
+| Oracle chat | Active | Reasoning layer only; no direct graph/knowledge writes from chat turns. |
+| Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |
+| Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
+| Strava/Yazio/Todoist/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
+| ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
+| Practice Dojo | Disabled | Separate bot, secrets, and tables; functions should remain isolated. |
+| Google Fit | Deprecated | OAuth/function remnants are compatibility only; do not add new product logic here. |
+| `vanguard-intentions-cleanup` | Deprecated | 410-style inactive function; not in active no-JWT deploy set. |
+| StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. |
+| Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
+| Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
+| `docs/legacy/` | Legacy archive | Historical context only; do not implement from these docs. |
+
+## Audit Rule
+
+When a feature changes lifecycle status, update:
+
+1. This file.
+2. `docs/ARCHITECTURE.md` if it affects runtime flow.
+3. `supabase/functions/README.md` if it affects Edge Functions.
+4. `scripts/ops/smoke-manifest.mjs` and `scripts/ops/deploy-no-jwt.ps1` if it affects deployment or smoke coverage.
+5. `docs/APP_SEGMENTATION_AUDIT_MAP.md` if it affects audit segmentation.

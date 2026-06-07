@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 
@@ -22,11 +22,7 @@ export default function IdentityVault({ session: sessionProp }) {
     resolveUser();
   }, [sessionProp?.user?.id]);
 
-  useEffect(() => {
-    if (userId) fetchVault();
-  }, [userId]);
-
-  const fetchVault = async () => {
+  const fetchVault = useCallback(async () => {
     if (!userId) return;
     try {
       const { data } = await supabase
@@ -49,7 +45,11 @@ export default function IdentityVault({ session: sessionProp }) {
     } catch (err) {
       console.error('Fetch error:', err);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) fetchVault();
+  }, [fetchVault, userId]);
 
   const handleSave = async () => {
     let uid = userId;

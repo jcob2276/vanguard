@@ -562,7 +562,7 @@ STATUS: AKTYWNY BASELINE`;
 
     let statisticalRisk = 0;
     if (corr && corr.length > 0) {
-      corr.forEach(c => {
+      corr.forEach((c: any) => {
         const signalName = c.signal_name;
         const direction = ONTOLOGY[signalName];
         if (!direction) return;

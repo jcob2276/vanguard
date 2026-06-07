@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Compass, Plus, X, CheckCircle, Wind, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,9 +19,7 @@ export default function ManifestationBoard({ session }) {
   const [form, setForm] = useState({ text: '', type: 'slide', importance: 7, notes: '' });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchIntentions(); }, [session?.user?.id]);
-
-  async function fetchIntentions() {
+  const fetchIntentions = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from('vanguard_intentions')
@@ -31,7 +29,9 @@ export default function ManifestationBoard({ session }) {
       .order('created_at', { ascending: false });
     setIntentions(data || []);
     setLoading(false);
-  }
+  }, [session.user.id]);
+
+  useEffect(() => { fetchIntentions(); }, [fetchIntentions]);
 
   async function addIntention() {
     if (!form.text.trim()) return;

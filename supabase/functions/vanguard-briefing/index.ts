@@ -112,12 +112,12 @@ serve(async (req) => {
 
     const graphText = (links || []).length > 0
       ? '[GRAF — tylko current/declared, <21 dni]:\n' +
-        (links || []).map(l => `${l.source_entity} --(${l.relation})--> ${l.target_entity} [${l.temporal_status}]`).join('\n')
+        (links || []).map((l: any) => `${l.source_entity} --(${l.relation})--> ${l.target_entity} [${l.temporal_status}]`).join('\n')
       : 'Brak aktywnych krawędzi grafu z ostatnich 21 dni.'
 
     const frictionText = (recentFriction || []).length > 0
       ? '[FRICTION EVENTS (ostatnie 72h)]:\n' +
-        (recentFriction || []).map(f =>
+        (recentFriction || []).map((f: any) =>
           `- ${f.friction_type} | ${f.occurred_at} | koszt: ${f.immediate_cost || '—'} | odchylenie: ${f.deviation || '—'} [${f.confidence_source}]`
         ).join('\n')
       : 'Brak zalogowanych friction events z ostatnich 72h.'
@@ -141,13 +141,13 @@ serve(async (req) => {
 
     let biometryText = 'Brak danych biometrycznych.'
     if ((biometrics || []).length > 0 || (!sleepPending && latestOura)) {
-      let biometryLines = (biometrics || []).map(b =>
+      let biometryLines = (biometrics || []).map((b: any) =>
         `${b.date}: stan=${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours != null ? b.sleep_hours + 'h' : 'pending'}, HRV=${b.hrv_avg ?? 'pending'}, readiness=${b.readiness_score ?? 'pending'}`
       )
 
       if (!sleepPending && latestOura) {
         const todayLine = `${latestOura.date}: stan=pending (w trakcie dnia), exec=pending, sen=${latestOura.total_sleep_hours}h, HRV=${latestOura.hrv_avg ?? 'pending'}, readiness=${latestOura.readiness_score ?? 'pending'}`
-        if (!biometrics?.some(b => b.date === latestOura.date)) {
+        if (!biometrics?.some((b: any) => b.date === latestOura.date)) {
           biometryLines.unshift(todayLine)
         }
       }
@@ -266,7 +266,7 @@ ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`
       status: 200
     })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error("[briefing] error:", err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

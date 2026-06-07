@@ -301,7 +301,7 @@ ${recoveryText || 'Brak danych Oura.'}`
       status: 200
     })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error("[analyst] error:", err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

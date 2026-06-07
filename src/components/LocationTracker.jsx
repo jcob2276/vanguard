@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
-import { format } from 'date-fns';
 
 export default function LocationTracker({ session }) {
   const { userSettings, fetchUserSettings } = useStore();
@@ -11,15 +10,16 @@ export default function LocationTracker({ session }) {
 
   useEffect(() => {
     if (!userSettings) fetchUserSettings();
-  }, []);
+  }, [fetchUserSettings, userSettings]);
 
-  const POI = [
+  const POI = useMemo(() => [
     { name: 'Dom', lat: userSettings?.home_lat, lng: userSettings?.home_lng, radius: 150 },
     { name: 'Rzeszów-Centrum', lat: 50.0168, lng: 22.0070, radius: 300 },
-  ].filter(p => p.lat && p.lng);
+  ].filter(p => p.lat && p.lng), [userSettings?.home_lat, userSettings?.home_lng]);
 
   useEffect(() => {
-    if (!session?.user?.id || !navigator.geolocation) return;
+    const userId = session?.user?.id;
+    if (!userId || !navigator.geolocation) return;
 
     const handlePosition = async (position) => {
       const { latitude, longitude, accuracy } = position.coords;
@@ -46,7 +46,7 @@ export default function LocationTracker({ session }) {
 
         // Zapisz do bazy
         const { error } = await supabase.from('location_history').insert({
-          user_id: session.user.id,
+          user_id: userId,
           latitude,
           longitude,
           accuracy,
@@ -77,7 +77,7 @@ export default function LocationTracker({ session }) {
         navigator.geolocation.clearWatch(watchId.current);
       }
     };
-  }, [session]);
+  }, [POI, session?.user?.id]);
 
   // Funkcja Haversine do liczenia dystansu w metrach
   function getDistance(lat1, lon1, lat2, lon2) {

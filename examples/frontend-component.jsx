@@ -10,7 +10,7 @@
  *   - Tailwind dark theme: bg-neutral-950, border-white/[0.08], text-white/35
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { RefreshCw } from 'lucide-react';
 import DataStateNotice from './DataStateNotice';
@@ -23,7 +23,7 @@ export default function ExampleCard({ session }) {
 
   // ── DB read ──────────────────────────────────────────────────────────────────
   // CRITICAL: always filter by user_id — missing filter = data from other users
-  async function fetchRow() {
+  const fetchRow = useCallback(async () => {
     const { data, error: qErr } = await supabase
       .from('some_table')
       .select('*')
@@ -33,7 +33,7 @@ export default function ExampleCard({ session }) {
       .maybeSingle();
     if (qErr) { setError(qErr.message); setRow(null); }
     else setRow(data);
-  }
+  }, [session.user.id]);
 
   useEffect(() => {
     (async () => {
@@ -42,7 +42,7 @@ export default function ExampleCard({ session }) {
       await fetchRow();
       setLoading(false);
     })();
-  }, [session.user.id]);
+  }, [fetchRow]);
 
   // ── Edge function calls ──────────────────────────────────────────────────────
   async function refresh() {

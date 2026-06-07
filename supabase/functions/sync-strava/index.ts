@@ -453,13 +453,14 @@ serve(async (req) => {
 
     console.log(`[sync-strava] ${primaryActivities.length} primary, ${ouraActivities.length} Oura duplicates, ${ouraPairs.size} paired`);
 
-    const rows = activities.map((a: any) => {
+    const rows = [];
+    for (const a of activities) {
       const detail    = detailMap[a.id] || a;
       const isDup     = isOuraDuplicate(a);
       const ouraDetail = isDup ? null : ouraPairs.get(a.id) ?? null;
 
       // --- HR resolution ---
-      // Priority: Strava native HR (GPS watch) > Oura overlay
+      // Priority: Strava native HR (GPS watch) > Oura overlay > DB oura_heartrate fallback
       let hrAvg: number | null    = null;
       let hrMax: number | null    = null;
       let hrSource: string | null = null;
@@ -484,13 +485,76 @@ serve(async (req) => {
           detail.splits_metric || [],
           ouraDetail.splits_metric || []
         );
+      } else if (!isDup) {
+        // Fallback: Query Oura HR samples from oura_heartrate table for this activity's window
+        const startTime = new Date(a.start_date);
+        const duration = a.elapsed_time || a.moving_time || 0;
+        const endTime = new Date(startTime.getTime() + duration * 1000);
+
+        const { data: dbHrSamples } = await supabase
+          .from('oura_heartrate')
+          .select('ts, bpm')
+          .eq('user_id', VANGUARD_USER_ID)
+          .gte('ts', startTime.toISOString())
+          .lte('ts', endTime.toISOString())
+          .order('ts', { ascending: true });
+
+        if (dbHrSamples && dbHrSamples.length > 0) {
+          const bpms = dbHrSamples.map(r => r.bpm);
+          hrAvg = Math.round(bpms.reduce((sum, val) => sum + val, 0) / bpms.length);
+          hrMax = Math.max(...bpms);
+          hrSource = 'oura';
+          hrFrozen = detectFrozenSensor(detail.splits_metric || [], hrMax);
+
+          // Calculate split HRs
+          const splits = detail.splits_metric || [];
+          let currentOffsetMs = 0;
+          const newSplits = [];
+          for (const split of splits) {
+            const splitElapsed = split.elapsed_time || split.moving_time;
+            const splitStart = new Date(startTime.getTime() + currentOffsetMs);
+            const splitEnd = new Date(startTime.getTime() + currentOffsetMs + splitElapsed * 1000);
+            currentOffsetMs += splitElapsed * 1000;
+
+            const splitSamples = dbHrSamples.filter(r => {
+              const t = new Date(r.ts).getTime();
+              return t >= splitStart.getTime() && t < splitEnd.getTime();
+            });
+
+            let splitAvg = null;
+            if (splitSamples.length > 0) {
+              const sum = splitSamples.reduce((sum, val) => sum + val.bpm, 0);
+              splitAvg = Math.round(sum / splitSamples.length);
+            } else {
+              // nearest sample fallback
+              let nearest = null;
+              let minDiff = Infinity;
+              const splitMid = splitStart.getTime() + (splitElapsed * 1000) / 2;
+              for (const r of dbHrSamples) {
+                const diff = Math.abs(new Date(r.ts).getTime() - splitMid);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  nearest = r.bpm;
+                }
+              }
+              splitAvg = nearest;
+            }
+
+            newSplits.push({
+              ...split,
+              average_heartrate: splitAvg
+            });
+          }
+          splitsWithHR = newSplits;
+          console.log(`[sync-strava] Resolved HR from DB oura_heartrate for activity ${a.id}: avg=${hrAvg}, max=${hrMax}, samples=${dbHrSamples.length}`);
+        }
       }
 
       // Strip segment_efforts from raw_data to keep storage lean
       // (segment PRs are signalled via pr_count + achievement_count)
       const { segment_efforts: _seg, ...detailLean } = detail;
 
-      return {
+      rows.push({
         strava_id:            a.id,
         user_id:              VANGUARD_USER_ID,
         name:                 a.name || null,
@@ -523,8 +587,8 @@ serve(async (req) => {
         // Raw data (without heavy segment_efforts array)
         raw_data:             detailLean,
         synced_at:            new Date().toISOString()
-      };
-    });
+      });
+    }
 
     const { error } = await supabase
       .from('strava_activities')

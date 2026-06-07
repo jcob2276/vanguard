@@ -235,19 +235,19 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
             match_threshold: 0.35,
             match_count: 5,
             user_id_param: user_id
-          }) : Promise.resolve({ data: [] }),
+          }) : Promise.resolve({ data: [], error: null } as any),
           // Semantyczne szukanie trójek po embeddingach
           embedding ? supabase.rpc('search_entity_links', {
             query_embedding: embedding,
             match_user_id: user_id,
             match_count: 15
-          }) : Promise.resolve({ data: [] }),
+          }) : Promise.resolve({ data: [], error: null } as any),
           // HippoRAG: znajdź encje semantycznie bliskie pytaniu → użyj jako seeds
           embedding ? supabase.rpc('find_entity_seeds_by_embedding', {
             query_embedding: embedding,
             match_user_id: user_id,
             match_count: 6
-          }) : Promise.resolve({ data: [] })
+          }) : Promise.resolve({ data: [], error: null } as any)
         ]);
 
         if (matchesResRaw.error) throw matchesResRaw.error;

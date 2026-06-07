@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -6,11 +6,7 @@ export default function BrainHealth({ session }) {
   const [report, setReport] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchReport();
-  }, []);
-
-  async function fetchReport() {
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_brain_health_report', { 
@@ -23,7 +19,11 @@ export default function BrainHealth({ session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   return (
     <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 space-y-4">

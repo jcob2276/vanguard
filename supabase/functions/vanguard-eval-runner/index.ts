@@ -153,18 +153,19 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
         console.log(`[eval] Q[${q.id.substring(0,8)}] score=${judgment.score.toFixed(2)} passed=${judgment.passed}`);
         await new Promise(r => setTimeout(r, 300));
 
-      } catch (err) {
+      } catch (err: any) {
         console.error(`[eval] Error on Q[${q.id}]:`, err);
         failed++;
-        await supabase.from('vanguard_eval_results').insert({
+        const { error: insertErr } = await supabase.from('vanguard_eval_results').insert({
           run_id, user_id,
           question_id: q.id,
           question: q.question,
           answer: '', score: 0, passed: false,
           judge_notes: `Runner exception: ${err.message}`
-        }).catch((insertErr) => {
-          console.error(`[eval] Failed to save error result for Q[${q.id}]:`, insertErr);
         });
+        if (insertErr) {
+          console.error(`[eval] Failed to save error result for Q[${q.id}]:`, insertErr);
+        }
       }
     }
 
@@ -217,15 +218,16 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       console.log(`[eval] Batch done run=${run_id} offset=${offset} questions=${questions.length}`);
     }
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[eval] Fatal in runEval:', err);
-    await supabase.from('vanguard_eval_runs').update({
+    const { error: updateErr } = await supabase.from('vanguard_eval_runs').update({
       status: 'failed',
       summary: { error: err.message, passed, failed },
       completed_at: new Date().toISOString()
-    }).eq('id', run_id).catch((updateErr) => {
+    }).eq('id', run_id);
+    if (updateErr) {
       console.error(`[eval] Failed to mark run ${run_id} as failed:`, updateErr);
-    });
+    }
   }
 }
 
@@ -327,7 +329,7 @@ serve(async (req) => {
       status: 200
     });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[eval-runner] Fatal error:', err);
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

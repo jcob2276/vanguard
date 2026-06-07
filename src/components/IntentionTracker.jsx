@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Calendar, Target, AlertTriangle, ShieldCheck, Zap } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-export default function IntentionTracker({ session, todayWin, stability, operationalState }) {
+export default function IntentionTracker({ todayWin, stability }) {
   const [currentIntent, setCurrentIntent] = useState(null);
   const [loading, setLoading] = useState(true);
 

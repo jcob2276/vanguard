@@ -1,11 +1,8 @@
 import { supabase } from './supabase';
-import { format, subDays, parseISO } from 'date-fns';
-
-const OURA_BASE_URL = 'https://corsproxy.io/?' + encodeURIComponent('https://api.ouraring.com/v2/usercollection');
 
 export async function syncOuraData(userId) {
   try {
-    const { data, error } = await supabase.functions.invoke('sync-oura', {
+    const { error } = await supabase.functions.invoke('sync-oura', {
       body: { userId }
     });
 

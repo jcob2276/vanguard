@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { gatherUserContext } from '../lib/aiContext';
-import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import { Send, Sparkles, RefreshCw, User, Bot, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
 
 export default function MentorChat({ session }) {
   const [messages, setMessages] = useState([]);
@@ -12,19 +10,11 @@ export default function MentorChat({ session }) {
   const [fetchingHistory, setFetchingHistory] = useState(true);
   const messagesEndRef = useRef(null);
 
-  useEffect(() => {
-    fetchHistory();
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  async function fetchHistory() {
+  const fetchHistory = useCallback(async () => {
     setFetchingHistory(true);
     const { data, error } = await supabase
       .from('ai_chat_messages')
@@ -34,7 +24,15 @@ export default function MentorChat({ session }) {
     
     if (!error && data) setMessages(data);
     setFetchingHistory(false);
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   async function clearHistory() {
     if (!confirm('Czy na pewno chcesz wyczyścić pamięć systemu?')) return;

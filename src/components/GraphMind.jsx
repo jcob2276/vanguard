@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Share, Users, Zap, Activity } from 'lucide-react';
 
@@ -9,26 +9,9 @@ export default function GraphMind({ session }) {
   const [allData, setAllData] = useState({ nodes: [], edges: [] });
   const networkRef = useRef(null);
 
-  useEffect(() => {
-    // Ładowanie vis-network z CDN
-    const script = document.createElement('script');
-    script.src = "https://unpkg.com/vis-network/standalone/umd/vis-network.min.js";
-    script.async = true;
-    script.onload = () => initGraph();
-    document.body.appendChild(script);
 
-    return () => {
-      if (networkRef.current) {
-        networkRef.current.destroy();
-        networkRef.current = null;
-      }
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
 
-  async function initGraph() {
+  const initGraph = useCallback(async () => {
     const { data, error } = await supabase
       .from('vanguard_entity_links')
       .select('source_entity, source_type, target_entity, target_type, relation, temporal_status, evidence_count')
@@ -115,7 +98,26 @@ export default function GraphMind({ session }) {
       nodes: new window.vis.DataSet(nodesArray), 
       edges: new window.vis.DataSet(edges) 
     }, options);
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    // Ładowanie vis-network z CDN
+    const script = document.createElement('script');
+    script.src = "https://unpkg.com/vis-network/standalone/umd/vis-network.min.js";
+    script.async = true;
+    script.onload = () => initGraph();
+    document.body.appendChild(script);
+
+    return () => {
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [initGraph]);
 
   useEffect(() => {
     if (!networkRef.current || allData.nodes.length === 0) return;
@@ -132,7 +134,6 @@ export default function GraphMind({ session }) {
       const nodeIds = new Set(directNodes.map(n => n.id));
       const connectedEdges = allData.edges.filter(e => nodeIds.has(e.from) || nodeIds.has(e.to));
       const connectedNodeIds = new Set([...connectedEdges.map(e => e.from), ...connectedEdges.map(e => e.to)]);
-      activeEdges = connectedEdges;
       const filteredNodes = allData.nodes.filter(n => connectedNodeIds.has(n.id));
       const filteredEdgeSubset = filteredNodes.length > 0
         ? allData.edges.filter(e => connectedNodeIds.has(e.from) && connectedNodeIds.has(e.to))

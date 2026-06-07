@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Terminal, Send, MessageSquare } from 'lucide-react';
+import { Terminal, Send } from 'lucide-react';
 
 export default function ThoughtStream({ session }) {
   const [thought, setThought] = useState('');
   const [recentThoughts, setRecentThoughts] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const fetchRecent = useCallback(async () => {
+    const { data } = await supabase
+      .from('vanguard_stream')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(3);
+    if (data) setRecentThoughts(data);
+  }, [session.user.id]);
 
   useEffect(() => {
     fetchRecent();
@@ -19,17 +29,7 @@ export default function ThoughtStream({ session }) {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);
-
-  async function fetchRecent() {
-    const { data } = await supabase
-      .from('vanguard_stream')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(3);
-    if (data) setRecentThoughts(data);
-  }
+  }, [fetchRecent]);
 
   async function sendThought(e) {
     if (e) e.preventDefault();

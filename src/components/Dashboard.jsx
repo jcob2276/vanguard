@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import {
   Activity,
@@ -17,19 +17,20 @@ import {
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { useDashboardData } from '../hooks/useDashboardData';
-import WorkoutLogger from './WorkoutLogger';
-import Stats from './Stats';
-import Fundament from './Fundament';
-import OuraWidget from './OuraWidget';
-import DailyStrainCard from './DailyStrainCard';
-import SleepDebtCard from './SleepDebtCard';
-import StravaWidget from './StravaWidget';
 import AIInsight from './AIInsight';
-import MuscleHeatmap from './MuscleHeatmap';
-import Photos from './Photos';
-import Direction from './Direction';
 import PowerList from './PowerList';
 import IntentionTracker from './IntentionTracker';
+
+const WorkoutLogger = lazy(() => import('./WorkoutLogger'));
+const Stats = lazy(() => import('./Stats'));
+const Fundament = lazy(() => import('./Fundament'));
+const OuraWidget = lazy(() => import('./OuraWidget'));
+const DailyStrainCard = lazy(() => import('./DailyStrainCard'));
+const SleepDebtCard = lazy(() => import('./SleepDebtCard'));
+const StravaWidget = lazy(() => import('./StravaWidget'));
+const MuscleHeatmap = lazy(() => import('./MuscleHeatmap'));
+const Photos = lazy(() => import('./Photos'));
+const Direction = lazy(() => import('./Direction'));
 
 const normalizeView = (view) => {
   if (!view || view === 'workout' || view === 'mentor') return 'mirror';
@@ -44,6 +45,14 @@ function SectionHeader({ title, detail }) {
     <div className="space-y-1">
       <h2 className="text-[11px] font-black uppercase tracking-[0.22em] text-white">{title}</h2>
       {detail && <p className="text-[11px] font-semibold leading-relaxed text-white/40">{detail}</p>}
+    </div>
+  );
+}
+
+function ViewFallback() {
+  return (
+    <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </div>
   );
 }
@@ -188,6 +197,8 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
 }
 
 export default function Dashboard({ session }) {
+  const userId = session?.user?.id;
+  const accessToken = session?.access_token;
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const { isSyncing, setSyncing } = useStore();
@@ -207,17 +218,36 @@ export default function Dashboard({ session }) {
     localStorage.setItem('vanguard_view', view);
   }, [view]);
 
-  async function handleGoogleCallback(code) {
+  const syncCalendar = useCallback(async () => {
+    setSyncing(true);
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ userId })
+      });
+      refresh();
+    } catch (err) {
+      console.error('Calendar Sync Error:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }, [accessToken, refresh, setSyncing, userId]);
+
+  const handleGoogleCallback = useCallback(async (code) => {
     setSyncing(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          userId: session.user.id,
+          userId,
           code,
           redirectUri: window.location.origin
         })
@@ -232,26 +262,7 @@ export default function Dashboard({ session }) {
     } finally {
       setSyncing(false);
     }
-  }
-
-  async function syncCalendar() {
-    setSyncing(true);
-    try {
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ userId: session?.user?.id })
-      });
-      refresh();
-    } catch (err) {
-      console.error('Calendar Sync Error:', err);
-    } finally {
-      setSyncing(false);
-    }
-  }
+  }, [accessToken, setSyncing, syncCalendar, userId]);
 
   function startGoogleAuth() {
     const root = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -272,11 +283,15 @@ export default function Dashboard({ session }) {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    if (code && session) handleGoogleCallback(code);
-  }, [session]);
+    if (code && userId) handleGoogleCallback(code);
+  }, [handleGoogleCallback, userId]);
 
   if (view === 'fundament') {
-    return <Fundament session={session} onBack={() => setView('mirror')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />;
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <Fundament session={session} onBack={() => setView('mirror')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
+      </Suspense>
+    );
   }
 
   if (loading) {
@@ -291,7 +306,11 @@ export default function Dashboard({ session }) {
   }
 
   if (showWorkoutLogger) {
-    return <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />;
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
+      </Suspense>
+    );
   }
 
   const doneCount = todayWin ? [1, 2, 3, 4, 5].filter((i) => todayWin[`done_${i}`]).length : 0;
@@ -372,7 +391,8 @@ export default function Dashboard({ session }) {
           )}
 
           {view === 'body' && (
-            <section className="space-y-5">
+            <Suspense fallback={<ViewFallback />}>
+              <section className="space-y-5">
               <SectionHeader title="Body" detail="Pomiary, regeneracja i podstawowe sygnały. Bez wykresów dla wykresów." />
               <DailyStrainCard session={session} />
               <SleepDebtCard session={session} />
@@ -391,24 +411,29 @@ export default function Dashboard({ session }) {
                 )}
                 runningSlot={<StravaWidget session={session} />}
               />
-            </section>
+              </section>
+            </Suspense>
           )}
 
           {view === 'progress' && (
-            <section className="space-y-4">
+            <Suspense fallback={<ViewFallback />}>
+              <section className="space-y-4">
               <SectionHeader
                 title="Progress"
                 detail="Tu wraca postęp, tygodniowe wykrywanie, kierunek i wzorce. Nie jest to czat, tylko przegląd trajektorii."
               />
               <Direction session={session} />
-            </section>
+              </section>
+            </Suspense>
           )}
 
           {view === 'photos' && (
-            <section className="space-y-5">
+            <Suspense fallback={<ViewFallback />}>
+              <section className="space-y-5">
               <Photos session={session} />
               <MuscleHeatmap session={session} />
-            </section>
+              </section>
+            </Suspense>
           )}
         </main>
 

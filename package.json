@@ -7,9 +7,11 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "preview": "vite preview",
-    "typecheck": "deno check supabase/functions/vanguard-telegram/index.ts supabase/functions/vanguard-analyst/index.ts supabase/functions/vanguard-architect/index.ts",
+    "typecheck": "node scripts/check-edge-functions.mjs",
+    "audit:registry": "node scripts/audit-registry.mjs",
+    "smoke:ui": "node scripts/smoke-ui.mjs",
     "oss:audit": "node scripts/oss-audit.mjs",
     "smoke": "node scripts/smoke-vanguard.mjs --with-service-role",
     "smoke:safe": "node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe"

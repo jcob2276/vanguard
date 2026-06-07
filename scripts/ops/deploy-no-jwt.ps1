@@ -20,6 +20,8 @@ $all = @(
   "vanguard-architect",
   "ingest-vault-log",
   "vanguard-analyst",
+  "vanguard-eval-runner",
+  "vanguard-graph-embedder",
   "save-daily-aggregate",
   "sync-strava",
   "analyze-training"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Flame, BatteryCharging, Utensils, Gauge, RefreshCw } from 'lucide-react';
 import DataStateNotice from './DataStateNotice';
@@ -58,7 +58,7 @@ export default function DailyStrainCard({ session }) {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchRow() {
+  const fetchRow = useCallback(async () => {
     const { data, error: queryError } = await supabase.from('daily_strain')
       .select('*').eq('user_id', session.user.id)
       .order('date', { ascending: false }).limit(1).maybeSingle();
@@ -69,7 +69,7 @@ export default function DailyStrainCard({ session }) {
     } else {
       setRow(data);
     }
-  }
+  }, [session.user.id]);
 
   useEffect(() => {
     (async () => {
@@ -78,7 +78,7 @@ export default function DailyStrainCard({ session }) {
       await fetchRow();
       setLoading(false);
     })();
-  }, [session.user.id]);
+  }, [fetchRow]);
 
   // Pełny refresh: sync źródeł → warstwy pochodne Oura → przelicz strain → odśwież
   async function refresh() {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { format, startOfWeek } from 'date-fns';
-import { VanguardCore } from '../lib/vanguardCore';
+import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 
 export function useDashboardData() {
   const [data, setData] = useState({
@@ -75,15 +75,12 @@ export function useDashboardData() {
         .limit(1)
         .maybeSingle();
 
-      const signals = await (async () => {
-        const { computeSignals } = await import('../lib/vanguardCore');
-        return computeSignals(
-          ouraData?.[0] || null,
-          todayData,
-          { protein: protData?.protein || 0 },
-          lastWorkout?.date || null
-        );
-      })();
+      const signals = computeSignals(
+        ouraData?.[0] || null,
+        todayData,
+        { protein: protData?.protein || 0 },
+        lastWorkout?.date || null
+      );
 
       const { score: realStability, state: realState } = await core.determineState(signals);
 

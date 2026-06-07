@@ -80,7 +80,8 @@ Edge function gotchas:
 7. [`BACKLOG.md`](BACKLOG.md) — intentionally deferred work
 8. `docs/runbooks/` — incident fixes
 9. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
-10. [`docs/legacy/`](docs/legacy/README.md) — **archive only; do not implement from here**
+10. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
+11. [`docs/legacy/`](docs/legacy/README.md) — **archive only; do not implement from here**
 
 ## Models (current)
 

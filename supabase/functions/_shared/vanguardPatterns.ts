@@ -51,7 +51,7 @@ export async function detectRecurringBlockers(
   const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString();
 
   // 1. Pobierz p2_parsed z ostatnich dni (z blockerami)
-  const { data: reconciliations } = await safeExecute(
+  const reconciliations = await safeExecute(
     supabase
       .from('daily_reconciliations')
       .select('date, p2_parsed')
@@ -211,7 +211,7 @@ export async function detectRecurringBlockers(
       const end = new Date(start);
       end.setDate(end.getDate() + corrWindow);
 
-      const { data: frictions } = await safeExecute(
+      const frictions = await safeExecute(
         supabase
           .from('friction_events')
           .select('friction_type, occurred_at, event_kind')
@@ -341,7 +341,7 @@ export async function detectPlanAdherenceGaps(
     ),
   ]);
 
-  const plan = (planRow as any)?.data?.planning_summary;
+  const plan = (planRow as any)?.planning_summary;
   if (!plan) return [];
 
   const prodArtifact = plan.production_artifact?.artifact || plan.one_clear_move;
@@ -349,9 +349,9 @@ export async function detectPlanAdherenceGaps(
 
   if (!prodArtifact && !tension) return [];
 
-  const p2 = (todayP2 as any)?.data?.p2_parsed;
-  const frictions = (todayFriction as any)?.data || [];
-  const agg = (todayAggregate as any)?.data;
+  const p2 = (todayP2 as any)?.p2_parsed;
+  const frictions = (todayFriction as any) || [];
+  const agg = todayAggregate as any;
 
   const gaps: string[] = [];
 
@@ -488,7 +488,7 @@ export async function getRecentStrongBehavioralPatterns(
       query = query.in('status', ['visible', 'user_confirmed', 'pending']);
     }
 
-    const { data } = await safeExecute(query);
+    const data = await safeExecute(query);
 
     if (!data || data.length === 0) return [];
 
@@ -620,7 +620,7 @@ export async function getRecentEarlyWarnings(
   limit = 5
 ): Promise<any[]> {
   try {
-    const { data } = await safeExecute(
+    const data = await safeExecute(
       supabase
         .from('vanguard_behavioral_patterns')
         .select('id, evidence_text, last_seen, confidence, status, metadata')
@@ -660,7 +660,7 @@ export async function detectMorningProtocolImpact(
   const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
 
   // Pobierz reconciliations z first_90_protected + operational_facts (phone_first)
-  const { data: recs } = await safeExecute(
+  const recs = await safeExecute(
     supabase
       .from('daily_reconciliations')
       .select('date, first_90_protected, planning_summary')
@@ -683,7 +683,7 @@ export async function detectMorningProtocolImpact(
     const phoneFirst = ops.phone_first === true;
 
     // Pobierz aggregate następnego dnia
-    const { data: nextAgg } = await safeExecute(
+    const nextAgg = await safeExecute(
       supabase
         .from('vanguard_daily_aggregates')
         .select('execution_score, identity_score, final_state')
@@ -764,7 +764,7 @@ export async function detectSleepFrictionLink(
   const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
 
   // Pobierz aggregates z sleep_hours
-  const { data: aggregates } = await safeExecute(
+  const aggregates = await safeExecute(
     supabase
       .from('vanguard_daily_aggregates')
       .select('date, sleep_hours')
@@ -788,7 +788,7 @@ export async function detectSleepFrictionLink(
     const isLowSleep = sleep < 6.5;
 
     // Pobierz friction_events następnego dnia
-    const { data: frictions } = await safeExecute(
+    const frictions = await safeExecute(
       supabase
         .from('friction_events')
         .select('friction_type')
@@ -864,7 +864,7 @@ export async function detectEarlyWarningSignals(
     .split('T')[0];
 
   // 1. Sprawdź ostatnie reconciliation pod kątem porannego dryfu (S2 sygnały)
-  const { data: recentRecs } = await safeExecute(
+  const recentRecs = await safeExecute(
     supabase
       .from('daily_reconciliations')
       .select('date, first_90_protected, planning_summary')
@@ -891,7 +891,7 @@ export async function detectEarlyWarningSignals(
   }
 
   // 2. Sprawdź czy był niski sen/fragmentacja/słaby stan w ostatnich dniach (S3 + nowości)
-  const { data: recentAggs } = await safeExecute(
+  const recentAggs = await safeExecute(
     supabase
       .from('vanguard_daily_aggregates')
       .select('date, sleep_hours, fragmentation_index, execution_score, final_state')
@@ -909,7 +909,7 @@ export async function detectEarlyWarningSignals(
   }
 
   // 3. Sprawdź czy w ostatnich dniach był aktywny recurring blocker (S1)
-  const { data: recentPatterns } = await safeExecute(
+  const recentPatterns = await safeExecute(
     supabase
       .from('vanguard_behavioral_patterns')
       .select('pattern_type, status, last_seen')
@@ -929,7 +929,7 @@ export async function detectEarlyWarningSignals(
 
   if (riskSignals.length >= 2) {
     // Cooldown + user rejection check
-    const { data: recentWarning } = await safeExecute(
+    const recentWarning = await safeExecute(
       supabase
         .from('vanguard_behavioral_patterns')
         .select('last_seen, status')
@@ -964,7 +964,7 @@ export async function detectEarlyWarningSignals(
   }
 
   // Reżim 2 (drugi prosty): Powtarzające się problemy z plan adherence
-  const { data: recentAdherenceWarnings } = await safeExecute(
+  const recentAdherenceWarnings = await safeExecute(
     supabase
       .from('vanguard_behavioral_patterns')
       .select('last_seen, confidence')
@@ -980,7 +980,7 @@ export async function detectEarlyWarningSignals(
 
   if (recentAdherenceCount >= 2) {
     // Cooldown check for second regime
-    const { data: recentWarning } = await safeExecute(
+    const recentWarning = await safeExecute(
       supabase
         .from('vanguard_behavioral_patterns')
         .select('last_seen')
@@ -1021,7 +1021,7 @@ export async function detectEarlyWarningSignals(
   }
 
   if (fragmentationSleepDays >= 2) {
-    const { data: recentWarning } = await safeExecute(
+    const recentWarning = await safeExecute(
       supabase
         .from('vanguard_behavioral_patterns')
         .select('last_seen, status')
@@ -1086,7 +1086,7 @@ export async function detectEarlyWarningSignals(
   }
 
   if (weekendAvoidance && mondayTuesdayDrift) {
-    const { data: recentWarning } = await safeExecute(
+    const recentWarning = await safeExecute(
       supabase
         .from('vanguard_behavioral_patterns')
         .select('last_seen, status')

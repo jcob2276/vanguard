@@ -70,7 +70,7 @@ serve(async (req) => {
                   if (!brand) brand = pInfo.manufacturer || pInfo.producer || pInfo.brand || null;
                   productCache[cacheKey] = JSON.stringify({ name: pInfo.name, nutrients: pInfo.nutrients || {}, brand: brand });
                 }
-              } catch (e) { console.log(`[Yazio] Fetch failed for ${item.product_id}:`, e.message); }
+              } catch (e: any) { console.log(`[Yazio] Fetch failed for ${item.product_id}:`, e.message); }
             }
           }
 
@@ -190,12 +190,12 @@ serve(async (req) => {
           sample = insertedSample || [];
         }
         results.push({ date: dateStr, items: foodEntries.length, inserted_count: insertedCount, calories: totalCals, sample });
-      } catch (err) {
+      } catch (err: any) {
         console.log(`Error ${dateStr}:`, err.message);
         results.push({ date: dateStr, error: err.message });
       }
       if (sync_history) await new Promise(r => setTimeout(r, 50));
     }
     return new Response(JSON.stringify({ success: true, results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error) { return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+  } catch (error: any) { return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
 })

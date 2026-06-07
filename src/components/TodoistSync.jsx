@@ -1,28 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Check, AlertCircle, RefreshCw, Key, CloudSync } from 'lucide-react';
 
 export default function TodoistSync({ session }) {
+  const userId = session?.user?.id;
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [status, setStatus] = useState(null);
 
-  useEffect(() => {
-    fetchToken();
-  }, [session?.user?.id]);
-
-  const fetchToken = async () => {
-    if (!session?.user?.id) return;
+  const fetchToken = useCallback(async () => {
+    if (!userId) return;
     const { data } = await supabase
       .from('user_settings')
       .select('todoist_token')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .maybeSingle();
     if (data?.todoist_token) {
       setToken(data.todoist_token);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchToken();
+  }, [fetchToken]);
 
   const handleSaveToken = async () => {
     setLoading(true);

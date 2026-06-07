@@ -1,107 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Trophy, Clock, Trash2, FileText, ChevronDown, ChevronUp, Scale, Ruler, Activity, Zap, TrendingUp, Target, Battery, CheckSquare } from 'lucide-react';
-import { format, differenceInDays, parseISO, startOfWeek, addWeeks, subDays } from 'date-fns';
+import { Clock, Trash2, Scale, Ruler, Activity, Zap, CheckSquare } from 'lucide-react';
+import { format, parseISO, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
-const START_DATE = new Date('2026-04-26');
-
-const TrendArrow = ({ current, previous, better = 'up' }) => {
-  if (previous === undefined || previous === null || current === undefined || current === null) return null;
-  
-  const diff = current - previous;
-  if (Math.abs(diff) < 0.01) return <span className="ml-1 text-neutral-500">→</span>;
-  
-  const isImproving = better === 'up' ? diff > 0 : diff < 0;
-  
-  return (
-    <span className={`ml-1 font-black ${isImproving ? 'text-dayC' : 'text-dayB'}`}>
-      {diff > 0 ? '↑' : '↓'}
-    </span>
-  );
-};
-
-const calculateProjection = (data, field, daysIntoFuture = 42) => {
-  if (!data || data.length < 3) return null;
-  
-  // Use last 14 days for a more relevant trend
-  const recentData = data.slice(-14);
-  const n = recentData.length;
-  
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-  const firstDay = new Date(recentData[0].date).getTime();
-  
-  recentData.forEach((d, i) => {
-    const x = i; // Days from start of sample
-    const val = Number(d[field]);
-    if (isNaN(val) || val === 0) return;
-    
-    sumX += x;
-    sumY += val;
-    sumXY += x * val;
-    sumXX += x * x;
-  });
-  
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-  const intercept = (sumY - slope * sumX) / n;
-  
-  // Predict value at current day index + daysIntoFuture
-  const currentIndex = n - 1;
-  const projectedValue = slope * (currentIndex + daysIntoFuture) + intercept;
-  const currentActual = recentData[n - 1][field];
-  
-  return {
-    value: projectedValue.toFixed(1),
-    change: (projectedValue - currentActual).toFixed(1)
-  };
-};
-
-const generateNarrative = (body, oura, sessions) => {
-  if (!sessions || sessions.length === 0) return null;
-
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-  // 1. Treningi
-  const lastWeekSessions = sessions.filter(s => new Date(s.date) >= sevenDaysAgo).length;
-  
-  // 2. Sen
-  const lastWeekSleep = oura?.filter(o => new Date(o.date) >= sevenDaysAgo && Number(o.total_sleep_hours) > 0);
-  const prevWeekSleep = oura?.filter(o => new Date(o.date) >= fourteenDaysAgo && new Date(o.date) < sevenDaysAgo && Number(o.total_sleep_hours) > 0);
-  
-  const avgSleepLast = lastWeekSleep?.length ? lastWeekSleep.reduce((acc, o) => acc + Number(o.total_sleep_hours), 0) / lastWeekSleep.length : 0;
-  const avgSleepPrev = prevWeekSleep?.length ? prevWeekSleep.reduce((acc, o) => acc + Number(o.total_sleep_hours), 0) / prevWeekSleep.length : 0;
-  
-  const sleepDiffMin = (lastWeekSleep?.length >= 2 && prevWeekSleep?.length >= 2) 
-    ? Math.round((avgSleepLast - avgSleepPrev) * 60) 
-    : 0;
-
-  // 3. Waga i Talia
-  const lastWeekBody = body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0);
-  const bodyDiffWeight = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
-  const bodyDiffWaist = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
-
-  let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
-  text += `Zrealizowałeś ${lastWeekSessions} treningi. `;
-  
-  if (sleepDiffMin !== 0) {
-    text += `Twój sen ${sleepDiffMin > 0 ? 'poprawił się' : 'pogorszył się'} średnio o ${Math.abs(sleepDiffMin)} min na dobę. `;
-  } else if (avgSleepLast > 0) {
-    text += `Średnio sypiałeś po ${Math.floor(avgSleepLast)}h ${Math.round((avgSleepLast % 1) * 60)}m. `;
-  }
-
-  if (bodyDiffWaist && bodyDiffWaist != 0) {
-    text += `W obwodzie pasa ${bodyDiffWaist < 0 ? 'zeszło' : 'przybyło'} ${Math.abs(bodyDiffWaist)} cm. `;
-  } else if (bodyDiffWeight && bodyDiffWeight != 0) {
-    text += `Waga ${bodyDiffWeight < 0 ? 'spadła' : 'wzrosła'} o ${Math.abs(bodyDiffWeight)} kg. `;
-  }
-
-  text += `Rób swoje, proces działa.`;
-  return text;
-};
-
 import { useStore } from '../store/useStore';
+import { calculateProjection, generateNarrative } from './stats/statsCalculations.js';
+import { TrendArrow } from './stats/TrendArrow.jsx';
 
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const { userSettings } = useStore();
@@ -110,8 +15,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [recentSessions, setRecentSessions] = useState([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
   const [nutritionData, setNutritionData] = useState([]);
-  const [weeklyStats, setWeeklyStats] = useState({ compliance: 0 });
-  const [correlation, setCorrelation] = useState(null);
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -135,33 +38,20 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [projections, setProjections] = useState(null);
   const [narrative, setNarrative] = useState('');
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  async function fetchStats() {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
       const [
         { data: body },
         { data: sessions },
         { data: oura },
-        { data: nutrition },
-        { data: settings }
+        { data: nutrition }
       ] = await Promise.all([
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('user_settings').select('*').eq('user_id', session.user.id).maybeSingle()
+        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60)
       ]);
-
-      if (sessions) {
-        const now = new Date();
-        const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-        const thisWeekSessions = sessions.filter(s => parseISO(s.date) >= thisWeekStart).length;
-        setWeeklyStats({ compliance: thisWeekSessions });
-      }
 
       if (body) setBodyData(body);
       
@@ -213,7 +103,11 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   async function saveMetrics(e) {
     e.preventDefault();
@@ -253,7 +147,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       } else {
         alert('Błąd synchronizacji: ' + res.error);
       }
-    } catch (err) {
+    } catch (_err) {
       alert('Błąd połączenia z funkcją');
     } finally {
       setIsSyncing(false);
@@ -310,7 +204,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       alert('Trening zaktualizowany!');
       setEditingSession(null);
       fetchStats();
-    } catch (err) {
+    } catch (_err) {
       alert('Błąd podczas aktualizacji');
     }
   }
@@ -445,16 +339,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         md += `- **Duch:** ${goals.goal_duch}\n`;
         md += `- **Konto:** ${goals.goal_konto}\n\n`;
       }
-
-      const dates = [...new Set([
-        ...sessions.map(s => s.date),
-        ...foodEntries.map(f => f.date),
-        ...nutritionEntries.map(n => n.date),
-        ...journalEntries.map(j => j.date),
-        ...telegramEntries.map(t => toWarsawDate(t.created_at)),
-        ...bodyMetrics.map(b => b.date),
-        ...(awSummary || []).map(a => a.date)
-      ])].sort();
 
       // Generate full date range to detect missing days
       const allDatesInRange = [];

@@ -25,7 +25,7 @@ serve(async (req) => {
         .order('created_at', { ascending: false }),
     )
 
-    const streamIds = (recentStream || []).map(s => s.id)
+    const streamIds = (recentStream || []).map((s: any) => s.id)
 
     const linkedFriction = streamIds.length > 0
       ? await safeExecute(
@@ -48,10 +48,10 @@ serve(async (req) => {
     const linked = linkedFriction || []
     const all7d  = allFriction7d  || []
 
-    const linkedIds = new Set(linked.map(f => f.stream_record_id))
+    const linkedIds = new Set(linked.map((f: any) => f.stream_record_id))
 
     // Stream bez friction events (potencjalne missy)
-    const noFriction = stream.filter(s => !linkedIds.has(s.id))
+    const noFriction = stream.filter((s: any) => !linkedIds.has(s.id))
 
     // Typy z 7 dni i statystyki event_kind
     const typeCounts: Record<string, number> = {}
@@ -73,27 +73,27 @@ serve(async (req) => {
       .join('\n')
 
     // Koszty
-    const withCost    = linked.filter(f => f.immediate_cost !== null).length
-    const withoutCost = linked.filter(f => f.immediate_cost === null).length
+    const withCost    = linked.filter((f: any) => f.immediate_cost !== null).length
+    const withoutCost = linked.filter((f: any) => f.immediate_cost === null).length
 
     // Przykłady z 48h — po 2 dobre i 2 podejrzane
-    const withDeviation = linked.filter(f => f.deviation !== null).slice(0, 2)
-    const noDeviation   = linked.filter(f => f.deviation === null).slice(0, 2)
+    const withDeviation = linked.filter((f: any) => f.deviation !== null).slice(0, 2)
+    const noDeviation   = linked.filter((f: any) => f.deviation === null).slice(0, 2)
 
-    const examplesGood = withDeviation.map(f =>
+    const examplesGood = withDeviation.map((f: any) =>
       `✅ ${f.friction_type}\n    intencja: ${f.declared_intention || '—'}\n    zachowanie: ${f.actual_behavior || '—'}\n    koszt: ${f.immediate_cost || 'null'}`
     ).join('\n\n')
 
-    const examplesCheck = noDeviation.map(f =>
+    const examplesCheck = noDeviation.map((f: any) =>
       `⚠️ ${f.friction_type} (brak deviation)\n    zachowanie: ${f.actual_behavior || '—'}\n    koszt: ${f.immediate_cost || 'null'}`
     ).join('\n\n')
 
-    const missExamples = noFriction.slice(0, 3).map(s =>
+    const missExamples = noFriction.slice(0, 3).map((s: any) =>
       `❓ [${s.category}] ${(s.content || '').substring(0, 80)}...`
     ).join('\n')
 
     // Confidence stats
-    const confValues = linked.map(f => f.confidence).filter(c => c !== null) as number[]
+    const confValues = linked.map((f: any) => f.confidence).filter((c: any) => c !== null) as number[]
     const avgConf = confValues.length > 0
       ? (confValues.reduce((a,b) => a+b, 0) / confValues.length).toFixed(2)
       : 'n/a'
@@ -168,7 +168,7 @@ aby przejrzeć pełną listę z ostatnich 48h.`
       report
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[friction-qa] error:', err)
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
