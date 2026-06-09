@@ -1307,19 +1307,19 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             {/* Per-day bars */}
             <div className="space-y-1.5">
               {analyzeResult.days.map(d => (
-                <div key={d.date} className="flex items-center gap-2">
+                <div key={d.date} className={`flex items-center gap-2 ${d.incomplete ? 'opacity-40' : ''}`}>
                   <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
                   <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
                         width: `${d.score}%`,
-                        backgroundColor: d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
+                        backgroundColor: d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
                       }}
                     />
                   </div>
-                  <span className={`w-6 shrink-0 text-[9px] font-black text-right ${d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                    {d.score}
+                  <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    {d.incomplete ? '⚠️' : d.score}
                   </span>
                 </div>
               ))}

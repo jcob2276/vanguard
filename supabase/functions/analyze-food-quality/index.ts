@@ -73,23 +73,34 @@ serve(async (req) => {
         byDay[e.date].push(e)
       }
 
+      // Flag incomplete days (< 800 kcal logged — likely missing entries)
+      const INCOMPLETE_KCAL_THRESHOLD = 800
+      const dayTotals: Record<string, number> = {}
+      for (const [d, items] of Object.entries(byDay)) {
+        dayTotals[d] = items.reduce((sum, e) => sum + (e.calories ?? 0), 0)
+      }
+      const incompleteDays = new Set(Object.entries(dayTotals).filter(([, kcal]) => kcal < INCOMPLETE_KCAL_THRESHOLD).map(([d]) => d))
+
       // Build condensed prompt (max 40 items per day to stay in token budget)
       const dayLines = Object.entries(byDay).map(([d, items]) => {
+        const kcalTotal = dayTotals[d]
+        const incompleteNote = incompleteDays.has(d) ? ` ⚠️ NIEPEŁNY DZIEŃ (${kcalTotal} kcal — prawdopodobnie niekompletny wpis)` : ''
         const lines = items.slice(0, 40).map(e =>
           `  - ${e.name}${e.brand ? ` (${e.brand})` : ''} | ${e.calories ?? '?'} kcal | B:${e.protein ?? '?'}g W:${e.carbs ?? '?'}g T:${e.fat ?? '?'}g${e.saturated_fat != null ? ` Nas:${e.saturated_fat}g` : ''}${e.sugar != null ? ` Cuk:${e.sugar}g` : ''}`
         ).join('\n')
-        return `DZIEŃ ${d} (${items.length} pozycji):\n${lines}`
+        return `DZIEŃ ${d} (${items.length} pozycji, ${kcalTotal} kcal)${incompleteNote}:\n${lines}`
       }).join('\n\n')
 
+      const completeDaysCount = Object.keys(byDay).length - incompleteDays.size
       const numDays = Object.keys(byDay).length
-      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${numDays} dni z danymi)
+      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${numDays} dni z danymi, ${incompleteDays.size} niepełnych)
 
 ${dayLines}
 
 ZADANIE — zwróć JSON z dokładnie tymi polami:
 - "days": tablica ${numDays} obiektów, jeden na każdy dzień z danymi: {"date":"YYYY-MM-DD","score":0-100,"summary":"1 zdanie PL"}
-- "avg_score": liczba całkowita 0-100 (średnia ze wszystkich dni)
-- "pattern_analysis": string, 3-4 zdania PL o dominujących wzorcach
+- "avg_score": liczba całkowita 0-100 (średnia tylko z KOMPLETNYCH dni — wyklucz dni oznaczone jako NIEPEŁNY DZIEŃ)
+- "pattern_analysis": string, 3-4 zdania PL o dominujących wzorcach (tylko na podstawie kompletnych dni)
 - "top_issues": tablica 3 krótkich fraz PL (problemy)
 - "strengths": tablica 3 krótkich fraz PL (mocne strony)
 - "action_steps": tablica dokładnie 3 krótkich kroków PL zaczynających się od czasownika (co zastąpić czym lub co dodać, max 10 słów każdy)
@@ -151,12 +162,24 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
         }
       }
 
-      // Normalize day objects — model may use different key names
-      parsed.days = parsed.days.map((d: Record<string, unknown>) => ({
-        date: (d.date || d.data || d.day || d.dzien || d.day_date || '') as string,
-        score: Number(d.score ?? d.wynik ?? d.ocena ?? d.quality_score ?? d.points ?? 0),
-        summary: (d.summary || d.podsumowanie || d.opis || d.comment || d.komentarz || '') as string,
-      }))
+      // Normalize day objects — model may use different key names; add incomplete flag
+      parsed.days = parsed.days.map((d: Record<string, unknown>) => {
+        const date = (d.date || d.data || d.day || d.dzien || d.day_date || '') as string
+        return {
+          date,
+          score: Number(d.score ?? d.wynik ?? d.ocena ?? d.quality_score ?? d.points ?? 0),
+          summary: (d.summary || d.podsumowanie || d.opis || d.comment || d.komentarz || '') as string,
+          incomplete: incompleteDays.has(date),
+        }
+      })
+
+      // Recalculate avg_score server-side excluding incomplete days (override AI's value)
+      const completeDays = parsed.days.filter((d: { incomplete: boolean }) => !d.incomplete)
+      if (completeDays.length > 0) {
+        parsed.avg_score = Math.round(
+          completeDays.reduce((sum: number, d: { score: number }) => sum + d.score, 0) / completeDays.length
+        )
+      }
 
       console.log(`[analyze-food-quality] range ${dateFrom}→${dateTo}: ${parsed.days.length} days, avg ${parsed.avg_score}`)
 
