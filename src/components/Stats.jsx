@@ -854,7 +854,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           dayHabitLogs.forEach(log => {
             const habit = habits?.find(h => h.id === log.habit_id);
             if (habit) {
-              md += `- ${habit.icon} ${habit.name}: ${habit.is_positive ? 'Wykonano' : 'Uniknięto'}\n`;
+              const label = habit.is_positive ? 'Wykonano' : 'Wpadka';
+              const stimulus = log.final_stimulus ? ` — bodziec: "${log.final_stimulus}"` : '';
+              const ctx = log.context_note ? ` (${log.context_note})` : '';
+              md += `- ${habit.icon} ${habit.name}: ${label}${stimulus}${ctx}\n`;
             }
           });
           md += `\n`;
