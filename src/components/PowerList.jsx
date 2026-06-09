@@ -20,6 +20,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
     const timestamp = newValue ? new Date().toISOString() : null;
     
     const allDone = [1, 2, 3, 4, 5].every(i => {
+      if (!todayWin[`task_${i}`]) return true; // puste sloty ignoruj
       if (i === index + 1) return newValue;
       return todayWin[`done_${i}`];
     });
@@ -59,8 +60,8 @@ export default function PowerList({ session, todayWin, onUpdate }) {
   }
 
   async function startNewDay() {
-    if (newTaskForm.some(t => !t.task.trim())) {
-      alert('Wypełnij wszystkie 5 zadań!');
+    if (!newTaskForm.some(t => t.task.trim())) {
+      alert('Wypełnij przynajmniej 1 zadanie!');
       return;
     }
 
@@ -121,7 +122,8 @@ export default function PowerList({ session, todayWin, onUpdate }) {
             const task = todayWin[`task_${i+1}`];
             const done = todayWin[`done_${i+1}`];
             const completedAt = todayWin[`completed_at_${i+1}`];
-            
+            if (!task) return null;
+
             return (
               <button 
                 key={i} 
