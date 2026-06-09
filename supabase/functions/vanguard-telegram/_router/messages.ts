@@ -170,6 +170,24 @@ export async function handleIncomingMessage(
         return;
       }
 
+      // --- /post command (fasting marker) ---
+      if (lowerText.startsWith('/post')) {
+        try {
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          const note = text.slice('/post'.length).trim() || null;
+          const { error } = await supabase.from('fasting_logs').upsert(
+            { user_id: vanguardUserId, date: today, note, created_at: new Date().toISOString() },
+            { onConflict: 'user_id,date' }
+          );
+          if (error) throw error;
+          await safeSendTelegram(chatId, `🔵 Post zapisany (${today})${note ? `\nOpis: ${note}` : ''}`, telegramToken);
+        } catch (err) {
+          console.error('[messages] /post failed:', err);
+          await safeSendTelegram(chatId, '❌ Błąd zapisu postu: ' + (err as Error).message, telegramToken);
+        }
+        return;
+      }
+
       // --- /lenie command ---
       if (lowerText.startsWith('/lenie')) {
         try {

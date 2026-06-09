@@ -1162,7 +1162,19 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             </button>
           </div>
 
-          {analyzeResult && analyzeResult.mode === 'single' && (
+          {analyzeResult && analyzeResult.mode === 'single' && analyzeResult.fasting && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🔵</span>
+                <span className="text-[10px] font-black uppercase text-blue-400">Post — {analyzeResult.date}</span>
+              </div>
+              {analyzeResult.day_quality_analysis && (
+                <p className="text-[11px] text-white/50">{analyzeResult.day_quality_analysis}</p>
+              )}
+            </div>
+          )}
+
+          {analyzeResult && analyzeResult.mode === 'single' && !analyzeResult.fasting && (
             <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
@@ -1198,19 +1210,19 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
               <div className="space-y-1.5">
                 {analyzeResult.days.map(d => (
-                  <div key={d.date} className={`flex items-center gap-2 ${d.incomplete ? 'opacity-40' : ''}`}>
+                  <div key={d.date} className={`flex items-center gap-2 ${(d.incomplete || d.fasting) ? 'opacity-50' : ''}`}>
                     <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
                     <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
-                          width: `${d.score}%`,
-                          backgroundColor: d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
+                          width: d.fasting ? '100%' : `${d.score}%`,
+                          backgroundColor: d.fasting ? '#3b82f6' : d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
                         }}
                       />
                     </div>
-                    <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                      {d.incomplete ? '⚠️' : d.score}
+                    <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.fasting ? 'text-blue-400' : d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                      {d.fasting ? '🔵' : d.incomplete ? '⚠️' : d.score}
                     </span>
                   </div>
                 ))}

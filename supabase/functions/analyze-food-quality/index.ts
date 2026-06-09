@@ -79,23 +79,46 @@ serve(async (req) => {
       for (const [d, items] of Object.entries(byDay)) {
         dayTotals[d] = items.reduce((sum, e) => sum + (e.calories ?? 0), 0)
       }
-      const incompleteDays = new Set(Object.entries(dayTotals).filter(([, kcal]) => kcal < INCOMPLETE_KCAL_THRESHOLD).map(([d]) => d))
+
+      // Fetch fasting markers for this period
+      const { data: fastingLogs } = await supabase
+        .from('fasting_logs')
+        .select('date, note')
+        .eq('user_id', userId)
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
+      const fastingDays = new Map<string, string | null>(
+        (fastingLogs || []).map(f => [f.date as string, (f.note as string | null) ?? null])
+      )
+
+      const incompleteDays = new Set(
+        Object.entries(dayTotals)
+          .filter(([d, kcal]) => kcal < INCOMPLETE_KCAL_THRESHOLD && !fastingDays.has(d))
+          .map(([d]) => d)
+      )
 
       // Build condensed prompt (max 40 items per day to stay in token budget)
       const dayLines = Object.entries(byDay).map(([d, items]) => {
         const kcalTotal = dayTotals[d]
+        const isFasting = fastingDays.has(d)
+        const fastingNote = isFasting ? ` 🔵 POST${fastingDays.get(d) ? ` — ${fastingDays.get(d)}` : ''} (pomijaj w ocenach)` : ''
         const incompleteNote = incompleteDays.has(d) ? ` ⚠️ NIEPEŁNY DZIEŃ (${kcalTotal} kcal — prawdopodobnie niekompletny wpis)` : ''
         const lines = items.slice(0, 40).map(e =>
           `  - ${e.name}${e.brand ? ` (${e.brand})` : ''} | ${e.calories ?? '?'} kcal | B:${e.protein ?? '?'}g W:${e.carbs ?? '?'}g T:${e.fat ?? '?'}g${e.saturated_fat != null ? ` Nas:${e.saturated_fat}g` : ''}${e.sugar != null ? ` Cuk:${e.sugar}g` : ''}`
         ).join('\n')
-        return `DZIEŃ ${d} (${items.length} pozycji, ${kcalTotal} kcal)${incompleteNote}:\n${lines}`
+        return `DZIEŃ ${d} (${items.length} pozycji, ${kcalTotal} kcal)${fastingNote}${incompleteNote}:\n${lines}`
       }).join('\n\n')
 
-      const completeDaysCount = Object.keys(byDay).length - incompleteDays.size
-      const numDays = Object.keys(byDay).length
-      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${numDays} dni z danymi, ${incompleteDays.size} niepełnych)
+      // Add fasting-only days (no food entries at all) to prompt context
+      const fastingOnlyLines = [...fastingDays.entries()]
+        .filter(([d]) => !byDay[d])
+        .map(([d, note]) => `DZIEŃ ${d} (0 pozycji, 0 kcal) 🔵 POST${note ? ` — ${note}` : ''}: Świadomy post — pomiń w analizie jakości.`)
+        .join('\n\n')
 
-${dayLines}
+      const numDays = Object.keys(byDay).length + [...fastingDays.keys()].filter(d => !byDay[d]).length
+      const userMessage = `OKRES DO ANALIZY: ${dateFrom} → ${dateTo} (${numDays} dni, ${incompleteDays.size} niepełnych, ${fastingDays.size} postów)
+
+${dayLines}${fastingOnlyLines ? '\n\n' + fastingOnlyLines : ''}
 
 ZADANIE — zwróć JSON z dokładnie tymi polami:
 - "days": tablica ${numDays} obiektów, jeden na każdy dzień z danymi: {"date":"YYYY-MM-DD","score":0-100,"summary":"1 zdanie PL"}
@@ -162,19 +185,30 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
         }
       }
 
-      // Normalize day objects — model may use different key names; add incomplete flag
+      // Normalize day objects — model may use different key names; add incomplete/fasting flags
       parsed.days = parsed.days.map((d: Record<string, unknown>) => {
         const date = (d.date || d.data || d.day || d.dzien || d.day_date || '') as string
+        const isFasting = fastingDays.has(date)
         return {
           date,
-          score: Number(d.score ?? d.wynik ?? d.ocena ?? d.quality_score ?? d.points ?? 0),
-          summary: (d.summary || d.podsumowanie || d.opis || d.comment || d.komentarz || '') as string,
+          score: isFasting ? 0 : Number(d.score ?? d.wynik ?? d.ocena ?? d.quality_score ?? d.points ?? 0),
+          summary: isFasting ? (fastingDays.get(date) || 'Post') : (d.summary || d.podsumowanie || d.opis || d.comment || d.komentarz || '') as string,
           incomplete: incompleteDays.has(date),
+          fasting: isFasting,
         }
       })
 
-      // Recalculate avg_score server-side excluding incomplete days (override AI's value)
-      const completeDays = parsed.days.filter((d: { incomplete: boolean }) => !d.incomplete)
+      // Add synthetic entries for fasting-only days (no food entries → not in AI response)
+      const responseDates = new Set(parsed.days.map((d: { date: string }) => d.date))
+      for (const [d, note] of fastingDays) {
+        if (!responseDates.has(d)) {
+          parsed.days.push({ date: d, score: 0, summary: note || 'Post', incomplete: false, fasting: true })
+        }
+      }
+      parsed.days.sort((a: { date: string }, b: { date: string }) => a.date.localeCompare(b.date))
+
+      // Recalculate avg_score server-side excluding incomplete and fasting days
+      const completeDays = parsed.days.filter((d: { incomplete: boolean; fasting?: boolean }) => !d.incomplete && !d.fasting)
       if (completeDays.length > 0) {
         parsed.avg_score = Math.round(
           completeDays.reduce((sum: number, d: { score: number }) => sum + d.score, 0) / completeDays.length
@@ -193,6 +227,27 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
     const targetDate = date || new Intl.DateTimeFormat('sv', {
       timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit'
     }).format(new Date())
+
+    // Check fasting marker before fetching food entries
+    const { data: fastingLog } = await supabase
+      .from('fasting_logs')
+      .select('note')
+      .eq('user_id', userId)
+      .eq('date', targetDate)
+      .maybeSingle()
+
+    if (fastingLog) {
+      return new Response(
+        JSON.stringify({
+          success: true, mode: 'single', date: targetDate,
+          fasting: true,
+          day_quality_score: null,
+          day_quality_analysis: fastingLog.note || 'Dzień świadomego postu.',
+          items: [],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const { data: todayEntries, error: todayErr } = await supabase
       .from('daily_food_entries')
