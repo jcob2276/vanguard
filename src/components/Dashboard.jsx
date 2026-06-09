@@ -215,16 +215,11 @@ const FUEL = [
 function DayCounter() {
   const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000);
   const quote = FUEL[lived % FUEL.length];
-  const today = new Date().toLocaleDateString('pl-PL', {
-    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw'
-  });
-
   return (
-    <div className="py-3 space-y-5">
+    <div className="py-3">
       <p className="text-[22px] font-black leading-[1.3] text-white whitespace-pre-line">
         {quote}
       </p>
-      <p className="text-[9px] font-black uppercase tracking-[0.28em] text-white/25">{today}</p>
     </div>
   );
 }
@@ -400,7 +395,7 @@ export default function Dashboard({ session }) {
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-black/75 px-5 py-4 backdrop-blur-xl">
           <div>
             <h1 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Vanguard</h1>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">{format(new Date(), 'EEEE, d MMMM')}</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">{new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
