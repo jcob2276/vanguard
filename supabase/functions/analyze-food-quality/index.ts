@@ -92,6 +92,7 @@ ZADANIE — zwróć JSON z dokładnie tymi polami:
 - "pattern_analysis": string, 3-4 zdania PL o dominujących wzorcach
 - "top_issues": tablica 3 krótkich fraz PL (problemy)
 - "strengths": tablica 3 krótkich fraz PL (mocne strony)
+- "action_steps": tablica dokładnie 3 krótkich kroków PL zaczynających się od czasownika (co zastąpić czym lub co dodać, max 10 słów każdy)
 
 WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu przed ani po.`
 
@@ -101,13 +102,12 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
         ],
-        maxTokens: 4000,
+        maxTokens: 6000,
         temperature: 0.1,
         timeoutMs: 60000,
-        responseFormat: { type: 'json_object' },
       })
 
-      console.log('[analyze-food-quality] range raw (full):', result.content)
+      console.log('[analyze-food-quality] range raw:', result.content.slice(0, 300))
 
       let parsed: {
         days: Array<{ date: string; score: number; summary: string }>
@@ -115,35 +115,39 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
         pattern_analysis: string
         top_issues: string[]
         strengths: string[]
+        action_steps: string[]
       } | null = null
 
+      // Strip markdown code fences if present, then extract JSON block
+      const stripped = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+      const jsonCandidate = stripped.match(/\{[\s\S]*\}/)?.[0] ?? stripped
+
       try {
-        // Try direct parse first (response_format should give clean JSON)
-        parsed = JSON.parse(result.content)
-      } catch {
-        // Fallback: extract JSON block
-        try {
-          const match = result.content.match(/\{[\s\S]*\}/)
-          if (match) parsed = JSON.parse(match[0])
-        } catch (e2) {
-          console.error('[analyze-food-quality] JSON parse error:', e2)
-          console.error('[analyze-food-quality] Raw content:', result.content)
-          throw new Error('Nie udało się sparsować odpowiedzi AI')
-        }
+        parsed = JSON.parse(jsonCandidate)
+      } catch (e) {
+        console.error('[analyze-food-quality] JSON parse failed:', (e as Error).message)
+        console.error('[analyze-food-quality] Raw content:', result.content.slice(0, 800))
+        throw new Error('Nie udało się sparsować odpowiedzi AI')
       }
 
       console.log('[analyze-food-quality] parsed keys:', parsed ? Object.keys(parsed) : 'null')
 
       if (!parsed?.days || !Array.isArray(parsed.days)) {
-        // Try to recover: maybe DeepSeek returned days under a different key
+        // Try to recover: DeepSeek sometimes wraps response under a different key
         const raw = parsed as Record<string, unknown> | null
-        const altDays = raw?.results || raw?.result || raw?.data
+        const altDays = raw?.results || raw?.result || raw?.data || raw?.daily_analysis || raw?.analysis
         if (Array.isArray(altDays)) {
           parsed = { ...raw, days: altDays } as typeof parsed
         } else {
-          console.error('[analyze-food-quality] missing days. Keys:', parsed ? Object.keys(parsed) : 'null')
-          console.error('[analyze-food-quality] full parsed:', JSON.stringify(parsed).slice(0, 500))
-          throw new Error('Nieprawidłowa struktura odpowiedzi AI')
+          // Last resort: find any array value that looks like day objects
+          const anyArray = raw ? Object.values(raw).find(v => Array.isArray(v) && (v as unknown[]).length > 0 && typeof (v as unknown[])[0] === 'object' && 'date' in ((v as unknown[])[0] as object)) : null
+          if (anyArray) {
+            parsed = { ...raw, days: anyArray } as typeof parsed
+          } else {
+            console.error('[analyze-food-quality] missing days. Keys:', parsed ? Object.keys(parsed) : 'null')
+            console.error('[analyze-food-quality] full parsed:', JSON.stringify(parsed).slice(0, 500))
+            throw new Error('Nieprawidłowa struktura odpowiedzi AI')
+          }
         }
       }
 

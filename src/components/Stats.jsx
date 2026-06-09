@@ -1351,6 +1351,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                 </div>
               )}
             </div>
+
+            {/* Action steps */}
+            {analyzeResult.action_steps?.length > 0 && (
+              <div className="border-t border-white/[0.06] pt-3">
+                <p className="text-[8px] font-black uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
+                <ol className="space-y-1.5">
+                  {analyzeResult.action_steps.map((s, i) => (
+                    <li key={i} className="flex gap-2 text-[10px] text-white/70">
+                      <span className="font-black text-primary shrink-0">{i + 1}.</span>
+                      <span>{s}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         )}
 
