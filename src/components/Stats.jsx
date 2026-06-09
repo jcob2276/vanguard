@@ -1040,6 +1040,145 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Dieta</p>
+            <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Jakość diety</h2>
+          </div>
+        </div>
+
+        <div className="flex gap-1">
+          {[1, 7, 14, 30].map(p => (
+            <button
+              key={p}
+              onClick={() => { setAnalyzePeriod(p); setAnalyzeResult(null); }}
+              className={`flex-1 rounded-lg border py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${analyzePeriod === p ? 'border-primary/40 bg-primary/10 text-primary' : 'border-white/[0.08] bg-white/[0.02] text-white/35 hover:text-white/60'}`}
+            >
+              {p === 1 ? '1D' : `${p}D`}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {analyzePeriod === 1 && (
+            <input
+              type="date"
+              value={analyzeDate}
+              onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
+              className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
+            />
+          )}
+          {analyzePeriod > 1 && (
+            <p className="flex-1 text-[10px] font-black uppercase text-white/30">
+              Ostatnie {analyzePeriod} dni
+            </p>
+          )}
+          <button
+            onClick={analyzeFood}
+            disabled={isAnalyzing}
+            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase text-white/60 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
+          >
+            {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
+          </button>
+        </div>
+
+        {analyzeResult && analyzeResult.mode === 'single' && (
+          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
+              <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                {analyzeResult.day_quality_score}/100
+              </span>
+            </div>
+            <p className="text-[11px] text-white/60 leading-relaxed">{analyzeResult.day_quality_analysis}</p>
+            <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+              {analyzeResult.items.sort((a, b) => b.food_quality_score - a.food_quality_score).map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className={`shrink-0 text-[10px] font-black w-7 text-right ${item.food_quality_score >= 70 ? 'text-dayC' : item.food_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    {item.food_quality_score}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-white/80 truncate">{item.name}</p>
+                    <p className="text-[9px] text-white/35">{item.quality_reason}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {analyzeResult && analyzeResult.mode === 'range' && (
+          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-white/40">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
+              <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                {analyzeResult.avg_score}/100
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              {analyzeResult.days.map(d => (
+                <div key={d.date} className={`flex items-center gap-2 ${d.incomplete ? 'opacity-40' : ''}`}>
+                  <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
+                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${d.score}%`,
+                        backgroundColor: d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
+                      }}
+                    />
+                  </div>
+                  <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    {d.incomplete ? '⚠️' : d.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-white/60 leading-relaxed border-t border-white/[0.06] pt-3">{analyzeResult.pattern_analysis}</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {analyzeResult.top_issues?.length > 0 && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
+                  <ul className="space-y-1">
+                    {analyzeResult.top_issues.map((t, i) => (
+                      <li key={i} className="text-[9px] text-white/50">· {t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {analyzeResult.strengths?.length > 0 && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
+                  <ul className="space-y-1">
+                    {analyzeResult.strengths.map((s, i) => (
+                      <li key={i} className="text-[9px] text-white/50">· {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {analyzeResult.action_steps?.length > 0 && (
+              <div className="border-t border-white/[0.06] pt-3">
+                <p className="text-[8px] font-black uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
+                <ol className="space-y-1.5">
+                  {analyzeResult.action_steps.map((s, i) => (
+                    <li key={i} className="flex gap-2 text-[10px] text-white/70">
+                      <span className="font-black text-primary shrink-0">{i + 1}.</span>
+                      <span>{s}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Fueling</p>
             <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Białko dzisiaj</h2>
           </div>
@@ -1232,142 +1371,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
           </button>
         </div>
-
-        {/* Period selector */}
-        <div className="flex gap-1 pt-1">
-          {[1, 7, 14, 30].map(p => (
-            <button
-              key={p}
-              onClick={() => { setAnalyzePeriod(p); setAnalyzeResult(null); }}
-              className={`flex-1 rounded-lg border py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${analyzePeriod === p ? 'border-primary/40 bg-primary/10 text-primary' : 'border-white/[0.08] bg-white/[0.02] text-white/35 hover:text-white/60'}`}
-            >
-              {p === 1 ? '1D' : `${p}D`}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {analyzePeriod === 1 && (
-            <input
-              type="date"
-              value={analyzeDate}
-              onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
-              className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
-            />
-          )}
-          {analyzePeriod > 1 && (
-            <p className="flex-1 text-[10px] font-black uppercase text-white/30">
-              Ostatnie {analyzePeriod} dni
-            </p>
-          )}
-          <button
-            onClick={analyzeFood}
-            disabled={isAnalyzing}
-            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase text-white/60 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
-          >
-            {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
-          </button>
-        </div>
-
-        {analyzeResult && analyzeResult.mode === 'single' && (
-          <div className="mt-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
-              <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                {analyzeResult.day_quality_score}/100
-              </span>
-            </div>
-            <p className="text-[11px] text-white/60 leading-relaxed">{analyzeResult.day_quality_analysis}</p>
-            <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
-              {analyzeResult.items.sort((a, b) => b.food_quality_score - a.food_quality_score).map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className={`shrink-0 text-[10px] font-black w-7 text-right ${item.food_quality_score >= 70 ? 'text-dayC' : item.food_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                    {item.food_quality_score}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black text-white/80 truncate">{item.name}</p>
-                    <p className="text-[9px] text-white/35">{item.quality_reason}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {analyzeResult && analyzeResult.mode === 'range' && (
-          <div className="mt-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
-            {/* Avg score */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-white/40">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
-              <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                {analyzeResult.avg_score}/100
-              </span>
-            </div>
-
-            {/* Per-day bars */}
-            <div className="space-y-1.5">
-              {analyzeResult.days.map(d => (
-                <div key={d.date} className={`flex items-center gap-2 ${d.incomplete ? 'opacity-40' : ''}`}>
-                  <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
-                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${d.score}%`,
-                        backgroundColor: d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
-                      }}
-                    />
-                  </div>
-                  <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
-                    {d.incomplete ? '⚠️' : d.score}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Pattern analysis */}
-            <p className="text-[11px] text-white/60 leading-relaxed border-t border-white/[0.06] pt-3">{analyzeResult.pattern_analysis}</p>
-
-            {/* Issues + strengths */}
-            <div className="grid grid-cols-2 gap-3">
-              {analyzeResult.top_issues?.length > 0 && (
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
-                  <ul className="space-y-1">
-                    {analyzeResult.top_issues.map((t, i) => (
-                      <li key={i} className="text-[9px] text-white/50">· {t}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {analyzeResult.strengths?.length > 0 && (
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
-                  <ul className="space-y-1">
-                    {analyzeResult.strengths.map((s, i) => (
-                      <li key={i} className="text-[9px] text-white/50">· {s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Action steps */}
-            {analyzeResult.action_steps?.length > 0 && (
-              <div className="border-t border-white/[0.06] pt-3">
-                <p className="text-[8px] font-black uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
-                <ol className="space-y-1.5">
-                  {analyzeResult.action_steps.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[10px] text-white/70">
-                      <span className="font-black text-primary shrink-0">{i + 1}.</span>
-                      <span>{s}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </div>
-        )}
 
         <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-lg border border-white/[0.08] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/45 transition-colors hover:border-primary/40 hover:text-primary">
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
