@@ -1308,7 +1308,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <div className="space-y-1.5">
               {analyzeResult.days.map(d => (
                 <div key={d.date} className="flex items-center gap-2">
-                  <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date.slice(5)}</span>
+                  <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
                   <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"

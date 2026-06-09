@@ -125,9 +125,9 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
       try {
         parsed = JSON.parse(jsonCandidate)
       } catch (e) {
-        console.error('[analyze-food-quality] JSON parse failed:', (e as Error).message)
-        console.error('[analyze-food-quality] Raw content:', result.content.slice(0, 800))
-        throw new Error('Nie udało się sparsować odpowiedzi AI')
+        const preview = result.content.slice(0, 300).replace(/\n/g, '↵')
+        console.error('[analyze-food-quality] parse fail. raw preview:', preview)
+        throw new Error(`Parse error — raw[0..300]: ${preview}`)
       }
 
       console.log('[analyze-food-quality] parsed keys:', parsed ? Object.keys(parsed) : 'null')
@@ -150,6 +150,13 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
           }
         }
       }
+
+      // Normalize day objects — model may use different key names
+      parsed.days = parsed.days.map((d: Record<string, unknown>) => ({
+        date: (d.date || d.data || d.day || d.dzien || d.day_date || '') as string,
+        score: Number(d.score ?? d.wynik ?? d.ocena ?? d.quality_score ?? d.points ?? 0),
+        summary: (d.summary || d.podsumowanie || d.opis || d.comment || d.komentarz || '') as string,
+      }))
 
       console.log(`[analyze-food-quality] range ${dateFrom}→${dateTo}: ${parsed.days.length} days, avg ${parsed.avg_score}`)
 
