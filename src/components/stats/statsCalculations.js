@@ -2,24 +2,29 @@ export function calculateProjection(data, field, daysIntoFuture = 42) {
   if (!data || data.length < 3) return null;
 
   const recentData = data.slice(-14);
+  const validData = recentData
+    .map((d) => ({ ...d, value: Number(d[field]), time: new Date(`${d.date}T12:00:00`).getTime() }))
+    .filter((d) => !isNaN(d.value) && d.value !== 0 && !isNaN(d.time));
+  if (validData.length < 2) return null;
+
+  const firstTime = validData[0].time;
   let n = 0;
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
   let sumXX = 0;
-  let lastValidIndex = -1;
   let lastValidVal = null;
+  let lastValidX = 0;
 
-  recentData.forEach((d, i) => {
-    const val = Number(d[field]);
-    if (isNaN(val) || val === 0) return;
-    sumX += i;
-    sumY += val;
-    sumXY += i * val;
-    sumXX += i * i;
+  validData.forEach((d) => {
+    const x = (d.time - firstTime) / 86400000;
+    sumX += x;
+    sumY += d.value;
+    sumXY += x * d.value;
+    sumXX += x * x;
     n++;
-    lastValidIndex = i;
-    lastValidVal = val;
+    lastValidX = x;
+    lastValidVal = d.value;
   });
 
   if (n < 2) return null;
@@ -27,7 +32,7 @@ export function calculateProjection(data, field, daysIntoFuture = 42) {
   if (denom === 0) return null;
   const slope = (n * sumXY - sumX * sumY) / denom;
   const intercept = (sumY - slope * sumX) / n;
-  const projectedValue = slope * (lastValidIndex + daysIntoFuture) + intercept;
+  const projectedValue = slope * (lastValidX + daysIntoFuture) + intercept;
   const currentActual = lastValidVal;
 
   return {
@@ -56,7 +61,9 @@ export function generateNarrative(body, oura, sessions) {
   const lastWeekBody = (body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0) || [])
     .sort((a, b) => a.date < b.date ? -1 : 1);
   const bodyDiffWeight = lastWeekBody.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
-  const bodyDiffWaist = lastWeekBody.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
+  const lastWeekWaist = (body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.waist) > 0) || [])
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+  const bodyDiffWaist = lastWeekWaist.length >= 2 ? (Number(lastWeekWaist[lastWeekWaist.length - 1].waist) - Number(lastWeekWaist[0].waist)).toFixed(1) : null;
 
   let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
   const sessionWord = lastWeekSessions === 1 ? 'trening' : lastWeekSessions >= 2 && lastWeekSessions <= 4 ? 'treningi' : 'treningów';

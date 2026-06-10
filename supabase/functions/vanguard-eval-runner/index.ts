@@ -116,12 +116,13 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           actual_answer: actualAnswer
         });
 
-        const { error: insertResultErr } = await supabase.from('vanguard_eval_results').insert({
+        const { error: insertResultErr } = await supabase.from('vanguard_eval_results').upsert({
           run_id,
           user_id,
           question_id: q.id,
           question: q.question,
           category: q.category || 'fact_recall',
+          difficulty: q.difficulty || 'medium',
           answer: actualAnswer,
           score: judgment.score,
           passed: judgment.passed,
@@ -129,7 +130,7 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           claims: oracleData?.claims || [],
           judge_notes: judgment.notes,
           raw_response: { oracle: oracleData }
-        });
+        }, { onConflict: 'run_id,question_id' });
         if (insertResultErr) {
           console.error(`[eval] Failed to insert result for Q[${q.id}]:`, insertResultErr);
           throw insertResultErr;
@@ -156,13 +157,15 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       } catch (err: any) {
         console.error(`[eval] Error on Q[${q.id}]:`, err);
         failed++;
-        const { error: insertErr } = await supabase.from('vanguard_eval_results').insert({
+        const { error: insertErr } = await supabase.from('vanguard_eval_results').upsert({
           run_id, user_id,
           question_id: q.id,
           question: q.question,
+          category: q.category || 'fact_recall',
+          difficulty: q.difficulty || 'medium',
           answer: '', score: 0, passed: false,
           judge_notes: `Runner exception: ${err.message}`
-        });
+        }, { onConflict: 'run_id,question_id' });
         if (insertErr) {
           console.error(`[eval] Failed to save error result for Q[${q.id}]:`, insertErr);
         }
@@ -174,7 +177,7 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       // Policz summary ze WSZYSTKICH wyników w DB (nie tylko bieżącego batcha)
       const { data: allResults } = await supabase
         .from('vanguard_eval_results')
-        .select('score, passed, category')
+        .select('score, passed, category, difficulty')
         .eq('run_id', run_id);
 
       const allRes = allResults || [];
@@ -183,15 +186,27 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       const avgAll = totalAll > 0 ? allRes.reduce((s, r) => s + (r.score || 0), 0) / totalAll : 0;
 
       const byCategoryAll: Record<string, any> = {};
+      const byDifficultyAll: Record<string, any> = {};
       for (const r of allRes) {
         const cat = (r as any).category || 'fact_recall';
         if (!byCategoryAll[cat]) byCategoryAll[cat] = { passed: 0, total: 0, total_score: 0 };
         byCategoryAll[cat].total++;
         byCategoryAll[cat].total_score += r.score || 0;
         if (r.passed) byCategoryAll[cat].passed++;
+
+        const diff = (r as any).difficulty || 'medium';
+        if (!byDifficultyAll[diff]) byDifficultyAll[diff] = { passed: 0, total: 0, total_score: 0 };
+        byDifficultyAll[diff].total++;
+        byDifficultyAll[diff].total_score += r.score || 0;
+        if (r.passed) byDifficultyAll[diff].passed++;
       }
       for (const cat of Object.keys(byCategoryAll)) {
         const d = byCategoryAll[cat];
+        d.avg_score = Math.round((d.total_score / d.total) * 1000) / 1000;
+        delete d.total_score;
+      }
+      for (const diff of Object.keys(byDifficultyAll)) {
+        const d = byDifficultyAll[diff];
         d.avg_score = Math.round((d.total_score / d.total) * 1000) / 1000;
         delete d.total_score;
       }
@@ -199,9 +214,9 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       const summary = {
         total: totalAll, passed: passedAll, failed: totalAll - passedAll,
         avg_score: Math.round(avgAll * 1000) / 1000,
-        pass_rate: Math.round((passedAll / totalAll) * 1000) / 1000,
+        pass_rate: totalAll > 0 ? Math.round((passedAll / totalAll) * 1000) / 1000 : 0,
         by_category: byCategoryAll,
-        by_difficulty: byDifficulty,
+        by_difficulty: byDifficultyAll,
         judge_model: 'gpt-4o-mini'
       };
 
@@ -213,7 +228,7 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
         throw updateRunErr;
       }
 
-      console.log(`[eval] DONE run=${run_id} pass_rate=${(passedAll/totalAll*100).toFixed(1)}% (${passedAll}/${totalAll})`);
+      console.log(`[eval] DONE run=${run_id} pass_rate=${(totalAll > 0 ? passedAll/totalAll*100 : 0).toFixed(1)}% (${passedAll}/${totalAll})`);
     } else {
       console.log(`[eval] Batch done run=${run_id} offset=${offset} questions=${questions.length}`);
     }
@@ -244,7 +259,7 @@ serve(async (req) => {
       const run_id = body.run_id;
       const [runRes, resultsRes] = await Promise.all([
         supabase.from('vanguard_eval_runs').select('status, summary, started_at').eq('id', run_id).single(),
-        supabase.from('vanguard_eval_results').select('score, passed, category').eq('run_id', run_id)
+        supabase.from('vanguard_eval_results').select('score, passed, category, difficulty').eq('run_id', run_id)
       ]);
       const results = resultsRes.data || [];
       const total = results.length;

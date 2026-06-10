@@ -29,7 +29,7 @@ export function useDashboardData() {
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
       const todayDate = new Date(today + 'T12:00:00');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
-      const monday = mondayDate.toISOString().slice(0, 10);
+      const monday = mondayDate.toLocaleDateString('en-CA');
       const { data: nutrition } = await supabase
         .from('daily_nutrition')
         .select('calories')
@@ -158,6 +158,7 @@ export function useDashboardData() {
         .from('vanguard_calendar')
         .select('start_time')
         .eq('user_id', session.user.id)
+        .lte('start_time', new Date().toISOString())
         .order('start_time', { ascending: false })
         .limit(1)
         .maybeSingle();

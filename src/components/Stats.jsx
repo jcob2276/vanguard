@@ -60,7 +60,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       if (body) setBodyData(body);
       
       if (nutrition) {
-        setNutritionData(nutrition.reverse().map(n => ({
+        setNutritionData([...nutrition].reverse().map(n => ({
           date: format(parseISO(n.date), 'dd.MM'),
           protein: n.protein,
           calories: n.calories
@@ -116,12 +116,17 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function saveMetrics(e) {
     e.preventDefault();
     const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
-    const { error } = await supabase.from('body_metrics').upsert({
+    const payload = {
       user_id: session.user.id,
       date: today,
-      weight: newMetric.weight ? parseFloat(newMetric.weight) : null,
-      waist: newMetric.waist ? parseFloat(newMetric.waist) : null
-    });
+    };
+    if (newMetric.weight !== '') payload.weight = parseFloat(newMetric.weight);
+    if (newMetric.waist !== '') payload.waist = parseFloat(newMetric.waist);
+    if (payload.weight == null && payload.waist == null) {
+      alert('Podaj wagę albo talię.');
+      return;
+    }
+    const { error } = await supabase.from('body_metrics').upsert(payload);
     if (error) alert(error.message);
     else { alert('Zapisano!'); fetchStats(); }
   }
@@ -222,21 +227,31 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setEditingSession(session.id);
     setEditForm({
       date: session.date,
-      logs: [...session.exercise_logs]
+      logs: session.exercise_logs.map(log => ({ ...log }))
     });
   }
 
   async function updateSession() {
     try {
       // 1. Update session date
-      await supabase.from('workout_sessions').update({ date: editForm.date }).eq('id', editingSession);
+      const { error: sessionError } = await supabase
+        .from('workout_sessions')
+        .update({ date: editForm.date })
+        .eq('id', editingSession);
+      if (sessionError) throw sessionError;
       
       // 2. Update all logs
       for (const log of editForm.logs) {
-        await supabase.from('exercise_logs').update({ 
-          weight: parseFloat(log.weight), 
-          reps: parseInt(log.reps) 
+        const weight = log.weight === '' || log.weight == null ? null : parseFloat(log.weight);
+        const reps = log.reps === '' || log.reps == null ? null : parseInt(log.reps, 10);
+        if ((weight != null && Number.isNaN(weight)) || (reps != null && Number.isNaN(reps))) {
+          throw new Error('Nieprawidłowa wartość w serii.');
+        }
+        const { error: logError } = await supabase.from('exercise_logs').update({ 
+          weight, 
+          reps 
         }).eq('id', log.id);
+        if (logError) throw logError;
       }
       
       alert('Trening zaktualizowany!');
@@ -384,7 +399,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       const end = parseISO(dateRange.to);
       while (current <= end) {
         allDatesInRange.push(format(current, 'yyyy-MM-dd'));
-        current = new Date(current.getTime() + 86400000);
+        const next = new Date(current);
+        next.setDate(current.getDate() + 1);
+        current = next;
       }
 
       allDatesInRange.forEach(dateStr => {
@@ -570,7 +587,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           md += `\n`;
         }
 
-        const dayLocations = locationHistory?.filter(l => l.created_at.startsWith(dateStr));
+        const dayLocations = locationHistory?.filter(l => toWarsawDate(l.created_at) === dateStr);
         const visitedPOIs = userPOI.filter(poi =>
           dayLocations?.some(loc => getDistance(loc.latitude, loc.longitude, poi.lat, poi.lng) < poi.radius)
         );

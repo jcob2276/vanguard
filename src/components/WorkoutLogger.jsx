@@ -46,20 +46,23 @@ function useExerciseHistory(name, userId) {
         .select('weight, reps, rir, set_number, session_id, workout_sessions!inner(date)')
         .eq('user_id', userId)
         .eq('exercise_name', trimmed)
-        .order('date', { foreignTable: 'workout_sessions', ascending: false })
-        .limit(60);
+        .limit(500);
 
       if (!data?.length) { setLastSession(null); setAllTimeBest1RM(null); return; }
 
+      const sorted = [...data].sort((a, b) => {
+        const byDate = (b.workout_sessions?.date || '').localeCompare(a.workout_sessions?.date || '');
+        return byDate || (a.set_number || 0) - (b.set_number || 0);
+      });
       const bySession = {};
-      for (const row of data) {
+      for (const row of sorted) {
         if (!bySession[row.session_id]) bySession[row.session_id] = [];
         bySession[row.session_id].push(row);
       }
       const last = Object.values(bySession)[0].sort((a, b) => a.set_number - b.set_number);
       setLastSession(last);
 
-      const best = data.reduce((max, r) => { const e = epley(r.weight, r.reps); return e && e > max ? e : max; }, 0);
+      const best = sorted.reduce((max, r) => { const e = epley(r.weight, r.reps); return e && e > max ? e : max; }, 0);
       setAllTimeBest1RM(best > 0 ? best : null);
     }, 500);
     return () => clearTimeout(timeout);

@@ -11,9 +11,14 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     const cronSecret = Deno.env.get('VANGUARD_CRON_SECRET')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const allowedAuthHeaders = [
+      cronSecret ? `Bearer ${cronSecret}` : null,
+      serviceRoleKey ? `Bearer ${serviceRoleKey}` : null,
+    ].filter(Boolean)
     
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      console.error('Unauthorized: Invalid or missing VANGUARD_CRON_SECRET')
+    if (!allowedAuthHeaders.includes(authHeader)) {
+      console.error('Unauthorized: Invalid or missing cron/service authorization')
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -43,7 +48,7 @@ serve(async (req) => {
       (() => {
         const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(today);
         return safeExecute(supabase.from('strava_activities_clean')
-          .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories,suffer_score')
+          .select('name,sport_type,start_date,elapsed_time,moving_time,distance,hr_avg,hr_max,total_elevation_gain,suffer_score')
           .eq('user_id', userId)
           .gte('start_date', dayStart)
           .lt('start_date', dayEnd)
@@ -85,10 +90,10 @@ serve(async (req) => {
         elapsed_time_fmt:     a.elapsed_time ? fmtTime(a.elapsed_time) : null,
         moving_time_fmt:      a.moving_time  ? fmtTime(a.moving_time)  : null,
         pace_per_km:          fmtPace(a.moving_time, a.distance),
-        average_heartrate:    a.average_heartrate ?? null,
-        max_heartrate:        a.max_heartrate ?? null,
+        average_heartrate:    a.hr_avg ?? null,
+        max_heartrate:        a.hr_max ?? null,
         total_elevation_gain: a.total_elevation_gain ?? null,
-        calories:             a.calories ?? null,
+        calories:             null,
         suffer_score:         a.suffer_score ?? null,
       }
     })
@@ -98,7 +103,8 @@ serve(async (req) => {
       oura,
       wins,
       { protein: nutrition?.protein || 0 },
-      lastTrainingDate
+      lastTrainingDate,
+      today
     )
 
     // --- State and Stability Calculation via VanguardCore ---

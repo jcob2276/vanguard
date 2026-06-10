@@ -237,7 +237,7 @@ serve(async (req) => {
 
     // ── Plan compliance (ten tydzień) ─────────────────────────────────────────
     const complianceLines: string[] = []
-    for (const p of planContext) {
+    for (const p of planContext.filter((p: any) => p.planned_date <= today)) {
       const date = p.planned_date
       const hasRun = stravaByWeek[0].some((a: any) => warsaw(new Date(a.start_date)) === date && /run/i.test(a.sport_type || ''))
       const hasWorkout = workoutsByWeek[0].some((w: any) => w.date === date)

@@ -35,10 +35,6 @@ serve(async (req) => {
 
     // Guard: skip Saturday (day 6 in Warsaw)
     const now = new Date();
-    const dayOfWeek = parseInt(
-      now.toLocaleDateString("en-US", { timeZone: "Europe/Warsaw", weekday: "numeric" })
-    );
-    // Saturday = 0 in some locales; safer: check ISO day
     const isoDay = now.toLocaleDateString("en-US", { timeZone: "Europe/Warsaw", weekday: "long" });
     if (isoDay === "Saturday") {
       return new Response(

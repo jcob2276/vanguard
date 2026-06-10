@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 const allowedRelations = [
   "jest", "posiada", "studiuje", "pracuje_w", "mieszka_w", "ma_relacje_z",
@@ -536,7 +537,7 @@ serve(async (req) => {
     for (const record of records) {
       if (!record.content) continue
 
-      const recordDate = new Date(record.created_at).toISOString().split("T")[0]
+      const recordDate = getWarsawDateString(new Date(record.created_at))
       const { data: dailyBio, error: dailyBioErr } = await supabase
         .from("vanguard_daily_aggregates")
         .select("hrv_avg, sleep_hours, final_state, execution_score, dopamine_load_index")

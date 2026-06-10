@@ -8,7 +8,7 @@ import {
   fetchDeclaredIntentions,
   formatDeclaredIntentionsBlock,
 } from "../_shared/streamContext.ts"
-import { getStreamCutoffs } from "../_shared/time.ts"
+import { getStreamCutoffs, getWarsawDateString } from "../_shared/time.ts"
 import { logAuditEvent } from "../_shared/audit.ts"
 import { getPlanQualitySignal } from "../_shared/planQuality.ts"
 import { logCriticalError } from "../_shared/errorLogging.ts"
@@ -64,7 +64,7 @@ serve(async (req) => {
     const now = new Date();
     const localTimeString = now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
     const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000)).toISOString();
-    const fourteenDaysAgoDate = new Date(now.getTime() - (13 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+    const fourteenDaysAgoDate = getWarsawDateString(new Date(now.getTime() - (13 * 24 * 60 * 60 * 1000)));
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     // === PLAN QUALITY AWARENESS (added for weak plan visibility) ===
@@ -736,59 +736,9 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
       });
     }
 
-    // =========================================================================
-    // Zmiana 1 — Pętla ucząca: chat → graf
-    // Po odpowiedzi Oracle wstrzykuje Q+A do vanguard_stream (source='oracle_chat')
-    // i wywołuje Architecta fire-and-forget.
-    // Scope: tylko chat/mirror (nie planning — to dane strukturalne, nie fakty).
-    // Próg: min 80 znaków (Q + A łącznie) żeby uniknąć trivialnych pingów.
-    // Nie blokuje odpowiedzi — wywołanie asynchroniczne.
-    // =========================================================================
-    if (
-      mode !== 'planning' &&
-      current_query &&
-      text &&
-      (current_query.length + text.length) > 80
-    ) {
-      // Fire-and-forget — nie await, nie blokuje odpowiedzi
-      (async () => {
-        try {
-          const streamContent = `[Q]: ${current_query.substring(0, 500)}\n[A]: ${text.substring(0, 800)}`;
-          const { data: streamInserted, error: streamErr } = await supabase
-            .from('vanguard_stream')
-            .insert({
-              user_id,
-              source: 'oracle_chat',
-              content: streamContent,
-              metadata: {
-                oracle_intent: structuredResponse.intent_confirmed || intent,
-                oracle_confidence: structuredResponse.confidence || 'medium',
-                oracle_mode: mode,
-              },
-            })
-            .select('id')
-            .single();
-
-          if (streamErr) {
-            console.error('[oracle] learning loop: stream insert error:', streamErr);
-            return;
-          }
-
-          if (streamInserted?.id) {
-            const { error: archErr } = await supabase.functions.invoke('vanguard-architect', {
-              body: { type: 'stream', record_id: streamInserted.id, limit: 1 },
-            });
-            if (archErr) {
-              console.error('[oracle] learning loop: architect invoke error:', archErr);
-            } else {
-              console.log(`[oracle] learning loop: stream ${streamInserted.id} → architect`);
-            }
-          }
-        } catch (loopErr) {
-          console.error('[oracle] learning loop exception (non-fatal):', loopErr);
-        }
-      })();
-    }
+    // Oracle responses are audited in vanguard_oracle_runs above. Chat turns must
+    // not write vanguard_stream or invoke Architect; Telegram/stream ingestion is
+    // the single write path for friction and graph extraction.
 
     console.log(`[oracle] response returned`, Date.now() - t0);
     return new Response(JSON.stringify({

@@ -37,7 +37,8 @@ export function computeSignals(
   oura: any = null,
   todayWin: any = null,
   nutrition: any = null,
-  lastTrainingDate: string | null = null
+  lastTrainingDate: string | null = null,
+  expectedDate: string = getWarsawDateString(new Date())
 ) {
   // Biological Vector
   const sleep = oura?.total_sleep_hours ?? null;
@@ -75,7 +76,10 @@ export function computeSignals(
   // Training Consistency Vector
   let trainingRatio = 0;
   if (lastTrainingDate) {
-    const daysSince = Math.floor((new Date().getTime() - new Date(lastTrainingDate).getTime()) / (1000 * 60 * 60 * 24));
+    const daysSince = Math.floor(
+      (new Date(`${expectedDate}T12:00:00`).getTime() - new Date(`${lastTrainingDate}T12:00:00`).getTime()) /
+      (1000 * 60 * 60 * 24)
+    );
     if (daysSince === 0) trainingRatio = 1.0;
     else if (daysSince === 1) trainingRatio = 1.0;
     else if (daysSince === 2) trainingRatio = 0.8;
@@ -103,7 +107,7 @@ export function computeSignals(
       execution: todayWin != null ? 1.0 : 0.5,
       nutrition: nutrition != null ? 1.0 : 0.0,
       training: lastTrainingDate != null ? 1.0 : 0.0,
-      is_stale: sleep != null && oura?.date !== getWarsawDateString(new Date())
+      is_stale: sleep != null && oura?.date !== expectedDate
     }
   };
 }
