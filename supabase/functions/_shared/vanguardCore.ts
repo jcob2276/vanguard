@@ -53,10 +53,10 @@ export function computeSignals(
       if (todayWin[`done_${i}`]) {
         completedTasks++;
         
-        // Time Penalty Logic
+        // Time Penalty Logic — use Warsaw hour, not UTC
         const completedAt = todayWin[`completed_at_${i}`];
         if (completedAt) {
-          const hour = new Date(completedAt).getHours();
+          const hour = parseInt(new Date(completedAt).toLocaleString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
           if (hour >= 21) timePenalty += 0.1;
           if (hour >= 23) timePenalty += 0.15;
         }

@@ -34,7 +34,7 @@ export default function GoalsCard({ session, onEditClick }) {
         )}
       </div>
       <div className="grid gap-2">
-        {GOALS.map(({ key, dateKey, label, icon: Icon, tone, border, bg }) => {
+        {GOALS.map(({ key, dateKey, icon: Icon, tone, border, bg }) => {
           const text = goals[key];
           if (!text) return null;
           const days = goals[dateKey] ? differenceInDays(parseISO(goals[dateKey]), new Date()) : null;

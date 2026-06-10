@@ -18,7 +18,7 @@ export async function logAuditEvent(params: {
   const supabase = createServiceClient();
 
   try {
-    await supabase.from('audit_events').insert({
+    const { error } = await supabase.from('audit_events').insert({
       event_type: params.eventType,
       severity: params.severity || 'warning',
       message: params.message,
@@ -27,8 +27,8 @@ export async function logAuditEvent(params: {
       related_id: params.relatedId || null,
       metadata: params.metadata || {},
     });
+    if (error) console.error('[audit] Insert failed:', error.message);
   } catch (err) {
-    // Nie chcemy, żeby logging psuł główną logikę
     console.error('[audit] Failed to log event:', err);
   }
 }

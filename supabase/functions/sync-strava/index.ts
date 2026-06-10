@@ -423,8 +423,12 @@ serve(async (req) => {
         .maybeSingle();
 
       after = latest?.start_date
-        ? Math.floor(new Date(latest.start_date).getTime() / 1000)
+        ? Math.floor((new Date(latest.start_date).getTime() - 3 * 24 * 3600 * 1000) / 1000)
         : INITIAL_SYNC_FROM;
+
+      if (after < INITIAL_SYNC_FROM) {
+        after = INITIAL_SYNC_FROM;
+      }
     }
 
     console.log(`[sync-strava] Syncing after ${new Date(after * 1000).toISOString()}`);

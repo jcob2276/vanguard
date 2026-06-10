@@ -12,14 +12,14 @@ function readCache() {
     if (!raw) return null;
     const { text, ts } = JSON.parse(raw);
     if (Date.now() - ts < CACHE_TTL) return text;
-  } catch {}
+  } catch (_e) { /* localStorage unavailable */ }
   return null;
 }
 
 function writeCache(text) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ text, ts: Date.now() }));
-  } catch {}
+  } catch (_e) { /* localStorage unavailable */ }
 }
 
 export default function AIInsight({ session }) {

@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls → **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 34 function folders (+ `_shared/`) · Last registry pass: **2026-06-07**
+**Inventory:** 35 function folders (+ `_shared/`) · Last registry pass: **2026-06-10**
 
 ---
 
@@ -36,7 +36,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst → confirmed_friction_event
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 1931 | 2026-05-26 |
-| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs` (+ read: stream, links, aggregates) | 499 | 2026-05-26 |
+| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates) | ~560 | 2026-06-10 |
 | `vanguard-morning-brief` | **active** | pg_cron `0 5 * * *` UTC (~07:00 Warsaw) | **false** | `daily_reconciliations` | 96 | 2026-05-26 |
 | `vanguard-morning-ping` | **active** | pg_cron `20 5 * * *` UTC (nudge if no click) | **false** | `daily_reconciliations` | 74 | 2026-05-26 |
 | `vanguard-midday-check` | **active** | pg_cron (~12:00 Warsaw — **confirm** `cron.job`) | **false** | `daily_reconciliations` | 95 | 2026-05-26 |
@@ -53,9 +53,11 @@ Read: vanguard-oracle, briefing, synthesis, analyst → confirmed_friction_event
 
 ### Vanguard Core — analysis & reports
 
+### Vanguard Core — analysis & reports
+
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
-| `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 240 | 2026-05-26 |
+| `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | ~450 | 2026-06-10 |
 | `vanguard-briefing` | **manual** | HTTP POST `{ userId }` — long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 219 | 2026-05-26 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (**confirm** `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 197 | 2026-05-26 |
 | `vanguard-friction-qa` | **active** | pg_cron periodic QA (**confirm** schedule) | **false** | `vanguard_stream`, `friction_events` | 149 | 2026-05-26 |
@@ -70,6 +72,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst → confirmed_friction_event
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-eval-runner` | **manual** | HTTP batch eval vs oracle | **false** | `vanguard_eval_*` | 291 | 2026-05-26 |
+| `vanguard-eval-interview` | **active** | pg_cron `vanguard-eval-interview` Mon–Fri `0 10 * * 1-5` UTC (12:00 Warsaw) | **false** | `vanguard_eval_results`, `vanguard_eval_runs`, `vanguard_stream` | ~200 | 2026-06-10 |
 | `vanguard-graph-embedder` | **manual** | HTTP one batch per call; repeat until `remaining=0` | **false** | `vanguard_entity_links` | 91 | 2026-05-26 |
 | `vanguard-backfill` | **manual** | HTTP embeddings/history backfill | true | `vanguard_stream`, `vanguard_knowledge` | 97 | 2026-05-26 |
 | `vanguard-debug-retrieval` | **manual** | HTTP debug RAG retrieval | true | `vanguard_knowledge`, `vanguard_entity_links` | 56 | 2026-05-26 |
@@ -163,6 +166,7 @@ Flat layout: one folder = one deployed function name (except `vanguard-telegram/
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
 | `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
 | `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
+| `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` (Mon–Fri, 12:00 Warsaw) |
 
 Also verify: [`scripts/ops/cron-check.sql`](../../scripts/ops/cron-check.sql) against [`scripts/ops/smoke-manifest.mjs`](../../scripts/ops/smoke-manifest.mjs).  
 Post-deploy smoke: `npm run smoke` — see [`docs/runbooks/post-deploy-smoke.md`](../../docs/runbooks/post-deploy-smoke.md).
@@ -176,7 +180,7 @@ Removed: `vanguard-daily-shadow-analysis` (duplicate analyst), `vanguard-reset-p
 Without explicit user approval + PRODUCT_PRINCIPLES feature gate:
 
 - Second friction pipeline (architect/telegram/oracle writing `friction_events`)
-- Oracle auto-save to `vanguard_knowledge` / `vanguard_entity_links` on chat
+- Oracle auto-save to `vanguard_knowledge` / `vanguard_entity_links` on chat (**NOTE:** Oracle→stream→architect pośredni path jest dozwolony — patrz Zmiana 1 2026-06-10)
 - Shadow engine, manifestation tracker, pendulum detector
 - Parallel `fetch(api.telegram.org/...)` outside `_shared/telegram.ts`
 - `EdgeRuntime.waitUntil` for DB writes that must complete before HTTP 200

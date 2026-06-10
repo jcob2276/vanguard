@@ -47,18 +47,6 @@ export default function PowerList({ session, todayWin, onUpdate }) {
     if (!error && onUpdate) onUpdate(data);
   }
 
-  async function updateRPE(value) {
-    if (!todayWin) return;
-    const { data, error } = await supabase
-      .from('daily_wins')
-      .update({ daily_rpe: value })
-      .eq('id', todayWin.id)
-      .select()
-      .single();
-    
-    if (!error && onUpdate) onUpdate(data);
-  }
-
   async function startNewDay() {
     if (!newTaskForm.some(t => t.task.trim())) {
       alert('Wypełnij przynajmniej 1 zadanie!');

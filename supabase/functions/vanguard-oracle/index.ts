@@ -736,6 +736,60 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
       });
     }
 
+    // =========================================================================
+    // Zmiana 1 — Pętla ucząca: chat → graf
+    // Po odpowiedzi Oracle wstrzykuje Q+A do vanguard_stream (source='oracle_chat')
+    // i wywołuje Architecta fire-and-forget.
+    // Scope: tylko chat/mirror (nie planning — to dane strukturalne, nie fakty).
+    // Próg: min 80 znaków (Q + A łącznie) żeby uniknąć trivialnych pingów.
+    // Nie blokuje odpowiedzi — wywołanie asynchroniczne.
+    // =========================================================================
+    if (
+      mode !== 'planning' &&
+      current_query &&
+      text &&
+      (current_query.length + text.length) > 80
+    ) {
+      // Fire-and-forget — nie await, nie blokuje odpowiedzi
+      (async () => {
+        try {
+          const streamContent = `[Q]: ${current_query.substring(0, 500)}\n[A]: ${text.substring(0, 800)}`;
+          const { data: streamInserted, error: streamErr } = await supabase
+            .from('vanguard_stream')
+            .insert({
+              user_id,
+              source: 'oracle_chat',
+              content: streamContent,
+              metadata: {
+                oracle_intent: structuredResponse.intent_confirmed || intent,
+                oracle_confidence: structuredResponse.confidence || 'medium',
+                oracle_mode: mode,
+              },
+            })
+            .select('id')
+            .single();
+
+          if (streamErr) {
+            console.error('[oracle] learning loop: stream insert error:', streamErr);
+            return;
+          }
+
+          if (streamInserted?.id) {
+            const { error: archErr } = await supabase.functions.invoke('vanguard-architect', {
+              body: { type: 'stream', record_id: streamInserted.id, limit: 1 },
+            });
+            if (archErr) {
+              console.error('[oracle] learning loop: architect invoke error:', archErr);
+            } else {
+              console.log(`[oracle] learning loop: stream ${streamInserted.id} → architect`);
+            }
+          }
+        } catch (loopErr) {
+          console.error('[oracle] learning loop exception (non-fatal):', loopErr);
+        }
+      })();
+    }
+
     console.log(`[oracle] response returned`, Date.now() - t0);
     return new Response(JSON.stringify({
       ...structuredResponse,

@@ -457,6 +457,44 @@ function deterministicTriads(text: string) {
   return triads
 }
 
+// ---------------------------------------------------------------------------
+// Auto-deprecation helper (Zmiana 4)
+// Calls the SQL function that supersedes conflicting active facts when a new
+// high-confidence (>= 0.80) fact arrives for the same (source, relation).
+// Returns the number of records deprecated (for logging).
+// ---------------------------------------------------------------------------
+async function deprecateSupersededLinks(
+  supabase: ReturnType<typeof import("../_shared/supabase.ts").createServiceClient>,
+  userId: string,
+  source: string,
+  relation: string,
+  newTarget: string,
+  newConfidence: number,
+  newEpisodeId: string | null,
+): Promise<number> {
+  if (newConfidence < 0.80) return 0
+  if (!source || !relation || !newTarget) return 0
+
+  try {
+    const { data, error } = await supabase.rpc("deprecate_superseded_facts", {
+      p_user_id:        userId,
+      p_source:         source,
+      p_relation:       relation,
+      p_new_target:     newTarget,
+      p_new_confidence: newConfidence,
+      p_new_episode_id: newEpisodeId ?? null,
+    })
+    if (error) {
+      console.error("[architect] deprecateSupersededLinks error:", error)
+      return 0
+    }
+    return typeof data === "number" ? data : 0
+  } catch (err) {
+    console.error("[architect] deprecateSupersededLinks exception:", err)
+    return 0
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
@@ -583,12 +621,28 @@ Przyklady:
           )
         )
 
+        let totalDeprecated = 0
         for (const triad of triads) {
           if (!triad.source || !triad.relation || !triad.target) continue
           if (!allowedRelations.includes(triad.relation)) {
             failedUpserts++
             console.error(`Architect rejected relation outside ontology: ${triad.relation}`)
             continue
+          }
+
+          // Zmiana 4: Auto-deprecation — wygaś konfliktowe fakty przed upsert
+          const deprecated = await deprecateSupersededLinks(
+            supabase,
+            userId,
+            triad.source,
+            triad.relation,
+            triad.target,
+            triad.confidence_score || 0.7,
+            record.id,
+          )
+          if (deprecated > 0) {
+            totalDeprecated += deprecated
+            console.log(`[architect] deprecated ${deprecated} superseded link(s) for ${triad.source} --(${triad.relation})--> * (new: ${triad.target})`)
           }
 
           const { error: upsertError } = await supabase.rpc("upsert_vanguard_entity_link", {
@@ -616,6 +670,9 @@ Przyklady:
           } else {
             totalTriads++
           }
+        }
+        if (totalDeprecated > 0) {
+          console.log(`[architect] record ${record.id}: ${totalTriads} upserted, ${totalDeprecated} deprecated`)
         }
       } catch (error) {
         console.error("Error processing record in Architect:", error)

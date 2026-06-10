@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
-import { format, startOfWeek } from 'date-fns';
+import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 
 export function useDashboardData() {
@@ -26,15 +26,17 @@ export function useDashboardData() {
       let todayData = null;
 
 
-      const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const todayDate = new Date(today + 'T12:00:00');
+      const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
+      const monday = mondayDate.toISOString().slice(0, 10);
       const { data: nutrition } = await supabase
         .from('daily_nutrition')
         .select('calories')
+        .eq('user_id', session.user.id)
         .gte('date', monday);
-      
-      totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
 
-      const today = format(new Date(), 'yyyy-MM-dd');
+      totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
       const { data: tData } = await supabase
         .from('daily_wins')
         .select('*')
@@ -47,13 +49,16 @@ export function useDashboardData() {
       const { data: protData } = await supabase
         .from('daily_nutrition')
         .select('protein')
+        .eq('user_id', session.user.id)
         .eq('date', today)
         .maybeSingle();
 
       const { data: workoutToday } = await supabase
         .from('workout_sessions')
         .select('id')
+        .eq('user_id', session.user.id)
         .eq('date', today)
+        .limit(1)
         .maybeSingle();
 
       const { data: ouraData } = await supabase
@@ -129,8 +134,9 @@ export function useDashboardData() {
         body: JSON.stringify({ userId: session.user.id, days: 2 })
       });
 
-      const res = await response.json();
+      const res = await response.json().catch(() => ({}));
       console.log('[syncYazio] odpowiedź:', res);
+      if (!response.ok) throw new Error(res.error || `HTTP ${response.status}`);
       if (res.success) {
         const dates = (res.results || []).map(r => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
         alert(`Sync OK\n${dates}`);

@@ -85,7 +85,7 @@ export default function Direction({ session }) {
 
     try {
       const [
-        { data: todayData },
+        { data: _todayData },
         { data: historyData },
         { data: habitsData },
         { data: logsData },

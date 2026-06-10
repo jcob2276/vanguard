@@ -2,28 +2,33 @@ export function calculateProjection(data, field, daysIntoFuture = 42) {
   if (!data || data.length < 3) return null;
 
   const recentData = data.slice(-14);
-  const n = recentData.length;
+  let n = 0;
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
   let sumXX = 0;
+  let lastValidIndex = -1;
+  let lastValidVal = null;
 
   recentData.forEach((d, i) => {
-    const x = i;
     const val = Number(d[field]);
     if (isNaN(val) || val === 0) return;
-
-    sumX += x;
+    sumX += i;
     sumY += val;
-    sumXY += x * val;
-    sumXX += x * x;
+    sumXY += i * val;
+    sumXX += i * i;
+    n++;
+    lastValidIndex = i;
+    lastValidVal = val;
   });
 
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  if (n < 2) return null;
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
   const intercept = (sumY - slope * sumX) / n;
-  const currentIndex = n - 1;
-  const projectedValue = slope * (currentIndex + daysIntoFuture) + intercept;
-  const currentActual = recentData[n - 1][field];
+  const projectedValue = slope * (lastValidIndex + daysIntoFuture) + intercept;
+  const currentActual = lastValidVal;
 
   return {
     value: projectedValue.toFixed(1),
@@ -48,12 +53,14 @@ export function generateNarrative(body, oura, sessions) {
     ? Math.round((avgSleepLast - avgSleepPrev) * 60)
     : 0;
 
-  const lastWeekBody = body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0);
-  const bodyDiffWeight = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
-  const bodyDiffWaist = lastWeekBody?.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
+  const lastWeekBody = (body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0) || [])
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+  const bodyDiffWeight = lastWeekBody.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
+  const bodyDiffWaist = lastWeekBody.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].waist) - Number(lastWeekBody[0].waist)).toFixed(1) : null;
 
   let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
-  text += `Zrealizowałeś ${lastWeekSessions} treningi. `;
+  const sessionWord = lastWeekSessions === 1 ? 'trening' : lastWeekSessions >= 2 && lastWeekSessions <= 4 ? 'treningi' : 'treningów';
+  text += `Zrealizowałeś ${lastWeekSessions} ${sessionWord}. `;
 
   if (sleepDiffMin !== 0) {
     text += `Twój sen ${sleepDiffMin > 0 ? 'poprawił się' : 'pogorszył się'} średnio o ${Math.abs(sleepDiffMin)} min na dobę. `;

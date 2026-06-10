@@ -1,17 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import { format } from 'date-fns';
 import {
   Calendar,
-  Camera,
-  CheckCircle2,
   Clock,
   Dumbbell,
   Fingerprint,
-  Gauge,
   LogOut,
   Play,
   RefreshCw,
-  Sparkles,
   Sun,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -39,97 +34,10 @@ const normalizeView = (view) => {
   return view;
 };
 
-function SectionHeader({ title, detail }) {
-  return (
-    <div className="space-y-1">
-      <h2 className="text-[11px] font-black uppercase tracking-[0.22em] text-white">{title}</h2>
-      {detail && <p className="text-[11px] font-semibold leading-relaxed text-white/40">{detail}</p>}
-    </div>
-  );
-}
-
 function ViewFallback() {
   return (
     <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-    </div>
-  );
-}
-
-function statusPalette(state, readiness) {
-  const normalized = (state || '').toLowerCase();
-  if (normalized.includes('red') || normalized.includes('critical') || readiness < 50) {
-    return { rail: 'bg-red-400', text: 'text-red-300', soft: 'bg-red-400/10 border-red-400/20', label: 'Risk' };
-  }
-  if (normalized.includes('yellow') || normalized.includes('calibrating') || readiness < 70) {
-    return { rail: 'bg-orange-400', text: 'text-orange-300', soft: 'bg-orange-400/10 border-orange-400/20', label: 'Watch' };
-  }
-  return { rail: 'bg-primary', text: 'text-primary', soft: 'bg-primary/10 border-primary/20', label: 'Ready' };
-}
-
-function StateBrief({ state, readiness, doneCount, hasWorkoutToday, weeklyCalories, weeklyBudget, onWorkoutClick }) {
-  const palette = statusPalette(state, readiness);
-  const displayState = state ? state.replaceAll('_', ' ') : 'Analysis Pending';
-  const caloriePct = weeklyBudget > 0 ? Math.round((weeklyCalories / weeklyBudget) * 100) : 0;
-
-  const signals = [
-    { label: 'Readiness', value: readiness ? `${readiness}` : '—', icon: Gauge, clickable: false },
-    { label: 'Plan', value: `${doneCount}/5`, icon: CheckCircle2, clickable: false },
-    { label: 'Training', value: hasWorkoutToday ? 'Done' : 'Open', icon: Dumbbell, clickable: true },
-    { label: 'Fuel', value: `${Math.min(caloriePct, 999)}%`, icon: Sparkles, clickable: false },
-  ];
-
-  return (
-    <div className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-[linear-gradient(135deg,rgba(23,23,25,0.98),rgba(6,8,12,0.98))] p-4">
-      <div className={`absolute left-0 top-0 h-full w-1 ${palette.rail}`} />
-      <div className="flex items-start justify-between gap-4 pl-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`rounded-md border px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] ${palette.soft} ${palette.text}`}>
-              {palette.label}
-            </span>
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/28">Today Briefing</span>
-          </div>
-          <h2 className="mt-3 text-[26px] font-black uppercase leading-none tracking-tight text-white">
-            {displayState}
-          </h2>
-        </div>
-        <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
-          <Sparkles size={18} />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-4 gap-2">
-        {signals.map(({ label, value, icon: Icon, clickable }) => {
-          const content = (
-            <>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[7px] font-black uppercase tracking-widest text-white/25">{label}</span>
-                <Icon size={10} className={clickable && !hasWorkoutToday ? "text-primary animate-pulse" : "text-white/22"} />
-              </div>
-              <p className={`text-[12px] font-black uppercase ${clickable && !hasWorkoutToday ? "text-primary" : "text-white/78"}`}>{value}</p>
-            </>
-          );
-
-          if (clickable) {
-            return (
-              <button
-                key={label}
-                onClick={onWorkoutClick}
-                className="rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 active:scale-[0.98] transition-all px-2.5 py-2 text-left w-full"
-              >
-                {content}
-              </button>
-            );
-          }
-
-          return (
-            <div key={label} className="rounded-md border border-white/[0.055] bg-black/22 px-2.5 py-2">
-              {content}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -213,7 +121,7 @@ const FUEL = [
 ];
 
 function DayCounter() {
-  const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000);
+  const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   return (
     <div className="py-3">
@@ -261,23 +169,27 @@ export default function Dashboard({ session }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) console.warn(`[syncAll] ${fn} ${res.status}`);
+      if (!res.ok) {
+        const p = await res.json().catch(() => ({}));
+        throw new Error(`${fn} failed: ${p.error || res.status}`);
+      }
     };
     try {
-      // 1. źródła równolegle
+      // 1. Podstawowe źródła (Oura + Yazio)
       await Promise.all([
         call('sync-yazio', { userId, sync_history: true, days: 7 }),
-        call('sync-strava', {}),
         call('sync-oura', { userId }),
       ]);
-      // 2. warstwy pochodne Oura
+      // 2. Pobranie szczegółowych serii Oura (zapisuje tętno do bazy)
       await Promise.all([
         call('sync-oura-enhanced', { userId, days: 2 }),
         call('sync-oura-timeseries', { userId, days: 2 }),
       ]);
-      // 3. przelicz strain
+      // 3. Pobranie aktywności ze Strava (nakłada tętno z Oura)
+      await call('sync-strava', {});
+      // 4. Przeliczenie obciążenia (strain)
       await call('compute-daily-strain', { userId, days: 2 });
-      // 4. odśwież dane
+      // 5. Odświeżenie widoku
       refresh();
     } catch (err) {
       console.error('[syncAll] error:', err);

@@ -295,6 +295,14 @@ ${recoveryText || 'Brak danych Oura.'}`
 
     // pattern_candidate → repeated_pattern_candidates: disabled until Sprint 1 QA gate (BACKLOG).
 
+    // =========================================================================
+    // Zmiana 3 — Proaktywny Analyst push na Telegram
+    // Jeśli biometria spełnia warunki alarmu → szuka kontekstu w grafie
+    // i wysyła Telegram push.
+    // Throttle: max 1 push na 48h (check na source='analyst_alert' w stream).
+    // =========================================================================
+    await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [])
+
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
     return new Response(JSON.stringify({ success: true, result }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -309,3 +317,134 @@ ${recoveryText || 'Brak danych Oura.'}`
     })
   }
 })
+
+// ---------------------------------------------------------------------------
+// checkProactiveAlert — Zmiana 3
+// Detects sustained biometric decline and sends a contextualized Telegram alert.
+// ---------------------------------------------------------------------------
+async function checkProactiveAlert(
+  supabase: ReturnType<typeof import("../_shared/supabase.ts").createServiceClient>,
+  userId: string,
+  biometrics: any[],
+  graphLinks: any[],
+): Promise<void> {
+  try {
+    const telegramToken = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
+    const chatId = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') ?? '0')
+    if (!telegramToken || !chatId) return
+
+    // Throttle: skip if an analyst alert was already sent in last 48h
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const { data: recentAlert } = await supabase
+      .from('vanguard_stream')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('source', 'analyst_alert')
+      .gte('created_at', fortyEightHoursAgo)
+      .limit(1)
+      .maybeSingle()
+
+    if (recentAlert) return // already alerted recently
+
+    if (!biometrics || biometrics.length < 3) return // need at least 3 days of data
+
+    // Sort by date descending — most recent first
+    const sorted = [...biometrics].sort((a, b) => b.date.localeCompare(a.date))
+    const recent3 = sorted.slice(0, 3)
+
+    // Compute rolling baseline HRV from last 14 days
+    const validHrvs = biometrics.map(b => b.hrv_avg).filter(v => v != null && v > 0)
+    if (validHrvs.length < 5) return // not enough data for baseline
+
+    const baselineHrv = validHrvs.reduce((a: number, b: number) => a + b, 0) / validHrvs.length
+    const recent3Hrv = recent3.map(b => b.hrv_avg).filter(v => v != null && v > 0)
+    const recent3Readiness = recent3.map(b => b.readiness_score).filter(v => v != null && v > 0)
+
+    let alertReason: string | null = null
+    let alertEmoji = '⚠️'
+
+    // Condition A: HRV below 85% of baseline for 3+ consecutive days
+    if (recent3Hrv.length >= 3 && recent3Hrv.every(h => h < baselineHrv * 0.85)) {
+      const avgRecent = Math.round(recent3Hrv.reduce((a: number, b: number) => a + b, 0) / recent3Hrv.length)
+      alertReason = `HRV poniżej baseline przez 3+ dni: avg ${avgRecent} vs baseline ${Math.round(baselineHrv)} (${Math.round((avgRecent/baselineHrv)*100)}% normy)`
+      alertEmoji = '📉'
+    }
+
+    // Condition B: Readiness < 60 for 3+ consecutive days
+    if (!alertReason && recent3Readiness.length >= 3 && recent3Readiness.every(r => r < 60)) {
+      const avgReadiness = Math.round(recent3Readiness.reduce((a: number, b: number) => a + b, 0) / recent3Readiness.length)
+      alertReason = `Readiness poniżej 60 przez 3+ dni: avg ${avgReadiness}`
+      alertEmoji = '🔴'
+    }
+
+    // Condition C: Today's strain > 15 AND readiness < 65 (overreach risk)
+    const today = sorted[0]
+    if (!alertReason && today?.execution_score != null && today?.readiness_score != null) {
+      // execution_score proxy for strain — flag high load + low readiness
+      if (today.execution_score > 0.8 && today.readiness_score < 65) {
+        alertReason = `Wysokie obciążenie przy niskiej regeneracji: readiness ${today.readiness_score}, execution ${(today.execution_score * 100).toFixed(0)}%`
+        alertEmoji = '⚡'
+      }
+    }
+
+    if (!alertReason) return // no alert conditions met
+
+    // Find historical context from the graph — past states when similar pattern occurred
+    const graphContext: string[] = []
+    if (Array.isArray(graphLinks) && graphLinks.length > 0) {
+      const relevantLinks = graphLinks
+        .filter((g: any) =>
+          g.relation === 'doswiadcza' ||
+          g.relation === 'wywoluje' ||
+          (g.source_entity === 'Jakub' && ['Zmęczenie', 'Przeziębienie', 'Choroba', 'Kontuzja', 'Wypalenie'].some(
+            word => (g.target_entity || '').includes(word)
+          ))
+        )
+        .slice(0, 3)
+        .map((g: any) => `• ${g.source_entity} → ${g.relation} → ${g.target_entity}`)
+      
+      graphContext.push(...relevantLinks)
+    }
+
+    // Build the alert message
+    const graphSection = graphContext.length > 0
+      ? `\n\n📊 *Z grafu — podobne wzorce w historii:*\n${graphContext.join('\n')}`
+      : ''
+
+    const recentSummary = recent3.map(b =>
+      `${b.date}: readiness ${b.readiness_score ?? '—'}, HRV ${b.hrv_avg ?? '—'}, sen ${b.sleep_hours ?? '—'}h`
+    ).join('\n')
+
+    const alertMsg = `${alertEmoji} *Alert regeneracji*\n\n${alertReason}\n\n*Ostatnie 3 dni:*\n${recentSummary}${graphSection}\n\n_Vanguard Analyst — ${new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}_`
+
+    // Send Telegram alert
+    await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: alertMsg,
+        parse_mode: 'Markdown',
+      }),
+    })
+
+    // Record the alert in stream for throttle tracking
+    await supabase.from('vanguard_stream').insert({
+      user_id: userId,
+      source: 'analyst_alert',
+      content: `[ALERT]: ${alertReason}`,
+      metadata: {
+        alert_reason: alertReason,
+        baseline_hrv: Math.round(baselineHrv),
+        recent_hrv: recent3Hrv,
+        recent_readiness: recent3Readiness,
+        alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : 'overreach_risk',
+      },
+    })
+
+    console.log(`[analyst] proactive alert sent: ${alertReason.substring(0, 80)}`)
+  } catch (alertErr) {
+    // Non-fatal — alert failure should not break the main analyst flow
+    console.error('[analyst] checkProactiveAlert error (non-fatal):', alertErr)
+  }
+}

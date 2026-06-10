@@ -26,6 +26,7 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "save-daily-aggregate",
   "sync-strava",
   "analyze-training",
+  "vanguard-eval-interview",
 ];
 
 /**
@@ -49,6 +50,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-auto-classify", post: "safe", body: {}, sideEffects: "Returns 200, no classify" },
   { name: "vanguard-architect", post: "safe", body: { limit: 0 }, sideEffects: "DB read only" },
   { name: "vanguard-eval-runner", post: "skip", sideEffects: "Manual eval batch — OPTIONS only" },
+  { name: "vanguard-eval-interview", post: "cron", sideEffects: "Sends Telegram eval question — OPTIONS preferred for smoke" },
   { name: "vanguard-graph-embedder", post: "skip", sideEffects: "Manual embedding batch — OPTIONS only" },
   { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
   { name: "vanguard-intentions-cleanup", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
@@ -65,6 +67,7 @@ export const CRON_FROM_MIGRATIONS = [
   { jobname: "vanguard-morning-brief", schedule: "0 5 * * *", target: "vanguard-morning-brief" },
   { jobname: "vanguard-morning-ping", schedule: "20 5 * * *", target: "vanguard-morning-ping" },
   { jobname: "vanguard-sync-strava", schedule: "30 20 * * *", target: "sync-strava" },
+  { jobname: "vanguard-eval-interview", schedule: "0 10 * * 1-5", target: "vanguard-eval-interview" },
 ];
 
 /** Documented in ops; may exist only in Supabase Dashboard — confirm with cron-check.sql */

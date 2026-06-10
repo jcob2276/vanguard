@@ -436,6 +436,7 @@ export default function WorkoutLogger({ session, onBack }) {
   const [exercises, setExercises]     = useState([newExercise()]);
   const [activities, setActivities]   = useState([]);
   const [notes, setNotes]             = useState('');
+  const [sessionRpe, setSessionRpe]   = useState(null);
   const [saving, setSaving]           = useState(false);
   const [timerStart, setTimerStart]   = useState(null);
   
@@ -493,13 +494,14 @@ export default function WorkoutLogger({ session, onBack }) {
       const mspPassed = exLogs.some(l => l.is_pws_or_msp);
 
       const { error } = await supabase.rpc('save_workout_atomic', {
-        p_user_id:    userId,
-        p_day_key:    workoutName.trim() || 'Trening',
-        p_start_time: finalStart,
-        p_end_time:   finalEnd,
-        p_notes:      notes,
-        p_msp_passed: mspPassed,
-        p_logs:       [...exLogs, ...acLogs],
+        p_user_id:     userId,
+        p_day_key:     workoutName.trim() || 'Trening',
+        p_start_time:  finalStart,
+        p_end_time:    finalEnd,
+        p_notes:       notes,
+        p_msp_passed:  mspPassed,
+        p_logs:        [...exLogs, ...acLogs],
+        p_session_rpe: sessionRpe,
       });
       if (error) throw error;
       onBack();
@@ -624,6 +626,33 @@ export default function WorkoutLogger({ session, onBack }) {
           <label className="text-[9px] font-black uppercase tracking-widest text-white/50">Notatki</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
             className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm text-white min-h-[100px] outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all resize-none placeholder:text-white/35" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/50">RPE sesji</label>
+            {sessionRpe && (
+              <button onClick={() => setSessionRpe(null)} className="text-[9px] text-white/25 hover:text-white/50 transition-colors">wyczyść</button>
+            )}
+          </div>
+          <div className="grid grid-cols-10 gap-1">
+            {[1,2,3,4,5,6,7,8,9,10].map(n => {
+              const color = n <= 4 ? 'border-sky-500/40 text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'
+                          : n <= 6 ? 'border-yellow-500/40 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20'
+                          : n <= 8 ? 'border-orange-500/40 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
+                          : 'border-dayB/40 text-dayB bg-dayB/10 hover:bg-dayB/20';
+              const active = sessionRpe === n ? 'ring-1 ring-offset-1 ring-offset-black opacity-100 scale-105' : 'opacity-50';
+              return (
+                <button key={n} onClick={() => setSessionRpe(sessionRpe === n ? null : n)}
+                  className={`rounded-lg border py-2 text-[11px] font-black transition-all ${color} ${active}`}>
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-white/20">
+            {sessionRpe ? (sessionRpe <= 4 ? 'Łatwa — dużo rezerwy' : sessionRpe <= 6 ? 'Umiarkowana' : sessionRpe <= 8 ? 'Ciężka — mało rezerwy' : 'Maksymalna — do oporu') : 'Jak ciężka była cała sesja?'}
+          </p>
         </div>
       </main>
 
