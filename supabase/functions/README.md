@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls → **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 35 function folders (+ `_shared/`) · Last registry pass: **2026-06-10**
+**Inventory:** 34 function folders (+ `_shared/`) · Last registry pass: **2026-06-10**
 
 ---
 
@@ -108,17 +108,6 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 
 ---
 
-## Practice Dojo (isolated)
-
-| Function | Status | Trigger | JWT | Key tables | LOC | Verified |
-|----------|--------|---------|-----|------------|-----|----------|
-| `dojo-telegram` | **disabled** | 410 stub | **false** | — | 14 | 2026-06-07 |
-| `dojo-scheduler` | **disabled** | 410 stub | **false** | — | 14 | 2026-06-07 |
-
-**Never** import `vanguard-*` from `dojo-*`. Separate secrets: `DOJO_TELEGRAM_*`.
-
----
-
 ## Integrations
 
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
@@ -131,6 +120,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC).
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 144 | 2026-05-26 |
 | `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 177 | 2026-06-07 |
 | `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 231 | 2026-06-07 |
+| `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | ~330 | 2026-06-10 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 143 | 2026-05-26 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 132 | 2026-05-26 |
 | `sync-google-fit` | **deprecated** | Frontend / manual | true | (Google Fit tables) | 120 | 2026-05-26 |
@@ -180,12 +170,11 @@ Removed: `vanguard-daily-shadow-analysis` (duplicate analyst), `vanguard-reset-p
 Without explicit user approval + PRODUCT_PRINCIPLES feature gate:
 
 - Second friction pipeline (architect/telegram/oracle writing `friction_events`)
-- Oracle auto-save to `vanguard_knowledge` / `vanguard_entity_links` on chat (**NOTE:** Oracle→stream→architect pośredni path jest dozwolony — patrz Zmiana 1 2026-06-10)
+- Oracle auto-save to `vanguard_knowledge` / `vanguard_entity_links` on chat
 - Shadow engine, manifestation tracker, pendulum detector
 - Parallel `fetch(api.telegram.org/...)` outside `_shared/telegram.ts`
 - `EdgeRuntime.waitUntil` for DB writes that must complete before HTTP 200
 - HTTP **200** with `{ error }` on failure
-- Mixing Dojo and Vanguard bots/secrets/tables
 
 ---
 
@@ -198,3 +187,4 @@ Without explicit user approval + PRODUCT_PRINCIPLES feature gate:
 5. Telegram: one test message on touched flows
 
 See [`docs/runbooks/`](../../docs/runbooks/).
+

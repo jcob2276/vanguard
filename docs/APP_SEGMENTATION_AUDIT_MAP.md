@@ -47,7 +47,6 @@ flowchart TD
   AGG --> UI_DATA
   AGG --> ORACLE
 
-  DOJO["Practice Dojo disabled"] -. isolated .-> DOJO_T["dojo_* tables"]
   LEGACY["Deprecated / legacy"] -. audit only .-> DEAD["410 stubs / removed crons / docs legacy"]
 ```
 
@@ -263,17 +262,10 @@ Verify:
 
 Known constraints to check before code edits:
 - `planning_status`: `pending | active | completed`.
-- `dojo_reps.status`: `pass | partial | repeat_day | pending | diagnostic | self_check`.
-- `dojo_reps.rep_type`: `rep_a | rep_b | correction_rep_a | real_life_transfer`.
 
-## Segment 9: Practice Dojo isolation
 
 Scope:
-- `supabase/functions/dojo-telegram/index.ts`
-- `supabase/functions/dojo-scheduler/index.ts`
-- `setter.yaml`
 - `scripts/import_curriculum.ts`
-- `docs/practice-dojo.md`
 
 Current state:
 - README says disabled.
@@ -281,12 +273,8 @@ Current state:
 - Must remain isolated from Vanguard bot secrets, handlers, and tables.
 
 Verify:
-- No import/call from `dojo-*` into `vanguard-*` or inverse business logic.
-- Smoke/deploy scripts do not accidentally send Dojo messages.
-- Dojo tables are not touched by Vanguard flows.
 
 Dead-structure status:
-- Disabled, not necessarily delete candidate. Treat as quarantined subsystem unless user explicitly resumes Dojo.
 
 ## Segment 10: Deprecated, legacy, and stale docs
 
@@ -335,7 +323,6 @@ Use these units for focused bug hunts:
 | Cron loop | morning/midday/evening functions | JWT/cron mismatch, duplicate Telegram send |
 | Integration sync | `sync-*` functions | token expiry, unsafe hard failure |
 | Deprecated quarantine | reset, intentions cleanup, Google Fit | accidental active caller |
-| Dojo isolation | `dojo-*`, `setter.yaml` | bot/table/secret mixing |
 
 ## Immediate audit candidates
 

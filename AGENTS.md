@@ -17,8 +17,7 @@ Entry point for AI agents working in this repository.
 2. **One write path for friction:** `vanguard_stream` → `vanguard-auto-classify` only.
 3. **Extend, don’t duplicate:** new features plug into existing handlers / README-listed functions — no parallel Telegram clients, no second classify pipeline, no Oracle writes to graph/knowledge on chat turns.
 4. **Current-first:** stream 72h beats archive; patterns need explicit N — no “confirmed pattern” language.
-5. **Dojo ≠ Vanguard:** separate bots, secrets, tables — see `.cursor/rules/dojo-isolation.mdc`.
-6. **Do not build:** shadow engine, psychoanalytic coaching, undeclared “digital twin” certainty, **ani mechanizmu, w którym system autonomicznie orzeka, że „manifestacja/intencja zadziałała”** (metafizyczna pewność). Deklarowane intencje (modlitwy, afirmacje, cele) są DOZWOLONE jako warstwa **deklaracji** do konfrontacji z zachowaniem — status zmienia wyłącznie użytkownik. Wiążący jest „Transurfing Layer Guardrail” w [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md), nie blankietowy zakaz.
+5. **Do not build:** shadow engine, psychoanalytic coaching, undeclared “digital twin” certainty, **ani mechanizmu, w którym system autonomicznie orzeka, że „manifestacja/intencja zadziałała”** (metafizyczna pewność). Deklarowane intencje (modlitwy, afirmacje, cele) są DOZWOLONE jako warstwa **deklaracji** do konfrontacji z zachowaniem — status zmienia wyłącznie użytkownik. Wiążący jest „Transurfing Layer Guardrail” w [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md), nie blankietowy zakaz.
 
 Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
@@ -26,14 +25,14 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 ## What this repo is
 
-Monorepo for **Vanguard** (personal OS) and **Practice Dojo** (30-day voice training), both on a Supabase project configured through environment variables.
+Monorepo for **Vanguard** (personal OS) on a Supabase project configured through environment variables.
 
-Local ↔ Supabase sync: **34** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-07**.
+
+Local - Supabase sync: **34** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-10**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |
-| Practice Dojo | Voice drills, curriculum, evaluation | `supabase/functions/dojo-*`, `setter.yaml` |
 | Integrations | Oura, Yazio, Calendar, Todoist, Strava; Google Fit deprecated | `supabase/functions/sync-*`, `analyze-training` |
 | Legacy workout | Original fitness tracking UI/tables | `src/` + `workout_*` tables |
 
@@ -44,23 +43,17 @@ Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
 - Affected: vanguard-morning-brief, vanguard-midday-check,
   vanguard-daily-reconciliation,
-  vanguard-telegram, dojo-telegram, dojo-scheduler,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   ingest-vault-log, vanguard-friction-qa,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
   sync-strava, analyze-training
 - After deploy: `npm run smoke` (or `node scripts/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
-Isolation:
-- Vanguard Core and Practice Dojo share one Supabase project
-- They are SEPARATE systems — never mix logic, secrets, or bot handlers
+Telegram:
 - Vanguard bot: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-- Dojo bot: DOJO_TELEGRAM_BOT_TOKEN, DOJO_TELEGRAM_CHAT_ID
 
 DB constraints (verify before INSERT):
 - planning_status: pending | active | completed  (NOT 'done')
-- dojo_reps.status: pass | partial | repeat_day | pending | diagnostic | self_check
-- dojo_reps.rep_type: rep_a | rep_b | correction_rep_a | real_life_transfer
 
 Edge function gotchas:
 - EdgeRuntime.waitUntil does NOT keep background tasks alive after HTTP response
@@ -87,7 +80,6 @@ Edge function gotchas:
 
 - Oracle (default): `deepseek-v4-flash`
 - Oracle deep mode (`!!`): `deepseek-reasoner`
-- Dojo eval: `deepseek-chat`
 - Telegram adversary/planning/emotion inline calls: `deepseek-v4-flash` (in `vanguard-telegram`)
 - Transcription: OpenAI Whisper (`whisper-1`)
 - Embeddings: OpenAI `text-embedding-3-small`
@@ -96,5 +88,4 @@ Edge function gotchas:
 
 - Evening reconciliation → planning sessions → plan jutra: **ACTIVE**
 - Morning brief + midday check crons: **ACTIVE**
-- Practice Dojo: **DISABLED** (functions early-return 410, pg_cron jobs unscheduled)
 - Observation-only mode: **DEPRECATED**

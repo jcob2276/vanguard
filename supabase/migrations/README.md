@@ -6,7 +6,6 @@ New migrations should use domain prefix in the name:
 
 ```
 YYYYMMDD_vanguard_*
-YYYYMMDD_dojo_*
 YYYYMMDD_integration_*
 YYYYMMDD_graph_*
 ```
@@ -37,9 +36,6 @@ YYYYMMDD_graph_*
 - `20260521212030_daily_planning_session`
 - `20260521212813_planning_summary_column`
 
-### Practice Dojo
-- `20260519163258_dojo_tables_v01`
-- `20260519212704_dojo_current_rep_phase_sync`
 
 ### Cron fixes
 - `20260519142633_fix_cron_current_setting_null_bug`
@@ -50,8 +46,6 @@ YYYYMMDD_graph_*
 If code inserts fail silently or with 500, check CHECK constraints:
 
 ```sql
--- dojo_reps.status must include: diagnostic, self_check
--- dojo_reps.rep_type must include: correction_rep_a, real_life_transfer
 -- planning_status: pending | active | completed (not 'done')
 ```
 

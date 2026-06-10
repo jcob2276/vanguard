@@ -21,7 +21,6 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
 | Strava/Yazio/Todoist/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
-| Practice Dojo | Disabled | Separate bot, secrets, and tables; functions should remain isolated. |
 | Google Fit | Deprecated | OAuth/function remnants are compatibility only; do not add new product logic here. |
 | `vanguard-intentions-cleanup` | Deprecated | 410-style inactive function; not in active no-JWT deploy set. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. |

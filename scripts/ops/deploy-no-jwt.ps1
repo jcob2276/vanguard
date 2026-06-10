@@ -1,4 +1,4 @@
-# Deploy all Vanguard/Dojo functions that require verify_jwt: false
+# Deploy all Vanguard functions that require verify_jwt: false
 # Usage: .\scripts\ops\deploy-no-jwt.ps1
 #        .\scripts\ops\deploy-no-jwt.ps1 vanguard-telegram vanguard-oracle
 
@@ -13,18 +13,18 @@ $all = @(
   "vanguard-weekly-synthesis",
   "vanguard-friction-qa",
   "vanguard-telegram",
-  "dojo-telegram",
-  "dojo-scheduler",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
   "ingest-vault-log",
   "vanguard-analyst",
   "vanguard-eval-runner",
+  "vanguard-eval-interview",
   "vanguard-graph-embedder",
   "save-daily-aggregate",
   "sync-strava",
-  "analyze-training"
+  "analyze-training",
+  "analyze-training-load"
 )
 
 $targets = if ($args.Count -gt 0) { $args } else { $all }

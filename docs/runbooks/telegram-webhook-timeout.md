@@ -10,7 +10,6 @@ Telegram webhooks wait max **30 seconds** for HTTP 200. If processing takes long
 - Same voice note processed multiple times
 - Partial state in DB (lock set but rep not saved)
 
-## Dojo-specific fix (applied v9+)
 
 Process **synchronously** — return 200 only after:
 1. Whisper transcription
@@ -43,6 +42,5 @@ If voice hangs, user sees "Słucham..." with no follow-up — check logs for Whi
 
 ## Dedup (if retries happen)
 
-Dojo: check existing rep for same `run_id + day + phase` before processing.
 
 Vanguard stream: dedup by `metadata.telegram_message_id`.

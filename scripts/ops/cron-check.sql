@@ -39,6 +39,5 @@ WHERE jobname ILIKE '%midday%'
    OR jobname ILIKE '%reconcil%'
    OR jobname ILIKE '%weekly-synth%'
    OR jobname ILIKE '%friction-qa%'
-   OR jobname ILIKE '%dojo%'
    OR jobname ILIKE '%weekly-report%'
 ORDER BY jobname;

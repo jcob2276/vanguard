@@ -20,7 +20,6 @@ alwaysApply: true
 - **One extension:** either one new `_handlers/*.ts` slice in `vanguard-telegram` OR one new edge function — not both without user approval.
 - **Imports:** `createServiceClient`, `safeExecute`, `sendMessage` / `sendMessageParsed` from `_shared/` — no new raw `fetch(api.telegram.org)`.
 - **Friction:** only `vanguard_stream` → `vanguard-auto-classify` → `friction_events`.
-- **Dojo:** never import or call `vanguard-*` from `dojo-*` (see `dojo-isolation.mdc`).
 
 ## Definition of done (every change)
 

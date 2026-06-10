@@ -1,6 +1,5 @@
 # Vanguard Core
 
-Personal OS daily loop. **Not** Practice Dojo — see [practice-dojo.md](./practice-dojo.md).
 
 ## Purpose
 

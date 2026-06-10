@@ -98,7 +98,6 @@ Brak cron (HTTP manual):
 | weekly-report | ❌ nie istnieje | — | ghost — brak folderu; legacy PDF raport nigdy nie wdrożony |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
 | vanguard-reset-prompt | ⛔ deprecated | HTTP → 410; cron off 2026-05-23 | **false** JWT |
-| dojo-telegram / dojo-scheduler | ✅ aktywne | webhook / cron | **false** JWT |
 | vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**

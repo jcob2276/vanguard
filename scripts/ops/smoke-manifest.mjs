@@ -14,8 +14,6 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-weekly-synthesis",
   "vanguard-friction-qa",
   "vanguard-telegram",
-  "dojo-telegram",
-  "dojo-scheduler",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
@@ -26,6 +24,7 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "save-daily-aggregate",
   "sync-strava",
   "analyze-training",
+  "analyze-training-load",
   "vanguard-eval-interview",
 ];
 
@@ -43,8 +42,6 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-friction-qa", post: "cron", sideEffects: "LLM + Telegram" },
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
   { name: "save-daily-aggregate", post: "cron_secret", sideEffects: "Writes daily aggregate" },
-  { name: "dojo-scheduler", post: "safe", body: {}, expectStatus: [410], sideEffects: "Disabled stub" },
-  { name: "dojo-telegram", post: "safe", body: {}, expectStatus: [410], sideEffects: "Disabled stub" },
   { name: "vanguard-telegram", post: "webhook", body: { update_id: 0 }, sideEffects: "OPTIONS preferred" },
   { name: "vanguard-oracle", post: "safe", body: { current_query: "smoke", user_id: "__USER__", mode: "chat" }, sideEffects: "Calls DeepSeek — use only with --invoke-safe" },
   { name: "vanguard-auto-classify", post: "safe", body: {}, sideEffects: "Returns 200, no classify" },
@@ -58,6 +55,7 @@ export const SMOKE_TARGETS = [
   { name: "google-fit-auth", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
   { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
   { name: "analyze-training", post: "skip", sideEffects: "Calls DeepSeek + Telegram — manual trigger only" },
+  { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */
@@ -76,8 +74,6 @@ export const CRON_DASHBOARD_ONLY = [
   { jobname: "vanguard-daily-reconciliation", schedule_hint: "~19:30 UTC", target: "vanguard-daily-reconciliation" },
   { jobname: "vanguard-weekly-synthesis", schedule_hint: "Sun ~17:00 UTC", target: "vanguard-weekly-synthesis" },
   { jobname: "vanguard-friction-qa", schedule_hint: "periodic", target: "vanguard-friction-qa" },
-  { jobname: "dojo-scheduler-morning", schedule_hint: "0 6 * * *", target: "dojo-scheduler" },
-  { jobname: "dojo-scheduler-afternoon", schedule_hint: "0 13 * * *", target: "dojo-scheduler" },
 ];
 
 export const CRON_REMOVED = [

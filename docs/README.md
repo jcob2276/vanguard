@@ -10,7 +10,6 @@ Lean operational docs + links to existing deep context.
 ## Subsystems (operational)
 
 - [vanguard-core.md](./vanguard-core.md) — daily loop, telegram commands, oracle
-- [practice-dojo.md](./practice-dojo.md) — curriculum, state machine, evaluation
 
 ## Operations / runbooks
 
@@ -38,4 +37,3 @@ Lean operational docs + links to existing deep context.
 
 - [../.cursor/rules/vanguard-context.mdc](../.cursor/rules/vanguard-context.mdc) — philosophy
 - [../.cursor/rules/vanguard-ops.mdc](../.cursor/rules/vanguard-ops.mdc) — deploy + DB rules
-- [../.cursor/rules/dojo-isolation.mdc](../.cursor/rules/dojo-isolation.mdc) — Dojo boundary

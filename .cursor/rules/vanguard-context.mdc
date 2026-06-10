@@ -29,7 +29,6 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 
 - **Frontend:** React + Vite + Tailwind, SPA deployowany na Vercel
 - **Backend:** Supabase (Postgres + Edge Functions w Deno/TypeScript)
-- **AI:** DeepSeek — Oracle/architect/telegram inline: `deepseek-v4-flash`; reasoner dla `!!`: `deepseek-reasoner`; Dojo eval: `deepseek-chat`; OpenAI Whisper + embeddings
 - **Notifications:** Telegram Bot API
 - **Biometrics:** Oura Ring API (HRV, sen, readiness), Yazio (dieta)
 - **Crons:** pg_cron w Supabase
@@ -61,16 +60,10 @@ Nie trzymaj numerów wersji w rules — szybko się dezaktualizują.
 
 ---
 
-## Practice Dojo (osobny subsystem)
 
 30-dniowy trening głosu via Telegram. **Nie jest częścią Vanguard Core.**
 
-- Funkcje: `dojo-telegram`, `dojo-scheduler`
-- Tabele: `dojo_runs`, `dojo_reps`, `dojo_curricula`
-- Curriculum: `setter.yaml` → DB (deterministyczne, nie LLM-driven pacing)
-- Osobny bot i secrety: `DOJO_TELEGRAM_*`
 
-Przy pracy nad Vanguard: **nie ruszaj** `dojo-*`. Szczegóły: **`.cursor/rules/dojo-isolation.mdc`**
 
 ---
 
@@ -165,9 +158,7 @@ Nie pytaj "dlaczego tego nie ma" bez przeczytania tego:
 - vanguard-auto-classify, vanguard-architect, vanguard-analyst
 - vanguard-oracle z full state vector (Oura, wins, plan)
 
-**Live — Practice Dojo:**
 - Osobny Telegram bot, Day 0 baseline + Day 1+ eval
-- Szczegóły: `docs/practice-dojo.md`
 
 ~~Observation mode~~ — **deprecated**. System jest w pełnym daily loop, nie w trybie zbierania danych.
 

@@ -16,7 +16,6 @@ Przeczytaj w tej kolejności:
 
 **Nie implementuj z `docs/legacy/`** — patrz `docs/legacy/README.md`.
 
-Jeśli pracujesz przy Dojo: przeczytaj też `.cursor/rules/dojo-isolation.mdc` i **nie ruszaj** `vanguard-*`.
 
 Funkcje ze statusem **`deprecated`** w README zwracają **410** — nie rozwijaj ich logiki.
 
@@ -93,7 +92,6 @@ serve(async (req) => {
 
 - Przeczytaj plik od początku do końca — nie edytuj bez znajomości kontekstu
 - `vanguard-telegram` to monolit (~60KB) — zmieniaj jeden flow na raz
-- Sprawdź czy zmiana dotyczy Vanguard czy Dojo — nigdy nie mieszaj
 
 ### Po każdej zmianie zaktualizuj:
 
@@ -170,7 +168,6 @@ wip                               ← nie commituj WIP na main
 |---|---|---|
 | Wszystkie Vanguard functions | `deepseek-v4-flash` | Szybki, tani, wystarczający |
 | Oracle tryb `!!` | `deepseek-reasoner` | Deep analysis na żądanie |
-| Dojo eval | `deepseek-chat` | Intencjonalnie osobny — nie upgrade |
 | Embeddings | `text-embedding-3-small` | Kompatybilność wektorów w DB |
 | Whisper | `whisper-1` | Jedyna opcja |
 
@@ -240,7 +237,6 @@ Nigdy `new Date().toISOString().split('T')[0]` — to jest UTC, nie Warsaw.
 ❌ Commitować API keys, JWT tokens, service role keys
 ❌ Hardkodować user_id (używaj env var VANGUARD_USER_ID)
 ❌ Deployować vanguard-telegram bez testu voice flow
-❌ Ruszać dojo-* przy pracy na Vanguard (i odwrotnie)
 ❌ Zostawiać console.log z wrażliwymi danymi (tokeny, user_id w URL)
 ❌ Deployować bez sprawdzenia logów przez 5 minut po deploy
 ❌ Zmieniać model AI bez aktualizacji AGENTS.md

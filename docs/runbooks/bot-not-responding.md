@@ -21,14 +21,9 @@
 - After answer, `planning_status` should become `active`
 - Planning closes with "koniec" / "done" / "gotowe"
 
-## Dojo bot (`dojo-telegram`)
 
 ### Symptom: "Transkrybuję..." then nothing
 
-1. Check logs for `dojo-telegram`
-2. Common cause: **DB CHECK constraint** on `dojo_reps.status` or `rep_type`
-3. Query: `SELECT * FROM dojo_reps ORDER BY created_at DESC LIMIT 5`
-4. Query: `SELECT phase, current_day FROM dojo_runs WHERE phase != 'completed'`
 
 ### Symptom: duplicate "Transkrybuję..." messages
 
@@ -38,16 +33,8 @@
 
 ## Quick DB checks
 
-```sql
--- Active dojo run
-SELECT id, current_day, phase, attempts_on_day FROM dojo_runs
-WHERE phase != 'completed' ORDER BY started_at DESC LIMIT 1;
-
--- Recent dojo reps
-SELECT day, phase, status, created_at FROM dojo_reps
-ORDER BY created_at DESC LIMIT 5;
-
--- Pending reconciliation
+```sql`r`n-- Pending reconciliation
 SELECT id, status, planning_status, date FROM daily_reconciliations
 ORDER BY created_at DESC LIMIT 3;
 ```
+

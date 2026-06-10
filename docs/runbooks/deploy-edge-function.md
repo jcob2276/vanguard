@@ -20,7 +20,6 @@ deploy_edge_function(
 
 ```bash
 supabase functions deploy vanguard-telegram --no-verify-jwt
-supabase functions deploy dojo-telegram --no-verify-jwt
 supabase functions deploy vanguard-morning-brief --no-verify-jwt
 ```
 
