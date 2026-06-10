@@ -2,7 +2,6 @@
 
 > **Source of truth for agents:** behavior and deploy live in `AGENTS.md` and `supabase/functions/README.md`.  
 > This file is the **one-page map**: data flow, crons, subsystems.  
-> Do **not** implement from `docs/legacy/` without verifying against the files above.
 
 Supabase project: configured per deployment through environment variables.
 
@@ -13,8 +12,8 @@ Supabase project: configured per deployment through environment variables.
 | Subsystem | Role | Paths |
 |-----------|------|--------|
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
-| **Integrations** | Oura, Yazio, Calendar, Todoist, Strava | `sync-*` (Google Fit deprecated) |
-| **Legacy workout** | Fitness UI + workout tables | `src/`, `workout_*` tables (`weekly-report` function nie istnieje — ghost z wczesnych planów) |
+| **Integrations** | Oura, Yazio, Calendar, Todoist, Strava, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
+| **Legacy workout** | Existing workout UI/data model | `src/`, `workout_*` tables |
 
 
 ---
@@ -78,8 +77,11 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | Job name (migration) | Schedule (UTC) | Edge function / target |
 |----------------------|----------------|-------------------------|
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` (per user) |
+| `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
 | `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
 | `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
+| `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
+| `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` |
 
 **Documented in README / ops, confirm in dashboard:**
 
@@ -89,11 +91,8 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-daily-reconciliation` | pg_cron (~evening Warsaw) |
 | `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
 | `vanguard-friction-qa` | periodic QA report |
-| ~~`weekly-report`~~ | ❌ ghost — function folder does not exist |
 
-Deprecated: `vanguard-reset-prompt` → HTTP **410** (cron off; `20260526100000_unschedule_reset_prompt.sql`).  
-Deprecated: `vanguard-intentions-cleanup` → HTTP **410** (cron off; `20260603000001_unschedule_intentions_cleanup.sql`).
-Removed duplicate cron: `vanguard-daily-shadow-analysis` (`20260525170000_evaluation_fixes.sql`).
+Removed crons: `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset prompt jobs.
 
 ---
 
@@ -129,7 +128,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **34 functions**, last pass 2026-06-07.
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **30 functions**, last pass 2026-06-10.
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 
@@ -144,7 +143,6 @@ Do not add or deploy a function that is not listed there with status `active` or
 5. `docs/PRODUCT_PRINCIPLES.md` — language and epistemic guardrails  
 6. `BACKLOG.md` — do not fix what is intentionally deferred  
 
-Skip for implementation: `docs/legacy/*` (history only).
 
 ---
 
@@ -157,3 +155,4 @@ Skip for implementation: `docs/legacy/*` (history only).
 - “Confirmed pattern” language without explicit N  
 
 See `docs/PRODUCT_PRINCIPLES.md` for the full gate.
+

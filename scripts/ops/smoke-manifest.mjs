@@ -50,9 +50,6 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-eval-interview", post: "cron", sideEffects: "Sends Telegram eval question — OPTIONS preferred for smoke" },
   { name: "vanguard-graph-embedder", post: "skip", sideEffects: "Manual embedding batch — OPTIONS only" },
   { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
-  { name: "vanguard-intentions-cleanup", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
-  { name: "vanguard-reset-prompt", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
-  { name: "google-fit-auth", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub" },
   { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
   { name: "analyze-training", post: "skip", sideEffects: "Calls DeepSeek + Telegram — manual trigger only" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
@@ -77,8 +74,9 @@ export const CRON_DASHBOARD_ONLY = [
 ];
 
 export const CRON_REMOVED = [
-  "vanguard-reset-prompt",
-  "vanguard-reset-prompt-cron",
   "vanguard-daily-shadow-analysis",
   "vanguard-weekly-intentions-cleanup",
+  "vanguard-reset-prompt",
+  "vanguard-reset-prompt-cron",
+  "weekly-report",
 ];

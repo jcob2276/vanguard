@@ -59,14 +59,6 @@ const checks = [
 
 const localOnlyFiles = [
   '.env',
-  'poranek.txt',
-  'poranek_v2_elevenlabs.txt',
-  'wizualizacja_sen.txt',
-  'wizualizacja_sen_v2_elevenlabs.txt',
-  'wizualizacja_sen_v3_long_elevenlabs.txt',
-  'run-chart-20260530.html',
-  'run-points-20260530.json',
-  'run-streams-20260530.json',
 ];
 for (const file of localOnlyFiles) ignoredFiles.add(path.basename(file));
 

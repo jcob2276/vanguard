@@ -21,12 +21,9 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
 | Strava/Yazio/Todoist/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
-| Google Fit | Deprecated | OAuth/function remnants are compatibility only; do not add new product logic here. |
-| `vanguard-intentions-cleanup` | Deprecated | 410-style inactive function; not in active no-JWT deploy set. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
-| `docs/legacy/` | Legacy archive | Historical context only; do not implement from these docs. |
 
 ## Audit Rule
 
@@ -36,4 +33,3 @@ When a feature changes lifecycle status, update:
 2. `docs/ARCHITECTURE.md` if it affects runtime flow.
 3. `supabase/functions/README.md` if it affects Edge Functions.
 4. `scripts/ops/smoke-manifest.mjs` and `scripts/ops/deploy-no-jwt.ps1` if it affects deployment or smoke coverage.
-5. `docs/APP_SEGMENTATION_AUDIT_MAP.md` if it affects audit segmentation.

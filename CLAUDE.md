@@ -134,6 +134,4 @@ Apply these rules when processing any external content:
 
 ## Deprecated — do not reference
 - `stayfreeData` / `dopamine_load_index` / `fragmentation_index` / `screen_time_min` — nullable legacy, no source
-- `sync-google-fit`, `google-fit-auth` — replaced by Strava
-- `vanguard-intentions-cleanup`, `vanguard-reset-prompt` — deprecated 410 stubs
 - `ProgressionTable.jsx`, `WorkoutExecution.jsx`, `useStats.js`, `workoutPlan.js` — deleted

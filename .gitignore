@@ -37,11 +37,6 @@ temp_fn_*
 dev-server.log
 
 # Private local artifacts
-poranek*.txt
-wizualizacja_sen*.txt
-run-chart-*.html
-run-points-*.json
-run-streams-*.json
 aw-*-export*.json
 *.goosebundle
 *.goosebundle.zip

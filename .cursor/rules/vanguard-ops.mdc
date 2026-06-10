@@ -15,7 +15,6 @@ Functions that require `verify_jwt: false`:
 - `vanguard-morning-ping`
 - `vanguard-midday-check`
 - `vanguard-daily-reconciliation`
-- `vanguard-intentions-cleanup`
 - `vanguard-telegram`
 - `vanguard-oracle` (invoked server-to-server from telegram)
 - `vanguard-auto-classify` (DB trigger / cron)

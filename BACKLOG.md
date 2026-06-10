@@ -3,7 +3,6 @@
 Rzeczy do zrobienia **po Sprint 1** (`repeated_pattern_candidates`), chyba że sekcja mówi inaczej.
 
 **Przed kodem:** `AGENTS.md` → `docs/ARCHITECTURE.md` → `supabase/functions/README.md`  
-**Nie implementuj z:** `docs/legacy/`
 
 ---
 
@@ -13,7 +12,6 @@ Rzeczy do zrobienia **po Sprint 1** (`repeated_pattern_candidates`), chyba że s
 |----|-----|-------|
 | BUG-01 | `tomorrowWarsawDate` — data z `activePlanning.date + 1` zamiast UTC `setDate` | 2026-05-23 (f1bb2b6) |
 | BUG-02 | `vanguard-daily-reconciliation` — guard wieczorny z cutoff 17:00 Warsaw | 2026-05-23 (f1bb2b6) |
-| Clarity-02 | `vanguard-reset-prompt` deprecated → HTTP 410; cron unschedule migracja | 2026-05-26 |
 | Clarity-02 | `vanguard-architect` — usunięty martwy `extractFrictionEvent` | 2026-05-26 |
 
 ---

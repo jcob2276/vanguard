@@ -13,7 +13,6 @@ alwaysApply: true
 3. Read `docs/ARCHITECTURE.md` for data flow — do not invent a second write path.
 4. Check `BACKLOG.md` — do not implement deferred work unless the user explicitly overrides.
 
-**Do not use `docs/legacy/` for current behavior.**
 
 ## Adding or changing behavior
 

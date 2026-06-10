@@ -9,7 +9,6 @@ Entry point for AI agents working in this repository.
 - **Graph (batch):** `vanguard-architect` / `ingest-vault-log` — not inline from Oracle chat writes
 - **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
 - **One-page architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- **Do not implement from:** [`docs/legacy/`](docs/legacy/README.md) — history only
 
 ## Konstytucja (non-negotiable)
 
@@ -27,13 +26,12 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 Monorepo for **Vanguard** (personal OS) on a Supabase project configured through environment variables.
 
-
-Local - Supabase sync: **34** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-10**.
+Local/Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-10**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |
-| Integrations | Oura, Yazio, Calendar, Todoist, Strava; Google Fit deprecated | `supabase/functions/sync-*`, `analyze-training` |
+| Integrations | Oura, Yazio, Calendar, Todoist, Strava | `supabase/functions/sync-*`, `supabase/functions/analyze-*` |
 | Legacy workout | Original fitness tracking UI/tables | `src/` + `workout_*` tables |
 
 ## CRITICAL RULES
@@ -46,7 +44,7 @@ Deploy:
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   ingest-vault-log, vanguard-friction-qa,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
-  sync-strava, analyze-training
+  vanguard-eval-interview, sync-strava, analyze-training, analyze-training-load
 - After deploy: `npm run smoke` (or `node scripts/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
 Telegram:
@@ -74,7 +72,6 @@ Edge function gotchas:
 8. `docs/runbooks/` — incident fixes
 9. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
 10. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
-11. [`docs/legacy/`](docs/legacy/README.md) — **archive only; do not implement from here**
 
 ## Models (current)
 

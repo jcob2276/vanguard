@@ -15,9 +15,11 @@ ORDER BY jobname;
 SELECT jobname, schedule, active
 FROM cron.job
 WHERE jobname IN (
+  'vanguard-daily-shadow-analysis',
   'vanguard-reset-prompt',
   'vanguard-reset-prompt-cron',
-  'vanguard-daily-shadow-analysis'
+  'vanguard-weekly-intentions-cleanup',
+  'weekly-report'
 );
 
 -- 3) Expected from migrations (should return rows when scheduled)
@@ -28,7 +30,8 @@ WHERE jobname IN (
   'vanguard-daily-analyst',
   'vanguard-morning-brief',
   'vanguard-morning-ping',
-  'vanguard-weekly-intentions-cleanup'
+  'vanguard-sync-strava',
+  'vanguard-eval-interview'
 )
 ORDER BY jobname;
 
@@ -39,5 +42,4 @@ WHERE jobname ILIKE '%midday%'
    OR jobname ILIKE '%reconcil%'
    OR jobname ILIKE '%weekly-synth%'
    OR jobname ILIKE '%friction-qa%'
-   OR jobname ILIKE '%weekly-report%'
 ORDER BY jobname;

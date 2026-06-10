@@ -54,7 +54,6 @@ pg_cron 0 3 * * *  (UTC)  →  vanguard-analyst  [⚠️ DWIE instancje — patr
                                 ├─► vanguard_curiosity_queue (UPDATE evaluated)
                                 └─► vanguard_curiosity_queue (INSERT new candidates)
 
-pg_cron 0 0 * * 0  (UTC)  →  vanguard-intentions-cleanup
                                 └─► DeepSeek: audit active intentions
                                       └─► vanguard_intentions (UPDATE status)
 
@@ -82,7 +81,6 @@ Brak cron (HTTP manual):
 | vanguard-analyst | ✅ aktywna | cron `0 3 * * *` | ⚠️ 2 cronjobы |
 | vanguard-architect | ✅ aktywna | HTTP (z telegram, deferred) | friction pipeline DISABLED |
 | vanguard-telegram | ✅ aktywna | Telegram webhook | |
-| vanguard-intentions-cleanup | ✅ aktywna | cron `0 0 * * 0` | |
 | save-daily-aggregate | ✅ aktywna | cron `0 4 * * *` | |
 | vanguard-backfill | ✅ aktywna | HTTP manual | |
 | vanguard-graph-embedder | ✅ aktywna | HTTP manual | |
@@ -93,11 +91,7 @@ Brak cron (HTTP manual):
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
 | analyze-training | ✅ aktywna | HTTP manual | plan vs Strava DeepSeek analysis → Telegram |
-| sync-google-fit | ⚠️ deprecated | HTTP manual | superseded by Strava; UI caller usunięty ze Stats.jsx 2026-05-26 |
-| google-fit-auth | ⚠️ deprecated | HTTP GET (OAuth callback) | superseded by Strava |
-| weekly-report | ❌ nie istnieje | — | ghost — brak folderu; legacy PDF raport nigdy nie wdrożony |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
-| vanguard-reset-prompt | ⛔ deprecated | HTTP → 410; cron off 2026-05-23 | **false** JWT |
 | vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**
@@ -105,7 +99,6 @@ Brak cron (HTTP manual):
 - `vanguard-architect`: `extractFrictionEvent` **usunięte** (2026-05-26) — friction tylko przez `vanguard-auto-classify`.
 - `vanguard-oracle`: zapis do `vanguard_knowledge` / `entity_links` na turnie czatu **wyłączony** (audit log synchroniczny).
 - `vanguard-analyst`: pattern_candidate promotion **wyłączona** (~linia 260). Re-enable po Sprint 1 + QA friction precision.
-- `vanguard-reset-prompt`: **deprecated** — zwraca 410; migracja `20260526100000_unschedule_reset_prompt.sql`.
 
 ### 1.4 Cron jobs
 
@@ -116,7 +109,6 @@ Brak cron (HTTP manual):
 | vanguard-daily-shadow-analysis | — | — | — | **USUNIĘTY** (mig. 20260525170000) |
 | vanguard-morning-brief | `0 5 * * *` | 07:00 | vanguard-morning-brief | 20260521 |
 | vanguard-morning-ping | `20 5 * * *` | 07:20 | vanguard-morning-ping | 20260524 |
-| vanguard-weekly-intentions-cleanup | `0 0 * * 0` | 02:00 niedziela | vanguard-intentions-cleanup | 20260513 (mig. 006) |
 
 ---
 
@@ -134,7 +126,6 @@ Następujące tabele istnieją w bazie ale nie mają DDL w `/supabase/migrations
 | `daily_wins` | id, user_id, date, done_1..5, completed_at_1..5, daily_rpe, journal_entry, gratitude_entry, mood_score, tags, result | ENABLED (mig. 008) |
 | `daily_nutrition` | user_id, date, calories, protein | nieznane |
 | `user_fundament` | user_id, identity, philosophy, vision | nieznane |
-| `user_settings` | user_id, todoist_token, google_fit_refresh_token, google_fit_client_id | nieznane |
 | `stayfree_usage` | user_id, date, app_name, device_name, duration_seconds, unlocks | DEPRECATED / no active caller |
 | `oura_daily_summary` | user_id, date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes, bedtime_timestamp, steps, active_calories, total_calories, temp_deviation | nieznane |
 | `body_metrics` | id, weight_italia | nieznane (pre-existing) |
@@ -586,7 +577,6 @@ const localTime = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw'
 
 **Zasada:** Każdy `fetch()` do zewnętrznego API (DeepSeek, OpenAI, Telegram) musi mieć `if (!res.ok)` przed `await res.json()`. Brak tego powoduje, że 429/500 odpowiedź jest parsowana jako pusty JSON i nadpisuje dane produkcyjne.
 
-**Naprawione (2026-05-19):** vanguard-auto-classify, vanguard-briefing, vanguard-intentions-cleanup, vanguard-backfill, vanguard-telegram (Whisper + 2x embedding).
 
 **Wzorzec dla throw:**
 ```typescript

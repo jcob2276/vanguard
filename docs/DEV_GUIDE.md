@@ -14,7 +14,6 @@ Przeczytaj w tej kolejności:
 5. `.cursor/rules/vanguard-context.mdc` — filozofia i guardrails
 6. `BACKLOG.md` — co jest znane jako broken, nie naprawiaj czegoś co jest już zaplanowane inaczej
 
-**Nie implementuj z `docs/legacy/`** — patrz `docs/legacy/README.md`.
 
 
 Funkcje ze statusem **`deprecated`** w README zwracają **410** — nie rozwijaj ich logiki.

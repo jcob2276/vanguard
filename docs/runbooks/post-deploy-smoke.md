@@ -28,7 +28,6 @@ node scripts/smoke-vanguard.mjs --with-service-role
 node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe
 ```
 
-POSTs minimal bodies (`vanguard-reset-prompt` → 410, `auto-classify` → empty, `architect` → `limit: 0`).
 
 Do **not** use `--invoke-crons` unless you accept possible Telegram / LLM side effects.
 
