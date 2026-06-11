@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { sendMessage } from "../_shared/telegram.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -147,18 +148,13 @@ serve(async (req) => {
       .join('\n')
 
     // 4. DEEPSEEK REASONER — analiza friction patterns
-    const analystRes = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-reasoner',
-        messages: [
-          {
-            role: 'system',
-            content: `Jesteś Vanguard OS Analyst — silnikiem wykrywania wzorców behawioralnych.
+    const { content: rawContentParsed } = await deepseekChat({
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
+      model: 'deepseek-reasoner',
+      messages: [
+        {
+          role: 'system',
+          content: `Jesteś Vanguard OS Analyst — silnikiem wykrywania wzorców behawioralnych.
 
 ZASADY:
 1. CURRENT-FIRST: Analiza opiera się na danych z ostatnich 72h jako głównym źródle.
@@ -210,10 +206,10 @@ FORMAT JSON:
   },
   "provocation": "Jedno zdanie — obserwacja oparta na powtarzającym się wzorcu (NIE psychologia, tylko fakt z danych)"
 }`
-          },
-          {
-            role: 'user',
-            content: `PENDING HYPOTHESES (do ewaluacji):
+        },
+        {
+          role: 'user',
+          content: `PENDING HYPOTHESES (do ewaluacji):
 ${JSON.stringify(pendingHypotheses.data || [])}
 
 STREAM — OSTATNIE 72H (primary):
@@ -241,18 +237,14 @@ ${loadText || 'Brak danych o strefach tętna.'}
 
 REGENERACJA — ostatnie 7 dni:
 ${recoveryText || 'Brak danych Oura.'}`
-          }
-        ]
-      }),
-    })
+        }
+      ],
+      temperature: null,
+      maxTokens: null,
+    });
 
-    if (!analystRes.ok) {
-      const errText = await analystRes.text()
-      throw new Error(`DeepSeek Analyst error (${analystRes.status}): ${errText.substring(0, 200)}`)
-    }
+    let rawContent = rawContentParsed || "{}";
 
-    const analystData = await analystRes.json()
-    let rawContent = analystData.choices?.[0]?.message?.content || "{}"
     rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
     if (rawContent.includes('```json')) {
       rawContent = rawContent.split('```json')[1].split('```')[0].trim()

@@ -12,6 +12,8 @@ import { safeSendTelegram } from '../_utils/helpers.ts';
 import { createMinimumViablePlan, validatePlanJson } from './planning.ts';
 import { logAuditEvent } from '../../_shared/audit.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
+import { deepseekChat } from '../../_shared/deepseek.ts';
+
 
 export async function handleMorningRescue(
   rescueId: string,
@@ -43,16 +45,14 @@ export async function handleMorningRescue(
   } | null = null;
 
   try {
-    const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${deepseekApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.1,
-        max_tokens: 280,
-        messages: [{
-          role: 'user',
-          content: `Jesteś w trybie RATUNKOWYM. Użytkownik nagrywa szybki plan na DZISIAJ (nie na jutro).
+    const { content: raw } = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      temperature: 0.1,
+      maxTokens: 280,
+      messages: [{
+        role: 'user',
+        content: `Jesteś w trybie RATUNKOWYM. Użytkownik nagrywa szybki plan na DZISIAJ (nie na jutro).
 
 Twoim zadaniem jest wyciągnąć z wypowiedzi:
 - Co konkretnie chce stworzyć/zrobić dziś (production_artifact)
@@ -78,15 +78,12 @@ Jeśli nie ma jasnego artefaktu lub ruchu napięciowego — daj null w tych pola
 
 WYPOWIEDŹ UŻYTKOWNIKA:
 ${cleanText.substring(0, 700)}`
-        }]
-      })
+      }]
     });
 
-    if (dsRes.ok) {
-      const raw = (await dsRes.json())?.choices?.[0]?.message?.content || '';
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) extracted = JSON.parse(jsonMatch[0]);
-    }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) extracted = JSON.parse(jsonMatch[0]);
+
   } catch (err) {
     await logCriticalError({
       area: 'morning-rescue',

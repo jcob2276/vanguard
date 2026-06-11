@@ -20,7 +20,7 @@
 import { safeExecute } from './supabase.ts';
 
 export interface PatternInsight {
-  type: 'recurring_blocker' | 'plan_adherence_gap' | 'morning_protocol_impact' | 'sleep_friction_link' | 'early_warning';
+  type: 'recurring_blocker' | 'plan_adherence_gap' | 'morning_protocol_impact' | 'sleep_friction_link' | 'early_warning' | 'narrative_biometric_mismatch';
   title: string;                    // Krótki tytuł do pokazania
   evidenceText: string;             // Gotowy tekst do wstawienia w wiadomość (po polsku)
   confidence: number;               // 0.0 – 1.0
@@ -28,6 +28,7 @@ export interface PatternInsight {
   lastSeenDate: string | null;      // data ostatniego wystąpienia (YYYY-MM-DD)
   metadata?: Record<string, any>;   // surowe dane dla debugu / dalszego przetwarzania
 }
+
 
 /**
  * S1: Powtarzające się blokery użytkownika.
@@ -106,23 +107,75 @@ export async function detectRecurringBlockers(
   function getBlockerTheme(text: string): string {
     const t = text.toLowerCase();
 
-    if (/telefon|dzwonić|rozmowa|klient|lead|zimny|outreach/.test(t)) return 'cold_calls';
-    if (/mail|email|odpowiedzieć|odpisać|korespondencja|inbox/.test(t)) return 'email_followup';
-    if (/trening|siłownia|sport|ruch|ćwiczenia|workout/.test(t)) return 'training';
-    if (/jedzenie|dieta|jedz|przekąska|jedzenie/.test(t)) return 'eating';
-    if (/sen|wstawać|wczesno|zasnąć|spać/.test(t)) return 'sleep_routine';
-    if (/pisanie|tekst|artykuł|content|raport|writing/.test(t)) return 'writing_content';
+    // 1. Digital Distraction / Scrolling (priority to avoid false positives with cold_calls)
+    if (/scroll|social|facebook|messenger|instagram|tiktok|youtube|grać|gier|porno|wrak|\bfb\b|\big\b|\byt\b/i.test(t) ||
+        (/telefon|fon/i.test(t) && /leż|marn|ran|późn|scrol|łóżk|medi/i.test(t))) {
+      return 'digital_distraction';
+    }
 
-    // Nowe tematy dodane w Faza A
-    if (/skupienie|focus|deep work|rozpraszanie|rozproszenie|koncentracja/.test(t)) return 'deep_work';
-    if (/spotkanie|relacja|rozmowa z|social|znajomy|przyjaciel|rodzina/.test(t)) return 'social';
-    if (/admin|organizacja|planowanie|zadania|todo|inbox zero|porządkowanie/.test(t)) return 'admin';
-    if (/myślenie|overthinking|analiza|decyzja|wahanie|zastanawianie/.test(t)) return 'overthinking';
-    if (/kreatywny|twórczy|pomysł|brainstorm|content creation/.test(t)) return 'creative';
-    if (/pieniądze|finanse|biznes|sprzedaż|klient|lead|pitch/.test(t)) return 'business';
+    // 2. Relationships / Personal life
+    if (/dziewczyn|związek|związku|relacj|randk|była|byłej|dotyk|kobieta|kobiety/i.test(t)) {
+      return 'relationships';
+    }
+
+    // 3. Education / Studies
+    if (/egzamin|nauka|uczyć|uczę|kurs|szkoł|uczeln|cisco|wykładowc|pytań/i.test(t)) {
+      return 'education';
+    }
+
+    // 4. Sleep & Waking Routine
+    if (/sen|wstawać|wczesno|zasnąć|spać|łóżk|zgrzeb|wstał/i.test(t)) {
+      return 'sleep_routine';
+    }
+
+    // 5. Mental State / Overthinking / Alignment / Avoidance
+    if (/chaos|overthinking|bałem|strach|niepokój|dryf|kierunek|cel|wahan|myśli|unika/i.test(t)) {
+      return 'mental_state';
+    }
+
+    // 6. Cold Calls / Sales / Business Outreach
+    if (/telefon|dzwonić|rozmow|klient|lead|zimny|outreach|sprzedaż|pitch/i.test(t)) {
+      return 'cold_calls';
+    }
+
+    // 7. Email Followup
+    if (/mail|email|odpowiedzieć|odpisać|korespondencja|inbox/.test(t)) {
+      return 'email_followup';
+    }
+
+    // 8. Training & Physical Activity
+    if (/trening|siłown|sport|ruch|ćwicz|workout/i.test(t)) {
+      return 'training';
+    }
+
+    // 9. Eating / Nutrition
+    if (/jedzenie|dieta|jedz|przekąska|jedzenie/i.test(t)) {
+      return 'eating';
+    }
+
+    // 10. Writing / Content Creation
+    if (/pisanie|tekst|artykuł|content|raport|writing/i.test(t)) {
+      return 'writing_content';
+    }
+
+    // 11. Admin / Organization
+    if (/admin|organizacja|planowanie|zadania|todo|inbox zero|porządkowanie/i.test(t)) {
+      return 'admin';
+    }
+
+    // 12. Creative
+    if (/kreatywny|twórczy|pomysł|brainstorm|content creation/i.test(t)) {
+      return 'creative';
+    }
+
+    // 13. Business / Finances
+    if (/pieniądze|finanse|biznes/i.test(t)) {
+      return 'business';
+    }
 
     return 'other';
   }
+
 
   function wordOverlap(a: string, b: string): number {
     const wordsA = new Set(a.split(' ').filter(w => w.length > 2));
@@ -240,8 +293,8 @@ export async function detectRecurringBlockers(
       `to w ${pct}% przypadków w ciągu ${corrWindow} dni pojawia się konkretne tarcie behawioralne ` +
       `(N=${sample}, ostatnie ${lookback} dni).`;
 
-    const displayTitle = blockerTheme !== 'other' 
-      ? `${blockerTheme} blocker` 
+    const displayTitle = blockerTheme !== 'other'
+      ? `${blockerTheme} blocker`
       : `Powtarzający się blocker: ${blockerPhrase.substring(0, 50)}`;
 
     insights.push({
@@ -748,9 +801,9 @@ export async function detectMorningProtocolImpact(
 /**
  * S3: Sen → następnego dnia dominujący typ tarcia (Etap 1)
  *
- * Prosty detektor korelacji między niskim snem (z aggregates) 
+ * Prosty detektor korelacji między niskim snem (z aggregates)
  * a konkretnymi typami friction_events następnego dnia.
- * 
+ *
  * Jeden z czterech wzorców wysokiego ROI z researchu (ETAP_1_RESEARCH...).
  * Kompletujemy czwórkę: S1 (blokery), S2 (poranny protokół), S3 (sen), S4 (plan adherence).
  */
@@ -941,7 +994,7 @@ export async function detectEarlyWarningSignals(
         .limit(1)
     );
 
-    const shouldSuppress = recentWarning?.some((w: any) => 
+    const shouldSuppress = recentWarning?.some((w: any) =>
       w.status === 'user_rejected' || w.last_seen >= cooldownCutoff
     );
 
@@ -1032,7 +1085,7 @@ export async function detectEarlyWarningSignals(
         .order('last_seen', { ascending: false })
         .limit(1)
     );
-    const shouldSuppress = recentWarning?.some((w: any) => 
+    const shouldSuppress = recentWarning?.some((w: any) =>
       w.status === 'user_rejected' || w.last_seen >= cooldownCutoff
     );
     if (!shouldSuppress) {
@@ -1097,7 +1150,7 @@ export async function detectEarlyWarningSignals(
         .order('last_seen', { ascending: false })
         .limit(1)
     );
-    const shouldSuppress = recentWarning?.some((w: any) => 
+    const shouldSuppress = recentWarning?.some((w: any) =>
       w.status === 'user_rejected' || w.last_seen >= cooldownCutoff
     );
     if (!shouldSuppress) {
@@ -1118,4 +1171,92 @@ export async function detectEarlyWarningSignals(
   }
 
   return [];
+}
+
+/**
+ * S5: Rozbieżność narracja vs biometria (Anty-Self-Deception).
+ * Wykrywa dni, w których użytkownik skarży się na zmęczenie/niewyspanie,
+ * mimo że biometria (sen >= 6.8h i readiness >= 65) wskazuje na pełną fizyczną regenerację.
+ */
+export async function detectNarrativeBiometricMismatch(
+  supabase: any,
+  userId: string,
+  options: { lookbackDays?: number } = {}
+): Promise<PatternInsight[]> {
+  const lookback = options.lookbackDays ?? 14;
+  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+  // 1. Pobierz daily_reconciliations z ostatnich N dni
+  const recs = await safeExecute(
+    supabase
+      .from('daily_reconciliations')
+      .select('date, user_response, p2_parsed')
+      .eq('user_id', userId)
+      .gte('date', cutoff)
+      .order('date', { ascending: true })
+  );
+
+  // 2. Pobierz aggregates z ostatnich N dni
+  const aggs = await safeExecute(
+    supabase
+      .from('vanguard_daily_aggregates')
+      .select('date, sleep_hours, readiness_score')
+      .eq('user_id', userId)
+      .gte('date', cutoff)
+      .order('date', { ascending: true })
+  );
+
+  if (!recs || recs.length === 0 || !aggs || aggs.length === 0) return [];
+
+  // Map aggregates by date
+  const aggMap = new Map<string, { sleep_hours: number | null; readiness_score: number | null }>();
+  for (const a of aggs) {
+    aggMap.set(a.date, { sleep_hours: a.sleep_hours, readiness_score: a.readiness_score });
+  }
+
+  const mismatchDates: Array<{ date: string; sleep: number; readiness: number; declared: string }> = [];
+
+  const tiredKeywords = [/zmęczen/i, /zmęczo/i, /brak.*sił/i, /słab.*sen/i, /niewyspa/i, /padam/i, /wykończo/i, /padnię/i];
+
+  for (const r of recs) {
+    const textToCheck = `${r.user_response || ''} ${(r.p2_parsed as any)?.biggest_cost || ''}`;
+    const mentionsTiredness = tiredKeywords.some(kw => kw.test(textToCheck));
+
+    if (mentionsTiredness) {
+      const agg = aggMap.get(r.date);
+      if (agg && agg.sleep_hours != null && agg.readiness_score != null) {
+        if (agg.sleep_hours >= 6.8 && agg.readiness_score >= 65) {
+          const declaredCost = (r.p2_parsed as any)?.biggest_cost || '';
+          mismatchDates.push({
+            date: r.date,
+            sleep: agg.sleep_hours,
+            readiness: agg.readiness_score,
+            declared: declaredCost.trim() || r.user_response?.substring(0, 60) || ''
+          });
+        }
+      }
+    }
+  }
+
+  if (mismatchDates.length === 0) return [];
+
+  const lastMismatch = mismatchDates[mismatchDates.length - 1];
+  const count = mismatchDates.length;
+
+  const evidenceText = count === 1
+    ? `Dnia ${lastMismatch.date} zadeklarowałeś zmęczenie/niewyspanie ("${lastMismatch.declared.substring(0, 50)}..."), mimo że Twój sen wyniósł ${lastMismatch.sleep}h, a gotowość (readiness) wynosiła ${lastMismatch.readiness}. Może to wskazywać na zmęczenie psychiczne lub opór przed działaniem.`
+    : `W ostatnich ${lookback} dniach odnotowaliśmy ${count} dni, w których zgłaszałeś zmęczenie lub brak energii, chociaż gotowość fizyczna (readiness >= 65) oraz sen (>= 6.8h) były na dobrym poziomie (np. dnia ${lastMismatch.date} przy gotowości ${lastMismatch.readiness}).`;
+
+  return [{
+    type: 'narrative_biometric_mismatch',
+    title: 'Rozbieżność narracja vs biometria',
+    evidenceText,
+    confidence: 0.65 + Math.min(count * 0.08, 0.25),
+    sampleSize: count,
+    lastSeenDate: lastMismatch.date,
+    metadata: {
+      occurrences: count,
+      mismatch_details: mismatchDates,
+    }
+  }];
 }

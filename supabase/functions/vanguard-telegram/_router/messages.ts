@@ -1,14 +1,15 @@
-import { sendChatAction } from "../../_shared/telegram.ts";
+import { sendChatAction, transcribeAudio } from "../../_shared/telegram.ts";
 import type { TelegramRouterContext } from "./config.ts";
 import { getEmbedding } from "../../_shared/openai.ts";
 import { inferVaultCategory, safeSendTelegram } from "../_utils/helpers.ts";
-import { transcribeAudio } from "../_utils/whisper.ts";
 import { PLANNING_END_PHRASES, getActivePlanningSession, closePlanningSession } from "../_handlers/planning.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { runAntiAnalysisGuard } from "../_handlers/antiAnalysis.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getRecentStrongBehavioralPatterns, getRecentEarlyWarnings } from "../../_shared/vanguardPatterns.ts";
+import { deepseekChat } from "../../_shared/deepseek.ts";
+
 
 export async function handleIncomingMessage(
   message: {
@@ -51,7 +52,7 @@ export async function handleIncomingMessage(
       if (isVoice) {
         // Check if we are handling a pending reconciliation response or active planning to prevent sending '🎤 Słucham...' again.
         const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
-        
+
         pendingReconciliation = null;
         if (!activePlanning) {
           const { data: reconciliation } = await supabase
@@ -112,7 +113,7 @@ export async function handleIncomingMessage(
       if (['wzorce', 'wzorzec', 'pokaż wzorce', 'moje wzorce', 'patterns', '/wzorce'].includes(lowerText)) {
         try {
           const patterns = await getRecentStrongBehavioralPatterns(supabase, vanguardUserId, 6, true);
-          
+
           if (patterns.length === 0) {
             await safeSendTelegram(chatId, "Nie mam jeszcze zapisanych powtarzalnych wzorców dla Ciebie.", telegramToken);
             return;
@@ -126,8 +127,8 @@ export async function handleIncomingMessage(
 
           if (regularPatterns.length > 0) {
             regularPatterns.forEach((p, i) => {
-              const statusEmoji = p.status === 'user_confirmed' ? '✅' : 
-                                 p.status === 'user_rejected' ? '❌' : 
+              const statusEmoji = p.status === 'user_confirmed' ? '✅' :
+                                 p.status === 'user_rejected' ? '❌' :
                                  p.status === 'snoozed' ? '⏸️' : '🔍';
 
               let typeLabel = p.pattern_type;
@@ -135,6 +136,7 @@ export async function handleIncomingMessage(
               else if (p.pattern_type === 'plan_adherence_gap') typeLabel = 'Plan vs rzeczywistość';
               else if (p.pattern_type === 'morning_protocol_impact') typeLabel = 'Poranny protokół';
               else if (p.pattern_type === 'sleep_friction_link') typeLabel = 'Sen → tarcie';
+              else if (p.pattern_type === 'narrative_biometric_mismatch') typeLabel = 'Rozbieżność narracji z biometrią';
 
               response += `${i+1}. ${statusEmoji} ${typeLabel}\n`;
               response += `   ${p.evidence_text}\n`;
@@ -153,6 +155,9 @@ export async function handleIncomingMessage(
               let regimeLabel = regime;
               if (regime === 'morning_drift') regimeLabel = 'Poranny dryf';
               else if (regime === 'repeated_adherence_failures') regimeLabel = 'Rozjazdy plan vs wykonanie';
+              else if (regime === 'fragmentation_sleep') regimeLabel = 'Wysoka fragmentacja + niski sen';
+              else if (regime === 'weekend_spillover') regimeLabel = 'Przeniesienie unikania z weekendu';
+
 
               response += `${i+1}. [${date}] ${regimeLabel}${shown}\n`;
               response += `   ${w.evidence_text}\n`;
@@ -263,7 +268,7 @@ export async function handleIncomingMessage(
 
           if (isEnd || isMin) {
             let finalHistory = activePlanning.history;
-            
+
             if (isMin) {
               // Perform the same minimum mutation as planning_show_minimum callback
               const lastAssistantMsg = [...activePlanning.history].reverse().find(h => h.role === 'assistant');
@@ -292,7 +297,7 @@ export async function handleIncomingMessage(
             planningEnded = true;
             shouldRespond = false;
             mode = 'stream';
-            
+
             await closePlanningSession(
               finalHistory,
               activePlanning.id,
@@ -323,11 +328,11 @@ export async function handleIncomingMessage(
         if (reconciliation) {
           const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
           if (ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000) {
-            pendingReconciliation = { 
-              id: reconciliation.id, 
-              date: reconciliation.date, 
-              mode: reconciliation.mode, 
-              parsed_response: reconciliation.parsed_response 
+            pendingReconciliation = {
+              id: reconciliation.id,
+              date: reconciliation.date,
+              mode: reconciliation.mode,
+              parsed_response: reconciliation.parsed_response
             };
             shouldRespond = false;
             mode = 'daily_reconciliation_response';
@@ -378,13 +383,13 @@ export async function handleIncomingMessage(
         try {
           const [embedRes, emotionRes] = await Promise.all([
             getEmbedding(cleanText, openAiKey),
-            fetch('https://api.deepseek.com/chat/completions', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${deepseekApiKey}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: 'deepseek-v4-flash', temperature: 0.1, max_tokens: 100,
-                messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"` }]
-              })
+            deepseekChat({
+              apiKey: deepseekApiKey,
+              model: 'deepseek-v4-flash',
+              temperature: 0.1,
+              maxTokens: 100,
+              responseFormat: { type: 'json_object' },
+              messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"` }]
             }).catch((e) => {
               console.error('[telegram] Deepseek emotion fetch exception:', e);
               return null;
@@ -397,18 +402,14 @@ export async function handleIncomingMessage(
             console.warn('[telegram] OpenAI embedding returned empty result');
           }
 
-          if (emotionRes && (emotionRes as Response).ok) {
-            const emotionJson = await (emotionRes as Response).json().catch((e) => {
-              console.error('[telegram] Failed to parse emotion JSON response:', e);
-              return null;
-            });
-            const rawEmotion = emotionJson?.choices?.[0]?.message?.content || '{}';
-            try { 
-              emotionData = JSON.parse(rawEmotion); 
+          if (emotionRes && 'content' in emotionRes) {
+            try {
+              emotionData = JSON.parse(emotionRes.content || '{}');
             } catch (err) {
-              console.error('[telegram] Failed to parse emotion text content to JSON:', err, rawEmotion);
+              console.error('[telegram] Failed to parse emotion text content to JSON:', err, emotionRes.content);
             }
           }
+
         } catch (err) {
           await logCriticalError({
             area: 'telegram-messages',

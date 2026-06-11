@@ -13,9 +13,28 @@ export async function logCriticalError(params: {
   message?: string;
   metadata?: Record<string, any>;
 }) {
-  const err = params.error instanceof Error ? params.error : new Error(String(params.error));
+  let err: Error;
+  let enrichedMetadata = { ... (params.metadata || {}) };
+
+  if (params.error instanceof Error) {
+    err = params.error;
+  } else if (params.error && typeof params.error === 'object') {
+    const obj = params.error as any;
+    const msg = obj.message || obj.error_description || obj.error || JSON.stringify(obj);
+    err = new Error(msg);
+    if (obj.details || obj.hint || obj.code) {
+      enrichedMetadata = {
+        ...enrichedMetadata,
+        db_error_details: obj.details,
+        db_error_hint: obj.hint,
+        db_error_code: obj.code,
+      };
+    }
+  } else {
+    err = new Error(String(params.error));
+  }
   
-  console.error(`[${params.area}] CRITICAL ERROR:`, err.message, params.metadata || '');
+  console.error(`[${params.area}] CRITICAL ERROR:`, err.message, enrichedMetadata);
 
   try {
     await logAuditEvent({
@@ -26,7 +45,7 @@ export async function logCriticalError(params: {
         area: params.area,
         error_message: err.message,
         stack: err.stack?.substring(0, 800),
-        ... (params.metadata || {}),
+        ...enrichedMetadata,
       },
     });
   } catch (auditErr) {

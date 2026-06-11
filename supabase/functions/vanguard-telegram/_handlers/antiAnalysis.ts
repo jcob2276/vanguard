@@ -8,6 +8,8 @@
 
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
+import { deepseekChat } from '../../_shared/deepseek.ts';
+
 
 export const ANALYSIS_ACTION_CALLBACKS = [
   'analysis_action_artifact', 'analysis_action_contact',
@@ -16,32 +18,24 @@ export const ANALYSIS_ACTION_CALLBACKS = [
 
 export async function checkAntiAnalysis(text: string, deepseekApiKey: string): Promise<boolean> {
   try {
-    const res = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${deepseekApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.1,
-        max_tokens: 10,
-        messages: [{
-          role: 'user',
-          content: `Przeanalizuj tekst i określ, czy jest to czysta autoanaliza stanu psychicznego/emocjonalnego (self_analysis), projektowanie systemu/narzędzi (system_design), budowanie teorii/zasad/ram działania (framework_building), pre_mortem (teoretyzowanie o porażce przed działaniem) lub abstrakcyjne planowanie (abstract_planning) BEZ konkretnego, namacalnego fizycznego lub zewnętrznego działania (np. wysłanie maila, wdrożenie kodu, telefon do klienta, wykonanie zaplanowanego treningu). \nOdpowiedz TYLKO słowem "YES" jeśli to analiza bez namacalnego działania/artefaktu, lub "NO" w przeciwnym wypadku. Zero dodatkowych słów.\n\nTEKST DO OCENY:\n"${text.substring(0, 800)}"`
-        }]
-      })
+    const { content: answerRaw } = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      temperature: 0.1,
+      maxTokens: 10,
+      messages: [{
+        role: 'user',
+        content: `Przeanalizuj tekst i określ, czy jest to czysta autoanaliza stanu psychicznego/emocjonalnego (self_analysis), projektowanie systemu/narzędzi (system_design), budowanie teorii/zasad/ram działania (framework_building), pre_mortem (teoretyzowanie o porażce przed działaniem) lub abstrakcyjne planowanie (abstract_planning) BEZ konkretnego, namacalnego fizycznego lub zewnętrznego działania (np. wysłanie maila, wdrożenie kodu, telefon do klienta, wykonanie zaplanowanego treningu). \nOdpowiedz TYLKO słowem "YES" jeśli to analiza bez namacalnego działania/artefaktu, lub "NO" w przeciwnym wypadku. Zero dodatkowych słów.\n\nTEKST DO OCENY:\n"${text.substring(0, 800)}"`
+      }]
     });
-    if (res.ok) {
-      const data = await res.json().catch(() => null);
-      const answer = (data?.choices?.[0]?.message?.content || '').trim().toUpperCase();
-      return answer.includes('YES');
-    }
+    const answer = answerRaw.trim().toUpperCase();
+    return answer.includes('YES');
   } catch (err) {
     console.error('[anti-analysis] Check failed:', err);
   }
   return false;
 }
+
 
 export async function handleAnalysisActionCallback(
   data: string,

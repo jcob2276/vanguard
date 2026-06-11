@@ -3,6 +3,8 @@ import { sendMessageParsed } from "../_shared/telegram.ts"
 import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
+
 
 const VANGUARD_USER_ID = getVanguardUserId()
 
@@ -143,20 +145,15 @@ serve(async (req) => {
       .join('\n')
 
     // --- LLM synthesis ---
-    const llmRes = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.4,
-        max_tokens: 700,
-        messages: [
-          {
-            role: 'system',
-            content: `Jesteś Vanguard OS. Generujesz TYGODNIOWĄ SYNTEZĘ behawioralną.
+    const { content: synthesisText } = await deepseekChat({
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
+      model: 'deepseek-v4-flash',
+      temperature: 0.4,
+      maxTokens: 700,
+      messages: [
+        {
+          role: 'system',
+          content: `Jesteś Vanguard OS. Generujesz TYGODNIOWĄ SYNTEZĘ behawioralną.
 
 ZASADY ABSOLUTNE:
 1. Tylko to co jawnie widać w danych — bez psychoanalizy motywów.
@@ -186,10 +183,10 @@ HIPOTEZA SYSTEMU
 
 PYTANIE NA NASTĘPNE 7 DNI
 [Jedno pytanie. Max 20 słów. Operacyjne, nie filozoficzne.]`
-          },
-          {
-            role: 'user',
-            content: `OKRES: ${weekStart} – ${weekEnd}
+        },
+        {
+          role: 'user',
+          content: `OKRES: ${weekStart} – ${weekEnd}
 
 BIOMETRIA (${bio.length} dni danych):
 ${bioText}
@@ -213,18 +210,10 @@ ${patternsText}
 
 STRUMIEŃ (ostatnie 7 dni):
 ${streamText || 'brak wpisów'}`
-          }
-        ],
-      }),
+        }
+      ],
     })
 
-    if (!llmRes.ok) {
-      const err = await llmRes.text().catch(() => 'unknown')
-      throw new Error(`DeepSeek error (${llmRes.status}): ${err.substring(0, 200)}`)
-    }
-
-    const llmData = await llmRes.json()
-    const synthesisText = llmData.choices?.[0]?.message?.content?.trim()
     if (!synthesisText) throw new Error('LLM returned empty synthesis')
 
     // --- Send to Telegram ---

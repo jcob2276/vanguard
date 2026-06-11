@@ -17,6 +17,8 @@
  *   unparsed_notes   text|null — remainder that didn't fit any field
  */
 
+import { deepseekChat } from "./deepseek.ts";
+
 export interface P2ParsedResponse {
   day_score: number | null;
   biggest_cost: string | null;
@@ -78,28 +80,16 @@ ODPOWIEDŹ UŻYTKOWNIKA:
 ${userResponse.substring(0, 1000)}`;
 
   try {
-    const res = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${deepseekApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.05,
-        max_tokens: 500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const { content: raw } = await deepseekChat({
+      apiKey: deepseekApiKey,
+      messages: [{ role: 'user', content: prompt }],
+      model: 'deepseek-v4-flash',
+      temperature: 0.05,
+      maxTokens: 500,
     });
 
-    if (!res.ok) {
-      console.warn(`[p2-parser] DeepSeek failed: ${res.status}`);
-      return fallbackP2(userResponse);
-    }
-
-    const data = await res.json();
-    const raw = data?.choices?.[0]?.message?.content?.trim() || '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
+
     if (!jsonMatch) {
       console.warn('[p2-parser] No JSON in DeepSeek response, using fallback');
       return fallbackP2(userResponse);

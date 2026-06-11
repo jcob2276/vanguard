@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
+
 
 const allowedRelations = [
   "jest", "posiada", "studiuje", "pracuje_w", "mieszka_w", "ma_relacje_z",
@@ -583,34 +585,20 @@ Przyklady:
   -> {"triads":[{"source":"Jakub","source_type":"person","relation":"planuje","target":"Przejscie z marketingu do sprzedazy bezposredniej","target_type":"goal","memory_type":"fact","confidence_score":0.85,"keywords":"sprzedaz, kariera, zmiana, cel"}]}`;
 
       try {
-        const llmRes = await fetch("https://api.deepseek.com/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${Deno.env.get("DEEPSEEK_API_KEY")}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "deepseek-v4-flash",
-            temperature: 0.1,
-            max_tokens: 2200,
-            messages: [
-              { role: "system", content: systemPrompt },
-              {
-                role: "user",
-                content: `[BIOMETRIA_Z_DNIA]: ${JSON.stringify(dailyBio || null)}\n[TEKST]: ${record.content.slice(0, 6000)}`,
-              },
-            ],
-          }),
-        })
+        const { content: raw } = await deepseekChat({
+          apiKey: Deno.env.get("DEEPSEEK_API_KEY") ?? "",
+          model: "deepseek-v4-flash",
+          temperature: 0.1,
+          maxTokens: 2200,
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: `[BIOMETRIA_Z_DNIA]: ${JSON.stringify(dailyBio || null)}\n[TEKST]: ${record.content.slice(0, 6000)}`,
+            },
+          ],
+        });
 
-        if (!llmRes.ok) {
-          console.error(`Architect LLM error ${llmRes.status}: ${await llmRes.text()}`)
-          failedRecords++
-          continue
-        }
-
-        const llmData = await llmRes.json()
-        const raw = llmData.choices?.[0]?.message?.content || "{}"
         const parsed = extractJsonObject(raw)
         const llmTriads = Array.isArray(parsed.triads) ? parsed.triads : []
         const fallbackTriads = deterministicTriads(record.content)

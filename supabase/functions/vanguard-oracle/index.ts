@@ -651,30 +651,17 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
 
     let structuredResponse;
     try {
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        },
-        body: JSON.stringify({
-          model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
-          messages: messages,
-          temperature: 0.7,
-          ...(!thinking ? { response_format: { type: "json_object" } } : {})
-        }),
-        signal: controller.signal
+      const { content: rawOutput } = await deepseekChat({
+        apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
+        model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
+        messages: messages,
+        temperature: thinking ? null : 0.7,
+        maxTokens: null,
+        responseFormat: !thinking ? { type: "json_object" } : undefined,
+        timeoutMs: 25000,
       });
       clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errBody = await response.text().catch(() => "Unknown error");
-        throw new Error(`DeepSeek API Error (${response.status}): ${errBody.substring(0, 200)}`);
-      }
-
-      const result = await response.json();
       console.log(`[oracle] deepseek done`, Date.now() - t0);
-      const rawOutput = result.choices?.[0]?.message?.content || "{}";
       try {
         structuredResponse = JSON.parse(stripJsonFence(rawOutput));
       } catch (_parseError) {

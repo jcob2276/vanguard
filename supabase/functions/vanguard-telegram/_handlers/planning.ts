@@ -9,6 +9,8 @@ import { safeSendTelegram, getWarsawDateStr } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
 import { logAuditEvent } from '../../_shared/audit.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
+import { deepseekChat } from '../../_shared/deepseek.ts';
+
 
 /**
  * Waliduje czy plan JSON zawiera minimalne wymagane pola.
@@ -181,16 +183,12 @@ export async function closePlanningSession(
 
     if (!planJson) {
       // Slow-path fallback: call DeepSeek
-      const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${deepseekApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      try {
+        const { content: raw } = await deepseekChat({
+          apiKey: deepseekApiKey,
           model: 'deepseek-v4-flash',
           temperature: 0.3,
-          max_tokens: 1500,
+          maxTokens: 1500,
           messages: [
             {
               role: 'system',
@@ -211,23 +209,20 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
               content: `Wygeneruj plan na jutro (data: ${tomorrowWarsawDate}). Format JSON:\n{"target_date":"${tomorrowWarsawDate}","date":"${tomorrowWarsawDate}","day_mode":"work|sales|recovery|chaos|weekend|social","top3":["zadanie1","zadanie2","zadanie3"],"one_clear_move":"jeden konkretny ruch który definiuje wygrany dzień — najprostsze zdanie imperatywne","first_move_morning":"kiedy i jak konkretnie — pierwsza akcja rano","morning_activation":{"first_10_minutes":"dokładnie co robisz w pierwszych 10 minutach po wstaniu","phone_risk":true,"anti_phone_instruction":"krótka instrukcja zapobiegająca scrollowaniu rano"},"biggest_risk":"największe ryzyko jutra","counterplan":"jak mu zapobiec","urgent_items":["pilna rzecz lub pusta tablica []"],"not_doing":["co świadomie odpuszczamy lub pusta tablica []"],"minimum_viable_day":"minimalna wersja wygranego dnia — jedno zdanie","confidence":"high|medium|low","open_loops":["rzeczy wiszące w powietrzu lub pusta tablica []"],"energy_state":"wysoka|średnia|niska","reconciliation_notes":"kluczowe obserwacje z dzisiejszego dnia","adversary_note":"co adversary wykrył z 72h — jedno zdanie, tylko fakty, zero psychologizowania","tension_action":{"action":"jeden konkretny ruch napięciowy ustalony w sesji — jedno zdanie imperatywne","why_it_matters":"dlaczego ten ruch — oparte na danych, jedno zdanie","minimum_version":"absolutne minimum tego ruchu — jedno zdanie","due_time":"konkretny czas np. do 14:00","verification":"self","status":"planned"},"production_artifact":{"artifact":"nazwa konkretnego artefaktu który ma powstać po pierwszym bloku — np. 'nagrany moduł', 'wysłany mail', 'opublikowany post'","definition_of_done":"jak wiadomo że jest gotowy — jedno zdanie","external_reality":"sent|deployed|published|called|written|delivered|trained|replied","minimum_version":"absolutne minimum artefaktu — jedno zdanie","deadline":"do kiedy — np. do 10:00","status":"planned"},"morning_dopamine_state":{"phone_first":false,"first_90_protected":true,"stimulation_risk":"low|medium|high","anti_drift_instruction":"jedno zdanie przypominające co robić gdy telefon jest pierwszym impulsem"},"weekly_exposure":{"action":"jaki kontakt z zewnętrzną rzeczywistością w tym tygodniu — np. rozmowa z klientem, demo, prezentacja","status":"planned|done|skipped"}}`
             }
           ]
-        })
-      });
-
-      if (dsRes.ok) {
-        const dsData = await dsRes.json().catch(() => null);
-        rawPlan = (dsData?.choices?.[0]?.message?.content || '').trim();
+        });
+        rawPlan = raw.trim();
         if (rawPlan) {
           try {
             const jsonMatch = rawPlan.match(/\{[\s\S]*\}/);
             if (jsonMatch) planJson = JSON.parse(jsonMatch[0]);
           } catch (_) {}
         }
-      } else {
-        planGenerationErrorStatus = dsRes.status;
-        console.error('[planning] DeepSeek plan generation failed:', dsRes.status);
+      } catch (err) {
+        planGenerationErrorStatus = 500;
+        console.error('[planning] DeepSeek plan generation failed with error:', err);
       }
     }
+
 
     if (planJson) {
       if (planJson.top3) {

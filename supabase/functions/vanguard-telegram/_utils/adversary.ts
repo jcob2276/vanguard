@@ -3,7 +3,10 @@
  * Wykrywa rozjazd między intencją a wykonaniem i rekomenduje tension action.
  */
 
+import { deepseekChat } from "../../_shared/deepseek.ts";
+
 export const ADVERSARY_FALLBACK = 'W ostatnich 72h widać rozjazd między planem a wykonaniem. Wybierz jeden mały ruch, który zamknie najbliższą otwartą pętlę.';
+
 
 export const FORBIDDEN_ADVERSARY = /masz centralny wzorzec|to wynika z traumy|twoim problemem jest|od lat robisz|musisz przepracować|dzieci[eń]stwo|głęboka przyczyna|osobowo[sś][cć]|diagnoza/i;
 
@@ -66,29 +69,24 @@ export async function runRealityAdversary(
       })
       .join('\n');
 
-    const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${deepseekApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.2,
-        max_tokens: 500,
-        messages: [
-          {
-            role: 'system',
-            content: `Jesteś Reality Adversary. Analizujesz TYLKO dane z ostatnich 72h.
+    const { content: raw } = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      temperature: 0.2,
+      maxTokens: 500,
+      messages: [
+        {
+          role: 'system',
+          content: `Jesteś Reality Adversary. Analizujesz TYLKO dane z ostatnich 72h.
 
 DOZWOLONE: "W ostatnich 72h powtarza się...", "Wczoraj plan był X, wykonanie było Y...", "To zadanie wraca trzeci raz...", "Najmniejszy ruch teraz to..."
 ZAKAZANE: "Masz centralny wzorzec...", "To wynika z traumy...", "Twoim problemem jest...", "Od lat robisz...", "Musisz przepracować...", "Twój problem to..."
 
 Odpowiedz TYLKO poprawnym JSON, zero markdown, zero dodatkowego tekstu.`
-          },
-          {
-            role: 'user',
-            content: `${planContext}
+        },
+        {
+          role: 'user',
+          content: `${planContext}
 
 STRUMIEŃ OSTATNICH 72H:
 ${streamLines || 'Brak wpisów.'}
@@ -105,17 +103,10 @@ Wygeneruj JSON:
     "verification": "self"
   }
 }`
-          }
-        ]
-      })
+        }
+      ]
     });
 
-    if (!dsRes.ok) {
-      console.warn('[adversary] DeepSeek error:', dsRes.status);
-      return null;
-    }
-    const dsData = await dsRes.json().catch(() => null);
-    const raw = dsData?.choices?.[0]?.message?.content || '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.warn('[adversary] no JSON in response');

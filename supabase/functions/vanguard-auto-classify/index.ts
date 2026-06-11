@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { logCriticalError } from '../_shared/errorLogging.ts'
+import { deepseekChat } from "../_shared/deepseek.ts";
 
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
@@ -53,15 +54,14 @@ serve(async (req) => {
       ? `BIOMETRIA DZIŚ: HRV ${aggregate.hrv_avg}, Sen ${aggregate.sleep_hours}h, Stan: ${aggregate.final_state}.`
       : 'BIOMETRIA DZIŚ: Brak danych.'
 
-    // === KROK 1: Klasyfikacja 5-bucket (równolegle z friction detection) ===
-    const [classifyRes, frictionRes] = await Promise.all([
-      fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || '';
+
+    // === KROK 1: Klasyfikacja i KROK 2: Friction detection (równolegle) ===
+    let classifyRes, frictionRes;
+    try {
+      [classifyRes, frictionRes] = await Promise.all([
+        deepseekChat({
+          apiKey,
           model: 'deepseek-v4-flash',
           messages: [
             {
@@ -83,18 +83,11 @@ serve(async (req) => {
             }
           ],
           temperature: 0.1,
-          response_format: { type: 'json_object' }
+          maxTokens: null,
+          responseFormat: { type: 'json_object' }
         }),
-      }),
-
-      // === KROK 2: Friction detection (równolegle) ===
-      fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        deepseekChat({
+          apiKey,
           model: 'deepseek-v4-flash',
           messages: [
             {
@@ -165,39 +158,33 @@ Przykłady:
 "pytam co słychać" → is_relevant=false (pytanie, nie zdarzenie)
 "planuję jutro pobiec" → is_relevant=false (plan, nie zdarzenie)
 "dzisiaj był dobry trening" → is_relevant=false (neutralna obserwacja bez odchylenia)`
-            },
-            {
-              role: 'user',
-              content: record.content
-            }
-          ],
-          temperature: 0.1,
-          response_format: { type: 'json_object' }
-        }),
+          },
+          {
+            role: 'user',
+            content: record.content
+          }
+        ],
+        temperature: 0.1,
+        maxTokens: null,
+        responseFormat: { type: 'json_object' }
       })
-    ])
+    ]);
+  } catch (err: any) {
+    console.error(`[auto-classify] DeepSeek error:`, err);
+    return new Response(JSON.stringify({
+      error: `DeepSeek upstream error: ${err.message}`,
+      record_id: record.id
+    }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
-    // === Guard: DeepSeek errors (429, 500, etc.) ===
-    if (!classifyRes.ok || !frictionRes.ok) {
-      const classifyStatus = classifyRes.status
-      const frictionStatus = frictionRes.status
-      console.error(`[auto-classify] DeepSeek error — classify: ${classifyStatus}, friction: ${frictionStatus}`)
-      return new Response(JSON.stringify({
-        error: `DeepSeek upstream error (classify: ${classifyStatus}, friction: ${frictionStatus})`,
-        record_id: record.id
-      }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+  // === Parse klasyfikacja ===
+  const classification = JSON.parse(classifyRes.content || '{}');
 
-    // === Parse klasyfikacja ===
-    const classifyData = await classifyRes.json()
-    const classification = JSON.parse(classifyData.choices?.[0]?.message?.content || '{}')
-
-    // === Parse friction ===
-    const frictionData = await frictionRes.json()
-    const friction = JSON.parse(frictionData.choices?.[0]?.message?.content || '{"is_relevant":false}')
+  // === Parse friction ===
+  const friction = JSON.parse(frictionRes.content || '{"is_relevant":false}');
 
     console.log(`[auto-classify] category=${classification.category}, is_relevant=${friction.is_relevant}, kind=${friction.event_kind}, type=${friction.friction_type}`)
 
@@ -340,7 +327,8 @@ Przykłady:
               confidence_source: 'inferred',
               confidence: null,
               status: finalStatus,
-              extraction_quality: extractionQuality
+              extraction_quality: extractionQuality,
+              parser_version: 'auto-classify-v41'
             })
         )
         console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type} | quality=${extractionQuality}% | status=${finalStatus}`)

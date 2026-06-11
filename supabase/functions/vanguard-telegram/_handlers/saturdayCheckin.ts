@@ -5,6 +5,8 @@
 import { sendChatAction } from "../../_shared/telegram.ts";
 import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
+import { deepseekChat } from "../../_shared/deepseek.ts";
+
 
 export async function handleSaturdayCheckin(
   reconciliationId: string,
@@ -129,21 +131,16 @@ export async function handleSaturdayCheckin(
     // Run LLM Behavioral Review
     let synthesisText = '';
     try {
-      const llmRes = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${deepseekApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'deepseek-v4-flash',
-          temperature: 0.15,
-          max_tokens: 800,
-          messages: [
-            {
-              role: 'system',
-              content: `Jesteś Vanguard OS (systems operator reviewing behavioral drift).
-Twoim celem jest przeprowadzenie zimnej, bezpośredniej syntezy behawioralnej (WEEKLY INTEGRATION + REALITY REVIEW).
+      const { content } = await deepseekChat({
+        apiKey: deepseekApiKey,
+        model: 'deepseek-v4-flash',
+        temperature: 0.15,
+        maxTokens: 800,
+        messages: [
+          {
+            role: 'system',
+            content: `Jesteś Vanguard OS (systems operator reviewing behavioral drift).
+Twoim celem jest przeprowadzenie zimnej, bezpośredniej syneszy behawioralnej (WEEKLY INTEGRATION + REALITY REVIEW).
 
 ZASADY TONU I KONTENTU:
 - Cold behavioral systems review. Analizujesz rozbieżności.
@@ -157,10 +154,10 @@ ZASADY TONU I KONTENTU:
 
 FORMAT:
 Po prostu napisz chłodną analizę behawioralną w 3-4 krótkich, zwięzłych akapitach.`
-            },
-            {
-              role: 'user',
-              content: `ODPOWIEDZI UŻYTKOWNIKA Z SATURDAY CHECK-IN:
+          },
+          {
+            role: 'user',
+            content: `ODPOWIEDZI UŻYTKOWNIKA Z SATURDAY CHECK-IN:
 - INPUT (Co konsumował, czy input zastępował działanie):
 ${answers.input}
 
@@ -179,15 +176,11 @@ ${frictionLines || 'brak'}
 
 Strumień:
 ${streamLines || 'brak'}`
-            }
-          ]
-        })
+          }
+        ]
       });
+      synthesisText = content;
 
-      if (llmRes.ok) {
-        const data = await llmRes.json();
-        synthesisText = data.choices?.[0]?.message?.content || '';
-      }
     } catch (e) {
       console.error('[saturday] llm synthesis error:', e);
     }

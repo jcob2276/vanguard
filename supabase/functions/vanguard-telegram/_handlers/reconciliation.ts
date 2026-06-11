@@ -9,7 +9,9 @@ import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
 import { parseReconciliationResponse, type P2ParsedResponse } from '../../_shared/reconciliationParser.ts';
-import { detectRecurringBlockers, detectPlanAdherenceGaps, detectMorningProtocolImpact, detectSleepFrictionLink, detectEarlyWarningSignals, shouldSurfaceInsight, recordBehavioralPattern, markPatternAsShown } from '../../_shared/vanguardPatterns.ts';
+import { detectRecurringBlockers, detectPlanAdherenceGaps, detectMorningProtocolImpact, detectSleepFrictionLink, detectEarlyWarningSignals, detectNarrativeBiometricMismatch, shouldSurfaceInsight, recordBehavioralPattern, markPatternAsShown } from '../../_shared/vanguardPatterns.ts';
+import { deepseekChat } from '../../_shared/deepseek.ts';
+
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -48,41 +50,34 @@ export async function handleReconciliation(
   // Evening extraction
   let eveningExtraction: any = null;
   try {
-    const extractRes = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${deepseekApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.1,
-        max_tokens: 400,
-        messages: [{
-          role: 'user',
-          content: `Z odpowiedzi użytkownika wyodrębnij dane wg nowej doktryny. Odpowiedz TYLKO poprawnym JSON bez markdown:\n{"production_artifact_done":true,"artifact":"nazwa artefaktu który powstał lub null","first_90_protected":true,"phone_first":false,"tension_action_result":"done|skipped|partial|null","analysis_substitution":[],"tomorrow_first_artifact":"nazwa pierwszego artefaktu jutra lub null","micro_friction":[]}\n\nLegenda:\n- production_artifact_done: czy jakiś artefakt fizycznie powstał (plik, mail, kod, nagranie)\n- artifact: jak się nazywa ten artefakt\n- first_90_protected: czy pierwsze 90 min było bez scrolla/YT/AI\n- phone_first: czy telefon był pierwszym działaniem po wstaniu\n- tension_action_result: czy ruch napięciowy się odbył\n- analysis_substitution: lista momentów kiedy analiza zastąpiła działanie\n- tomorrow_first_artifact: co ma istnieć jutro po pierwszym bloku\n- micro_friction: drobne tarcia behawioralne\n\nODPOWIEDŹ UŻYTKOWNIKA:\n${cleanText.substring(0, 800)}`
-        }]
-      })
+    const { content: rawExtract } = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      temperature: 0.1,
+      maxTokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Z odpowiedzi użytkownika wyodrębnij dane wg nowej doktryny. Odpowiedz TYLKO poprawnym JSON bez markdown:\n{"production_artifact_done":true,"artifact":"nazwa artefaktu który powstał lub null","first_90_protected":true,"phone_first":false,"tension_action_result":"done|skipped|partial|null","analysis_substitution":[],"tomorrow_first_artifact":"nazwa pierwszego artefaktu jutra lub null","micro_friction":[]}\n\nLegenda:\n- production_artifact_done: czy jakiś artefakt fizycznie powstał (plik, mail, kod, nagranie)\n- artifact: jak się nazywa ten artefakt\n- first_90_protected: czy pierwsze 90 min było bez scrolla/YT/AI\n- phone_first: czy telefon był pierwszym działaniem po wstaniu\n- tension_action_result: czy ruch napięciowy się odbył\n- analysis_substitution: lista momentów kiedy analiza zastąpiła działanie\n- tomorrow_first_artifact: co ma istnieć jutro po pierwszym bloku\n- micro_friction: drobne tarcia behawioralne\n\nODPOWIEDŹ UŻYTKOWNIKA:\n${cleanText.substring(0, 800)}`
+      }]
     });
-    if (extractRes.ok) {
-      const extractData = await extractRes.json().catch(() => null);
-      const rawExtract = extractData?.choices?.[0]?.message?.content || '';
-      const jsonMatch = rawExtract.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        eveningExtraction = JSON.parse(jsonMatch[0]);
-        await supabase.from('daily_reconciliations')
-          .update({ evening_extraction: eveningExtraction })
-          .eq('id', reconciliationId);
-        if (typeof eveningExtraction.first_90_protected === 'boolean') {
-          await supabase.from('daily_reconciliations')
-            .update({ first_90_protected: eveningExtraction.first_90_protected })
-            .eq('id', reconciliationId);
-        }
+    const jsonMatch = rawExtract.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      eveningExtraction = JSON.parse(jsonMatch[0]);
+      const updates: any = {
+        evening_extraction: eveningExtraction,
+        evening_extraction_version: 'telegram_edge_v1'
+      };
+      if (typeof eveningExtraction.first_90_protected === 'boolean') {
+        updates.first_90_protected = eveningExtraction.first_90_protected;
       }
+      await supabase.from('daily_reconciliations')
+        .update(updates)
+        .eq('id', reconciliationId);
     }
   } catch (extractErr) {
     console.warn('[reconciliation] evening extraction failed:', extractErr);
   }
+
 
   // --- Reality Adversary + P2 Parser (parallel) ---
   let adversaryOutput: import('../_utils/adversary.ts').AdversaryResult | null = null;
@@ -135,7 +130,10 @@ export async function handleReconciliation(
     p2Parsed = p2Result.value;
     // Persist P2 results (non-blocking — best effort)
     supabase.from('daily_reconciliations')
-      .update({ p2_parsed: p2Parsed })
+      .update({
+        p2_parsed: p2Parsed,
+        p2_parser_version: p2Parsed?.parser_version || null
+      })
       .eq('id', reconciliationId)
       .then(({ error }: { error: any }) => {
         if (error) console.warn('[reconciliation] p2_parsed save failed:', error.message);
@@ -192,15 +190,24 @@ export async function handleReconciliation(
     console.warn('[reconciliation] detectEarlyWarningSignals failed (non-fatal):', e);
   }
 
+  // Rozbieżność narracji vs biometrii (Anty-Self-Deception)
+  let narrativeBiometricMismatchInsights: Awaited<ReturnType<typeof detectNarrativeBiometricMismatch>> = [];
+  try {
+    narrativeBiometricMismatchInsights = await detectNarrativeBiometricMismatch(supabase, userId);
+  } catch (e) {
+    console.warn('[reconciliation] detectNarrativeBiometricMismatch failed (non-fatal):', e);
+  }
+
+
   // --- 1. Construct unified Bridge Message ---
   try {
     const first90Str = eveningExtraction?.first_90_protected ? "chronione" : "przerwane stymulacją";
     const artifactStr = eveningExtraction?.artifact && eveningExtraction.artifact !== "null"
       ? eveningExtraction.artifact
       : "brak";
-    
-    const tensionStr = eveningExtraction?.tension_action_result === "done" 
-      ? "zrobiony" 
+
+    const tensionStr = eveningExtraction?.tension_action_result === "done"
+      ? "zrobiony"
       : eveningExtraction?.tension_action_result === "skipped"
         ? "pominięty"
         : "brak";
@@ -263,10 +270,11 @@ Fakty dnia:
     const strongAdherenceInsights = planAdherenceInsights.filter(i => shouldSurfaceInsight(i));
     const strongMorningInsights = morningProtocolInsights.filter(i => shouldSurfaceInsight(i));
     const strongSleepInsights = sleepFrictionInsights.filter(i => shouldSurfaceInsight(i));
+    const strongMismatchInsights = narrativeBiometricMismatchInsights.filter(i => shouldSurfaceInsight(i));
 
     const surfacedPatterns: Array<{ id: string; type: string }> = [];
 
-    if (strongBlockerInsights.length > 0 || strongAdherenceInsights.length > 0 || strongMorningInsights.length > 0 || strongSleepInsights.length > 0) {
+    if (strongBlockerInsights.length > 0 || strongAdherenceInsights.length > 0 || strongMorningInsights.length > 0 || strongSleepInsights.length > 0 || strongMismatchInsights.length > 0) {
       bridgeText += `\n\nW Twoich danych:`;
 
       for (const insight of strongBlockerInsights) {
@@ -289,9 +297,15 @@ Fakty dnia:
         const id = await recordBehavioralPattern(supabase, userId, insight);
         if (id) surfacedPatterns.push({ id, type: 'sleep_friction_link' });
       }
+      for (const insight of strongMismatchInsights) {
+        bridgeText += `\n• ${insight.evidenceText}`;
+        const id = await recordBehavioralPattern(supabase, userId, insight);
+        if (id) surfacedPatterns.push({ id, type: 'narrative_biometric_mismatch' });
+      }
 
       bridgeText += `\n_(to nie interpretacja — tylko powtarzalna obserwacja z Twoich danych. N = liczba Twoich wieczornych odpowiedzi)`;
     }
+
 
     // Early Warning (jeśli sygnały się nakładają)
     const strongWarning = earlyWarningInsights[0];
