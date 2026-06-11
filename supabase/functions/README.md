@@ -23,7 +23,7 @@ Telegram / voice / vault
        +-> ingest-vault-log (long-form)
 
 Evening: vanguard-daily-reconciliation -> planning (telegram + oracle) -> planning_summary
-Morning: vanguard-morning-brief -> vanguard-morning-ping (nudge)
+Morning: autonomous brief/ping removed; morning planning is user-initiated via Telegram/Oracle.
 Midday:  vanguard-midday-check (callbacks)
 
 Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events VIEW, stream 72h first
@@ -37,8 +37,8 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2966 | 2026-06-11 |
 | `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates) | 683 | 2026-06-11 |
-| `vanguard-morning-brief` | **active** | pg_cron `0 5 * * *` UTC (~07:00 Warsaw) | **false** | `daily_reconciliations` | 237 | 2026-06-11 |
-| `vanguard-morning-ping` | **active** | pg_cron `20 5 * * *` UTC (nudge if no click) | **false** | `daily_reconciliations` | 106 | 2026-06-11 |
+| `vanguard-morning-brief` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
+| `vanguard-morning-ping` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
 | `vanguard-midday-check` | **active** | pg_cron (~12:00 Warsaw; confirm `cron.job`) | **false** | `daily_reconciliations` | 123 | 2026-06-11 |
 | `vanguard-daily-reconciliation` | **active** | pg_cron (~21:30 Warsaw; confirm `cron.job`) | **false** | `daily_reconciliations`, `friction_events` | 213 | 2026-06-11 |
 | `vanguard-auto-classify` | **active** | DB trigger / cron on new stream rows | **false** | `vanguard_stream`, `friction_events` | 332 | 2026-06-11 |
@@ -60,9 +60,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
 | `vanguard-friction-qa` | **active** | pg_cron periodic QA (confirm schedule) | **false** | `vanguard_stream`, `friction_events` | 145 | 2026-06-11 |
 
-> **`vanguard-briefing` vs `vanguard-morning-brief`:**
-> - **morning-brief** = short Telegram start-of-day cron using `planning_summary`.
-> - **briefing** = long on-demand LLM report (HTTP + `userId`), not a replacement for morning-brief.
+> **Morning note:** autonomous morning brief/ping Telegram nudges were removed 2026-06-12 after repeated "weak plan" spam. Keep morning planning user-initiated unless explicitly re-approved.
 
 ### Vanguard Core Manual / Tooling
 
@@ -139,8 +137,6 @@ Flat layout: one folder = one deployed function name (except `vanguard-telegram/
 |----------|----------|--------|
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` |
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
-| `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
-| `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` (Mon-Fri, 12:00 Warsaw) |
 
 Also verify: [`scripts/ops/cron-check.sql`](../../scripts/ops/cron-check.sql) against [`scripts/ops/smoke-manifest.mjs`](../../scripts/ops/smoke-manifest.mjs).

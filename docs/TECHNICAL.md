@@ -91,7 +91,8 @@ Brak cron (HTTP manual):
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
 | analyze-training | deprecated | HTTP manual | stub 410; plan vs Strava Telegram analysis removed |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
-| vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
+| vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
+| vanguard-morning-brief / vanguard-morning-ping | deprecated | cron removed; HTTP 410 | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**
 
@@ -106,8 +107,6 @@ Brak cron (HTTP manual):
 | vanguard-daily-snapshot | `0 4 * * *` | 06:00 | save-daily-aggregate | 20260513 |
 | vanguard-daily-analyst | `0 3 * * *` | 05:00 | vanguard-analyst | 20260513 (mig. 008) |
 | vanguard-daily-shadow-analysis | — | — | — | **USUNIĘTY** (mig. 20260525170000) |
-| vanguard-morning-brief | `0 5 * * *` | 07:00 | vanguard-morning-brief | 20260521 |
-| vanguard-morning-ping | `20 5 * * *` | 07:20 | vanguard-morning-ping | 20260524 |
 
 ---
 

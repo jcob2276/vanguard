@@ -7,8 +7,6 @@ export const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "YOUR_PROJECT_REF
 
 /** Edge functions that MUST use verify_jwt: false in production. */
 export const NO_VERIFY_JWT_FUNCTIONS = [
-  "vanguard-morning-brief",
-  "vanguard-morning-ping",
   "vanguard-midday-check",
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",
@@ -33,8 +31,8 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
  * - post: only with --invoke-safe or --invoke-crons
  */
 export const SMOKE_TARGETS = [
-  { name: "vanguard-morning-brief", post: "cron", sideEffects: "May send Telegram if plan exists and not sent" },
-  { name: "vanguard-morning-ping", post: "cron", sideEffects: "May send Telegram nudge" },
+  { name: "vanguard-morning-brief", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
+  { name: "vanguard-morning-ping", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
   { name: "vanguard-midday-check", post: "cron", sideEffects: "May send midday Telegram" },
   { name: "vanguard-daily-reconciliation", post: "cron", sideEffects: "May send evening reconciliation Telegram" },
   { name: "vanguard-weekly-synthesis", post: "cron", sideEffects: "LLM + Telegram report" },
@@ -58,8 +56,6 @@ export const SMOKE_TARGETS = [
 export const CRON_FROM_MIGRATIONS = [
   { jobname: "vanguard-daily-snapshot", schedule: "0 4 * * *", target: "save-daily-aggregate (via trigger_daily_snapshots)" },
   { jobname: "vanguard-daily-analyst", schedule: "0 3 * * *", target: "vanguard-analyst" },
-  { jobname: "vanguard-morning-brief", schedule: "0 5 * * *", target: "vanguard-morning-brief" },
-  { jobname: "vanguard-morning-ping", schedule: "20 5 * * *", target: "vanguard-morning-ping" },
   { jobname: "vanguard-sync-strava", schedule: "30 20 * * *", target: "sync-strava" },
   { jobname: "vanguard-eval-interview", schedule: "0 10 * * 1-5", target: "vanguard-eval-interview" },
 ];
@@ -73,6 +69,8 @@ export const CRON_DASHBOARD_ONLY = [
 ];
 
 export const CRON_REMOVED = [
+  "vanguard-morning-brief",
+  "vanguard-morning-ping",
   "vanguard-daily-shadow-analysis",
   "vanguard-weekly-intentions-cleanup",
   "vanguard-reset-prompt",

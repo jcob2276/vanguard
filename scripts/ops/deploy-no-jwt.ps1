@@ -6,8 +6,6 @@ $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot "..\.."))
 
 $all = @(
-  "vanguard-morning-brief",
-  "vanguard-morning-ping",
   "vanguard-midday-check",
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",

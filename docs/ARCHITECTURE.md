@@ -40,7 +40,7 @@ READ path: Oracle, briefing, synthesis, analyst
 WRITE path (evening): daily_reconciliations → planning (telegram + oracle)
                    → planning_summary for tomorrow
 
-Morning: morning-brief / morning-ping → daily_reconciliations
+Morning: autonomous brief/ping removed; user-initiated Telegram/Oracle only
 Midday:  midday-check → callbacks on same row
 ```
 
@@ -56,8 +56,6 @@ Midday:  midday-check → callbacks on same row
 
 | Local (approx.) | Edge function | Effect |
 |-----------------|---------------|--------|
-| ~07:00 | `vanguard-morning-brief` | Start message + plan buttons |
-| ~07:20 | `vanguard-morning-ping` | Nudge if no morning click |
 | ~12:00 | `vanguard-midday-check` | Inline done / stuck |
 | ~21:30 | `vanguard-daily-reconciliation` | Evening voice/text prompt |
 | (after reply) | `vanguard-telegram` + `vanguard-oracle` | Planning session → `planning_summary` |
@@ -78,8 +76,6 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 |----------------------|----------------|-------------------------|
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` (per user) |
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
-| `vanguard-morning-brief` | `0 5 * * *` | `vanguard-morning-brief` |
-| `vanguard-morning-ping` | `20 5 * * *` | `vanguard-morning-ping` |
 | `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` |
 

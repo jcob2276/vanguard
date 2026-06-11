@@ -4,7 +4,7 @@ Entry point for AI agents working in this repository.
 
 ## Quick map (read first)
 
-- **Live daily loop:** `vanguard-morning-brief` → `vanguard-morning-ping` → (user stream via `vanguard-telegram`) → `vanguard-midday-check` → `vanguard-daily-reconciliation` → planning → `planning_summary` for tomorrow
+- **Live daily loop:** user stream via `vanguard-telegram` → `vanguard-midday-check` → `vanguard-daily-reconciliation` → planning → `planning_summary` for tomorrow. Autonomous morning brief/ping is removed.
 - **Evidence:** `vanguard_stream` → `vanguard-auto-classify` → `friction_events` → `confirmed_friction_events` (VIEW)
 - **Graph (batch):** `vanguard-architect` / `ingest-vault-log` — not inline from Oracle chat writes
 - **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
@@ -39,7 +39,7 @@ Local/Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/
 ```
 Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
-- Affected: vanguard-morning-brief, vanguard-midday-check,
+- Affected: vanguard-midday-check,
   vanguard-daily-reconciliation,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   ingest-vault-log, vanguard-friction-qa,
