@@ -71,6 +71,7 @@ loadEnvFiles();
 
 const supabaseUrl =
   process.env.SUPABASE_URL?.replace(/\/$/, "") ||
+  process.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ||
   (PROJECT_REF !== "YOUR_PROJECT_REF" ? `https://${PROJECT_REF}.supabase.co` : "");
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const cronSecret = process.env.VANGUARD_CRON_SECRET || "";
