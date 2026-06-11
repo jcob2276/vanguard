@@ -21,7 +21,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
 | Strava/Yazio/Todoist/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
-| StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. |
+| StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
 | Unmounted web widgets | Dropped | OuraWidget, OuraEnhanced, SleepDebtCard, MentorChat (web Oracle chat), GraphMind, ThoughtStream, IntentionTracker, ManifestationBoard, LocationTracker, AWImporter — deleted 2026-06-11 after being deliberately unmounted in earlier commits; recover from git history if needed. |

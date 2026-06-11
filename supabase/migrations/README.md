@@ -110,6 +110,10 @@ Regenerated from files on disk on 2026-06-11.
 20260611000001_enable_rls_strava_recon_training.sql
 20260611143841_drop_dead_prediction_youtube_tables.sql
 20260611144430_drop_dead_intentions_table.sql
+20260611150000_database_security_advisories.sql
+20260611160000_drop_dead_tables.sql
+20260611170000_faza0_quality_metadata.sql
+20260611213502_p2_hygiene_advisories.sql
 ```
 
 ## Known Constraint Gotchas
