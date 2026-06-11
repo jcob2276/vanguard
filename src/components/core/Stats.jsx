@@ -5,7 +5,6 @@ import { format, parseISO, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
 import { calculateProjection, generateNarrative } from './stats/statsCalculations.js';
-import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats.js';
 import { TrendArrow } from './stats/TrendArrow.jsx';
 
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
@@ -271,6 +270,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function exportData() {
     setIsExporting(true);
     try {
+      const { exportStatsMarkdown } = await import('./stats/exportStats.js');
       await exportStatsMarkdown({
         supabase,
         session,
@@ -292,6 +292,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function exportOuraCSV() {
     setIsExportingOura(true);
     try {
+      const { exportOuraCsv } = await import('./stats/exportStats.js');
       await exportOuraCsv({ supabase, session, dateRange });
     } finally {
       setIsExportingOura(false);
