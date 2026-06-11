@@ -1,5 +1,7 @@
 # Vanguard OS — Behavioral Operating System (Manifesto)
 
+> **Historical vision document.** Canonical runtime status lives in [`docs/FEATURE_LIFECYCLE.md`](FEATURE_LIFECYCLE.md), [`AGENTS.md`](../AGENTS.md), and [`supabase/functions/README.md`](../supabase/functions/README.md). Do not revive deprecated or dropped features from this manifesto without an explicit product decision.
+
 ## 1. Filozofia Systemu
 
 Vanguard OS to prywatny behavioral operating system dla jednej osoby.
@@ -83,4 +85,3 @@ AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjac
     - Blokada: Trudność w inicjowaniu kontaktu fizycznego, lęk przed dotykiem.
 - **Kluczowe Wydarzenia:** Maraton w Koszycach (4 października 2026). Trening startuje 1 czerwca 2026.
 - **Główne Wątki:** Budowanie "Zintegrowanego Mężczyzny", High Agency, walka z perfekcjonizmem i prokrastynacją ("dryfowanie"), szybkie mówienie (do skorygowania).
-

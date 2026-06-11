@@ -1,6 +1,7 @@
 # Vanguard OS — Technical Reference
 
 > **STALE — verify against [AGENTS.md](../AGENTS.md), [vanguard-core.md](./vanguard-core.md), and [supabase/functions/README.md](../supabase/functions/README.md) before trusting details below.**
+> Canonical status for active/dropped features is [`docs/FEATURE_LIFECYCLE.md`](FEATURE_LIFECYCLE.md). Treat this file as a historical technical reference unless a section is explicitly marked current.
 
 > Dla developera który zna projekt. Nie intro, nie tutorial.  
 > Stan na: 2026-05-26. Sprint 0.8+ — pełna pętla dzienna + Strava + trening.

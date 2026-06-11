@@ -25,6 +25,13 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 | `public/` | Static assets for the PWA. |
 | `scratch/` | **Gitignored local junk** — debug scripts, personal notes. Never reference from real code. |
 
+## Runtime Boundaries
+
+- `supabase/functions/` is the only production backend path. New production behavior must be listed in `supabase/functions/README.md`.
+- `src/` is the legacy frontend. Its sanctioned Core bridges are `src/lib/aiContext.js` for read-only Oracle context and `src/lib/vanguardCore.js` for shared signal helpers.
+- `docs/FEATURE_LIFECYCLE.md` is the canonical active / disabled / deprecated / dropped status map. Vision documents are not runtime authority.
+- Experiments live in `PRPs/` or `scratch/`; deployed Edge Functions are never "just experiments".
+
 ## Known quirks (do not "discover" these as bugs)
 
 - **Deleted dead UI (2026-06-11)**: `OuraWidget`, `OuraEnhanced`, `SleepDebtCard`, `MentorChat`, `GraphMind`, `ThoughtStream`, `IntentionTracker`, `ManifestationBoard`, `LocationTracker`, `AWImporter` + `lib/oura.js`, `lib/activityWatch.js`. All were deliberately unmounted in earlier commits and orphaned; recover from git history if ever needed. Oracle chat lives in Telegram, not the web app.
