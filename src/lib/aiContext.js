@@ -98,7 +98,6 @@ export async function gatherUserContext(session) {
         nutrition_daily: nutrition14d
       },
       lag_correlations: core.detectLagCorrelations(history),
-      predictions: await core.computePredictions(currentMetrics, history, personalBaseline),
       goal_alignment: core.calculateGoalAlignment(powerListRes.data),
       identity_vault: await core.evaluateIdentityVault(),
       weekly_protocol: {

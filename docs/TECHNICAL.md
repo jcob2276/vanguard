@@ -353,8 +353,8 @@ Brak user_id — tabela referencyjna.
 | vanguard_knowledge | ✅ | mig. 008 (ALTER) |
 | vanguard_daily_aggregates | ✅ | mig. 008 (ALTER) |
 | vanguard_footprint | ✅ | mig. 008 (ALTER IF EXISTS) |
-| vanguard_correlations | ✅ | mig. 008 (ALTER IF EXISTS) |
-| vanguard_temporal_links | ✅ | mig. 008 (ALTER IF EXISTS) |
+| vanguard_correlations | dropped 2026-06-11 | ghost prediction table removed |
+| vanguard_temporal_links | dropped 2026-06-11 | ghost intervention table removed |
 | daily_wins | ✅ | mig. 20260527000001 |
 | daily_nutrition | ✅ | mig. 20260527000001 |
 | user_fundament | ✅ | mig. 20260527000001 |
@@ -625,8 +625,8 @@ if (embedRes.ok) {
 | 8 | ~~`confirmed_friction_events` VIEW~~  | **FIXED 2026-05-27** — VIEW istnieje, poprawiony filter `review_status IN ('good','user_confirmed','user_corrected')` (poprzedni filtrował `status` — zawsze pusty) |
 | 9 | ~~Closure proposals approval flow~~ | **FIXED 2026-05-27** — `closureProposal.ts` handler + Telegram ✅/❌ buttons wdrożone; auto-classify wysyła powiadomienie z przyciskami po utworzeniu propozycji |
 | 10 | ~~P2 parser w vanguard-daily-reconciliation~~ | **FIXED 2026-05-27 + adoption** — `_shared/reconciliationParser.ts` + konsumpcja: reconciliation handler (bridge + planningDraft z `p2_reflection` + `user_named_blockers`), Oracle (sekcja z refleksją), morning-brief (refleksja + blokery). `blocker_candidates` traktowane wyłącznie jako hipotezy użytkownika. |
-| 11 | ~~`vanguard_correlations` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, signal_name); RLS enabled |
-| 12 | ~~`vanguard_temporal_links` tabela~~ | **FIXED 2026-05-31** — DDL w mig. 20260531000001; UNIQUE (user_id, source_date, target_date); RLS enabled |
+| 11 | `vanguard_correlations` | DROPPED 2026-06-11 - computePredictions path removed |
+| 12 | `vanguard_temporal_links` | DROPPED 2026-06-11 - analyzeInterventions path removed |
 | 13 | ~~`vanguard-transurfing-reset` funkcja~~ | **CLOSED** — ghost reference; zero śladów w kodzie, migracjach ani rules; żadna istniejąca funkcja jej nie wywołuje |
 
 ### P3 — Dług techniczny
@@ -636,7 +636,7 @@ if (embedRes.ok) {
 | 14 | ~~Hardcoded user_id fallback `165ae341-...`~~ | **FIXED** — wszystkie funkcje używają `getVanguardUserId()` z `_shared/constants.ts`; fallback UUID żyje tylko tam z komentarzem i jest nadpisywalny przez env `VANGUARD_USER_ID` |
 | 15 | ~~Dwa klasyfikatory stanów~~ | **CLOSED** — save-daily-aggregate deleguje do `core.determineState()` (z-score, linia ~110); hardcoded progi istnieją TYLKO w gałęzi `bl.calibrating=true` jako fallback przy <5 dniach historii — celowe zachowanie |
 | 16 | ~~`ARCHITECTURE.md` stale schedules~~ | **CLOSED** — stale reference do analysta "co 6h na Monday" nie istnieje w aktualnym ARCHITECTURE.md; cron table jest poprawna |
-| 17 | ~~Brakujące tabele (referenced, no DDL)~~ | **FIXED** — vanguard_correlations + vanguard_temporal_links mają DDL w mig. 20260531000001 |
+| 17 | Ghost prediction tables | DROPPED 2026-06-11 - no active references remain |
 
 ---
 

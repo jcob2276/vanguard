@@ -578,7 +578,7 @@ const NODES = [
   },
   {
     id: 'vanguardCore', label: '_shared/vanguardCore', layer: 'shared', type: 'shared',
-    desc: 'computeSignals (aggreguje biometrię + trening + wins → signal score) + determineState (green/yellow/red) + analyzeInterventions.',
+    desc: 'computeSignals + determineState. Ghost prediction/intervention methods removed 2026-06-11.',
     reads: [], writes: [],
     calls: [], calledBy: ['save-daily-aggregate', 'useDashboardData'],
     issues: []

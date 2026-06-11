@@ -116,32 +116,10 @@ serve(async (req) => {
       )
     }
 
-    // 4. SYNC YOUTUBE (BEHAVIOR)
-    const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/activities?part=snippet,contentDetails&mine=true&maxResults=10`, {
-      headers: { 'Authorization': `Bearer ${access_token}` }
-    })
-    if (!ytRes.ok) console.error('[sync-calendar] YouTube API error:', ytRes.status);
-    const ytData = await ytRes.json()
-    const ytActivities = (ytData.items || [])
-      .filter((item: any) => item.snippet.type === 'playlistItem' || item.snippet.type === 'like')
-      .map((item: any) => ({
-        user_id: userId,
-        video_id: item.contentDetails?.playlistItem?.resourceId?.videoId || item.contentDetails?.like?.resourceId?.videoId,
-        title: item.snippet.title,
-        watched_at: item.snippet.publishedAt
-      }))
-
-    if (ytActivities.length > 0) {
-      await safeExecute(
-        supabase.from('vanguard_youtube').upsert(ytActivities, { onConflict: 'user_id, video_id' })
-      )
-    }
-
     return new Response(JSON.stringify({ 
       success: true, 
-      calendarCount: calendarEvents.length,
-      youtubeCount: ytActivities.length 
-    }), {
+      calendarCount: calendarEvents.length
+}), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 

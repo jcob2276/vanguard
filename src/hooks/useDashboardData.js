@@ -102,9 +102,6 @@ export function useDashboardData() {
         loading: false
       });
 
-      // 4. Trigger Temporal Link Analysis (Asynchronicznie)
-      core.analyzeInterventions().catch(err => console.error('Intervention analysis error:', err));
-
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setData(prev => ({ ...prev, loading: false, error: err.message }));

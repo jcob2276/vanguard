@@ -17,7 +17,7 @@
 | **vanguard_daily_aggregates** | Bardzo wysoka (execution_score, identity_score, final_state, sleep, hrv, rhr, dopamine_load, fragmentation, screen_time, strava, protein) + personal z-score baseline | Bardzo wysoka | Najlepsze źródło do korelacji. VanguardCore już liczy baseline 90d. |
 | **vanguard_stream** | Średnia (content + category, tags, importance, situation_fingerprint, bitemporal valid_from/until) | Średnia | Dużo szumu. Closure proposals działają. |
 | **oura_daily_summary + stayfree + nutrition + wins** | Wysoka (przez aggregates) | Wysoka | Oura timing (BACKLOG-03) – dane "pending" często. |
-| **vanguard_correlations + vanguard_temporal_links** | Schemat istnieje, ale prawie puste | Niska (ghost) | Wymagają zasilenia. |
+| **vanguard_correlations + vanguard_temporal_links** | Dropped 2026-06-11 | Brak | Ghost prediction/intervention path removed; rebuild only through a future PRP. |
 
 **Wniosek ogólny:** Dane są już **znacznie bogatsze** niż 2-3 miesiące temu. Największy skok dały: pełne friction_events (event_kind + intention/actual), p2_parsed i osobisty baseline w aggregates. 
 

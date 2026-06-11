@@ -26,6 +26,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
 | Unmounted web widgets | Dropped | OuraWidget, OuraEnhanced, SleepDebtCard, MentorChat (web Oracle chat), GraphMind, ThoughtStream, IntentionTracker, ManifestationBoard, LocationTracker, AWImporter — deleted 2026-06-11 after being deliberately unmounted in earlier commits; recover from git history if needed. |
 | Training plan-vs-Strava Telegram analysis | Dropped | `analyze-training` now returns 410. Do not send plan-vs-Strava LLM reports to Telegram; `analyze-training-load` remains UI-only. |
+| Ghost prediction/intervention tables | Dropped | `vanguard_correlations`, `vanguard_temporal_links`, and `vanguard_youtube` dropped 2026-06-11 after their only runtime paths were removed. |
 
 ## Audit Rule
 
