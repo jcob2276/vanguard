@@ -1,6 +1,7 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
 
 type Triad = {
   source: string
@@ -89,22 +90,14 @@ Zasady:
 - Nie mieszaj telemetrii z psychologia; telemetryczne liczby oznacz layer="telemetry".`
 
   try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "deepseek-v4-flash",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-        max_tokens: 1800,
-      }),
+    const result = await deepseekChat({
+      apiKey,
+      model: "deepseek-v4-flash",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+      maxTokens: 1800,
     })
-    if (!res.ok) {
-      console.error(`[VAULT INGEST] DeepSeek error ${res.status}: ${await res.text()}`)
-      return []
-    }
-    const data = await res.json()
-    const content = data.choices?.[0]?.message?.content ?? ""
+    const content = result.content
     const match = content.match(/\[[\s\S]*\]/)
     if (!match) return []
     const parsed = JSON.parse(match[0])
