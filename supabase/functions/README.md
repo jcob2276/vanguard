@@ -100,7 +100,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `sync-strava` | **active** | pg_cron `30 20 * * *` UTC (22:30 Warsaw) / manual | **false** | `strava_activities`, `strava_tokens` | 552 | 2026-06-11 |
-| `analyze-training` | **active** | HTTP POST | **false** | `training_plan_workouts`, `strava_activities_clean` | 146 | 2026-06-11 |
+| `analyze-training` | **deprecated** | HTTP POST returns 410 | **false** | none | 24 | 2026-06-11 |
 | `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 151 | 2026-06-11 |
 | `sync-oura-enhanced` | **active** | Frontend / manual | true | `oura_enhanced`, `user_settings` | 207 | 2026-06-11 |
 | `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-11 |

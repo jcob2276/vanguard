@@ -316,12 +316,12 @@ const NODES = [
     calls: ['vanguardCore'], calledBy: ['vanguard-daily-reconciliation'],
     issues: [{ level: 'crit', text: 'Brak idempotency guard — jeśli użytkownik dwukrotnie odpowie na wieczorny reconciliation (np. wiadomość splitsuje się na 2), powstają duplikaty w vanguard_daily_aggregates. Brak UNIQUE na (user_id, date).' }]
   },
-  {
+    {
     id: 'analyze-training', label: 'analyze-training', layer: 'sync', type: 'edge',
-    desc: 'Analizuje sesje treningowe z ostatnich 7 dni przez DeepSeek i wysyła insighty na Telegram.',
-    reads: ['workout_sessions', 'exercise_logs'], writes: [],
-    calls: ['deepseek-api', 'telegram-api'], calledBy: [],
-    issues: [{ level: 'info', text: 'Nie jest wywoływana przez żaden komponent ani cron — martwa funkcja?' }]
+    desc: 'DEPRECATED 2026-06-11: dawny raport plan vs Strava do Telegrama. Endpoint zwraca 410, bez DeepSeek i bez Telegrama.',
+    reads: [], writes: [],
+    calls: [], calledBy: [],
+    issues: [{ level: 'info', text: 'Wylaczone na prosbe uzytkownika; nie reaktywowac bez decyzji produktowej.' }]
   },
 
   // ─── AI / TELEGRAM EDGE FUNCTIONS ───────────────────────────────
@@ -608,12 +608,12 @@ const NODES = [
     calledBy: ['Dashboard'],
     issues: []
   },
-  {
+    {
     id: 'Stats', label: 'Stats', layer: 'component', type: 'component',
-    desc: 'Widok statystyk: wykresy treningowe, bilans kaloryczny, body metrics, eksport danych, analiza biegów (HRV korelacja). Trigger analyze-training.',
+    desc: 'Widok statystyk: wykresy treningowe, bilans kaloryczny, body metrics, eksport danych, analiza obciazenia w UI.',
     reads: ['workout_sessions', 'exercise_logs', 'body_metrics', 'oura_daily_summary', 'daily_nutrition'],
     writes: ['body_metrics'],
-    calls: ['analyze-training'],
+    calls: ['analyze-training-load'],
     calledBy: ['Dashboard'],
     issues: []
   },

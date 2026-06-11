@@ -23,7 +23,6 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-graph-embedder",
   "save-daily-aggregate",
   "sync-strava",
-  "analyze-training",
   "analyze-training-load",
   "vanguard-eval-interview",
 ];
@@ -51,7 +50,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-graph-embedder", post: "skip", sideEffects: "Manual embedding batch — OPTIONS only" },
   { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
   { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
-  { name: "analyze-training", post: "skip", sideEffects: "Calls DeepSeek + Telegram — manual trigger only" },
+  { name: "analyze-training", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no DeepSeek, no Telegram" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
 ];
 

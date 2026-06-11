@@ -23,7 +23,6 @@ $all = @(
   "vanguard-graph-embedder",
   "save-daily-aggregate",
   "sync-strava",
-  "analyze-training",
   "analyze-training-load"
 )
 

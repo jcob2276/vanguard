@@ -68,7 +68,7 @@ Brak cron (HTTP manual):
   vanguard-debug-retrieval
   vanguard-eval-runner
   vanguard-friction-qa
-  analyze-training      →  DeepSeek plan vs Strava → Telegram
+  analyze-training      →  DEPRECATED stub 410 (plan vs Strava Telegram analysis removed)
   sync-oura / sync-yazio / sync-todoist / sync-calendar
 ```
 
@@ -91,7 +91,7 @@ Brak cron (HTTP manual):
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
-| analyze-training | ✅ aktywna | HTTP manual | plan vs Strava DeepSeek analysis → Telegram |
+| analyze-training | deprecated | HTTP manual | stub 410; plan vs Strava Telegram analysis removed |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
 | vanguard-morning-brief / vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
 
