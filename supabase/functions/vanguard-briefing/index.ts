@@ -3,6 +3,7 @@ import { sendMessageParsed } from "../_shared/telegram.ts"
 import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 import { fetchBriefingStreamLayers, formatBriefingStreamText } from "../_shared/streamContext.ts"
 import { getStreamCutoffs } from "../_shared/time.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -156,16 +157,12 @@ serve(async (req) => {
     }
 
     // --- LLM BRIEFING ---
-    const briefingRequest = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 0.5,
-        messages: [
+    const briefingResult = await deepseekChat({
+      apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
+      model: 'deepseek-v4-flash',
+      temperature: 0.5,
+      maxTokens: null,
+      messages: [
           {
             role: 'system',
             content: `Jesteś Vanguard OS — systemem logowania mikrotarć i wykrywania wzorców behawioralnych.
@@ -215,15 +212,8 @@ PROWOKACJA Z KOLEJKI (jeśli pasuje do danych):
 ${topProvocation ? topProvocation.provocation : 'Brak nowej hipotezy.'}`
           }
         ],
-      }),
     })
-
-    if (!briefingRequest.ok) {
-      const errText = await briefingRequest.text().catch(() => 'unknown')
-      throw new Error(`DeepSeek briefing error (${briefingRequest.status}): ${errText.substring(0, 200)}`)
-    }
-    const briefingData = await briefingRequest.json()
-    const briefingText = briefingData.choices?.[0]?.message?.content || "Nie udało się wygenerować raportu."
+    const briefingText = briefingResult.content || "Nie udalo sie wygenerowac raportu."
 
     // Telegram
     const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''

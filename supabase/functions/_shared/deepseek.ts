@@ -7,7 +7,7 @@ export interface DeepSeekChatParams {
   apiKey: string;
   messages: DeepSeekMessage[];
   model?: string;
-  maxTokens?: number;
+  maxTokens?: number | null;
   temperature?: number;
   timeoutMs?: number;
   responseFormat?: { type: 'json_object' };
@@ -35,7 +35,7 @@ export async function deepseekChat(
       body: JSON.stringify({
         model: params.model ?? "deepseek-v4-flash",
         messages: params.messages,
-        max_tokens: params.maxTokens ?? 500,
+        ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
         temperature: params.temperature ?? 0.2,
         ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
       }),
