@@ -253,8 +253,7 @@ export default function Dashboard({ session }) {
       response_type: 'code',
       prompt: 'consent',
       scope: [
-        'https://www.googleapis.com/auth/calendar.readonly',
-        'https://www.googleapis.com/auth/youtube.readonly'
+        'https://www.googleapis.com/auth/calendar.readonly'
       ].join(' ')
     };
     window.location.href = `${root}?${new URLSearchParams(options).toString()}`;

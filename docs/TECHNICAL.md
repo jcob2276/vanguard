@@ -85,7 +85,7 @@ Brak cron (HTTP manual):
 | vanguard-graph-embedder | ✅ aktywna | HTTP manual | |
 | ingest-vault-log | ✅ aktywna | HTTP (z telegram) | |
 | vanguard-friction-qa | ✅ aktywna | HTTP manual | |
-| vanguard-eval-runner | ✅ aktywna | HTTP manual | gpt-5-mini bug |
+| vanguard-eval-runner | ✅ aktywna | HTTP manual | resolved (gpt-4o-mini) |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
@@ -500,7 +500,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 ### `vanguard-eval-runner`
 
-**⚠️ Bug:** Model judge to `gpt-5-mini` (linia ~52) — prawdopodobnie literówka `gpt-4o-mini`.
+**⚠️ Bug (Resolved):** Model sędziego został poprawiony z literówki `gpt-5-mini` na poprawny `gpt-4o-mini`.
 
 **Pass threshold:** score >= 0.7.
 
