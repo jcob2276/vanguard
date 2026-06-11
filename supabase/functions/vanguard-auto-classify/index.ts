@@ -287,7 +287,8 @@ Przykłady:
     let extractionQuality: number | null = null;
 
     if (shouldLog) {
-      const { data: existingFriction } = await safeExecute(
+      // safeExecute returns data directly (throws on error) — do NOT destructure { data }
+      const existingFriction = await safeExecute(
         supabase
           .from('friction_events')
           .select('id')

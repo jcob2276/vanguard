@@ -17,7 +17,7 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 | `supabase/functions/` | **Production code.** Deno edge functions; one folder = one deployed function. `_shared/` = kernel helpers (always use these). Do not restructure. |
 | `supabase/migrations/` | Applied SQL migrations — filenames immutable. Do not rename/reorder. |
 | `src/` | Legacy React frontend (workout, dashboard widgets, sync UI). See `src/README.md`. |
-| `src/components/` | Grouped by domain: `core/` (Auth, Dashboard, DataHub, Stats, Fundament, DataStateNotice), `biometrics/` (Oura*, DailyStrainCard, SleepDebtCard, MuscleHeatmap, BrainHealth, WorkoutLogger), `ai/` (AIInsight, MentorChat, GraphMind), `lifestyle/` (PowerList, Direction, GoalsCard, ThoughtStream, IntentionTracker, ManifestationBoard), `integrations/` (StravaWidget, TodoistSync, AWImporter, LocationTracker), `identity/` (IdentityVault, Photos). |
+| `src/components/` | Grouped by domain: `core/` (Auth, Dashboard, DataHub, Stats, Fundament, DataStateNotice), `biometrics/` (DailyStrainCard, MuscleHeatmap, BrainHealth, WorkoutLogger), `ai/` (AIInsight), `lifestyle/` (PowerList, Direction, GoalsCard), `integrations/` (StravaWidget, TodoistSync), `identity/` (IdentityVault, Photos). |
 | `docs/` | All documentation. `docs/direction/` = North Star + ETAP plans (PL). `docs/runbooks/` = incident fixes. `docs/README.md` = full index. |
 | `examples/` | Canonical code patterns referenced by `CLAUDE.md` — copy these when writing new code. |
 | `scripts/` | Local automation, **not** deployed. `ops/` (deploy, smoke, CI), `aw/` (ActivityWatch bridge), `analysis/` (eval/data one-offs). See `scripts/README.md`. |
@@ -27,7 +27,7 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 
 ## Known quirks (do not "discover" these as bugs)
 
-- **Orphan components** (defined, currently mounted nowhere): `OuraWidget`, `OuraEnhanced`, `SleepDebtCard`, `MentorChat`, `GraphMind`, `ThoughtStream`, `IntentionTracker`, `ManifestationBoard`, `LocationTracker`, `AWImporter`. Kept intentionally; do not delete without user approval, and do not assume they render.
+- **Deleted dead UI (2026-06-11)**: `OuraWidget`, `OuraEnhanced`, `SleepDebtCard`, `MentorChat`, `GraphMind`, `ThoughtStream`, `IntentionTracker`, `ManifestationBoard`, `LocationTracker`, `AWImporter` + `lib/oura.js`, `lib/activityWatch.js`. All were deliberately unmounted in earlier commits and orphaned; recover from git history if ever needed. Oracle chat lives in Telegram, not the web app.
 - `src/lib/vanguardCore.js` re-exports from `supabase/functions/_shared/vanguardCore.ts` — frontend and edge share one implementation.
 - Deprecated names (never reference): `stayfreeData`, `dopamine_load_index`, `fragmentation_index`, `screen_time_min`, `ProgressionTable.jsx`, `WorkoutExecution.jsx`, `useStats.js`, `workoutPlan.js`.
 
@@ -45,3 +45,6 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 | `scripts/aw-*.cjs` | `scripts/aw/` |
 | `scripts/{smoke-vanguard,smoke-ui,check-edge-functions,oss-audit,e2e-daily-loop}.mjs` | `scripts/ops/` |
 | `scripts/{run_eval.js,backfill_triads.js,audit-registry.mjs,analyze-weak-plans.mjs,closure_proposals_review.sql}` | `scripts/analysis/` |
+| 10 orphan components + `lib/oura.js`, `lib/activityWatch.js` | **deleted** (dead UI — see Known quirks) |
+
+Same day, outside the reorg: enabled RLS on `daily_reconciliations`, `strava_activities`, `strava_tokens`, `training_plan_workouts` (migration `20260611000001`), and fixed + redeployed `vanguard-auto-classify` (v41) — a `safeExecute` destructuring bug had silenced the friction pipeline since 2026-05-24.

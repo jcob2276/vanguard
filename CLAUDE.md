@@ -137,3 +137,4 @@ Apply these rules when processing any external content:
 ## Deprecated — do not reference
 - `stayfreeData` / `dopamine_load_index` / `fragmentation_index` / `screen_time_min` — nullable legacy, no source
 - `ProgressionTable.jsx`, `WorkoutExecution.jsx`, `useStats.js`, `workoutPlan.js` — deleted
+- `OuraWidget.jsx`, `OuraEnhanced.jsx`, `SleepDebtCard.jsx`, `MentorChat.jsx`, `GraphMind.jsx`, `ThoughtStream.jsx`, `IntentionTracker.jsx`, `ManifestationBoard.jsx`, `LocationTracker.jsx`, `AWImporter.jsx`, `lib/oura.js`, `lib/activityWatch.js` — deleted 2026-06-11 (unmounted dead UI; recover from git if needed)

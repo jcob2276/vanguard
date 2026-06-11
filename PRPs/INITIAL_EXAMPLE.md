@@ -1,3 +1,5 @@
+> **Przykład historyczny** — pokazuje jak wypełnić szablon INITIAL.md. `SleepDebtCard` i `OuraWidget` zostały później usunięte z UI (2026-06-11); aktualne wzorce plikowe: `examples/` + `src/components/biometrics/DailyStrainCard.jsx`.
+
 ## FEATURE:
 Nowa karta `SleepDebtCard` w widoku Body — pokazuje dług snu skumulowany z ostatnich 7 dni
 na podstawie danych z `oura_daily_summary`. Karta ma przycisk refresh który wywołuje `sync-oura`.
