@@ -114,6 +114,7 @@ Regenerated from files on disk on 2026-06-11.
 20260611160000_drop_dead_tables.sql
 20260611170000_faza0_quality_metadata.sql
 20260611213502_p2_hygiene_advisories.sql
+20260611215341_tighten_audit_events_rls.sql
 ```
 
 ## Known Constraint Gotchas
