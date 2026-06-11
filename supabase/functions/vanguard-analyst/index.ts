@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { sendMessage } from "../_shared/telegram.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -417,16 +418,7 @@ async function checkProactiveAlert(
 
     const alertMsg = `${alertEmoji} *Alert regeneracji*\n\n${alertReason}\n\n*Ostatnie 3 dni:*\n${recentSummary}${graphSection}\n\n_Vanguard Analyst — ${new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}_`
 
-    // Send Telegram alert
-    await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: alertMsg,
-        parse_mode: 'Markdown',
-      }),
-    })
+    await sendMessage(telegramToken, chatId, alertMsg, { parseMode: 'Markdown' })
 
     // Record the alert in stream for throttle tracking
     await supabase.from('vanguard_stream').insert({
