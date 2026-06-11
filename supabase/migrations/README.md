@@ -1,47 +1,116 @@
-# Migrations index
+# Migrations Index
 
 Migrations are chronological in `supabase/migrations/`. Do not reorder or rename applied migrations.
 
-New migrations should use domain prefix in the name:
+New migrations should use a domain-oriented name after the timestamp, for example:
 
+```text
+YYYYMMDDHHMMSS_vanguard_*.sql
+YYYYMMDDHHMMSS_integration_*.sql
+YYYYMMDDHHMMSS_graph_*.sql
 ```
-YYYYMMDD_vanguard_*
-YYYYMMDD_integration_*
-YYYYMMDD_graph_*
+
+## Applied Migrations
+
+Regenerated from files on disk on 2026-06-11.
+
+```text
+20260504235214_add_weight_italia.sql
+20260509011531_add_about_me_to_life_goals.sql
+20260512000000_graph_foundation.sql
+20260512000001_power_list_upgrade.sql
+20260512000002_repair_daily_wins.sql
+20260512102700_add_todoist_token.sql
+20260513000000_intentions.sql
+20260513000001_daily_snapshot_cron.sql
+20260513000002_feedback_loop.sql
+20260513000003_stream_auto_classify.sql
+20260513000004_stream_bitemporal.sql
+20260513000005_auto_classify_trigger.sql
+20260513000006_weekly_intentions_cron.sql
+20260513000007_curiosity_engine.sql
+20260513000008_analyst_cron.sql
+20260513000009_daily_analyst_cron.sql
+20260513000010_update_fundament_cyber.sql
+20260513000011_revert_fundament.sql
+20260513000012_fix_identity_cyber.sql
+20260513000013_add_category_to_knowledge.sql
+20260513000014_fix_retrieval.sql
+20260513000015_final_rpc_fix.sql
+20260513000016_calibration_and_priority.sql
+20260513000017_metadata_and_conflicts.sql
+20260513000018_oracle_audit_runs.sql
+20260514000000_response_preferences.sql
+20260514000001_graph_entity_resolution.sql
+20260514000002_deprecate_stale_education_edges.sql
+20260514000003_deprecate_stale_education_knowledge.sql
+20260514000004_auto_classify_trigger_no_auth_header.sql
+20260514000005_drop_legacy_graph_overloads_and_duplicate_trigger.sql
+20260514000006_raw_events_and_eval_harness.sql
+20260514000007_graph_ontology.sql
+20260514000008_rls_audit_fix.sql
+20260514000009_temporal_kg.sql
+20260514000010_eval_run_status_completed.sql
+20260514000011_graphiti_compat_and_ascii_relations.sql
+20260514000012_relation_normalization_backfill.sql
+20260514000013_ascii_relation_aliases.sql
+20260514000014_relation_fk_guard.sql
+20260514000015_quarantine_legacy_graph_edges.sql
+20260514000016_deferrable_superseded_by_fk.sql
+20260514000017_historical_biography_relations.sql
+20260516000001_sprint0_friction_layer.sql
+20260519000001_closure_proposals_human_gate.sql
+20260519000002_rls_missing_tables.sql
+20260521000001_daily_planning_session.sql
+20260521000002_planning_summary.sql
+20260521000003_planning_summary_jsonb.sql
+20260521000004_morning_brief_cron.sql
+20260522000001_midday_check_columns.sql
+20260522154323_save_workout_atomic_rpc.sql
+20260522160337_expose_nutrition_tables_to_authenticated.sql
+20260524000001_morning_brief_tracking.sql
+20260524000002_morning_ping_cron.sql
+20260524000003_morning_ping_sent_at.sql
+20260525170000_evaluation_fixes.sql
+20260525171000_add_missing_oracle_tables.sql
+20260525172000_add_event_kind.sql
+20260525173000_add_first_90_columns.sql
+20260526000001_strava_integration.sql
+20260526000002_strava_activities_clean_view.sql
+20260526000003_daily_aggregate_strava.sql
+20260526000004_strava_sync_cron.sql
+20260526000005_training_plan.sql
+20260526100000_unschedule_reset_prompt.sql
+20260526220545_friction_events_stream_record_idempotency.sql
+20260527100001_add_p2_parsed_to_reconciliations.sql
+20260529000001_backfill_plan_quality_flags.sql
+20260529160000_faza0_schema_reconcile.sql
+20260531000001_create_vanguard_correlations_temporal_links.sql
+20260602000001_create_vanguard_behavioral_patterns.sql
+20260603000001_unschedule_intentions_cleanup.sql
+20260603000002_add_fueling_provisional.sql
+20260604082039_add_workout_muscle_tags_and_rir.sql
+20260604102000_add_habit_log_context.sql
+20260604162300_drop_stayfree.sql
+20260605000001_add_brand_saturated_fat_to_food_entries.sql
+20260605000002_add_salt_to_food_entries.sql
+20260605000003_add_insulin_load_to_nutrition_tables.sql
+20260607000001_add_food_quality_to_entries.sql
+20260607000002_fix_save_workout_atomic.sql
+20260609000001_create_fasting_logs.sql
+20260610000001_add_session_rpe.sql
+20260610000001_extend_singleton_relations.sql
+20260610000002_create_audit_events.sql
+20260610000002_cron_eval_interview.sql
+20260610150000_guard_superseding_to_singleton_relations.sql
+20260610153000_fix_eval_results_idempotency.sql
+20260610154000_fix_save_workout_atomic_warsaw_fallback.sql
+20260610160000_remove_dojo_subsystem.sql
+20260610161000_remove_legacy_stubs_and_google_fit.sql
+20260611000001_enable_rls_strava_recon_training.sql
 ```
 
-## Domain map (applied)
-
-### Core / stream / intentions
-- `20260513000000_intentions`
-- `20260513000003_stream_auto_classify`
-- `20260513000002_feedback_loop`
-- `20260513000005_auto_classify_trigger`
-
-### Graph / knowledge / temporal KG
-- `20260512000000_graph_foundation`
-- `20260514144339_graph_ontology`
-- `20260514150401_graph_embeddings`
-- `20260514154206_temporal_kg_part1_schema` (+ parts 2–4)
-- `20260516101432_sprint0_temporal_status_on_entity_links`
-
-### Eval harness
-- `20260514130309_raw_events_and_eval_harness`
-- `20260514161753_eval_results_add_category`
-- `20260514170023_eval_run_status_completed`
-
-### Friction / reconciliation / planning
-- `20260516101419_sprint0_friction_events_table`
-- `20260518084315_sprint_08_daily_reconciliation`
-- `20260521212030_daily_planning_session`
-- `20260521212813_planning_summary_column`
-
-
-### Cron fixes
-- `20260519142633_fix_cron_current_setting_null_bug`
-- `20260519142723_fix_cron_analyst_and_briefing_current_setting`
-
-## Known constraint gotchas
+## Known Constraint Gotchas
 
 If code inserts fail silently or with 500, check CHECK constraints:
 
@@ -49,4 +118,4 @@ If code inserts fail silently or with 500, check CHECK constraints:
 -- planning_status: pending | active | completed (not 'done')
 ```
 
-See `docs/runbooks/db-constraint-mismatch.md`
+See `docs/runbooks/db-constraint-mismatch.md`.
