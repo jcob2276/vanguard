@@ -5,6 +5,7 @@ import { format, parseISO, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
 import { calculateProjection, generateNarrative } from './stats/statsCalculations.js';
+import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi.js';
 import { TrendArrow } from './stats/TrendArrow.jsx';
 
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
@@ -139,24 +140,20 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function syncHistory() {
     setIsSyncing(true);
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-yazio`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSession.access_token}`
-        },
-        body: JSON.stringify({ userId: session.user.id, sync_history: true, days: 25 })
+      const res = await syncYazioHistory({
+        supabase,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        userId: session.user.id,
+        days: 25
       });
-      const res = await response.json();
       if (res.success) {
         alert(`Zsynchronizowano ${res.synced_days} dni!`);
         fetchStats();
       } else {
-        alert('Błąd synchronizacji: ' + res.error);
+        alert('B????d synchronizacji: ' + res.error);
       }
     } catch (_err) {
-      alert('Błąd połączenia z funkcją');
+      alert('B????d po????czenia z funkcj??');
     } finally {
       setIsSyncing(false);
     }
@@ -166,30 +163,20 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setIsAnalyzing(true);
     setAnalyzeResult(null);
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const body = analyzePeriod === 1
-        ? { userId: session.user.id, date: analyzeDate }
-        : (() => {
-            const to = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-            const from = new Date(Date.now() - (analyzePeriod - 1) * 864e5).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-            return { userId: session.user.id, dateFrom: from, dateTo: to };
-          })();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food-quality`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSession.access_token}`
-        },
-        body: JSON.stringify(body)
+      const res = await analyzeFoodQuality({
+        supabase,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        userId: session.user.id,
+        analyzeDate,
+        analyzePeriod
       });
-      const res = await response.json();
       if (res.success) {
         setAnalyzeResult(res);
       } else {
-        alert('Błąd analizy: ' + (res.error || 'Nieznany błąd'));
+        alert('B????d analizy: ' + (res.error || 'Nieznany b????d'));
       }
     } catch (err) {
-      alert('Błąd połączenia: ' + err.message);
+      alert('B????d po????czenia: ' + err.message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -199,24 +186,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setIsAnalyzingTraining(true);
     setTrainingAnalysis(null);
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-training-load`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSession.access_token}`
-        },
-        body: JSON.stringify({ userId: session.user.id })
+      const res = await requestTrainingLoad({
+        supabase,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        userId: session.user.id
       });
-      if (!response.ok) {
-        const p = await response.json().catch(() => ({}));
-        throw new Error(p.error || response.status);
-      }
-      const res = await response.json();
       if (res.success) setTrainingAnalysis(res);
-      else throw new Error(res.error || 'Nieznany błąd');
+      else throw new Error(res.error || 'Nieznany b????d');
     } catch (err) {
-      alert('Błąd analizy treningu: ' + err.message);
+      alert('B????d analizy treningu: ' + err.message);
     } finally {
       setIsAnalyzingTraining(false);
     }
