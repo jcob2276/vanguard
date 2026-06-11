@@ -26,7 +26,7 @@ import {
 } from "./smoke-manifest.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(__dirname, "..");
+const ROOT = path.join(__dirname, "..", "..");
 
 const args = new Set(process.argv.slice(2));
 const withServiceRole = args.has("--with-service-role");
