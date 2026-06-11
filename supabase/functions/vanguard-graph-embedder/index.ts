@@ -2,6 +2,7 @@ import { getEmbedding } from "../_shared/openai.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
+import { deepseekChat } from "../_shared/deepseek.ts"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -52,34 +53,25 @@ function buildFactText(link: {
  */
 async function generateHypeQuestions(factText: string): Promise<string> {
   try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "deepseek-v4-flash",
-        max_tokens: 80,
-        temperature: 0.2,
-        messages: [
-          {
-            role: "system",
-            content: "Wygeneruj 3 krótkie pytania po polsku, które BEZPOŚREDNIO odpytują o podany fakt. Tylko pytania, oddzielone ' | ', bez numeracji.",
-          },
-          { role: "user", content: factText },
-        ],
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return '';
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content?.trim() ?? '';
+    const result = await deepseekChat({
+      apiKey: DEEPSEEK_API_KEY,
+      model: "deepseek-v4-flash",
+      maxTokens: 80,
+      temperature: 0.2,
+      timeoutMs: 5000,
+      messages: [
+        {
+          role: "system",
+          content: "Wygeneruj 3 krótkie pytania po polsku, które BEZPOŚREDNIO odpytują o podany fakt. Tylko pytania, oddzielone ' | ', bez numeracji.",
+        },
+        { role: "user", content: factText },
+      ],
+    })
+    return result.content.trim()
   } catch {
-    return '';
+    return ''
   }
 }
-
 /** One batch per invocation — caller re-invokes until remaining is 0. */
 async function runBackfillBatch(
   user_id: string,
