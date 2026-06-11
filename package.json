@@ -9,13 +9,13 @@
     "build": "vite build",
     "lint": "eslint . --max-warnings=0",
     "preview": "vite preview",
-    "typecheck": "node scripts/check-edge-functions.mjs",
-    "audit:registry": "node scripts/audit-registry.mjs",
-    "smoke:ui": "node scripts/smoke-ui.mjs",
-    "oss:audit": "node scripts/oss-audit.mjs",
-    "smoke": "node scripts/smoke-vanguard.mjs --with-service-role",
-    "smoke:safe": "node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe",
-    "e2e:loop": "node scripts/e2e-daily-loop.mjs"
+    "typecheck": "node scripts/ops/check-edge-functions.mjs",
+    "audit:registry": "node scripts/analysis/audit-registry.mjs",
+    "smoke:ui": "node scripts/ops/smoke-ui.mjs",
+    "oss:audit": "node scripts/ops/oss-audit.mjs",
+    "smoke": "node scripts/ops/smoke-vanguard.mjs --with-service-role",
+    "smoke:safe": "node scripts/ops/smoke-vanguard.mjs --with-service-role --invoke-safe",
+    "e2e:loop": "node scripts/ops/e2e-daily-loop.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",

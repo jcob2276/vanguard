@@ -2,11 +2,11 @@ name: "SleepDebtCard — cumulative 7-day sleep debt widget"
 confidence: 9/10
 
 ## Goal
-Build `src/components/SleepDebtCard.jsx` — a Body-view card showing cumulative sleep debt
+Build `src/components/biometrics/SleepDebtCard.jsx` — a Body-view card showing cumulative sleep debt
 over the last 7 days from `oura_daily_summary`, with trend vs previous 7 days, avg sleep
 score, colour-coded status ring, and a refresh button that triggers `sync-oura`.
 
-Mount it in `src/components/Dashboard.jsx` in the `body` view, directly below `DailyStrainCard`
+Mount it in `src/components/core/Dashboard.jsx` in the `body` view, directly below `DailyStrainCard`
 and above `Stats`.
 
 ## Why
@@ -46,13 +46,13 @@ Trend (vs previous 7 days):
 ### Key files to read before implementing
 
 ```yaml
-- file: src/components/DailyStrainCard.jsx
+- file: src/components/biometrics/DailyStrainCard.jsx
   why: >
     Exact pattern to follow: STATUS_RING/STATUS_GLOW maps, Metric sub-component,
     refresh() with call() helper, loading/error/empty states, border-radius/shadow/
     gradient CSS classes. Mirror this file's structure closely.
 
-- file: src/components/OuraWidget.jsx
+- file: src/components/biometrics/OuraWidget.jsx
   why: >
     Shows exactly how oura_daily_summary is queried (lines 41-57).
     CRITICAL: table column is `total_sleep_hours` (float, hours) NOT `total_sleep_duration`.
@@ -61,7 +61,7 @@ Trend (vs previous 7 days):
 - file: examples/frontend-component.jsx
   why: Canonical fetchRow / call() / loading+error+empty render pattern
 
-- file: src/components/Dashboard.jsx  lines 373-393
+- file: src/components/core/Dashboard.jsx  lines 373-393
   why: Mount point — body view, insert SleepDebtCard between DailyStrainCard and Stats
 ```
 
@@ -183,7 +183,7 @@ const cutoff = new Date(Date.now() - 14 * 864e5)
 
 ## Implementation Tasks (ordered)
 
-### Task 1 — Create `src/components/SleepDebtCard.jsx`
+### Task 1 — Create `src/components/biometrics/SleepDebtCard.jsx`
 
 Structure:
 ```
@@ -239,7 +239,7 @@ export default SleepDebtCard({ session }):
     </section>
 ```
 
-### Task 2 — Mount in `src/components/Dashboard.jsx`
+### Task 2 — Mount in `src/components/core/Dashboard.jsx`
 
 1. Import at top: `import SleepDebtCard from './SleepDebtCard';`
 

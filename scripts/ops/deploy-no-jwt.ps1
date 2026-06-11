@@ -40,4 +40,4 @@ foreach ($fn in $targets) {
 }
 
 Write-Host "`nDone. Run smoke:" -ForegroundColor Green
-Write-Host "  node scripts/smoke-vanguard.mjs --with-service-role"
+Write-Host "  node scripts/ops/smoke-vanguard.mjs --with-service-role"

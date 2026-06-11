@@ -558,7 +558,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 **Problem który rozwiązuje:** LLM (DeepSeek) zwracał `is_closure: true` → system automatycznie pisał `valid_until` do historycznych rekordów `vanguard_stream`. Threshold 0.65 to fuzzy match — model mógł permanentnie oznaczyć jako nieważne rekordy które są tematycznie podobne, ale nie są tym samym wątkiem. `vanguard_stream` jest source-of-truth całego systemu.
 
-**Implementacja:** Zamiast `UPDATE vanguard_stream SET valid_until` — `INSERT INTO vanguard_stream_closure_proposals STATUS='pending'`. Faktyczny `valid_until` update: dopiero po `status='approved'` (P3, jeszcze nieimplementowane). Propozycje można przeglądać przez `scripts/closure_proposals_review.sql`.
+**Implementacja:** Zamiast `UPDATE vanguard_stream SET valid_until` — `INSERT INTO vanguard_stream_closure_proposals STATUS='pending'`. Faktyczny `valid_until` update: dopiero po `status='approved'` (P3, jeszcze nieimplementowane). Propozycje można przeglądać przez `scripts/analysis/closure_proposals_review.sql`.
 
 ### 4.6 Timezone — Europe/Warsaw
 

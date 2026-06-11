@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
-import Auth from './components/Auth';
-import Dashboard from './components/Dashboard';
+import Auth from './components/core/Auth';
+import Dashboard from './components/core/Dashboard';
 import { useNotifications } from './hooks/useNotifications';
 
 function App() {

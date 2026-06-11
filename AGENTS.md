@@ -45,7 +45,7 @@ Deploy:
   ingest-vault-log, vanguard-friction-qa,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
   vanguard-eval-interview, sync-strava, analyze-training, analyze-training-load
-- After deploy: `npm run smoke` (or `node scripts/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
+- After deploy: `npm run smoke` (or `node scripts/ops/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
 Telegram:
 - Vanguard bot: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID

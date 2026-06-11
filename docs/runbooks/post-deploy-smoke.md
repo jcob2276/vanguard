@@ -14,7 +14,7 @@ From repo root, with env loaded (`.env` or `.env.local`):
 
 ```powershell
 cd path/to/Vanguard
-node scripts/smoke-vanguard.mjs --with-service-role
+node scripts/ops/smoke-vanguard.mjs --with-service-role
 ```
 
 - Uses **OPTIONS** only — no Telegram messages, no LLM spend.
@@ -25,7 +25,7 @@ node scripts/smoke-vanguard.mjs --with-service-role
 ## 2. After changing function logic (optional)
 
 ```powershell
-node scripts/smoke-vanguard.mjs --with-service-role --invoke-safe
+node scripts/ops/smoke-vanguard.mjs --with-service-role --invoke-safe
 ```
 
 

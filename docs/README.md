@@ -25,13 +25,20 @@ Lean operational docs + links to existing deep context.
 - [../scripts/README.md](../scripts/README.md) — local one-off scripts
 - [../src/README.md](../src/README.md) — legacy workout frontend
 
+## Direction / vision
+
+- [direction/](./direction/) — North Star (`KIERUNEK.md`) + ETAP 0/1 planning docs
+- [ROADMAP_V10.md](./ROADMAP_V10.md) — canonical roadmap
+- [VISION_10_10.md](./VISION_10_10.md) — canonical 10/10 vision
+- [VANGUARD_MANIFESTO.md](./VANGUARD_MANIFESTO.md) — system philosophy (PL)
+
 ## Deep context (verify against current state)
 
 - [PRODUCT_PRINCIPLES.md](./PRODUCT_PRINCIPLES.md) — full epistemic guardrails
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — architecture in docs/
 - [TECHNICAL.md](./TECHNICAL.md) — technical reference (may be stale)
 - [VANGUARD_OS_CANONICAL_SPEC.md](./VANGUARD_OS_CANONICAL_SPEC.md) — canonical spec
-- [legacy/](./legacy/) — moved root docs (ARCHITECTURE, AI_CONTEXT, PL docs)
+- [GRAPH_TEMPORAL_STATUS.md](./GRAPH_TEMPORAL_STATUS.md) — graph temporal-status dev invariant
 
 ## Cursor rules
 

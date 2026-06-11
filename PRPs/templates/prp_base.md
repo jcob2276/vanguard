@@ -42,7 +42,7 @@ Template for implementing features in Vanguard OS (React + Vite frontend, Supaba
 - file: supabase/functions/compute-daily-strain/index.ts
   why: pattern for auth guard via resolveUserScope + Promise.all parallel processing
 
-- file: src/components/DailyStrainCard.jsx
+- file: src/components/biometrics/DailyStrainCard.jsx
   why: pattern for frontend fetch with error propagation (call() throws on !response.ok)
 
 # Add feature-specific references below:
@@ -122,7 +122,7 @@ Task 3:
     - [schema changes]
 
 Task 4:
-  MODIFY src/components/Component.jsx:
+  MODIFY src/components/<domain>/Component.jsx:
     - [UI changes]
 
 Task N:

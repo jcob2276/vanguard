@@ -1,5 +1,7 @@
 # Vanguard OS — Project Rules
 
+> **Navigation:** see [`PROJECT_MAP.md`](PROJECT_MAP.md) for the folder map and read order.
+
 ## Stack
 - **Frontend**: React 18 + Vite, JSX (no TypeScript), Tailwind CSS, Zustand (`src/store/useStore.js`)
 - **Edge Functions**: Deno TypeScript, Supabase Edge Runtime (`supabase/functions/`)
