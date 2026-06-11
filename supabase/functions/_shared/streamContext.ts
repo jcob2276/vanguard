@@ -114,62 +114,6 @@ export async function fetchOracleStreamSlices(
   return { current: current || [], recent: recent || [] };
 }
 
-export type DeclaredIntention = {
-  text: string;
-  type?: string | null;
-  importance?: number | null;
-};
-
-const INTENTION_TYPE_LABELS: Record<string, string> = {
-  slide: "wizualizacja",
-  prayer: "modlitwa",
-  affirmation: "afirmacja",
-  career: "kariera",
-  goal: "cel życiowy",
-};
-
-/**
- * Declared-self layer: active intentions the user has declared.
- * This is the DECLARATION side of the declared-vs-actual axis — never a truth claim.
- * See docs/PRODUCT_PRINCIPLES.md "Transurfing Layer Guardrail".
- */
-export async function fetchDeclaredIntentions(
-  supabase: SupabaseClient,
-  userId: string,
-  limit = 8,
-): Promise<DeclaredIntention[]> {
-  const rows = await safeExecute(
-    supabase
-      .from("vanguard_intentions")
-      .select("text, type, importance")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .order("importance", { ascending: false })
-      .limit(limit),
-  );
-  return (rows || []) as DeclaredIntention[];
-}
-
-/**
- * Format declared intentions as a confrontation block.
- * The guardrail travels with the data: intentions are a declaration to test
- * against behavior, never proof that something "worked" / "manifested".
- */
-export function formatDeclaredIntentionsBlock(rows: DeclaredIntention[]): string {
-  if (!rows || rows.length === 0) return "";
-  const lines = rows.map((r) => {
-    const label = r.type ? (INTENTION_TYPE_LABELS[r.type] || r.type) : "intencja";
-    const imp = r.importance != null ? ` (ważność ${r.importance}/10)` : "";
-    return `- [${label}]${imp} ${r.text}`;
-  }).join("\n");
-  return "\n\n[DEKLAROWANE INTENCJE — strona DEKLARACJI, nie prawdy]:\n" + lines + "\n" +
-    "Zasada: To są deklaracje Jakuba (kim chce być / co uznał za ważne), NIE dowód że coś „zadziałało”. " +
-    "Używaj ich wyłącznie do konfrontacji z faktycznym zachowaniem ze Strumienia/biometrii " +
-    "(np. „deklarujesz X jako 9/10, a ostatnie dni pokazują Y”). " +
-    "Nigdy nie twierdź, że intencja/manifestacja się spełniła ani że rzeczywistość wysłała znak. " +
-    "Gdy widzisz rozjazd — nazwij go i zaproponuj jeden minimalny ruch.";
-}
-
 export function formatOracleStreamBlock(current: StreamRow[], recent: StreamRow[]): string {
   let block = "";
   if (current.length > 0) {

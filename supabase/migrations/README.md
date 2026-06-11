@@ -109,6 +109,7 @@ Regenerated from files on disk on 2026-06-11.
 20260610161000_remove_legacy_stubs_and_google_fit.sql
 20260611000001_enable_rls_strava_recon_training.sql
 20260611143841_drop_dead_prediction_youtube_tables.sql
+20260611144430_drop_dead_intentions_table.sql
 ```
 
 ## Known Constraint Gotchas

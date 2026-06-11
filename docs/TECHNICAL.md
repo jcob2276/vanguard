@@ -55,8 +55,6 @@ pg_cron 0 3 * * *  (UTC)  →  vanguard-analyst  [⚠️ DWIE instancje — patr
                                 ├─► vanguard_curiosity_queue (UPDATE evaluated)
                                 └─► vanguard_curiosity_queue (INSERT new candidates)
 
-                                └─► DeepSeek: audit active intentions
-                                      └─► vanguard_intentions (UPDATE status)
 
 pg_cron 30 20 * * * (UTC) →  sync-strava
                                 └─► strava_activities (upsert)
@@ -204,23 +202,8 @@ Migracja: `20260516000001`.
 ---
 
 #### `vanguard_intentions`
-Migracja: `20260513000000`.
 
-| Kolumna | Typ | Default | Constraint |
-|---------|-----|---------|------------|
-| id | UUID | gen_random_uuid() | PK |
-| user_id | UUID | — | FK → auth.users ON DELETE CASCADE |
-| text | TEXT | — | NOT NULL |
-| type | TEXT | 'slide' | CHECK IN (slide,prayer,affirmation,career,goal) |
-| status | TEXT | 'active' | CHECK IN (active,manifested,released) |
-| importance | INTEGER | 5 | CHECK 1-10 |
-| notes | TEXT | — | |
-| created_at | TIMESTAMPTZ | NOW() | |
-| manifested_at | TIMESTAMPTZ | — | |
-
-**✅ FIXED (2026-05-26):** Oracle queries `.eq('status', 'active')` — poprawna kolumna, intentions pobierane prawidłowo.
-
-**RLS:** ENABLED — `"Users manage own intentions"` FOR ALL `auth.uid() = user_id`
+**DROPPED 2026-06-11:** no writer, 0 rows, Oracle read path removed. Rebuild only through a PRP with explicit user-controlled write/status flow.
 
 ---
 
@@ -335,7 +318,7 @@ Brak user_id — tabela referencyjna.
 | Tabela | RLS | Od migracji |
 |--------|-----|-------------|
 | vanguard_entity_links | ✅ | 20260512000000 |
-| vanguard_intentions | ✅ | 20260513000000 |
+| vanguard_intentions | dropped 2026-06-11 | dead declared-intentions table removed |
 | vanguard_oracle_runs | ✅ | 20260513000018 + 008 |
 | vanguard_preferences | ✅ | 20260514000000 |
 | vanguard_entity_aliases | ✅ | 20260514000001 |
@@ -416,7 +399,7 @@ Faza 3 — re-ranking z temporal penalty:
 - inne: 0.75
 - recency: <3d +0.15, 3-21d ±0, 21-60d -0.15, >60d -0.3
 
-**Static context:** user_fundament, vanguard_iron_rules (**brak tabeli**), vanguard_repeated_patterns (**brak tabeli**), vanguard_known_persons (**brak tabeli**), vanguard_preferences, vanguard_intentions (query `.eq('is_active', true)` — **⚠️ zła kolumna, powinno być `status='active'`**)
+**Static context:** user_fundament, vanguard_iron_rules (**brak tabeli**), vanguard_repeated_patterns (**brak tabeli**), vanguard_known_persons (**brak tabeli**), vanguard_preferences. `vanguard_intentions` dropped 2026-06-11 after no writer + 0 rows.
 
 **DeepSeek model:** `deepseek-v4-flash` (default) lub `deepseek-reasoner` (gdy `thinking=true` — prefix `!!` z telegramu)
 
@@ -614,7 +597,7 @@ if (embedRes.ok) {
 | # | Problem | Lokalizacja | Efekt |
 |---|---------|-------------|-------|
 | 4 | ~~Duplicate cron — vanguard-analyst~~ | **FIXED** mig. `20260525170000` | `vanguard-daily-shadow-analysis` usunięty; potwierdź przez `scripts/ops/cron-check.sql` query #2 |
-| 5 | ~~vanguard_intentions is_active vs status~~ | **FIXED 2026-05-26** | Oracle używa `.eq('status', 'active')` — poprawna kolumna |
+| 5 | `vanguard_intentions` | DROPPED 2026-06-11 - no active read/write path |
 | 6 | **Hardcoded JWT w migracjach** | mig. 005, 006, 009 | Service role key w git history — wymaga rotacji jeśli repo publiczne |
 | 7 | ~~**gpt-5-mini w eval-runner**~~ | **FIXED** — używa `gpt-4o-mini` (TECHNICAL.md był nieaktualny) | — |
 
