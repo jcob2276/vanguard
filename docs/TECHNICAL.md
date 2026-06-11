@@ -65,7 +65,7 @@ Brak cron (HTTP manual):
   vanguard-graph-embedder
   vanguard-debug-retrieval
   vanguard-eval-runner
-  vanguard-friction-qa
+  vanguard-friction-qa  →  DEPRECATED stub 410 (Telegram QA removed)
   analyze-training      →  DEPRECATED stub 410 (plan vs Strava Telegram analysis removed)
   sync-oura / sync-yazio / sync-todoist / sync-calendar
 ```
@@ -84,7 +84,7 @@ Brak cron (HTTP manual):
 | vanguard-backfill | ✅ aktywna | HTTP manual | |
 | vanguard-graph-embedder | ✅ aktywna | HTTP manual | |
 | ingest-vault-log | ✅ aktywna | HTTP (z telegram) | |
-| vanguard-friction-qa | ✅ aktywna | HTTP manual | |
+| vanguard-friction-qa | DEPRECATED stub 410 | cron + Telegram QA removed | |
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | resolved (gpt-4o-mini) |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |

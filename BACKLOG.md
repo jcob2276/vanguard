@@ -40,7 +40,7 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
 - Kolumna `event_kind` + pełna taksonomia wdrożona (mig. 20260525 + 20260528).
 - Prompt w auto-classify zawiera wyraźne rozróżnienie + przykłady (w tym te z backlogu).
 - `confirmed_friction_events` VIEW + wszystkie core consumery (reconciliation, analyst, weekly-synthesis, Oracle) filtrują wyłącznie `friction_event` + `positive_micro_action`.
-- `friction-qa` raportuje rozkład wszystkich 5 typów co uruchomienie.
+- `friction-qa` został wyłączony jako cykliczny/telegramowy raport; przyszły QA powinien być SQL/dashboard, nie bot.
 - Dodatkowe zaostrzenie reguł w promptcie (czerwiec 2026) po rewizji BACKLOG-01.
 
 **Aktualny tryb:** monitorowanie precision + okazjonalne ostrzenie promptu przy powtarzających się błędach w QA.
@@ -77,6 +77,6 @@ Automatyczny StayFree nie jest priorytetem (użytkownik wrzuca ręcznie).
 
 **Pierwotny warunek:** ≥3 kolejne `to_fix` z tego samego powodu.
 
-**Stan na czerwiec 2026:** Podstawowa taksonomia została wdrożona proaktywnie (nawet bez spełnienia progu). Dalsze poprawki promptu robimy reaktywnie na podstawie raportów `vanguard-friction-qa`.
+**Stan na czerwiec 2026:** Podstawowa taksonomia została wdrożona proaktywnie (nawet bez spełnienia progu). `vanguard-friction-qa` jako raport Telegram został wyłączony; dalsze poprawki promptu powinny opierać się o SQL/dashboard.
 
 Wpis pozostawiony dla historii. Nie wymaga już aktywnego monitoringu jako osobny backlog item.

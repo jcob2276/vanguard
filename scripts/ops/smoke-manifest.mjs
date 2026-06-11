@@ -10,7 +10,6 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-midday-check",
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",
-  "vanguard-friction-qa",
   "vanguard-telegram",
   "vanguard-oracle",
   "vanguard-auto-classify",
@@ -36,7 +35,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-midday-check", post: "cron", sideEffects: "May send midday Telegram" },
   { name: "vanguard-daily-reconciliation", post: "cron", sideEffects: "May send evening reconciliation Telegram" },
   { name: "vanguard-weekly-synthesis", post: "cron", sideEffects: "LLM + Telegram report" },
-  { name: "vanguard-friction-qa", post: "cron", sideEffects: "LLM + Telegram" },
+  { name: "vanguard-friction-qa", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
   { name: "save-daily-aggregate", post: "cron_secret", sideEffects: "Writes daily aggregate" },
   { name: "vanguard-telegram", post: "webhook", body: { update_id: 0 }, sideEffects: "OPTIONS preferred" },
@@ -65,7 +64,6 @@ export const CRON_DASHBOARD_ONLY = [
   { jobname: "vanguard-midday-check", schedule_hint: "~11:00 UTC", target: "vanguard-midday-check" },
   { jobname: "vanguard-daily-reconciliation", schedule_hint: "~19:30 UTC", target: "vanguard-daily-reconciliation" },
   { jobname: "vanguard-weekly-synthesis", schedule_hint: "Sun ~17:00 UTC", target: "vanguard-weekly-synthesis" },
-  { jobname: "vanguard-friction-qa", schedule_hint: "periodic", target: "vanguard-friction-qa" },
 ];
 
 export const CRON_REMOVED = [

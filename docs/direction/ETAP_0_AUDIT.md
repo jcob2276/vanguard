@@ -18,7 +18,7 @@ Ten dokument jest żywy – będę go aktualizował w miarę pogłębiania audyt
 **Słabe strony / ryzyka:**
 - Brak systematycznego pomiaru jakości (precision/recall) na realnych danych.
 - Nie ma wersji promptów + trackingu, jak zmienia się jakość w czasie.
-- `vanguard-friction-qa` istnieje, ale nie jest jasne, jak często jest używany i czy realnie wpływa na poprawę klasyfikatora.
+- `vanguard-friction-qa` został wyłączony jako raport Telegram; QA klasyfikatora wymaga nowego procesu SQL/dashboard.
 
 ### 1.2 reconciliationParser (P2 parser)
 
@@ -86,7 +86,7 @@ To jest na tyle lekkie, że da się robić regularnie i daje twarde dane do decy
    - Tabele rosną, ale nie ma jasnej filozofii, co jest "źródłem prawdy" na poziomie lat.
 
 4. **Słabe tooling wokół jakości danych**
-   - `vanguard-friction-qa` jest, ale nie jest zintegrowany w regularny proces poprawy.
+   - Stary `vanguard-friction-qa` był raportem Telegram, nie regularnym procesem poprawy; został wyłączony.
 
 ---
 
@@ -124,7 +124,7 @@ To jest na tyle lekkie, że da się robić regularnie i daje twarde dane do decy
 #### A. Audyt i pomiary jakości (najwyższy priorytet)
 - Zbudować prosty proces regularnego audytu jakości auto-classify i P2 parsera (np. co 2 tygodnie ręczny przegląd +30-50 przykładów).
 - Wprowadzić wersjonowanie promptów + logowanie wersji, która została użyta przy ekstrakcji.
-- Rozbudować `vanguard-friction-qa` lub stworzyć nowy mechanizm do systematycznego mierzenia jakości.
+- Stworzyć nowy mechanizm SQL/dashboard do systematycznego mierzenia jakości; nie wznawiać raportów Telegram.
 
 #### B. Uporządkowanie dualizmu (równolegle)
 - Zmapować wszystkie pola używane z `evening_extraction`.

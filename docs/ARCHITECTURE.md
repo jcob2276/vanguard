@@ -86,7 +86,7 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-midday-check` | pg_cron (~midday Warsaw) |
 | `vanguard-daily-reconciliation` | pg_cron (~evening Warsaw) |
 | `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
-| `vanguard-friction-qa` | periodic QA report |
+| `vanguard-friction-qa` | deprecated stub; cron removed |
 
 Removed crons: `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset prompt jobs.
 

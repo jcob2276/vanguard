@@ -42,7 +42,7 @@ Deploy:
 - Affected: vanguard-midday-check,
   vanguard-daily-reconciliation,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
-  ingest-vault-log, vanguard-friction-qa,
+  ingest-vault-log,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
   vanguard-eval-interview, sync-strava, analyze-training-load
 - After deploy: `npm run smoke` (or `node scripts/ops/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401

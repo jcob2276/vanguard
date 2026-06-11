@@ -58,7 +58,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 | `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 387 | 2026-06-11 |
 | `vanguard-briefing` | **manual** | HTTP POST `{ userId }`; long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 235 | 2026-06-11 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
-| `vanguard-friction-qa` | **active** | pg_cron periodic QA (confirm schedule) | **false** | `vanguard_stream`, `friction_events` | 145 | 2026-06-11 |
+| `vanguard-friction-qa` | **deprecated** | HTTP POST returns 410; cron removed; no Telegram | **false** | none | 24 | 2026-06-12 |
 
 > **Morning note:** autonomous morning brief/ping Telegram nudges were removed 2026-06-12 after repeated "weak plan" spam. Keep morning planning user-initiated unless explicitly re-approved.
 

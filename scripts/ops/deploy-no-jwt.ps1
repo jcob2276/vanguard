@@ -9,7 +9,6 @@ $all = @(
   "vanguard-midday-check",
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",
-  "vanguard-friction-qa",
   "vanguard-telegram",
   "vanguard-oracle",
   "vanguard-auto-classify",
