@@ -65,6 +65,160 @@ PRÓG ZALICZENIA: score >= 0.7`;
   }
 }
 
+interface Assertion {
+  type: 'contains' | 'not_contains' | 'regex' | 'contains_all' | 'contains_any' | 'length_min' | 'length_max' | 'llm' | 'llm_judge';
+  value?: any;
+}
+
+async function evaluateQuestion(
+  q: {
+    question: string;
+    expected_answer?: string;
+    expected_claims?: string[];
+    metadata?: {
+      assertions?: Assertion[];
+      run_llm_judge?: boolean;
+      llm_judge?: boolean;
+    };
+  },
+  actualAnswer: string
+): Promise<{ score: number; passed: boolean; notes: string }> {
+  const assertions: Assertion[] = [];
+
+  if (q.metadata && typeof q.metadata === 'object') {
+    if (Array.isArray(q.metadata.assertions)) {
+      assertions.push(...q.metadata.assertions);
+    }
+    if (q.metadata.run_llm_judge === true || q.metadata.llm_judge === true) {
+      assertions.push({ type: 'llm_judge' });
+    }
+  }
+
+  // If no assertions are defined, fall back to the default LLM judge
+  if (assertions.length === 0) {
+    return await judgeAnswer({
+      question: q.question,
+      expected_answer: q.expected_answer || '',
+      expected_claims: q.expected_claims || [],
+      actual_answer: actualAnswer
+    });
+  }
+
+  let passedCount = 0;
+  const failedNotes: string[] = [];
+  const totalAssertions = assertions.length;
+
+  for (const assertion of assertions) {
+    const { type, value } = assertion;
+    let assertionPassed = true;
+    let assertionNote = '';
+
+    switch (type) {
+      case 'contains': {
+        const valStr = String(value);
+        assertionPassed = actualAnswer.includes(valStr);
+        if (!assertionPassed) {
+          assertionNote = `Expected to contain "${valStr}"`;
+        }
+        break;
+      }
+      case 'not_contains': {
+        const valStr = String(value);
+        assertionPassed = !actualAnswer.includes(valStr);
+        if (!assertionPassed) {
+          assertionNote = `Expected NOT to contain "${valStr}"`;
+        }
+        break;
+      }
+      case 'regex': {
+        const pattern = String(value);
+        try {
+          const re = new RegExp(pattern);
+          assertionPassed = re.test(actualAnswer);
+          if (!assertionPassed) {
+            assertionNote = `Expected to match regex /${pattern}/`;
+          }
+        } catch (err: any) {
+          assertionPassed = false;
+          assertionNote = `Invalid regex pattern: ${pattern} (${err.message})`;
+        }
+        break;
+      }
+      case 'contains_all': {
+        if (!Array.isArray(value)) {
+          assertionPassed = false;
+          assertionNote = `contains_all value must be an array`;
+        } else {
+          const missing = value.filter(v => !actualAnswer.includes(String(v)));
+          assertionPassed = missing.length === 0;
+          if (!assertionPassed) {
+            assertionNote = `Missing expected substrings: ${missing.map(m => `"${m}"`).join(', ')}`;
+          }
+        }
+        break;
+      }
+      case 'contains_any': {
+        if (!Array.isArray(value)) {
+          assertionPassed = false;
+          assertionNote = `contains_any value must be an array`;
+        } else {
+          assertionPassed = value.some(v => actualAnswer.includes(String(v)));
+          if (!assertionPassed) {
+            assertionNote = `Expected to contain at least one of: ${value.map(m => `"${m}"`).join(', ')}`;
+          }
+        }
+        break;
+      }
+      case 'length_min': {
+        const min = Number(value);
+        assertionPassed = actualAnswer.length >= min;
+        if (!assertionPassed) {
+          assertionNote = `Expected minimum length of ${min}, got ${actualAnswer.length}`;
+        }
+        break;
+      }
+      case 'length_max': {
+        const max = Number(value);
+        assertionPassed = actualAnswer.length <= max;
+        if (!assertionPassed) {
+          assertionNote = `Expected maximum length of ${max}, got ${actualAnswer.length}`;
+        }
+        break;
+      }
+      case 'llm':
+      case 'llm_judge': {
+        const judgment = await judgeAnswer({
+          question: q.question,
+          expected_answer: String(value || q.expected_answer || ''),
+          expected_claims: q.expected_claims || [],
+          actual_answer: actualAnswer
+        });
+        assertionPassed = judgment.passed;
+        if (!assertionPassed) {
+          assertionNote = `LLM Judge failed: ${judgment.notes}`;
+        }
+        break;
+      }
+      default: {
+        assertionPassed = false;
+        assertionNote = `Unknown assertion type: "${type}"`;
+      }
+    }
+
+    if (assertionPassed) {
+      passedCount++;
+    } else {
+      failedNotes.push(assertionNote);
+    }
+  }
+
+  const score = passedCount / totalAssertions;
+  const passed = passedCount === totalAssertions;
+  const notes = passed ? "All assertions passed." : `Failed assertions: ${failedNotes.join("; ")}`;
+
+  return { score, passed, notes };
+}
+
 async function runEval(run_id: string, questions: any[], user_id: string, offset = 0, total = 0, isFinalBatch = true) {
   const supabase = createServiceClient();
   let passed = 0;
@@ -109,12 +263,7 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
           actualAnswer = (oracleData?.text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
         }
 
-        const judgment = await judgeAnswer({
-          question: q.question,
-          expected_answer: q.expected_answer || '',
-          expected_claims: q.expected_claims || [],
-          actual_answer: actualAnswer
-        });
+        const judgment = await evaluateQuestion(q, actualAnswer);
 
         const { error: insertResultErr } = await supabase.from('vanguard_eval_results').upsert({
           run_id,

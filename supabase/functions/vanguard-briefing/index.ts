@@ -78,7 +78,7 @@ serve(async (req) => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
     const stravaActivities = await safeExecute(
       supabase.from('strava_activities_clean')
-        .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories')
+        .select('name,sport_type,start_date,elapsed_time,moving_time,distance,average_heartrate,max_heartrate,total_elevation_gain,calories,gc_hr_zones,gc_weather,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at')
         .eq('user_id', userId)
         .gte('start_date', sevenDaysAgo)
         .order('start_date', { ascending: false })
@@ -107,7 +107,23 @@ serve(async (req) => {
           const dur  = fmtTimeBrief(a.moving_time || a.elapsed_time)
           const hr   = a.average_heartrate ? `HR śr. ${Math.round(a.average_heartrate)} / max ${a.max_heartrate}` : 'brak HR'
           const ele  = a.total_elevation_gain ? `↑${Math.round(a.total_elevation_gain)}m` : ''
-          return `• ${dt} | ${a.sport_type} "${a.name}" | ${dist} | ${dur} | tempo ${pace} | ${hr}${ele ? ' | ' + ele : ''}`
+          let line = `• ${dt} | ${a.sport_type} "${a.name}" | ${dist} | ${dur} | tempo ${pace} | ${hr}${ele ? ' | ' + ele : ''}`
+          if (a.gc_enriched_at) {
+            const gc: string[] = []
+            if (a.gc_training_effect_aerobic != null) gc.push(`TE aerob ${a.gc_training_effect_aerobic}`)
+            if (a.gc_training_effect_anaerobic != null) gc.push(`TE anaerob ${a.gc_training_effect_anaerobic}`)
+            if (a.gc_vo2max != null) gc.push(`VO2max ${a.gc_vo2max}`)
+            if (a.gc_weather?.temp_c != null) gc.push(`${a.gc_weather.temp_c}°C${a.gc_weather.condition ? ` ${a.gc_weather.condition}` : ''}`)
+            if (Array.isArray(a.gc_hr_zones)) {
+              const zones = a.gc_hr_zones.map((z: any, i: number) => {
+                const mins = z.secsInZone != null ? Math.round(z.secsInZone / 60) : null
+                return mins != null && mins > 0 ? `Z${i + 1}:${mins}min` : null
+              }).filter(Boolean).join(' ')
+              if (zones) gc.push(`strefy [${zones}]`)
+            }
+            if (gc.length) line += ` | GC: ${gc.join(' | ')}`
+          }
+          return line
         }).join('\n')
       : 'Brak aktywności Strava z ostatnich 7 dni.'
 

@@ -63,7 +63,7 @@ export async function exportStatsMarkdown({
       supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
       supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', dateRange.from).lte('created_at', dateRange.to + 'T23:59:59'),
       supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
-      includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] }),
+      includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts,gc_hr_zones,gc_weather,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [] }),
       includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [] }),
       includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
       supabase.from('phone_usage_daily').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true })
@@ -443,6 +443,22 @@ export async function exportStatsMarkdown({
             md += `\n`;
           }
           if (a.perceived_exertion) md += `**RPE:** ${a.perceived_exertion}/10\n`;
+
+          if (a.gc_enriched_at) {
+            const gcParts = [];
+            if (a.gc_training_effect_aerobic != null) gcParts.push(`TE aerob: **${a.gc_training_effect_aerobic}**`);
+            if (a.gc_training_effect_anaerobic != null) gcParts.push(`TE anaerob: **${a.gc_training_effect_anaerobic}**`);
+            if (a.gc_vo2max != null) gcParts.push(`VO2max: **${a.gc_vo2max}**`);
+            if (a.gc_weather?.temp_c != null) gcParts.push(`${a.gc_weather.temp_c}°C${a.gc_weather.condition ? ` ${a.gc_weather.condition}` : ''}${a.gc_weather.humidity != null ? ` ${a.gc_weather.humidity}% wilg.` : ''}`);
+            if (gcParts.length > 0) md += `**Garmin Connect:** ${gcParts.join(' | ')}\n`;
+            if (Array.isArray(a.gc_hr_zones) && a.gc_hr_zones.length > 0) {
+              const zones = a.gc_hr_zones.map((z, i) => {
+                const mins = z.secsInZone != null ? Math.round(z.secsInZone / 60) : null;
+                return mins != null && mins > 0 ? `Z${i + 1}: ${mins}min` : null;
+              }).filter(Boolean);
+              if (zones.length > 0) md += `**Strefy HR (GC):** ${zones.join(' | ')}\n`;
+            }
+          }
 
           // HRV context from Oura: pre-run (day of run) + post-run (day after)
           const runDate = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });

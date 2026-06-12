@@ -1,3 +1,10 @@
+# Garmin credentials & session
+scripts/garmin_auth.py
+scripts/garmin_enrich.py
+scripts/garmin_activity_detail.py
+scripts/.garmin_session/
+scripts/.garmin_tokens/
+
 # Logs
 logs
 *.log

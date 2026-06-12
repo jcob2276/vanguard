@@ -92,6 +92,14 @@ function classifyRun(a: any): string {
   return 'Bieg'
 }
 
+function fmtGcZones(zones: any): string {
+  if (!Array.isArray(zones) || !zones.length) return ''
+  return zones.map((z: any, i: number) => {
+    const mins = z.secsInZone != null ? Math.round(z.secsInZone / 60) : null
+    return mins != null && mins > 0 ? `Z${i + 1}:${mins}min` : null
+  }).filter(Boolean).join(' ')
+}
+
 function weekOf(date: string, now: Date, warsaw: (d: Date) => string): number {
   // returns 0 = this week (last 7 days), 1 = prev week, 2 = 2 weeks ago, 3 = 3 weeks ago
   const today = warsaw(now)
@@ -185,7 +193,7 @@ serve(async (req) => {
         .eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
       supabase
         .from('strava_activities_clean')
-        .select('start_date,name,sport_type,distance,moving_time,hr_avg,hr_max,perceived_exertion,has_pr,workout_type')
+        .select('start_date,name,sport_type,distance,moving_time,hr_avg,hr_max,perceived_exertion,has_pr,workout_type,gc_hr_zones,gc_weather,gc_laps,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at')
         .eq('user_id', userId).eq('is_oura', false)
         .gte('start_date', w4Start + 'T00:00:00').lte('start_date', today + 'T23:59:59').order('start_date'),
       supabase
@@ -423,6 +431,26 @@ serve(async (req) => {
         const rpe = r.perceived_exertion ? `RPE${r.perceived_exertion}` : ''
         const pr = r.has_pr ? '🏆PR' : ''
         parts.push(`  ${type}: "${r.name}" ${dist} ${pace}${hr ? ` ${hr}` : ''}${rpe ? ` ${rpe}` : ''}${pr ? ` ${pr}` : ''}`)
+
+        if (r.gc_enriched_at) {
+          const gcLine: string[] = []
+          if (r.gc_training_effect_aerobic != null) gcLine.push(`TE aerob ${r.gc_training_effect_aerobic}`)
+          if (r.gc_training_effect_anaerobic != null) gcLine.push(`TE anaerob ${r.gc_training_effect_anaerobic}`)
+          if (r.gc_vo2max != null) gcLine.push(`VO2max ${r.gc_vo2max}`)
+          if (r.gc_weather?.temp_c != null) gcLine.push(`${r.gc_weather.temp_c}°C${r.gc_weather.condition ? ` ${r.gc_weather.condition}` : ''}`)
+          if (gcLine.length) parts.push(`    [GC] ${gcLine.join(' | ')}`)
+
+          const zonesStr = fmtGcZones(r.gc_hr_zones)
+          if (zonesStr) parts.push(`    [GC] strefy HR: ${zonesStr}`)
+
+          if (Array.isArray(r.gc_laps) && r.gc_laps.length) {
+            const lapStr = r.gc_laps
+              .filter((l: any) => l.distance >= 900)
+              .map((l: any) => `Km${l.lap}:${fmtPace(l.duration, l.distance)}${l.avg_hr ? ` HR${Math.round(l.avg_hr)}` : ''}`)
+              .join(' ')
+            if (lapStr) parts.push(`    [GC] km-splity: ${lapStr}`)
+          }
+        }
       }
 
       dayLines.push(parts.join('\n'))

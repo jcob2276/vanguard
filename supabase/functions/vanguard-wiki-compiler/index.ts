@@ -344,6 +344,7 @@ Zadanie:
 - nie tworz "ostatecznych prawd" bez mocnych dowodow. Slabsze wnioski maja status hypothesis lub needs_review.
 - kazda strona musi miec source_refs z konkretnych id z listy SOURCES.
 - gdy widzisz sprzecznosc, malo dowodow, stary claim albo potrzebna decyzje usera, dodaj review_items.
+- jesli jakakolwiek istniejąca strona wiki jest juz nieaktualna, nieaktywna, projekt zostal zakonczony, badz nowa informacja ja uniewaznia, deaktualizuje lub zastepuje (np. zakonczenie starego projektu, zmiana pracy, zmiana adresu), dodaj jej slug do "archived_pages", aby system ja zarchiwizowal.
 - pisz po polsku, konkretnie, bez coachingu motywacyjnego.
 
 JSON schema:
@@ -360,6 +361,7 @@ JSON schema:
     "source_refs": [{"table":"...","id":"...","date":"...","quote":"krotki cytat/parafraza"}],
     "metadata": {"why_updated":"..."}
   }],
+  "archived_pages": ["slug-to-archive"],
   "review_items": [{
     "page_slug": "...",
     "item_type": "contradiction|stale_claim|weak_evidence|missing_source|merge_candidate|confirmation_needed|deep_research",
@@ -387,22 +389,26 @@ Priorytet:
 2. Laczyc stream + friction + reconciliation + biometrie, ale tylko z cytowalnym evidence.
 3. Oznaczac rzeczy niepewne jako hypothesis/needs_review.`;
 
-  const { content } = await deepseekChat({
+  const chatResult = await deepseekChat({
     apiKey: Deno.env.get("DEEPSEEK_API_KEY") || "",
     model: "deepseek-v4-flash",
     temperature: 0.1,
-    maxTokens: 3500,
-    timeoutMs: 45000,
+    maxTokens: 8000,
+    timeoutMs: 75000,
     responseFormat: { type: "json_object" },
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
   });
+  const content = chatResult.content;
 
+  console.log("[wiki-compiler] LLM Raw Response:", content);
   const parsed = parseJsonFromContent(content) || {};
+  console.log("[wiki-compiler] LLM Parsed:", JSON.stringify(parsed, null, 2));
   let pages = safeArray<WikiPageDraft>((parsed as any).pages || (parsed as any).wiki_pages);
   let reviews = safeArray<ReviewDraft>((parsed as any).review_items || (parsed as any).reviews);
+  const archivedPages = safeArray<string>((parsed as any).archived_pages || (parsed as any).archived || []);
   const deterministicPages = buildDeterministicDomainPages(sourceBundle);
 
   if (opts.mode.includes("domain") && deterministicPages.length > 0) {
@@ -622,6 +628,20 @@ Priorytet:
     }
   }
 
+  if (archivedPages.length > 0) {
+    const { error: archiveErr } = await supabase
+      .from("vanguard_wiki_pages")
+      .update({ status: "archived", updated_at: now.toISOString() })
+      .eq("user_id", userId)
+      .in("slug", archivedPages.map(s => slugify(s)));
+
+    if (archiveErr) {
+      console.error("[wiki-compiler] Failed to archive pages:", archiveErr);
+    } else {
+      console.log(`[wiki-compiler] Mem0 archived ${archivedPages.length} pages: ${archivedPages.join(", ")}`);
+    }
+  }
+
   for (const item of reviews.slice(0, 8)) {
     const dedupeKey = uniqueReviewKey(userId, item);
     const existing = await supabase
@@ -656,7 +676,7 @@ Priorytet:
     pages_upserted: pagesUpserted,
     review_created: reviewCreated,
     status: "success",
-    metadata: { requested_limit: opts.limit },
+    metadata: { requested_limit: opts.limit, llm_response: parsed },
   });
 
   return {
@@ -664,6 +684,12 @@ Priorytet:
     source_count: sourceBundle.length,
     pages_upserted: pagesUpserted,
     review_created: reviewCreated,
+    debug: {
+      raw_content: content,
+      parsed_response: parsed,
+      archived_pages: archivedPages,
+      raw_chat_result: chatResult.raw
+    }
   };
 }
 
