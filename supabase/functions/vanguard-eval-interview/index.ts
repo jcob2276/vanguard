@@ -109,9 +109,110 @@ serve(async (req) => {
       .order("score", { ascending: true }) // worst first
       .limit(20);
 
+    let resolvedFailingResults = failingResults;
+    let useGeneratedQuestion = false;
+
     if (failErr || !failingResults || failingResults.length === 0) {
+      if (!manual) {
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "No failing questions in target categories" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      // Manual trigger: fall back to any failing question across all categories
+      const { data: allFailing } = await supabase
+        .from("vanguard_eval_results")
+        .select("question_id, question, category, score, judge_notes")
+        .eq("run_id", latestRun.id)
+        .eq("passed", false)
+        .order("score", { ascending: true })
+        .limit(20);
+
+      if (!allFailing || allFailing.length === 0) {
+        // Everything passing — generate a deepening question from recent stream
+        useGeneratedQuestion = true;
+      } else {
+        resolvedFailingResults = allFailing;
+      }
+    }
+
+    // --- Generated deepening question path ---
+    if (useGeneratedQuestion) {
+      const { data: recentStream } = await supabase
+        .from("vanguard_stream")
+        .select("content, created_at")
+        .eq("user_id", userId)
+        .not("source", "eq", "eval_interview")
+        .not("source", "eq", "oracle_chat")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      const streamSnippet = (recentStream || [])
+        .map((r: any) => r.content)
+        .filter((c: string) => c && c.length > 20)
+        .slice(0, 12)
+        .join("\n---\n");
+
+      if (!streamSnippet) {
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "No stream content for deepening question" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      let generatedPrompt = "";
+      try {
+        const result = await deepseekChat({
+          apiKey: deepseekApiKey,
+          model: "deepseek-v4-flash",
+          maxTokens: 150,
+          temperature: 0.5,
+          timeoutMs: 8000,
+          messages: [
+            {
+              role: "system",
+              content: `Jesteś asystentem pogłębiającym refleksję. Na podstawie ostatnich myśli użytkownika zadaj jedno pytanie które:
+- Łączy dwa różne wątki lub ujawnia sprzeczność
+- Albo prosi o konkret tam gdzie użytkownik był ogólnikowy
+- Max 2 zdania, naturalny ton po polsku
+- Zacznij od "Opowiedz mi..." / "Co masz na myśli gdy..." / "Jak to się ma do..." / "Kiedy ostatnio..."
+- NIE pytaj o to co już zostało wprost powiedziane`,
+            },
+            {
+              role: "user",
+              content: `Ostatnie wpisy:\n${streamSnippet}`,
+            },
+          ],
+        });
+        if (result.content && result.content.length > 10) {
+          generatedPrompt = result.content.trim();
+        }
+      } catch (err) {
+        console.warn("[eval-interview] deepening question generation failed:", err);
+      }
+
+      if (!generatedPrompt) {
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "Generated question failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const telegramMsg = `🎙️ *Pytanie pogłębiające*\n\n${generatedPrompt}\n\n_Odpowiedz głosem lub tekstem._`;
+      if (chatId && telegramToken) {
+        await sendMessage(telegramToken, chatId, telegramMsg, { parseMode: "Markdown" });
+      }
+
+      await supabase.from("vanguard_stream").insert({
+        user_id: userId,
+        source: "eval_interview",
+        content: `[PYTANIE POGŁĘBIAJĄCE]: ${generatedPrompt}`,
+        metadata: { generated: true, sent_at: now.toISOString() },
+      });
+
+      console.log("[eval-interview] sent generated deepening question");
       return new Response(
-        JSON.stringify({ skipped: true, reason: "No failing questions in target categories" }),
+        JSON.stringify({ success: true, generated: true, prompt_sent: generatedPrompt }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -131,12 +232,12 @@ serve(async (req) => {
         .filter(Boolean),
     );
 
-    let eligibleQuestions = failingResults.filter(
+    let eligibleQuestions = resolvedFailingResults!.filter(
       (q: any) => !recentQuestionIds.has(q.question_id),
     );
 
     if (eligibleQuestions.length === 0 && manual) {
-      eligibleQuestions = failingResults;
+      eligibleQuestions = resolvedFailingResults!;
     }
 
     if (eligibleQuestions.length === 0) {
