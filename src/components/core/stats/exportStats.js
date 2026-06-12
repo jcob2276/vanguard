@@ -161,7 +161,16 @@ export async function exportStatsMarkdown({
       const dayFood = foodEntries.filter(f => f.date === dateStr);
       const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
       const dayJournal = journalEntries.find(j => j.date === dateStr);
-      const dayTelegramLogs = telegramEntries.filter(t => toWarsawDate(t.created_at) === dateStr);
+      const seenContent = new Set();
+      const dayTelegramLogs = telegramEntries
+        .filter(t => toWarsawDate(t.created_at) === dateStr)
+        .filter(t => t.metadata?.mode === 'stream')
+        .filter(t => {
+          const key = (t.content || '').trim();
+          if (seenContent.has(key)) return false;
+          seenContent.add(key);
+          return true;
+        });
       const dayBody = bodyMetrics.find(b => b.date === dateStr);
       const dayOura = ouraData?.find(o => o.date === dateStr);
       const dayOuraEnhanced = (ouraEnhanced || []).find(o => o.date === dateStr);
