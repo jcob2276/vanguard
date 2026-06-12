@@ -11,12 +11,28 @@ import { getRecentStrongBehavioralPatterns, getRecentEarlyWarnings } from "../..
 import { deepseekChat } from "../../_shared/deepseek.ts";
 
 
+export const DEFAULT_REPLY_KEYBOARD = {
+  keyboard: [
+    [
+      { text: "🛋️ Lenie" },
+      { text: "❓ Wyrocznia" }
+    ],
+    [
+      { text: "💬 Pytanie" },
+      { text: "🔚 Koniec" }
+    ]
+  ],
+  resize_keyboard: true,
+  is_persistent: true
+};
+
 export async function handleIncomingMessage(
   message: {
     text?: string;
     voice?: { file_id: string; duration?: number };
     message_id: number;
     chat: { id: number };
+    reply_to_message?: { text?: string };
   },
   ctx: TelegramRouterContext,
 ): Promise<void> {
@@ -34,6 +50,22 @@ export async function handleIncomingMessage(
   const messageId = message.message_id;
   const isVoice = !!message.voice;
   let text = message.text || "";
+
+  // --- Handle ForceReply replies ---
+  const replyTo = message.reply_to_message;
+  if (replyTo && replyTo.text && text) {
+    const promptText = replyTo.text;
+    if (promptText.includes("Zapis Lenie")) {
+      text = `/lenie ${text}`;
+    } else if (promptText.includes("Zapis postu")) {
+      text = `/post ${text}`;
+    } else if (promptText.includes("Zadaj pytanie Wyroczni")) {
+      text = `? ${text}`;
+    } else if (promptText.includes("Wpisz poprawkę do wiedzy")) {
+      text = `poprawka: ${text}`;
+    }
+  }
+
   const originalText = text;
 
   try {
@@ -110,7 +142,119 @@ export async function handleIncomingMessage(
 
       // Etap 1: Proste żądanie wzorców (po kolei)
       const lowerText = text.toLowerCase().trim();
-      if (['wzorce', 'wzorzec', 'pokaż wzorce', 'moje wzorce', 'patterns', '/wzorce'].includes(lowerText)) {
+
+      // --- /start and /menu commands ---
+      if (lowerText === '/start' || lowerText === '/menu') {
+        await safeSendTelegram(chatId, "Witaj w Vanguard! Wybierz opcję z menu poniżej lub pisz bezpośrednio do strumienia.", telegramToken, {
+          reply_markup: DEFAULT_REPLY_KEYBOARD
+        });
+        return;
+      }
+
+      // --- /koniec command (early reflection) ---
+      if (lowerText === '/koniec' || lowerText === '🔚 koniec') {
+        try {
+          await sendChatAction(telegramToken, chatId, "typing");
+          const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-daily-reconciliation?manual=true`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+              'apikey': supabaseServiceRoleKey
+            },
+            body: JSON.stringify({ source: 'telegram_command', command: '/koniec' })
+          });
+
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(body?.error || `HTTP ${res.status}`);
+          }
+
+          if (body?.skipped && body?.reason === 'already_used_today') {
+            await safeSendTelegram(chatId, 'Wieczorna refleksja byla juz dzisiaj odpalona. Cron 21:30 tez ja pominie.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+          }
+        } catch (err) {
+          console.error('[messages] /koniec reflection trigger failed:', err);
+          await safeSendTelegram(chatId, 'Nie udalo sie odpalic wieczornej refleksji: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+        }
+        return;
+      }
+
+      // --- /pytanie / 💬 Pytanie command (manual interview trigger) ---
+      if (lowerText === '/pytanie' || lowerText === '💬 pytanie') {
+        try {
+          await sendChatAction(telegramToken, chatId, "typing");
+          const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-eval-interview`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+              'apikey': supabaseServiceRoleKey
+            },
+            body: JSON.stringify({ manual: true })
+          });
+
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(body?.error || `HTTP ${res.status}`);
+          }
+
+          if (body?.skipped) {
+            await safeSendTelegram(chatId, `⚠️ Wywiad pominięty: ${body.reason}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+          }
+        } catch (err) {
+          console.error('[messages] /pytanie trigger failed:', err);
+          await safeSendTelegram(chatId, 'Nie udalo sie odpalic wywiadu: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+        }
+        return;
+      }
+
+      // --- Interactive input prompts ---
+      if (lowerText === '🛋️ lenie' || lowerText === '/lenie') {
+        await safeSendTelegram(chatId, "🛋️ **Zapis Lenie**\nPodaj bodziec i kontekst (np. `scrollowanie | zmęczenie`):", telegramToken, {
+          reply_markup: {
+            force_reply: true,
+            selective: true,
+            input_field_placeholder: "bodziec | kontekst"
+          }
+        });
+        return;
+      }
+
+      if (lowerText === '🔵 post' || lowerText === '/post') {
+        await safeSendTelegram(chatId, "🔵 **Zapis postu**\nPodaj opis lub datę i opis (np. `18h` lub `wczoraj 16h`):", telegramToken, {
+          reply_markup: {
+            force_reply: true,
+            selective: true,
+            input_field_placeholder: "np. 18h"
+          }
+        });
+        return;
+      }
+
+      if (lowerText === '❓ wyrocznia') {
+        await safeSendTelegram(chatId, "❓ **Zadaj pytanie Wyroczni**\nNapisz swoje pytanie do Vanguard Oracle:", telegramToken, {
+          reply_markup: {
+            force_reply: true,
+            selective: true,
+            input_field_placeholder: "Twoje pytanie..."
+          }
+        });
+        return;
+      }
+
+      if (lowerText === '🧠 poprawka') {
+        await safeSendTelegram(chatId, "🧠 **Wpisz poprawkę do wiedzy**\nNapisz co chcesz poprawić/dodać (np. `styl: odpowiadaj krótko` lub `poprawka: lubię czarną kawę`):", telegramToken, {
+          reply_markup: {
+            force_reply: true,
+            selective: true,
+            input_field_placeholder: "Wpisz poprawkę..."
+          }
+        });
+        return;
+      }
+
+      if (['wzorce', 'wzorzec', 'pokaż wzorce', 'moje wzorce', 'patterns', '/wzorce', '📈 wzorce'].includes(lowerText)) {
         try {
           const patterns = await getRecentStrongBehavioralPatterns(supabase, vanguardUserId, 6, true);
 
@@ -167,7 +311,7 @@ export async function handleIncomingMessage(
 
           response += "Możesz reagować na wzorce w bridge'u wieczornym (przyciski 👍 / 👎 / ⏸).";
 
-          await safeSendTelegram(chatId, response, telegramToken);
+          await safeSendTelegram(chatId, response, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
         } catch (err) {
           console.error('[messages] wzorce command failed:', err);
           await safeSendTelegram(chatId, "Coś poszło nie tak przy pobieraniu wzorców.", telegramToken);
@@ -201,7 +345,7 @@ export async function handleIncomingMessage(
             { onConflict: 'user_id,date' }
           );
           if (error) throw error;
-          await safeSendTelegram(chatId, `🔵 Post zapisany (${dateStr})${note ? `\nOpis: ${note}` : ''}`, telegramToken);
+          await safeSendTelegram(chatId, `🔵 Post zapisany (${dateStr})${note ? `\nOpis: ${note}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
         } catch (err) {
           console.error('[messages] /post failed:', err);
           await safeSendTelegram(chatId, '❌ Błąd zapisu postu: ' + (err as Error).message, telegramToken);
@@ -250,7 +394,7 @@ export async function handleIncomingMessage(
           if (logErr) throw logErr;
 
           const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
-          await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken);
+          await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
         } catch (err) {
           console.error('[messages] /lenie failed:', err);
           await safeSendTelegram(chatId, '❌ Błąd zapisu lenie: ' + (err as Error).message, telegramToken);
@@ -657,7 +801,7 @@ export async function handleIncomingMessage(
             { text: '👍 Dobra odpowiedź', callback_data: `fb_ok_${Date.now()}` },
             { text: '👎 Popraw mnie', callback_data: `fb_err_${Date.now()}` }
           ]]
-        } : undefined
+        } : DEFAULT_REPLY_KEYBOARD
       };
 
       const isSent = await safeSendTelegram(chatId, responseText, telegramToken, {
@@ -668,7 +812,8 @@ export async function handleIncomingMessage(
       if (!isSent) {
         console.error("[telegram] sendMessage failed, attempting fallback...");
         await safeSendTelegram(chatId, responseText.replace(/[<>&]/g, ''), telegramToken, {
-          disable_notification: !shouldRespond
+          disable_notification: !shouldRespond,
+          reply_markup: DEFAULT_REPLY_KEYBOARD
         });
       }
 

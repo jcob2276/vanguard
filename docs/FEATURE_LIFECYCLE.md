@@ -14,7 +14,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 
 | Area | Status | Notes |
 |---|---|---|
-| Vanguard daily loop | Active | Morning brief, midday check, reconciliation, planning summary. |
+| Vanguard daily loop | Active | User stream, noon reflective interview, evening reflection. Autonomous morning brief/ping and legacy midday task check are deprecated stubs; Telegram evening no longer plans tomorrow. |
 | Vanguard stream/friction path | Active | Single write path: `vanguard_stream` -> `vanguard-auto-classify` -> `friction_events`. |
 | Oracle chat | Active | Reasoning layer only; no direct graph/knowledge writes from chat turns. |
 | Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |

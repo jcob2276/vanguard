@@ -117,6 +117,13 @@ Regenerated from files on disk on 2026-06-11.
 20260611215341_tighten_audit_events_rls.sql
 20260611221258_drop_morning_brief_ping_crons.sql
 20260611222412_remove_friction_qa_cron.sql
+20260612000001_add_readiness_level_daily_strain.sql
+20260612123000_create_vanguard_wiki.sql
+20260612124500_cron_vanguard_wiki_compiler.sql
+20260612130000_remove_midday_check_cron.sql
+20260612131000_restore_midday_check_cron.sql
+20260612132000_remove_stale_dashboard_nudge_crons.sql
+20260612133000_remove_legacy_midday_check_again.sql
 ```
 
 ## Known Constraint Gotchas

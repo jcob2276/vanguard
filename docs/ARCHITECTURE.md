@@ -30,18 +30,21 @@ Telegram / voice / manual ingest
         │         (canonical friction pipeline; NOT architect)
         │
         ├──► vanguard-architect (batch) → vanguard_entity_links (graph)
+        ├──► vanguard-wiki-compiler → vanguard_wiki_pages (derived compiled memory)
         │
         └──► ingest-vault-log (long-form) → stream chunks + graph RPC
 
 READ path: Oracle, briefing, synthesis, analyst
          → confirmed_friction_events VIEW for patterns
+         → vanguard_wiki_pages for high-level compiled memory
          → current-first: stream 72h > archive
 
-WRITE path (evening): daily_reconciliations → planning (telegram + oracle)
-                   → planning_summary for tomorrow
+WRITE path (evening): daily_reconciliations -> reflection response
+Planning path: app/Oracle writes planning_summary; Telegram evening no longer plans tomorrow
 
 Morning: autonomous brief/ping removed; user-initiated Telegram/Oracle only
-Midday:  midday-check → callbacks on same row
+Noon: vanguard-eval-interview sends reflective "Wywiad" question
+Evening: vanguard-daily-reconciliation summarizes 24h voice/stream and asks reflection questions
 ```
 
 **Rules agents must not break:**
@@ -56,9 +59,9 @@ Midday:  midday-check → callbacks on same row
 
 | Local (approx.) | Edge function | Effect |
 |-----------------|---------------|--------|
-| ~12:00 | `vanguard-midday-check` | Inline done / stuck |
-| ~21:30 | `vanguard-daily-reconciliation` | Evening voice/text prompt |
-| (after reply) | `vanguard-telegram` + `vanguard-oracle` | Planning session → `planning_summary` |
+| ~12:00 | `vanguard-eval-interview` | Reflective interview / thread-connecting question |
+| ~21:30 | `vanguard-daily-reconciliation` | 24h reflection prompt |
+| manual | `/koniec` in `vanguard-telegram` | Starts same reflection early; evening cron skips |
 
 User input all day: `vanguard-telegram` (`index.ts` router → `_router/messages.ts` / `_handlers/*`) → `vanguard_stream` (most messages silent save; `?` / `!!` → Oracle).
 
@@ -76,6 +79,7 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 |----------------------|----------------|-------------------------|
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` (per user) |
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
+| `vanguard-wiki-compiler` | `20 3 * * *` | `vanguard-wiki-compiler` (derived compiled memory) |
 | `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` |
 
@@ -83,12 +87,11 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 
 | Function | Typical trigger |
 |----------|-----------------|
-| `vanguard-midday-check` | pg_cron (~midday Warsaw) |
 | `vanguard-daily-reconciliation` | pg_cron (~evening Warsaw) |
 | `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
 | `vanguard-friction-qa` | deprecated stub; cron removed |
 
-Removed crons: `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset prompt jobs.
+Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midday-check`, `vanguard-daily-briefing`, `vanguard-friction-qa-daily`, `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset prompt jobs.
 
 ---
 
@@ -101,6 +104,8 @@ Removed crons: `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset
 | `confirmed_friction_events` | VIEW — confirmed/good only |
 | `daily_reconciliations` | Evening row + planning + morning/midday metadata |
 | `vanguard_entity_links` | Knowledge graph edges |
+| `vanguard_wiki_pages` | Derived compiled memory pages (not source-of-truth) |
+| `vanguard_wiki_review_items` | Human review queue for weak/stale/conflicting wiki claims |
 | `vanguard_daily_aggregates` | Daily biometric/state snapshot |
 | `vanguard_oracle_runs` | Oracle audit log (read-only telemetry) |
 | `user_fundament` | Identity / philosophy (context, not live truth) |
@@ -124,7 +129,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **30 functions**, last pass 2026-06-10.
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **32 functions**, last pass 2026-06-12.
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 

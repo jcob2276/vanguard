@@ -202,6 +202,7 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
     // DYNAMIC CONTEXT (RAG)
     let semanticContext = "";
     let graphContext = "";
+    let wikiContext = "";
     let retrievedSources: any[] = [];
     let matchesRes: any = { data: [] };
     let graphRes: any = { data: [] };
@@ -519,6 +520,54 @@ Tylko JSON, bez komentarzy.`,
     let intent = classifyIntentSafe(current_query);
     console.log(`[oracle] intent classified: ${intent}`, Date.now() - t0);
 
+    // Compiled wiki: derived high-level memory with citations. Current stream still wins.
+    try {
+      const wikiTypes = intent === 'biometric'
+        ? ['health', 'training', 'operating_model']
+        : intent === 'person'
+          ? ['person', 'identity', 'operating_model']
+          : intent === 'recent_pattern'
+            ? ['behavior_pattern', 'friction_loop', 'operating_model']
+            : ['operating_model', 'behavior_pattern', 'identity', 'project', 'decision'];
+
+      const { data: wikiPages, error: wikiErr } = await supabase
+        .from('vanguard_wiki_pages')
+        .select('id, slug, title, page_type, status, confidence, summary, content_md, source_refs, last_compiled_at')
+        .eq('user_id', user_id)
+        .in('page_type', wikiTypes)
+        .in('status', ['active', 'user_confirmed', 'hypothesis', 'needs_review'])
+        .order('confidence', { ascending: false })
+        .order('last_compiled_at', { ascending: false })
+        .limit(6);
+
+      if (wikiErr) throw wikiErr;
+      if (wikiPages?.length) {
+        wikiContext = "\n[VANGUARD WIKI - SKOMPILOWANA PAMIEC, WARSTWA POCHODNA]:\n" +
+          wikiPages.map((p: any) => {
+            const refs = Array.isArray(p.source_refs)
+              ? p.source_refs.slice(0, 3).map((r: any) => `${r.table}:${r.id}`).join(', ')
+              : '';
+            const detail = p.status === 'needs_review' && p.content_md
+              ? ` | evidence: ${String(p.content_md).replace(/\s+/g, ' ').slice(0, 520)}`
+              : '';
+            return `- ${p.title} (${p.page_type}, ${p.status}, conf=${Math.round(Number(p.confidence || 0) * 100)}%): ${p.summary}${detail}${refs ? ` | refs: ${refs}` : ''}`;
+          }).join('\n') +
+          "\nZasada: wiki jest synteza pochodna. Status needs_review = indeks/nawigacja, nie mocna teza. Gdy swiezy stream 72h przeczy wiki, priorytet ma swiezy stream albo oznacz konflikt.";
+
+        retrievedSources.push(...wikiPages.slice(0, 6).map((p: any) => ({
+          table: 'vanguard_wiki_pages',
+          id: p.id,
+          date: p.last_compiled_at,
+          type: 'compiled_wiki',
+          snippet: `${p.title}: ${p.summary}`,
+          confidence_score: p.confidence,
+          status: p.status,
+        })));
+      }
+    } catch (e) {
+      console.warn('[oracle] wiki context fetch failed (non-fatal):', e);
+    }
+
     // === Etap 1: Behavioral Patterns context (z detektorów S1/S4 zapisanych w reconciliation) ===
     let behavioralPatternsContext = '';
     const wantsPatterns = intent === 'recent_pattern' ||
@@ -616,6 +665,7 @@ ${strainText}
 PAMIĘĆ SEMANTYCZNA I GRAF:
 ${semanticContext}
 ${graphContext}
+${wikiContext}
 
 [PRIORYTETY WIEDZY — CURRENT-FIRST]:
 1. TERAŹNIEJSZOŚĆ (ostatnie 72h) — źródło prawdy. Zawsze ma pierwszeństwo.

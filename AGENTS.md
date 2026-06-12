@@ -4,9 +4,9 @@ Entry point for AI agents working in this repository.
 
 ## Quick map (read first)
 
-- **Live daily loop:** user stream via `vanguard-telegram` → `vanguard-midday-check` → `vanguard-daily-reconciliation` → planning → `planning_summary` for tomorrow. Autonomous morning brief/ping is removed.
+- **Live daily loop:** user stream via `vanguard-telegram` → noon `vanguard-eval-interview` ("Wywiad") → evening `vanguard-daily-reconciliation` reflection. Tomorrow planning is app/Oracle-led, not Telegram evening planning. Autonomous morning brief/ping and legacy midday check are removed.
 - **Evidence:** `vanguard_stream` → `vanguard-auto-classify` → `friction_events` → `confirmed_friction_events` (VIEW)
-- **Graph (batch):** `vanguard-architect` / `ingest-vault-log` — not inline from Oracle chat writes
+- **Compiled memory:** `vanguard-architect` / `ingest-vault-log` build graph; `vanguard-wiki-compiler` builds derived wiki pages — not inline Oracle chat writes to evidence
 - **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
 - **One-page architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
@@ -26,7 +26,7 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 Monorepo for **Vanguard** (personal OS) on a Supabase project configured through environment variables.
 
-Local/Supabase sync: **30** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-10**.
+Local/Supabase sync: **32** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-12**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -42,6 +42,7 @@ Deploy:
 - Affected: vanguard-midday-check,
   vanguard-daily-reconciliation,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
+  vanguard-wiki-compiler,
   ingest-vault-log,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
   vanguard-eval-interview, sync-strava, analyze-training-load
@@ -84,5 +85,5 @@ Edge function gotchas:
 ## Current system state
 
 - Evening reconciliation → planning sessions → plan jutra: **ACTIVE**
-- Morning brief + midday check crons: **ACTIVE**
+- Morning brief/ping + legacy midday check crons: **REMOVED** (functions return 410 stubs); noon interview + evening reflection: **ACTIVE**
 - Observation-only mode: **DEPRECATED**

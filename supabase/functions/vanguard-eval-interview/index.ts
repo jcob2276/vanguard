@@ -27,6 +27,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    let manual = false;
+    if (req.method === "POST") {
+      try {
+        const payload = await req.json();
+        manual = payload?.manual === true;
+      } catch (_) {}
+    }
+
     const supabase = createServiceClient();
     const userId = getVanguardUserId();
     const telegramToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
@@ -36,7 +44,7 @@ serve(async (req) => {
     // Guard: skip Saturday (day 6 in Warsaw)
     const now = new Date();
     const isoDay = now.toLocaleDateString("en-US", { timeZone: "Europe/Warsaw", weekday: "long" });
-    if (isoDay === "Saturday") {
+    if (isoDay === "Saturday" && !manual) {
       return new Response(
         JSON.stringify({ skipped: true, reason: "Saturday — saturday_checkin handles this" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -66,7 +74,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      if (!userReply) {
+      if (!userReply && !manual) {
         return new Response(
           JSON.stringify({ skipped: true, reason: "Previous interview question still unanswered" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -123,9 +131,13 @@ serve(async (req) => {
         .filter(Boolean),
     );
 
-    const eligibleQuestions = failingResults.filter(
+    let eligibleQuestions = failingResults.filter(
       (q: any) => !recentQuestionIds.has(q.question_id),
     );
+
+    if (eligibleQuestions.length === 0 && manual) {
+      eligibleQuestions = failingResults;
+    }
 
     if (eligibleQuestions.length === 0) {
       return new Response(

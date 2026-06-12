@@ -16,26 +16,29 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
         const r = trainingAnalysis;
         const s = r.stats || {};
         const loadColor = r.load_status === 'elevated' ? 'text-orange-400 border-orange-400/30 bg-orange-400/8' : r.load_status === 'optimal' ? 'text-dayC border-dayC/30 bg-dayC/8' : 'text-white/40 border-white/15 bg-white/4';
-        const loadLabel = r.load_status === 'elevated' ? 'Przeciążenie' : r.load_status === 'optimal' ? 'Optymalne' : 'Za mało';
+        const loadLabel = r.load_status === 'elevated' ? 'Przeciążenie' : r.load_status === 'optimal' ? 'Optymalne' : 'Bodziec niski';
         const recovColor = r.recovery_status === 'deficit' ? 'text-dayB border-dayB/30 bg-dayB/8' : r.recovery_status === 'ok' ? 'text-dayC border-dayC/30 bg-dayC/8' : 'text-white/40 border-white/15 bg-white/4';
-        const recovLabel = r.recovery_status === 'deficit' ? 'Deficyt' : r.recovery_status === 'ok' ? 'Regeneracja OK' : 'Nadregeneracja';
+        const recovLabel = r.recovery_status === 'deficit' ? 'Deficyt' : r.recovery_status === 'ok' ? 'Regeneracja OK' : 'Gotowość wysoka';
 
         const StatRow = ({ label, week, base, unit = '', higherBetter = true }) => {
           if (week == null && base == null) return null;
           const pctVal = (base && base > 0) ? ((week - base) / base * 100) : null;
+          const fmtNumber = (value) => Number.isInteger(Number(value)) ? value : Number(value).toFixed(1);
+          const weekText = week == null ? '—' : typeof week === 'number' ? fmtNumber(week) : week;
+          const baseText = base == null ? '—' : typeof base === 'number' ? fmtNumber(base) : base;
           const up = pctVal != null && pctVal > 0;
           const neutral = pctVal == null || Math.abs(pctVal) < 3;
           const good = neutral ? null : (higherBetter ? up : !up);
           return (
             <div className="flex items-center gap-2 text-[10px]">
               <span className="w-20 shrink-0 text-white/35 font-black uppercase text-[8px] tracking-widest">{label}</span>
-              <span className="font-black text-white">{week ?? '—'}{unit}</span>
+              <span className="font-black text-white">{weekText}{unit}</span>
               {pctVal != null && (
                 <span className={`text-[9px] font-bold ${good === null ? 'text-white/30' : good ? 'text-dayC' : 'text-dayB'}`}>
                   {pctVal > 0 ? '+' : ''}{pctVal.toFixed(0)}%
                 </span>
               )}
-              <span className="text-white/20 text-[9px]">norma {base ?? '—'}{unit}</span>
+              <span className="text-white/20 text-[9px]">norma {baseText}{unit}</span>
             </div>
           );
         };
@@ -84,6 +87,9 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
 
             {/* Summaries */}
             <div className="space-y-1.5">
+              {r.coach_decision_summary && (
+                <p className="text-[11px] text-dayC/75 leading-relaxed border-l-2 border-dayC/30 pl-2">{r.coach_decision_summary}</p>
+              )}
               {r.load_summary && <p className="text-[11px] text-white/65 leading-relaxed">{r.load_summary}</p>}
               {r.recovery_summary && <p className="text-[11px] text-white/65 leading-relaxed">{r.recovery_summary}</p>}
               {r.training_trajectory && (
@@ -113,6 +119,9 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <p className="text-[8px] font-black uppercase tracking-widest text-white/25">Następna siłownia</p>
                 {r.strength_prescription.focus && (
                   <p className="text-[10px] text-white/45 leading-relaxed">{r.strength_prescription.focus}</p>
+                )}
+                {r.strength_prescription.critic && (
+                  <p className="text-[9px] text-orange-300/60 leading-relaxed">{r.strength_prescription.critic}</p>
                 )}
                 <div className="space-y-1.5">
                   {r.strength_prescription.exercises.map((ex, i) => (

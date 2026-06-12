@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls use **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 30 function folders (+ `_shared/`) · Last registry pass: **2026-06-11**
+**Inventory:** 32 function folders (+ `_shared/`) · Last registry pass: **2026-06-12**
 
 LOC is a navigation hint, not an invariant. Regenerate before relying on it for refactor sizing.
 
@@ -21,12 +21,13 @@ Telegram / voice / vault
        |                    (only friction path)
        +-> vanguard-architect (batch graph)
        +-> ingest-vault-log (long-form)
+       +-> vanguard-wiki-compiler (derived compiled wiki)
 
-Evening: vanguard-daily-reconciliation -> planning (telegram + oracle) -> planning_summary
-Morning: autonomous brief/ping removed; morning planning is user-initiated via Telegram/Oracle.
-Midday:  vanguard-midday-check (callbacks)
+Noon: vanguard-eval-interview -> reflective interview / thread-connecting question
+Evening: vanguard-daily-reconciliation -> 24h voice/stream reflection prompt
+Morning: autonomous brief/ping removed; planning is user-initiated in app/Oracle, not Telegram.
 
-Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events VIEW, stream 72h first
+Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confirmed_friction_events VIEW + derived vanguard_wiki_pages
 ```
 
 ---
@@ -35,12 +36,12 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
-| `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2966 | 2026-06-11 |
-| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates) | 683 | 2026-06-11 |
+| `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2630 | 2026-06-12 |
+| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates, wiki) | 791 | 2026-06-12 |
 | `vanguard-morning-brief` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
 | `vanguard-morning-ping` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
-| `vanguard-midday-check` | **active** | pg_cron (~12:00 Warsaw; confirm `cron.job`) | **false** | `daily_reconciliations` | 123 | 2026-06-11 |
-| `vanguard-daily-reconciliation` | **active** | pg_cron (~21:30 Warsaw; confirm `cron.job`) | **false** | `daily_reconciliations`, `friction_events` | 213 | 2026-06-11 |
+| `vanguard-midday-check` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 22 | 2026-06-12 |
+| `vanguard-daily-reconciliation` | **active** | pg_cron (~21:30 Warsaw; confirm `cron.job`) + manual `/koniec` | **false** | `daily_reconciliations`, `vanguard_stream`, `friction_events` | 219 | 2026-06-12 |
 | `vanguard-auto-classify` | **active** | DB trigger / cron on new stream rows | **false** | `vanguard_stream`, `friction_events` | 332 | 2026-06-11 |
 
 ### Vanguard Core Evidence and Graph
@@ -48,6 +49,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-architect` | **active** | HTTP batch (`offset`/`limit`) after stream | **false** | `vanguard_entity_links` | 642 | 2026-06-11 |
+| `vanguard-wiki-compiler` | **active** | HTTP/manual or cron candidate; derived wiki compiler | **false** | `vanguard_wiki_pages`, `vanguard_wiki_sources`, `vanguard_wiki_review_items`, `vanguard_wiki_runs` (+ read: stream/friction/reconciliation/aggregates) | 735 | 2026-06-12 |
 | `ingest-vault-log` | **active** | HTTP from telegram (long voice / vault) | **false** | `vanguard_stream`, `vanguard_raw_events`, `vanguard_entity_links` | 227 | 2026-06-11 |
 | `save-daily-aggregate` | **active** | pg_cron `vanguard-daily-snapshot` `0 4 * * *` UTC | **false** | `vanguard_daily_aggregates` | 161 | 2026-06-11 |
 
@@ -60,7 +62,8 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> confirmed_friction_events
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
 | `vanguard-friction-qa` | **deprecated** | HTTP POST returns 410; cron removed; no Telegram | **false** | none | 24 | 2026-06-12 |
 
-> **Morning note:** autonomous morning brief/ping Telegram nudges were removed 2026-06-12 after repeated "weak plan" spam. Keep morning planning user-initiated unless explicitly re-approved.
+> **Noon note:** the useful 12:00 Telegram flow is `vanguard-eval-interview` ("Wywiad"), not the legacy `vanguard-midday-check`.
+> **Evening note:** Telegram evening flow is reflection, not tomorrow planning. `/koniec` manually starts the same 24h reflection and the 21:30 cron skips if it already ran.
 
 ### Vanguard Core Manual / Tooling
 
@@ -86,7 +89,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | Reconciliation | `_handlers/reconciliation.ts` | Evening reply, open planning |
 | Feedback buttons | `_handlers/feedback.ts` | `fb_ok` / `fb_err` |
 | Morning callbacks | `_handlers/morning.ts` | Start 90 / minimum buttons |
-| Midday callbacks | `_handlers/midday.ts` | done / stuck |
+| Midday callbacks | `_handlers/midday.ts` | legacy callbacks for old buttons only; no new midday messages |
 | Saturday check-in | `_handlers/saturdayCheckin.ts` | Weekly integration flow |
 | Anti-analysis guard | `_handlers/antiAnalysis.ts` | Analysis drift buttons |
 | Telegram API | `_shared/telegram.ts` | send, callbacks, getFile (no raw `fetch` in handlers) |
@@ -104,8 +107,9 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-11 |
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 178 | 2026-06-11 |
 | `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 447 | 2026-06-11 |
-| `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 238 | 2026-06-11 |
-| `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 409 | 2026-06-11 |
+| `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 469 | 2026-06-12 |
+| `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
+| `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 102 | 2026-06-11 |
 
@@ -137,6 +141,8 @@ Flat layout: one folder = one deployed function name (except `vanguard-telegram/
 |----------|----------|--------|
 | `vanguard-daily-snapshot` | `0 4 * * *` | `save-daily-aggregate` |
 | `vanguard-daily-analyst` | `0 3 * * *` | `vanguard-analyst` |
+| `vanguard-wiki-compiler` | `20 3 * * *` | `vanguard-wiki-compiler` |
+| `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` (Mon-Fri, 12:00 Warsaw) |
 
 Also verify: [`scripts/ops/cron-check.sql`](../../scripts/ops/cron-check.sql) against [`scripts/ops/smoke-manifest.mjs`](../../scripts/ops/smoke-manifest.mjs).

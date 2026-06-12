@@ -15,6 +15,139 @@ const LEG_KW = ['przysiad', 'martwy', 'rdl', 'nog', 'leg', 'łydk', 'lydk', 'hip
 const CNS_KW = ['martwy', 'przysiad', 'ohp', 'bench', 'wyciskanie', 'dip']
 const matches = (name: string, kws: string[]) => { const n = (name || '').toLowerCase(); return kws.some(k => n.includes(k)) }
 
+// ── NOOP port: Winsorized EWMA baseline (Baselines.swift) ────────────────────
+// halfLifeB=14 nights for center, halfLifeS=21 for spread.
+// Hard-rejects values >5σ from baseline (post-seed), Winsorizes at ±3σ.
+function ewmaBaseline(
+  values: number[], minVal: number, maxVal: number, floorSpread: number,
+  halfLifeB = 14, halfLifeS = 21
+): { center: number; spread: number; nValid: number } | null {
+  const lb = 1 - Math.pow(0.5, 1 / halfLifeB)
+  const ls = 1 - Math.pow(0.5, 1 / halfLifeS)
+  const WINSOR_K = 3.0, HARD_K = 5.0, MIN_SEED = 4
+  let center: number | null = null, spread = floorSpread, nValid = 0
+  for (const v of values) {
+    if (v < minVal || v > maxVal) continue
+    if (center === null) { center = v; nValid = 1; continue }
+    if (nValid >= MIN_SEED && Math.abs(v - center) > HARD_K * spread) continue
+    const clamped = Math.max(center - WINSOR_K * spread, Math.min(center + WINSOR_K * spread, v))
+    center = lb * clamped + (1 - lb) * center
+    spread = Math.max(floorSpread, ls * Math.abs(v - center) + (1 - ls) * spread)
+    nValid++
+  }
+  return center !== null ? { center, spread, nValid } : null
+}
+
+// ── NOOP port: ReadinessEngine (ReadinessEngine.swift) ───────────────────────
+// Synthesizes HRV z-score, RHR drift, ACWR (Gabbett), monotony (Foster)
+// into: primed | balanced | strained | rundown | insufficient
+type ReadinessLevel = 'primed' | 'balanced' | 'strained' | 'rundown' | 'insufficient'
+type SignalFlag = 'good' | 'neutral' | 'watch' | 'bad'
+interface ReadinessSignal { key: string; flag: SignalFlag; detail: string }
+interface ReadinessDay {
+  date: string
+  hrv: number | null
+  rhr: number | null
+  respRate: number | null
+  strain: number | null
+}
+
+const mean = (xs: number[]): number | null =>
+  xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
+
+const sampleSD = (xs: number[]): number | null => {
+  if (xs.length < 2) return null
+  const m = mean(xs)
+  if (m == null) return null
+  const ss = xs.reduce((acc, x) => acc + (x - m) * (x - m), 0)
+  return Math.sqrt(ss / (xs.length - 1))
+}
+
+function computeReadiness(
+  days: ReadinessDay[],
+  today: string
+): { level: ReadinessLevel; signals: ReadinessSignal[] } {
+  const BASELINE_WINDOW = 30, MIN_BASELINE = 7, ACUTE_WINDOW = 7, CHRONIC_WINDOW = 28, MIN_CHRONIC = 14
+  const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date))
+  const latest = sorted.find(d => d.date === today) ?? sorted[sorted.length - 1]
+  if (!latest) return { level: 'insufficient', signals: [] }
+  const history = sorted.filter(d => d.date < latest.date)
+  const signals: ReadinessSignal[] = []
+
+  const zSignal = (
+    val: number | null, baseline: number[],
+    higherBetter: boolean, key: string,
+    [good, neutral, watch, bad]: [string, string, string, string]
+  ) => {
+    if (val == null || baseline.length < MIN_BASELINE) return
+    const m = mean(baseline)
+    const sd = sampleSD(baseline)
+    if (m == null || sd == null || sd <= 0) return
+    const z = (higherBetter ? (val - m) : (m - val)) / sd
+    const flag: SignalFlag = z >= 0.5 ? 'good' : z >= -0.5 ? 'neutral' : z >= -1.0 ? 'watch' : 'bad'
+    signals.push({ key, flag, detail: flag === 'good' ? good : flag === 'neutral' ? neutral : flag === 'watch' ? watch : bad })
+  }
+
+  zSignal(latest.hrv, history.slice(-BASELINE_WINDOW).map(d => d.hrv).filter((v): v is number => v != null), true, 'hrv', [
+    'powyżej baseline — dobrze zregenerowany',
+    'w normalnym zakresie',
+    'lekko poniżej baseline',
+    'wyraźnie poniżej — zmęczenie autonomiczne',
+  ])
+  zSignal(latest.rhr, history.slice(-BASELINE_WINDOW).map(d => d.rhr).filter((v): v is number => v != null), false, 'rhr', [
+    'poniżej lub na poziomie baseline',
+    'w normalnym zakresie',
+    'lekko powyżej baseline',
+    'podwyższony — przetrenowanie lub choroba',
+  ])
+
+  const respBase = history.slice(-BASELINE_WINDOW).map(d => d.respRate).filter((v): v is number => v != null)
+  const respSD = sampleSD(respBase)
+  const respMean = mean(respBase)
+  if (latest.respRate != null && respBase.length >= MIN_BASELINE && respSD != null && respSD > 0 && respMean != null) {
+    const z = (latest.respRate - respMean) / respSD
+    if (z >= 1.5) signals.push({ key: 'respRate', flag: 'bad', detail: 'oddech powyżej baseline — możliwy wczesny sygnał choroby' })
+    else if (z >= 1.0) signals.push({ key: 'respRate', flag: 'watch', detail: 'oddech lekko powyżej baseline' })
+  }
+
+  const strainVals = sorted
+    .map(d => d.strain)
+    .filter((v): v is number => v != null && Number.isFinite(v))
+  if (strainVals.length >= MIN_CHRONIC) {
+    const acute = mean(strainVals.slice(-ACUTE_WINDOW))!
+    const chronic = mean(strainVals.slice(-CHRONIC_WINDOW))!
+    if (chronic > 0) {
+      const ratio = acute / chronic
+      const pr = ratio.toFixed(2)
+      if (ratio < 0.8)       signals.push({ key: 'acwr', flag: 'watch', detail: `load spada (ACWR ${pr}) — przestrzeń do budowania` })
+      else if (ratio < 1.3)  signals.push({ key: 'acwr', flag: 'good',  detail: `load w sweet spot (ACWR ${pr})` })
+      else if (ratio < 1.5)  signals.push({ key: 'acwr', flag: 'watch', detail: `load rośnie szybko (ACWR ${pr}) — obserwuj` })
+      else                   signals.push({ key: 'acwr', flag: 'bad',   detail: `SPIKE (ACWR ${pr}) — ryzyko kontuzji` })
+    }
+    const week = strainVals.slice(-ACUTE_WINDOW)
+    const wm = mean(week)
+    const wSD = sampleSD(week)
+    if (week.length >= 4 && wm != null && wSD != null) {
+      if (wSD > 0 && wm / wSD >= 2.0)
+        signals.push({ key: 'monotony', flag: 'watch', detail: 'niska zmienność — zbyt podobny bodziec każdego dnia' })
+    }
+  }
+
+  if (!history.length || !signals.length) return { level: 'insufficient', signals }
+  const bad = signals.filter(s => s.flag === 'bad').length
+  const recovDown = signals.some(s => ['hrv', 'rhr', 'respRate'].includes(s.key) && s.flag === 'bad')
+  const loadHigh  = signals.some(s => s.key === 'acwr' && s.flag === 'bad')
+  const good = signals.filter(s => s.flag === 'good').length
+  const watch = signals.filter(s => s.flag === 'watch').length
+
+  let level: ReadinessLevel
+  if (bad >= 2 || (recovDown && loadHigh)) level = 'rundown'
+  else if (recovDown || loadHigh || bad >= 1) level = 'strained'
+  else if (good >= 2 && watch === 0) level = 'primed'
+  else level = 'balanced'
+  return { level, signals }
+}
+
 function serviceClient() {
   return createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "")
 }
@@ -40,6 +173,7 @@ serve(async (req) => {
     const endStr = toWarsaw(now)
     const startStr = toWarsaw(new Date(now.getTime() - days * 864e5))
     const start90 = toWarsaw(new Date(now.getTime() - 90 * 864e5))
+    const start30 = toWarsaw(new Date(now.getTime() - 30 * 864e5))
 
     const computeForUser = async (u: any) => {
       const uid = u.user_id
@@ -51,14 +185,33 @@ serve(async (req) => {
         .order('date', { ascending: false }).limit(1).maybeSingle()
       const weight = Number(bw?.weight) || 75
 
-      // ── Baseline HRV/RHR (90 dni) ──
+      // ── Baseline HRV/RHR (90 dni, chronologicznie dla EWMA) ──
       const { data: base } = await supabase.from('oura_daily_summary')
-        .select('hrv_avg, rhr_avg').eq('user_id', uid).gte('date', start90)
-      const hrvVals = (base || []).map(r => r.hrv_avg).filter(Boolean) as number[]
-      const rhrVals = (base || []).map(r => r.rhr_avg).filter(Boolean) as number[]
+        .select('date, hrv_avg, rhr_avg').eq('user_id', uid).gte('date', start90).order('date')
+      const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter(Boolean) as number[]
+      const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter(Boolean) as number[]
       const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
       const hrvBase = mean(hrvVals)
       const rhrBase = mean(rhrVals)
+
+      // Winsorized EWMA baselines (NOOP Baselines.swift) — robust, recency-weighted
+      const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0)
+      const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0)
+      const baseByDate: Record<string, any> = {}
+      for (const row of (base || []) as any[]) baseByDate[row.date] = row
+
+      const { data: respBase } = await supabase.from('oura_enhanced')
+        .select('date, sleep_average_breath').eq('user_id', uid).gte('date', start90).order('date')
+      const respByDate: Record<string, number | null> = {}
+      for (const row of (respBase || []) as any[]) {
+        respByDate[row.date] = row.sleep_average_breath != null ? Number(row.sleep_average_breath) : null
+      }
+
+      // Strain history for ReadinessEngine (last 30 days, pre-existing rows)
+      const { data: strainHistRows } = await supabase.from('daily_strain')
+        .select('date, strain_score').eq('user_id', uid).gte('date', start30).order('date')
+      const strainHistRunning: Array<{ date: string; strain_score: number | null }> =
+        [...(strainHistRows || [])]
 
       // ── Źródła w oknie (z buforem -1 dnia na "wczoraj") ──
       const winStart = toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
@@ -165,17 +318,30 @@ serve(async (req) => {
         const hasAnyLoad = rawTotal > 0 || z != null
         const strain = hasAnyLoad ? Math.round(21 * (1 - Math.exp(-rawTotal / 156)) * 10) / 10 : null
 
-        // ── RECOVERY 0–100 ──
+        // ── RECOVERY 0–100 (NOOP RecoveryScorer: HRV-dominant logistic) ──
+        // Weights: HRV 60%, RHR 20%, sleep 15%. Z=0 → 58% (WHOOP population avg).
         let recovery: number | null = null
         const sleep = s?.total_sleep_hours ?? null
-        if (s?.readiness_score != null || sleep != null) {
+        if (s?.hrv_avg != null && hrvEwma != null && hrvEwma.nValid >= 4) {
+          const SIGMA = 1.253  // converts EWMA abs-dev spread to Gaussian σ
+          const W_HRV = 0.60, W_RHR = 0.20, W_SLEEP = 0.15
+          const zHrv = (Number(s.hrv_avg) - hrvEwma.center) / Math.max(SIGMA * hrvEwma.spread, 1e-9)
+          const zRhr = s.rhr_avg != null && rhrEwma != null
+            ? (rhrEwma.center - Number(s.rhr_avg)) / Math.max(SIGMA * rhrEwma.spread, 1e-9)
+            : null
+          const sleepPerf = sleep != null ? Number(sleep) / 8.0 : null
+          const zSleep = sleepPerf != null ? (sleepPerf - 0.85) / 0.12 : null
+          let zSum = zHrv * W_HRV, wSum = W_HRV
+          if (zRhr != null) { zSum += zRhr * W_RHR; wSum += W_RHR }
+          if (zSleep != null) { zSum += zSleep * W_SLEEP; wSum += W_SLEEP }
+          // Logistic: K=1.6, Z0=-0.20 → Z=0 gives 58% (population average)
+          const score = 100 / (1 + Math.exp(-1.6 * (zSum / wSum + 0.20)))
+          recovery = clamp(Math.round(score), 0, 100)
+        }
+        // Cold-start fallback (< 4 valid baseline nights): use Oura readiness
+        if (recovery === null && (s?.readiness_score != null || sleep != null)) {
           let rec = s?.readiness_score ?? 65
-          if (sleep != null) { if (sleep < 6) rec -= 12; else if (sleep < 7) rec -= 6 }
-          if (s?.hrv_avg != null && hrvBase && s.hrv_avg < 0.85 * hrvBase) rec -= 8
-          if (s?.rhr_avg != null && rhrBase && s.rhr_avg > 1.05 * rhrBase) rec -= 5
-          if (prev?.fueling_score != null && prev.fueling_score < 50) rec -= 8
-          if (prev?.strain_score != null) { if (prev.strain_score > 15) rec -= 8; else if (prev.strain_score > 12) rec -= 4 }
-          if (prev?.mental_load_score != null && prev.mental_load_score >= 7) rec -= 6
+          if (sleep != null) { if (Number(sleep) < 6) rec -= 12; else if (Number(sleep) < 7) rec -= 6 }
           recovery = clamp(Math.round(rec), 0, 100)
         }
 
@@ -222,11 +388,36 @@ serve(async (req) => {
         const explanation = `${ctx}. Strain ${strain ?? '—'}/21, recovery ${recovery ?? '—'} — ${limiterPL[limiter]}.`
           + (fuelingProvisional ? ' (fueling jeszcze niepełny)' : '')
 
+        // ── READINESS LEVEL (NOOP ReadinessEngine port) ──────────────────────
+        const strainByDate: Record<string, number | null> = {}
+        for (const row of strainHistRunning) {
+          strainByDate[row.date] = row.strain_score == null ? null : Number(row.strain_score)
+        }
+        strainByDate[date] = strain
+
+        const readinessDates = new Set<string>([
+          ...Object.keys(baseByDate),
+          ...Object.keys(respByDate),
+          ...Object.keys(strainByDate),
+          date,
+        ])
+        const readinessDays: ReadinessDay[] = [...readinessDates]
+          .filter(d => d <= date)
+          .map(d => ({
+            date: d,
+            hrv: d === date && s?.hrv_avg != null ? Number(s.hrv_avg) : (baseByDate[d]?.hrv_avg != null ? Number(baseByDate[d].hrv_avg) : null),
+            rhr: d === date && s?.rhr_avg != null ? Number(s.rhr_avg) : (baseByDate[d]?.rhr_avg != null ? Number(baseByDate[d].rhr_avg) : null),
+            respRate: respByDate[d] ?? null,
+            strain: strainByDate[d] ?? null,
+          }))
+        const readiness = computeReadiness(readinessDays, date)
+
         const row = {
           user_id: uid, date,
           strain_score: strain, recovery_score: recovery, fueling_score: fuelingScore,
           mental_load_score: mentalLoad, daily_status: status, main_limiter: limiter,
           fueling_provisional: fuelingProvisional,
+          readiness_level: readiness.level,
           explanation,
           cardio_load: Math.round(cardioRaw * 10) / 10,
           strength_load: strengthPts, leg_load: legPts, cns_load: cnsPts,
@@ -235,12 +426,19 @@ serve(async (req) => {
             zones: z || null, raw_total: Math.round(rawTotal * 10) / 10,
             run_rpe: maxRpe || null, pr: prBonus > 0, weight,
             kcal, carbs, protein, steps, sleep_h: sleep,
-            hrv_base: hrvBase ? Math.round(hrvBase) : null, rhr_base: rhrBase ? Math.round(rhrBase) : null,
+            hrv_base: hrvEwma ? Math.round(hrvEwma.center) : (hrvBase ? Math.round(hrvBase) : null),
+            rhr_base: rhrEwma ? Math.round(rhrEwma.center) : (rhrBase ? Math.round(rhrBase) : null),
+            hrv_ewma_nValid: hrvEwma?.nValid ?? null,
+            readiness_signals: readiness.signals,
           },
           updated_at: new Date().toISOString(),
         }
         upserts.push(row)
         prev = row
+        // Update running strain history for next day's ReadinessEngine
+        if (strain != null) {
+          strainHistRunning.push({ date, strain_score: strain })
+        }
       }
 
       if (upserts.length) {

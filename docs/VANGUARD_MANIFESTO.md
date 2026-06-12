@@ -68,7 +68,7 @@ AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjac
 
 ## 7. Status & Rozwój (Maj 2026)
 - System w pełni operacyjny (27 Edge Functions, pełna pętla dzienna).
-- **Live:** Morning brief, midday check, reconciliation wieczorna, planning session, friction detection, HippoRAG Oracle.
+- **Live at the time:** Morning brief, midday check, reconciliation wieczorna, planning session, friction detection, HippoRAG Oracle. Current runtime status lives in the canonical docs linked above.
 - **Następne etapy:** Drift Detection / Reality Weighting (Sprint 1+), confirmed_friction_events VIEW, closure proposals approval flow.
 
 ---

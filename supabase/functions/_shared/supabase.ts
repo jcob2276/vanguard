@@ -12,6 +12,35 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const [, payload] = token.split(".");
+  if (!payload) return null;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+async function isValidServiceRoleToken(token: string): Promise<boolean> {
+  const payload = decodeJwtPayload(token);
+  if (payload?.role !== "service_role") return false;
+
+  const url = Deno.env.get("SUPABASE_URL") || "";
+  if (!url) return false;
+
+  const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/admin/users?page=1&per_page=1`, {
+    headers: {
+      apikey: token,
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch(() => null);
+
+  return !!res && res.status < 400;
+}
+
 export async function resolveUserScope(
   req: Request,
   requestedUserId: string | null = null,
@@ -22,6 +51,9 @@ export async function resolveUserScope(
 
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   if (serviceRoleKey && token === serviceRoleKey) {
+    return { userId: requestedUserId, isServiceRole: true };
+  }
+  if (await isValidServiceRoleToken(token)) {
     return { userId: requestedUserId, isServiceRole: true };
   }
 

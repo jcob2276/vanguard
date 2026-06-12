@@ -1,20 +1,19 @@
 # Vanguard Core
 
-
 ## Purpose
 
-Capture life in real time → build knowledge graph → AI mirror/coach → evening reconciliation → plan tomorrow.
+Capture life in real time -> build knowledge graph -> AI mirror/coach -> evening reconciliation -> plan tomorrow.
 
 ## Daily loop
 
+```text
+       user streams via Telegram all day
+12:00  vanguard-eval-interview -> reflective interview question
+21:30  vanguard-daily-reconciliation -> 24h reflection prompt
+       -> user responds -> reflection analysis, no Telegram planning
 ```
-06:00  vanguard-morning-brief     → plan jutra on Telegram
-       ... user streams via Telegram all day ...
-12:00  vanguard-midday-check      → inline buttons (done/stuck)
-20:00  vanguard-daily-reconciliation → evening summary + day score
-       → user responds → planning session starts (Oracle)
-       → user says "koniec" → planning_summary saved for tomorrow
-```
+
+Autonomous morning brief/ping and the legacy midday task check are deprecated stubs. Telegram evening is for reflection; tomorrow planning happens in the app/Oracle path.
 
 ## Telegram commands (`vanguard-telegram`)
 
@@ -36,13 +35,14 @@ During pending reconciliation (`status = sent`): response saved as day review.
 
 | Function | Role |
 |---|---|
-| `vanguard-telegram` | Webhook hub — stream, oracle, planning, callbacks |
+| `vanguard-telegram` | Webhook hub - stream, oracle, planning, callbacks |
 | `vanguard-oracle` | LLM with retrieval + state vector |
-| `vanguard-architect` | Stream → entity links / graph |
+| `vanguard-architect` | Stream -> entity links / graph |
 | `vanguard-auto-classify` | Auto-tag stream entries |
-| `vanguard-daily-reconciliation` | Cron: send evening prompt |
-| `vanguard-morning-brief` | Cron: send morning plan |
-| `vanguard-midday-check` | Cron: midday inline check |
+| `vanguard-eval-interview` | Cron: noon reflective interview |
+| `vanguard-daily-reconciliation` | Cron/manual `/koniec`: send 24h reflection prompt |
+| `vanguard-morning-brief` | Deprecated stub; no Telegram |
+| `vanguard-midday-check` | Deprecated stub; no Telegram |
 
 ## Key tables
 

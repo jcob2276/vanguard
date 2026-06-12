@@ -62,7 +62,7 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
 
 **Kontekst:** Briefing przed sync Oura może używać wczorajszego snu.
 
-**Stan na 2026-06:** Wdrożone w `vanguard-morning-brief`.
+**Stan na 2026-06:** Było wdrożone w `vanguard-morning-brief`; morning brief jest obecnie deprecated stubem.
 - Dodano jawne sprawdzenie najnowszego rekordu z `oura_daily_summary`.
 - Gdy data najnowszego wpisu != dzisiejsza data warszawska → w briefie pojawia się:
   > Sen z ostatniej nocy (Oura): pending — dane jeszcze nie zsynchronizowane

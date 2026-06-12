@@ -3,242 +3,242 @@ import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDayBoundaries } from "../_shared/time.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
-import { getPlanQualitySignal } from "../_shared/planQuality.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
+import { deepseekChat } from "../_shared/deepseek.ts";
 
-const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || "";
-const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
+const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
+const TELEGRAM_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") || "0");
+const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") || "";
 const VANGUARD_USER_ID = getVanguardUserId();
 
 const supabase = createServiceClient();
 
+type StreamRow = {
+  id?: string;
+  content: string;
+  created_at: string;
+  metadata?: Record<string, unknown> | null;
+};
+
 async function sendTelegram(text: string): Promise<number | null> {
   const result = await sendMessageParsed(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, text, {
-    parseMode: 'Markdown',
+    parseMode: "Markdown",
   });
   if (!result.ok) {
-    console.error('[reconciliation] Telegram error:', result.description);
+    console.error("[reconciliation] Telegram error:", result.description);
     return null;
   }
   return result.messageId ?? null;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { status: 200 });
-  try {
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+function compactRows(rows: StreamRow[], limit = 12): string {
+  return rows.slice(0, limit).map((row, index) => {
+    const time = new Date(row.created_at).toLocaleTimeString("pl-PL", {
+      timeZone: "Europe/Warsaw",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const text = String(row.content || "").replace(/\s+/g, " ").trim().slice(0, 700);
+    return `${index + 1}. [${time}] ${text}`;
+  }).join("\n");
+}
 
-    // Allow manual force-override via ?force=true query param
+async function buildReflectionPrompt(params: {
+  voiceRows: StreamRow[];
+  streamRows: StreamRow[];
+  frictionRows: any[];
+  manual: boolean;
+}): Promise<string> {
+  const voiceBlock = params.voiceRows.length
+    ? compactRows(params.voiceRows, 10)
+    : "Brak glosowek w ostatnich 24h.";
+
+  const streamBlock = params.streamRows.length
+    ? compactRows(params.streamRows, 14)
+    : "Brak zapisow streamu w ostatnich 24h.";
+
+  const frictionBlock = params.frictionRows.length
+    ? params.frictionRows.slice(0, 8).map((event: any, index: number) => {
+      const type = event.friction_type || event.event_kind || "event";
+      const behavior = String(event.actual_behavior || event.declared_intention || event.immediate_cost || "").replace(/\s+/g, " ").trim();
+      return `${index + 1}. ${type}: ${behavior.slice(0, 220)}`;
+    }).join("\n")
+    : "Brak sklasyfikowanych friction events.";
+
+  try {
+    const { content } = await deepseekChat({
+      apiKey: DEEPSEEK_API_KEY,
+      model: "deepseek-v4-flash",
+      temperature: 0.35,
+      maxTokens: 900,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Jestes wieczornym trenerem refleksji w Vanguard. Nie planujesz jutra w Telegramu. " +
+            "Masz pomoc uzytkownikowi usiasc spokojnie, nagrac glosowke i przeanalizowac dzien: " +
+            "co poszlo dobrze, co poszlo zle, co moglo pojsc lepiej, za co jest wdzieczny, jakie napiecie albo temat warto poglebic. " +
+            "Pisz po polsku, krotko, konkretnie, bez coachingu motywacyjnego. Nie udawaj pewnosci, jesli dane sa slabe."
+        },
+        {
+          role: "user",
+          content:
+            `Tryb: ${params.manual ? "manualny /koniec" : "cron 21:30"}\n\n` +
+            `GLOSOWKI 24H:\n${voiceBlock}\n\n` +
+            `STREAM 24H:\n${streamBlock}\n\n` +
+            `FRICTION 24H:\n${frictionBlock}\n\n` +
+            "Napisz jedna wiadomosc Telegram w formacie:\n" +
+            "1) 3-5 punktow: co slychac w ostatnich 24h z glosowek/streamu.\n" +
+            "2) 2-4 pytania poglebiajace, bardzo konkretne.\n" +
+            "3) Instrukcja: nagraj spokojna glosowke refleksyjna.\n" +
+            "Nie pytaj o plan jutra. Nie generuj zadan na jutro."
+        }
+      ]
+    });
+
+    const cleaned = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    if (cleaned) return cleaned.slice(0, 3500);
+  } catch (err) {
+    console.warn("[reconciliation] reflection prompt LLM failed:", err);
+  }
+
+  return `*Wieczorna refleksja*\n\n` +
+    `W ostatnich 24h widze ${params.voiceRows.length} glosowek i ${params.streamRows.length} wpisow w streamie.\n\n` +
+    `Usiadz spokojnie i nagraj glosowke:\n` +
+    `1. Co dzisiaj realnie poszlo dobrze?\n` +
+    `2. Co poszlo zle albo bylo tarciem?\n` +
+    `3. Co moglo pojsc lepiej i dlaczego?\n` +
+    `4. Za co dzisiaj jestes wdzieczny?\n` +
+    `5. Jaki jeden temat warto jeszcze nazwac bez uciekania w planowanie?`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { status: 200 });
+
+  try {
+    if (!TELEGRAM_CHAT_ID) {
+      console.warn("[reconciliation] TELEGRAM_CHAT_ID not set, skipping");
+      return new Response(JSON.stringify({ skipped: true, reason: "missing_chat_id" }), { status: 200 });
+    }
+
     const url = new URL(req.url);
-    const forceOverride = url.searchParams.get('force') === 'true';
+    const forceOverride = url.searchParams.get("force") === "true";
+    const manual = url.searchParams.get("manual") === "true";
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
 
     if (!forceOverride) {
-      // Guard: skip only if an evening reconciliation was already sent today.
-      // Uses 17:00 Warsaw as cutoff — morning rows (planning sessions) must not block
-      // the evening cron. BUG-02 fix.
-      const eveningCutoff = (() => {
-        const { start: dayStart } = getWarsawDayBoundaries(todayStr);
-        return new Date(new Date(dayStart).getTime() + 17 * 3600000).toISOString();
-      })();
-
       const { data: existing } = await supabase
-        .from('daily_reconciliations')
-        .select('id')
-        .eq('user_id', VANGUARD_USER_ID)
-        .eq('date', todayStr)
-        .gte('created_at', eveningCutoff)
+        .from("daily_reconciliations")
+        .select("id, status, mode, created_at")
+        .eq("user_id", VANGUARD_USER_ID)
+        .eq("date", todayStr)
+        .in("mode", ["reflection", "full", "checkin"])
+        .in("status", ["sent", "answered"])
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (existing) {
-        console.log('[reconciliation] already sent this evening — skipping');
-        return new Response(JSON.stringify({ skipped: true }), { status: 200 });
+        console.log("[reconciliation] reflection already used today - skipping");
+        return new Response(JSON.stringify({ skipped: true, reason: "already_used_today", id: existing.id }), { status: 200 });
       }
     }
 
+    const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
 
-    // Yesterday's date (for pulling today's plan which was created last night)
-    const yesterdayStr = new Date(new Date(todayStr).getTime() - 86400000)
-      .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-
-    const [frictionRes, anchorRes, planRes] = await Promise.all([
+    const [streamRes, frictionRes] = await Promise.all([
       supabase
-        .from('friction_events')
-        .select('id, friction_type, actual_behavior, declared_intention, immediate_cost')
-        .eq('user_id', VANGUARD_USER_ID)
-        .in('event_kind', ['friction_event', 'positive_micro_action'])
-        .gte('occurred_at', dayStart)
-        .lt('occurred_at', dayEnd)
-        .order('occurred_at', { ascending: true }),
+        .from("vanguard_stream")
+        .select("id, content, created_at, metadata")
+        .eq("user_id", VANGUARD_USER_ID)
+        .gte("created_at", since24h)
+        .order("created_at", { ascending: true })
+        .limit(80),
       supabase
-        .from('vanguard_stream')
-        .select('content')
-        .eq('user_id', VANGUARD_USER_ID)
-        .gte('created_at', dayStart)
-        .lt('created_at', dayEnd)
-        .ilike('content', 'anchor:%')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      // Today's plan = planning session from yesterday evening
-      supabase
-        .from('daily_reconciliations')
-        .select('planning_summary')
-        .eq('user_id', VANGUARD_USER_ID)
-        .eq('date', yesterdayStr)
-        .not('planning_summary', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .from("friction_events")
+        .select("id, event_kind, friction_type, actual_behavior, declared_intention, immediate_cost, occurred_at")
+        .eq("user_id", VANGUARD_USER_ID)
+        .gte("occurred_at", dayStart)
+        .lt("occurred_at", dayEnd)
+        .order("occurred_at", { ascending: true })
+        .limit(30),
     ]);
 
-    if (frictionRes.error) console.error('[reconciliation] friction query error:', frictionRes.error);
-    if (anchorRes.error) console.error('[reconciliation] anchor query error:', anchorRes.error);
-    if (planRes.error) console.error('[reconciliation] plan query error:', planRes.error);
+    if (streamRes.error) throw streamRes.error;
+    if (frictionRes.error) console.error("[reconciliation] friction query error:", frictionRes.error);
 
-    const warsawDay = new Date().toLocaleDateString('en-US', { timeZone: 'Europe/Warsaw', weekday: 'long' });
-    const isSaturday = warsawDay === 'Saturday';
+    const streamRows = (streamRes.data || []) as StreamRow[];
+    const voiceRows = streamRows.filter((row) => {
+      const metadata = row.metadata || {};
+      return typeof metadata.voice_duration_seconds === "number" || typeof metadata.voice_wpm === "number";
+    });
+    const frictionRows = frictionRes.data || [];
 
-    if (isSaturday) {
-      console.log('[reconciliation] triggering Saturday Check-In flow');
-      const messageText = 
-        `🧱 *Saturday Check-In: WEEKLY INTEGRATION + REALITY REVIEW* 🧱\n\n` +
-        `*Część 1: INPUT*\n` +
-        `1. Co konsumowałeś najwięcej?\n` +
-        `2. Co przeczytałeś / oglądałeś / analizowałeś?\n` +
-        `3. Ile było konsumowania vs tworzenia?\n` +
-        `4. Czy input prowadził do działania czy zastępował działanie?\n\n` +
-        `_Nagraj głosówkę lub odpisz._`;
-
-      const messageId = await sendTelegram(messageText);
-
-      const { data: insData, error: insErr } = await supabase.from('daily_reconciliations').insert({
-        user_id:             VANGUARD_USER_ID,
-        date:                todayStr,
-        status:              'sent',
-        mode:                'checkin',
-        telegram_message_id: messageId,
-        parsed_response:     { mode: 'saturday_checkin', step: 'input', answers: {} }
-      }).select();
-
-      if (insErr) {
-        console.error('[reconciliation] Saturday insert error:', insErr);
-        throw new Error('Insert failed: ' + insErr.message);
-      }
-
-      console.log(`[reconciliation] Saturday check-in sent msg_id=${messageId} data=${JSON.stringify(insData)}`);
-      return new Response(JSON.stringify({ ok: true, mode: 'saturday_checkin' }), { status: 200 });
-    }
-
-    const evList = frictionRes.data || [];
-    const hasEvents = evList.length > 0;
-    const mode = hasEvents ? 'full' : 'checkin';
-
-    const anchorRaw = anchorRes.data?.content || null;
-    const anchorText = anchorRaw
-      ? anchorRaw.replace(/^anchor:\s*/i, '').trim()
-      : null;
-
-    // Extract today's plan from yesterday's planning session
-    const planningSummary = planRes.data?.planning_summary as any || null;
-    const prodArtifact = planningSummary?.production_artifact as { artifact?: string } | undefined;
-    const prodArtifactName = prodArtifact?.artifact || null;
-    const oneClearMove = planningSummary?.one_clear_move || (planningSummary?.top3 as string[] || [])[0] || null;
-    const tensionAction = (planningSummary?.tension_action as { action?: string } | undefined)?.action || planningSummary?.tension_action?.task || null;
-
-    // Log when yesterday's planning session was weak or incomplete
-    const qualitySignal = getPlanQualitySignal(planningSummary);
-    const isLowQualityPlan = qualitySignal.isLowQuality;
-
-    if (planningSummary?.parse_error || isLowQualityPlan || (!prodArtifactName && !oneClearMove)) {
-      logAuditEvent({
-        eventType: 'previous_planning_not_completed',
-        severity: 'warning',
-        message: 'Wczorajsza sesja planowania była słaba lub niekompletna',
-        metadata: {
-          date: yesterdayStr,
-          had_parse_error: !!planningSummary?.parse_error,
-          plan_quality: qualitySignal.quality,
-          plan_failure_reason: qualitySignal.failureReason,
-          mode: qualitySignal.mode,
-        }
-      });
-    }
-
-    console.log(`[reconciliation] anchor=${anchorText ? '"' + anchorText.substring(0, 50) + '"' : 'none'} plan=${oneClearMove ? 'yes' : 'no'}`);
-
-    let messageText: string;
-
-    // Plan block — from last night's planning session
-    let planBlock = '';
-    if (oneClearMove || prodArtifactName || tensionAction) {
-      planBlock = `*Plan był:*\n`;
-      if (oneClearMove) planBlock += `→ Pierwszy blok: ${oneClearMove}\n`;
-      if (prodArtifactName) planBlock += `→ Artefakt: ${prodArtifactName}\n`;
-      if (tensionAction) planBlock += `⚡ Ruch napięciowy: ${tensionAction}\n`;
-      planBlock += '\n';
-    }
-
-    // Friction summary (if any)
-    let frictionBlock = '';
-    if (hasEvents) {
-      const lines = evList.map((e: any, i: number) => {
-        const type = e.friction_type || 'event';
-        const beh  = (e.actual_behavior || e.declared_intention || '(brak opisu)').substring(0, 80);
-        return `${i + 1}. \`${type}\` — ${beh}`;
-      }).join('\n');
-      frictionBlock = `System wykrył:\n${lines}\n\n`;
-    }
-
-    messageText =
-      `*Zamknięcie dnia — głosówka.*\n\n` +
-      planBlock +
-      frictionBlock +
-      `Powiedz:\n` +
-      `1. Jaki artefakt dziś powstał?\n` +
-      `2. Czy pierwsze 90 minut było bez stymulacji?\n` +
-      `3. Jaki ruch napięciowy zrobiłeś albo ominąłeś?\n` +
-      `4. Gdzie analiza zastąpiła działanie?\n` +
-      `5. Co jest pierwszym artefaktem jutra?`;
+    const messageText = await buildReflectionPrompt({
+      voiceRows,
+      streamRows,
+      frictionRows,
+      manual,
+    });
 
     const messageId = await sendTelegram(messageText);
 
-    const { error: reconInsertErr } = await supabase.from('daily_reconciliations').upsert({
-      user_id:             VANGUARD_USER_ID,
-      date:                todayStr,
-      status:              'sent',
-      mode,
-      events_count:        evList.length,
-      events_summary:      evList.map((e: any) => ({
-        id:            e.id,
-        friction_type: e.friction_type,
-        behavior:      String(e.actual_behavior || '').substring(0, 100)
+    const { data: row, error: upsertErr } = await supabase.from("daily_reconciliations").upsert({
+      user_id: VANGUARD_USER_ID,
+      date: todayStr,
+      status: "sent",
+      mode: "reflection",
+      events_count: frictionRows.length,
+      events_summary: frictionRows.map((event: any) => ({
+        id: event.id,
+        friction_type: event.friction_type,
+        behavior: String(event.actual_behavior || event.declared_intention || "").slice(0, 160),
       })),
       telegram_message_id: messageId,
-      parsed_response:     anchorText ? { anchor: anchorText } : null,
-      user_response:       null,
-      answered_at:         null
-    }, { onConflict: 'user_id, date' });
-    if (reconInsertErr) {
-      console.error('[reconciliation] evening upsert failed:', reconInsertErr);
-      throw new Error(`Upsert failed: ${reconInsertErr.message}`);
-    } else {
-      logAuditEvent({
-        eventType: 'evening_reconciliation_created',
-        severity: 'info',
-        message: 'Utworzono wieczorne reconciliation',
-        metadata: { date: todayStr, mode }
-      });
-    }
+      parsed_response: {
+        mode: "reflection",
+        manual,
+        voice_count_24h: voiceRows.length,
+        stream_count_24h: streamRows.length,
+        prompt_version: "reflection-24h-v1",
+      },
+      user_response: null,
+      answered_at: null,
+      planning_status: null,
+      planning_history: null,
+    }, { onConflict: "user_id,date" }).select("id").single();
 
-    console.log(`[reconciliation] sent mode=${mode} events=${evList.length} anchor=${!!anchorText} msg_id=${messageId}`);
-    return new Response(JSON.stringify({ ok: true, mode, events_count: evList.length, anchor: !!anchorText }), { status: 200 });
+    if (upsertErr) throw upsertErr;
 
+    logAuditEvent({
+      eventType: "evening_reflection_created",
+      severity: "info",
+      message: "Utworzono wieczorna sesje refleksji",
+      metadata: {
+        date: todayStr,
+        manual,
+        voice_count_24h: voiceRows.length,
+        stream_count_24h: streamRows.length,
+        friction_count: frictionRows.length,
+      },
+    });
+
+    console.log(`[reconciliation] reflection sent id=${row?.id} manual=${manual} voices=${voiceRows.length}`);
+    return new Response(JSON.stringify({
+      ok: true,
+      mode: "reflection",
+      id: row?.id,
+      manual,
+      voice_count_24h: voiceRows.length,
+      stream_count_24h: streamRows.length,
+      events_count: frictionRows.length,
+    }), { status: 200 });
   } catch (err) {
     await logCriticalError({
-      area: 'daily-reconciliation',
+      area: "daily-reconciliation",
       error: err,
-      message: 'Daily reconciliation failed',
+      message: "Daily reflection reconciliation failed",
     });
     return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500 });
   }

@@ -90,8 +90,8 @@ Brak cron (HTTP manual):
 | sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
 | analyze-training | deprecated | HTTP manual | stub 410; plan vs Strava Telegram analysis removed |
-| vanguard-daily-reconciliation | ✅ aktywna | pg_cron | **false** JWT |
-| vanguard-midday-check | ✅ aktywne | pg_cron | **false** JWT |
+| vanguard-daily-reconciliation | ✅ aktywna | pg_cron + manual `/koniec` | **false** JWT |
+| vanguard-midday-check | deprecated | cron removed; HTTP 410 | **false** JWT |
 | vanguard-morning-brief / vanguard-morning-ping | deprecated | cron removed; HTTP 410 | **false** JWT |
 
 **Wyłączone bloki w aktywnych funkcjach:**
