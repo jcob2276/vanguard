@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import {
   Briefcase,
   Calendar,
+  CheckSquare,
   Clock,
   Dumbbell,
   Fingerprint,
@@ -26,6 +27,7 @@ const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 const Photos = lazy(() => import('../identity/Photos'));
 const Direction = lazy(() => import('../lifestyle/Direction'));
 const Career = lazy(() => import('../career/Career'));
+const Todo = lazy(() => import('../todo/Todo'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'kariera'];
 
@@ -275,6 +277,14 @@ export default function Dashboard({ session }) {
     );
   }
 
+  if (view === 'todo') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <Todo session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+      </Suspense>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -322,6 +332,9 @@ export default function Dashboard({ session }) {
             </button>
             <button onClick={() => setView('fundament')} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="Fundament">
               <Fingerprint size={16} className="text-primary" />
+            </button>
+            <button onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="To Do">
+              <CheckSquare size={16} className="text-primary" />
             </button>
             <button onClick={() => supabase.auth.signOut()} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="Wyloguj">
               <LogOut size={16} className="text-white/45" />
