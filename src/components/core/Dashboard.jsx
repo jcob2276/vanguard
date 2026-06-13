@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import {
+  Briefcase,
   Calendar,
   Clock,
   Dumbbell,
@@ -24,8 +25,9 @@ const StravaWidget = lazy(() => import('../integrations/StravaWidget'));
 const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 const Photos = lazy(() => import('../identity/Photos'));
 const Direction = lazy(() => import('../lifestyle/Direction'));
+const Career = lazy(() => import('../career/Career'));
 
-const TAB_ORDER = ['dzis', 'tydzien', 'historia'];
+const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'kariera'];
 
 const normalizeView = (view) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
@@ -298,6 +300,7 @@ export default function Dashboard({ session }) {
     { id: 'dzis', icon: Sun, label: 'Dziś' },
     { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
     { id: 'historia', icon: Clock, label: 'Historia' },
+    { id: 'kariera', icon: Briefcase, label: 'Kariera' },
   ];
 
   return (
@@ -368,6 +371,12 @@ export default function Dashboard({ session }) {
                 <Photos session={session} />
                 <MuscleHeatmap session={session} />
               </div>
+            </Suspense>
+          )}
+
+          {view === 'kariera' && (
+            <Suspense fallback={<ViewFallback />}>
+              <Career session={session} />
             </Suspense>
           )}
           </div>
