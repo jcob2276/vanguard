@@ -32,8 +32,15 @@ function buildPushMessage(date: string, s: any, verdict: any): string {
   const L: string[] = [];
   L.push(`🍽️ Cel na dziś — ${date}`);
   L.push("");
-  L.push(`🎯 Target: ${t.target_kcal} kcal (deficyt ${t.deficit_kcal})`);
-  L.push(`🥩 Białko: min ${t.protein_floor_g} g`);
+  if (t.intake_so_far != null && t.intake_so_far > 0) {
+    const rem = t.remaining_kcal;
+    const remLabel = rem >= 0 ? `zostało ${rem}` : `przekroczone o ${Math.abs(rem)}`;
+    L.push(`🎯 Cel dnia ${t.target_kcal} kcal · zjedzone ${Math.round(t.intake_so_far)} · ${remLabel}`);
+    L.push(`🥩 Białko: zostało ${t.remaining_protein} g (floor ${t.protein_floor_g})`);
+  } else {
+    L.push(`🎯 Target: ${t.target_kcal} kcal (deficyt ${t.deficit_kcal})`);
+    L.push(`🥩 Białko: min ${t.protein_floor_g} g`);
+  }
   L.push(`⚖️ Maintenance ~${e.est_maintenance} kcal · trend ${b.weight_trend_kg_per_week} kg/tydz`);
   if (e.underlog_gap_kcal > 150) L.push(`📉 Niedolog ~${e.underlog_gap_kcal} kcal/dzień — loguj dokładniej`);
   if (verdict?.today_focus) { L.push(""); L.push(`👉 ${verdict.today_focus}`); }
@@ -171,6 +178,10 @@ Deno.serve(async (req) => {
       ? Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 86400000)) : null;
 
     const todayNutr = todayNutrRes.data;
+    const intakeSoFar = todayNutr ? num(todayNutr.calories) : null;
+    const proteinSoFar = todayNutr ? num(todayNutr.protein) : null;
+    const remainingKcal = intakeSoFar != null ? targetKcal - Math.round(intakeSoFar) : targetKcal;
+    const remainingProtein = Math.max(0, proteinFloor - Math.round(proteinSoFar ?? 0));
 
     const signals = {
       profile: {
@@ -190,8 +201,8 @@ Deno.serve(async (req) => {
       recovery: { avg_sleep_h: avgSleep, avg_readiness: avgReadiness, avg_hrv: avgHrv, avg_rhr: avgRhr },
       today: { date: today, target_kcal: targetKcal, protein_floor_g: proteinFloor,
         deficit_kcal: deficitPerDay, add_back_kcal: addBack,
-        intake_so_far: todayNutr ? num(todayNutr.calories) : null,
-        protein_so_far: todayNutr ? num(todayNutr.protein) : null,
+        intake_so_far: intakeSoFar, protein_so_far: proteinSoFar,
+        remaining_kcal: remainingKcal, remaining_protein: remainingProtein,
         active_so_far: todayActive, steps_so_far: todayOura ? num(todayOura.steps) : null },
     };
 

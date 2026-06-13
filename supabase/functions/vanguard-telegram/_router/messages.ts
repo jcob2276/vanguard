@@ -216,6 +216,17 @@ export async function handleIncomingMessage(
       if (lowerText === '/dieta' || lowerText === '🍽️ dieta' || lowerText === 'dieta') {
         try {
           await sendChatAction(telegramToken, chatId, "typing");
+          // Refresh today's Yazio first so "zjedzone / zostało" reflects what you ate so far.
+          await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+              'apikey': supabaseServiceRoleKey
+            },
+            body: JSON.stringify({ userId: vanguardUserId, days: 1 })
+          }).catch((e) => console.error('[messages] /dieta yazio presync failed:', e));
+
           const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, {
             method: 'POST',
             headers: {
