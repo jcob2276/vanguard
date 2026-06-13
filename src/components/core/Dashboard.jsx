@@ -317,9 +317,11 @@ export default function Dashboard({ session }) {
 
   if (showWorkoutLogger) {
     return (
-      <Suspense fallback={<ViewFallback />}>
-        <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
-      </Suspense>
+      <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
+        <Suspense fallback={<ViewFallback />}>
+          <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
+        </Suspense>
+      </div>
     );
   }
 
@@ -378,7 +380,7 @@ export default function Dashboard({ session }) {
         <main className="flex-1 overflow-hidden">
           <div
             key={view}
-            className={`p-5 pb-8 animate-in fade-in duration-300 ${slideDir === 'right' ? 'slide-in-from-right-4' : 'slide-in-from-left-4'}`}
+            className={`p-5 pb-8 ${slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left'}`}
           >
           {view === 'dzis' && (
             <div className="space-y-7">

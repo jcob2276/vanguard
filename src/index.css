@@ -197,3 +197,31 @@
 .bg-dayB { background-color: #f43f5e; }
 .bg-dayC { background-color: #10b981; }
 .bg-dayD { background-color: #f59e0b; }
+
+/* Premium Native Transition Animations */
+@keyframes spring-slide-right {
+  0% { transform: translateX(24px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes spring-slide-left {
+  0% { transform: translateX(-24px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes ios-modal-slide-up {
+  0% { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-spring-right {
+  animation: spring-slide-right 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-spring-left {
+  animation: spring-slide-left 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-ios-modal {
+  animation: ios-modal-slide-up 0.42s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
+}
