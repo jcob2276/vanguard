@@ -104,13 +104,11 @@ export default function Photos({ session }) {
             <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
           </label>
         </div>
-        <div className="border-t border-border-custom pt-4 flex items-center justify-between text-left">
-          <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Data nowego wpisu</span>
+        <div className="hidden">
           <input 
             type="date" 
             value={photoDate} 
             onChange={(e) => setPhotoDate(e.target.value)} 
-            className="bg-transparent text-[11px] font-bold text-primary uppercase outline-none cursor-pointer" 
           />
         </div>
       </div>
@@ -220,17 +218,6 @@ export default function Photos({ session }) {
           })}
         </div>
       </section>
-
-      {/* DATE PICKER FOR UPLOAD */}
-      <div className="bg-surface border border-border-custom rounded-2xl p-4 flex items-center justify-between shadow-sm">
-        <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Data nowego wpisu</p>
-        <input 
-          type="date" 
-          value={photoDate} 
-          onChange={(e) => setPhotoDate(e.target.value)} 
-          className="bg-transparent text-[11px] font-bold text-primary uppercase outline-none cursor-pointer" 
-        />
-      </div>
 
     </div>
   );
