@@ -7,21 +7,29 @@ export function normalize(s) {
 export const EXERCISES = [
   // Klatka
   { name: 'Wyciskanie sztangi na ławce', tags: ['klatka', 'triceps', 'barki'] },
+  { name: 'Wyciskanie płaskie', tags: ['klatka', 'triceps', 'barki'] },
   { name: 'Wyciskanie hantli na ławce', tags: ['klatka', 'triceps', 'barki'] },
   { name: 'Wyciskanie na skosie', tags: ['klatka', 'barki'] },
+  { name: 'Wyciskanie skośne', tags: ['klatka', 'barki'] },
   { name: 'Rozpiętki', tags: ['klatka'] },
   { name: 'Pompki', tags: ['klatka', 'triceps'] },
   { name: 'Dips', tags: ['klatka', 'triceps'] },
   { name: 'Cable crossover', tags: ['klatka'] },
   // Plecy
-  { name: 'Martwy ciąg', tags: ['plecy', 'nogi', 'pośladki'] },
+  { name: 'Martwy ciąg', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   { name: 'Martwy ciąg rumuński', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
+  { name: 'RDL', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   { name: 'Podciąganie', tags: ['plecy', 'biceps'] },
+  { name: 'Pull-up', tags: ['plecy', 'biceps'] },
+  { name: 'Lat Pulldown', tags: ['plecy', 'biceps'] },
   { name: 'Wiosłowanie sztangą', tags: ['plecy', 'biceps'] },
   { name: 'Wiosłowanie hantlem', tags: ['plecy', 'biceps'] },
+  { name: 'Wiosłowanie jedną ręką', tags: ['plecy', 'biceps'] },
   { name: 'Ściąganie drążka', tags: ['plecy', 'biceps'] },
   { name: 'Face pull', tags: ['plecy', 'barki'] },
   { name: 'Odwrotne rozpiętki', tags: ['barki'] },
+  { name: 'Leaning cable lateral raise', tags: ['barki'] },
+  { name: 'Wznosy bokiem dropset', tags: ['barki'] },
   { name: 'Seal row', tags: ['plecy'] },
   { name: 'Chest-supported row', tags: ['plecy', 'biceps'] },
   // Barki
@@ -32,7 +40,9 @@ export const EXERCISES = [
   { name: 'Arnold press', tags: ['barki'] },
   // Biceps
   { name: 'Uginanie ze sztangą', tags: ['biceps', 'przedramiona'] },
+  { name: 'Uginanie sztangi stojąc', tags: ['biceps'] },
   { name: 'Uginanie z hantlami', tags: ['biceps'] },
+  { name: 'Uginanie hantli (ławka skośna)', tags: ['biceps'] },
   { name: 'Uginanie młotkowe', tags: ['biceps', 'przedramiona'] },
   { name: 'Uginanie na modlitewniku', tags: ['biceps'] },
   { name: 'Uginanie na lince', tags: ['biceps'] },
@@ -42,6 +52,8 @@ export const EXERCISES = [
   { name: 'French press', tags: ['triceps'] },
   { name: 'Skull crushers', tags: ['triceps'] },
   { name: 'Overhead triceps extension', tags: ['triceps'] },
+  { name: 'Overh. triceps ext. (linka)', tags: ['triceps'] },
+  { name: 'Prostowanie łokci (wyciąg)', tags: ['triceps'] },
   // Nogi
   { name: 'Przysiad ze sztangą', tags: ['czworogłowe', 'pośladki', 'dwugłowe ud'] },
   { name: 'Bułgarski przysiad', tags: ['czworogłowe', 'pośladki'] },
@@ -50,14 +62,17 @@ export const EXERCISES = [
   { name: 'Wykroki', tags: ['czworogłowe', 'pośladki'] },
   { name: 'Prostowanie nóg', tags: ['czworogłowe'] },
   { name: 'Zginanie nóg', tags: ['dwugłowe ud'] },
+  { name: 'Leg Curl', tags: ['dwugłowe ud'] },
   { name: 'Hip thrust', tags: ['pośladki', 'dwugłowe ud'] },
   { name: 'Wspięcia na łydki', tags: ['łydki'] },
+  { name: 'Wspięcia na palce', tags: ['łydki'] },
   { name: 'Good morning', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   // Brzuch
   { name: 'Plank', tags: ['brzuch'] },
   { name: 'Crunch', tags: ['brzuch'] },
   { name: 'Hanging leg raise', tags: ['brzuch'] },
   { name: 'Ab rollout', tags: ['brzuch'] },
+  { name: 'Ab wheel rollout', tags: ['brzuch'] },
   { name: 'Dragon flag', tags: ['brzuch'] },
   // Cardio
   { name: 'Bieżnia', tags: ['cardio'] },
@@ -99,7 +114,7 @@ const STIMULUS_PROFILES = [
     },
   },
   {
-    patterns: ['wyciskanie na skosie', 'incline'],
+    patterns: ['wyciskanie na skosie', 'wyciskanie skosne', 'incline'],
     stimulus: {
       klatka: { direct: 1 },
       barki: { indirect: 0.45 },
@@ -136,7 +151,7 @@ const STIMULUS_PROFILES = [
     },
   },
   {
-    patterns: ['pushdown', 'french press', 'skull crusher', 'overhead triceps', 'prostowanie lokci'],
+    patterns: ['pushdown', 'french press', 'skull crusher', 'overhead triceps', 'overh triceps', 'triceps ext', 'prostowanie lokci'],
     stimulus: {
       triceps: { direct: 1 },
     },
@@ -160,6 +175,18 @@ const STIMULUS_PROFILES = [
     stimulus: {
       barki: { direct: 0.75 },
       plecy: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['unoszenie boczne', 'wznosy bokiem', 'lateral raise'],
+    stimulus: {
+      barki: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['odwrotne rozpietki', 'reverse fly', 'rear delt'],
+    stimulus: {
+      barki: { direct: 1 },
     },
   },
   {
@@ -193,7 +220,7 @@ const STIMULUS_PROFILES = [
     },
   },
   {
-    patterns: ['zginanie nog'],
+    patterns: ['zginanie nog', 'leg curl'],
     stimulus: {
       'dwugłowe ud': { direct: 1 },
     },
@@ -206,13 +233,19 @@ const STIMULUS_PROFILES = [
     },
   },
   {
-    patterns: ['wspiecia na lydki', 'calf'],
+    patterns: ['wspiecia na lydki', 'wspiecia na palce', 'calf'],
     stimulus: {
       łydki: { direct: 1 },
     },
   },
   {
-    patterns: ['uginanie', 'curl'],
+    patterns: ['ab wheel', 'ab rollout'],
+    stimulus: {
+      brzuch: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['uginanie', 'biceps curl', 'hammer curl'],
     stimulus: {
       biceps: { direct: 1 },
       przedramiona: { indirect: 0.25 },
