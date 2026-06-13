@@ -18,10 +18,62 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
-import { sendMessage } from "../_shared/telegram.ts";
+import { sendMessageParsed } from "../_shared/telegram.ts";
 
 // Categories with worst eval performance — target these first
 const TARGET_CATEGORIES = ["fact_recall", "relation_reasoning"];
+
+function isUsableQuestion(text: string): boolean {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length < 45) return false;
+  if (!t.includes("?")) return false;
+  if (/^(opowiedz mi|powiedz mi|jak to|co masz na myśli)\s*,?\s*$/i.test(t)) return false;
+  return true;
+}
+
+function cleanMemoryLabel(text: string): string {
+  return text
+    .replace(/\[[^\]]+\]\s*/g, "")
+    .replace(/\b[a-z]+(?:_[a-z]+)+\b/gi, "")
+    .replace(/\s+x\d+\s*:/i, ":")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^\s*[:;,\-.]+\s*/, "")
+    .replace(/\.\s*\./g, ".")
+    .trim()
+    .replace(/[.:;,\s]+$/, "");
+}
+
+function buildDeterministicMemoryQuestion(memoryContext: any): string {
+  const curiosity = memoryContext.pending_curiosity?.[0];
+  if (curiosity?.provocation && curiosity.provocation.includes("?")) return curiosity.provocation;
+  if (curiosity?.hypothesis) {
+    const hypothesis = cleanMemoryLabel(curiosity.hypothesis);
+    return `Opowiedz mi, co jest prawdą, a co fałszem w tej hipotezie: ${hypothesis}. Jaki konkretny przykład z życia ją potwierdza albo obala?`;
+  }
+
+  const pattern = memoryContext.behavioral_patterns?.[0];
+  if (pattern?.title || pattern?.evidence_text) {
+    const patternLabel = cleanMemoryLabel(pattern.title || pattern.evidence_text || pattern.pattern_type);
+    return `Opowiedz mi więcej o tym wzorcu: ${patternLabel}. Kiedy ostatnio się uruchomił i jaki był pierwszy zauważalny sygnał?`;
+  }
+
+  const wiki = memoryContext.wiki_pages?.[0];
+  if (wiki?.title) {
+    return `Opowiedz mi, co trzeba doprecyzować w temacie "${wiki.title}". Jaki fakt, przykład albo decyzja najlepiej uzupełniłaby pamięć Vanguard?`;
+  }
+
+  const edge = memoryContext.graph_edges?.[0];
+  if (edge?.source_entity && edge?.target_entity) {
+    return `Opowiedz mi więcej o relacji "${edge.source_entity} → ${edge.target_entity}". Co jest tu aktualne, a co może być już stare albo nieprecyzyjne?`;
+  }
+
+  const friction = memoryContext.friction_events?.[0];
+  if (friction?.friction_type) {
+    return `Opowiedz mi więcej o ostatnim tarciu typu "${friction.friction_type}". Jaka była intencja, co faktycznie zrobiłeś i jaki był koszt?`;
+  }
+
+  return "Opowiedz mi, które miejsce w pamięci Vanguard najbardziej wymaga doprecyzowania: fakt, relacja, decyzja, wzorzec albo wynik działania.";
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -138,27 +190,65 @@ serve(async (req) => {
 
     // --- Generated deepening question path ---
     if (useGeneratedQuestion) {
-      const { data: recentStream } = await supabase
-        .from("vanguard_stream")
-        .select("content, created_at")
-        .eq("user_id", userId)
-        .not("source", "eq", "eval_interview")
-        .not("source", "eq", "oracle_chat")
-        .order("created_at", { ascending: false })
-        .limit(20);
+      const cut72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
+      const cut30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const streamSnippet = (recentStream || [])
-        .map((r: any) => r.content)
-        .filter((c: string) => c && c.length > 20)
-        .slice(0, 12)
-        .join("\n---\n");
+      const [curiosityRes, patternsRes, wikiRes, graphRes, frictionRes, streamRes] = await Promise.all([
+        supabase
+          .from("vanguard_curiosity_queue")
+          .select("hypothesis, provocation, confidence_score, category, evidence_count, created_at")
+          .eq("user_id", userId)
+          .eq("status", "pending")
+          .order("confidence_score", { ascending: false })
+          .limit(5),
+        supabase
+          .from("vanguard_behavioral_patterns")
+          .select("pattern_type, title, evidence_text, occurrence_count, confidence, status, last_seen")
+          .eq("user_id", userId)
+          .in("status", ["active", "candidate"])
+          .order("confidence", { ascending: false })
+          .limit(5),
+        supabase
+          .from("vanguard_wiki_pages")
+          .select("title, page_type, status, confidence, summary, tags, last_seen_at")
+          .eq("user_id", userId)
+          .in("status", ["active", "needs_review"])
+          .order("last_seen_at", { ascending: false })
+          .limit(8),
+        supabase
+          .from("vanguard_entity_links")
+          .select("source_entity, relation, target_entity, temporal_status, memory_type, confidence_score, evidence_count, last_seen, fact_text")
+          .eq("user_id", userId)
+          .in("status", ["active"])
+          .order("evidence_count", { ascending: false })
+          .limit(12),
+        supabase
+          .from("confirmed_friction_events")
+          .select("occurred_at, friction_type, declared_intention, actual_behavior, deviation, immediate_cost, confidence")
+          .eq("user_id", userId)
+          .gte("occurred_at", cut30d)
+          .order("occurred_at", { ascending: false })
+          .limit(8),
+        supabase
+          .from("vanguard_stream")
+          .select("content, category, created_at")
+          .eq("user_id", userId)
+          .not("source", "eq", "eval_interview")
+          .not("source", "eq", "oracle_chat")
+          .gte("created_at", cut72h)
+          .order("created_at", { ascending: false })
+          .limit(12),
+      ]);
 
-      if (!streamSnippet) {
-        return new Response(
-          JSON.stringify({ skipped: true, reason: "No stream content for deepening question" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      const memoryContext = {
+        instruction: "Select one high-information-gain question for the user. Do not quote long source text. Do not force unrelated recent topics together.",
+        pending_curiosity: curiosityRes.data || [],
+        behavioral_patterns: patternsRes.data || [],
+        wiki_pages: wikiRes.data || [],
+        graph_edges: graphRes.data || [],
+        friction_events: frictionRes.data || [],
+        recent_stream_72h: streamRes.data || [],
+      };
 
       let generatedPrompt = "";
       try {
@@ -171,36 +261,50 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `Jesteś asystentem pogłębiającym refleksję. Na podstawie ostatnich myśli użytkownika zadaj jedno pytanie które:
-- Łączy dwa różne wątki lub ujawnia sprzeczność
-- Albo prosi o konkret tam gdzie użytkownik był ogólnikowy
-- Max 2 zdania, naturalny ton po polsku
-- Zacznij od "Opowiedz mi..." / "Co masz na myśli gdy..." / "Jak to się ma do..." / "Kiedy ostatnio..."
-- NIE pytaj o to co już zostało wprost powiedziane`,
+              content: `Jesteś selektorem pytań dla Vanguard OS.
+
+Masz pamięć użytkownika: pending hypotheses, wzorce, wiki, graf, tarcia i świeży stream.
+Wybierz JEDNO pytanie o najwyższej wartości informacyjnej dla pamięci systemu.
+
+Zasady:
+- Nie musisz pytać o ostatnie 24h.
+- Nie łącz dwóch wątków tylko dlatego, że są obok siebie czasowo.
+- Preferuj: lukę w grafie, needs_review, pending hypothesis, powtarzalny wzorzec z N, albo niejasną decyzję.
+- Pytanie ma być naturalne, krótkie, konkretne, po polsku.
+- Możesz dać jedno zdanie obserwacji, ale MUSISZ zakończyć jednym operacyjnym pytaniem ze znakiem "?".
+- Nie cytuj długich fragmentów źródłowych.
+- Max 2 zdania.
+- Zacznij od "Opowiedz mi..." / "Powiedz mi..." / "Kiedy..." / "Co dokładnie...".
+- Nie diagnozuj i nie psychoanalizuj.`,
             },
             {
               role: "user",
-              content: `Ostatnie wpisy:\n${streamSnippet}`,
+              content: `KONTEKST PAMIĘCI:
+${JSON.stringify(memoryContext, null, 2)}
+
+Zwróć tylko treść pytania, bez komentarza.`,
             },
           ],
         });
-        if (result.content && result.content.length > 10) {
-          generatedPrompt = result.content.trim();
+        const candidate = result.content?.trim() || "";
+        if (isUsableQuestion(candidate)) {
+          generatedPrompt = candidate;
         }
       } catch (err) {
         console.warn("[eval-interview] deepening question generation failed:", err);
       }
 
-      if (!generatedPrompt) {
-        return new Response(
-          JSON.stringify({ skipped: true, reason: "Generated question failed" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+      if (!isUsableQuestion(generatedPrompt)) {
+        generatedPrompt = buildDeterministicMemoryQuestion(memoryContext);
+        console.warn("[eval-interview] using deterministic memory fallback question");
       }
 
-      const telegramMsg = `🎙️ *Pytanie pogłębiające*\n\n${generatedPrompt}\n\n_Odpowiedz głosem lub tekstem._`;
+      const telegramMsg = `🎙️ Pytanie pogłębiające\n\n${generatedPrompt}\n\nOdpowiedz głosem lub tekstem.`;
       if (chatId && telegramToken) {
-        await sendMessage(telegramToken, chatId, telegramMsg, { parseMode: "Markdown" });
+        const sendResult = await sendMessageParsed(telegramToken, chatId, telegramMsg);
+        if (!sendResult.ok) {
+          throw new Error(`Telegram send failed: ${sendResult.description}`);
+        }
       }
 
       await supabase.from("vanguard_stream").insert({
@@ -287,10 +391,13 @@ Zasady:
     const categoryLabel = chosen.category === "fact_recall"
       ? "przypomnienie faktów"
       : "łączenie wątków";
-    const telegramMsg = `🎙️ *Wywiad — ${categoryLabel}*\n\n${interviewPrompt}\n\n_Odpowiedz głosem lub tekstem — informacja trafi do Twojej pamięci._`;
+    const telegramMsg = `🎙️ Wywiad — ${categoryLabel}\n\n${interviewPrompt}\n\nOdpowiedz głosem lub tekstem — informacja trafi do Twojej pamięci.`;
 
     if (chatId && telegramToken) {
-      await sendMessage(telegramToken, chatId, telegramMsg, { parseMode: "Markdown" });
+      const sendResult = await sendMessageParsed(telegramToken, chatId, telegramMsg);
+      if (!sendResult.ok) {
+        throw new Error(`Telegram send failed: ${sendResult.description}`);
+      }
     }
 
     // Record the sent interview prompt in stream for tracking

@@ -11,6 +11,7 @@ import { logAuditEvent } from "../_shared/audit.ts"
 import { getPlanQualitySignal } from "../_shared/planQuality.ts"
 import { logCriticalError } from "../_shared/errorLogging.ts"
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
+import { fetchMedicalContext, formatMedicalContextBlock } from "../_shared/medicalContext.ts"
 
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
@@ -198,6 +199,9 @@ To jest zintegrowany wskaźnik łączący bieg (Strava HR), siłownię, kroki, o
 DZIŚ (${strainToday?.date}): Strain ${strainToday?.strain_score ?? '—'}/21, Recovery ${strainToday?.recovery_score ?? '—'}/100, Fueling ${strainToday?.fueling_score ?? '—'}/100${strainToday?.fueling_provisional ? ' (TYMCZASOWY — dzień niezamknięty, nie wnioskuj o deficycie)' : ''}, Status ${strainToday?.daily_status ?? '—'}, Limiter: ${strainToday?.main_limiter ?? '—'}. ${strainToday?.explanation ?? ''}
 Gdy pytanie brzmi "czy mogę dziś cisnąć / jak forma / co mnie ogranicza" — odpowiadaj NA TYCH LICZBACH: green=można obciążać, yellow=ostrożnie/easy, red=regeneracja. Wskaż konkretny limiter. Jeśli fueling_provisional=true, fueling dziś nie jest finalnym limiterem.
 Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: brak danych (jeszcze nie policzono).';
+
+    const medicalContext = await fetchMedicalContext(supabase, user_id, todayDate);
+    const medicalContextText = formatMedicalContextBlock(medicalContext);
 
     // DYNAMIC CONTEXT (RAG)
     let semanticContext = "";
@@ -662,6 +666,8 @@ ${healthSummaryText}
 
 ${strainText}
 
+${medicalContextText}
+
 PAMIĘĆ SEMANTYCZNA I GRAF:
 ${semanticContext}
 ${graphContext}
@@ -677,6 +683,7 @@ ${wikiContext}
 - Dane z [ARCHIWUM] → "Wcześniej X, ale nie wiem czy to nadal aktualne."
 - Brak danych z 7 dni → "Nie mam świeżych danych o X."
 - Pytania o kroki/kalorie odpowiadaj z sekcji [ZDROWIE/JEDZENIE - OSTATNIE 14 DNI]. Jeśli średnia nie jest null, nie wolno twierdzić, że nie masz danych.
+- Pytania o badania krwi/laby odpowiadaj z sekcji [BADANIA / KONTEKST MEDYCZNY - Z DATAMI]. Zawsze podaj datę i age_days/freshness. Stary wynik = kontekst historyczny, nie diagnoza aktualnego stanu.
 - Nie mieszaj historii z teraźniejszością.
 - Bez evidence → tylko: "Hipoteza: ..."
 

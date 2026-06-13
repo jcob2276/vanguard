@@ -37,7 +37,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2630 | 2026-06-12 |
-| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates, wiki) | 791 | 2026-06-12 |
+| `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates, wiki, medical_* context) | 791 | 2026-06-13 |
 | `vanguard-morning-brief` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
 | `vanguard-morning-ping` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
 | `vanguard-midday-check` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 22 | 2026-06-12 |
@@ -110,7 +110,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 469 | 2026-06-12 |
 | `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
 | `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
-| `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`) | 240 | 2026-06-13 |
+| `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`, `medical_lab_results`, `medical_documents`, `body_composition_measurements`) | 240 | 2026-06-13 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 102 | 2026-06-11 |
 

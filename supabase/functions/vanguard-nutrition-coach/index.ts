@@ -14,6 +14,7 @@ import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/s
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { sendMessage } from "../_shared/telegram.ts";
+import { fetchMedicalContext } from "../_shared/medicalContext.ts";
 
 const KCAL_PER_KG = 7700;            // ~kcal per kg body mass
 const OURA_CORRECTION = 0.88;        // wearables over-read active burn ~10-15%
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
     if (!profile) throw new Error("Brak nutrition_profile dla usera — najpierw seed profilu.");
 
     // ── Pull everything in parallel ────────────────────────────────────────────
-    const [bmRes, ouraRes, nutrRes, runsRes, gymRes, todayOuraRes, todayNutrRes] = await Promise.all([
+    const [bmRes, ouraRes, nutrRes, runsRes, gymRes, todayOuraRes, todayNutrRes, medicalContext] = await Promise.all([
       supabase.from("body_metrics")
         .select("date, weight, waist, belly, body_fat")
         .eq("user_id", userId).gte("date", d45).order("date", { ascending: true }),
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
       supabase.from("daily_nutrition")
         .select("calories, protein, carbs, fat, fiber")
         .eq("user_id", userId).eq("date", today).maybeSingle(),
+      fetchMedicalContext(supabase, userId, today),
     ]);
 
     const bm = bmRes.data || [];
@@ -199,6 +201,7 @@ Deno.serve(async (req) => {
         avg_carbs: avgCarbs, avg_fat: avgFat, avg_fiber: avgFiber, intake_cv: intakeCv },
       activity: { avg_steps: avgSteps, run_km_30d: runKm, runs_30d: runs.length, gym_30d: gymCount },
       recovery: { avg_sleep_h: avgSleep, avg_readiness: avgReadiness, avg_hrv: avgHrv, avg_rhr: avgRhr },
+      medical_context: medicalContext,
       today: { date: today, target_kcal: targetKcal, protein_floor_g: proteinFloor,
         deficit_kcal: deficitPerDay, add_back_kcal: addBack,
         intake_so_far: intakeSoFar, protein_so_far: proteinSoFar,
@@ -216,6 +219,7 @@ Zasady oceny:
 - Sen < 7h i niski błonnik to realne hamulce redukcji — flaguj.
 - Cel mierz trendem talia/brzuch/waga, nie samym %BF (bez DEXA % jest niepewny).
 - Konkretne polskie produkty (Lidl/Biedronka/Żabka), realne, nie suplementy jako baza.
+- Masz medical_context z badaniami. Używaj go jako kontekstu z datą: zawsze patrz na age_days/freshness. Stare/stale wyniki (np. >180 dni) nie opisują automatycznie dzisiejszego stanu. Nie diagnozuj; możesz flagować "warto odświeżyć badania" lub "historycznie X nie wyglądało jak oczywisty limiter".
 Mówisz po polsku, bezpośrednio, liczbami. Nie komplementujesz — diagnozujesz.`;
 
     const USER = `DANE (policzone deterministycznie, ufaj im):
