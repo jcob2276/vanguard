@@ -515,7 +515,7 @@ export default function WorkoutLogger({ session, onBack }) {
   }
 
   return (
-    <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-300">
+    <div className="flex-1 flex flex-col pb-32 w-full">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border-custom p-4 flex items-center gap-3">
         <button onClick={onBack} className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors">
           <ChevronLeft size={20} />

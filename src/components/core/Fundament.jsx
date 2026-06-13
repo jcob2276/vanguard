@@ -120,8 +120,8 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/30 transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-8 shadow-sm">
+    <div className="w-full flex flex-col text-text-primary selection:bg-primary/30">
+      <div className="flex flex-col pb-8">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-xl">
           <button
             onClick={onBack}

@@ -141,12 +141,33 @@ function DayCounter() {
   );
 }
 
+function ModalSheet({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/45 backdrop-blur-xs transition-opacity duration-300">
+      {/* Backdrop */}
+      <div className="absolute inset-0" onClick={onClose} />
+      
+      {/* Sheet */}
+      <div className="relative flex h-[92vh] w-full max-w-md mx-auto flex-col rounded-t-[32px] border-t border-x border-border-custom bg-background/98 backdrop-blur-2xl shadow-2xl overflow-hidden animate-ios-modal">
+        {/* Handle bar */}
+        <div className="mx-auto h-1.5 w-12 rounded-full bg-text-muted/30 my-4 shrink-0 cursor-pointer" onClick={onClose} />
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [showTodo, setShowTodo] = useState(false);
+  const [showFundament, setShowFundament] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   // Theme support
@@ -288,22 +309,6 @@ export default function Dashboard({ session }) {
     if (code && userId) handleGoogleCallback(code);
   }, [handleGoogleCallback, userId]);
 
-  if (view === 'fundament') {
-    return (
-      <Suspense fallback={<ViewFallback />}>
-        <Fundament session={session} onBack={() => setView('mirror')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
-      </Suspense>
-    );
-  }
-
-  if (view === 'todo') {
-    return (
-      <Suspense fallback={<ViewFallback />}>
-        <Todo session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
-      </Suspense>
-    );
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -311,16 +316,6 @@ export default function Dashboard({ session }) {
           <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
           <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
-      </div>
-    );
-  }
-
-  if (showWorkoutLogger) {
-    return (
-      <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
-        <Suspense fallback={<ViewFallback />}>
-          <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
-        </Suspense>
       </div>
     );
   }
@@ -361,14 +356,14 @@ export default function Dashboard({ session }) {
               <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
             <button 
-              onClick={() => setView('fundament')} 
+              onClick={() => setShowFundament(true)} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="Fundament"
             >
               <Fingerprint size={15} />
             </button>
             <button 
-              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} 
+              onClick={() => setShowTodo(true)} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="To Do"
             >
@@ -454,6 +449,27 @@ export default function Dashboard({ session }) {
             </button>
           ))}
         </nav>
+
+        {/* Global Modal Sheets (Todo, Fundament, WorkoutLogger) */}
+        <ModalSheet isOpen={showTodo} onClose={() => setShowTodo(false)}>
+          <Todo session={session} onBack={() => setShowTodo(false)} />
+        </ModalSheet>
+
+        <ModalSheet isOpen={showFundament} onClose={() => setShowFundament(false)}>
+          <Fundament 
+            session={session} 
+            onBack={() => setShowFundament(false)} 
+            onSyncCalendar={startGoogleAuth} 
+            isSyncing={isSyncing} 
+          />
+        </ModalSheet>
+
+        <ModalSheet isOpen={showWorkoutLogger} onClose={() => { setShowWorkoutLogger(false); refresh(); }}>
+          <WorkoutLogger 
+            session={session} 
+            onBack={() => { setShowWorkoutLogger(false); refresh(); }} 
+          />
+        </ModalSheet>
       </div>
     </div>
   );
