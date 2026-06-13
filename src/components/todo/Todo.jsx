@@ -20,6 +20,7 @@ import {
   setTodoStatus,
   updateTodoItem,
 } from '../../lib/todo';
+import { parseTodoQuickInput } from '../../lib/todoParser';
 
 const PRIORITIES = [
   { id: 'low', label: 'low', dot: 'bg-white/25', chip: 'text-white/35' },
@@ -100,6 +101,7 @@ export default function Todo({ session, onBack }) {
 
   const sectionById = useMemo(() => Object.fromEntries(sections.map((s) => [s.id, s])), [sections]);
   const openItems = useMemo(() => items.filter((i) => i.status === 'open'), [items]);
+  const parsedInput = useMemo(() => parseTodoQuickInput(form.title), [form.title]);
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   const filteredSections = useMemo(() => {
@@ -133,9 +135,16 @@ export default function Todo({ session, onBack }) {
   };
 
   const addItem = () => {
-    if (!form.title.trim()) return;
+    const title = parsedInput.title || form.title.trim();
+    if (!title) return;
     run(async () => {
-      await createTodoItem(userId, { ...form, section_id: activeSection });
+      await createTodoItem(userId, {
+        ...form,
+        title,
+        priority: parsedInput.priority || form.priority,
+        due_date: parsedInput.due_date || form.due_date,
+        section_id: activeSection,
+      });
       setForm({ title: '', notes: '', priority: form.priority, tagsText: '', due_date: '' });
       setShowOptions(false);
     });
@@ -211,6 +220,39 @@ export default function Todo({ session, onBack }) {
                 <Plus size={17} />
               </button>
             </div>
+
+            {(parsedInput.tokens.length > 0 || (parsedInput.title && parsedInput.title !== form.title.trim())) && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 px-2 pb-1">
+                {parsedInput.tokens.map((token) => {
+                  if (token.type === 'priority') {
+                    const meta = priorityMeta(token.value);
+                    return (
+                      <span
+                        key={`${token.type}-${token.value}`}
+                        className={`inline-flex items-center gap-1 rounded-full bg-white/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${meta.chip}`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                        {token.label}
+                      </span>
+                    );
+                  }
+                  return (
+                    <span
+                      key={`${token.type}-${token.value}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary"
+                    >
+                      <Calendar size={10} />
+                      {token.label}
+                    </span>
+                  );
+                })}
+                {parsedInput.title && parsedInput.title !== form.title.trim() && (
+                  <span className="min-w-0 truncate text-[10px] font-bold text-white/28">
+                    zapiszę jako: <span className="text-white/48">{parsedInput.title}</span>
+                  </span>
+                )}
+              </div>
+            )}
 
             {showOptions && (
               <div className="mt-3 space-y-3 border-t border-white/[0.06] pt-3">
