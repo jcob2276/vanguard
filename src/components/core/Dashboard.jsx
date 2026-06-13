@@ -141,85 +141,12 @@ function DayCounter() {
   );
 }
 
-function ModalSheet({ isOpen, onClose, children }) {
-  const [startY, setStartY] = useState(0);
-  const [currentY, setCurrentY] = useState(0);
-  const [dragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setCurrentY(0);
-      setDragging(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleTouchStart = (e) => {
-    setStartY(e.targetTouches[0].clientY);
-    setDragging(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!dragging) return;
-    const diff = e.targetTouches[0].clientY - startY;
-    if (diff > 0) {
-      setCurrentY(diff);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setDragging(false);
-    if (currentY > 150) {
-      onClose();
-    }
-    setCurrentY(0);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/45 backdrop-blur-xs transition-opacity duration-300">
-      {/* Backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
-      
-      {/* Sheet */}
-      <div 
-        style={{ 
-          transform: `translateY(${currentY}px)`,
-          transition: dragging ? 'none' : 'transform 0.4s cubic-bezier(0.32, 0.94, 0.6, 1)'
-        }}
-        className="relative flex h-[92vh] w-full max-w-md mx-auto flex-col rounded-t-[32px] border-t border-x border-border-custom bg-background/98 backdrop-blur-2xl shadow-2xl overflow-hidden"
-      >
-        {/* Handle bar acting as drag handle */}
-        <div 
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="w-full py-4 shrink-0 flex justify-center items-center cursor-row-resize touch-none"
-        >
-          <div className="h-1.5 w-12 rounded-full bg-text-muted/30" />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export const triggerHaptic = (pattern = 10) => {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(pattern);
-  }
-};
-
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
-  const [showTodo, setShowTodo] = useState(false);
-  const [showFundament, setShowFundament] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   // Theme support
@@ -237,7 +164,6 @@ export default function Dashboard({ session }) {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const navigateTo = (newView) => {
-    triggerHaptic(8);
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx = TAB_ORDER.indexOf(newView);
     setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
@@ -362,6 +288,22 @@ export default function Dashboard({ session }) {
     if (code && userId) handleGoogleCallback(code);
   }, [handleGoogleCallback, userId]);
 
+  if (view === 'fundament') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <Fundament session={session} onBack={() => setView('mirror')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
+      </Suspense>
+    );
+  }
+
+  if (view === 'todo') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <Todo session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+      </Suspense>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -369,6 +311,16 @@ export default function Dashboard({ session }) {
           <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
           <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
+      </div>
+    );
+  }
+
+  if (showWorkoutLogger) {
+    return (
+      <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
+        <Suspense fallback={<ViewFallback />}>
+          <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
+        </Suspense>
       </div>
     );
   }
@@ -382,15 +334,9 @@ export default function Dashboard({ session }) {
     { id: 'kariera', icon: Briefcase, label: 'Kariera' },
   ];
 
-  const isAnySheetOpen = showTodo || showFundament || showWorkoutLogger;
-
   return (
-    <div className={`min-h-screen text-text-primary selection:bg-primary/10 font-sans transition-colors duration-500 overflow-hidden ${
-      isAnySheetOpen ? 'bg-black' : 'bg-background'
-    }`}>
-      <div className={`mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm transition-all duration-500 cubic-bezier(0.32, 0.94, 0.6, 1) origin-top relative ${
-        isAnySheetOpen ? 'scale-[0.93] rounded-t-[28px] translate-y-2 brightness-75 overflow-hidden' : ''
-      }`}>
+    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
             <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
@@ -415,14 +361,14 @@ export default function Dashboard({ session }) {
               <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
             <button 
-              onClick={() => { triggerHaptic(10); setShowFundament(true); }} 
+              onClick={() => setView('fundament')} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="Fundament"
             >
               <Fingerprint size={15} />
             </button>
             <button 
-              onClick={() => { triggerHaptic(10); setShowTodo(true); }} 
+              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="To Do"
             >
@@ -446,7 +392,7 @@ export default function Dashboard({ session }) {
                 icon={Dumbbell}
                 eyebrow="Physical Protocol"
                 label="Zaloguj trening"
-                onClick={() => { triggerHaptic(10); setShowWorkoutLogger(true); }}
+                onClick={() => setShowWorkoutLogger(true)}
               />
             </div>
           )}
@@ -508,27 +454,6 @@ export default function Dashboard({ session }) {
             </button>
           ))}
         </nav>
-
-        {/* Global Modal Sheets (Todo, Fundament, WorkoutLogger) */}
-        <ModalSheet isOpen={showTodo} onClose={() => setShowTodo(false)}>
-          <Todo session={session} onBack={() => setShowTodo(false)} />
-        </ModalSheet>
-
-        <ModalSheet isOpen={showFundament} onClose={() => setShowFundament(false)}>
-          <Fundament 
-            session={session} 
-            onBack={() => setShowFundament(false)} 
-            onSyncCalendar={startGoogleAuth} 
-            isSyncing={isSyncing} 
-          />
-        </ModalSheet>
-
-        <ModalSheet isOpen={showWorkoutLogger} onClose={() => { setShowWorkoutLogger(false); refresh(); }}>
-          <WorkoutLogger 
-            session={session} 
-            onBack={() => { setShowWorkoutLogger(false); refresh(); }} 
-          />
-        </ModalSheet>
       </div>
     </div>
   );

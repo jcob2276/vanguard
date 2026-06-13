@@ -22,7 +22,6 @@ import {
 } from '../../lib/todo';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
-import { triggerHaptic } from '../core/Dashboard';
 
 const PRIORITIES = [
   { id: 'low', label: 'low', dot: 'bg-emerald-500', chip: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/15' },
@@ -218,7 +217,6 @@ function TodoCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              triggerHaptic([15, 30, 15]);
               onToggle();
             }}
             disabled={busy}
@@ -231,7 +229,7 @@ function TodoCard({
             )}
           </button>
 
-          <div className="min-w-0 flex-1" onClick={() => { triggerHaptic(8); onToggleExpand(item.id); }}>
+          <div className="min-w-0 flex-1" onClick={() => onToggleExpand(item.id)}>
             <p className={`text-[13px] font-semibold leading-snug ${item.status === 'done' ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
               {item.title}
             </p>
@@ -252,7 +250,6 @@ function TodoCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  triggerHaptic(10);
                   onCyclePriority();
                 }}
                 className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest bg-text-primary/5 text-text-secondary border border-border-custom hover:bg-text-primary/10 transition-colors"
@@ -389,21 +386,21 @@ function TriageTinderDeck({
         ) : (
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => { triggerHaptic(10); onSetSomeday(); }}
+              onClick={onSetSomeday}
               className="flex flex-col items-center justify-center rounded-xl bg-surface border border-border-custom py-3 text-text-secondary hover:text-text-primary active:scale-95 transition-all"
             >
               <span className="text-lg">☕️</span>
               <span className="text-[8px] font-black uppercase tracking-widest mt-1">Kiedyś</span>
             </button>
             <button
-              onClick={() => { triggerHaptic(15); onSetToday(); }}
+              onClick={onSetToday}
               className="flex flex-col items-center justify-center rounded-xl bg-primary border border-primary/20 py-3 text-white active:scale-95 transition-all"
             >
               <span className="text-lg">⚡️</span>
               <span className="text-[8px] font-black uppercase tracking-widest mt-1">Dziś</span>
             </button>
             <button
-              onClick={() => { triggerHaptic(10); onDrop(); }}
+              onClick={onDrop}
               className="flex flex-col items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/20 py-3 text-rose-500 hover:bg-rose-500/20 active:scale-95 transition-all"
             >
               <span className="text-lg">🗑️</span>
@@ -411,7 +408,7 @@ function TriageTinderDeck({
             </button>
             
             <button
-              onClick={() => { triggerHaptic(10); setShowSectionList(true); }}
+              onClick={() => setShowSectionList(true)}
               className="col-span-3 rounded-xl bg-surface-solid border border-border-custom py-2.5 text-[9px] font-black uppercase tracking-widest text-text-primary hover:bg-surface active:scale-95 transition-all"
             >
               Przypisz Sekcję...
@@ -603,8 +600,8 @@ export default function Todo({ session, onBack }) {
   }
 
   return (
-    <div className="w-full flex flex-col text-text-primary">
-      <div className="flex flex-col pb-24">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-xl">
           <button 
             onClick={onBack} 
