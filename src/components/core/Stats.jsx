@@ -206,6 +206,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     setEditingSession(session.id);
     setEditForm({
       date: session.date,
+      workout_day: session.workout_day ?? '',
       logs: session.exercise_logs.map(log => ({ ...log }))
     });
   }
@@ -215,7 +216,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       // 1. Update session date
       const { error: sessionError } = await supabase
         .from('workout_sessions')
-        .update({ date: editForm.date })
+        .update({ date: editForm.date, workout_day: editForm.workout_day })
         .eq('id', editingSession);
       if (sessionError) throw sessionError;
       

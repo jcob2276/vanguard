@@ -79,6 +79,12 @@ export const EXERCISES = [
   { name: 'Rower stacjonarny', tags: ['cardio', 'nogi'] },
   { name: 'Wioślarze (ergometr)', tags: ['cardio', 'plecy'] },
   { name: 'Kettlebell swing', tags: ['pośladki', 'plecy', 'cardio'] },
+  // Wellness
+  { name: 'Sauna', tags: ['wellness'] },
+  { name: 'Lodowata kąpiel', tags: ['wellness'] },
+  { name: 'Zimny prysznic', tags: ['wellness'] },
+  { name: 'Stretching', tags: ['wellness'] },
+  { name: 'Foam rolling', tags: ['wellness'] },
 ];
 
 // Exercise name → tags lookup (normalized keys)
@@ -279,6 +285,7 @@ export const TAG_COLOR = {
   łydki:         'bg-slate-400/15 text-slate-300 border-slate-400/25',
   przedramiona:  'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
   cardio:        'bg-red-500/15 text-red-300 border-red-500/25',
+  wellness:      'bg-teal-400/15 text-teal-300 border-teal-400/25',
 };
 
 export function tagClass(tag) {

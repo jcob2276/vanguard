@@ -44,39 +44,70 @@ export function WorkoutHistorySection({
                 <td className="p-3 text-center text-text-secondary">
                   {editingSession === s.id ? (
                     <div className="space-y-2 text-left">
-                      {editForm.logs.map((log, idx) => (
+                      <input
+                        type="text"
+                        value={editForm.workout_day ?? ''}
+                        onChange={e => setEditForm({...editForm, workout_day: e.target.value})}
+                        placeholder="Nazwa treningu..."
+                        className="w-full bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] font-bold text-text-primary outline-none focus:border-primary/50"
+                      />
+                      {editForm.logs.map((log, idx) => {
+                        const isWellness = log.muscle_tags?.includes('wellness') ||
+                          ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'].some(
+                            w => (log.exercise_name || '').toLowerCase().startsWith(w)
+                          );
+                        const updateLog = (field, value) => {
+                          const newLogs = [...editForm.logs];
+                          newLogs[idx] = { ...newLogs[idx], [field]: value };
+                          setEditForm({...editForm, logs: newLogs});
+                        };
+                        return (
                         <div key={log.id} className="flex items-center gap-2 bg-surface/50 p-2 rounded-lg border border-border-custom">
                           <span className="text-[8px] w-12 truncate text-text-secondary">{log.exercise_name}</span>
-                          <input 
-                            type="number" 
-                            step="0.5" 
-                            value={log.weight} 
-                            onChange={e => {
-                              const newLogs = [...editForm.logs];
-                              newLogs[idx].weight = e.target.value;
-                              setEditForm({...editForm, logs: newLogs});
-                            }} 
-                            className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50" 
-                          />
-                          <span className="text-[8px] text-text-muted">kg x</span>
-                          <input 
-                            type="number" 
-                            value={log.reps} 
-                            onChange={e => {
-                              const newLogs = [...editForm.logs];
-                              newLogs[idx].reps = e.target.value;
-                              setEditForm({...editForm, logs: newLogs});
-                            }} 
-                            className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50" 
-                          />
-                          <button 
-                            onClick={() => deleteLog(log.id)} 
+                          {isWellness ? (
+                            <>
+                              <input
+                                type="number"
+                                value={log.reps}
+                                onChange={e => updateLog('reps', e.target.value)}
+                                className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                              />
+                              <span className="text-[8px] text-text-muted">min</span>
+                              <input
+                                type="number"
+                                value={log.weight}
+                                onChange={e => updateLog('weight', e.target.value)}
+                                className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                              />
+                              <span className="text-[8px] text-text-muted">°C</span>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="number"
+                                step="0.5"
+                                value={log.weight}
+                                onChange={e => updateLog('weight', e.target.value)}
+                                className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                              />
+                              <span className="text-[8px] text-text-muted">kg x</span>
+                              <input
+                                type="number"
+                                value={log.reps}
+                                onChange={e => updateLog('reps', e.target.value)}
+                                className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                              />
+                            </>
+                          )}
+                          <button
+                            onClick={() => deleteLog(log.id)}
                             className="text-rose-500/70 hover:text-rose-500 ml-auto p-1 transition-colors"
                           >
                             <Trash2 size={10} />
                           </button>
                         </div>
-                      ))}
+                        );
+                      })}
                       <button 
                         onClick={updateSession} 
                         className="w-full bg-primary text-white py-2 rounded-lg text-[8px] font-black uppercase tracking-wider shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all"

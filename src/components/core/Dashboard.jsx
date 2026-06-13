@@ -1,11 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Briefcase,
   Calendar,
   CheckSquare,
   Clock,
   Dumbbell,
-  Fingerprint,
+  LayoutDashboard,
   Moon,
   Play,
   RefreshCw,
@@ -360,20 +361,20 @@ export default function Dashboard({ session }) {
             >
               <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
-            <button 
-              onClick={() => setView('fundament')} 
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
-              title="Fundament"
-            >
-              <Fingerprint size={15} />
-            </button>
-            <button 
-              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} 
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
+            <button
+              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
               title="To Do"
             >
               <CheckSquare size={15} />
             </button>
+            <Link
+              to="/dashboard"
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+              title="Desktop dashboard"
+            >
+              <LayoutDashboard size={15} />
+            </Link>
           </div>
         </header>
 
