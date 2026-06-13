@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { MUSCLE_TAGS, TAG_SET_WEIGHTS, tagsForExercise } from '../../data/exercises';
+import { MUSCLE_TAGS, stimulusForExercise, tagsForExercise } from '../../data/exercises';
 
 // ─── SVG body region definitions ──────────────────────────────────────────────
 // viewBox="0 0 100 194"  (front and back use same coordinate space)
@@ -145,7 +145,9 @@ export default function MuscleHeatmap({ session }) {
   const [period, setPeriod]     = useState(30);
   const [intensity, setIntensity] = useState({});   // tag → 0–1
   const [setsByTag, setSetsByTag] = useState({});   // tag → count
-  const [loadByTag, setLoadByTag] = useState({});    // tag → weighted stimulus
+  const [directByTag, setDirectByTag] = useState({});
+  const [indirectByTag, setIndirectByTag] = useState({});
+  const [loadByTag, setLoadByTag] = useState({});    // tag → effective stimulus
   const [loading, setLoading]   = useState(true);
   const userId = session?.user?.id;
 
@@ -165,28 +167,35 @@ export default function MuscleHeatmap({ session }) {
         if (error) throw error;
 
         // Reset counters
-        const rawSets = {};
-        MUSCLE_TAGS.forEach(t => { rawSets[t] = 0; });
+        const directSets = {};
+        const indirectSets = {};
+        const effectiveSets = {};
+        MUSCLE_TAGS.forEach(t => { directSets[t] = 0; indirectSets[t] = 0; effectiveSets[t] = 0; });
 
         (data ?? []).forEach(log => {
           const tags = tagsForLog(log);
+          const stimulus = stimulusForExercise(log.exercise_name, tags);
 
-          tags.forEach((tag, index) => {
-            if (rawSets[tag] !== undefined) {
-              // Tag order is meaningful: primary muscle gets 1 set, secondary less.
-              const tagImpact = TAG_SET_WEIGHTS[index] ?? 0.25;
-              rawSets[tag] += tagImpact;
+          Object.entries(stimulus).forEach(([tag, value]) => {
+            if (effectiveSets[tag] !== undefined) {
+              const direct = Number(value.direct || 0);
+              const indirect = Number(value.indirect || 0);
+              directSets[tag] += direct;
+              indirectSets[tag] += indirect;
+              effectiveSets[tag] += direct + indirect;
             }
           });
         });
 
-        setSetsByTag(rawSets);
-        setLoadByTag(rawSets);
+        setSetsByTag(effectiveSets);
+        setDirectByTag(directSets);
+        setIndirectByTag(indirectSets);
+        setLoadByTag(effectiveSets);
 
         // Normalize intensities to 0-1
-        const maxVal = Math.max(...Object.values(rawSets), 1);
+        const maxVal = Math.max(...Object.values(effectiveSets), 1);
         const nextIntensities = {};
-        Object.entries(rawSets).forEach(([tag, val]) => {
+        Object.entries(effectiveSets).forEach(([tag, val]) => {
           nextIntensities[tag] = val > 0 ? Math.min(val / maxVal, 1.0) : 0;
         });
         setIntensity(nextIntensities);
@@ -282,7 +291,7 @@ export default function MuscleHeatmap({ session }) {
           {ranked.length > 0 ? (
             <div className="space-y-2.5 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
-                <div key={tag} className="grid grid-cols-[86px_1fr_44px] items-center gap-3">
+                <div key={tag} className="grid grid-cols-[86px_1fr_76px] items-center gap-3">
                   <span className="flex min-w-0 items-center gap-2 text-[10px] font-black capitalize text-text-secondary">
                     <span
                       className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -300,9 +309,14 @@ export default function MuscleHeatmap({ session }) {
                       }}
                     />
                   </div>
-                  <span className="text-right text-[10px] font-black tabular-nums text-text-muted">
-                    {formatSetCount(setsByTag[tag] ?? 0)} ser.
-                  </span>
+                  <div className="text-right">
+                    <div className="text-[10px] font-black tabular-nums text-text-muted">
+                      {formatSetCount(setsByTag[tag] ?? 0)} eff
+                    </div>
+                    <div className="text-[8px] font-black tabular-nums text-text-muted/70">
+                      {formatSetCount(directByTag[tag] ?? 0)} bezp · {formatSetCount(indirectByTag[tag] ?? 0)} pośr
+                    </div>
+                  </div>
                 </div>
               ))}
               {neglected.length > 0 && (

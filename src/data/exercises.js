@@ -89,6 +89,149 @@ export const MUSCLE_TAGS = [
 
 export const TAG_SET_WEIGHTS = [1, 0.55, 0.35, 0.25];
 
+const STIMULUS_PROFILES = [
+  {
+    patterns: ['wyciskanie plaskie', 'wyciskanie sztangi na lawce', 'wyciskanie hantli na lawce', 'bench'],
+    stimulus: {
+      klatka: { direct: 1 },
+      triceps: { indirect: 0.35 },
+      barki: { indirect: 0.25 },
+    },
+  },
+  {
+    patterns: ['wyciskanie na skosie', 'incline'],
+    stimulus: {
+      klatka: { direct: 1 },
+      barki: { indirect: 0.45 },
+      triceps: { indirect: 0.25 },
+    },
+  },
+  {
+    patterns: ['pompki', 'push-up', 'pushup'],
+    stimulus: {
+      klatka: { direct: 0.85 },
+      triceps: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['dips', 'dipy'],
+    stimulus: {
+      klatka: { direct: 0.8 },
+      triceps: { indirect: 0.6 },
+    },
+  },
+  {
+    patterns: ['ohp', 'overhead press', 'wyciskanie zolnierskie'],
+    stimulus: {
+      barki: { direct: 1 },
+      triceps: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['wyciskanie waskim', 'close-grip', 'cg bench'],
+    stimulus: {
+      triceps: { direct: 1 },
+      klatka: { indirect: 0.45 },
+      barki: { indirect: 0.2 },
+    },
+  },
+  {
+    patterns: ['pushdown', 'french press', 'skull crusher', 'overhead triceps', 'prostowanie lokci'],
+    stimulus: {
+      triceps: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['podciaganie', 'sciaganie drazka', 'lat pulldown', 'pull-up', 'pullup'],
+    stimulus: {
+      plecy: { direct: 1 },
+      biceps: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['wioslowanie', 'seal row', 'chest-supported row'],
+    stimulus: {
+      plecy: { direct: 1 },
+      biceps: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['face pull'],
+    stimulus: {
+      barki: { direct: 0.75 },
+      plecy: { indirect: 0.45 },
+    },
+  },
+  {
+    patterns: ['martwy ciag rumunski', 'rdl'],
+    stimulus: {
+      'dwugłowe ud': { direct: 1 },
+      pośladki: { direct: 0.7 },
+      plecy: { indirect: 0.35 },
+    },
+  },
+  {
+    patterns: ['martwy ciag', 'deadlift'],
+    stimulus: {
+      pośladki: { direct: 0.85 },
+      'dwugłowe ud': { direct: 0.75 },
+      plecy: { indirect: 0.6 },
+    },
+  },
+  {
+    patterns: ['przysiad', 'squat', 'leg press', 'wykroki'],
+    stimulus: {
+      czworogłowe: { direct: 1 },
+      pośladki: { indirect: 0.55 },
+      'dwugłowe ud': { indirect: 0.25 },
+    },
+  },
+  {
+    patterns: ['prostowanie nog'],
+    stimulus: {
+      czworogłowe: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['zginanie nog'],
+    stimulus: {
+      'dwugłowe ud': { direct: 1 },
+    },
+  },
+  {
+    patterns: ['hip thrust'],
+    stimulus: {
+      pośladki: { direct: 1 },
+      'dwugłowe ud': { indirect: 0.35 },
+    },
+  },
+  {
+    patterns: ['wspiecia na lydki', 'calf'],
+    stimulus: {
+      łydki: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['uginanie', 'curl'],
+    stimulus: {
+      biceps: { direct: 1 },
+      przedramiona: { indirect: 0.25 },
+    },
+  },
+];
+
+export function stimulusForExercise(name, fallbackTags = []) {
+  const key = normalize(String(name || ''));
+  const profile = STIMULUS_PROFILES.find((p) => p.patterns.some((pattern) => key.includes(normalize(pattern))));
+  if (profile) return profile.stimulus;
+
+  return fallbackTags.reduce((acc, tag, index) => {
+    if (index === 0) acc[tag] = { direct: 1 };
+    else acc[tag] = { indirect: TAG_SET_WEIGHTS[index] ?? 0.25 };
+    return acc;
+  }, {});
+}
+
 export const TAG_COLOR = {
   klatka:        'bg-blue-500/15 text-blue-300 border-blue-500/25',
   plecy:         'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
