@@ -166,32 +166,27 @@ export default function MuscleHeatmap({ session }) {
 
         // Reset counters
         const rawSets = {};
-        const rawLoad = {};
-        MUSCLE_TAGS.forEach(t => { rawSets[t] = 0; rawLoad[t] = 0; });
+        MUSCLE_TAGS.forEach(t => { rawSets[t] = 0; });
 
         (data ?? []).forEach(log => {
           const tags = tagsForLog(log);
-          const weight = log.weight || 0;
-          const reps   = log.reps || 0;
-          const setVolume = weight * reps;
 
           tags.forEach((tag, index) => {
             if (rawSets[tag] !== undefined) {
               // Tag order is meaningful: primary muscle gets 1 set, secondary less.
               const tagImpact = TAG_SET_WEIGHTS[index] ?? 0.25;
               rawSets[tag] += tagImpact;
-              rawLoad[tag] += (setVolume * tagImpact);
             }
           });
         });
 
         setSetsByTag(rawSets);
-        setLoadByTag(rawLoad);
+        setLoadByTag(rawSets);
 
         // Normalize intensities to 0-1
-        const maxVal = Math.max(...Object.values(rawLoad), 1);
+        const maxVal = Math.max(...Object.values(rawSets), 1);
         const nextIntensities = {};
-        Object.entries(rawLoad).forEach(([tag, val]) => {
+        Object.entries(rawSets).forEach(([tag, val]) => {
           nextIntensities[tag] = val > 0 ? Math.min(val / maxVal, 1.0) : 0;
         });
         setIntensity(nextIntensities);
