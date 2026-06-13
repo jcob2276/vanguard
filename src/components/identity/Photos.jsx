@@ -116,7 +116,7 @@ export default function Photos({ session }) {
   }
 
   return (
-    <div className="flex-1 p-6 space-y-8 pb-24 text-text-primary">
+    <div className="flex-1 p-6 space-y-4 text-text-primary">
       
       {/* HEADER */}
       <header className="flex justify-between items-start">
