@@ -429,32 +429,32 @@ export default function Dashboard({ session }) {
           )}
           </div>
         </main>
-
-        <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
-          {/* Sliding background indicator pill */}
-          <div 
-            className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)"
-            style={{
-              width: 'calc(25% - 3px)',
-              left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
-            }}
-          />
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
-              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
-                view === item.id 
-                  ? 'text-primary font-black' 
-                  : 'text-text-muted hover:text-text-primary'
-              }`}
-            >
-              <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-              <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
-            </button>
-          ))}
-        </nav>
       </div>
+
+      <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
+        {/* Sliding background indicator pill */}
+        <div 
+          className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)"
+          style={{
+            width: 'calc(25% - 3px)',
+            left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
+          }}
+        />
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => navigateTo(item.id)}
+            className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
+              view === item.id 
+                ? 'text-primary font-black' 
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+            <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
