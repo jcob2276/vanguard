@@ -175,12 +175,11 @@ export default function MuscleHeatmap({ session }) {
           const reps   = log.reps || 0;
           const setVolume = weight * reps;
 
-          tags.forEach(tag => {
+          tags.forEach((tag, index) => {
             if (rawSets[tag] !== undefined) {
-              rawSets[tag] += 1;
-              
-              // Apply exercise-specific set weight impact if exists
-              const tagImpact = TAG_SET_WEIGHTS[tag] ?? 1.0;
+              // Tag order is meaningful: primary muscle gets 1 set, secondary less.
+              const tagImpact = TAG_SET_WEIGHTS[index] ?? 0.25;
+              rawSets[tag] += tagImpact;
               rawLoad[tag] += (setVolume * tagImpact);
             }
           });
@@ -213,9 +212,10 @@ export default function MuscleHeatmap({ session }) {
     .filter(([, n]) => n > 0);
 
   const maxLoad = ranked[0]?.[1] ?? 1;
-  const trainedTags = new Set(Object.keys(setsByTag));
+  const trainedTags = new Set(Object.entries(setsByTag).filter(([, n]) => n > 0).map(([tag]) => tag));
   const neglected = MUSCLE_TAGS.filter(tag => !trainedTags.has(tag)).slice(0, 4);
   const topTag = ranked[0]?.[0] ?? null;
+  const formatSetCount = (count) => Number.isInteger(count) ? count : count.toFixed(1);
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md shadow-sm">
@@ -306,7 +306,7 @@ export default function MuscleHeatmap({ session }) {
                     />
                   </div>
                   <span className="text-right text-[10px] font-black tabular-nums text-text-muted">
-                    {setsByTag[tag] ?? 0} ser.
+                    {formatSetCount(setsByTag[tag] ?? 0)} ser.
                   </span>
                 </div>
               ))}
