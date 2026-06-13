@@ -23,31 +23,42 @@ export default function GoalsCard({ session, onEditClick }) {
   const hasAny = GOALS.some(g => goals[g.key]);
   if (!hasAny) return null;
 
+  const THEME_GOALS = {
+    goal_cialo: { bg: 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/10 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400' },
+    goal_duch: { bg: 'bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/10 dark:border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400' },
+    goal_konto: { bg: 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/10 dark:border-amber-500/20', text: 'text-amber-600 dark:text-amber-400' }
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[8px] font-black uppercase tracking-[0.24em] text-white/30">Cele kierunkowe</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Cele kierunkowe</p>
         {onEditClick && (
-          <button onClick={onEditClick} className="p-1.5 text-white/25 hover:text-white transition-colors">
-            <Edit2 size={11} />
+          <button onClick={onEditClick} className="p-1.5 text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+            <Edit2 size={12} />
           </button>
         )}
       </div>
-      <div className="grid gap-2">
-        {GOALS.map(({ key, dateKey, icon: Icon, tone, border, bg }) => {
+      <div className="grid gap-2.5">
+        {GOALS.map(({ key, dateKey, icon: Icon, tone }) => {
           const text = goals[key];
           if (!text) return null;
           const days = goals[dateKey] ? differenceInDays(parseISO(goals[dateKey]), new Date()) : null;
           const urgent = days !== null && days <= 30;
+          
+          const theme = THEME_GOALS[key] || { bg: 'bg-surface-solid/40 border-border-custom', text: tone };
+
           return (
-            <div key={key} className={`flex items-start gap-3 rounded-lg border ${border} ${bg} p-3`}>
-              <Icon size={13} className={`${tone} mt-0.5 shrink-0`} />
+            <div key={key} className={`flex items-start gap-3 rounded-[20px] border ${theme.bg} p-3.5 shadow-sm`}>
+              <Icon size={14} className={`${theme.text} mt-0.5 shrink-0`} />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase leading-tight text-white">{text}</p>
+                <p className="text-[13px] font-semibold leading-relaxed text-text-primary">{text}</p>
               </div>
               {days !== null && (
-                <span className={`shrink-0 rounded-md px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${
-                  urgent ? 'bg-orange-400/15 text-orange-300' : 'bg-white/[0.05] text-white/35'
+                <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[9px] font-bold border ${
+                  urgent 
+                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400' 
+                    : 'bg-surface-solid/40 border-border-custom text-text-secondary'
                 }`}>
                   {days}d
                 </span>

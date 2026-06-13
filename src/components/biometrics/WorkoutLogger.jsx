@@ -10,7 +10,7 @@ const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', r
 const newExercise = () => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
 const newActivity = () => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
 
-const numInput = "h-11 w-full bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm font-black text-white text-center outline-none focus:border-primary/60 focus:bg-white/[0.09] transition-all placeholder:text-white/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const numInput = "h-11 w-full bg-surface border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_rgba(79,70,229,0.08)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 
 function epley(kg, reps) {
@@ -114,17 +114,17 @@ function ExerciseNameInput({ value, tags, onChange }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Nazwa ćwiczenia..."
-        className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/35"
+        className="w-full bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-muted/40"
       />
       {open && matches.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-white/[0.1] bg-zinc-900 shadow-xl overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-border-custom bg-surface-solid shadow-lg overflow-hidden">
           {matches.map(ex => (
             <button
               key={ex.name}
               onMouseDown={() => select(ex)}
-              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors gap-3"
+              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-text-primary/[0.04] transition-colors gap-3"
             >
-              <span className="text-sm text-white/80 font-medium">{ex.name}</span>
+              <span className="text-sm text-text-primary font-medium">{ex.name}</span>
               <div className="flex gap-1 shrink-0">
                 {ex.tags.slice(0, 3).map(t => (
                   <span key={t} className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${tagClass(t)}`}>{t}</span>
@@ -160,12 +160,12 @@ function TagRow({ tags, onChange }) {
           <button
             onClick={() => setPicking(p => !p)}
             onBlur={() => setTimeout(() => setPicking(false), 150)}
-            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-dashed border-white/[0.15] text-white/30 hover:text-white/60 hover:border-white/30 transition-colors"
+            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-dashed border-border-custom text-text-muted hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer"
           >
             + tag
           </button>
           {picking && (
-            <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-white/[0.1] bg-zinc-900 shadow-xl p-2 flex flex-wrap gap-1 w-52">
+            <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-border-custom bg-surface-solid shadow-lg p-2 flex flex-wrap gap-1 w-52">
               {available.map(t => (
                 <button
                   key={t}
@@ -200,13 +200,13 @@ function VolumeBar({ exercises }) {
   const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return null;
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-      <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/30 block mb-2">Objętość sesji</span>
+    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md px-4 py-3 shadow-sm">
+      <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted block mb-2">Objętość sesji</span>
       <div className="flex flex-wrap gap-2">
         {entries.map(([tag, v]) => (
           <div key={tag} className="flex items-center gap-1.5">
             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(tag)}`}>{tag}</span>
-            <span className="text-[10px] font-bold text-white/50">{Math.round(v).toLocaleString()}kg</span>
+            <span className="text-[10px] font-bold text-text-secondary">{Math.round(v).toLocaleString()}kg</span>
           </div>
         ))}
       </div>
@@ -260,18 +260,18 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
   const current1RM = sets.reduce((best, s) => { const e = epley(s.kg, s.reps); return e && e > best ? e : best; }, 0);
 
   return (
-    <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] overflow-hidden">
+    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border-custom bg-text-primary/[0.01]">
         <ExerciseNameInput
           value={exercise.name}
           tags={exercise.tags}
           onChange={(name, tags) => onChange({ ...exercise, name, tags })}
         />
-        <button onClick={() => setCollapsed(c => !c)} className="p-1 text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={() => setCollapsed(c => !c)} className="p-1 text-text-secondary hover:text-text-primary transition-colors">
           {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
-        <button onClick={onRemove} className="p-1 text-white/25 hover:text-red-400 transition-colors">
+        <button onClick={onRemove} className="p-1 text-text-muted hover:text-rose-500 transition-colors">
           <Trash2 size={14} />
         </button>
       </div>
@@ -283,15 +283,15 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
       {/* Ostatnio + sugestia */}
       {lastSession && (
-        <div className="px-4 py-1.5 border-t border-white/[0.04] flex items-center gap-1.5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-white/25">Ostatnio</span>
-          <span className="text-[10px] font-bold text-white/40">{formatLastSession(lastSession)}</span>
+        <div className="px-4 py-1.5 border-t border-border-custom bg-text-primary/[0.01] flex items-center gap-1.5">
+          <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">Ostatnio</span>
+          <span className="text-[10px] font-bold text-text-secondary">{formatLastSession(lastSession)}</span>
           {(() => {
             const s = getSuggestion(lastSession);
             const lastW = Math.max(...lastSession.map(x => x.weight));
             const progressed = s > lastW;
             return s ? (
-              <span className={`ml-auto text-[10px] font-black ${progressed ? 'text-emerald-400' : 'text-white/40'}`}>
+              <span className={`ml-auto text-[10px] font-black ${progressed ? 'text-emerald-500' : 'text-text-secondary'}`}>
                 → {s}kg{progressed ? ' ↑' : ''}
               </span>
             ) : null;
@@ -304,9 +304,9 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
         <div className="px-4 pb-3 pt-2 space-y-2">
           <div className="grid grid-cols-[28px_1fr_1fr_1fr_28px] gap-2 px-0.5">
             <span />
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">KG</span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">Pow.</span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 text-center">RIR</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">KG</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">Pow.</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">RIR</span>
             <span />
           </div>
 
@@ -317,7 +317,6 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
             const adjustValue = (field, step, isInt = false) => {
               const currentVal = parseFloat(set[field]);
               if (isNaN(currentVal)) {
-                // Default fallback if empty
                 if (field === 'kg') updateSet(set.id, field, '40');
                 else if (field === 'reps') updateSet(set.id, field, '8');
                 else if (field === 'rir') updateSet(set.id, field, '2');
@@ -334,7 +333,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                 <button
                   onClick={() => updateSet(set.id, 'msp', !set.msp)}
                   title="Oznacz jako MSP (kluczowy set)"
-                  className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors ${set.msp ? 'text-amber-400' : 'text-white/30 hover:text-white/50'}`}
+                  className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors ${set.msp ? 'text-amber-500' : 'text-text-secondary hover:text-text-primary'}`}
                 >{set.msp ? '★' : idx + 1}</button>
                 
                 {/* KG Column */}
@@ -343,8 +342,8 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                     onChange={e => updateSet(set.id, 'kg', e.target.value)}
                     placeholder="—" className={numInput} />
                   <div className="flex gap-1 justify-center">
-                    <button onClick={() => adjustValue('kg', -2.5)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">-</button>
-                    <button onClick={() => adjustValue('kg', 2.5)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">+</button>
+                    <button onClick={() => adjustValue('kg', -2.5)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">-</button>
+                    <button onClick={() => adjustValue('kg', 2.5)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">+</button>
                   </div>
                 </div>
 
@@ -361,8 +360,8 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                     )}
                   </div>
                   <div className="flex gap-1 justify-center">
-                    <button onClick={() => adjustValue('reps', -1, true)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">-</button>
-                    <button onClick={() => adjustValue('reps', 1, true)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">+</button>
+                    <button onClick={() => adjustValue('reps', -1, true)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">-</button>
+                    <button onClick={() => adjustValue('reps', 1, true)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">+</button>
                   </div>
                 </div>
 
@@ -372,12 +371,12 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                     onChange={e => updateSet(set.id, 'rir', e.target.value)}
                     placeholder="—" className={numInput} />
                   <div className="flex gap-1 justify-center">
-                    <button onClick={() => adjustValue('rir', -0.5)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">-</button>
-                    <button onClick={() => adjustValue('rir', 0.5)} className="text-[9px] font-bold bg-white/[0.04] active:bg-white/[0.1] text-white/50 border border-white/[0.08] w-7 h-5 rounded flex items-center justify-center">+</button>
+                    <button onClick={() => adjustValue('rir', -0.5)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">-</button>
+                    <button onClick={() => adjustValue('rir', 0.5)} className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors">+</button>
                   </div>
                 </div>
 
-                <button onClick={() => removeSet(set.id)} className="flex items-center justify-center text-white/20 hover:text-red-400 active:scale-[0.9] transition-all">
+                <button onClick={() => removeSet(set.id)} className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all">
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -385,16 +384,16 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
           })}
 
           <button onClick={addSet}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/[0.12] py-2 text-[10px] font-black uppercase tracking-widest text-white/35 hover:border-primary/40 hover:text-primary transition-colors">
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom bg-surface/30 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary/40 hover:text-primary transition-colors cursor-pointer">
             <Plus size={11} /> Dodaj serię
           </button>
 
           {current1RM > 0 && (
-            <div className="flex justify-between items-center pt-1 border-t border-white/[0.04] mt-2">
-              <span className="text-[9px] font-black text-white/30 uppercase tracking-wider">
+            <div className="flex justify-between items-center pt-1.5 border-t border-border-custom mt-2">
+              <span className="text-[9px] font-black text-text-secondary uppercase tracking-wider">
                 Objętość: {sets.reduce((sum, s) => sum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0).toLocaleString()} kg
               </span>
-              <span className="text-[9px] font-black text-white/25 tabular-nums">~{current1RM.toFixed(1)} kg 1RM</span>
+              <span className="text-[9px] font-black text-text-muted tabular-nums">~{current1RM.toFixed(1)} kg 1RM</span>
             </div>
           )}
         </div>
@@ -407,26 +406,26 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
 function ActivityCard({ activity, onChange, onRemove }) {
   return (
-    <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] px-4 py-3 space-y-3">
+    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md px-4 py-3 space-y-3 shadow-sm">
       <div className="flex items-center gap-2">
         <input type="text" value={activity.name} onChange={e => onChange({ ...activity, name: e.target.value })}
           placeholder="np. Sauna, Rower, Spacer..."
-          className="flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/35 min-w-0" />
-        <button onClick={onRemove} className="p-1 text-white/25 hover:text-red-400 transition-colors">
+          className="flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-muted/40 min-w-0" />
+        <button onClick={onRemove} className="p-1 text-text-muted hover:text-rose-500 transition-colors">
           <Trash2 size={14} />
         </button>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 shrink-0">
-          <Clock size={11} className="text-white/35" />
+          <Clock size={11} className="text-text-muted" />
           <input type="number" min={0} value={activity.min} onChange={e => onChange({ ...activity, min: e.target.value })}
             placeholder="0"
-            className="w-16 h-9 bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm font-black text-white text-center outline-none focus:border-primary/60 transition-all placeholder:text-white/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-          <span className="text-[11px] font-bold text-white/40">min</span>
+            className="w-16 h-9 bg-surface border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+          <span className="text-[11px] font-bold text-text-secondary">min</span>
         </div>
         <input type="text" value={activity.note} onChange={e => onChange({ ...activity, note: e.target.value })}
           placeholder="notatka (opcjonalnie)..."
-          className="flex-1 h-9 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 text-xs text-white outline-none focus:border-primary/60 transition-all placeholder:text-white/30" />
+          className="flex-1 h-9 bg-surface border border-border-custom rounded-xl px-3 text-xs text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40" />
       </div>
     </div>
   );
@@ -516,80 +515,80 @@ export default function WorkoutLogger({ session, onBack }) {
   }
 
   return (
-    <div className="flex-1 bg-black flex flex-col min-h-screen pb-32">
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-md border-b border-white/[0.07] p-4 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/50 hover:text-white transition-colors">
+    <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-300">
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border-custom p-4 flex items-center gap-3">
+        <button onClick={onBack} className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-xs font-black uppercase tracking-[0.2em] text-white flex-1">Zaloguj Trening</h1>
+        <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary flex-1 font-display">Zaloguj Trening</h1>
         {timerStart ? (
-          <button onClick={() => setTimerStart(null)} className="flex items-center gap-1.5 text-primary hover:text-white transition-colors">
+          <button onClick={() => setTimerStart(null)} className="flex items-center gap-1.5 text-primary hover:text-primary-hover transition-colors">
             <span className="text-[11px] font-black tabular-nums">{elapsed}</span>
             <Square size={11} className="fill-current" />
           </button>
         ) : (
-          <button onClick={() => setTimerStart(Date.now())} className="flex items-center gap-1.5 text-white/35 hover:text-white/70 transition-colors">
+          <button onClick={() => setTimerStart(Date.now())} className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors">
             <Play size={13} className="fill-current" />
             <span className="text-[10px] font-black uppercase tracking-widest">Start</span>
           </button>
         )}
       </header>
 
-      <main className="flex-1 p-5 space-y-8">
+      <main className="flex-1 p-5 space-y-8 max-w-md mx-auto w-full">
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-white/50">Nazwa (opcjonalnie)</label>
+          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
           <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
-            className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all placeholder:text-white/35" />
+            className="w-full bg-surface border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all placeholder:text-text-muted/40" />
         </div>
 
         {/* Manual Time Picker Row */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+        <div className="rounded-[20px] border border-border-custom bg-surface/30 p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock size={14} className="text-white/50" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-white/70">Wpisz godziny ręcznie</span>
+              <Clock size={14} className="text-text-muted" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary">Wpisz godziny ręcznie</span>
             </div>
             <input
               type="checkbox"
               checked={manualTime}
-              onChange={(e) => {
-                setManualTime(e.target.checked);
-                if (e.target.checked && timerStart) {
-                  setTimerStart(null); // turn off stopwatch
+              onChange={(event) => {
+                setManualTime(event.target.checked);
+                if (event.target.checked && timerStart) {
+                  setTimerStart(null);
                 }
               }}
-              className="accent-primary h-4 w-4 rounded border-white/[0.1] bg-white/[0.05]"
+              className="accent-primary h-4 w-4 rounded border-border-custom bg-surface"
             />
           </div>
 
           {manualTime && (
             <div className="grid grid-cols-3 gap-2 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
               <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Data</label>
+                <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Data</label>
                 <input
                   type="date"
                   value={workoutDate}
                   onChange={(e) => setWorkoutDate(e.target.value)}
-                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Start</label>
+                <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Start</label>
                 <input
                   type="time"
                   value={startTimeManual}
                   onChange={(e) => setStartTimeManual(e.target.value)}
-                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase tracking-widest text-white/40">Koniec</label>
+                <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Koniec</label>
                 <input
                   type="time"
                   value={endTimeManual}
                   onChange={(e) => setEndTimeManual(e.target.value)}
-                  className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-2 py-2 text-xs font-bold text-white outline-none focus:border-primary/60 text-center"
+                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
             </div>
@@ -598,14 +597,14 @@ export default function WorkoutLogger({ session, onBack }) {
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Dumbbell size={12} className="text-white/50" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/50">Ćwiczenia</span>
+            <Dumbbell size={12} className="text-text-muted" />
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
           </div>
           {exercises.map(ex => (
             <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} />
           ))}
           <button onClick={addExercise}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.12] p-3.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-primary/50 hover:text-primary transition-colors">
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface/30 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:border-primary/50 hover:text-primary transition-all cursor-pointer">
             <Plus size={13} /> Dodaj ćwiczenie
           </button>
           <VolumeBar exercises={exercises} />
@@ -613,53 +612,53 @@ export default function WorkoutLogger({ session, onBack }) {
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Zap size={12} className="text-white/50" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/50">Inne aktywności</span>
+            <Zap size={12} className="text-text-muted" />
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Inne aktywności</span>
           </div>
           {activities.map(a => (
             <ActivityCard key={a.id} activity={a} onChange={updateActivity} onRemove={() => removeActivity(a.id)} />
           ))}
           <button onClick={addActivity}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.12] p-3.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-orange-500/50 hover:text-orange-400 transition-colors">
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface/30 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:border-orange-500/50 hover:text-orange-400 transition-all cursor-pointer">
             <Plus size={13} /> Dodaj aktywność
           </button>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-white/50">Notatki</label>
+          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatki</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
-            className="w-full bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 text-sm text-white min-h-[100px] outline-none focus:border-primary/60 focus:bg-white/[0.06] transition-all resize-none placeholder:text-white/35" />
+            className="w-full bg-surface border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-[9px] font-black uppercase tracking-widest text-white/50">RPE sesji</label>
+            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">RPE sesji</label>
             {sessionRpe && (
-              <button onClick={() => setSessionRpe(null)} className="text-[9px] text-white/25 hover:text-white/50 transition-colors">wyczyść</button>
+              <button onClick={() => setSessionRpe(null)} className="text-[9px] text-text-muted hover:text-text-secondary transition-colors">wyczyść</button>
             )}
           </div>
           <div className="grid grid-cols-10 gap-1">
             {[1,2,3,4,5,6,7,8,9,10].map(n => {
-              const color = n <= 4 ? 'border-sky-500/40 text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'
-                          : n <= 6 ? 'border-yellow-500/40 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20'
-                          : n <= 8 ? 'border-orange-500/40 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
-                          : 'border-dayB/40 text-dayB bg-dayB/10 hover:bg-dayB/20';
-              const active = sessionRpe === n ? 'ring-1 ring-offset-1 ring-offset-black opacity-100 scale-105' : 'opacity-50';
+              const color = n <= 4 ? 'border-sky-500/40 text-sky-550 dark:text-sky-400 bg-sky-500/5 dark:bg-sky-500/10 hover:bg-sky-500/15'
+                          : n <= 6 ? 'border-yellow-500/45 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5 dark:bg-yellow-500/10 hover:bg-yellow-500/15'
+                          : n <= 8 ? 'border-orange-500/45 text-orange-600 dark:text-orange-400 bg-orange-500/5 dark:bg-orange-500/10 hover:bg-orange-500/15'
+                          : 'border-dayB/45 text-dayB bg-dayB/5 dark:bg-dayB/10 hover:bg-dayB/15';
+              const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-60';
               return (
                 <button key={n} onClick={() => setSessionRpe(sessionRpe === n ? null : n)}
-                  className={`rounded-lg border py-2 text-[11px] font-black transition-all ${color} ${active}`}>
+                  className={`rounded-lg border py-2 text-[11px] font-black transition-all cursor-pointer ${color} ${active}`}>
                   {n}
                 </button>
               );
             })}
           </div>
-          <p className="text-[9px] text-white/20">
+          <p className="text-[9px] text-text-muted">
             {sessionRpe ? (sessionRpe <= 4 ? 'Łatwa — dużo rezerwy' : sessionRpe <= 6 ? 'Umiarkowana' : sessionRpe <= 8 ? 'Ciężka — mało rezerwy' : 'Maksymalna — do oporu') : 'Jak ciężka była cała sesja?'}
           </p>
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-white/[0.07] space-y-3">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border-custom space-y-3 z-30">
         {(() => {
           const totalVol = exercises.reduce((sum, ex) => {
             const exVol = (ex.sets || []).reduce((sSum, s) => sSum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0);
@@ -667,17 +666,19 @@ export default function WorkoutLogger({ session, onBack }) {
           }, 0);
           if (totalVol === 0) return null;
           return (
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Suma Objętości:</span>
-              <span className="text-[12px] font-black text-primary tracking-wide">{totalVol.toLocaleString()} kg</span>
+            <div className="flex justify-between items-center px-1 max-w-md mx-auto w-full">
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Suma Objętości:</span>
+              <span className="text-[12px] font-black text-primary tracking-wide font-display">{totalVol.toLocaleString()} kg</span>
             </div>
           );
         })()}
-        <button onClick={save} disabled={saving}
-          className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
-          <Save size={15} />
-          {saving ? 'Zapisywanie...' : 'Zapisz'}
-        </button>
+        <div className="max-w-md mx-auto w-full">
+          <button onClick={save} disabled={saving}
+            className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform hover:bg-primary-hover cursor-pointer">
+            <Save size={15} />
+            {saving ? 'Zapisywanie...' : 'Zapisz'}
+          </button>
+        </div>
       </footer>
     </div>
   );

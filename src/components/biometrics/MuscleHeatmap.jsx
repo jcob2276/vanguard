@@ -77,7 +77,7 @@ const HEAT_COLORS = {
 const fallbackHeat = '#00f2ff';
 
 function Shape({ s, opacity, glow, color }) {
-  const fill   = opacity > 0.04 ? color : 'white';
+  const fill   = opacity > 0.04 ? color : 'currentColor';
   const filter = glow ? 'url(#mglow)' : undefined;
   if (s.t === 'ellipse')
     return <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill={fill} fillOpacity={opacity} filter={filter} />;
@@ -86,25 +86,25 @@ function Shape({ s, opacity, glow, color }) {
 
 function BodySVG({ regions, intensity }) {
   return (
-    <svg viewBox="0 0 100 194" className="w-full h-full">
+    <svg viewBox="0 0 100 194" className="w-full h-full text-text-primary/10">
       <defs>
         <filter id="mglow" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="2.2" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
         <linearGradient id="bodyFade" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="white" stopOpacity="0.055" />
-          <stop offset="100%" stopColor="white" stopOpacity="0.018" />
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
         </linearGradient>
       </defs>
 
       {/* Silhouette — very faint structural shapes */}
       <circle cx="50" cy="14" r="10.5" fill="url(#bodyFade)" />
-      <rect x="44" y="24" width="12" height="8" rx="3" fill="white" fillOpacity="0.035" />
+      <rect x="44" y="24" width="12" height="8" rx="3" fill="currentColor" fillOpacity="0.035" />
       <rect x="22" y="31" width="56" height="72" rx="10" fill="url(#bodyFade)" />
-      <rect x="7"  y="32" width="13" height="56" rx="7" fill="white" fillOpacity="0.026" />
-      <rect x="80" y="32" width="13" height="56" rx="7" fill="white" fillOpacity="0.026" />
-      <rect x="27" y="104" width="46" height="6"  rx="3" fill="white" fillOpacity="0.03" />
+      <rect x="7"  y="32" width="13" height="56" rx="7" fill="currentColor" fillOpacity="0.026" />
+      <rect x="80" y="32" width="13" height="56" rx="7" fill="currentColor" fillOpacity="0.026" />
+      <rect x="27" y="104" width="46" height="6"  rx="3" fill="currentColor" fillOpacity="0.03" />
       <rect x="28" y="108" width="19" height="82" rx="10" fill="url(#bodyFade)" />
       <rect x="53" y="108" width="19" height="82" rx="10" fill="url(#bodyFade)" />
 
@@ -151,70 +151,60 @@ export default function MuscleHeatmap({ session }) {
 
   useEffect(() => {
     if (!userId) return;
-    let cancelled = false;
+    setLoading(true);
+    const dateLimit = new Date(Date.now() - period * 24 * 3600 * 1000).toISOString();
 
-    async function load() {
-      setLoading(true);
-      const sinceDate = new Date(Date.now() - period * 86_400_000)
-        .toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
-
-      // 1. Get sessions in window (filter by date, not start_time — start_time can be NULL)
-      const { data: sessions } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('user_id', userId)
-        .gte('date', sinceDate);
-
-      if (!sessions?.length) {
-        if (!cancelled) { setIntensity({}); setSetsByTag({}); setLoadByTag({}); setLoading(false); }
-        return;
-      }
-
-      // 2. Get all logs for those sessions
-      let { data: logs, error: logsError } = await supabase
-        .from('exercise_logs')
-        .select('exercise_name, weight, reps, muscle_tags')
-        .in('session_id', sessions.map(s => s.id));
-
-      if (logsError?.message?.includes('muscle_tags')) {
-        const fallback = await supabase
+    const fetchLogs = async () => {
+      try {
+        const { data, error } = await supabase
           .from('exercise_logs')
-          .select('exercise_name, weight, reps')
-          .in('session_id', sessions.map(s => s.id));
-        logs = fallback.data;
-        logsError = fallback.error;
+          .select('*, workout_sessions!inner(date)')
+          .eq('user_id', userId)
+          .gte('workout_sessions.date', dateLimit.slice(0, 10));
+
+        if (error) throw error;
+
+        // Reset counters
+        const rawSets = {};
+        const rawLoad = {};
+        MUSCLE_TAGS.forEach(t => { rawSets[t] = 0; rawLoad[t] = 0; });
+
+        (data ?? []).forEach(log => {
+          const tags = tagsForLog(log);
+          const weight = log.weight || 0;
+          const reps   = log.reps || 0;
+          const setVolume = weight * reps;
+
+          tags.forEach(tag => {
+            if (rawSets[tag] !== undefined) {
+              rawSets[tag] += 1;
+              
+              // Apply exercise-specific set weight impact if exists
+              const tagImpact = TAG_SET_WEIGHTS[tag] ?? 1.0;
+              rawLoad[tag] += (setVolume * tagImpact);
+            }
+          });
+        });
+
+        setSetsByTag(rawSets);
+        setLoadByTag(rawLoad);
+
+        // Normalize intensities to 0-1
+        const maxVal = Math.max(...Object.values(rawLoad), 1);
+        const nextIntensities = {};
+        Object.entries(rawLoad).forEach(([tag, val]) => {
+          nextIntensities[tag] = val > 0 ? Math.min(val / maxVal, 1.0) : 0;
+        });
+        setIntensity(nextIntensities);
+
+      } catch (err) {
+        console.error('Heatmap fetch error:', err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      if (logsError) {
-        console.error('[MuscleHeatmap] logs query failed', logsError);
-      }
-
-      if (cancelled) return;
-
-      // 3. Aggregate sets per muscle tag
-      const counts = {};
-      const weighted = {};
-      for (const log of logs ?? []) {
-        const tags = tagsForLog(log).filter(tag => MUSCLE_TAGS.includes(tag));
-        for (const [idx, tag] of tags.entries()) {
-          counts[tag] = (counts[tag] ?? 0) + 1;
-          weighted[tag] = (weighted[tag] ?? 0) + (TAG_SET_WEIGHTS[idx] ?? 0.2);
-        }
-      }
-
-      // 4. Normalise to 0–1 (max = 1)
-      const max = Math.max(...Object.values(weighted), 1);
-      const norm = {};
-      for (const [tag, n] of Object.entries(weighted)) norm[tag] = n / max;
-
-      setSetsByTag(counts);
-      setLoadByTag(weighted);
-      setIntensity(norm);
-      setLoading(false);
-    }
-
-    load();
-    return () => { cancelled = true; };
+    fetchLogs();
   }, [userId, period]);
 
   // Sorted list for the legend (descending sets)
@@ -228,23 +218,23 @@ export default function MuscleHeatmap({ session }) {
   const topTag = ranked[0]?.[0] ?? null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[radial-gradient(circle_at_50%_8%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(180deg,rgba(18,18,18,0.86),rgba(4,4,4,0.96))] shadow-2xl shadow-black/40">
+    <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md shadow-sm">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-white/35">Mapa mięśni</p>
-            <p className="mt-0.5 text-sm font-black text-white">Co trenowałeś</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Mapa mięśni</p>
+            <p className="mt-1 text-sm font-black text-text-primary font-display">Co trenowałeś</p>
           </div>
           <div className="flex shrink-0 gap-1">
             {PERIODS.map(p => (
               <button
                 key={p.days}
                 onClick={() => setPeriod(p.days)}
-                className={`h-9 min-w-12 rounded-xl border px-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`h-9 min-w-12 rounded-xl border px-3 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
                   period === p.days
-                    ? 'border-sky-400/40 bg-sky-400/15 text-sky-300 shadow-[0_0_18px_rgba(56,189,248,0.16)]'
-                    : 'border-white/[0.08] bg-black/20 text-white/28 hover:text-white/60'
+                    ? 'border-sky-400/40 bg-sky-400/15 text-sky-600 dark:text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]'
+                    : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
                 }`}
               >
                 {p.label}
@@ -255,18 +245,18 @@ export default function MuscleHeatmap({ session }) {
 
         {!loading && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-border-custom bg-surface px-3 py-2 shadow-sm">
               <span
                 className="h-2 w-2 rounded-full shadow-[0_0_10px_currentColor]"
-                style={{ color: topTag ? tagColor(topTag) : 'rgba(255,255,255,0.3)', backgroundColor: 'currentColor' }}
+                style={{ color: topTag ? tagColor(topTag) : 'rgba(150,150,150,0.3)', backgroundColor: 'currentColor' }}
               />
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/32">Top</span>
-              <span className="text-[11px] font-black capitalize text-white/75">{topTag ?? 'brak'}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Top</span>
+              <span className="text-[11px] font-black capitalize text-text-primary">{topTag ?? 'brak'}</span>
             </div>
             {neglected.length > 0 && (
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/28">Braki</span>
-                <span className="truncate text-[11px] font-bold capitalize text-white/45">{neglected.join(', ')}</span>
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border-custom bg-surface px-3 py-2 shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Braki</span>
+                <span className="truncate text-[11px] font-bold capitalize text-text-secondary">{neglected.join(', ')}</span>
               </div>
             )}
           </div>
@@ -274,18 +264,18 @@ export default function MuscleHeatmap({ session }) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-white/20 text-xs">Ładowanie...</div>
+        <div className="flex items-center justify-center h-48 text-text-muted text-xs animate-pulse">Ładowanie...</div>
       ) : (
         <>
           {/* Front + Back SVG bodies */}
           <div className="relative grid grid-cols-2 gap-5 px-5 pb-5 pt-1">
-            <div className="pointer-events-none absolute inset-x-7 bottom-4 top-7 rounded-2xl border border-white/[0.035] bg-black/10" />
+            <div className="pointer-events-none absolute inset-x-7 bottom-4 top-7 rounded-2xl border border-border-custom bg-text-primary/[0.015]" />
             {[
               { label: 'Przód', regions: FRONT_REGIONS },
               { label: 'Tył',   regions: BACK_REGIONS  },
             ].map(({ label, regions }) => (
               <div key={label} className="relative flex flex-col items-center gap-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/25">{label}</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
                 <div className="w-full max-w-[132px]" style={{ aspectRatio: '100/194' }}>
                   <BodySVG regions={regions} intensity={intensity} />
                 </div>
@@ -295,17 +285,17 @@ export default function MuscleHeatmap({ session }) {
 
           {/* Ranked legend */}
           {ranked.length > 0 ? (
-            <div className="space-y-2.5 border-t border-white/[0.06] bg-black/20 px-5 py-4">
+            <div className="space-y-2.5 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
                 <div key={tag} className="grid grid-cols-[86px_1fr_44px] items-center gap-3">
-                  <span className="flex min-w-0 items-center gap-2 text-[10px] font-black capitalize text-white/58">
+                  <span className="flex min-w-0 items-center gap-2 text-[10px] font-black capitalize text-text-secondary">
                     <span
                       className="h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{ backgroundColor: tagColor(tag), boxShadow: `0 0 8px ${tagColor(tag)}` }}
                     />
                     <span className="truncate">{tag}</span>
                   </span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-text-primary/10">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -315,16 +305,16 @@ export default function MuscleHeatmap({ session }) {
                       }}
                     />
                   </div>
-                  <span className="text-right text-[10px] font-black tabular-nums text-white/35">
+                  <span className="text-right text-[10px] font-black tabular-nums text-text-muted">
                     {setsByTag[tag] ?? 0} ser.
                   </span>
                 </div>
               ))}
               {neglected.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 border-t border-white/[0.05] pt-3">
-                  <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-white/24">Bez bodźca</span>
+                <div className="flex flex-wrap gap-1.5 border-t border-border-custom pt-3">
+                  <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
                   {neglected.map(tag => (
-                    <span key={tag} className="rounded-md border border-white/[0.07] bg-white/[0.025] px-2 py-0.5 text-[9px] font-black capitalize text-white/34">
+                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-0.5 text-[9px] font-black capitalize text-text-secondary shadow-sm">
                       {tag}
                     </span>
                   ))}
@@ -332,7 +322,7 @@ export default function MuscleHeatmap({ session }) {
               )}
             </div>
           ) : (
-            <div className="border-t border-white/[0.06] px-5 py-6 text-center text-xs text-white/20">
+            <div className="border-t border-border-custom px-5 py-6 text-center text-xs text-text-muted">
               Brak danych treningowych w tym okresie
             </div>
           )}

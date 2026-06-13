@@ -23,10 +23,10 @@ import {
 import { parseTodoQuickInput } from '../../lib/todoParser';
 
 const PRIORITIES = [
-  { id: 'low', label: 'low', dot: 'bg-white/25', chip: 'text-white/35' },
-  { id: 'normal', label: 'normal', dot: 'bg-primary/70', chip: 'text-primary/70' },
-  { id: 'high', label: 'high', dot: 'bg-amber-400', chip: 'text-amber-300' },
-  { id: 'urgent', label: 'urgent', dot: 'bg-red-400', chip: 'text-red-300' },
+  { id: 'low', label: 'low', dot: 'bg-text-muted/60', chip: 'text-text-muted bg-text-primary/5 border border-border-custom' },
+  { id: 'normal', label: 'normal', dot: 'bg-primary', chip: 'text-primary bg-primary/5 border border-primary/10' },
+  { id: 'high', label: 'high', dot: 'bg-amber-500', chip: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/15' },
+  { id: 'urgent', label: 'urgent', dot: 'bg-rose-500', chip: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/15' },
 ];
 
 const FILTERS = [
@@ -46,7 +46,9 @@ function Chip({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-colors ${
-        active ? 'bg-white text-black' : 'bg-white/[0.045] text-white/35 hover:text-white'
+        active 
+          ? 'bg-text-primary text-background shadow-sm' 
+          : 'bg-surface border border-border-custom text-text-secondary hover:text-text-primary'
       }`}
     >
       {children}
@@ -55,7 +57,7 @@ function Chip({ active, onClick, children }) {
 }
 
 function QuickField({ children }) {
-  return <div className="rounded-xl border border-white/[0.07] bg-black/30 p-3">{children}</div>;
+  return <div className="rounded-xl border border-border-custom bg-surface p-3">{children}</div>;
 }
 
 export default function Todo({ session, onBack }) {
@@ -168,24 +170,28 @@ export default function Todo({ session, onBack }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black p-5 text-white">
+      <div className="min-h-screen bg-background p-5 text-text-primary flex items-center justify-center transition-colors duration-300">
         <DataStateNotice tone="loading" title="To Do się ładuje" detail="Pobieram sekcje i zadania." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-white/5 pb-8">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/5 bg-black/85 px-5 py-4 backdrop-blur-xl">
-          <button onClick={onBack} className="rounded-full bg-white/[0.04] p-2 text-white/45 hover:text-white" title="Wróć">
+    <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-8 shadow-sm">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-xl">
+          <button 
+            onClick={onBack} 
+            className="rounded-full border border-border-custom bg-surface/50 p-2 text-text-secondary hover:text-text-primary hover:bg-surface shadow-sm transition-colors" 
+            title="Wróć"
+          >
             <ChevronLeft size={18} />
           </button>
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-[16px] font-black uppercase tracking-tight text-white">
+            <h1 className="flex items-center gap-2 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">
               <Inbox size={16} className="text-primary" /> To Do
             </h1>
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mt-0.5">
               {openItems.length} otwarte · szybki inbox
             </p>
           </div>
@@ -194,7 +200,7 @@ export default function Todo({ session, onBack }) {
         <main className="space-y-5 p-5">
           {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-          <section className="rounded-2xl bg-white/[0.035] p-3">
+          <section className="rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-4.5 shadow-sm">
             <div className="flex items-center gap-2">
               <input
                 autoFocus
@@ -202,11 +208,11 @@ export default function Todo({ session, onBack }) {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
                 placeholder="Wrzuć rzecz do zrobienia..."
-                className="min-w-0 flex-1 bg-transparent px-2 py-3 text-[15px] font-bold text-white outline-none placeholder:text-white/22"
+                className="min-w-0 flex-1 bg-transparent px-2 py-3 text-[15px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
               />
               <button
                 onClick={() => setShowOptions((v) => !v)}
-                className={`rounded-full p-2 transition-colors ${showOptions ? 'bg-primary/15 text-primary' : 'bg-black/30 text-white/35 hover:text-white'}`}
+                className={`rounded-full p-2.5 transition-colors border border-border-custom ${showOptions ? 'bg-primary/15 text-primary border-primary/20' : 'bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'}`}
                 title="Opcje"
               >
                 <Settings2 size={17} />
@@ -214,7 +220,7 @@ export default function Todo({ session, onBack }) {
               <button
                 onClick={addItem}
                 disabled={busy || !form.title.trim()}
-                className="rounded-full bg-primary p-2.5 text-white shadow-lg shadow-primary/20 disabled:opacity-35"
+                className="rounded-full bg-primary p-2.5 text-white shadow-lg shadow-primary/25 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all cursor-pointer"
                 title="Dodaj"
               >
                 <Plus size={17} />
@@ -229,7 +235,7 @@ export default function Todo({ session, onBack }) {
                     return (
                       <span
                         key={`${token.type}-${token.value}`}
-                        className={`inline-flex items-center gap-1 rounded-full bg-white/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${meta.chip}`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${meta.chip}`}
                       >
                         <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                         {token.label}
@@ -247,22 +253,22 @@ export default function Todo({ session, onBack }) {
                   );
                 })}
                 {parsedInput.title && parsedInput.title !== form.title.trim() && (
-                  <span className="min-w-0 truncate text-[10px] font-bold text-white/28">
-                    zapiszę jako: <span className="text-white/48">{parsedInput.title}</span>
+                  <span className="min-w-0 truncate text-[10px] font-bold text-text-muted">
+                    zapiszę jako: <span className="text-text-secondary font-bold">{parsedInput.title}</span>
                   </span>
                 )}
               </div>
             )}
 
             {showOptions && (
-              <div className="mt-3 space-y-3 border-t border-white/[0.06] pt-3">
+              <div className="mt-3 space-y-3 border-t border-border-custom pt-3">
                 <QuickField>
                   <select
                     value={activeSection}
                     onChange={(e) => setActiveSection(e.target.value)}
-                    className="w-full bg-transparent text-[12px] font-black text-white outline-none"
+                    className="w-full bg-transparent text-[12px] font-black text-text-primary outline-none cursor-pointer"
                   >
-                    {sections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {sections.map((s) => <option key={s.id} value={s.id} className="bg-surface-solid text-text-primary">{s.name}</option>)}
                   </select>
                 </QuickField>
                 <QuickField>
@@ -271,7 +277,7 @@ export default function Todo({ session, onBack }) {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={2}
                     placeholder="Opis, link albo kontekst..."
-                    className="w-full resize-none bg-transparent text-[12px] font-semibold text-white outline-none placeholder:text-white/22"
+                    className="w-full resize-none bg-transparent text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
                   />
                 </QuickField>
                 <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -280,7 +286,7 @@ export default function Todo({ session, onBack }) {
                       value={form.tagsText}
                       onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
                       placeholder="tagi: zakup, projekt"
-                      className="w-full bg-transparent text-[12px] font-semibold text-white outline-none placeholder:text-white/22"
+                      className="w-full bg-transparent text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
                     />
                   </QuickField>
                   <QuickField>
@@ -288,7 +294,7 @@ export default function Todo({ session, onBack }) {
                       type="date"
                       value={form.due_date}
                       onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                      className="bg-transparent text-[11px] font-bold text-white/70 outline-none"
+                      className="bg-transparent text-[11px] font-bold text-text-secondary outline-none cursor-pointer"
                     />
                   </QuickField>
                 </div>
@@ -312,22 +318,26 @@ export default function Todo({ session, onBack }) {
               </div>
               <button
                 onClick={() => setShowSectionForm((v) => !v)}
-                className="shrink-0 rounded-full bg-white/[0.045] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary"
+                className="shrink-0 rounded-full border border-border-custom bg-surface px-3.5 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-surface-solid hover:border-primary/20 transition-all cursor-pointer"
               >
                 + Sekcja
               </button>
             </div>
             {showSectionForm && (
-              <div className="flex gap-2 rounded-2xl bg-white/[0.035] p-3">
+              <div className="flex gap-2 rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-3">
                 <input
                   autoFocus
                   value={newSectionName}
                   onChange={(e) => setNewSectionName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') addSection(); }}
                   placeholder="Nowa sekcja"
-                  className="min-w-0 flex-1 bg-transparent text-[13px] font-bold text-white outline-none placeholder:text-white/22"
+                  className="min-w-0 flex-1 bg-transparent text-[13px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
                 />
-                <button onClick={addSection} disabled={busy || !newSectionName.trim()} className="rounded-full bg-primary px-4 text-[9px] font-black uppercase tracking-widest text-white disabled:opacity-40">
+                <button 
+                  onClick={addSection} 
+                  disabled={busy || !newSectionName.trim()} 
+                  className="rounded-full bg-primary px-4 text-[9px] font-black uppercase tracking-widest text-white hover:bg-primary-hover active:scale-95 disabled:opacity-40 transition-all cursor-pointer"
+                >
                   Dodaj
                 </button>
               </div>
@@ -343,12 +353,12 @@ export default function Todo({ session, onBack }) {
                 <article key={section.id} className="space-y-2">
                   <div className="flex items-center justify-between gap-3 px-1">
                     <div className="min-w-0">
-                      <h3 className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-white/62">{section.name}</h3>
-                      <p className="mt-0.5 text-[8px] font-black uppercase tracking-widest text-white/22">{openCount} otwarte</p>
+                      <h3 className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-text-primary font-display">{section.name}</h3>
+                      <p className="mt-0.5 text-[8px] font-black uppercase tracking-widest text-text-muted">{openCount} otwarte</p>
                     </div>
                     <button
                       onClick={() => run(() => archiveTodoSection(section.id))}
-                      className="text-white/16 transition-colors hover:text-red-300"
+                      className="text-text-muted/60 transition-colors hover:text-rose-500"
                       title="Archiwizuj sekcję"
                     >
                       <Trash2 size={12} />
@@ -356,43 +366,43 @@ export default function Todo({ session, onBack }) {
                   </div>
 
                   {list.length === 0 ? (
-                    <p className="px-1 py-2 text-[10px] font-bold uppercase tracking-widest text-white/18">Pusto.</p>
+                    <p className="px-1 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Pusto.</p>
                   ) : (
-                    <div className="overflow-hidden rounded-2xl bg-white/[0.028]">
+                    <div className="overflow-hidden rounded-2xl border border-border-custom bg-surface/30 backdrop-blur-sm shadow-sm">
                       {list.map((item) => {
                         const meta = priorityMeta(item.priority);
                         return (
-                          <div key={item.id} className="group border-b border-white/[0.045] px-3 py-3 last:border-b-0">
+                          <div key={item.id} className="group border-b border-border-custom px-3.5 py-3.5 last:border-b-0 transition-colors hover:bg-primary/[0.01] dark:hover:bg-white/[0.01]">
                             <div className="flex items-start gap-3">
                               <button
                                 onClick={() => run(() => setTodoStatus(item, item.status === 'done' ? 'open' : 'done'))}
                                 disabled={busy}
-                                className="mt-0.5 text-white/30 transition-colors hover:text-emerald-400"
+                                className="mt-0.5 text-text-muted hover:text-emerald-500 transition-colors"
                                 title={item.status === 'done' ? 'Przywróć' : 'Zrobione'}
                               >
-                                {item.status === 'done' ? <CheckSquare size={18} /> : <Square size={18} />}
+                                {item.status === 'done' ? <CheckSquare size={18} className="text-emerald-500" /> : <Square size={18} />}
                               </button>
                               <div className="min-w-0 flex-1">
-                                <p className={`text-[13px] font-bold leading-snug ${item.status === 'done' ? 'text-white/28 line-through' : 'text-white/88'}`}>
+                                <p className={`text-[13px] font-semibold leading-snug ${item.status === 'done' ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
                                   {item.title}
                                 </p>
-                                {item.notes && <p className="mt-1 text-[10px] font-semibold leading-snug text-white/32">{item.notes}</p>}
+                                {item.notes && <p className="mt-1 text-[10px] font-medium leading-snug text-text-secondary">{item.notes}</p>}
                                 <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                                   <button
                                     onClick={() => cyclePriority(item)}
-                                    className={`inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-widest ${meta.chip}`}
+                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${meta.chip}`}
                                     title="Zmień priorytet"
                                   >
                                     <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                                     {item.priority}
                                   </button>
                                   {item.due_date && (
-                                    <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-white/32">
+                                    <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-text-muted">
                                       <Calendar size={9} /> {format(new Date(item.due_date), 'd MMM')}
                                     </span>
                                   )}
                                   {(item.tags || []).map((tag) => (
-                                    <span key={tag} className="text-[8px] font-black uppercase tracking-widest text-white/26">
+                                    <span key={tag} className="text-[8px] font-black uppercase tracking-widest text-text-muted/80 bg-text-primary/[0.04] px-1.5 py-0.5 rounded-md border border-border-custom">
                                       #{tag}
                                     </span>
                                   ))}
@@ -401,7 +411,7 @@ export default function Todo({ session, onBack }) {
                               <button
                                 onClick={() => run(() => setTodoStatus(item, 'dropped'))}
                                 disabled={busy}
-                                className="text-white/0 transition-colors group-hover:text-white/18 hover:!text-red-300"
+                                className="text-text-muted/0 transition-colors group-hover:text-text-muted/60 hover:!text-rose-500 p-1 rounded hover:bg-rose-500/5"
                                 title="Odpuść"
                               >
                                 <Trash2 size={14} />

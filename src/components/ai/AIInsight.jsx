@@ -69,14 +69,14 @@ export default function AIInsight({ session }) {
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5 animate-pulse">
+      <div className="card p-5 animate-pulse">
         <div className="flex items-center gap-2 mb-4">
-          <RefreshCw size={14} className="text-neutral-700 animate-spin" />
-          <div className="h-2 w-24 bg-neutral-800 rounded"></div>
+          <RefreshCw size={14} className="text-text-muted animate-spin" />
+          <div className="h-2 w-24 bg-text-muted/20 rounded"></div>
         </div>
         <div className="space-y-2">
-          <div className="h-3 w-full bg-neutral-800 rounded"></div>
-          <div className="h-3 w-2/3 bg-neutral-800 rounded"></div>
+          <div className="h-3 w-full bg-text-muted/20 rounded"></div>
+          <div className="h-3 w-2/3 bg-text-muted/20 rounded"></div>
         </div>
       </div>
     );
@@ -86,15 +86,15 @@ export default function AIInsight({ session }) {
 
   return (
     <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.92),rgba(12,12,13,0.96))] p-5 shadow-2xl shadow-black/30">
+      <div className="card relative overflow-hidden p-5">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="text-primary" />
-            <h3 className="text-[10px] font-black text-white/45 uppercase tracking-[0.18em]">Oracle Insight</h3>
+            <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.18em]">Oracle Insight</h3>
           </div>
           <button
             onClick={() => fetchInsight(true)}
-            className="rounded-md p-1 text-white/25 transition-colors hover:bg-white/[0.06] hover:text-white"
+            className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-surface-solid hover:text-text-primary border border-transparent hover:border-border-custom"
             title="Odśwież analizę"
           >
             <RefreshCw size={12} />
@@ -102,17 +102,17 @@ export default function AIInsight({ session }) {
         </div>
 
         {error ? (
-          <div className="flex items-center gap-2 text-white/45">
+          <div className="flex items-center gap-2 text-red-500">
             <ShieldAlert size={14} />
             <p className="text-[11px] font-bold">{error}</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-[14px] font-medium text-white/86 leading-[1.72] whitespace-pre-wrap">
+            <p className="text-[14px] font-medium text-text-primary leading-[1.72] whitespace-pre-wrap">
               {insight}
             </p>
-            <div className="pt-4 border-t border-white/5">
-              <p className="text-[8px] font-black text-white/28 uppercase tracking-[0.2em]">Vanguard Oracle 5.0 · pełny kontekst · 24h</p>
+            <div className="pt-4 border-t border-border-custom">
+              <p className="text-[8px] font-black text-text-muted uppercase tracking-[0.2em]">Vanguard Oracle 5.0 · pełny kontekst · 24h</p>
             </div>
           </div>
         )}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { differenceInDays, endOfWeek, format, isWithinInterval, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
+import DataStateNotice from '../core/DataStateNotice';
 
 const todayDate = () => format(new Date(), 'yyyy-MM-dd');
 
@@ -21,22 +22,22 @@ function SectionTitle({ icon: Icon, title, detail, action }) {
   return (
     <header className="flex items-end justify-between gap-4">
       <div>
-        <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
+        <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
           <Icon size={12} /> {title}
         </p>
-        {detail && <p className="mt-1 text-[11px] font-semibold leading-relaxed text-white/38">{detail}</p>}
+        {detail && <p className="mt-1 text-[11px] font-semibold leading-relaxed text-text-secondary">{detail}</p>}
       </div>
       {action}
     </header>
   );
 }
 
-function MiniStat({ label, value, tone = 'text-white', detail }) {
+function MiniStat({ label, value, tone = 'text-text-primary', detail }) {
   return (
-    <div className="rounded-lg border border-white/[0.07] bg-neutral-950/70 p-4">
-      <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/30">{label}</p>
-      <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone}`}>{value}</p>
-      {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-white/25">{detail}</p>}
+    <div className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
+      <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone} font-display`}>{value}</p>
+      {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-text-muted">{detail}</p>}
     </div>
   );
 }
@@ -57,7 +58,7 @@ function HabitStrip({ habit, logs }) {
                 ? 'bg-dayC'
                 : status === 'miss'
                 ? 'bg-dayB'
-                : 'border border-white/[0.08] bg-neutral-950'
+                : 'border border-border-custom bg-surface'
             }`}
           />
         );
@@ -195,7 +196,7 @@ export default function Direction({ session }) {
   }
 
   async function deleteHabit(id) {
-    if (!confirm('Usunac nawyk?')) return;
+    if (!confirm('Usunąć nawyk?')) return;
     await supabase.from('habits').delete().eq('id', id);
     setHabits(habits.filter((habit) => habit.id !== id));
   }
@@ -229,20 +230,20 @@ export default function Direction({ session }) {
   }
 
   if (loading) {
-    return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
+    return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse tracking-widest">Wczytywanie Kierunku...</div>;
   }
 
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto p-5 pb-24">
+    <div className="flex-1 space-y-6 overflow-y-auto">
       <section className="space-y-3">
         <SectionTitle
           icon={Target}
           title="Nawyki"
-          detail="Nie jako checklista dla samej checklisty. To sa sygnaly, ktore maja pokazac powtarzalnosc."
+          detail="Nie jako checklista dla samej checklisty. To są sygnały, które mają pokazać powtarzalność."
           action={(
             <button
               onClick={() => setIsAddingHabit(true)}
-              className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary"
+              className="flex items-center gap-1 border border-primary/20 bg-primary/8 px-3.5 py-2 text-[9px] font-black uppercase tracking-widest text-primary rounded-xl hover:bg-primary/15 transition-all cursor-pointer"
             >
               <Plus size={12} /> Dodaj
             </button>
@@ -250,10 +251,10 @@ export default function Direction({ session }) {
         />
 
         {isAddingHabit && (
-          <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+          <div className="space-y-3 rounded-2xl border border-primary/15 bg-primary/5 p-4 animate-in slide-in-from-top-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white">Nowy sygnal</p>
-              <button onClick={() => setIsAddingHabit(false)} className="text-white/35 hover:text-white">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
+              <button onClick={() => setIsAddingHabit(false)} className="text-text-muted hover:text-text-primary transition-colors">
                 <X size={15} />
               </button>
             </div>
@@ -261,31 +262,31 @@ export default function Direction({ session }) {
               <input
                 value={newHabit.icon}
                 onChange={(e) => setNewHabit({ ...newHabit, icon: e.target.value })}
-                className="rounded-lg border border-white/[0.08] bg-black/45 p-3 text-center text-[14px] font-black text-white outline-none"
+                className="rounded-xl border border-border-custom bg-surface p-3 text-center text-[14px] font-black text-text-primary outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]"
                 placeholder="X"
               />
               <input
                 value={newHabit.name}
                 onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
-                className="rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none placeholder:text-white/18"
+                className="rounded-xl border border-border-custom bg-surface p-3 text-[12px] font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]"
                 placeholder="Nazwa"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setNewHabit({ ...newHabit, is_positive: true })}
-                className={`rounded-lg border py-3 text-[9px] font-black uppercase tracking-widest ${newHabit.is_positive ? 'border-dayC/35 bg-dayC/10 text-dayC' : 'border-white/[0.08] bg-black/25 text-white/35'}`}
+                className={`rounded-xl border py-3 text-[9px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-dayC/35 bg-dayC/10 text-dayC shadow-sm' : 'border-border-custom bg-surface text-text-muted hover:bg-surface-solid'}`}
               >
-                Wzmacniac
+                Wzmacniać
               </button>
               <button
                 onClick={() => setNewHabit({ ...newHabit, is_positive: false })}
-                className={`rounded-lg border py-3 text-[9px] font-black uppercase tracking-widest ${!newHabit.is_positive ? 'border-dayB/35 bg-dayB/10 text-dayB' : 'border-white/[0.08] bg-black/25 text-white/35'}`}
+                className={`rounded-xl border py-3 text-[9px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-dayB/35 bg-dayB/10 text-dayB shadow-sm' : 'border-border-custom bg-surface text-text-muted hover:bg-surface-solid'}`}
               >
-                Unikac
+                Unikać
               </button>
             </div>
-            <button onClick={addHabit} className="w-full rounded-lg bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-white">
+            <button onClick={addHabit} className="w-full rounded-xl bg-primary hover:bg-primary-hover py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-md shadow-primary/20 transition-all cursor-pointer">
               Dodaj
             </button>
           </div>
@@ -295,33 +296,33 @@ export default function Direction({ session }) {
           {habits.map((habit) => {
             const doneToday = habitLogs.some((log) => log.habit_id === habit.id && log.date === todayDate());
             return (
-              <article key={habit.id} className="rounded-lg border border-white/[0.07] bg-neutral-950/70 p-4">
+              <article key={habit.id} className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-[15px] font-black text-white/80">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-text-primary/[0.03] text-[15px] font-black text-text-secondary border border-border-custom shadow-sm">
                       {habit.icon || 'X'}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-[12px] font-black uppercase text-white">{habit.name}</p>
-                      <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-white/30">
-                        {habit.is_positive ? 'wzmacniac' : 'unikac'}
+                      <p className="truncate text-[12px] font-black uppercase text-text-primary font-display">{habit.name}</p>
+                      <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-text-muted">
+                        {habit.is_positive ? 'wzmacniać' : 'unikać'}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleHabit(habit.id)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors cursor-pointer ${
                         doneToday
                           ? habit.is_positive
-                            ? 'border-dayC bg-dayC text-white'
-                            : 'border-dayB bg-dayB text-white'
-                          : 'border-white/[0.08] bg-black/35 text-white/35'
+                            ? 'border-dayC bg-dayC text-white shadow-sm shadow-dayC/25'
+                            : 'border-dayB bg-dayB text-white shadow-sm shadow-dayB/25'
+                          : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
                       }`}
                     >
                       {doneToday ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
-                    <button onClick={() => deleteHabit(habit.id)} className="p-2 text-white/16 transition-colors hover:text-dayB">
+                    <button onClick={() => deleteHabit(habit.id)} className="p-2 text-text-muted/50 transition-colors hover:text-rose-500 rounded-lg hover:bg-rose-500/5">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -337,20 +338,20 @@ export default function Direction({ session }) {
         <SectionTitle icon={TrendingUp} title="Status Power List" detail="Czy dzienne wykonanie realnie niesie kierunek." />
         <div className="grid grid-cols-2 gap-3">
           <MiniStat
-            label="Tydzien"
+            label="Tydzień"
             value={stats.weeklyP > 2 ? 'Przegrany' : isSunday ? 'Wygrany' : 'W trakcie'}
             tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}
             detail={`${stats.weeklyP}/2 P`}
           />
           <MiniStat
-            label="Miesiac"
+            label="Miesiąc"
             value={stats.monthlyWin ? 'Wygrany' : 'W trakcie'}
-            tone={stats.monthlyWin ? 'text-dayC' : 'text-orange-300'}
+            tone={stats.monthlyWin ? 'text-dayC' : 'text-orange-500'}
             detail={`${stats.weeks.filter((week) => week.isWeekWin).length}/3 W`}
           />
         </div>
 
-        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/55 p-4">
+        <div className="rounded-[20px] border border-border-custom bg-surface/30 p-4 shadow-sm">
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 28 }).map((_, index) => {
               const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
@@ -360,50 +361,50 @@ export default function Direction({ session }) {
               const isFuture = dateObj > new Date();
               const isMissingLoss = date < todayDate() && !dayData && date >= '2026-05-03';
               const color = isFuture
-                ? 'border border-white/[0.05] bg-transparent'
+                ? 'border border-border-custom bg-transparent'
                 : dayData?.result === 'Z'
                 ? 'bg-dayC'
                 : dayData?.result === 'P' || isMissingLoss
                 ? 'bg-dayB'
-                : 'border border-white/[0.06] bg-neutral-900';
+                : 'border border-border-custom bg-surface';
 
               return (
-                <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-md ${color}`}>
+                <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-lg ${color}`}>
                   {date === todayDate() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
                 </div>
               );
             })}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <MiniStat label="Streak" value={stats.streak} tone="text-primary" detail="zwyciestw" />
-            <MiniStat label="Ten tydzien" value={stats.weeklyP > 2 ? 'Nie' : 'OK'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP} porazek`} />
+            <MiniStat label="Streak" value={stats.streak} tone="text-primary" detail="zwycięstw" />
+            <MiniStat label="Ten tydzień" value={stats.weeklyP > 2 ? 'Nie' : 'OK'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP} porażek`} />
           </div>
         </div>
       </section>
 
       {isSunday && !currentReview && (
         <section className="space-y-3">
-          <SectionTitle icon={Calendar} title="Przeglad tygodnia" detail="Krotkie zamkniecie, bez rozbudowanego rytualu." />
-          <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <SectionTitle icon={Calendar} title="Przegląd tygodnia" detail="Krótkie zamknięcie, bez rozbudowanego rytuału." />
+          <div className="space-y-3 rounded-2xl border border-primary/15 bg-primary/5 p-4">
             {[
-              { key: 'proud_of', label: 'Co wzmocnilo kierunek?', icon: Trophy },
-              { key: 'sabotage', label: 'Co bylo glownym odchyleniem?', icon: AlertCircle },
-              { key: 'do_differently', label: 'Co zmienic w nastepnym tygodniu?', icon: RotateCw },
+              { key: 'proud_of', label: 'Co wzmocniło kierunek?', icon: Trophy },
+              { key: 'sabotage', label: 'Co było głównym odchyleniem?', icon: AlertCircle },
+              { key: 'do_differently', label: 'Co zmienić w następnym tygodniu?', icon: RotateCw },
             ].map((item) => (
               <label key={item.key} className="block space-y-2">
-                <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/35">
+                <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-text-muted">
                   <item.icon size={11} /> {item.label}
                 </span>
                 <textarea
                   value={reviewForm[item.key]}
                   onChange={(e) => setReviewForm({ ...reviewForm, [item.key]: e.target.value })}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/45 p-3 text-[12px] font-bold text-white outline-none"
+                  className="w-full resize-none rounded-xl border border-border-custom bg-surface p-3 text-[12.5px] font-bold text-text-primary outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] placeholder:text-text-muted/40"
                 />
               </label>
             ))}
-            <button onClick={saveWeeklyReview} className="w-full rounded-lg bg-primary py-3 text-[10px] font-black uppercase tracking-widest text-white">
-              Zamknij tydzien
+            <button onClick={saveWeeklyReview} className="w-full rounded-xl bg-primary hover:bg-primary-hover py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-md shadow-primary/20 transition-all cursor-pointer">
+              Zamknij tydzień
             </button>
           </div>
         </section>

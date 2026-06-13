@@ -38,42 +38,42 @@ function RunRow({ activity }) {
   const hrAvg = activity.hr_avg ? Math.round(activity.hr_avg) : null;
 
   return (
-    <article className="rounded-lg border border-white/[0.07] bg-black/30 p-3">
+    <article className="rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">
+          <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">
             {fmtDate(activity.start_date)}
           </p>
-          <h3 className="mt-1 truncate text-[13px] font-black uppercase tracking-tight text-white">
+          <h3 className="mt-1 truncate text-[13px] font-black uppercase tracking-tight text-text-primary font-display">
             {activity.name || 'Run'}
           </h3>
         </div>
         {activity.has_pr && (
-          <span className="rounded-md border border-yellow-400/25 bg-yellow-400/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-yellow-300">
+          <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300 shadow-sm">
             PR
           </span>
         )}
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="rounded-md bg-white/[0.035] p-2">
+        <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
           <Route size={11} className="mb-1 text-primary/70" />
-          <p className="text-[11px] font-black text-white">{distance} km</p>
+          <p className="text-[11px] font-black text-text-primary">{distance} km</p>
         </div>
-        <div className="rounded-md bg-white/[0.035] p-2">
-          <Activity size={11} className="mb-1 text-orange-400/75" />
-          <p className="text-[11px] font-black text-white">{fmtPace(activity.pace_sec_per_km)}</p>
+        <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
+          <Activity size={11} className="mb-1 text-orange-500/80" />
+          <p className="text-[11px] font-black text-text-primary">{fmtPace(activity.pace_sec_per_km)}</p>
         </div>
-        <div className="rounded-md bg-white/[0.035] p-2">
-          <Clock size={11} className="mb-1 text-white/35" />
-          <p className="text-[11px] font-black text-white">{fmtTime(activity.moving_time)}</p>
+        <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
+          <Clock size={11} className="mb-1 text-text-muted" />
+          <p className="text-[11px] font-black text-text-primary">{fmtTime(activity.moving_time)}</p>
         </div>
       </div>
 
       {(hrAvg || activity.perceived_exertion || activity.total_elevation_gain != null) && (
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-white/30">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-text-muted">
           {hrAvg && (
-            <span className="inline-flex items-center gap-1 text-red-300/75">
+            <span className="inline-flex items-center gap-1 text-rose-500/80">
               <HeartPulse size={10} /> {hrAvg} bpm
             </span>
           )}
@@ -146,13 +146,13 @@ export default function StravaWidget({ session }) {
     <section className="space-y-3">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-orange-400">Bieganie</p>
-          <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Ostatnie 3 biegi</h2>
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-orange-500 font-display">Bieganie</p>
+          <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-2.5 text-white/45 transition-colors hover:text-white disabled:opacity-50"
+          className="rounded-xl border border-border-custom bg-surface p-2.5 text-text-secondary transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 shadow-sm cursor-pointer"
           title="Sync Strava"
         >
           <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
@@ -160,19 +160,19 @@ export default function StravaWidget({ session }) {
       </header>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-bold text-red-300">
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-bold text-red-600 dark:text-red-300">
           <AlertTriangle size={12} />
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/60 p-6">
-          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-orange-400" />
+        <div className="rounded-2xl border border-border-custom bg-surface/50 p-6 shadow-sm">
+          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-text-primary/10 border-t-orange-500" />
         </div>
       ) : activities.length === 0 ? (
-        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/60 p-5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/28">Brak biegow w feedzie</p>
+        <div className="rounded-2xl border border-border-custom bg-surface/50 p-5 text-center shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Brak biegów w feedzie</p>
         </div>
       ) : (
         <div className="space-y-2">

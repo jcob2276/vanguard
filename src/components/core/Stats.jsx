@@ -316,145 +316,116 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       <section className="space-y-3">
         <header className="flex items-end justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Pomiary</p>
-            <h2 className="mt-1 text-[18px] font-black uppercase tracking-tight text-white">Waga i talia</h2>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Pomiary</p>
+            <h2 className="mt-1 text-[18px] font-black tracking-tight text-text-primary font-display">Waga i talia</h2>
           </div>
-          <Activity className="text-primary/35" size={22} />
+          <Activity className="text-primary/30 dark:text-primary/45" size={20} />
         </header>
-        <div className="space-y-4 rounded-lg border border-white/[0.08] bg-[linear-gradient(180deg,rgba(24,24,27,0.9),rgba(10,10,11,0.96))] p-5 shadow-2xl shadow-black/30">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4 rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
+          <div className="grid grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
-              <label className="flex items-center text-[8px] font-black uppercase tracking-widest text-white/35">
+              <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
                 Waga (kg) <TrendArrow current={trends.weight?.cur} previous={trends.weight?.prev} better="down" />
               </label>
-              <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-lg font-black text-white outline-none transition-all placeholder:text-white/16 focus:border-primary/70 focus:bg-black/65" placeholder={latestBody?.weight ? String(latestBody.weight) : '--'} />
+              <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]" placeholder={latestBody?.weight ? String(latestBody.weight) : '--'} />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center text-[8px] font-black uppercase tracking-widest text-white/35">
+              <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
                 Talia (cm) <TrendArrow current={trends.waist?.cur} previous={trends.waist?.prev} better="down" />
               </label>
-              <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full rounded-lg border border-white/[0.08] bg-black/45 p-3 text-lg font-black text-white outline-none transition-all placeholder:text-white/16 focus:border-primary/70 focus:bg-black/65" placeholder={latestBody?.waist ? String(latestBody.waist) : '--'} />
+              <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]" placeholder={latestBody?.waist ? String(latestBody.waist) : '--'} />
             </div>
           </div>
-          <button onClick={saveMetrics} className="w-full rounded-lg bg-primary py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.99]">Zapisz pomiary</button>
+          <button onClick={saveMetrics} className="w-full rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98] font-display cursor-pointer">Zapisz pomiary</button>
         </div>
       </section>
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/80 p-4">
+        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">Waga</p>
-            <Scale size={13} className="text-white/24" />
+            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Waga</p>
+            <Scale size={14} className="text-text-muted" />
           </div>
-          <p className="text-[20px] font-black text-white">{latestBody?.weight ?? '--'}<span className="ml-1 text-[10px] text-white/25">kg</span></p>
-          {projections?.weight && <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/25">6w: {projections.weight.value} kg</p>}
+          <p className="text-[22px] font-black text-text-primary font-display leading-none">{latestBody?.weight ?? '--'}<span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">kg</span></p>
+          {projections?.weight && <p className="mt-2 text-[10px] font-medium text-text-muted">6w: {projections.weight.value} kg</p>}
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-neutral-950/80 p-4">
+        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">Talia</p>
-            <Ruler size={13} className="text-white/24" />
+            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Talia</p>
+            <Ruler size={14} className="text-text-muted" />
           </div>
-          <p className="text-[20px] font-black text-white">{latestBody?.waist ?? '--'}<span className="ml-1 text-[10px] text-white/25">cm</span></p>
-          {projections?.waist && <p className="mt-1 text-[9px] font-bold uppercase tracking-widest text-white/25">6w: {projections.waist.value} cm</p>}
+          <p className="text-[22px] font-black text-text-primary font-display leading-none">{latestBody?.waist ?? '--'}<span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">cm</span></p>
+          {projections?.waist && <p className="mt-2 text-[10px] font-medium text-text-muted">6w: {projections.waist.value} cm</p>}
         </div>
       </section>
 
-      <section className="space-y-4 rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
+      <section className="space-y-4 rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Eksport</p>
-          <h2 className="mt-1 text-[15px] font-black uppercase tracking-tight text-white">Raport danych</h2>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Eksport</p>
+          <h2 className="mt-1 text-[15px] font-black uppercase tracking-tight text-text-primary font-display">Raport danych</h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="relative group">
-            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-hover:text-primary transition-colors" size={14} />
+            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-hover:text-primary transition-colors" size={14} />
             <input
               type="date"
               value={dateRange.from}
               onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={e => setDateRange({...dateRange, from: e.target.value})}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-white/[0.08] bg-black/35 p-3 pl-10 text-[10px] font-bold text-white outline-none transition-all focus:border-primary/70"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-border-custom bg-surface p-3 pl-10 text-[10px] font-bold text-text-primary outline-none transition-all focus:border-primary/70"
             />
           </div>
           <div className="relative group">
-            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-hover:text-primary transition-colors" size={14} />
+            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-hover:text-primary transition-colors" size={14} />
             <input
               type="date"
               value={dateRange.to}
               onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={e => setDateRange({...dateRange, to: e.target.value})}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-white/[0.08] bg-black/35 p-3 pl-10 text-[10px] font-bold text-white outline-none transition-all focus:border-primary/70"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-border-custom bg-surface p-3 pl-10 text-[10px] font-bold text-text-primary outline-none transition-all focus:border-primary/70"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4">
-          <button onClick={() => setIncludeWorkouts(!includeWorkouts)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeWorkouts ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeWorkouts && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Trening (Siłka/Strava)</span>
-          </button>
-
-          <button onClick={() => setIncludeBody(!includeBody)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeBody ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeBody && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Pomiary Ciała</span>
-          </button>
-
-          <button onClick={() => setIncludeYazio(!includeYazio)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeYazio ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeYazio && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Dieta (Yazio)</span>
-          </button>
-
-          <button onClick={() => setIncludeJournal(!includeJournal)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeJournal ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeJournal && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Notatnik (Telegram)</span>
-          </button>
-
-          <button onClick={() => setIncludeOura(!includeOura)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeOura ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeOura && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Oura Ring</span>
-          </button>
-
-          <button onClick={() => setIncludeHabits(!includeHabits)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeHabits ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeHabits && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Nawyki</span>
-          </button>
-
-          <button onClick={() => setIncludeActivityWatch(!includeActivityWatch)} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeActivityWatch ? 'bg-primary border-primary text-white' : 'border-neutral-800'}`}>
-              {includeActivityWatch && <CheckSquare size={10} />}
-            </div>
-            <span className="text-[10px] font-black uppercase">Aktywność komputera (ActivityWatch)</span>
-          </button>
-
+        <div className="flex flex-wrap gap-x-4 gap-y-3 pt-1">
+          {[
+            { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłka/Strava)' },
+            { state: includeBody, setter: setIncludeBody, label: 'Pomiary Ciała' },
+            { state: includeYazio, setter: setIncludeYazio, label: 'Dieta (Yazio)' },
+            { state: includeJournal, setter: setIncludeJournal, label: 'Notatnik (Telegram)' },
+            { state: includeOura, setter: setIncludeOura, label: 'Oura Ring' },
+            { state: includeHabits, setter: setIncludeHabits, label: 'Nawyki' },
+            { state: includeActivityWatch, setter: setIncludeActivityWatch, label: 'Aktywność komputera (ActivityWatch)' },
+          ].map(({ state, setter, label }) => (
+            <button key={label} onClick={() => setter(!state)} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${state ? 'bg-primary border-primary text-white shadow-[0_2px_6px_rgba(79,70,229,0.2)]' : 'border-border-custom bg-surface-solid/35'}`}>
+                {state && <CheckSquare size={10} />}
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <button onClick={syncHistory} disabled={isSyncing} className="text-[8px] font-black uppercase text-neutral-600 hover:text-primary transition-colors">
+        <div className="flex items-center justify-between pt-2 border-t border-border-custom">
+          <button onClick={syncHistory} disabled={isSyncing} className="text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-primary transition-colors cursor-pointer">
             {isSyncing ? 'Syncing...' : 'Sync Yazio'}
           </button>
-          <button onClick={exportData} disabled={isExporting} className="ml-4 flex-1 rounded-lg bg-primary px-6 py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-primary/20 transition-transform hover:scale-[1.01]">
+          <button onClick={exportData} disabled={isExporting} className="ml-4 flex-1 rounded-xl bg-primary hover:bg-primary-hover px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.99] font-display text-center cursor-pointer">
             {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
           </button>
         </div>
 
-        <div className="border-t border-white/[0.06] pt-1 space-y-3">
+        <div className="border-t border-border-custom pt-3 space-y-3">
           <div className="flex gap-1">
             {[1, 7, 14, 30].map(p => (
               <button
                 key={p}
                 onClick={() => { setAnalyzePeriod(p); setAnalyzeResult(null); }}
-                className={`flex-1 rounded-lg border py-2 text-[9px] font-black uppercase tracking-widest transition-colors ${analyzePeriod === p ? 'border-primary/40 bg-primary/10 text-primary' : 'border-white/[0.08] bg-white/[0.02] text-white/35 hover:text-white/60'}`}
+                className={`flex-1 rounded-xl border py-2 text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  analyzePeriod === p 
+                    ? 'border-primary/30 dark:border-primary/40 bg-primary/[0.06] text-primary font-bold shadow-none' 
+                    : 'border-border-custom bg-surface-solid/40 text-text-muted hover:text-text-primary'
+                }`}
               >
                 {p === 1 ? '1D' : `${p}D`}
               </button>
@@ -467,53 +438,53 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                 type="date"
                 value={analyzeDate}
                 onChange={e => { setAnalyzeDate(e.target.value); setAnalyzeResult(null); }}
-                className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase text-white/60 focus:outline-none focus:border-primary/40"
+                className="flex-1 rounded-xl border border-border-custom bg-surface px-3 py-2 text-[10px] font-bold uppercase text-text-secondary focus:outline-none focus:border-primary/45"
               />
             )}
             {analyzePeriod > 1 && (
-              <p className="flex-1 text-[10px] font-black uppercase text-white/30">
+              <p className="flex-1 text-[10px] font-bold uppercase text-text-muted">
                 Ostatnie {analyzePeriod} dni
               </p>
             )}
             <button
               onClick={analyzeFood}
               disabled={isAnalyzing}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[10px] font-black uppercase text-white/60 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
+              className="rounded-xl border border-border-custom bg-surface px-4 py-2 text-[10px] font-bold uppercase text-text-secondary transition-all hover:bg-surface-solid hover:text-primary disabled:opacity-40 cursor-pointer"
             >
               {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
             </button>
           </div>
 
           {analyzeResult && analyzeResult.mode === 'single' && analyzeResult.fasting && (
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-1.5">
+            <div className="rounded-xl border border-blue-500/15 bg-blue-500/[0.03] p-4 space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="text-base">🔵</span>
-                <span className="text-[10px] font-black uppercase text-blue-400">Post — {analyzeResult.date}</span>
+                <span className="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">Post — {analyzeResult.date}</span>
               </div>
               {analyzeResult.day_quality_analysis && (
-                <p className="text-[11px] text-white/50">{analyzeResult.day_quality_analysis}</p>
+                <p className="text-[11px] text-text-secondary">{analyzeResult.day_quality_analysis}</p>
               )}
             </div>
           )}
 
           {analyzeResult && analyzeResult.mode === 'single' && !analyzeResult.fasting && (
-            <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+            <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-white/40">Jakość dnia {analyzeResult.date}</span>
-                <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                <span className="text-[10px] font-bold uppercase text-text-muted">Jakość dnia {analyzeResult.date}</span>
+                <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
                   {analyzeResult.day_quality_score}/100
                 </span>
               </div>
-              <p className="text-[11px] text-white/60 leading-relaxed">{analyzeResult.day_quality_analysis}</p>
-              <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+              <p className="text-[11px] text-text-secondary leading-relaxed">{analyzeResult.day_quality_analysis}</p>
+              <div className="space-y-1.5 pt-1.5 border-t border-border-custom">
                 {analyzeResult.items.sort((a, b) => b.food_quality_score - a.food_quality_score).map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <span className={`shrink-0 text-[10px] font-black w-7 text-right ${item.food_quality_score >= 70 ? 'text-dayC' : item.food_quality_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    <span className={`shrink-0 text-[10px] font-bold w-7 text-right ${item.food_quality_score >= 70 ? 'text-dayC' : item.food_quality_score >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
                       {item.food_quality_score}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black text-white/80 truncate">{item.name}</p>
-                      <p className="text-[9px] text-white/35">{item.quality_reason}</p>
+                      <p className="text-[10px] font-bold text-text-primary truncate">{item.name}</p>
+                      <p className="text-[9px] text-text-muted">{item.quality_reason}</p>
                     </div>
                   </div>
                 ))}
@@ -521,77 +492,40 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
               {/* Protein distribution by meal */}
               {analyzeResult.protein_distribution?.length > 0 && (
-                <div className="border-t border-white/[0.06] pt-3 space-y-2">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-white/25">Białko / posiłek</p>
+                <div className="border-t border-border-custom pt-3 space-y-2">
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-text-muted">Białko / posiłek</p>
                   {analyzeResult.protein_distribution.map((m, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-[9px] font-black w-20 shrink-0 text-white/35 capitalize truncate">{m.meal}</span>
-                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <span className="text-[9px] font-bold w-20 shrink-0 text-text-muted capitalize truncate">{m.meal}</span>
+                      <div className="flex-1 h-1.5 bg-border-custom rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${Math.min(100, (m.protein_g / 60) * 100)}%`,
-                            backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#ef4444'
+                            backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#f43f5e'
                           }}
                         />
                       </div>
-                      <span className={`text-[9px] font-black w-10 text-right shrink-0 ${m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-yellow-400' : 'text-dayB'}`}>
+                      <span className={`text-[9px] font-bold w-10 text-right shrink-0 ${m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-amber-550' : 'text-dayB'}`}>
                         {m.protein_g}g
                       </span>
                     </div>
                   ))}
                   {analyzeResult.protein_distribution.some(m => m.note) && (
-                    <p className="text-[9px] text-white/30 leading-relaxed">
+                    <p className="text-[9px] text-text-muted leading-relaxed">
                       {analyzeResult.protein_distribution.find(m => m.note)?.note}
                     </p>
                   )}
-                </div>
-              )}
-
-              {/* Training sync */}
-              {analyzeResult.training_sync && (
-                <div className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2.5">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-primary/60 mb-1">Sync z treningiem</p>
-                  <p className="text-[10px] text-white/55 leading-relaxed">{analyzeResult.training_sync}</p>
-                </div>
-              )}
-
-              {/* Micronutrient gaps */}
-              {analyzeResult.micronutrient_gaps?.length > 0 && (
-                <div className="border-t border-white/[0.06] pt-3">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-orange-400/70 mb-2">Potencjalne braki</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {analyzeResult.micronutrient_gaps.map((gap, i) => (
-                      <span key={i} className="rounded border border-orange-400/20 bg-orange-400/5 px-2 py-0.5 text-[9px] text-orange-300/70">{gap}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Swap suggestions */}
-              {analyzeResult.swap_suggestions?.length > 0 && (
-                <div className="border-t border-white/[0.06] pt-3 space-y-1.5">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-white/25">Zamiany</p>
-                  {analyzeResult.swap_suggestions.map((s, i) => (
-                    <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <span className="text-[9px] font-black text-dayB/70 line-through">{s.from}</span>
-                        <span className="text-[8px] text-white/25">→</span>
-                        <span className="text-[9px] font-black text-dayC/80">{s.to}</span>
-                      </div>
-                      {s.reason && <p className="text-[9px] text-white/35">{s.reason}</p>}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
           )}
 
           {analyzeResult && analyzeResult.mode === 'range' && (
-            <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
+            <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-white/40">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
-                <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                <span className="text-[10px] font-bold uppercase text-text-muted">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
+                <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
                   {analyzeResult.avg_score}/100
                 </span>
               </div>
@@ -599,42 +533,42 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               <div className="space-y-1.5">
                 {analyzeResult.days.map(d => (
                   <div key={d.date} className={`flex items-center gap-2 ${(d.incomplete || d.fasting) ? 'opacity-50' : ''}`}>
-                    <span className="w-[52px] shrink-0 text-[8px] font-black text-white/30">{d.date?.slice(5) ?? d.date ?? ''}</span>
-                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <span className="w-[52px] shrink-0 text-[8px] font-bold text-text-muted">{d.date?.slice(5) ?? d.date ?? ''}</span>
+                    <div className="flex-1 h-1.5 bg-border-custom rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
                           width: d.fasting ? '100%' : `${d.score}%`,
-                          backgroundColor: d.fasting ? '#3b82f6' : d.incomplete ? '#6b7280' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#ef4444'
+                          backgroundColor: d.fasting ? '#4f46e5' : d.incomplete ? '#94a3b8' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#f43f5e'
                         }}
                       />
                     </div>
-                    <span className={`w-8 shrink-0 text-[9px] font-black text-right ${d.fasting ? 'text-blue-400' : d.incomplete ? 'text-white/25' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-yellow-400' : 'text-dayB'}`}>
+                    <span className={`w-8 shrink-0 text-[9px] font-bold text-right ${d.fasting ? 'text-indigo-650' : d.incomplete ? 'text-text-muted' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-amber-550' : 'text-dayB'}`}>
                       {d.fasting ? '🔵' : d.incomplete ? '⚠️' : d.score}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <p className="text-[11px] text-white/60 leading-relaxed border-t border-white/[0.06] pt-3">{analyzeResult.pattern_analysis}</p>
+              <p className="text-[11px] text-text-secondary leading-relaxed border-t border-border-custom pt-3">{analyzeResult.pattern_analysis}</p>
 
               <div className="grid grid-cols-2 gap-3">
                 {analyzeResult.top_issues?.length > 0 && (
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
                     <ul className="space-y-1">
                       {analyzeResult.top_issues.map((t, i) => (
-                        <li key={i} className="text-[9px] text-white/50">· {t}</li>
+                        <li key={i} className="text-[9px] text-text-muted">· {t}</li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {analyzeResult.strengths?.length > 0 && (
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
                     <ul className="space-y-1">
                       {analyzeResult.strengths.map((s, i) => (
-                        <li key={i} className="text-[9px] text-white/50">· {s}</li>
+                        <li key={i} className="text-[9px] text-text-muted">· {s}</li>
                       ))}
                     </ul>
                   </div>
@@ -642,12 +576,12 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               </div>
 
               {analyzeResult.action_steps?.length > 0 && (
-                <div className="border-t border-white/[0.06] pt-3">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
+                <div className="border-t border-border-custom pt-3">
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
                   <ol className="space-y-1.5">
                     {analyzeResult.action_steps.map((s, i) => (
-                      <li key={i} className="flex gap-2 text-[10px] text-white/70">
-                        <span className="font-black text-primary shrink-0">{i + 1}.</span>
+                      <li key={i} className="flex gap-2 text-[10px] text-text-secondary">
+                        <span className="font-bold text-primary shrink-0">{i + 1}.</span>
                         <span>{s}</span>
                       </li>
                     ))}
@@ -657,21 +591,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
               {/* Nutrition profile + trend */}
               {(analyzeResult.nutrition_profile || analyzeResult.trend) && (
-                <div className="border-t border-white/[0.06] pt-3 space-y-2">
+                <div className="border-t border-border-custom pt-3 space-y-2">
                   {analyzeResult.nutrition_profile && (
-                    <p className="text-[10px] text-white/45 leading-relaxed italic">{analyzeResult.nutrition_profile}</p>
+                    <p className="text-[10px] text-text-secondary leading-relaxed italic">{analyzeResult.nutrition_profile}</p>
                   )}
                   {analyzeResult.trend && (
                     <div className="flex items-center gap-2">
-                      <span className={`text-[8px] font-black uppercase px-2 py-1 rounded ${
+                      <span className={`text-[8px] font-bold uppercase px-2 py-1 rounded ${
                         analyzeResult.trend === 'improving' ? 'bg-dayC/10 text-dayC' :
                         analyzeResult.trend === 'degrading' ? 'bg-dayB/10 text-dayB' :
-                        'bg-white/5 text-white/40'
+                        'bg-surface-solid/40 border border-border-custom text-text-muted'
                       }`}>
                         {analyzeResult.trend === 'improving' ? '↑ Poprawa' : analyzeResult.trend === 'degrading' ? '↓ Regres' : '→ Stabilnie'}
                       </span>
                       {analyzeResult.trend_note && (
-                        <p className="text-[9px] text-white/35 flex-1">{analyzeResult.trend_note}</p>
+                        <p className="text-[9px] text-text-muted flex-1">{analyzeResult.trend_note}</p>
                       )}
                     </div>
                   )}
@@ -682,15 +616,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               {(analyzeResult.best_day || analyzeResult.worst_day) && (
                 <div className="flex gap-2">
                   {analyzeResult.best_day && (
-                    <div className="flex-1 rounded-lg border border-dayC/15 bg-dayC/5 px-3 py-2">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-dayC/60 mb-0.5">Najlepszy dzień</p>
-                      <p className="text-[13px] font-black text-dayC/80">{analyzeResult.best_day?.slice(5)}</p>
+                    <div className="flex-1 rounded-xl border border-dayC/15 bg-dayC/5 px-3 py-2">
+                      <p className="text-[7px] font-bold uppercase tracking-widest text-dayC/60 mb-0.5">Najlepszy dzień</p>
+                      <p className="text-[13px] font-bold text-dayC/80">{analyzeResult.best_day?.slice(5)}</p>
                     </div>
                   )}
                   {analyzeResult.worst_day && (
-                    <div className="flex-1 rounded-lg border border-dayB/15 bg-dayB/5 px-3 py-2">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-dayB/60 mb-0.5">Najgorszy dzień</p>
-                      <p className="text-[13px] font-black text-dayB/80">{analyzeResult.worst_day?.slice(5)}</p>
+                    <div className="flex-1 rounded-xl border border-dayB/15 bg-dayB/5 px-3 py-2">
+                      <p className="text-[7px] font-bold uppercase tracking-widest text-dayB/60 mb-0.5">Najgorszy dzień</p>
+                      <p className="text-[13px] font-bold text-dayB/80">{analyzeResult.worst_day?.slice(5)}</p>
                     </div>
                   )}
                 </div>
@@ -699,10 +633,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               {/* Chronic gaps */}
               {analyzeResult.chronic_gaps?.length > 0 && (
                 <div>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 mb-1.5">Chroniczne braki</p>
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-orange-550 mb-1.5">Chroniczne braki</p>
                   <div className="flex flex-wrap gap-1.5">
                     {analyzeResult.chronic_gaps.map((g, i) => (
-                      <span key={i} className="rounded border border-orange-400/15 bg-orange-400/5 px-2 py-0.5 text-[9px] text-orange-300/60">{g}</span>
+                      <span key={i} className="rounded border border-orange-500/20 bg-orange-500/5 px-2 py-0.5 text-[9px] text-orange-600 dark:text-orange-400">{g}</span>
                     ))}
                   </div>
                 </div>
@@ -710,16 +644,16 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
               {/* Training nutrition note */}
               {analyzeResult.training_nutrition_note && (
-                <div className="rounded-lg border border-primary/10 bg-primary/5 px-3 py-2.5">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-primary/50 mb-1">Żywienie vs trening</p>
-                  <p className="text-[10px] text-white/50 leading-relaxed">{analyzeResult.training_nutrition_note}</p>
+                <div className="rounded-xl border border-primary/10 bg-primary/5 px-3 py-2.5">
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-primary/50 mb-1">Żywienie vs trening</p>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">{analyzeResult.training_nutrition_note}</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-lg border border-white/[0.08] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/45 transition-colors hover:border-primary/40 hover:text-primary">
+        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-xl border border-border-custom px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-text-muted transition-colors hover:border-primary/45 hover:text-primary cursor-pointer">
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
         </button>
 
@@ -728,18 +662,18 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Fueling</p>
-            <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-white">Białko dzisiaj</h2>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Fueling</p>
+            <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Białko dzisiaj</h2>
           </div>
-          <p className="text-[13px] font-black text-primary">{todayProtein}g</p>
+          <p className="text-[13px] font-bold text-primary font-display">{todayProtein}g</p>
         </div>
-        <div className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-4">
+        <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Cel {proteinGoal}g</span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/30">{Math.round(proteinPct)}%</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Cel {proteinGoal}g</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-text-secondary">{Math.round(proteinPct)}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
-            <div className="h-full rounded-full bg-primary shadow-[0_0_12px_rgba(59,130,246,0.35)]" style={{ width: `${proteinPct}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-border-custom">
+            <div className="h-full rounded-full bg-primary shadow-[0_2px_8px_rgba(79,70,229,0.2)]" style={{ width: `${proteinPct}%` }} />
           </div>
           {recentProtein.length > 0 && (
             <div className="mt-4 grid grid-cols-7 gap-1.5">
@@ -747,8 +681,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                 const pct = Math.min((Number(d.protein || 0) / proteinGoal) * 100, 100);
                 return (
                   <div key={d.date} className="flex h-14 flex-col justify-end gap-1">
-                    <div className="rounded-sm bg-primary/70" style={{ height: `${Math.max(pct, 6)}%` }} />
-                    <span className="text-center text-[7px] font-bold text-white/25">{d.date.slice(0, 2)}</span>
+                    <div className="rounded-sm bg-primary/70 dark:bg-primary/80" style={{ height: `${Math.max(pct, 6)}%` }} />
+                    <span className="text-center text-[7px] font-bold text-text-muted">{d.date.slice(0, 2)}</span>
                   </div>
                 );
               })}

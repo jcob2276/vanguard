@@ -2,6 +2,24 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 
+const colorMap = {
+  'purple-500': { 
+    bg: 'bg-purple-500/8 dark:bg-purple-500/15', 
+    border: 'border-purple-500/15 dark:border-purple-500/30', 
+    text: 'text-purple-600 dark:text-purple-400' 
+  },
+  'rose-500': { 
+    bg: 'bg-rose-500/8 dark:bg-rose-500/15', 
+    border: 'border-rose-500/15 dark:border-rose-500/30', 
+    text: 'text-rose-600 dark:text-rose-400' 
+  },
+  'orange-500': { 
+    bg: 'bg-orange-500/8 dark:bg-orange-500/15', 
+    border: 'border-orange-500/15 dark:border-orange-500/30', 
+    text: 'text-orange-600 dark:text-orange-400' 
+  }
+};
+
 export default function IdentityVault({ session: sessionProp }) {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
@@ -15,7 +33,6 @@ export default function IdentityVault({ session: sessionProp }) {
 
   useEffect(() => {
     const resolveUser = async () => {
-      // Najpierw prop, potem bezpośrednie zapytanie do Supabase
       const id = sessionProp?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
       if (id) setUserId(id);
     };
@@ -39,7 +56,7 @@ export default function IdentityVault({ session: sessionProp }) {
           relationships: data.relationships || '',
           philosophy: data.philosophy || '',
           finances: data.finances || '',
-          work_edu: data.work_edu || '' // Zakładając, że kolumna istnieje lub trafi do JSONa
+          work_edu: data.work_edu || ''
         });
       }
     } catch (err) {
@@ -61,13 +78,11 @@ export default function IdentityVault({ session: sessionProp }) {
     setLoading(true);
     setSaveStatus(null);
     try {
-      // Tylko niepuste pola
       const nonEmpty = Object.fromEntries(
         Object.entries(vault).filter(([_, v]) => v.trim() !== '')
       );
       if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
 
-      // Każda kategoria → ingest-vault-log (chunking + embedding + graph)
       let totalChunks = 0;
       let totalTriads = 0;
       for (const [category, text] of Object.entries(nonEmpty)) {
@@ -91,56 +106,63 @@ export default function IdentityVault({ session: sessionProp }) {
     }
   };
 
-  const Section = ({ title, icon: Icon, field, placeholder, description, color }) => (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 space-y-4 hover:border-neutral-700 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg bg-${color}/10 border border-${color}/20`}>
-          <Icon size={18} className={`text-${color}`} />
+  const Section = ({ title, icon: Icon, field, placeholder, description, color }) => {
+    const themeStyles = colorMap[color] || colorMap['purple-500'];
+    return (
+      <div className="bg-surface border border-border-custom rounded-[24px] p-5 space-y-4 hover:border-primary/20 transition-all shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className={`p-2.5 rounded-xl ${themeStyles.bg} border ${themeStyles.border}`}>
+            <Icon size={18} className={themeStyles.text} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">{title}</h3>
+            <p className="text-[10px] text-text-muted uppercase tracking-widest">{description}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-tight">{title}</h3>
-          <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{description}</p>
-        </div>
+        <textarea
+          value={vault[field]}
+          onChange={(e) => setVault(prev => ({ ...prev, [field]: e.target.value }))}
+          placeholder={placeholder}
+          className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-[12.5px] font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] outline-none transition-all placeholder:text-text-muted/40"
+        />
       </div>
-      <textarea
-        value={vault[field]}
-        onChange={(e) => setVault(prev => ({ ...prev, [field]: e.target.value }))}
-        placeholder={placeholder}
-        className="w-full bg-black border border-neutral-800 rounded-xl p-4 text-xs text-neutral-300 min-h-[120px] focus:border-primary/30 outline-none transition-all placeholder:text-neutral-800"
-      />
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-4xl mx-auto space-y-6 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <Shield size={16} className="text-primary animate-pulse" />
             <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Identity Vault v3.1</span>
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter italic uppercase">Pełny Profil Bliźniaka</h1>
-          <p className="text-neutral-500 text-sm mt-2 font-medium italic">Wpisz tu wszystko, co Wyrocznia powinna o Tobie wiedzieć.</p>
+          <h1 className="text-3xl font-display font-black text-text-primary tracking-tight uppercase">Pełny Profil Bliźniaka</h1>
+          <p className="text-text-secondary text-xs mt-1 font-semibold leading-relaxed">Wpisz tu wszystko, co Wyrocznia powinna o Tobie wiedzieć.</p>
         </div>
         
         <button
           onClick={handleSave}
           disabled={loading}
-          className={`px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 ${saveStatus === 'success' ? 'bg-green-500 text-white shadow-green-500/20' : 'bg-primary text-black shadow-primary/20'}`}
+          className={`px-8 py-3.5 rounded-2xl font-bold text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md disabled:opacity-50 font-display cursor-pointer ${
+            saveStatus === 'success' 
+              ? 'bg-green-500 text-white shadow-green-500/20' 
+              : 'bg-primary text-white hover:bg-primary-hover shadow-primary/20'
+          }`}
         >
           {loading ? 'Synchronizacja...' : saveStatus === 'success' ? '✓ Zapisano!' : <><Save size={16} /> Zaktualizuj Prawdę</>}
         </button>
       </div>
 
       {saveStatus === 'success' && (
-        <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-xs font-black uppercase text-center animate-in zoom-in-95">
+        <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/25 text-green-600 dark:text-green-400 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider text-center animate-in zoom-in-95">
           Fundament Zaktualizowany. Bliźniak właśnie stał się mądrzejszy.
         </div>
       )}
 
       {/* Grid of Sections */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4.5">
         <Section
           title="JA"
           icon={Ghost}

@@ -6,7 +6,7 @@ import {
   Clock,
   Dumbbell,
   Fingerprint,
-  LogOut,
+  Moon,
   Play,
   RefreshCw,
   Sun,
@@ -52,22 +52,26 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center justify-between rounded-lg border p-4 text-left transition-all active:scale-[0.99] disabled:opacity-50 ${
+      className={`flex w-full items-center justify-between rounded-[20px] border p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-50 disabled:transform-none ${
         primary
-          ? 'border-primary/25 bg-primary/10 hover:bg-primary/15'
-          : 'border-white/[0.07] bg-neutral-950/80 hover:border-white/[0.14]'
+          ? 'border-primary/10 bg-primary/[0.06] hover:bg-primary/[0.1] shadow-[0_8px_20px_rgba(79,70,229,0.05)]'
+          : 'border-slate-200/50 bg-white/70 backdrop-blur-md hover:border-slate-200 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.02)]'
       }`}
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${primary ? 'bg-black/35 text-primary' : 'bg-white/[0.04] text-white/52'}`}>
+      <div className="flex min-w-0 items-center gap-3.5">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${primary ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
           <Icon size={18} />
         </div>
         <div className="min-w-0">
-          {eyebrow && <p className={`text-[8px] font-black uppercase tracking-[0.18em] ${primary ? 'text-primary' : 'text-white/30'}`}>{eyebrow}</p>}
-          <p className="truncate text-[12px] font-black uppercase tracking-[0.08em] text-white">{label}</p>
+          {eyebrow && <p className={`text-[9px] font-bold uppercase tracking-[0.15em] ${primary ? 'text-primary/70' : 'text-slate-400'}`}>{eyebrow}</p>}
+          <p className="truncate font-display text-[13px] font-black tracking-tight text-slate-800 mt-0.5">{label}</p>
         </div>
       </div>
-      {primary && <Play size={15} className="shrink-0 text-primary" fill="currentColor" />}
+      {primary && (
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-[0_2px_8px_rgba(79,70,229,0.3)]">
+          <Play size={12} className="ml-0.5 shrink-0" fill="currentColor" />
+        </div>
+      )}
     </button>
   );
 }
@@ -76,33 +80,34 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
   const progress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
 
   return (
-    <section className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
+    <section className="rounded-[24px] border border-slate-200/50 bg-white/70 backdrop-blur-md p-5 shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">Yazio weekly</p>
-          <p className="mt-1 text-[22px] font-black tracking-tight text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">Yazio weekly</p>
+          <p className="mt-1 font-display text-[26px] font-black tracking-tight text-slate-800 leading-none">
             {weeklyCalories}
-            <span className="ml-1 text-[11px] text-white/25">/ {weeklyBudget} kcal</span>
+            <span className="ml-1 text-[12px] font-semibold text-slate-400 tracking-normal">/ {weeklyBudget} kcal</span>
           </p>
         </div>
         <button
           onClick={syncYazio}
           disabled={isSyncing}
-          className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-2.5 text-white/45 transition-colors hover:text-white disabled:opacity-50"
+          className="rounded-xl border border-slate-200/50 bg-slate-50 p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:opacity-50"
           title="Sync Yazio"
         >
           <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
         </button>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.28)] transition-all duration-1000"
+          className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-400 shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-white/24">
-        Tydzien - {Math.round(progress)}% budzetu
-      </p>
+      <div className="mt-3 flex items-center justify-between text-[10px] font-medium text-slate-400">
+        <span>Tydzień</span>
+        <span className="font-bold text-slate-600">{Math.round(progress)}% budżetu</span>
+      </div>
     </section>
   );
 }
@@ -128,9 +133,9 @@ function DayCounter() {
   const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   return (
-    <div className="py-3">
-      <p className="text-[22px] font-black leading-[1.3] text-white whitespace-pre-line">
-        {quote}
+    <div className="py-4.5 px-5 border-l-4 border-primary/40 bg-primary/[0.04] rounded-r-[20px] my-2 shadow-[0_4px_16px_rgba(0,0,0,0.01)]">
+      <p className="font-display text-[14.5px] font-medium leading-relaxed text-slate-700 italic whitespace-pre-line">
+        "{quote}"
       </p>
     </div>
   );
@@ -143,6 +148,20 @@ export default function Dashboard({ session }) {
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+
+  // Theme support
+  const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('vanguard_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const navigateTo = (newView) => {
     const fromIdx = TAB_ORDER.indexOf(view);
@@ -314,30 +333,44 @@ export default function Dashboard({ session }) {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-primary/30">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-white/5 pb-24">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-black/75 px-5 py-4 backdrop-blur-xl">
+    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
-            <h1 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Vanguard</h1>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">{new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}</p>
+            <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={toggleTheme}
+              className="rounded-full border border-slate-200/50 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03] p-2.5 text-slate-405 dark:text-white/50 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.08]"
+              title="Przełącz motyw"
+            >
+              {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
+            </button>
+            <button
               onClick={syncAll}
               disabled={isSyncingAll}
-              className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10 disabled:opacity-40"
+              className="rounded-full border border-slate-200/50 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03] p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-755 disabled:opacity-40"
               title="Sync wszystkiego (Oura + Yazio + Strava + Strain)"
             >
-              <RefreshCw size={16} className={isSyncingAll ? 'animate-spin text-primary' : 'text-white/45'} />
+              <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
-            <button onClick={() => setView('fundament')} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="Fundament">
-              <Fingerprint size={16} className="text-primary" />
+            <button 
+              onClick={() => setView('fundament')} 
+              className="rounded-full border border-slate-200/50 bg-primary/[0.05] p-2.5 text-primary transition-all hover:bg-primary/10" 
+              title="Fundament"
+            >
+              <Fingerprint size={15} />
             </button>
-            <button onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="To Do">
-              <CheckSquare size={16} className="text-primary" />
-            </button>
-            <button onClick={() => supabase.auth.signOut()} className="rounded-full border border-white/5 bg-white/5 p-2.5 transition-colors hover:bg-white/10" title="Wyloguj">
-              <LogOut size={16} className="text-white/45" />
+            <button 
+              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} 
+              className="rounded-full border border-slate-200/50 bg-primary/[0.05] p-2.5 text-primary transition-all hover:bg-primary/10" 
+              title="To Do"
+            >
+              <CheckSquare size={15} />
             </button>
           </div>
         </header>
@@ -348,7 +381,7 @@ export default function Dashboard({ session }) {
             className={`p-5 pb-8 animate-in fade-in duration-300 ${slideDir === 'right' ? 'slide-in-from-right-4' : 'slide-in-from-left-4'}`}
           >
           {view === 'dzis' && (
-            <div className="space-y-8">
+            <div className="space-y-7">
               <DayCounter />
               <GoalsCard session={session} />
               <DailyStrainCard session={session} />
@@ -364,7 +397,7 @@ export default function Dashboard({ session }) {
 
           {view === 'tydzien' && (
             <Suspense fallback={<ViewFallback />}>
-              <div className="space-y-8">
+              <div className="space-y-7">
                 <AIInsight session={session} />
                 <YazioWeeklyCard
                   weeklyCalories={weeklyCalories}
@@ -379,7 +412,7 @@ export default function Dashboard({ session }) {
 
           {view === 'historia' && (
             <Suspense fallback={<ViewFallback />}>
-              <div className="space-y-8">
+              <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
                 <Photos session={session} />
                 <MuscleHeatmap session={session} />
@@ -395,17 +428,19 @@ export default function Dashboard({ session }) {
           </div>
         </main>
 
-        <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-neutral-950/90 p-2 shadow-2xl backdrop-blur-2xl">
+        <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-3xl border border-border-custom bg-surface/80 p-1.5 shadow-lg backdrop-blur-xl">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => navigateTo(item.id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-full py-2 transition-all ${
-                view === item.id ? 'scale-110 bg-white/5 text-primary' : 'text-white/40 hover:text-white'
+              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 transition-all ${
+                view === item.id 
+                  ? 'bg-primary/10 text-primary font-bold shadow-none' 
+                  : 'text-text-muted hover:text-text-primary'
               }`}
             >
-              <item.icon size={18} />
-              <span className="text-[7px] font-black uppercase tracking-tighter">{item.label}</span>
+              <item.icon size={16} />
+              <span className="text-[8px] font-bold uppercase tracking-wider">{item.label}</span>
             </button>
           ))}
         </nav>
