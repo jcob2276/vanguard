@@ -142,16 +142,62 @@ function DayCounter() {
 }
 
 function ModalSheet({ isOpen, onClose, children }) {
+  const [startY, setStartY] = useState(0);
+  const [currentY, setCurrentY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentY(0);
+      setDragging(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleTouchStart = (e) => {
+    setStartY(e.targetTouches[0].clientY);
+    setDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!dragging) return;
+    const diff = e.targetTouches[0].clientY - startY;
+    if (diff > 0) {
+      setCurrentY(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDragging(false);
+    if (currentY > 150) {
+      onClose();
+    }
+    setCurrentY(0);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/45 backdrop-blur-xs transition-opacity duration-300">
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
       
       {/* Sheet */}
-      <div className="relative flex h-[92vh] w-full max-w-md mx-auto flex-col rounded-t-[32px] border-t border-x border-border-custom bg-background/98 backdrop-blur-2xl shadow-2xl overflow-hidden animate-ios-modal">
-        {/* Handle bar */}
-        <div className="mx-auto h-1.5 w-12 rounded-full bg-text-muted/30 my-4 shrink-0 cursor-pointer" onClick={onClose} />
+      <div 
+        style={{ 
+          transform: `translateY(${currentY}px)`,
+          transition: dragging ? 'none' : 'transform 0.4s cubic-bezier(0.32, 0.94, 0.6, 1)'
+        }}
+        className="relative flex h-[92vh] w-full max-w-md mx-auto flex-col rounded-t-[32px] border-t border-x border-border-custom bg-background/98 backdrop-blur-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Handle bar acting as drag handle */}
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="w-full py-4 shrink-0 flex justify-center items-center cursor-row-resize touch-none"
+        >
+          <div className="h-1.5 w-12 rounded-full bg-text-muted/30" />
+        </div>
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>
@@ -159,6 +205,12 @@ function ModalSheet({ isOpen, onClose, children }) {
     </div>
   );
 }
+
+export const triggerHaptic = (pattern = 10) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+};
 
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
@@ -185,6 +237,7 @@ export default function Dashboard({ session }) {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const navigateTo = (newView) => {
+    triggerHaptic(8);
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx = TAB_ORDER.indexOf(newView);
     setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
@@ -329,9 +382,15 @@ export default function Dashboard({ session }) {
     { id: 'kariera', icon: Briefcase, label: 'Kariera' },
   ];
 
+  const isAnySheetOpen = showTodo || showFundament || showWorkoutLogger;
+
   return (
-    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm">
+    <div className={`min-h-screen text-text-primary selection:bg-primary/10 font-sans transition-colors duration-500 overflow-hidden ${
+      isAnySheetOpen ? 'bg-black' : 'bg-background'
+    }`}>
+      <div className={`mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm transition-all duration-500 cubic-bezier(0.32, 0.94, 0.6, 1) origin-top relative ${
+        isAnySheetOpen ? 'scale-[0.93] rounded-t-[28px] translate-y-2 brightness-75 overflow-hidden' : ''
+      }`}>
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
             <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
@@ -356,14 +415,14 @@ export default function Dashboard({ session }) {
               <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
             <button 
-              onClick={() => setShowFundament(true)} 
+              onClick={() => { triggerHaptic(10); setShowFundament(true); }} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="Fundament"
             >
               <Fingerprint size={15} />
             </button>
             <button 
-              onClick={() => setShowTodo(true)} 
+              onClick={() => { triggerHaptic(10); setShowTodo(true); }} 
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="To Do"
             >
@@ -387,7 +446,7 @@ export default function Dashboard({ session }) {
                 icon={Dumbbell}
                 eyebrow="Physical Protocol"
                 label="Zaloguj trening"
-                onClick={() => setShowWorkoutLogger(true)}
+                onClick={() => { triggerHaptic(10); setShowWorkoutLogger(true); }}
               />
             </div>
           )}
