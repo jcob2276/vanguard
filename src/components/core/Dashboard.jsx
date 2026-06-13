@@ -428,19 +428,22 @@ export default function Dashboard({ session }) {
           </div>
         </main>
 
-        <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-3xl border border-border-custom bg-surface/80 p-1.5 shadow-lg backdrop-blur-xl">
+        <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => navigateTo(item.id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 transition-all ${
+              className={`relative flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
                 view === item.id 
-                  ? 'bg-primary/10 text-primary font-bold shadow-none' 
+                  ? 'bg-primary/10 text-primary font-black shadow-none' 
                   : 'text-text-muted hover:text-text-primary'
               }`}
             >
-              <item.icon size={16} />
-              <span className="text-[8px] font-bold uppercase tracking-wider">{item.label}</span>
+              <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+              <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
+              {view === item.id && (
+                <span className="absolute bottom-1 h-0.5 w-0.5 rounded-full bg-primary animate-pulse" />
+              )}
             </button>
           ))}
         </nav>

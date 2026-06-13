@@ -59,6 +59,12 @@
 }
 
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
   body {
     background-color: var(--background);
     background-image: 
@@ -70,6 +76,22 @@
     -moz-osx-font-smoothing: grayscale;
     font-family: var(--font-sans);
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Thin premium scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
   }
 }
 
