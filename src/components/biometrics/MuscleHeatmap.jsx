@@ -218,7 +218,7 @@ export default function MuscleHeatmap({ session }) {
   const formatSetCount = (count) => Number.isInteger(count) ? count : count.toFixed(1);
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md shadow-sm">
+    <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">

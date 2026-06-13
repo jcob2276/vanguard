@@ -1,43 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8fc;
-  --surface: rgba(255, 255, 255, 0.75);
+  --background: #f1f3f7;
+  --surface: rgba(255, 255, 255, 0.92);
   --surface-solid: #ffffff;
-  --border: rgba(0, 0, 0, 0.06);
+  --border: rgba(15, 23, 42, 0.12); /* Increased contrast border */
   --text-primary: #0f172a; /* Slate 900 */
-  --text-secondary: #64748b; /* Slate 500 */
-  --text-muted: #94a3b8; /* Slate 400 */
-  --bg-gradient-a: rgba(99, 102, 241, 0.05);
-  --bg-gradient-b: rgba(244, 63, 94, 0.04);
-  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.02), 0 4px 12px -2px rgba(0, 0, 0, 0.01);
-  --shadow-card-hover: 0 20px 40px -5px rgba(99, 102, 241, 0.04), 0 8px 20px -2px rgba(0, 0, 0, 0.02);
-  --shadow-nav: 0 16px 40px rgba(0, 0, 0, 0.05);
-  --input-bg: rgba(255, 255, 255, 0.8);
-  --nav-bg: rgba(255, 255, 255, 0.8);
-  --btn-outline-bg: rgba(255, 255, 255, 0.6);
+  --text-secondary: #334155; /* Slate 700 (darker for readability) */
+  --text-muted: #57657a; /* Slate 500 (darker for visibility) */
+  --bg-gradient-a: rgba(99, 102, 241, 0.08);
+  --bg-gradient-b: rgba(244, 63, 94, 0.06);
+  --bg-gradient-c: rgba(245, 158, 11, 0.04);
+  --shadow-card: 0 10px 24px -4px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
+  --shadow-card-hover: 0 16px 32px -4px rgba(99, 102, 241, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03);
+  --shadow-nav: 0 12px 32px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.02);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --btn-outline-bg: rgba(255, 255, 255, 0.8);
   --btn-secondary-bg: #f8fafc;
   --btn-secondary-hover: #f1f5f9;
 }
 
 .dark {
-  --background: #08080c;
+  --background: #07070a;
   --surface: rgba(13, 13, 22, 0.65);
-  --surface-solid: #0d0d16;
-  --border: rgba(255, 255, 255, 0.06);
+  --surface-solid: #0b0b12;
+  --border: rgba(255, 255, 255, 0.05);
   --text-primary: #f8fafc; /* Slate 50 */
   --text-secondary: #94a3b8; /* Slate 400 */
   --text-muted: #64748b; /* Slate 500 */
-  --bg-gradient-a: rgba(99, 102, 241, 0.08);
-  --bg-gradient-b: rgba(14, 165, 233, 0.05);
-  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
-  --shadow-nav: 0 12px 32px rgba(0, 0, 0, 0.6);
-  --input-bg: rgba(0, 0, 0, 0.3);
-  --nav-bg: rgba(15, 15, 22, 0.75);
+  --bg-gradient-a: rgba(99, 102, 241, 0.09);
+  --bg-gradient-b: rgba(14, 165, 233, 0.06);
+  --bg-gradient-c: rgba(236, 72, 153, 0.04);
+  --shadow-card: 0 12px 36px 0 rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 20px 48px 0 rgba(0, 0, 0, 0.45);
+  --shadow-nav: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --input-bg: rgba(0, 0, 0, 0.25);
+  --nav-bg: rgba(11, 11, 18, 0.75);
   --btn-outline-bg: rgba(255, 255, 255, 0.02);
   --btn-secondary-bg: rgba(255, 255, 255, 0.03);
-  --btn-secondary-hover: rgba(255, 255, 255, 0.08);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.07);
 }
 
 @theme {
@@ -69,7 +71,8 @@
     background-color: var(--background);
     background-image: 
       radial-gradient(circle at 80% 0%, var(--bg-gradient-a) 0%, transparent 45%),
-      radial-gradient(circle at 10% 100%, var(--bg-gradient-b) 0%, transparent 40%);
+      radial-gradient(circle at 10% 100%, var(--bg-gradient-b) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, var(--bg-gradient-c) 0%, transparent 50%);
     background-attachment: fixed;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
@@ -80,8 +83,8 @@
 
   /* Thin premium scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;

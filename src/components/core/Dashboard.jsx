@@ -52,19 +52,19 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center justify-between rounded-[20px] border p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-50 disabled:transform-none ${
+      className={`flex w-full items-center justify-between rounded-[20px] border p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:transform-none cursor-pointer ${
         primary
           ? 'border-primary/10 bg-primary/[0.06] hover:bg-primary/[0.1] shadow-[0_8px_20px_rgba(79,70,229,0.05)]'
-          : 'border-slate-200/50 bg-white/70 backdrop-blur-md hover:border-slate-200 hover:bg-white hover:shadow-[0_8px_24px_rgba(0,0,0,0.02)]'
+          : 'border-border-custom bg-surface backdrop-blur-md hover:border-primary/20 hover:bg-surface-solid hover:shadow-md'
       }`}
     >
       <div className="flex min-w-0 items-center gap-3.5">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${primary ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${primary ? 'bg-primary/10 text-primary' : 'bg-text-primary/[0.03] text-text-secondary border border-border-custom'}`}>
           <Icon size={18} />
         </div>
         <div className="min-w-0">
-          {eyebrow && <p className={`text-[9px] font-bold uppercase tracking-[0.15em] ${primary ? 'text-primary/70' : 'text-slate-400'}`}>{eyebrow}</p>}
-          <p className="truncate font-display text-[13px] font-black tracking-tight text-slate-800 mt-0.5">{label}</p>
+          {eyebrow && <p className={`text-[9px] font-bold uppercase tracking-[0.15em] ${primary ? 'text-primary/70' : 'text-text-muted'}`}>{eyebrow}</p>}
+          <p className="truncate font-display text-[13px] font-black tracking-tight text-text-primary mt-0.5">{label}</p>
         </div>
       </div>
       {primary && (
@@ -80,33 +80,33 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
   const progress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
 
   return (
-    <section className="rounded-[24px] border border-slate-200/50 bg-white/70 backdrop-blur-md p-5 shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
+    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">Yazio weekly</p>
-          <p className="mt-1 font-display text-[26px] font-black tracking-tight text-slate-800 leading-none">
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted">Yazio weekly</p>
+          <p className="mt-1 font-display text-[26px] font-black tracking-tight text-text-primary leading-none">
             {weeklyCalories}
-            <span className="ml-1 text-[12px] font-semibold text-slate-400 tracking-normal">/ {weeklyBudget} kcal</span>
+            <span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">/ {weeklyBudget} kcal</span>
           </p>
         </div>
         <button
           onClick={syncYazio}
           disabled={isSyncing}
-          className="rounded-xl border border-slate-200/50 bg-slate-50 p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:opacity-50"
+          className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50 cursor-pointer"
           title="Sync Yazio"
         >
           <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
         </button>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-2 overflow-hidden rounded-full bg-border-custom">
         <div
           className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-400 shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] font-medium text-slate-400">
+      <div className="mt-3 flex items-center justify-between text-[10px] font-medium text-text-muted">
         <span>Tydzień</span>
-        <span className="font-bold text-slate-600">{Math.round(progress)}% budżetu</span>
+        <span className="font-bold text-text-secondary">{Math.round(progress)}% budżetu</span>
       </div>
     </section>
   );
@@ -133,8 +133,8 @@ function DayCounter() {
   const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   return (
-    <div className="py-4.5 px-5 border-l-4 border-primary/40 bg-primary/[0.04] rounded-r-[20px] my-2 shadow-[0_4px_16px_rgba(0,0,0,0.01)]">
-      <p className="font-display text-[14.5px] font-medium leading-relaxed text-slate-700 italic whitespace-pre-line">
+    <div className="py-4.5 px-5 border-l-4 border-primary/50 bg-primary/[0.02] dark:bg-primary/[0.04] backdrop-blur-md rounded-r-[20px] my-2 shadow-sm">
+      <p className="font-display text-[14.5px] font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
         "{quote}"
       </p>
     </div>
@@ -347,7 +347,7 @@ export default function Dashboard({ session }) {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="rounded-full border border-slate-200/50 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03] p-2.5 text-slate-405 dark:text-white/50 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.08]"
+              className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary hover:bg-surface-solid transition-all active:scale-95 cursor-pointer"
               title="Przełącz motyw"
             >
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
@@ -355,21 +355,21 @@ export default function Dashboard({ session }) {
             <button
               onClick={syncAll}
               disabled={isSyncingAll}
-              className="rounded-full border border-slate-200/50 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03] p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-755 disabled:opacity-40"
+              className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary transition-all hover:text-text-primary hover:bg-surface-solid active:scale-95 disabled:opacity-40 cursor-pointer"
               title="Sync wszystkiego (Oura + Yazio + Strava + Strain)"
             >
               <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
             </button>
             <button 
               onClick={() => setView('fundament')} 
-              className="rounded-full border border-slate-200/50 bg-primary/[0.05] p-2.5 text-primary transition-all hover:bg-primary/10" 
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="Fundament"
             >
               <Fingerprint size={15} />
             </button>
             <button 
               onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }} 
-              className="rounded-full border border-slate-200/50 bg-primary/[0.05] p-2.5 text-primary transition-all hover:bg-primary/10" 
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer" 
               title="To Do"
             >
               <CheckSquare size={15} />
@@ -431,21 +431,26 @@ export default function Dashboard({ session }) {
         </main>
 
         <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
+          {/* Sliding background indicator pill */}
+          <div 
+            className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)"
+            style={{
+              width: 'calc(25% - 3px)',
+              left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
+            }}
+          />
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => navigateTo(item.id)}
-              className={`relative flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
+              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
                 view === item.id 
-                  ? 'bg-primary/10 text-primary font-black shadow-none' 
+                  ? 'text-primary font-black' 
                   : 'text-text-muted hover:text-text-primary'
               }`}
             >
               <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
               <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
-              {view === item.id && (
-                <span className="absolute bottom-1 h-0.5 w-0.5 rounded-full bg-primary animate-pulse" />
-              )}
             </button>
           ))}
         </nav>

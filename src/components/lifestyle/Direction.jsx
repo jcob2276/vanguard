@@ -34,7 +34,7 @@ function SectionTitle({ icon: Icon, title, detail, action }) {
 
 function MiniStat({ label, value, tone = 'text-text-primary', detail }) {
   return (
-    <div className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
+    <div className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
       <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</p>
       <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone} font-display`}>{value}</p>
       {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-text-muted">{detail}</p>}
@@ -296,7 +296,7 @@ export default function Direction({ session }) {
           {habits.map((habit) => {
             const doneToday = habitLogs.some((log) => log.habit_id === habit.id && log.date === todayDate());
             return (
-              <article key={habit.id} className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
+              <article key={habit.id} className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-text-primary/[0.03] text-[15px] font-black text-text-secondary border border-border-custom shadow-sm">
@@ -351,7 +351,7 @@ export default function Direction({ session }) {
           />
         </div>
 
-        <div className="rounded-[20px] border border-border-custom bg-surface/30 p-4 shadow-sm">
+        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 28 }).map((_, index) => {
               const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });

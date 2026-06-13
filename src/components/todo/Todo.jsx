@@ -200,7 +200,7 @@ export default function Todo({ session, onBack }) {
         <main className="space-y-5 p-5">
           {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-          <section className="rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-4.5 shadow-sm">
+          <section className="rounded-2xl border border-border-custom bg-surface backdrop-blur-md p-4.5 shadow-sm">
             <div className="flex items-center gap-2">
               <input
                 autoFocus
@@ -324,7 +324,7 @@ export default function Todo({ session, onBack }) {
               </button>
             </div>
             {showSectionForm && (
-              <div className="flex gap-2 rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-3">
+              <div className="flex gap-2 rounded-2xl border border-border-custom bg-surface backdrop-blur-md p-3">
                 <input
                   autoFocus
                   value={newSectionName}
@@ -368,7 +368,7 @@ export default function Todo({ session, onBack }) {
                   {list.length === 0 ? (
                     <p className="px-1 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Pusto.</p>
                   ) : (
-                    <div className="overflow-hidden rounded-2xl border border-border-custom bg-surface/30 backdrop-blur-sm shadow-sm">
+                    <div className="overflow-hidden rounded-2xl border border-border-custom bg-surface backdrop-blur-sm shadow-sm">
                       {list.map((item) => {
                         const meta = priorityMeta(item.priority);
                         return (

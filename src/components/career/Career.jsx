@@ -282,7 +282,7 @@ export default function Career({ session }) {
           const st = projectStats(p, moves, evidence);
           const sense = SENSE[p.sense_status] || SENSE.worth_it;
           return (
-            <article key={p.id} className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
+            <article key={p.id} className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h4 className="truncate text-[13px] font-black uppercase tracking-tight text-text-primary font-display">{p.name}</h4>
@@ -351,7 +351,7 @@ export default function Career({ session }) {
           <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">Brak otwartych ruchów.</p>
         )}
         {openMoves.map((m) => (
-          <article key={m.id} className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4.5 shadow-sm">
+          <article key={m.id} className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4.5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[12px] font-black uppercase tracking-tight text-text-primary font-display">{m.title}</p>
@@ -379,7 +379,7 @@ export default function Career({ session }) {
           <div className="space-y-1.5 pt-1">
             <p className="px-1 text-[8px] font-black uppercase tracking-widest text-text-muted">Ostatnio zrobione</p>
             {doneMoves.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 border border-border-custom bg-surface/40 px-3 py-2 rounded-xl">
+              <div key={m.id} className="flex items-center gap-2 border border-border-custom bg-surface px-3 py-2 rounded-xl">
                 <CheckSquare size={13} className="shrink-0 text-emerald-550/80 dark:text-emerald-500/70" />
                 <span className="truncate text-[11px] font-bold uppercase tracking-tight text-text-muted line-through opacity-75">{m.title}</span>
                 {m.completed_at && <span className="ml-auto shrink-0 text-[8px] font-black uppercase tracking-widest text-emerald-500/50">{format(new Date(m.completed_at), 'HH:mm')}</span>}
@@ -424,7 +424,7 @@ export default function Career({ session }) {
         )}
 
         {decisions.slice(0, 6).map((d) => (
-          <article key={d.id} className="rounded-[20px] border border-border-custom bg-surface/40 backdrop-blur-md p-4 shadow-sm">
+          <article key={d.id} className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[12px] font-black uppercase tracking-tight text-text-primary font-display">{d.title}</p>
               {d.decision_type && <span className="shrink-0 rounded-md border border-border-custom bg-surface px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-text-secondary">{d.decision_type.replace('_', ' ')}</span>}
@@ -447,7 +447,7 @@ export default function Career({ session }) {
             Brak dowodów. Oznacz ruch jako done — pojawi się tu jako dowód.
           </p>
         ) : (
-          <div className="rounded-2xl border border-border-custom bg-surface/30 px-4 shadow-sm">
+          <div className="rounded-2xl border border-border-custom bg-surface px-4 shadow-sm">
             {evidence.map((e) => (
               <div key={e.id} className="flex items-start gap-3 border-b border-border-custom py-3.5 last:border-b-0">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />

@@ -304,11 +304,11 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       {/* Raport Psychologiczny - Tylko w Niedzielę */}
       {narrative && isSunday && (
         <section className="animate-in fade-in zoom-in duration-700">
-          <div className="rounded-lg border border-primary/15 bg-primary/5 p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-              <Zap size={12} className="text-primary" /> Analiza Behawioralna
+          <div className="rounded-[24px] border border-primary/10 bg-primary/[0.03] p-5 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary font-display">
+              <Zap size={12} className="text-primary" fill="currentColor" /> Analiza Behawioralna
             </h3>
-            <p className="text-[13px] font-bold leading-relaxed text-white/78">"{narrative}"</p>
+            <p className="text-[13.5px] font-medium leading-relaxed text-text-primary">"{narrative}"</p>
           </div>
         </section>
       )}

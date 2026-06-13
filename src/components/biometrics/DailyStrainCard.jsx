@@ -40,7 +40,7 @@ const STATUS_GLOW = { green: 'bg-emerald-500/5', yellow: 'bg-amber-500/5', red: 
 function Metric({ icon: Icon, label, value, max, tone, note }) {
   const pct = max ? Math.min((Number(value) / max) * 100, 100) : 0;
   return (
-    <div className="flex-1 bg-surface-solid/40 border border-border-custom rounded-[20px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+    <div className="flex-1 bg-surface-solid border border-border-custom rounded-[20px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
       <div className="flex items-center gap-1 mb-1.5">
         <Icon size={11} className="text-text-muted" />
         <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">{label}</span>
@@ -240,7 +240,7 @@ export default function DailyStrainCard({ session }) {
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500 dark:text-rose-455' : 'text-text-secondary' },
               { icon: Footprints, label: 'Kroki', value: oura.steps ? oura.steps.toLocaleString() : '--', color: 'text-dayC' },
             ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="flex flex-col items-center gap-0.5 bg-surface-solid/40 border border-border-custom rounded-2xl py-2 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+              <div key={label} className="flex flex-col items-center gap-0.5 bg-surface-solid border border-border-custom rounded-2xl py-2 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
                 <Icon size={11} className={color} />
                 <span className="text-[8px] font-bold tracking-wider text-text-muted uppercase mt-1">{label}</span>
                 <span className={`text-[10px] font-bold font-display ${color} mt-0.5`}>{value}</span>

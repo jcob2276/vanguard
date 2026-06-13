@@ -10,7 +10,7 @@ const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', r
 const newExercise = () => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
 const newActivity = () => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
 
-const numInput = "h-11 w-full bg-surface border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_rgba(79,70,229,0.08)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const numInput = "h-11 w-full bg-surface-solid border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_rgba(79,70,229,0.08)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 
 function epley(kg, reps) {
@@ -200,7 +200,7 @@ function VolumeBar({ exercises }) {
   const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return null;
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md px-4 py-3 shadow-sm">
+    <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 shadow-sm">
       <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted block mb-2">Objętość sesji</span>
       <div className="flex flex-wrap gap-2">
         {entries.map(([tag, v]) => (
@@ -260,7 +260,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
   const current1RM = sets.reduce((best, s) => { const e = epley(s.kg, s.reps); return e && e > best ? e : best; }, 0);
 
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md overflow-hidden shadow-sm">
+    <div className="rounded-2xl border border-border-custom bg-surface overflow-hidden shadow-sm">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border-custom bg-text-primary/[0.01]">
         <ExerciseNameInput
@@ -406,7 +406,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
 function ActivityCard({ activity, onChange, onRemove }) {
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface/40 backdrop-blur-md px-4 py-3 space-y-3 shadow-sm">
+    <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 space-y-3 shadow-sm">
       <div className="flex items-center gap-2">
         <input type="text" value={activity.name} onChange={e => onChange({ ...activity, name: e.target.value })}
           placeholder="np. Sauna, Rower, Spacer..."
@@ -420,12 +420,12 @@ function ActivityCard({ activity, onChange, onRemove }) {
           <Clock size={11} className="text-text-muted" />
           <input type="number" min={0} value={activity.min} onChange={e => onChange({ ...activity, min: e.target.value })}
             placeholder="0"
-            className="w-16 h-9 bg-surface border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+            className="w-16 h-9 bg-surface-solid border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
           <span className="text-[11px] font-bold text-text-secondary">min</span>
         </div>
         <input type="text" value={activity.note} onChange={e => onChange({ ...activity, note: e.target.value })}
           placeholder="notatka (opcjonalnie)..."
-          className="flex-1 h-9 bg-surface border border-border-custom rounded-xl px-3 text-xs text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40" />
+          className="flex-1 h-9 bg-surface-solid border border-border-custom rounded-xl px-3 text-xs text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/40" />
       </div>
     </div>
   );
@@ -539,11 +539,11 @@ export default function WorkoutLogger({ session, onBack }) {
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
           <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
-            className="w-full bg-surface border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all placeholder:text-text-muted/40" />
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all placeholder:text-text-muted/40" />
         </div>
 
         {/* Manual Time Picker Row */}
-        <div className="rounded-[20px] border border-border-custom bg-surface/30 p-4 space-y-3 shadow-sm">
+        <div className="rounded-[20px] border border-border-custom bg-surface p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock size={14} className="text-text-muted" />
@@ -558,7 +558,7 @@ export default function WorkoutLogger({ session, onBack }) {
                   setTimerStart(null);
                 }
               }}
-              className="accent-primary h-4 w-4 rounded border-border-custom bg-surface"
+              className="accent-primary h-4 w-4 rounded border-border-custom bg-surface-solid"
             />
           </div>
 
@@ -570,7 +570,7 @@ export default function WorkoutLogger({ session, onBack }) {
                   type="date"
                   value={workoutDate}
                   onChange={(e) => setWorkoutDate(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
+                  className="w-full bg-surface-solid border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
               <div className="space-y-1">
@@ -579,7 +579,7 @@ export default function WorkoutLogger({ session, onBack }) {
                   type="time"
                   value={startTimeManual}
                   onChange={(e) => setStartTimeManual(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
+                  className="w-full bg-surface-solid border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
               <div className="space-y-1">
@@ -588,7 +588,7 @@ export default function WorkoutLogger({ session, onBack }) {
                   type="time"
                   value={endTimeManual}
                   onChange={(e) => setEndTimeManual(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
+                  className="w-full bg-surface-solid border border-border-custom rounded-xl px-2 py-2 text-xs font-bold text-text-primary outline-none focus:border-primary/50 text-center cursor-pointer"
                 />
               </div>
             </div>
@@ -604,7 +604,7 @@ export default function WorkoutLogger({ session, onBack }) {
             <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} />
           ))}
           <button onClick={addExercise}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface/30 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:border-primary/50 hover:text-primary transition-all cursor-pointer">
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
             <Plus size={13} /> Dodaj ćwiczenie
           </button>
           <VolumeBar exercises={exercises} />
@@ -619,7 +619,7 @@ export default function WorkoutLogger({ session, onBack }) {
             <ActivityCard key={a.id} activity={a} onChange={updateActivity} onRemove={() => removeActivity(a.id)} />
           ))}
           <button onClick={addActivity}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface/30 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:border-orange-500/50 hover:text-orange-400 transition-all cursor-pointer">
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-orange-500/50 hover:text-orange-400 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
             <Plus size={13} /> Dodaj aktywność
           </button>
         </div>
@@ -627,7 +627,7 @@ export default function WorkoutLogger({ session, onBack }) {
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatki</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
-            className="w-full bg-surface border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
         </div>
 
         <div className="space-y-2">
@@ -639,11 +639,11 @@ export default function WorkoutLogger({ session, onBack }) {
           </div>
           <div className="grid grid-cols-10 gap-1">
             {[1,2,3,4,5,6,7,8,9,10].map(n => {
-              const color = n <= 4 ? 'border-sky-500/40 text-sky-550 dark:text-sky-400 bg-sky-500/5 dark:bg-sky-500/10 hover:bg-sky-500/15'
-                          : n <= 6 ? 'border-yellow-500/45 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5 dark:bg-yellow-500/10 hover:bg-yellow-500/15'
-                          : n <= 8 ? 'border-orange-500/45 text-orange-600 dark:text-orange-400 bg-orange-500/5 dark:bg-orange-500/10 hover:bg-orange-500/15'
-                          : 'border-dayB/45 text-dayB bg-dayB/5 dark:bg-dayB/10 hover:bg-dayB/15';
-              const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-60';
+              const color = n <= 4 ? 'border-sky-500/30 dark:border-sky-500/40 text-sky-650 dark:text-sky-400 bg-sky-500/8 dark:bg-sky-500/15 hover:bg-sky-500/20'
+                          : n <= 6 ? 'border-yellow-500/35 dark:border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/8 dark:bg-yellow-500/15 hover:bg-yellow-500/20'
+                          : n <= 8 ? 'border-orange-500/35 dark:border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-500/8 dark:bg-orange-500/15 hover:bg-orange-500/20'
+                          : 'border-dayB/35 dark:border-dayB/40 text-dayB bg-dayB/8 dark:bg-dayB/15 hover:bg-dayB/20';
+              const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-80 hover:opacity-100';
               return (
                 <button key={n} onClick={() => setSessionRpe(sessionRpe === n ? null : n)}
                   className={`rounded-lg border py-2 text-[11px] font-black transition-all cursor-pointer ${color} ${active}`}>
