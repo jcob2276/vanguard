@@ -67,7 +67,7 @@ Brak cron (HTTP manual):
   vanguard-eval-runner
   vanguard-friction-qa  →  DEPRECATED stub 410 (Telegram QA removed)
   analyze-training      →  DEPRECATED stub 410 (plan vs Strava Telegram analysis removed)
-  sync-oura / sync-yazio / sync-todoist / sync-calendar
+  sync-oura / sync-yazio / sync-calendar
 ```
 
 ### 1.3 Edge functions — aktywne vs wyłączone
@@ -87,7 +87,7 @@ Brak cron (HTTP manual):
 | vanguard-friction-qa | DEPRECATED stub 410 | cron + Telegram QA removed | |
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | resolved (gpt-4o-mini) |
 | vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
-| sync-oura / sync-yazio / sync-todoist / sync-calendar | ✅ aktywne | HTTP manual | |
+| sync-oura / sync-yazio / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
 | analyze-training | deprecated | HTTP manual | stub 410; plan vs Strava Telegram analysis removed |
 | vanguard-daily-reconciliation | ✅ aktywna | pg_cron + manual `/koniec` | **false** JWT |

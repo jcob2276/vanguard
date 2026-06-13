@@ -112,7 +112,6 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
 | `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`, `medical_lab_results`, `medical_documents`, `body_composition_measurements`) | 240 | 2026-06-13 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |
-| `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 102 | 2026-06-11 |
 
 ---
 

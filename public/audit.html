@@ -225,13 +225,6 @@ const NODES = [
     issues: []
   },
   {
-    id: 'todoist-api', label: 'Todoist API', layer: 'external', type: 'external',
-    desc: 'Todoist REST API — tasks.',
-    reads: [], writes: [],
-    calls: [], calledBy: ['sync-todoist'],
-    issues: []
-  },
-  {
     id: 'google-calendar', label: 'Google Calendar API', layer: 'external', type: 'external',
     desc: 'Google Calendar API — events.',
     reads: [], writes: [],
@@ -274,13 +267,6 @@ const NODES = [
     reads: ['user_settings'], writes: ['strava_activities_clean'],
     calls: ['strava-api'], calledBy: ['DailyStrainCard'],
     issues: []
-  },
-  {
-    id: 'sync-todoist', label: 'sync-todoist', layer: 'sync', type: 'edge',
-    desc: 'Pobiera tasks z Todoist.',
-    reads: ['user_settings'], writes: ['todoist_tasks'],
-    calls: ['todoist-api'], calledBy: [],
-    issues: [{ level: 'info', text: 'Brak powiązania z daily_wins — dane Todoist nie są widoczne w głównym dashboardzie.' }]
   },
   {
     id: 'sync-calendar', label: 'sync-calendar', layer: 'sync', type: 'edge',

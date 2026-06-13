@@ -31,7 +31,7 @@ Local/Supabase sync: **32** edge functions (+ `_shared/`). Registry: [`supabase/
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |
-| Integrations | Oura, Yazio, Calendar, Todoist, Strava | `supabase/functions/sync-*`, `supabase/functions/analyze-*` |
+| Integrations | Oura, Yazio, Calendar, Strava | `supabase/functions/sync-*`, `supabase/functions/analyze-*` |
 | Legacy workout | Original fitness tracking UI/tables | `src/` + `workout_*` tables |
 
 ## CRITICAL RULES

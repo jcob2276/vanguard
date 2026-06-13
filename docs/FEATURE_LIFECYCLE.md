@@ -19,7 +19,8 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Oracle chat | Active | Reasoning layer only; no direct graph/knowledge writes from chat turns. |
 | Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
-| Strava/Yazio/Todoist/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
+| Strava/Yazio/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
+| Todoist sync | Dropped | Removed 2026-06-13. Vanguard will own tasks/projects natively through Career OS instead of importing an external todo model. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |

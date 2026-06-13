@@ -1,5 +1,4 @@
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
-import TodoistSync from '../integrations/TodoistSync';
 import BrainHealth from '../biometrics/BrainHealth';
 
 export default function DataHub({ session, onBack, embedded = false }) {
@@ -19,7 +18,6 @@ export default function DataHub({ session, onBack, embedded = false }) {
         </header>
       )}
 
-      <TodoistSync session={session} />
       <BrainHealth session={session} />
 
 
