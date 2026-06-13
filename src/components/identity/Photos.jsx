@@ -77,6 +77,46 @@ export default function Photos({ session }) {
 
   if (loading) return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse">Wczytywanie Analizy Wizualnej...</div>;
 
+  if (photos.length === 0) {
+    return (
+      <div className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-6 text-center space-y-4 shadow-sm my-2">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+          <Camera size={22} />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-[14px] font-black uppercase tracking-tight text-text-primary font-display">
+            Wizualny Protokół
+          </h3>
+          <p className="text-[11px] font-medium leading-relaxed text-text-secondary max-w-[280px] mx-auto">
+            Brak zdjęć postępu w bazie. Zrób i dodaj pierwsze zdjęcie, aby zacząć śledzić transformację sylwetki.
+          </p>
+        </div>
+        <div className="pt-2">
+          <label className="inline-flex items-center gap-2 cursor-pointer bg-primary text-white font-display font-bold text-[11px] uppercase tracking-wider px-5 py-3 rounded-xl hover:bg-primary-hover transition-all active:scale-95 shadow-md shadow-primary/20 cursor-pointer">
+            {uploading ? (
+              <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+            ) : (
+              <>
+                <Camera size={14} className="shrink-0" />
+                <span>Dodaj pierwsze zdjęcie</span>
+              </>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
+          </label>
+        </div>
+        <div className="border-t border-border-custom pt-4 flex items-center justify-between text-left">
+          <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Data nowego wpisu</span>
+          <input 
+            type="date" 
+            value={photoDate} 
+            onChange={(e) => setPhotoDate(e.target.value)} 
+            className="bg-transparent text-[11px] font-bold text-primary uppercase outline-none cursor-pointer" 
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-6 space-y-8 pb-24 text-text-primary">
       
