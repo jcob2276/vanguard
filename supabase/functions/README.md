@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls use **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 32 function folders (+ `_shared/`) · Last registry pass: **2026-06-12**
+**Inventory:** 33 function folders (+ `_shared/`) · Last registry pass: **2026-06-13**
 
 LOC is a navigation hint, not an invariant. Regenerate before relying on it for refactor sizing.
 
@@ -110,6 +110,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 469 | 2026-06-12 |
 | `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
 | `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
+| `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`) | 240 | 2026-06-13 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |
 | `sync-todoist` | **active** | Frontend / manual | true | `user_settings` | 102 | 2026-06-11 |
 
@@ -144,6 +145,7 @@ Flat layout: one folder = one deployed function name (except `vanguard-telegram/
 | `vanguard-wiki-compiler` | `20 3 * * *` | `vanguard-wiki-compiler` |
 | `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` (Mon-Fri, 12:00 Warsaw) |
+| `vanguard-nutrition-coach` | `0 6 * * *` | `vanguard-nutrition-coach` (08:00 Warsaw; daily target + Telegram push) |
 
 Also verify: [`scripts/ops/cron-check.sql`](../../scripts/ops/cron-check.sql) against [`scripts/ops/smoke-manifest.mjs`](../../scripts/ops/smoke-manifest.mjs).
 Post-deploy smoke: `npm run smoke`; see [`docs/runbooks/post-deploy-smoke.md`](../../docs/runbooks/post-deploy-smoke.md).
