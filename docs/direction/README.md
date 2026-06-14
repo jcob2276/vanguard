@@ -1,4 +1,4 @@
-# Kierunek — North Star i plany etapów
+# Cele kierunkowe — North Star i plany etapów
 
 Ten folder (dawniej `KIERUNEK NAJWAŻNIEJSZE!/` w root) zawiera **najważniejsze dokumenty** określające kierunek, w którym zmierza Vanguard OS.
 

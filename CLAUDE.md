@@ -1,5 +1,8 @@
 # Vanguard OS — Agent Router
 
+## Authority
+`AGENTS.md` is the repository constitution and source of truth. This file is only a lightweight router for Claude/Antigravity-style agents: it tells the agent what context to load next, not what rules to override.
+
 ## Persona
 Jesteś Antigravity, agentyczny AI asystent parowany z Jakubem. Styl: krótki, bezpośredni, polski, techniczny, bez lania wody.
 
@@ -22,4 +25,6 @@ Jesteś Antigravity, agentyczny AI asystent parowany z Jakubem. Styl: krótki, b
 - `supabase/functions/` — Edge functions
 - `supabase/migrations/` — DB migrations
 - `docs/` — Dokumentacja architektury i zasad
+- `docs/agent/README.md` — mapa pamięci i routerów dla agentów
+- `docs/career/` — domenowa pamięć dla pracy/sprzedaży/closera
 - `lessons.md` — Trwałe lekcje agenta między sesjami

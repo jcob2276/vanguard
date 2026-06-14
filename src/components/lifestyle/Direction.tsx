@@ -4,15 +4,11 @@ import type { Session } from '@supabase/supabase-js';
 import {
   Calendar,
   Check,
-  CheckSquare,
   Plus,
   Shield,
-  Square,
   Target,
-  Trash2,
   TrendingUp,
   Wallet,
-  X,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -82,34 +78,12 @@ function MiniStat({ label, value, tone = 'text-text-primary', detail }) {
   );
 }
 
-function HabitStrip({ habit, logs }) {
-  return (
-    <div className="flex h-3 gap-1 overflow-hidden">
-      {Array.from({ length: 30 }).map((_, index) => {
-        const date = format(subDays(new Date(), 29 - index), 'yyyy-MM-dd');
-        const hasLog = logs.some((log) => log.habit_id === habit.id && log.date === date);
-        const status = habit.is_positive
-          ? hasLog ? 'good' : date === todayDate() ? 'open' : 'miss'
-          : hasLog ? 'miss' : 'good';
-        return (
-          <div
-            key={date}
-            title={date}
-            className={`flex-1 rounded-sm ${status === 'good' ? 'bg-dayC' : status === 'miss' ? 'bg-dayB' : 'border border-border-custom bg-surface'}`}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 export default function Direction({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<DailyWinRow[]>([]);
   const [habits, setHabits] = useState<HabitRow[]>([]);
   const [habitLogs, setHabitLogs] = useState<HabitLogRow[]>([]);
-  const [isAddingHabit, setIsAddingHabit] = useState(false);
-  const [newHabit, setNewHabit] = useState({ name: '', icon: 'X', is_positive: true });
 
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<CalendarRow[]>([]);
@@ -299,29 +273,6 @@ export default function Direction({ session }: { session: Session }) {
     });
   }, [weekTodos, selectedSectionId, searchQuery]);
 
-  async function addHabit() {
-    if (!newHabit.name.trim()) return;
-    const { data, error } = await supabase.from('habits').insert({ user_id: session.user.id, ...newHabit, name: newHabit.name.trim() }).select().single();
-    if (!error) { setHabits([...habits, data]); setNewHabit({ name: '', icon: 'X', is_positive: true }); setIsAddingHabit(false); }
-  }
-
-  async function deleteHabit(id) {
-    if (!confirm('Usunąć nawyk?')) return;
-    await supabase.from('habits').delete().eq('id', id);
-    setHabits(habits.filter((h) => h.id !== id));
-  }
-
-  async function toggleHabit(habitId) {
-    const today = todayDate();
-    const existing = habitLogs.find((log) => log.habit_id === habitId && log.date === today);
-    if (existing) {
-      const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
-      if (!error) setHabitLogs(habitLogs.filter((log) => log.id !== existing.id));
-    } else {
-      const { data, error } = await supabase.from('habit_logs').insert({ user_id: session.user.id, habit_id: habitId, date: today, completed: true }).select().single();
-      if (!error) setHabitLogs([...habitLogs, data]);
-    }
-  }
 
   async function togglePowerListTask(dayWin: DailyWinRow, index: number) {
     const field = `done_${index + 1}`;
@@ -420,67 +371,9 @@ export default function Direction({ session }: { session: Session }) {
   return (
     <div className="flex-1 space-y-6 overflow-y-auto">
 
-      {/* ── Nawyki ── */}
+      {/* ── Plan status ── */}
       <section className="space-y-3">
-        <SectionTitle
-          icon={Target}
-          title="Nawyki"
-          detail="Nie jako checklista dla samej checklisty. To są sygnały, które mają pokazać powtarzalność."
-          action={
-            <button onClick={() => setIsAddingHabit(true)} className="flex items-center gap-1 border border-primary/20 bg-primary/8 px-3.5 py-2 text-[9px] font-black uppercase tracking-widest text-primary rounded-xl hover:bg-primary/15 transition-all cursor-pointer">
-              <Plus size={12} /> Dodaj
-            </button>
-          }
-        />
-
-        {isAddingHabit && (
-          <div className="space-y-3 rounded-2xl border border-primary/15 bg-primary/5 p-4 animate-in slide-in-from-top-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
-              <button onClick={() => setIsAddingHabit(false)} className="text-text-muted hover:text-text-primary transition-colors"><X size={15} /></button>
-            </div>
-            <div className="grid grid-cols-[56px_1fr] gap-2">
-              <input value={newHabit.icon} onChange={(e) => setNewHabit({ ...newHabit, icon: e.target.value })} className="rounded-xl border border-border-custom bg-surface p-3 text-center text-[14px] font-black text-text-primary outline-none focus:border-primary/50 focus:bg-surface-solid" placeholder="X" />
-              <input value={newHabit.name} onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })} className="rounded-xl border border-border-custom bg-surface p-3 text-[12px] font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid" placeholder="Nazwa" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setNewHabit({ ...newHabit, is_positive: true })} className={`rounded-xl border py-3 text-[9px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-dayC/35 bg-dayC/10 text-dayC' : 'border-border-custom bg-surface text-text-muted'}`}>Wzmacniać</button>
-              <button onClick={() => setNewHabit({ ...newHabit, is_positive: false })} className={`rounded-xl border py-3 text-[9px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-dayB/35 bg-dayB/10 text-dayB' : 'border-border-custom bg-surface text-text-muted'}`}>Unikać</button>
-            </div>
-            <button onClick={addHabit} className="w-full rounded-xl bg-primary hover:bg-primary-hover py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-md shadow-primary/20 transition-all cursor-pointer">Dodaj</button>
-          </div>
-        )}
-
-        <div className="grid gap-3">
-          {habits.map((habit) => {
-            const doneToday = habitLogs.some((log) => log.habit_id === habit.id && log.date === todayDate());
-            return (
-              <article key={habit.id} className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-text-primary/[0.03] text-[15px] font-black text-text-secondary border border-border-custom shadow-sm">{habit.icon || 'X'}</div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[12px] font-black uppercase text-text-primary font-display">{habit.name}</p>
-                      <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-text-muted">{habit.is_positive ? 'wzmacniać' : 'unikać'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => toggleHabit(habit.id)} className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-dayC bg-dayC text-white' : 'border-dayB bg-dayB text-white') : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'}`}>
-                      {doneToday ? <CheckSquare size={18} /> : <Square size={18} />}
-                    </button>
-                    <button onClick={() => deleteHabit(habit.id)} className="p-2 text-text-muted/50 hover:text-rose-500 rounded-lg hover:bg-rose-500/5"><Trash2 size={13} /></button>
-                  </div>
-                </div>
-                <HabitStrip habit={habit} logs={habitLogs} />
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Status Power List ── */}
-      <section className="space-y-3">
-        <SectionTitle icon={TrendingUp} title="Status Power List" detail="Czy dzienne wykonanie realnie niesie kierunek." />
+        <SectionTitle icon={TrendingUp} title="Status planu dnia" detail="Czy dzienne wykonanie realnie niesie cele kierunkowe." />
         <div className="grid grid-cols-2 gap-3">
           <MiniStat label="Tydzień" value={stats.weeklyP > 2 ? 'Przegrany' : isSunday ? 'Wygrany' : 'W trakcie'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP}/2 P`} />
           <MiniStat label="Miesiąc" value={stats.monthlyWin ? 'Wygrany' : 'W trakcie'} tone={stats.monthlyWin ? 'text-dayC' : 'text-orange-500'} detail={`${stats.weeks.filter((w) => w.isWeekWin).length}/3 W`} />
@@ -658,7 +551,7 @@ export default function Direction({ session }: { session: Session }) {
               {filteredTasks.length === 0 ? (
                 <div className="space-y-2 rounded-xl border border-dashed border-border-custom p-4 text-center">
                   <p className="text-[11px] font-semibold text-text-muted">
-                    {searchQuery || selectedSectionId !== 'all' ? 'Brak pasujących zadań' : 'Brak zadań w Todo — dodaj pierwsze'}
+                    {searchQuery || selectedSectionId !== 'all' ? 'Brak pasujących zadań' : 'Brak zadań — dodaj pierwsze'}
                   </p>
                   <div className="flex gap-2">
                     <input
@@ -883,7 +776,7 @@ export default function Direction({ session }: { session: Session }) {
 
             {/* Weekly board header */}
             <div className="pt-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Tablica Tygodnia</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Plan tygodnia</p>
             </div>
 
             {/* Weekly Board Column Grid */}
@@ -945,11 +838,11 @@ export default function Direction({ session }: { session: Session }) {
                         )}
                       </div>
 
-                      {/* Power List */}
+                      {/* Daily plan */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <Target size={11} className="text-emerald-500 shrink-0" />
-                          <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">5 Zwycięstw</span>
+                          <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
                         </div>
                         {!dayWin ? (
                           <p className="text-[10px] font-medium text-text-muted/50 pl-4">Brak planu</p>

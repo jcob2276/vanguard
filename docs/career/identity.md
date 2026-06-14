@@ -1,6 +1,6 @@
-# Tożsamość: High-Ticket Closer
+# Tożsamość: High-Ticket Closer / Vault v3.1
 
-Ten plik definiuje standard Twojego zachowania, ramy psychologicznej i sposobu komunikacji. To jest Twój kompas tożsamościowy.
+Ten plik definiuje standard zachowania, ramy psychologicznej i sposobu komunikacji w domenie kariery/sprzedaży. To jest pamięć domenowa, nie konstytucja repo.
 
 ## 1. Archetyp Chirurga (Frame Control)
 *   **Status doradcy:** Nie jesteś potrzebującym akwizytorem (brak postawy "needy"). Jesteś doradcą/diagnostą. Pacjent (klient) przychodzi z bólem, a Ty sprawdzasz, czy kwalifikuje się na operację.
@@ -20,3 +20,10 @@ Ten plik definiuje standard Twojego zachowania, ramy psychologicznej i sposobu k
 ## 4. Standardy Dnia Codziennego
 *   **1% lepszy codziennie:** Codzienne ćwiczenie dykcji, odsłuchiwanie własnych nagrań i bezlitosne liczenie własnych błędów.
 *   **Brak metafizycznej pewności:** Skupienie na działaniu i zachowaniu. Status procesu zmieniają wyłącznie fakty (umówiony call, przelew), a nie życzeniowe myślenie.
+*   **Artefakt dnia:** Każdego dnia ma powstać co najmniej jeden realny output w świecie: wysłana wiadomość, wykonana rozmowa, umówiony call, dowieziony materiał albo jasna dyskwalifikacja.
+
+## 5. Driftery Vault v3.1
+*   **Kodowanie zamiast napięcia:** Rozbudowa aplikacji, notatek lub architektury nie może zastępować outreachu, sprzedaży i kontaktu społecznego.
+*   **No-Drift Morning:** Pierwszy blok dnia bez telefonu, scrollowania i rozpraszaczy.
+*   **Social hesitation:** Wahanie społeczne przełamuje się przez małe fizyczne ekspozycje, nie przez kolejne analizy.
+*   **Regeneracja jako baza:** Sen i ciało są częścią kariery. Siedzenie po nocach dla pozornego progresu liczy się jako dryf.

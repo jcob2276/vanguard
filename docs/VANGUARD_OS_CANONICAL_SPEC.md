@@ -74,7 +74,7 @@ System sklada sie z pieciu warstw:
 3. **Execution Mirror**
    - sprzedaz,
    - praca,
-   - Power List,
+   - Plan dnia,
    - feedback od zespolu,
    - uniki,
    - zachowania,
@@ -257,7 +257,7 @@ Frontend:
 - React + Vite,
 - Tailwind CSS,
 - dashboard webowy,
-- komponenty m.in. DataHub, BrainHealth, MentorChat / Oracle UI, Oura, Power List.
+- komponenty m.in. DataHub, BrainHealth, MentorChat / Oracle UI, Oura, Plan dnia.
 
 Backend:
 
@@ -282,7 +282,7 @@ Kanaly wejscia:
 - Oura,
 - Yazio / nutrition,
 - ActivityWatch / footprint,
-- Power List,
+- Plan dnia,
 - reczne wpisy.
 
 ---
@@ -344,7 +344,7 @@ Najwazniejsze tabele systemu:
   - surowe / polsurowe dane Oura.
 
 - `daily_wins`
-  - Power List, wykonanie dnia, journal/mood.
+  - Plan dnia, wykonanie dnia, journal/mood.
 
 - `vanguard_footprint`
   - aktywnosc desktopowa / digital footprint.
@@ -455,7 +455,7 @@ Docelowo nie powinien byc "psychologizujacym promptem". Powinien konsumowac stru
 - feedback,
 - anomalie,
 - biometryczne spadki,
-- wykonanie Power List,
+- wykonanie Planu dnia,
 - powtarzalne motywy.
 
 Ma generowac:
@@ -733,7 +733,7 @@ Lista petli:
 Rozjazdy:
 
 - deklarowane cele vs realne zachowanie,
-- Power List vs glosowki,
+- Plan dnia vs glosowki,
 - feedback vs dzialania,
 - sprzedaz vs przygotowania.
 

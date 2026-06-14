@@ -67,6 +67,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
   ]);
   const [todoItems, setTodoItems] = useState([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
+  const [submitting, setSubmitting] = useState(false);
   const pickerRef = useRef(null);
 
   useEffect(() => {
@@ -145,25 +146,35 @@ export default function PowerList({ session, todayWin, onUpdate }) {
   }
 
   async function startNewDay() {
+    if (submitting) return;
     if (!newTaskForm.some((t) => t.task.trim())) {
       alert('Wypełnij przynajmniej 1 zadanie!');
       return;
     }
 
-    const entry = {
-      user_id: userId,
-      date: today,
-      task_1: newTaskForm[0].task, category_1: 'general', task_1_todo_id: newTaskForm[0].todoId,
-      task_2: newTaskForm[1].task, category_2: 'general', task_2_todo_id: newTaskForm[1].todoId,
-      task_3: newTaskForm[2].task, category_3: 'general', task_3_todo_id: newTaskForm[2].todoId,
-      task_4: newTaskForm[3].task, category_4: 'general', task_4_todo_id: newTaskForm[3].todoId,
-      task_5: newTaskForm[4].task, category_5: 'general', task_5_todo_id: newTaskForm[4].todoId,
-      result: null,
-    };
+    setSubmitting(true);
+    try {
+      const entry = {
+        user_id: userId,
+        date: today,
+        task_1: newTaskForm[0].task, category_1: 'general', task_1_todo_id: newTaskForm[0].todoId,
+        task_2: newTaskForm[1].task, category_2: 'general', task_2_todo_id: newTaskForm[1].todoId,
+        task_3: newTaskForm[2].task, category_3: 'general', task_3_todo_id: newTaskForm[2].todoId,
+        task_4: newTaskForm[3].task, category_4: 'general', task_4_todo_id: newTaskForm[3].todoId,
+        task_5: newTaskForm[4].task, category_5: 'general', task_5_todo_id: newTaskForm[4].todoId,
+        result: null,
+      };
 
-    const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
-    if (!error && onUpdate) onUpdate(data);
-    else alert('Błąd startu dnia');
+      const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
+      if (error) {
+        console.error('[startNewDay]', error);
+        alert('Błąd startu dnia');
+      } else if (onUpdate) {
+        onUpdate(data);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -188,7 +199,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
             <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary">
               Wpisz ręcznie lub wybierz z{' '}
               <span className="inline-flex items-center gap-1 font-bold text-primary">
-                Todo <Link2 size={10} />
+                Zadań <Link2 size={10} />
               </span>
               .
             </p>
@@ -238,7 +249,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
                           ? 'bg-primary/15 text-primary'
                           : 'text-text-muted hover:bg-primary/10 hover:text-primary'
                       }`}
-                      title="Wybierz z Todo"
+                      title="Wybierz z zadań"
                     >
                       <Link2 size={14} />
                     </button>
@@ -260,9 +271,10 @@ export default function PowerList({ session, todayWin, onUpdate }) {
 
           <button
             onClick={startNewDay}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98]"
+            disabled={submitting}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Upload size={14} /> Zatwierdź operację
+            <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zatwierdź operację'}
           </button>
         </div>
       ) : (
@@ -316,7 +328,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
 
                 {linkedTodoId && !done && (
                   <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
-                    <Link2 size={8} /> Todo
+                    <Link2 size={8} /> Zadanie
                   </span>
                 )}
               </button>

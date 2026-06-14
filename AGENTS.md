@@ -9,6 +9,8 @@ Entry point for AI agents working in this repository.
 - **Compiled memory:** `vanguard-architect` / `ingest-vault-log` build graph; `vanguard-wiki-compiler` builds derived wiki pages — not inline Oracle chat writes to evidence
 - **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
 - **One-page architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Agent context map:** [`docs/agent/README.md`](docs/agent/README.md) indexes router/memory files; it does not override this constitution.
+- **Product language:** [`docs/PRODUCT_LANGUAGE.md`](docs/PRODUCT_LANGUAGE.md) is the canonical vocabulary for UI/docs/agents.
 
 ## Konstytucja (non-negotiable)
 
@@ -67,13 +69,15 @@ Edge function gotchas:
 1. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data flow, crons, subsystems (one page)
 2. [`supabase/functions/README.md`](supabase/functions/README.md) — every edge function: status, JWT, tables
 3. [`docs/DEV_GUIDE.md`](docs/DEV_GUIDE.md) — conventions, checklists, how to add functions
-4. `.cursor/rules/vanguard-agent-workflow.mdc` — definition of done for agents
-5. `.cursor/rules/vanguard-context.mdc` — philosophy and epistemic guardrails
-6. `.cursor/rules/vanguard-ops.mdc` — deploy, secrets, DB constraints
-7. [`BACKLOG.md`](BACKLOG.md) — intentionally deferred work
-8. `docs/runbooks/` — incident fixes
-9. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
-10. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
+4. [`docs/agent/README.md`](docs/agent/README.md) — index for router/memory files
+5. [`docs/PRODUCT_LANGUAGE.md`](docs/PRODUCT_LANGUAGE.md) — canonical product vocabulary
+6. `.cursor/rules/vanguard-agent-workflow.mdc` — definition of done for agents
+7. `.cursor/rules/vanguard-context.mdc` — philosophy and epistemic guardrails
+8. `.cursor/rules/vanguard-ops.mdc` — deploy, secrets, DB constraints
+9. [`BACKLOG.md`](BACKLOG.md) — intentionally deferred work
+10. `docs/runbooks/` — incident fixes
+11. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
+12. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
 
 ## Models (current)
 

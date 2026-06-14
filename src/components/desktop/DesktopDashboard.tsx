@@ -7,7 +7,8 @@ import {
 } from 'recharts';
 import { format, parseISO, startOfWeek, differenceInDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
-import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap } from 'lucide-react';
+import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap, CheckSquare, Square, Trash2, Plus, X } from 'lucide-react';
+import { subDays } from 'date-fns';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 
@@ -401,7 +402,7 @@ function computeWeekStreak(sessions) {
 
 // ── Data hook ─────────────────────────────────────────────────────────────────
 function useDesktopData(userId) {
-  const [s, setS] = useState({ loading: true, oura: [], nutrition: [], sessions: [], body: [], strain: null, strava: [], projects: [], moves: [], goals: null, sprintGoals: [], stream: [], patterns: [], wins: [], wiki: [], knowledge: [], lenieLogs: [] });
+  const [s, setS] = useState({ loading: true, oura: [], nutrition: [], sessions: [], body: [], strain: null, strava: [], projects: [], moves: [], goals: null, sprintGoals: [], stream: [], patterns: [], wins: [], wiki: [], knowledge: [], lenieLogs: [], habits: [], habitLogs: [] });
   const load = useCallback(async () => {
     if (!userId) return;
     setS(p => ({ ...p, loading: true }));
@@ -411,6 +412,7 @@ function useDesktopData(userId) {
       { data: projects }, { data: moves },  { data: goals },
       { data: sprintGoalRows }, { data: streamRows }, { data: patternRows }, { data: winsRows },
       { data: wikiRows }, { data: knowledgeRows }, { data: lenieRows },
+      { data: habitsRows }, { data: habitLogsRows },
     ] = await Promise.all([
       supabase.from('oura_daily_summary').select('date,hrv_avg,rhr_avg,total_sleep_hours,readiness_score').eq('user_id', userId).gte('date', daysBefore(60)).order('date', { ascending: true }),
       supabase.from('daily_nutrition').select('date,calories,protein').eq('user_id', userId).gte('date', daysBefore(14)).order('date', { ascending: true }),
@@ -428,8 +430,10 @@ function useDesktopData(userId) {
       supabase.from('vanguard_wiki_pages').select('id,title,page_type,summary,confidence,updated_at').eq('user_id', userId).eq('status', 'active').not('summary', 'is', null).order('updated_at', { ascending: false }).limit(6),
       supabase.from('vanguard_knowledge').select('id,title,content,category,importance_score,tags').eq('user_id', userId).eq('is_verified', true).gte('importance_score', 7).order('importance_score', { ascending: false }).limit(6),
       supabase.from('habit_logs').select('date,logged_at,final_stimulus,context_note,habits!inner(name,is_positive)').eq('user_id', userId).eq('habits.is_positive', false).ilike('habits.name', '%lenie%').order('date', { ascending: false }).limit(10),
+      supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+      supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', subDays(new Date(), 30).toISOString().split('T')[0]),
     ]);
-    setS({ loading: false, oura: oura||[], nutrition: nutrition||[], sessions: sessions||[], body: body||[], strain: strain||null, strava: strava||[], projects: projects||[], moves: moves||[], goals: goals||null, sprintGoals: sprintGoalRows||[], stream: streamRows||[], patterns: patternRows||[], wins: winsRows||[], wiki: wikiRows||[], knowledge: knowledgeRows||[], lenieLogs: lenieRows||[] });
+    setS({ loading: false, oura: oura||[], nutrition: nutrition||[], sessions: sessions||[], body: body||[], strain: strain||null, strava: strava||[], projects: projects||[], moves: moves||[], goals: goals||null, sprintGoals: sprintGoalRows||[], stream: streamRows||[], patterns: patternRows||[], wins: winsRows||[], wiki: wikiRows||[], knowledge: knowledgeRows||[], lenieLogs: lenieRows||[], habits: habitsRows||[], habitLogs: habitLogsRows||[] });
   }, [userId]);
   useEffect(() => { load(); }, [load]);
   return { ...s, refresh: load };
@@ -750,12 +754,12 @@ function MarathonPanel({ strava, grid, tick }) {
   );
 }
 
-// ── 4. Career & Kierunek ─────────────────────────────────────────────────────
+// ── 4. Career & Goals ────────────────────────────────────────────────────────
 const STATUS_CFG = {
   doing:   { dot: 'bg-sky-500',     badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20',           label: 'W toku' },
   done:    { dot: 'bg-emerald-500', badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Done' },
   blocked: { dot: 'bg-rose-500',    badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20',         label: 'Blokada' },
-  todo:    { dot: 'bg-text-muted',  badge: 'bg-surface border-border-custom text-text-muted',          label: 'Todo' },
+  todo:    { dot: 'bg-text-muted',  badge: 'bg-surface border-border-custom text-text-muted',          label: 'Plan' },
 };
 
 const SENSE_CFG = {
@@ -786,7 +790,7 @@ function CareerSection({ goals, projects, moves }) {
   ].slice(0, 14);
 
   return (
-    <Panel title="Kariera & Kierunek">
+    <Panel title="Kariera & Cele">
       {/* KPI strip */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         {[
@@ -1179,9 +1183,9 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
           </div>
         </div>
 
-        {/* Kierunek */}
+        {/* Cele */}
         <div>
-          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-indigo-400 mb-3">Kierunek</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-indigo-400 mb-3">Cele kierunkowe</p>
           <div className="space-y-2">
             {goals?.goal_konto && (
               <div className="rounded-[10px] bg-amber-500/[0.06] border border-amber-500/15 px-3 py-2.5">
@@ -1210,7 +1214,38 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
 export default function DesktopDashboard({ session }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
-  const { oura, nutrition, sessions, body, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, refresh } = useDesktopData(userId);
+  const { oura, nutrition, sessions, body, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
+  const [habits, setHabits] = useState(habitsData);
+  const [habitLogs, setHabitLogs] = useState(habitLogsData);
+  const [isAddingHabit, setIsAddingHabit] = useState(false);
+  const [newHabit, setNewHabit] = useState({ name: '', icon: '✅', is_positive: true });
+
+  useEffect(() => { setHabits(habitsData); }, [habitsData]);
+  useEffect(() => { setHabitLogs(habitLogsData); }, [habitLogsData]);
+
+  async function addHabit() {
+    if (!newHabit.name.trim()) return;
+    const { data, error } = await supabase.from('habits').insert({ user_id: userId, ...newHabit, name: newHabit.name.trim() }).select().single();
+    if (!error) { setHabits(prev => [...prev, data]); setNewHabit({ name: '', icon: '✅', is_positive: true }); setIsAddingHabit(false); }
+  }
+
+  async function deleteHabit(id) {
+    if (!confirm('Usunąć nawyk?')) return;
+    await supabase.from('habits').delete().eq('id', id);
+    setHabits(prev => prev.filter(h => h.id !== id));
+  }
+
+  async function toggleHabit(habitId) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const existing = habitLogs.find(l => l.habit_id === habitId && l.date === today);
+    if (existing) {
+      const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
+      if (!error) setHabitLogs(prev => prev.filter(l => l.id !== existing.id));
+    } else {
+      const { data, error } = await supabase.from('habit_logs').insert({ user_id: userId, habit_id: habitId, date: today, completed: true }).select().single();
+      if (!error) setHabitLogs(prev => [...prev, data]);
+    }
+  }
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -1422,8 +1457,71 @@ export default function DesktopDashboard({ session }) {
         {/* Marathon */}
         <MarathonPanel strava={strava} grid={grid} tick={tick} />
 
+        {/* Lenie + Nawyki side by side */}
+        <div className="grid grid-cols-2 gap-4">
+          <LeniePanelMini logs={lenieLogs} userId={userId} accessToken={accessToken} />
+          <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Nawyki</p>
+              <button onClick={() => setIsAddingHabit(p => !p)} className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary border border-primary/20 bg-primary/5 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-all cursor-pointer">
+                <Plus size={10} /> Dodaj
+              </button>
+            </div>
+            {isAddingHabit && (
+              <div className="space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
+                  <button onClick={() => setIsAddingHabit(false)} className="text-text-muted hover:text-text-primary"><X size={13} /></button>
+                </div>
+                <div className="grid grid-cols-[44px_1fr] gap-2">
+                  <input value={newHabit.icon} onChange={e => setNewHabit(p => ({ ...p, icon: e.target.value }))} className="rounded-lg border border-border-custom bg-surface p-2 text-center text-[13px] font-black text-text-primary outline-none focus:border-primary/50" placeholder="✅" />
+                  <input value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} className="rounded-lg border border-border-custom bg-surface px-3 py-2 text-[11px] font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50" placeholder="Nazwa" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400' : 'border-border-custom text-text-muted'}`}>Wzmacniać</button>
+                  <button onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-rose-500/35 bg-rose-500/10 text-rose-400' : 'border-border-custom text-text-muted'}`}>Unikać</button>
+                </div>
+                <button onClick={addHabit} className="w-full rounded-lg bg-primary py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">Dodaj</button>
+              </div>
+            )}
+            <div className="space-y-2">
+              {habits.map(habit => {
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                const doneToday = habitLogs.some(l => l.habit_id === habit.id && l.date === today);
+                return (
+                  <div key={habit.id} className="rounded-[14px] border border-border-custom bg-surface p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[14px] shrink-0">{habit.icon || '✅'}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-[10px] font-black uppercase text-text-primary">{habit.name}</p>
+                          <p className="text-[7px] font-bold uppercase tracking-widest text-text-muted">{habit.is_positive ? 'wzmacniać' : 'unikać'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => toggleHabit(habit.id)} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-rose-500 bg-rose-500 text-white') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
+                          {doneToday ? <CheckSquare size={14} /> : <Square size={14} />}
+                        </button>
+                        <button onClick={() => deleteHabit(habit.id)} className="p-1.5 text-text-muted/40 hover:text-rose-500 rounded-lg cursor-pointer"><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                    <div className="flex h-2 gap-0.5 overflow-hidden">
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const d = subDays(new Date(), 29 - i).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                        const has = habitLogs.some(l => l.habit_id === habit.id && l.date === d);
+                        const ok = habit.is_positive ? has : !has;
+                        return <div key={d} className={`flex-1 rounded-sm ${d === today && !has ? 'border border-border-custom' : ok ? 'bg-emerald-500' : 'bg-rose-500'}`} />;
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {habits.length === 0 && <p className="text-[9px] text-text-muted/50 text-center py-3">Brak nawyków — dodaj pierwszy</p>}
+            </div>
+          </div>
+        </div>
+
         {/* Intelligence — conclusions, not data */}
-        <LeniePanelMini logs={lenieLogs} userId={userId} accessToken={accessToken} />
         <IntelligencePanel
           oura={oura} sessions={sessions} nutrition={nutrition} wins={wins}
           patterns={patterns} wiki={wiki} knowledge={knowledge}

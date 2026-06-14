@@ -1,4 +1,4 @@
-# Trening Umiejętności (Skills & Drills)
+# Trening Umiejętności (Skills & Drills / Vault v3.1)
 
 Ten plik zawiera zestaw konkretnych, codziennych ćwiczeń rozwijających Twoje umiejętności komunikacyjne, negocjacyjne i psychologiczne.
 
@@ -30,3 +30,17 @@ Ten plik zawiera zestaw konkretnych, codziennych ćwiczeń rozwijających Twoje 
         3.  *Przekierowanie na wartość:* *"Rozumiem. A jaki koszt poniesiesz, jeśli za 6 miesięcy będziesz w tym samym miejscu?"*
 *   **Drill 2: Price Drop Silence**
     *   Wypowiedz na głos cenę premium (np. *"To wdrożenie to inwestycja w wysokości 15 tysięcy złotych"*). Po wypowiedzeniu ceny natychmiast zamilcz. Wytrzymaj napięcie ciszy.
+
+## 5. No-Drift i Napięcie Społeczne
+*   **Drill 1: No-Drift Morning**
+    *   Pierwszy blok pracy bez telefonu, scrollowania i rozpraszaczy. Zaczynasz od fizycznego outputu, nie od poprawiania systemu.
+*   **Drill 2: Tension Action**
+    *   Jedna mikro-ekspozycja społeczna dziennie: wiadomość, krótka rozmowa, kontakt wzrokowy, zaproszenie, follow-up albo trudne pytanie.
+*   **Drill 3: Anti-escape check**
+    *   Jeśli pojawia się impuls "jeszcze tylko coś dopiszę w aplikacji", zapisujesz konkretnie: przed jakim działaniem uciekam i jaki najmniejszy ruch zrobię teraz.
+
+## 6. Artefakt i Regeneracja
+*   **Drill 1: Artefakt dnia**
+    *   Zapisz jeden dowieziony output w świecie: wykonany call, wysłany follow-up, rozmowę, decyzję, dyskwalifikację albo mierzalny materiał.
+*   **Drill 2: Regeneracja jako warunek pracy**
+    *   Sen i ciało traktuj jako fundament sprzedaży, ekspozycji społecznej i pracy poznawczej. Siedzenie po nocach nie jest dowożeniem, jeśli niszczy następny dzień.

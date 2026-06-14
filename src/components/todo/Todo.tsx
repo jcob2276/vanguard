@@ -39,7 +39,6 @@ const PRIORITY = {
   urgent: { ring: 'border-rose-500',    fill: 'bg-rose-500',    chip: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',         label: 'Urgent' },
 };
 
-const getFocusPoints = (p) => ({ low: 1, normal: 1, high: 3, urgent: 2 }[p] ?? 1);
 
 // Detect leading emoji in task title (e.g. "🏃 Bieganie" → icon="🏃", label="Bieganie")
 const EMOJI_RE = /^(\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|️|‍\p{Extended_Pictographic})*)\s*/u;
@@ -495,7 +494,6 @@ export default function Todo({ session, onBack }) {
   const userId = session.user.id;
   const [sections, setSections] = useState([]);
   const [items, setItems] = useState([]);
-  const [dailyStrain, setDailyStrain] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -528,15 +526,13 @@ export default function Todo({ session, onBack }) {
   const fetchAll = useCallback(async () => {
     const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     try {
-      const [s, i, { data: strainData }, { data: winData }] = await Promise.all([
+      const [s, i, { data: winData }] = await Promise.all([
         listTodoSections(userId),
         listTodoItems(userId),
-        supabase.from('daily_strain').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
       ]);
       setSections(s || []);
       setItems(i || []);
-      setDailyStrain(strainData);
       if (winData) setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winData[`task_${n}_todo_id`]).filter(Boolean)));
     } catch (err) { setError(err.message); }
   }, [userId]);
@@ -617,14 +613,6 @@ export default function Todo({ session, onBack }) {
     const laterItems = openItems.filter((i) => !todaySet.has(i.id) && !soonSet.has(i.id));
     return { todayItems, soonItems, laterItems };
   }, [openItems, today, nextWeek]);
-
-  const budget = dailyStrain?.daily_status === 'green' ? 6 : dailyStrain?.daily_status === 'yellow' ? 4 : dailyStrain?.daily_status === 'red' ? 2 : 5;
-  const completedPoints = useMemo(() => items.reduce((sum, i) => {
-    const doneToday = i.status === 'done' && i.completed_at &&
-      new Date(i.completed_at).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === today;
-    return doneToday ? sum + getFocusPoints(i.priority) : sum;
-  }, 0), [items, today]);
-  const progress = Math.min(100, Math.round((completedPoints / budget) * 100)) || 0;
 
   // ── Actions ──
   const run = async (fn) => {
@@ -728,7 +716,7 @@ export default function Todo({ session, onBack }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <DataStateNotice tone="loading" title="To Do się ładuje" detail="Pobieram zadania." />
+        <DataStateNotice tone="loading" title="Zadania się ładują" detail="Pobieram otwarte zadania." />
       </div>
     );
   }
@@ -758,7 +746,7 @@ export default function Todo({ session, onBack }) {
             <ChevronLeft size={18} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-[16px] font-black uppercase tracking-tight text-text-primary">To Do</h1>
+            <h1 className="font-display text-[16px] font-black uppercase tracking-tight text-text-primary">Zadania</h1>
             <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-text-muted">
               {openItems.length} otwarte · {todayItems.length} na dziś
             </p>
@@ -775,30 +763,6 @@ export default function Todo({ session, onBack }) {
         <main className="space-y-4 p-5">
           {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-          {/* Focus Budget */}
-          <div className="flex items-center gap-4 rounded-2xl border border-border-custom bg-surface/50 p-4">
-            <div className="relative h-12 w-12 shrink-0">
-              <svg className="h-full w-full -rotate-90" viewBox="0 0 40 40">
-                <circle cx="20" cy="20" r="16" className="stroke-border-custom fill-none" strokeWidth="3" />
-                <circle cx="20" cy="20" r="16" className="stroke-primary fill-none transition-all duration-500" strokeWidth="3"
-                  strokeDasharray="100.5" strokeDashoffset={100.5 - (progress / 100) * 100.5} strokeLinecap="round" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[11px] font-black leading-none">{completedPoints}</span>
-                <span className="text-[7px] font-bold text-text-muted">/{budget}</span>
-              </div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Budżet skupienia</h4>
-              <p className="mt-0.5 text-[11px] font-medium text-text-secondary leading-snug">
-                {dailyStrain?.daily_status === 'green' && '🟢 Mocny dzień — Deep Work'}
-                {dailyStrain?.daily_status === 'yellow' && '🟡 Zrównoważony dzień'}
-                {dailyStrain?.daily_status === 'red' && '🔴 Dzień ładowania baterii / Regeneracja'}
-                {!dailyStrain && 'Brak danych biometrycznych'}
-              </p>
-            </div>
-          </div>
-
           {/* Quick capture */}
           <div className="rounded-2xl border border-border-custom bg-surface p-4">
             <div className="flex items-center gap-2">
@@ -807,7 +771,7 @@ export default function Todo({ session, onBack }) {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
-                placeholder="Wrzuć cokolwiek... p1 · jutro · 🏃 Bieganie"
+                placeholder="Dodaj zadanie... p1 · jutro · 🏃 Bieganie"
                 className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[14px] font-semibold text-text-primary outline-none placeholder:text-text-muted/30 placeholder:font-normal"
               />
               <button

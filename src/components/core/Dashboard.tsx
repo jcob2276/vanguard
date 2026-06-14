@@ -378,14 +378,14 @@ export default function Dashboard({ session }) {
             <button
               onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="To Do"
+              title="Zadania"
             >
               <CheckSquare size={15} />
             </button>
             <Link
               to="/keep"
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Keep Notes"
+              title="Notatki"
             >
               <Paintbrush size={15} />
             </Link>

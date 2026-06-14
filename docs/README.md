@@ -25,7 +25,7 @@ Lean operational docs + links to existing deep context.
 - [../scripts/README.md](../scripts/README.md) — local one-off scripts
 - [../src/README.md](../src/README.md) — legacy workout frontend
 
-## Direction / vision
+## Goals / direction
 
 - [direction/](./direction/) — North Star (`KIERUNEK.md`) + ETAP 0/1 planning docs
 - [ROADMAP_V10.md](./ROADMAP_V10.md) — canonical roadmap

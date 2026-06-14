@@ -28,14 +28,14 @@ AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjac
 - **StayFree (Mobile):** Czas w aplikacjach na telefonie, korelacje dopaminowe.
 - **Yazio (Nutrition):** Kalorie, makroskładniki (szczególnie białko).
 - **Google Calendar:** Auto-sync planu dnia co 2 godziny.
-- **Manual Logs:** Treningi (serie, ciężar, RPE), waga, tkanka tłuszczowa, Power Lista.
+- **Manual Logs:** Treningi (serie, ciężar, RPE), waga, tkanka tłuszczowa, Plan dnia.
 
 ## 4. Główne Moduły
 ### Dashboard / Mirror
 - HUD ze wskaźnikami: **Focus, Recovery, Stability** (z-score).
 - **System Mirror Mode:** Jednostronne lustro AI. Krótkie obserwacje bez pytań.
 
-### Power Lista
+### Plan dnia
 - 5 zadań na dziś. Statystyki 30 dni (Zwycięstwo/Porażka).
 - Oracle widzi nazwy zadań i ich status, wykrywając dryf od priorytetów.
 
@@ -55,7 +55,7 @@ AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjac
 - Tryby: `EXECUTION REQUIRED`, `CRITICAL ALIGNMENT`, `EARNED RECOVERY`.
 
 ## 5. Mechanizm Oracle (Logika Pamięci)
-1. **Context Assembly:** Przy każdym zapytaniu system buduje wektor stanu (Oura + Yazio + Footprint + Kalendarz + Power List).
+1. **Context Assembly:** Przy każdym zapytaniu system buduje wektor stanu (Oura + Yazio + Footprint + Kalendarz + Plan dnia).
 2. **Semantic Retrieval:** Wyszukiwanie wektorowe (HippoRAG) + graf behawioralny — re-ranking current-first.
 3. **Reasoning:** `deepseek-v4-flash` analizuje dane i historię. Tryb `!!` → `deepseek-reasoner`.
 4. **Memory Loop:** ~~Po rozmowie model zapisuje wnioski do bazy wiedzy.~~ **WYŁĄCZONY** (Sprint 0.7) — Oracle tylko czyta. Zapis wyłącznie przez `vanguard_stream → vanguard-auto-classify`.

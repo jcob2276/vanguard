@@ -667,10 +667,10 @@ export async function exportStatsMarkdown({
       }
 
       if (includeJournal && dayJournal) {
-        md += `### 📓 Notatnik & Power Lista\n`;
+        md += `### 📓 Notatnik & Plan dnia\n`;
         md += `**Wynik Dnia:** ${dayJournal.result === 'Z' ? 'WYGRANA (Z)' : 'PORAŻKA (P)'}\n\n`;
         
-        md += `#### Zadania:\n`;
+        md += `#### Plan dnia:\n`;
         for (let i = 1; i <= 5; i++) {
           const task = dayJournal[`task_${i}`];
           const cat = dayJournal[`category_${i}`];

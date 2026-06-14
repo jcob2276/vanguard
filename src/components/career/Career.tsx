@@ -40,6 +40,67 @@ const VT = {
 
 const DECISION_TYPES = ['commit', 'pivot', 'freeze'];
 
+type CloserDrillKey = 'diction' | 'confidence' | 'tension' | 'nodrift' | 'regen';
+type CloserDrillState = Record<CloserDrillKey, boolean>;
+
+const CLOSER_DRILLS: Array<{
+  key: CloserDrillKey;
+  storageKey: string;
+  evidenceLabel: string;
+  label: string;
+  desc: string;
+}> = [
+  {
+    key: 'diction',
+    storageKey: 'sales_drill_diction',
+    evidenceLabel: '🗣️ Dykcja',
+    label: '🗣️ Dykcja (Rozgrzewka głosu)',
+    desc: 'Rozgrzewka aparatu mowy i 3 min głośnego czytania',
+  },
+  {
+    key: 'confidence',
+    storageKey: 'sales_drill_confidence',
+    evidenceLabel: '🧘 Pewność',
+    label: '🧘 Pewność Siebie (Ramy i pauzy)',
+    desc: '3 sekundy ciszy przed odpowiedzią, ton z przepony',
+  },
+  {
+    key: 'tension',
+    storageKey: 'sales_drill_tension',
+    evidenceLabel: '🚦 Przełamanie wahania',
+    label: '🚦 Przełamanie wahania (Tension Action)',
+    desc: 'Mikro-ekspozycja społeczna lub kontakt z kobietą mimo oporu',
+  },
+  {
+    key: 'nodrift',
+    storageKey: 'sales_drill_nodrift',
+    evidenceLabel: '📵 No-Drift',
+    label: '📵 No-Drift Morning (Brak stymulacji)',
+    desc: 'Pierwszy blok pracy bez telefonu, scrollowania i rozpraszaczy',
+  },
+  {
+    key: 'regen',
+    storageKey: 'sales_drill_regen',
+    evidenceLabel: '💤 Sen/Regeneracja',
+    label: '💤 Sen i regeneracja (Fundament)',
+    desc: 'Brak siedzenia po nocach dla pozornego progresu/kodowania',
+  },
+];
+
+function emptyCloserDrills(): CloserDrillState {
+  return CLOSER_DRILLS.reduce((state, drill) => {
+    state[drill.key] = false;
+    return state;
+  }, {} as CloserDrillState);
+}
+
+function loadCloserDrills(): CloserDrillState {
+  return CLOSER_DRILLS.reduce((state, drill) => {
+    state[drill.key] = localStorage.getItem(drill.storageKey) === 'true';
+    return state;
+  }, {} as CloserDrillState);
+}
+
 function plural(n, [one, few, many]) {
   const v = Math.abs(n) % 100;
   const v10 = v % 10;
@@ -108,12 +169,7 @@ export default function Career({ session }) {
   const [booked, setBooked] = useState(() => Number(localStorage.getItem('sales_booked') || 0));
   const [fillers, setFillers] = useState(() => Number(localStorage.getItem('sales_fillers') || 0));
 
-  // Identity Drill / Vault v3.1 Checklist state
-  const [drillDiction, setDrillDiction] = useState(() => localStorage.getItem('sales_drill_diction') === 'true');
-  const [drillConfidence, setDrillConfidence] = useState(() => localStorage.getItem('sales_drill_confidence') === 'true');
-  const [drillTension, setDrillTension] = useState(() => localStorage.getItem('sales_drill_tension') === 'true');
-  const [drillNoDrift, setDrillNoDrift] = useState(() => localStorage.getItem('sales_drill_nodrift') === 'true');
-  const [drillRegen, setDrillRegen] = useState(() => localStorage.getItem('sales_drill_regen') === 'true');
+  const [closerDrills, setCloserDrills] = useState(loadCloserDrills);
   const [dailyArtifact, setDailyArtifact] = useState(() => localStorage.getItem('sales_daily_artifact') || '');
 
   // Sync to localStorage
@@ -123,21 +179,16 @@ export default function Career({ session }) {
     localStorage.setItem('sales_disqualified', String(disqualified));
     localStorage.setItem('sales_booked', String(booked));
     localStorage.setItem('sales_fillers', String(fillers));
-    localStorage.setItem('sales_drill_diction', String(drillDiction));
-    localStorage.setItem('sales_drill_confidence', String(drillConfidence));
-    localStorage.setItem('sales_drill_tension', String(drillTension));
-    localStorage.setItem('sales_drill_nodrift', String(drillNoDrift));
-    localStorage.setItem('sales_drill_regen', String(drillRegen));
+    CLOSER_DRILLS.forEach((drill) => {
+      localStorage.setItem(drill.storageKey, String(closerDrills[drill.key]));
+    });
     localStorage.setItem('sales_daily_artifact', dailyArtifact);
-  }, [outreach, connected, disqualified, booked, fillers, drillDiction, drillConfidence, drillTension, drillNoDrift, drillRegen, dailyArtifact]);
+  }, [outreach, connected, disqualified, booked, fillers, closerDrills, dailyArtifact]);
 
   const saveSalesMetrics = async () => {
-    const drillsCompleted = [];
-    if (drillDiction) drillsCompleted.push('🗣️ Dykcja');
-    if (drillConfidence) drillsCompleted.push('🧘 Pewność');
-    if (drillTension) drillsCompleted.push('🚦 Przełamanie wahania');
-    if (drillNoDrift) drillsCompleted.push('📵 No-Drift');
-    if (drillRegen) drillsCompleted.push('💤 Sen/Regeneracja');
+    const drillsCompleted = CLOSER_DRILLS
+      .filter((drill) => closerDrills[drill.key])
+      .map((drill) => drill.evidenceLabel);
 
     const drillsText = drillsCompleted.length > 0 ? ` [Trening: ${drillsCompleted.join(', ')}]` : '';
     const artifactText = dailyArtifact.trim() ? ` [Artefakt dnia: ${dailyArtifact.trim()}]` : '';
@@ -155,13 +206,16 @@ export default function Career({ session }) {
       setDisqualified(0);
       setBooked(0);
       setFillers(0);
-      setDrillDiction(false);
-      setDrillConfidence(false);
-      setDrillTension(false);
-      setDrillNoDrift(false);
-      setDrillRegen(false);
+      setCloserDrills(emptyCloserDrills());
       setDailyArtifact('');
     });
+  };
+
+  const hasSalesReportInput = outreach > 0 || connected > 0 || disqualified > 0 || booked > 0 ||
+    fillers > 0 || CLOSER_DRILLS.some((drill) => closerDrills[drill.key]) || Boolean(dailyArtifact.trim());
+
+  const toggleCloserDrill = (key: CloserDrillKey) => {
+    setCloserDrills((current) => ({ ...current, [key]: !current[key] }));
   };
 
   const fetchAll = useCallback(async () => {
@@ -408,29 +462,23 @@ export default function Career({ session }) {
             Codzienny trening tożsamości i walka z dryfowaniem (Vault v3.1)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {[
-              { id: 'diction', label: '🗣️ Dykcja (Rozgrzewka głosu)', checked: drillDiction, set: setDrillDiction, desc: 'Rozgrzewka aparatu mowy i 3 min głośnego czytania' },
-              { id: 'confidence', label: '🧘 Pewność Siebie (Ramy i pauzy)', checked: drillConfidence, set: setDrillConfidence, desc: '3 sekundy ciszy przed odpowiedzią, ton z przepony' },
-              { id: 'tension', label: '🚦 Przełamanie wahania (Tension Action)', checked: drillTension, set: setDrillTension, desc: 'Mikro-ekspozycja społeczna lub kontakt z kobietą mimo oporu' },
-              { id: 'nodrift', label: '📵 No-Drift Morning (Brak stymulacji)', checked: drillNoDrift, set: setDrillNoDrift, desc: 'Pierwszy blok pracy bez telefonu, scrollowania i rozpraszaczy' },
-              { id: 'regen', label: '💤 Sen i regeneracja (Fundament)', checked: drillRegen, set: setDrillRegen, desc: 'Brak siedzenia po nocach dla pozornego progresu/kodowania' },
-            ].map((drill) => (
+            {CLOSER_DRILLS.map((drill) => (
               <div
-                key={drill.id}
-                onClick={() => drill.set(!drill.checked)}
+                key={drill.key}
+                onClick={() => toggleCloserDrill(drill.key)}
                 className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
-                  drill.checked
+                  closerDrills[drill.key]
                     ? 'border-indigo-500/30 bg-indigo-550/8'
                     : 'border-border-custom bg-surface hover:bg-surface-solid'
                 }`}
               >
                 <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all ${
-                  drill.checked ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-border-custom bg-surface'
+                  closerDrills[drill.key] ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-border-custom bg-surface'
                 }`}>
-                  {drill.checked && <CheckSquare size={10} className="text-white" />}
+                  {closerDrills[drill.key] && <CheckSquare size={10} className="text-white" />}
                 </div>
                 <div>
-                  <p className={`text-[11px] font-black uppercase tracking-tight ${drill.checked ? 'text-text-primary' : 'text-text-secondary'}`}>
+                  <p className={`text-[11px] font-black uppercase tracking-tight ${closerDrills[drill.key] ? 'text-text-primary' : 'text-text-secondary'}`}>
                     {drill.label}
                   </p>
                   <p className="text-[9px] font-medium text-text-muted mt-0.5 leading-snug">
@@ -462,7 +510,7 @@ export default function Career({ session }) {
           <button
             type="button"
             onClick={saveSalesMetrics}
-            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0 && !drillDiction && !drillConfidence && !drillTension && !drillNoDrift && !drillRegen && !dailyArtifact.trim())}
+            disabled={busy || !hasSalesReportInput}
             className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-2.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-600/10 transition-all cursor-pointer disabled:opacity-45 font-display"
           >
             {busy ? 'Zapisywanie...' : 'Zapisz raport jako dowód'}
@@ -476,11 +524,7 @@ export default function Career({ session }) {
                 setDisqualified(0);
                 setBooked(0);
                 setFillers(0);
-                setDrillDiction(false);
-                setDrillConfidence(false);
-                setDrillTension(false);
-                setDrillNoDrift(false);
-                setDrillRegen(false);
+                setCloserDrills(emptyCloserDrills());
                 setDailyArtifact('');
               }
             }}

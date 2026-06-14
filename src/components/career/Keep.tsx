@@ -641,7 +641,7 @@ export default function Keep({ session }: { session: any }) {
           </a>
           <div className="keep-logo">
             <CheckSquare size={18} className="keep-logo-icon" />
-            <span>Keep</span>
+            <span>Notatki</span>
           </div>
         </div>
 
