@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Briefcase, Calendar, CheckSquare, Play, Plus, RotateCw, Square, Target, Trash2, TrendingUp } from 'lucide-react';
+import { AlertCircle, Briefcase, Calendar, CheckSquare, Play, Plus, RotateCw, Square, Target, Trash2, TrendingUp, Shield, Zap, Volume2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import DataStateNotice from '../core/DataStateNotice';
@@ -15,6 +15,7 @@ import {
   updateProject,
   deriveNextMove,
   projectStats,
+  createEvidence,
 } from '../../lib/career';
 
 const LEVELS = ['low', 'mid', 'high'];
@@ -96,6 +97,40 @@ export default function Career({ session }) {
   const [projectForm, setProjectForm] = useState({ name: '', thesis: '', leverage_level: null, cost_level: null, risk_level: null });
   const [moveForm, setMoveForm] = useState({ title: '', project_id: '', value_type: 'leverage', work_mode: 'deep' });
   const [decisionForm, setDecisionForm] = useState({ title: '', decision: '', decision_type: 'commit', project_id: '', review_date: '' });
+
+  // Sales Lab state
+  const [showSalesTips, setShowSalesTips] = useState(false);
+  const [outreach, setOutreach] = useState(() => Number(localStorage.getItem('sales_outreach') || 0));
+  const [connected, setConnected] = useState(() => Number(localStorage.getItem('sales_connected') || 0));
+  const [disqualified, setDisqualified] = useState(() => Number(localStorage.getItem('sales_disqualified') || 0));
+  const [booked, setBooked] = useState(() => Number(localStorage.getItem('sales_booked') || 0));
+  const [fillers, setFillers] = useState(() => Number(localStorage.getItem('sales_fillers') || 0));
+
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem('sales_outreach', String(outreach));
+    localStorage.setItem('sales_connected', String(connected));
+    localStorage.setItem('sales_disqualified', String(disqualified));
+    localStorage.setItem('sales_booked', String(booked));
+    localStorage.setItem('sales_fillers', String(fillers));
+  }, [outreach, connected, disqualified, booked, fillers]);
+
+  const saveSalesMetrics = async () => {
+    const summary = `Sales Lab: ${outreach} outreach, ${connected} connected, ${disqualified} odrzuconych (No-Fit), ${booked} booked, filery: ${fillers}`;
+    run(async () => {
+      await createEvidence(userId, {
+        project_id: null,
+        type: 'manual',
+        title: summary,
+        occurred_at: new Date().toISOString(),
+      });
+      setOutreach(0);
+      setConnected(0);
+      setDisqualified(0);
+      setBooked(0);
+      setFillers(0);
+    });
+  };
 
   const fetchAll = useCallback(async () => {
     setError(null);
@@ -238,6 +273,124 @@ export default function Career({ session }) {
             Wybierz jeden ruch, który dziś pchnie projekt →
           </button>
         )}
+      </section>
+
+      {/* 2.5 — Sales Lab Widget */}
+      <section className="relative overflow-hidden rounded-[24px] border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.04] to-primary/[0.02] p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Eyebrow>Sales Lab: Setting & Closing</Eyebrow>
+            <h3 className="text-[14px] font-black uppercase tracking-tight text-text-primary font-display mt-0.5 font-display">Trening i Statystyki</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSalesTips(!showSalesTips)}
+            className="flex items-center gap-1 border border-indigo-500/25 bg-indigo-550/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-indigo-550 dark:text-indigo-400 rounded-lg hover:bg-indigo-500/15 transition-all cursor-pointer"
+          >
+            {showSalesTips ? 'Ukryj wskazówki' : 'Zasady Rozmowy'}
+          </button>
+        </div>
+
+        {/* Expandable Coaching Guidelines */}
+        {showSalesTips && (
+          <div className="rounded-xl border border-indigo-500/15 bg-surface/60 p-3.5 space-y-3.5 text-[11px] font-semibold text-text-secondary leading-relaxed animate-in fade-in-50 duration-200">
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-indigo-550 dark:text-indigo-400 flex items-center gap-1 font-display">
+                <Shield size={11} /> Rama Eksperta (Brak Needy)
+              </p>
+              <p className="pl-3.5 border-l border-indigo-500/20">
+                To Ty masz kontrolę. Klient przychodzi z problemem i to on musi udowodnić, że nadaje się do rozwiązania. Szukaj powodów do dyskwalifikacji (Red Flags).
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-500 flex items-center gap-1 font-display">
+                <Volume2 size={11} /> Pauza i Kontrola Ciszy
+              </p>
+              <p className="pl-3.5 border-l border-emerald-500/20">
+                Zadaj pytanie i zamknij usta. Brak komfortu z ciszą rozbija napięcie. Cisza buduje pewność siebie i autorytet.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-505 dark:text-amber-400 flex items-center gap-1 font-display">
+                <Zap size={11} /> Zasada 3 Sekund
+              </p>
+              <p className="pl-3.5 border-l border-amber-500/20">
+                Odbij każde pytanie klienta (np. o cenę) i natychmiast przekieruj rozmowę zadając swoje pytanie. Zawsze miej ostatnie słowo.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-rose-500 flex items-center gap-1 font-display">
+                <Target size={11} /> Aktywne Słuchanie
+              </p>
+              <p className="pl-3.5 border-l border-rose-500/20">
+                Słuchaj odpowiedzi, zamiast czekać na swoją kolej na zadanie kolejnego pytania. Szczegóły budują zaufanie (nie popełnij błędu z Neuronikiem).
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Daily Scorecard Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+          {[
+            { label: 'Wiadomości / Dials', value: outreach, set: setOutreach, color: 'text-text-primary' },
+            { label: 'Połączeni (Rozmowa)', value: connected, set: setConnected, color: 'text-indigo-400 font-display' },
+            { label: 'Odrzuceni (No-Fit) [Tarcza]', value: disqualified, set: setDisqualified, color: 'text-rose-500 font-bold font-display' },
+            { label: 'Zarezerwowani (Booked)', value: booked, set: setBooked, color: 'text-emerald-500 font-display' },
+            { label: 'Filery (Zapychacze)', value: fillers, set: setFillers, color: 'text-amber-500 font-display' }
+          ].map((item, idx) => (
+            <div key={idx} className="bg-surface border border-border-custom rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
+              <span className="text-[8px] font-black uppercase tracking-wider text-text-muted text-center leading-tight mb-1">
+                {item.label}
+              </span>
+              <span className={`text-lg font-black py-1 ${item.color}`}>
+                {item.value}
+              </span>
+              <div className="flex gap-1.5 w-full mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => item.set(Math.max(0, item.value - 1))}
+                  className="flex-1 py-1 rounded-md border border-border-custom bg-surface hover:bg-surface-solid text-[10px] font-bold text-text-secondary cursor-pointer transition-all"
+                >
+                  -
+                </button>
+                <button
+                  type="button"
+                  onClick={() => item.set(item.value + 1)}
+                  className="flex-1 py-1 rounded-md border border-indigo-500/20 bg-indigo-550/10 hover:bg-indigo-550/20 text-[10px] font-bold text-indigo-400 cursor-pointer transition-all"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 pt-2 border-t border-border-custom/50">
+          <button
+            type="button"
+            onClick={saveSalesMetrics}
+            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0)}
+            className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-2.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-600/10 transition-all cursor-pointer disabled:opacity-45"
+          >
+            {busy ? 'Zapisywanie...' : 'Zapisz raport jako dowód'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Zresetować dzisiejsze statystyki?')) {
+                setOutreach(0);
+                setConnected(0);
+                setDisqualified(0);
+                setBooked(0);
+                setFillers(0);
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[9px] font-black uppercase tracking-widest text-text-secondary cursor-pointer transition-all"
+          >
+            Reset
+          </button>
+        </div>
       </section>
 
       {/* 3 + 4 — Projekty kariery */}

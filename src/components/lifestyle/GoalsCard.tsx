@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Shield, Zap, Wallet, Edit2 } from 'lucide-react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import type { Tables } from '../../lib/database.types';
+
+type LifeGoalRow = Tables<'life_goals'>;
+type GoalKey = 'goal_cialo' | 'goal_duch' | 'goal_konto';
+type GoalDateKey = 'date_cialo' | 'date_duch' | 'date_konto';
 
 const GOALS = [
   { key: 'goal_cialo', dateKey: 'date_cialo', label: 'Ciało', icon: Shield, tone: 'text-dayC', border: 'border-dayC/20', bg: 'bg-dayC/8' },
@@ -9,8 +15,8 @@ const GOALS = [
   { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: Wallet, tone: 'text-orange-300', border: 'border-orange-400/20', bg: 'bg-orange-400/8' },
 ];
 
-export default function GoalsCard({ session, onEditClick = null }: any) {
-  const [goals, setGoals] = useState(null);
+export default function GoalsCard({ session, onEditClick = null }: { session: Session; onEditClick?: (() => void) | null }) {
+  const [goals, setGoals] = useState<LifeGoalRow | null>(null);
 
   useEffect(() => {
     supabase.from('life_goals').select('*')
@@ -41,9 +47,11 @@ export default function GoalsCard({ session, onEditClick = null }: any) {
       </div>
       <div className="grid gap-2.5">
         {GOALS.map(({ key, dateKey, icon: Icon, tone }) => {
-          const text = goals[key];
+          const goalKey = key as GoalKey;
+          const goalDateKey = dateKey as GoalDateKey;
+          const text = goals[goalKey];
           if (!text) return null;
-          const days = goals[dateKey] ? differenceInDays(parseISO(goals[dateKey]), new Date()) : null;
+          const days = goals[goalDateKey] ? differenceInDays(parseISO(goals[goalDateKey]), new Date()) : null;
           const urgent = days !== null && days <= 30;
           
           const theme = THEME_GOALS[key] || { bg: 'bg-surface-solid/40 border-border-custom', text: tone };

@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, Trash2, ChevronLeft, Save, Dumbbell, Zap, ChevronDown, ChevronUp, Clock, Play, Square, Trophy, X } from 'lucide-react';
+import type { Tables } from '../../lib/database.types';
 
 import { EXERCISES, ALL_TAGS, tagClass, normalize } from '../../data/exercises';
+
+type ExerciseHistoryRow = Pick<Tables<'exercise_logs'>, 'weight' | 'reps' | 'rir' | 'set_number' | 'session_id'> & {
+  workout_sessions?: Pick<Tables<'workout_sessions'>, 'date'> | null;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,13 +55,14 @@ function useExerciseHistory(name, userId) {
 
       if (!data?.length) { setLastSession(null); setAllTimeBest1RM(null); return; }
 
-      const sorted = [...data] as any[];
+      const sorted = [...data] as ExerciseHistoryRow[];
       sorted.sort((a, b) => {
         const byDate = (b.workout_sessions?.date || '').localeCompare(a.workout_sessions?.date || '');
         return byDate || (a.set_number || 0) - (b.set_number || 0);
       });
-      const bySession: Record<string, any[]> = {};
+      const bySession: Record<string, ExerciseHistoryRow[]> = {};
       for (const row of sorted) {
+        if (!row.session_id) continue;
         if (!bySession[row.session_id]) bySession[row.session_id] = [];
         bySession[row.session_id].push(row);
       }

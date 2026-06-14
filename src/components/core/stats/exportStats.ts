@@ -755,7 +755,7 @@ export async function exportOuraCsv({ supabase, session, dateRange }) {
     }
 
     // Scalanie po dacie — jeden wiersz na dzień
-    const byDate: Record<string, any> = {};
+    const byDate: Record<string, Record<string, unknown> & { date: string }> = {};
     enhanced.forEach(r => { byDate[r.date] = { date: r.date, ...r }; });
     derived.forEach(r => { byDate[r.day] = { ...(byDate[r.day] || { date: r.day }), ...r }; });
     const merged = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));

@@ -2,6 +2,16 @@ import { supabase } from './supabase';
 import { VanguardCore, computeSignals } from './vanguardCore';
 import { format, startOfWeek, subDays } from 'date-fns';
 
+type FootprintPayload = {
+  window?: {
+    app?: string;
+    title?: string;
+  };
+  web?: {
+    url?: string;
+  };
+};
+
 /**
  * AI CONTEXT 3.1 - Unified & Complete Bridge
  * Fixed in turn 81: Now provides 1:1 identical STATE_VECTOR as AIInsight.
@@ -113,7 +123,9 @@ export async function gatherUserContext(session) {
       },
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
       desktop_footprint: footprintRes.data?.map(f => {
-        const payload = f.payload as any;
+        const payload = f.payload && typeof f.payload === 'object' && !Array.isArray(f.payload)
+          ? f.payload as FootprintPayload
+          : null;
         return ({
         timestamp: new Date(f.timestamp).toLocaleTimeString('pl-PL', {
           timeZone: 'Europe/Warsaw',

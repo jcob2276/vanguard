@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Flame, BatteryCharging, Utensils, Gauge, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 
 const LIMITER_PL = {
@@ -37,7 +38,7 @@ const STATUS_RING = {
 };
 const STATUS_GLOW = { green: 'bg-emerald-500/5', yellow: 'bg-amber-500/5', red: 'bg-rose-500/5' };
 
-function Metric({ icon: Icon, label, value, max, tone, note = null }: any) {
+function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: LucideIcon; label: string; value: number | string | null | undefined; max: number; tone: string; note?: string | null }) {
   const pct = max ? Math.min((Number(value) / max) * 100, 100) : 0;
   return (
     <div className="flex-1 bg-surface-solid border border-border-custom rounded-[20px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">

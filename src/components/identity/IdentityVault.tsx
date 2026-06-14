@@ -1,6 +1,10 @@
 import { useCallback, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { Tables } from '../../lib/database.types';
 
 const colorMap = {
   'purple-500': { 
@@ -20,12 +24,25 @@ const colorMap = {
   }
 };
 
-export default function IdentityVault({ session: sessionProp }) {
-  const [loading, setLoading] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null);
-  const [userId, setUserId] = useState(null);
+type VaultField = keyof Pick<Tables<'user_fundament'>, 'vision' | 'identity' | 'knowledge' | 'relationships' | 'philosophy' | 'finances' | 'work_edu'>;
+type VaultState = Record<string, string>;
 
-  const [vault, setVault] = useState<any>({
+const emptyVault: VaultState = {
+  vision: '',
+  identity: '',
+  knowledge: '',
+  relationships: '',
+  philosophy: '',
+  finances: '',
+  work_edu: '',
+};
+
+export default function IdentityVault({ session: sessionProp }: { session?: Session | null }) {
+  const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const [vault, setVault] = useState<VaultState>({
     identity: '',   // JA
     philosophy: '', // CIAŁO
     finances: '',   // ZASOBY
@@ -78,8 +95,8 @@ export default function IdentityVault({ session: sessionProp }) {
     setLoading(true);
     setSaveStatus(null);
     try {
-      const nonEmpty: Record<string, string> = Object.fromEntries(
-        Object.entries(vault as Record<string, string>).filter(([_, v]) => v.trim() !== '')
+      const nonEmpty = Object.fromEntries(
+        Object.entries(vault).filter(([_, v]) => v.trim() !== '')
       );
       if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
 
@@ -106,7 +123,7 @@ export default function IdentityVault({ session: sessionProp }) {
     }
   };
 
-  const Section = ({ title, icon: Icon, field, placeholder, description, color }) => {
+  const Section = ({ title, icon: Icon, field, placeholder, description, color }: { title: string; icon: LucideIcon; field: VaultField; placeholder: string; description: ReactNode; color: keyof typeof colorMap }) => {
     const themeStyles = colorMap[color] || colorMap['purple-500'];
     return (
       <div className="bg-surface border border-border-custom rounded-[24px] p-5 space-y-4 hover:border-primary/20 transition-all shadow-sm">

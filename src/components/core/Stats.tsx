@@ -4,7 +4,7 @@ import { Clock, Scale, Ruler, Activity, Zap, CheckSquare } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
-import type { Tables } from '../../lib/database.types';
+import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection, generateNarrative } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
 import { TrendArrow } from './stats/TrendArrow';
@@ -13,10 +13,52 @@ import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 
 type BodyMetricRow = Tables<'body_metrics'>;
 type DailyNutritionRow = Tables<'daily_nutrition'>;
-type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: any[]; duration?: number | string };
+type ExerciseLogRow = Tables<'exercise_logs'>;
+type EditableExerciseLog = Omit<ExerciseLogRow, 'weight' | 'reps'> & {
+  weight: number | string | null;
+  reps: number | string | null;
+};
+type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: ExerciseLogRow[]; duration?: number | string };
 type NutritionChartPoint = { date: string; protein: number | null; calories: number | null };
 type TrendPoint = { cur: number | null; prev: number | null };
 type TrendsState = Partial<Record<'weight' | 'waist' | 'readiness' | 'sleep' | 'protein', TrendPoint>>;
+type ProjectionResult = { value: string; change: string } | null;
+type ProjectionState = Partial<Record<'weight' | 'waist', ProjectionResult>>;
+type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
+type FoodQualityItem = { food_quality_score: number; name: string; quality_reason: string };
+type ProteinDistribution = { meal: string; protein_g: number; mps?: boolean; note?: string };
+type FoodAnalysisDay = { date?: string; incomplete?: boolean; fasting?: boolean; score?: number };
+type FoodAnalysisResult =
+  | {
+      success?: boolean;
+      mode: 'single';
+      fasting?: boolean;
+      date?: string;
+      day_quality_analysis?: string;
+      day_quality_score?: number;
+      items: FoodQualityItem[];
+      protein_distribution?: ProteinDistribution[];
+    }
+  | {
+      success?: boolean;
+      mode: 'range';
+      dateFrom?: string;
+      dateTo?: string;
+      avg_score?: number;
+      days: FoodAnalysisDay[];
+      pattern_analysis?: string;
+      top_issues?: string[];
+      strengths?: string[];
+      action_steps?: string[];
+      nutrition_profile?: string;
+      trend?: string;
+      trend_note?: string;
+      best_day?: string;
+      worst_day?: string;
+      chronic_gaps?: string[];
+      training_nutrition_note?: string;
+    };
+type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const { userSettings } = useStore();
@@ -42,15 +84,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeDate, setAnalyzeDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
   const [analyzePeriod, setAnalyzePeriod] = useState(1);
-  const [analyzeResult, setAnalyzeResult] = useState<any>(null);
-  const [editingSession, setEditingSession] = useState<any>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<FoodAnalysisResult | null>(null);
+  const [editingSession, setEditingSession] = useState<string | null>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
-  const [editForm, setEditForm] = useState<any>({ date: '', workout_day: '', logs: [] });
+  const [editForm, setEditForm] = useState<EditFormState>({ date: '', workout_day: '', logs: [] });
   const [trends, setTrends] = useState<TrendsState>({});
-  const [projections, setProjections] = useState<any>(null);
+  const [projections, setProjections] = useState<ProjectionState | null>(null);
   const [narrative, setNarrative] = useState('');
   const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
-  const [trainingAnalysis, setTrainingAnalysis] = useState<any>(null);
+  const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -126,7 +168,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function saveMetrics(e) {
     e.preventDefault();
     const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
-    const payload: any = {
+    const payload: TablesInsert<'body_metrics'> = {
       user_id: session.user.id,
       date: today,
     };
@@ -230,8 +272,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       
       // 2. Update all logs
       for (const log of editForm.logs) {
-        const weight = log.weight === '' || log.weight == null ? null : parseFloat(log.weight);
-        const reps = log.reps === '' || log.reps == null ? null : parseInt(log.reps, 10);
+        const weight = log.weight === '' || log.weight == null ? null : Number(log.weight);
+        const reps = log.reps === '' || log.reps == null ? null : Number.parseInt(String(log.reps), 10);
         if ((weight != null && Number.isNaN(weight)) || (reps != null && Number.isNaN(reps))) {
           throw new Error('Nieprawidłowa wartość w serii.');
         }

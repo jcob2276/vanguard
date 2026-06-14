@@ -18,6 +18,16 @@ const LIMITER_PL = { sleep: 'sen', calories: 'kalorie', carbs: 'węgle', cardio_
 const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
 const isLogWellness  = (l) => (l.muscle_tags||[]).includes('wellness') || WELLNESS_NAMES.some(w => (l.exercise_name||'').toLowerCase().startsWith(w));
 
+type ChartTooltipPayload = {
+  color?: string;
+  name?: string | number;
+  value?: string | number;
+};
+
+type LenieLog = {
+  date: string;
+};
+
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 const daysBefore = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
@@ -426,7 +436,7 @@ function useDesktopData(userId) {
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
-function Tip({ active = false, payload = [], label = '' }: any) {
+function Tip({ active = false, payload = [], label = '' }: { active?: boolean; payload?: ChartTooltipPayload[]; label?: string | number }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border-custom bg-surface-solid px-3 py-2 shadow-lg text-[11px]">
@@ -998,7 +1008,7 @@ function computeLenieInsight(logs) {
   return parts.join(' ');
 }
 
-function LeniePanelMini({ logs, userId: _userId = null, accessToken: _accessToken = null }: any) {
+function LeniePanelMini({ logs, userId: _userId = null, accessToken: _accessToken = null }: { logs?: LenieLog[]; userId?: string | null; accessToken?: string | null }) {
   const totalMonth = (logs || []).filter(l => l.date >= daysBefore(30)).length;
   const totalWeek  = (logs || []).filter(l => l.date >= daysBefore(7)).length;
   const lastDate   = (logs || [])[0]?.date ?? null;

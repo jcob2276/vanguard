@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
 import { listTodoItems, updateTodoItem } from '../../lib/todo';
+import type { TablesUpdate } from '../../lib/database.types';
 
 const PRIORITY_DOT = {
   low: 'bg-emerald-500',
@@ -118,7 +119,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
       return todayWin[`done_${i}`];
     });
 
-    const updates = { [field]: newValue, [timeField]: timestamp };
+    const updates = { [field]: newValue, [timeField]: timestamp } as TablesUpdate<'daily_wins'>;
     if (allDone) updates.result = 'Z';
     else {
       if (todayWin.result === 'Z') updates.result = null;
@@ -127,7 +128,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
 
     const { data, error } = await supabase
       .from('daily_wins')
-      .update(updates as any)
+      .update(updates)
       .eq('id', todayWin.id)
       .select()
       .single();

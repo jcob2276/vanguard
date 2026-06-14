@@ -3,14 +3,31 @@ import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
+import type { Tables } from '../lib/database.types';
+
+type DashboardData = {
+  weeklyCalories: number;
+  todayWin: Tables<'daily_wins'> | null;
+  proteinToday: number;
+  hasWorkoutToday: boolean;
+  ouraToday: Tables<'oura_daily_summary'>[];
+  readiness: number;
+  stability: number;
+  operationalState: string;
+  loading: boolean;
+  error?: string;
+};
 
 export function useDashboardData() {
-  const [data, setData] = useState<any>({
+  const [data, setData] = useState<DashboardData>({
     weeklyCalories: 0,
     todayWin: null,
     proteinToday: 0,
     hasWorkoutToday: false,
     ouraToday: [],
+    readiness: 0,
+    stability: 0,
+    operationalState: '',
     loading: true
   });
 
@@ -104,7 +121,7 @@ export function useDashboardData() {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setData(prev => ({ ...prev, loading: false, error: err.message }));
+      setData(prev => ({ ...prev, loading: false, error: err instanceof Error ? err.message : 'Unknown error' }));
     }
   };
 

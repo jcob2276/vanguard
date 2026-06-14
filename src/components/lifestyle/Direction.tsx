@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import {
   Calendar,
   Check,
@@ -13,6 +15,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   addDays,
   differenceInDays,
@@ -26,6 +29,16 @@ import {
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
+import type { Tables, TablesUpdate } from '../../lib/database.types';
+
+type DailyWinRow = Tables<'daily_wins'>;
+type HabitRow = Tables<'habits'>;
+type HabitLogRow = Tables<'habit_logs'>;
+type WeeklyReviewRow = Tables<'weekly_reviews'>;
+type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
+type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
+type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
+type TodoSectionRow = Pick<Tables<'todo_sections'>, 'id' | 'name'>;
 
 const todayDate = () => format(new Date(), 'yyyy-MM-dd');
 const todayWarsaw = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -45,7 +58,7 @@ const SENTIMENTS = [
   { value: 'excellent', label: 'Wygrany' },
 ];
 
-function SectionTitle({ icon: Icon, title, detail, action }: { icon: any; title: string; detail?: string; action?: any }) {
+function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon; title: string; detail?: string; action?: ReactNode }) {
   return (
     <header className="flex items-end justify-between gap-4">
       <div>
@@ -90,26 +103,26 @@ function HabitStrip({ habit, logs }) {
   );
 }
 
-export default function Direction({ session }) {
+export default function Direction({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
-  const [history, setHistory] = useState([]);
-  const [habits, setHabits] = useState([]);
-  const [habitLogs, setHabitLogs] = useState([]);
+  const [history, setHistory] = useState<DailyWinRow[]>([]);
+  const [habits, setHabits] = useState<HabitRow[]>([]);
+  const [habitLogs, setHabitLogs] = useState<HabitLogRow[]>([]);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: 'X', is_positive: true });
 
-  const [currentReview, setCurrentReview] = useState<any>(null);
-  const [allCalEvents, setAllCalEvents] = useState<any[]>([]);
-  const [weekTodos, setWeekTodos] = useState<any[]>([]);
-  const [focusTasks, setFocusTasks] = useState<any[]>([]);
-  const [weekGoals, setWeekGoals] = useState<any>(null);
+  const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
+  const [allCalEvents, setAllCalEvents] = useState<CalendarRow[]>([]);
+  const [weekTodos, setWeekTodos] = useState<TodoItemRow[]>([]);
+  const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
+  const [weekGoals, setWeekGoals] = useState<LifeGoalRow | null>(null);
 
-  const [todoSections, setTodoSections] = useState<any[]>([]);
+  const [todoSections, setTodoSections] = useState<TodoSectionRow[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [proudOf, setProudOf] = useState('');
   const [bottleneck, setBottleneck] = useState('');
-  const [prevWeekReview, setPrevWeekReview] = useState<any>(null);
+  const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
   const [focusGoalMappings, setFocusGoalMappings] = useState<Record<string, string>>({});
 
   const [weekSentiment, setWeekSentiment] = useState('');
@@ -310,7 +323,7 @@ export default function Direction({ session }) {
     }
   }
 
-  async function togglePowerListTask(dayWin: any, index: number) {
+  async function togglePowerListTask(dayWin: DailyWinRow, index: number) {
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
     const newValue = !dayWin[field];
@@ -322,7 +335,7 @@ export default function Direction({ session }) {
       return dayWin[`done_${i}`];
     });
 
-    const updates: any = {
+    const updates: TablesUpdate<'daily_wins'> = {
       [field]: newValue,
       [timeField]: timestamp
     };
@@ -362,7 +375,7 @@ export default function Direction({ session }) {
     const { data, error } = await supabase
       .from('todo_items')
       .insert({ user_id: session.user.id, title, status: 'open', priority: 'normal', ai_bucket: 'soon' })
-      .select('id, title, priority, ai_bucket, due_date')
+      .select('id, title, status, priority, ai_bucket, due_date, section_id')
       .single();
     if (!error && data) { setWeekTodos((prev) => [data, ...prev]); setQuickTaskInput(''); }
     setAddingTask(false);

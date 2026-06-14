@@ -26,6 +26,7 @@ import {
 } from '../../lib/todo';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
+import type { ReactNode } from 'react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBuc
   const left = Math.min(x, window.innerWidth - 220);
   const top = Math.min(y, window.innerHeight - 260);
 
-  const MenuItem = ({ icon, label, onClick, danger = false }: { icon: any; label: any; onClick: any; danger?: boolean }) => (
+  const MenuItem = ({ icon, label, onClick, danger = false }: { icon: ReactNode; label: ReactNode; onClick: () => void; danger?: boolean }) => (
     <button
       onClick={() => { onClick(); onClose(); }}
       className={`flex w-full items-center gap-3 px-4 py-2.5 text-[12px] font-semibold transition-colors hover:bg-surface-solid/80 ${danger ? 'text-rose-400 hover:bg-rose-500/10' : 'text-text-primary'}`}
