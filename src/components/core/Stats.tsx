@@ -315,6 +315,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         includeBody,
         includeActivityWatch,
       });
+    } catch (err: any) {
+      console.error('Export markdown error:', err);
+      alert('Błąd podczas generowania raportu: ' + (err?.message || err));
     } finally {
       setIsExporting(false);
     }
@@ -325,6 +328,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     try {
       const { exportOuraCsv } = await import('./stats/exportStats');
       await exportOuraCsv({ supabase, session, dateRange });
+    } catch (err: any) {
+      console.error('Export Oura CSV error:', err);
+      alert('Błąd podczas generowania CSV Oura: ' + (err?.message || err));
     } finally {
       setIsExportingOura(false);
     }

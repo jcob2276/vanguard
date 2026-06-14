@@ -23,8 +23,24 @@ export async function exportStatsMarkdown({
   includeBody,
   includeActivityWatch,
 }) {
-    const exportStartIso = new Date(`${dateRange.from}T00:00:00`).toISOString();
-    const exportEndIso = new Date(`${dateRange.to}T23:59:59.999`).toISOString();
+    const parseLocalDateToIso = (dateStr, timeStr) => {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const timeParts = timeStr.split(/[.:]/);
+        const hh = parseInt(timeParts[0] || '0', 10);
+        const mm = parseInt(timeParts[1] || '0', 10);
+        const ss = parseInt(timeParts[2] || '0', 10);
+        const ms = parseInt(timeParts[3] || '0', 10);
+        return new Date(y, m, d, hh, mm, ss, ms).toISOString();
+      }
+      return new Date(`${dateStr}T${timeStr}`).toISOString();
+    };
+
+    const exportStartIso = parseLocalDateToIso(dateRange.from, '00:00:00');
+    const exportEndIso = parseLocalDateToIso(dateRange.to, '23:59:59.999');
     const [
       { data: sessions },
       { data: bodyMetrics },
@@ -288,7 +304,9 @@ export async function exportStatsMarkdown({
 
         const makeProgressBar = (ratio) => {
           const size = 10;
-          const dots = Math.round(ratio * size);
+          const val = Number(ratio);
+          if (isNaN(val)) return '`[░░░░░░░░░░]`';
+          const dots = Math.min(size, Math.max(0, Math.round(val * size)));
           const emptyDots = size - dots;
           return '`[' + '█'.repeat(dots) + '░'.repeat(emptyDots) + ']`';
         };
