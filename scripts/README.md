@@ -30,8 +30,8 @@ Layout: `ops/` (deploy, smoke, CI checks), `aw/` (ActivityWatch bridge), `analys
 
 | Script | Purpose | How to run |
 |---|---|---|
-| `analysis/run_eval.js` | Batch runner for `vanguard-eval-runner` edge function | `node scripts/analysis/run_eval.js` |
-| `analysis/backfill_triads.js` | Retroactive `vanguard-architect` backfill over stream | `node scripts/analysis/backfill_triads.js` |
+| `analysis/run_eval.mjs` | Batch runner for `vanguard-eval-runner` edge function | `node scripts/analysis/run_eval.mjs` |
+| `analysis/backfill_triads.mjs` | Retroactive `vanguard-architect` backfill over stream | `node scripts/analysis/backfill_triads.mjs` |
 | `analysis/audit-registry.mjs` | Function registry vs filesystem parity check | `npm run audit:registry` |
 | `analysis/analyze-weak-plans.mjs` | Analyse weak planning sessions | `node scripts/analysis/analyze-weak-plans.mjs` |
 | `analysis/closure_proposals_review.sql` | Review pending stream closure proposals | Supabase SQL editor |

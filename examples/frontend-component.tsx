@@ -4,25 +4,36 @@
  * Demonstrates:
  *   - useState for data / loading / error / refreshing
  *   - useEffect with session.user.id dependency
- *   - fetchRow() reads with .eq('user_id', session.user.id) — never omit this
+ *   - fetchRow() reads with .eq('user_id', session.user.id) - never omit this
  *   - call() helper that throws on !response.ok (error visible in UI, not swallowed)
  *   - DataStateNotice for loading / error / empty states
  *   - Tailwind dark theme: bg-neutral-950, border-white/[0.08], text-white/35
  */
 
-import { useCallback, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import DataStateNotice from './DataStateNotice';
+import { supabase } from '../src/lib/supabase';
+import DataStateNotice from '../src/components/core/DataStateNotice';
 
-export default function ExampleCard({ session }) {
-  const [row, setRow]           = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+type SessionLike = {
+  user: { id: string };
+};
+
+type ExampleRow = {
+  value: string;
+};
+
+type EdgeErrorPayload = {
+  error?: string;
+};
+
+export default function ExampleCard({ session }: { session: SessionLike }) {
+  const [row, setRow] = useState<ExampleRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── DB read ──────────────────────────────────────────────────────────────────
-  // CRITICAL: always filter by user_id — missing filter = data from other users
+  // CRITICAL: always filter by user_id - missing filter = data from other users.
   const fetchRow = useCallback(async () => {
     const { data, error: qErr } = await supabase
       .from('some_table')
@@ -30,9 +41,15 @@ export default function ExampleCard({ session }) {
       .eq('user_id', session.user.id)
       .order('date', { ascending: false })
       .limit(1)
-      .maybeSingle();
-    if (qErr) { setError(qErr.message); setRow(null); }
-    else setRow(data);
+      .maybeSingle<ExampleRow>();
+
+    if (qErr) {
+      setError(qErr.message);
+      setRow(null);
+      return;
+    }
+
+    setRow(data);
   }, [session.user.id]);
 
   useEffect(() => {
@@ -44,30 +61,31 @@ export default function ExampleCard({ session }) {
     })();
   }, [fetchRow]);
 
-  // ── Edge function calls ──────────────────────────────────────────────────────
   async function refresh() {
     setRefreshing(true);
     setError(null);
-    try {
-      const { data: { session: s } } = await supabase.auth.getSession();
-      const token = s?.access_token;
-      const base  = import.meta.env.VITE_SUPABASE_URL;
 
-      // CANONICAL call() helper — throws on !response.ok so error surfaces in UI
-      const call = async (fn, body) => {
+    try {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      const token = activeSession?.access_token;
+      const base = import.meta.env.VITE_SUPABASE_URL;
+
+      // Canonical call() helper: throw on !response.ok so error surfaces in UI.
+      const call = async (fn: string, body: Record<string, unknown>) => {
         const res = await fetch(`${base}/functions/v1/${fn}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(body),
         });
+
         if (!res.ok) {
-          const p = await res.json().catch(() => ({}));
-          throw new Error(`${fn} failed: ${p.error || res.statusText || res.status}`);
+          const payload = await res.json().catch(() => ({} as EdgeErrorPayload));
+          throw new Error(`${fn} failed: ${payload.error || res.statusText || res.status}`);
         }
+
         return res;
       };
 
-      // Parallel calls when independent, sequential when each depends on the previous
       await Promise.all([
         call('sync-source-a', { userId: session.user.id }),
         call('sync-source-b', { userId: session.user.id }),
@@ -77,17 +95,16 @@ export default function ExampleCard({ session }) {
       await fetchRow();
     } catch (e) {
       console.error('ExampleCard refresh:', e);
-      setError(e.message || 'Refresh failed');
+      setError(e instanceof Error ? e.message : 'Refresh failed');
     } finally {
       setRefreshing(false);
     }
   }
 
-  // ── Render states ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <section className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
-        <DataStateNotice tone="loading" title="Ładuję..." detail="Pobieram dane." />
+        <DataStateNotice tone="loading" title="Laduje..." detail="Pobieram dane." />
       </section>
     );
   }
@@ -95,7 +112,7 @@ export default function ExampleCard({ session }) {
   if (error) {
     return (
       <section className="rounded-lg border border-red-500/15 bg-neutral-950/80 p-5">
-        <DataStateNotice tone="warning" title="Błąd" detail={error} />
+        <DataStateNotice tone="warning" title="Blad" detail={error} />
       </section>
     );
   }
@@ -108,7 +125,6 @@ export default function ExampleCard({ session }) {
     );
   }
 
-  // ── Happy path ────────────────────────────────────────────────────────────────
   return (
     <section className="rounded-lg border border-white/[0.08] bg-neutral-950/80 p-5">
       <div className="flex items-center justify-between gap-3">

@@ -51,7 +51,7 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 | `src/components/stats/` | `src/components/core/stats/` |
 | `scripts/aw-*.cjs` | `scripts/aw/` |
 | `scripts/{smoke-vanguard,smoke-ui,check-edge-functions,oss-audit,e2e-daily-loop}.mjs` | `scripts/ops/` |
-| `scripts/{run_eval.js,backfill_triads.js,audit-registry.mjs,analyze-weak-plans.mjs,closure_proposals_review.sql}` | `scripts/analysis/` |
+| `scripts/{run_eval.mjs,backfill_triads.mjs,audit-registry.mjs,analyze-weak-plans.mjs,closure_proposals_review.sql}` | `scripts/analysis/` |
 | 10 orphan components + `lib/oura.js`, `lib/activityWatch.js` | **deleted** (dead UI — see Known quirks) |
 
 Same day, outside the reorg: enabled RLS on `daily_reconciliations`, `strava_activities`, `strava_tokens`, `training_plan_workouts` (migration `20260611000001`), and fixed + redeployed `vanguard-auto-classify` (v41) — a `safeExecute` destructuring bug had silenced the friction pipeline since 2026-05-24.

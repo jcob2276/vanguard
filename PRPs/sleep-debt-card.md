@@ -58,7 +58,7 @@ Trend (vs previous 7 days):
     CRITICAL: table column is `total_sleep_hours` (float, hours) NOT `total_sleep_duration`.
     Warsaw timezone pattern: new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
 
-- file: examples/frontend-component.jsx
+- file: examples/frontend-component.tsx
   why: Canonical fetchRow / call() / loading+error+empty render pattern
 
 - file: src/components/core/Dashboard.jsx  lines 373-393

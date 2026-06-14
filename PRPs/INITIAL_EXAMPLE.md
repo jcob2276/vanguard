@@ -13,7 +13,7 @@ Wymagania:
 - Brak danych Oura → DataStateNotice z instrukcją
 
 ## EXAMPLES:
-- `examples/frontend-component.jsx` — wzorzec useState/useEffect/fetchRow/call()/DataStateNotice
+- `examples/frontend-component.tsx` — wzorzec useState/useEffect/fetchRow/call()/DataStateNotice
 - `src/components/biometrics/DailyStrainCard.jsx` — wzorzec refresh z wieloma równoległymi callami i error propagation
 - `src/components/biometrics/OuraWidget.jsx` — jak czytać z `oura_daily_summary` z Warsaw date filterem
 
