@@ -1,9 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, createServiceClient, resolveUserScope } from "../_shared/supabase.ts";
 
 const SYSTEM = `Jestes asystentem organizacji zadan dla Jakuba (23 lata, Rzeszow, Polska).
 Dostajesz JEDNO zadanie i zwracasz klasyfikacje w JSON.
@@ -68,7 +63,8 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { itemId, userId, title, notes, due_date, priority } = body;
+    const { itemId, userId: requestedUserId, title, notes, due_date, priority } = body;
+    const { userId } = await resolveUserScope(req, requestedUserId ?? null);
 
     if (!itemId || !userId || !title) {
       return new Response(JSON.stringify({ error: "missing fields" }), {
@@ -105,10 +101,7 @@ Deno.serve(async (req) => {
     const classification = parseJson(content);
     const ai_bucket = (classification.ai_bucket as string) || "later";
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
-    );
+    const supabase = createServiceClient();
 
     const patch: Record<string, unknown> = {
       ai_bucket,
