@@ -108,11 +108,13 @@ export default function Career({ session }) {
   const [booked, setBooked] = useState(() => Number(localStorage.getItem('sales_booked') || 0));
   const [fillers, setFillers] = useState(() => Number(localStorage.getItem('sales_fillers') || 0));
 
-  // Identity Drill Checklist state
+  // Identity Drill / Vault v3.1 Checklist state
   const [drillDiction, setDrillDiction] = useState(() => localStorage.getItem('sales_drill_diction') === 'true');
   const [drillConfidence, setDrillConfidence] = useState(() => localStorage.getItem('sales_drill_confidence') === 'true');
-  const [drillPsychology, setDrillPsychology] = useState(() => localStorage.getItem('sales_drill_psychology') === 'true');
-  const [drillNegotiation, setDrillNegotiation] = useState(() => localStorage.getItem('sales_drill_negotiation') === 'true');
+  const [drillTension, setDrillTension] = useState(() => localStorage.getItem('sales_drill_tension') === 'true');
+  const [drillNoDrift, setDrillNoDrift] = useState(() => localStorage.getItem('sales_drill_nodrift') === 'true');
+  const [drillRegen, setDrillRegen] = useState(() => localStorage.getItem('sales_drill_regen') === 'true');
+  const [dailyArtifact, setDailyArtifact] = useState(() => localStorage.getItem('sales_daily_artifact') || '');
 
   // Sync to localStorage
   useEffect(() => {
@@ -123,19 +125,23 @@ export default function Career({ session }) {
     localStorage.setItem('sales_fillers', String(fillers));
     localStorage.setItem('sales_drill_diction', String(drillDiction));
     localStorage.setItem('sales_drill_confidence', String(drillConfidence));
-    localStorage.setItem('sales_drill_psychology', String(drillPsychology));
-    localStorage.setItem('sales_drill_negotiation', String(drillNegotiation));
-  }, [outreach, connected, disqualified, booked, fillers, drillDiction, drillConfidence, drillPsychology, drillNegotiation]);
+    localStorage.setItem('sales_drill_tension', String(drillTension));
+    localStorage.setItem('sales_drill_nodrift', String(drillNoDrift));
+    localStorage.setItem('sales_drill_regen', String(drillRegen));
+    localStorage.setItem('sales_daily_artifact', dailyArtifact);
+  }, [outreach, connected, disqualified, booked, fillers, drillDiction, drillConfidence, drillTension, drillNoDrift, drillRegen, dailyArtifact]);
 
   const saveSalesMetrics = async () => {
     const drillsCompleted = [];
-    if (drillDiction) drillsCompleted.push('Dykcja');
-    if (drillConfidence) drillsCompleted.push('Pewność');
-    if (drillPsychology) drillsCompleted.push('Perswazja');
-    if (drillNegotiation) drillsCompleted.push('Negocjacje');
+    if (drillDiction) drillsCompleted.push('🗣️ Dykcja');
+    if (drillConfidence) drillsCompleted.push('🧘 Pewność');
+    if (drillTension) drillsCompleted.push('🚦 Przełamanie wahania');
+    if (drillNoDrift) drillsCompleted.push('📵 No-Drift');
+    if (drillRegen) drillsCompleted.push('💤 Sen/Regeneracja');
 
     const drillsText = drillsCompleted.length > 0 ? ` [Trening: ${drillsCompleted.join(', ')}]` : '';
-    const summary = `Closer Training: ${outreach} outreach, ${connected} connected, ${disqualified} odrzuconych (No-Fit), ${booked} booked, filery: ${fillers}${drillsText}`;
+    const artifactText = dailyArtifact.trim() ? ` [Artefakt dnia: ${dailyArtifact.trim()}]` : '';
+    const summary = `Closer Scorecard: ${outreach} outreach, ${connected} connected, ${disqualified} odrzuconych, ${booked} booked, filery: ${fillers}${drillsText}${artifactText}`;
     
     run(async () => {
       await createEvidence(userId, {
@@ -151,8 +157,10 @@ export default function Career({ session }) {
       setFillers(0);
       setDrillDiction(false);
       setDrillConfidence(false);
-      setDrillPsychology(false);
-      setDrillNegotiation(false);
+      setDrillTension(false);
+      setDrillNoDrift(false);
+      setDrillRegen(false);
+      setDailyArtifact('');
     });
   };
 
@@ -162,7 +170,12 @@ export default function Career({ session }) {
       const [p, m, e, d] = await Promise.all([
         listProjects(userId), listMoves(userId), listEvidence(userId), listDecisions(userId),
       ]);
-      setProjects(p || []); setMoves(m || []); setEvidence(e || []); setDecisions(d || []);
+      
+      setProjects(p || []);
+
+      setMoves(m || []);
+      setEvidence(e || []);
+      setDecisions(d || []);
     } catch (err) {
       console.error('Career fetch:', err);
       setError(err.message);
@@ -392,14 +405,15 @@ export default function Career({ session }) {
         {/* Daily Identity & Drills Checklist */}
         <div className="rounded-xl border border-indigo-500/15 bg-surface/50 p-4.5 space-y-3">
           <p className="text-[9px] font-black uppercase tracking-wider text-text-muted font-display">
-            Codzienny trening tożsamości closera
+            Codzienny trening tożsamości i walka z dryfowaniem (Vault v3.1)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {[
-              { id: 'diction', label: '🗣️ Dykcja (Korek w zęby, rozgrzewka)', checked: drillDiction, set: setDrillDiction, desc: 'Rozgrzewka aparatu mowy i 3 min głośnego czytania' },
-              { id: 'confidence', label: '🧘 Pewność Siebie (Pauzy i oddech)', checked: drillConfidence, set: setDrillConfidence, desc: '3 sekundy ciszy przed odpowiedzią, ton z przepony' },
-              { id: 'psychology', label: '🧠 Perswazja (Gra w pytania, słuchanie)', checked: drillPsychology, set: setDrillPsychology, desc: 'Słuchanie aktywne, bez filarów językowych' },
-              { id: 'negotiation', label: '🤝 Negocjacje (Obiekcje i drop ceny)', checked: drillNegotiation, set: setDrillNegotiation, desc: 'Price Drop Silence i techniki zbijania oporu' },
+              { id: 'diction', label: '🗣️ Dykcja (Rozgrzewka głosu)', checked: drillDiction, set: setDrillDiction, desc: 'Rozgrzewka aparatu mowy i 3 min głośnego czytania' },
+              { id: 'confidence', label: '🧘 Pewność Siebie (Ramy i pauzy)', checked: drillConfidence, set: setDrillConfidence, desc: '3 sekundy ciszy przed odpowiedzią, ton z przepony' },
+              { id: 'tension', label: '🚦 Przełamanie wahania (Tension Action)', checked: drillTension, set: setDrillTension, desc: 'Mikro-ekspozycja społeczna lub kontakt z kobietą mimo oporu' },
+              { id: 'nodrift', label: '📵 No-Drift Morning (Brak stymulacji)', checked: drillNoDrift, set: setDrillNoDrift, desc: 'Pierwszy blok pracy bez telefonu, scrollowania i rozpraszaczy' },
+              { id: 'regen', label: '💤 Sen i regeneracja (Fundament)', checked: drillRegen, set: setDrillRegen, desc: 'Brak siedzenia po nocach dla pozornego progresu/kodowania' },
             ].map((drill) => (
               <div
                 key={drill.id}
@@ -428,12 +442,27 @@ export default function Career({ session }) {
           </div>
         </div>
 
+        {/* Daily Artifact Input */}
+        <div className="space-y-1.5">
+          <label htmlFor="dailyArtifact" className="text-[9px] font-black uppercase tracking-wider text-text-muted font-display block">
+            Artefakt Dnia (Realny output w świecie, np. wysłana wiadomość, wykonana rozmowa)
+          </label>
+          <input
+            id="dailyArtifact"
+            type="text"
+            value={dailyArtifact}
+            onChange={(e) => setDailyArtifact(e.target.value)}
+            placeholder="Opisz dzisiejszy artefakt dowieziony mimo oporu..."
+            className="w-full rounded-xl border border-border-custom bg-surface p-3 text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/45 focus:border-indigo-500/50 focus:bg-surface-solid"
+          />
+        </div>
+
         {/* Action Controls */}
         <div className="flex items-center gap-2 pt-2 border-t border-border-custom/50">
           <button
             type="button"
             onClick={saveSalesMetrics}
-            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0 && !drillDiction && !drillConfidence && !drillPsychology && !drillNegotiation)}
+            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0 && !drillDiction && !drillConfidence && !drillTension && !drillNoDrift && !drillRegen && !dailyArtifact.trim())}
             className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-2.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-600/10 transition-all cursor-pointer disabled:opacity-45 font-display"
           >
             {busy ? 'Zapisywanie...' : 'Zapisz raport jako dowód'}
@@ -449,8 +478,10 @@ export default function Career({ session }) {
                 setFillers(0);
                 setDrillDiction(false);
                 setDrillConfidence(false);
-                setDrillPsychology(false);
-                setDrillNegotiation(false);
+                setDrillTension(false);
+                setDrillNoDrift(false);
+                setDrillRegen(false);
+                setDailyArtifact('');
               }
             }}
             className="px-4 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[9px] font-black uppercase tracking-widest text-text-secondary cursor-pointer transition-all font-display"

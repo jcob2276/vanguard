@@ -387,14 +387,14 @@ export default function Dashboard({ session }) {
             <div className="space-y-7">
               <DayCounter />
               <GoalsCard session={session} />
-              <DailyStrainCard session={session} />
-              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <CommandButton
                 icon={Dumbbell}
                 eyebrow="Physical Protocol"
                 label="Zaloguj trening"
                 onClick={() => setShowWorkoutLogger(true)}
               />
+              <DailyStrainCard session={session} />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
             </div>
           )}
 
