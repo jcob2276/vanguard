@@ -11,6 +11,7 @@ import {
   Play,
   RefreshCw,
   Sun,
+  Paintbrush,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
@@ -368,6 +369,13 @@ export default function Dashboard({ session }) {
             >
               <CheckSquare size={15} />
             </button>
+            <Link
+              to="/keep"
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+              title="Keep Notes"
+            >
+              <Paintbrush size={15} />
+            </Link>
             <Link
               to="/dashboard"
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"

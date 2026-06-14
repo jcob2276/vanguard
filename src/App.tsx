@@ -7,6 +7,7 @@ import Dashboard from './components/core/Dashboard';
 import { useNotifications } from './hooks/useNotifications';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
+const KeepPage = lazy(() => import('./components/career/Keep'));
 
 function AppRoutes() {
   const { session, setSession } = useStore();
@@ -38,6 +39,13 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Dashboard session={session} />} />
+      <Route path="/keep" element={
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+          <div className="min-h-screen bg-background p-5 pb-8 max-w-md mx-auto border-x border-border-custom">
+            <KeepPage session={session} />
+          </div>
+        </Suspense>
+      } />
       <Route path="/dashboard" element={
         <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
           <DesktopDashboard session={session} />
