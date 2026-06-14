@@ -165,12 +165,18 @@ export default function Dashboard({ session }) {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  const navigateTo = (newView) => {
+  const [transitioning, setTransitioning] = useState(false);
+
+  const navigateTo = useCallback((newView) => {
+    if (newView === view || transitioning) return;
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx = TAB_ORDER.indexOf(newView);
     setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
+    setTransitioning(true);
     setView(newView);
-  };
+    // clear transitioning after animation finishes (380ms)
+    setTimeout(() => setTransitioning(false), 400);
+  }, [view, transitioning]);
   const { isSyncing, setSyncing } = useStore();
   const {
     weeklyCalories,
@@ -387,11 +393,8 @@ export default function Dashboard({ session }) {
         </header>
 
         <main className="flex-1 overflow-hidden">
-          <div
-            key={view}
-            className={`p-5 pb-8 ${slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left'}`}
-          >
-          {view === 'dzis' && (
+          {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
+          <div className={`p-5 pb-8 ${view === 'dzis' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
               <GoalsCard session={session} />
@@ -401,12 +404,14 @@ export default function Dashboard({ session }) {
                 label="Zaloguj trening"
                 onClick={() => setShowWorkoutLogger(true)}
               />
-              <DailyStrainCard session={session} />
+              <Suspense fallback={<ViewFallback />}>
+                <DailyStrainCard session={session} />
+              </Suspense>
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
             </div>
-          )}
+          </div>
 
-          {view === 'tydzien' && (
+          <div className={`p-5 pb-8 ${view === 'tydzien' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <AIInsight session={session} />
@@ -419,9 +424,9 @@ export default function Dashboard({ session }) {
                 <Direction session={session} />
               </div>
             </Suspense>
-          )}
+          </div>
 
-          {view === 'historia' && (
+          <div className={`p-5 pb-8 ${view === 'historia' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
@@ -429,13 +434,12 @@ export default function Dashboard({ session }) {
                 <MuscleHeatmap session={session} />
               </div>
             </Suspense>
-          )}
+          </div>
 
-          {view === 'kariera' && (
+          <div className={`p-5 pb-8 ${view === 'kariera' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <Career session={session} />
             </Suspense>
-          )}
           </div>
         </main>
       </div>
@@ -453,7 +457,8 @@ export default function Dashboard({ session }) {
           <button
             key={item.id}
             onClick={() => navigateTo(item.id)}
-            className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer ${
+            disabled={transitioning}
+            className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
               view === item.id 
                 ? 'text-primary font-black' 
                 : 'text-text-muted hover:text-text-primary'
