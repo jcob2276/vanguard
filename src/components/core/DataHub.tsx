@@ -1,7 +1,7 @@
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
 import BrainHealth from '../biometrics/BrainHealth';
 
-export default function DataHub({ session, onBack, embedded = false }) {
+export default function DataHub({ session, onBack = null, embedded = false }: any) {
   return (
     <div className={`${embedded ? 'space-y-6' : 'min-h-screen bg-black p-6 space-y-8 animate-in fade-in duration-500'}`}>
       {!embedded && (

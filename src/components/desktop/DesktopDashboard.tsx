@@ -44,7 +44,7 @@ function sessionMuscles(s) {
 }
 
 function weeklyVolume(sessions) {
-  const map = {}, dates = {};
+  const map: Record<string, number> = {}, dates: Record<string, Date> = {};
   for (const s of sessions) {
     const ws = startOfWeek(new Date(s.date + 'T12:00:00'), { weekStartsOn: 1 });
     const k = ws.toISOString().slice(0, 10);
@@ -56,7 +56,7 @@ function weeklyVolume(sessions) {
 }
 
 function muscleBreakdown(sessions) {
-  const map = {};
+  const map: Record<string, number> = {};
   const cutoff = daysBefore(30);
   for (const s of sessions) {
     if (s.date < cutoff) continue;
@@ -73,7 +73,7 @@ function muscleBreakdown(sessions) {
 
 function weeklyRunKm(strava) {
   const runs = strava.filter(a => ['Run', 'TrailRun', 'VirtualRun', 'Hike'].includes(a.sport_type));
-  const map = {}, dates = {};
+  const map: Record<string, number> = {}, dates: Record<string, Date> = {};
   for (const a of runs) {
     const ws = startOfWeek(new Date(a.start_date), { weekStartsOn: 1 });
     const k = ws.toISOString().slice(0, 10);
@@ -221,8 +221,8 @@ function computeDayOfWeekReadiness(oura) {
 }
 
 function computeSleepBuckets(oura) {
-  const BUCKETS = [['<6h', h => h < 6], ['6–7h', h => h >= 6 && h < 7], ['7–8h', h => h >= 7 && h < 8], ['>8h', h => h >= 8]];
-  const acc = Object.fromEntries(BUCKETS.map(([l]) => [l, []]));
+  const BUCKETS: Array<[string, (h: number) => boolean]> = [['<6h', h => h < 6], ['6-7h', h => h >= 6 && h < 7], ['7-8h', h => h >= 7 && h < 8], ['>8h', h => h >= 8]];
+  const acc: Record<string, number[]> = Object.fromEntries(BUCKETS.map(([l]) => [l, []]));
   for (let i = 0; i < oura.length - 1; i++) {
     const h = oura[i].total_sleep_hours;
     const next = oura[i + 1]?.readiness_score;
@@ -334,7 +334,7 @@ function getSprintInfo() {
   let anchor = new Date(`${yr}-03-01T00:00:00`);
   if (d < anchor) anchor = new Date(`${yr - 1}-03-01T00:00:00`);
   const personalYear   = anchor.getFullYear();
-  const daysSince      = Math.floor((d - anchor) / 86400000);
+  const daysSince      = Math.floor((d.getTime() - anchor.getTime()) / 86400000);
   const weeksSince     = Math.floor(daysSince / 7);
   const sprintNumber   = Math.floor(weeksSince / 12) + 1;
   const weekInSprint   = (weeksSince % 12) + 1;
@@ -377,7 +377,7 @@ function sprintMetrics(oura, sessions, strava, start, end) {
 function computeWeekStreak(sessions) {
   const ws = weekStartDate();
   let streak = 0;
-  let cursor = new Date(ws + 'T12:00:00');
+  const cursor = new Date(ws + 'T12:00:00');
   for (let i = 0; i < 52; i++) {
     const wStart = cursor.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const wEnd   = new Date(cursor.getTime() + 6 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -426,7 +426,7 @@ function useDesktopData(userId) {
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
-function Tip({ active, payload, label }) {
+function Tip({ active = false, payload = [], label = '' }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border-custom bg-surface-solid px-3 py-2 shadow-lg text-[11px]">
@@ -998,7 +998,7 @@ function computeLenieInsight(logs) {
   return parts.join(' ');
 }
 
-function LeniePanelMini({ logs }) {
+function LeniePanelMini({ logs, userId: _userId = null, accessToken: _accessToken = null }: any) {
   const totalMonth = (logs || []).filter(l => l.date >= daysBefore(30)).length;
   const totalWeek  = (logs || []).filter(l => l.date >= daysBefore(7)).length;
   const lastDate   = (logs || [])[0]?.date ?? null;

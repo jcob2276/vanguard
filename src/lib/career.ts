@@ -147,7 +147,7 @@ export function deriveNextMove(moves) {
     const ap = a.planned_for || '9999-12-31';
     const bp = b.planned_for || '9999-12-31';
     if (ap !== bp) return ap < bp ? -1 : 1;
-    return new Date(a.created_at) - new Date(b.created_at);
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   })[0];
 }
 
@@ -158,6 +158,6 @@ export function projectStats(project, moves, evidence) {
   const done = pm.filter((m) => m.status === 'done').length;
   const lastEv = evidence
     .filter((e) => e.project_id === project.id)
-    .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at))[0];
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
   return { open, done, lastEvidenceAt: lastEv ? lastEv.occurred_at : null };
 }

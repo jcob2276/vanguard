@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Briefcase, Calendar, CheckSquare, Plus, RotateCw, Square, Target, TrendingUp } from 'lucide-react';
+import { AlertCircle, Briefcase, Calendar, CheckSquare, Play, Plus, RotateCw, Square, Target, Trash2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import DataStateNotice from '../core/DataStateNotice';
@@ -50,7 +50,7 @@ function warsawToday() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
 
-function SectionTitle({ icon: Icon, title, action }) {
+function SectionTitle({ icon: Icon, title, action = null }: any) {
   return (
     <header className="flex items-center justify-between gap-3">
       <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
@@ -61,7 +61,7 @@ function SectionTitle({ icon: Icon, title, action }) {
   );
 }
 
-function Eyebrow({ children }) {
+function Eyebrow({ children }: any) {
   return (
     <p className="text-[8px] font-black uppercase tracking-[0.22em] text-primary">
       {children}
@@ -69,7 +69,7 @@ function Eyebrow({ children }) {
   );
 }
 
-function Pill({ active, onClick, children, tone }) {
+function Pill({ active, onClick, children, tone = null }: any) {
   const base = 'rounded-md border px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all';
   const on = tone || 'border-primary/40 bg-primary/15 text-primary';
   const off = 'border-border-custom bg-surface text-text-muted';

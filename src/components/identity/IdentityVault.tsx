@@ -25,7 +25,7 @@ export default function IdentityVault({ session: sessionProp }) {
   const [saveStatus, setSaveStatus] = useState(null);
   const [userId, setUserId] = useState(null);
 
-  const [vault, setVault] = useState({
+  const [vault, setVault] = useState<any>({
     identity: '',   // JA
     philosophy: '', // CIAŁO
     finances: '',   // ZASOBY
@@ -78,8 +78,8 @@ export default function IdentityVault({ session: sessionProp }) {
     setLoading(true);
     setSaveStatus(null);
     try {
-      const nonEmpty = Object.fromEntries(
-        Object.entries(vault).filter(([_, v]) => v.trim() !== '')
+      const nonEmpty: Record<string, string> = Object.fromEntries(
+        Object.entries(vault as Record<string, string>).filter(([_, v]) => v.trim() !== '')
       );
       if (Object.keys(nonEmpty).length === 0) { setLoading(false); return; }
 

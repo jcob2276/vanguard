@@ -50,11 +50,12 @@ function useExerciseHistory(name, userId) {
 
       if (!data?.length) { setLastSession(null); setAllTimeBest1RM(null); return; }
 
-      const sorted = [...data].sort((a, b) => {
+      const sorted = [...data] as any[];
+      sorted.sort((a, b) => {
         const byDate = (b.workout_sessions?.date || '').localeCompare(a.workout_sessions?.date || '');
         return byDate || (a.set_number || 0) - (b.set_number || 0);
       });
-      const bySession = {};
+      const bySession: Record<string, any[]> = {};
       for (const row of sorted) {
         if (!bySession[row.session_id]) bySession[row.session_id] = [];
         bySession[row.session_id].push(row);
@@ -197,7 +198,7 @@ function VolumeBar({ exercises }) {
       (ex.tags ?? []).forEach(tag => { vol[tag] = (vol[tag] || 0) + exVol; });
     }
   });
-  const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
+  const entries = Object.entries(vol as Record<string, number>).sort((a, b) => b[1] - a[1]);
   if (!entries.length) return null;
   return (
     <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 shadow-sm">

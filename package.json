@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings=0",
     "preview": "vite preview",
     "typecheck": "node scripts/ops/check-edge-functions.mjs",
+    "typecheck:ui": "tsc --noEmit",
     "audit:registry": "node scripts/analysis/audit-registry.mjs",
     "smoke:ui": "node scripts/ops/smoke-ui.mjs",
     "oss:audit": "node scripts/ops/oss-audit.mjs",
@@ -45,6 +46,8 @@
     "js-yaml": "^4.1.1",
     "postcss": "^8.5.12",
     "supabase": "^2.98.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.0",
     "vite": "^8.0.10",
     "vite-plugin-pwa": "^1.2.0",
     "ws": "^8.20.1"

@@ -9,7 +9,7 @@ const GOALS = [
   { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: Wallet, tone: 'text-orange-300', border: 'border-orange-400/20', bg: 'bg-orange-400/8' },
 ];
 
-export default function GoalsCard({ session, onEditClick }) {
+export default function GoalsCard({ session, onEditClick = null }: any) {
   const [goals, setGoals] = useState(null);
 
   useEffect(() => {

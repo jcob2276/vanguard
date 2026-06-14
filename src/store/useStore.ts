@@ -1,13 +1,24 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 
-export const useStore = create((set, get) => ({
+type VanguardStore = {
+  session: any;
+  userSettings: any;
+  todayWin: any;
+  isSyncing: boolean;
+  setSession: (session: any) => void;
+  fetchUserSettings: () => Promise<void>;
+  fetchTodayWin: () => Promise<void>;
+  setSyncing: (isSyncing: boolean) => void;
+};
+
+export const useStore = create<VanguardStore>((set, get) => ({
   session: null,
   userSettings: null,
   todayWin: null,
   isSyncing: false,
   
-  setSession: (session) => set({ session }),
+  setSession: (session: any) => set({ session }),
   
   fetchUserSettings: async () => {
     const { session } = get();
@@ -39,5 +50,5 @@ export const useStore = create((set, get) => ({
     set({ todayWin: data });
   },
 
-  setSyncing: (isSyncing) => set({ isSyncing })
+  setSyncing: (isSyncing: boolean) => set({ isSyncing })
 }));

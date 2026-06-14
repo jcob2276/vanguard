@@ -4,19 +4,19 @@ import { Clock, Scale, Ruler, Activity, Zap, CheckSquare } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
-import { calculateProjection, generateNarrative } from './stats/statsCalculations.js';
-import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi.js';
-import { TrendArrow } from './stats/TrendArrow.jsx';
-import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection.jsx';
-import { WorkoutHistorySection } from './stats/WorkoutHistorySection.jsx';
+import { calculateProjection, generateNarrative } from './stats/statsCalculations';
+import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
+import { TrendArrow } from './stats/TrendArrow';
+import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
+import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
-  const [bodyData, setBodyData] = useState([]);
-  const [recentSessions, setRecentSessions] = useState([]);
+  const [bodyData, setBodyData] = useState<any[]>([]);
+  const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
-  const [nutritionData, setNutritionData] = useState([]);
+  const [nutritionData, setNutritionData] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -34,15 +34,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeDate, setAnalyzeDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
   const [analyzePeriod, setAnalyzePeriod] = useState(1);
-  const [analyzeResult, setAnalyzeResult] = useState(null);
-  const [editingSession, setEditingSession] = useState(null);
+  const [analyzeResult, setAnalyzeResult] = useState<any>(null);
+  const [editingSession, setEditingSession] = useState<any>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
-  const [editForm, setEditForm] = useState({ date: '', logs: [] });
-  const [trends, setTrends] = useState({});
-  const [projections, setProjections] = useState(null);
+  const [editForm, setEditForm] = useState<any>({ date: '', workout_day: '', logs: [] });
+  const [trends, setTrends] = useState<any>({});
+  const [projections, setProjections] = useState<any>(null);
   const [narrative, setNarrative] = useState('');
   const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
-  const [trainingAnalysis, setTrainingAnalysis] = useState(null);
+  const [trainingAnalysis, setTrainingAnalysis] = useState<any>(null);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -72,12 +72,12 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       if (sessions) {
         setRecentSessions(sessions.map(s => ({
           ...s,
-          duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time) - new Date(s.start_time)) / 60000) : '--'
+          duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / 60000) : '--'
         })));
       }
 
       // Calculate Trends
-      const newTrends = {};
+      const newTrends: any = {};
       const ouraRaw = oura || [];
       const nutrRaw = nutrition || [];
       
@@ -118,7 +118,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function saveMetrics(e) {
     e.preventDefault();
     const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
-    const payload = {
+    const payload: any = {
       user_id: session.user.id,
       date: today,
     };
@@ -251,7 +251,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function exportData() {
     setIsExporting(true);
     try {
-      const { exportStatsMarkdown } = await import('./stats/exportStats.js');
+      const { exportStatsMarkdown } = await import('./stats/exportStats');
       await exportStatsMarkdown({
         supabase,
         session,
@@ -273,7 +273,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   async function exportOuraCSV() {
     setIsExportingOura(true);
     try {
-      const { exportOuraCsv } = await import('./stats/exportStats.js');
+      const { exportOuraCsv } = await import('./stats/exportStats');
       await exportOuraCsv({ supabase, session, dateRange });
     } finally {
       setIsExportingOura(false);
@@ -371,7 +371,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <input
               type="date"
               value={dateRange.from}
-              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
               onChange={e => setDateRange({...dateRange, from: e.target.value})}
               className="w-full cursor-pointer appearance-none rounded-xl border border-border-custom bg-surface p-3 pl-10 text-[10px] font-bold text-text-primary outline-none transition-all focus:border-primary/70"
             />
@@ -381,7 +381,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <input
               type="date"
               value={dateRange.to}
-              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
               onChange={e => setDateRange({...dateRange, to: e.target.value})}
               className="w-full cursor-pointer appearance-none rounded-xl border border-border-custom bg-surface p-3 pl-10 text-[10px] font-bold text-text-primary outline-none transition-all focus:border-primary/70"
             />

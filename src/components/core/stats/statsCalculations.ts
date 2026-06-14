@@ -60,10 +60,10 @@ export function generateNarrative(body, oura, sessions) {
 
   const lastWeekBody = (body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.weight) > 0) || [])
     .sort((a, b) => a.date < b.date ? -1 : 1);
-  const bodyDiffWeight = lastWeekBody.length >= 2 ? (Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1) : null;
+  const bodyDiffWeight = lastWeekBody.length >= 2 ? Number((Number(lastWeekBody[lastWeekBody.length - 1].weight) - Number(lastWeekBody[0].weight)).toFixed(1)) : null;
   const lastWeekWaist = (body?.filter(b => new Date(b.date) >= sevenDaysAgo && Number(b.waist) > 0) || [])
     .sort((a, b) => a.date < b.date ? -1 : 1);
-  const bodyDiffWaist = lastWeekWaist.length >= 2 ? (Number(lastWeekWaist[lastWeekWaist.length - 1].waist) - Number(lastWeekWaist[0].waist)).toFixed(1) : null;
+  const bodyDiffWaist = lastWeekWaist.length >= 2 ? Number((Number(lastWeekWaist[lastWeekWaist.length - 1].waist) - Number(lastWeekWaist[0].waist)).toFixed(1)) : null;
 
   let text = `To był ${lastWeekSessions >= 4 ? 'wybitnie mocny' : lastWeekSessions >= 3 ? 'solidny' : 'rozgrzewkowy'} tydzień. `;
   const sessionWord = lastWeekSessions === 1 ? 'trening' : lastWeekSessions >= 2 && lastWeekSessions <= 4 ? 'treningi' : 'treningów';
@@ -75,9 +75,9 @@ export function generateNarrative(body, oura, sessions) {
     text += `Średnio sypiałeś po ${Math.floor(avgSleepLast)}h ${Math.round((avgSleepLast % 1) * 60)}m. `;
   }
 
-  if (bodyDiffWaist && bodyDiffWaist != 0) {
+  if (bodyDiffWaist && bodyDiffWaist !== 0) {
     text += `W obwodzie pasa ${bodyDiffWaist < 0 ? 'zeszło' : 'przybyło'} ${Math.abs(bodyDiffWaist)} cm. `;
-  } else if (bodyDiffWeight && bodyDiffWeight != 0) {
+  } else if (bodyDiffWeight && bodyDiffWeight !== 0) {
     text += `Waga ${bodyDiffWeight < 0 ? 'spadła' : 'wzrosła'} o ${Math.abs(bodyDiffWeight)} kg. `;
   }
 

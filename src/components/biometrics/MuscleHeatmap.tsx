@@ -143,11 +143,11 @@ function tagColor(tag) {
 
 export default function MuscleHeatmap({ session }) {
   const [period, setPeriod]     = useState(30);
-  const [intensity, setIntensity] = useState({});   // tag → 0–1
-  const [setsByTag, setSetsByTag] = useState({});   // tag → count
-  const [directByTag, setDirectByTag] = useState({});
-  const [indirectByTag, setIndirectByTag] = useState({});
-  const [loadByTag, setLoadByTag] = useState({});    // tag → effective stimulus
+  const [intensity, setIntensity] = useState<Record<string, number>>({});   // tag → 0–1
+  const [setsByTag, setSetsByTag] = useState<Record<string, number>>({});   // tag → count
+  const [directByTag, setDirectByTag] = useState<Record<string, number>>({});
+  const [indirectByTag, setIndirectByTag] = useState<Record<string, number>>({});
+  const [loadByTag, setLoadByTag] = useState<Record<string, number>>({});    // tag → effective stimulus
   const [loading, setLoading]   = useState(true);
   const userId = session?.user?.id;
 
@@ -167,16 +167,16 @@ export default function MuscleHeatmap({ session }) {
         if (error) throw error;
 
         // Reset counters
-        const directSets = {};
-        const indirectSets = {};
-        const effectiveSets = {};
+        const directSets: Record<string, number> = {};
+        const indirectSets: Record<string, number> = {};
+        const effectiveSets: Record<string, number> = {};
         MUSCLE_TAGS.forEach(t => { directSets[t] = 0; indirectSets[t] = 0; effectiveSets[t] = 0; });
 
         (data ?? []).forEach(log => {
           const tags = tagsForLog(log);
           const stimulus = stimulusForExercise(log.exercise_name, tags);
 
-          Object.entries(stimulus).forEach(([tag, value]) => {
+          Object.entries(stimulus as Record<string, { direct?: number; indirect?: number }>).forEach(([tag, value]) => {
             if (effectiveSets[tag] !== undefined) {
               const direct = Number(value.direct || 0);
               const indirect = Number(value.indirect || 0);
@@ -194,7 +194,7 @@ export default function MuscleHeatmap({ session }) {
 
         // Normalize intensities to 0-1
         const maxVal = Math.max(...Object.values(effectiveSets), 1);
-        const nextIntensities = {};
+        const nextIntensities: Record<string, number> = {};
         Object.entries(effectiveSets).forEach(([tag, val]) => {
           nextIntensities[tag] = val > 0 ? Math.min(val / maxVal, 1.0) : 0;
         });

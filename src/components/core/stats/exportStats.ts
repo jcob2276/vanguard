@@ -612,7 +612,7 @@ export async function exportStatsMarkdown({
             const firstTs = new Date(Math.min(...loggedTimes.map(t => t.getTime())));
             const lastTs  = new Date(Math.max(...loggedTimes.map(t => t.getTime())));
             const fmtT = (d) => d.toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
-            const windowMin = Math.round((lastTs - firstTs) / 60000);
+            const windowMin = Math.round((lastTs.getTime() - firstTs.getTime()) / 60000);
             const windowH = Math.floor(windowMin / 60);
             const windowM = windowMin % 60;
             const windowStr = windowH > 0 ? `${windowH}h${windowM > 0 ? windowM + 'm' : ''}` : `${windowM}m`;
@@ -755,7 +755,7 @@ export async function exportOuraCsv({ supabase, session, dateRange }) {
     }
 
     // Scalanie po dacie — jeden wiersz na dzień
-    const byDate = {};
+    const byDate: Record<string, any> = {};
     enhanced.forEach(r => { byDate[r.date] = { date: r.date, ...r }; });
     derived.forEach(r => { byDate[r.day] = { ...(byDate[r.day] || { date: r.day }), ...r }; });
     const merged = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));

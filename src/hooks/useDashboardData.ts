@@ -5,7 +5,7 @@ import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 
 export function useDashboardData() {
-  const [data, setData] = useState({
+  const [data, setData] = useState<any>({
     weeklyCalories: 0,
     todayWin: null,
     proteinToday: 0,
