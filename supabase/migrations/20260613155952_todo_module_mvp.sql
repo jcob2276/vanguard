@@ -74,7 +74,7 @@ GRANT SELECT, INSERT, UPDATE ON public.todo_items TO authenticated;
 -- Seed current Todoist backlog into Vanguard for the primary user.
 DO $$
 DECLARE
-  v_user uuid := '165ae341-670c-46ce-82dc-434c4dbfcdfd';
+  v_user uuid := NULLIF(current_setting('app.vanguard_user_id', true), '')::uuid;
 BEGIN
   INSERT INTO public.todo_sections (user_id, name, sort_order) VALUES
     (v_user, 'Dom / sprawy fizyczne', 10),

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 
@@ -83,13 +84,40 @@ function walk(dir) {
   return files;
 }
 
+function gitVisibleFiles() {
+  try {
+    const output = execFileSync(
+      'git',
+      ['ls-files', '--cached', '--others', '--exclude-standard'],
+      { cwd: root, encoding: 'utf8' },
+    );
+    return output
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((relative) => ({
+        absolute: path.join(root, relative),
+        relative: relative.replaceAll('\\', '/'),
+      }))
+      .filter((file) => {
+        if (!fs.existsSync(file.absolute)) return false;
+        const parts = file.relative.split('/');
+        if (parts.some((part) => ignoredDirs.has(part))) return false;
+        if (ignoredFiles.has(path.basename(file.relative))) return false;
+        const stat = fs.statSync(file.absolute);
+        return stat.isFile() && stat.size <= 2_000_000;
+      });
+  } catch {
+    return walk(root);
+  }
+}
+
 function isProbablyText(buffer) {
   return !buffer.includes(0);
 }
 
 const findings = [];
 
-for (const file of walk(root)) {
+for (const file of gitVisibleFiles()) {
   const buffer = fs.readFileSync(file.absolute);
   if (!isProbablyText(buffer)) continue;
 

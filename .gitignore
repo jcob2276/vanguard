@@ -2,6 +2,7 @@
 scripts/garmin_auth.py
 scripts/garmin_enrich.py
 scripts/garmin_activity_detail.py
+scripts/garmin_interval_detail.py
 scripts/.garmin_session/
 scripts/.garmin_tokens/
 
@@ -47,6 +48,10 @@ dev-server.log
 aw-*-export*.json
 *.goosebundle
 *.goosebundle.zip
+scratch_*.js
+dump_data.sql
+keep_archive.md
+docs/GARMIN_COACH_REPORT_GUIDE.md
 
 
 #Ignore vscode AI rules

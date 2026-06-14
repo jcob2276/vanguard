@@ -82,6 +82,7 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-wiki-compiler` | `20 3 * * *` | `vanguard-wiki-compiler` (derived compiled memory) |
 | `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` |
+| `vanguard-nutrition-coach` | `0 6 * * *` | `vanguard-nutrition-coach` |
 
 **Documented in README / ops, confirm in dashboard:**
 
@@ -121,7 +122,7 @@ Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midd
 | `time.ts` | Warsaw date + day boundaries + stream cutoffs (24h/72h/21d) |
 | `streamContext.ts` | Shared stream fetch/format for Oracle + briefing |
 | `telegram.ts` | Outbound Telegram (not webhook file download) |
-| `vanguardCore.ts` | Daily aggregate signals (mirrors `src/lib/vanguardCore.js`) |
+| `vanguardCore.ts` | Daily aggregate signals (mirrors `src/lib/vanguardCore.ts`) |
 
 New code should import these instead of duplicating `createClient` or stream queries.
 

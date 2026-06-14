@@ -67,7 +67,7 @@ export async function gatherUserContext(session) {
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
 
-    // 1:1 Identical Vector with AIInsight.jsx
+    // 1:1 Identical Vector with AIInsight.tsx
     const stateVector = {
       state: vanguardState,
       stability_score: stabilityScore,

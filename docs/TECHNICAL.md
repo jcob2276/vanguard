@@ -469,7 +469,7 @@ Faza 3 — re-ranking z temporal penalty:
 | exec < 0.4 AND readiness ≥ 70 | AVOIDANCE |
 | domyślnie | STABLE |
 
-**⚠️ Rozbieżność:** VanguardCore (`src/lib/vanguardCore.js`) używa z-score baseline-relative classification. `save-daily-aggregate` używa hardcoded thresholds. Dwa różne klasyfikatory działają równolegle.
+**⚠️ Rozbieżność:** VanguardCore (`src/lib/vanguardCore.ts`) używa z-score baseline-relative classification. `save-daily-aggregate` używa hardcoded thresholds. Dwa różne klasyfikatory działają równolegle.
 
 ---
 
@@ -624,7 +624,7 @@ if (embedRes.ok) {
 
 ## 6. VanguardCore — silnik obliczeniowy
 
-**Plik:** `src/lib/vanguardCore.js` (685 linii)
+**Plik:** `src/lib/vanguardCore.ts` — frontend wrapper re-eksportujący `supabase/functions/_shared/vanguardCore.ts`
 
 **Zasada:** Jedyne source-of-truth dla klasyfikacji stanu po stronie klienta. Zastąpił `signalAnalytics.js` i `stateEngine.js`.
 

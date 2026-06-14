@@ -22,6 +22,7 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "sync-strava",
   "analyze-training-load",
   "vanguard-eval-interview",
+  "vanguard-nutrition-coach",
 ];
 
 /**
@@ -51,6 +52,7 @@ export const SMOKE_TARGETS = [
   { name: "analyze-training", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no DeepSeek, no Telegram" },
   { name: "compute-correlations", post: "skip", sideEffects: "Read-only correlation scan; requires authenticated user scope" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
+  { name: "vanguard-nutrition-coach", post: "skip", sideEffects: "Calls DeepSeek + writes nutrition target — OPTIONS only" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */

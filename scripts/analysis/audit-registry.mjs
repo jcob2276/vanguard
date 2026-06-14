@@ -38,6 +38,7 @@ function diff(left, right) {
 const functionFolders = sorted(
   fs.readdirSync(functionsDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "_shared")
+    .filter((entry) => fs.existsSync(path.join(functionsDir, entry.name, "index.ts")))
     .map((entry) => entry.name),
 );
 

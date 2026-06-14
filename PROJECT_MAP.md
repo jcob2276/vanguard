@@ -6,7 +6,7 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 
 1. `CLAUDE.md` — hard project rules (timezone, auth, fetch, DB patterns)
 2. `AGENTS.md` — agent constitution + deploy rules
-3. `supabase/functions/README.md` — registry of all 30 edge functions (SSOT)
+3. `supabase/functions/README.md` — registry of edge functions (SSOT)
 4. `docs/ARCHITECTURE.md` — one-page data flow + crons
 5. `BACKLOG.md` — intentionally deferred work (do not "fix")
 
@@ -28,14 +28,14 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 ## Runtime Boundaries
 
 - `supabase/functions/` is the only production backend path. New production behavior must be listed in `supabase/functions/README.md`.
-- `src/` is the legacy frontend. Its sanctioned Core bridges are `src/lib/aiContext.js` for read-only Oracle context and `src/lib/vanguardCore.js` for shared signal helpers.
+- `src/` is the legacy frontend. Its sanctioned Core bridges are `src/lib/aiContext.ts` for read-only Oracle context and `src/lib/vanguardCore.ts` for shared signal helpers.
 - `docs/FEATURE_LIFECYCLE.md` is the canonical active / disabled / deprecated / dropped status map. Vision documents are not runtime authority.
 - Experiments live in `PRPs/` or `scratch/`; deployed Edge Functions are never "just experiments".
 
 ## Known quirks (do not "discover" these as bugs)
 
 - **Deleted dead UI (2026-06-11)**: `OuraWidget`, `OuraEnhanced`, `SleepDebtCard`, `MentorChat`, `GraphMind`, `ThoughtStream`, `IntentionTracker`, `ManifestationBoard`, `LocationTracker`, `AWImporter` + `lib/oura.js`, `lib/activityWatch.js`. All were deliberately unmounted in earlier commits and orphaned; recover from git history if ever needed. Oracle chat lives in Telegram, not the web app.
-- `src/lib/vanguardCore.js` re-exports from `supabase/functions/_shared/vanguardCore.ts` — frontend and edge share one implementation.
+- `src/lib/vanguardCore.ts` re-exports from `supabase/functions/_shared/vanguardCore.ts` — frontend and edge share one implementation.
 - Deprecated names (never reference): `stayfreeData`, `dopamine_load_index`, `fragmentation_index`, `screen_time_min`, `ProgressionTable.jsx`, `WorkoutExecution.jsx`, `useStats.js`, `workoutPlan.js`.
 
 ## Reorg changelog (2026-06-11)

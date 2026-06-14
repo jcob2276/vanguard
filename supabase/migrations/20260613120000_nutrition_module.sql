@@ -75,7 +75,7 @@ INSERT INTO nutrition_profile (
   user_id, height_cm, birth_date, sex, goal_body_fat, current_body_fat_est,
   goal_target_date, event_name, event_date, protein_g_per_kg, weekly_loss_kg, philosophy_note
 ) VALUES (
-  '165ae341-670c-46ce-82dc-434c4dbfcdfd', 168, '2002-07-06', 'M', 14, 19,
+  NULLIF(current_setting('app.vanguard_user_id', true), '')::uuid, 168, '2002-07-06', 'M', 14, 19,
   '2026-10-04', 'Maraton Koszyce', '2026-10-04', 2.0, 0.35,
   'Redukcja do ~14% BF rownolegle z treningiem maratonskim. Lagodny deficyt (chroni adaptacje biegowa), bialko jako floor, sen 7.5h+. Cel mierzony trendem talia/brzuch/waga, nie samym %BF. Ostatnie 3 tyg przed maratonem = brak deficytu (taper).'
 )

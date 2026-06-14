@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls use **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 33 function folders (+ `_shared/`) · Last registry pass: **2026-06-13**
+**Inventory:** 33 function folders (+ `_shared/`) · Last registry pass: **2026-06-14**
 
 LOC is a navigation hint, not an invariant. Regenerate before relying on it for refactor sizing.
 
@@ -74,6 +74,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-graph-embedder` | **manual** | HTTP one batch per call; repeat until `remaining=0` | **false** | `vanguard_entity_links` | 160 | 2026-06-11 |
 | `vanguard-backfill` | **manual** | HTTP embeddings/history backfill | true | `vanguard_stream`, `vanguard_knowledge` | 71 | 2026-06-11 |
 | `vanguard-debug-retrieval` | **manual** | HTTP debug RAG retrieval | true | `vanguard_knowledge`, `vanguard_entity_links` | 38 | 2026-06-11 |
+| `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
 
 ## `vanguard-telegram` Handler Map
 
@@ -129,7 +130,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 
 **Optional next:** adopt `deepseek.ts` in analyst/architect/ingest (reduce duplicate DeepSeek HTTP).
 
-Frontend/Core boundary: `src/lib/aiContext.js` is the sanctioned read bridge from the legacy frontend into Vanguard Core context; `src/lib/vanguardCore.js` is the sanctioned shared-signals bridge. Do not add new ad hoc frontend reads into Core tables without documenting the boundary here and in `PROJECT_MAP.md`.
+Frontend/Core boundary: `src/lib/aiContext.ts` is the sanctioned read bridge from the legacy frontend into Vanguard Core context; `src/lib/vanguardCore.ts` is the sanctioned shared-signals bridge. Do not add new ad hoc frontend reads into Core tables without documenting the boundary here and in `PROJECT_MAP.md`.
 
 Flat layout: one folder = one deployed function name (except `vanguard-telegram/_handlers`).
 

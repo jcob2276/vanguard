@@ -183,7 +183,7 @@ deno check supabase/functions/new-function/index.ts
 ### Level 3: Manual Integration Test
 ```bash
 # Test edge function with service role key
-curl -X POST https://pdvqkgfsqziqlhptatgf.supabase.co/functions/v1/new-function \
+curl -X POST "$SUPABASE_URL/functions/v1/new-function" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{"userId": "test"}'
