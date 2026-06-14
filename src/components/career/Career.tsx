@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { AlertCircle, Briefcase, Calendar, CheckSquare, Play, Plus, RotateCw, Square, Target, Trash2, TrendingUp, Shield, Zap, Volume2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import DataStateNotice from '../core/DataStateNotice';
@@ -51,7 +53,7 @@ function warsawToday() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
 
-function SectionTitle({ icon: Icon, title, action = null }: any) {
+function SectionTitle({ icon: Icon, title, action = null }: { icon?: LucideIcon; title: string; action?: ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-3">
       <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
@@ -62,7 +64,7 @@ function SectionTitle({ icon: Icon, title, action = null }: any) {
   );
 }
 
-function Eyebrow({ children }: any) {
+function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <p className="text-[8px] font-black uppercase tracking-[0.22em] text-primary">
       {children}
@@ -70,7 +72,7 @@ function Eyebrow({ children }: any) {
   );
 }
 
-function Pill({ active, onClick, children, tone = null }: any) {
+function Pill({ active, onClick, children, tone = null }: { active: boolean; onClick: () => void; children: ReactNode; tone?: string | null }) {
   const base = 'rounded-md border px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all';
   const on = tone || 'border-primary/40 bg-primary/15 text-primary';
   const off = 'border-border-custom bg-surface text-text-muted';
