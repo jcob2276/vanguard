@@ -97,7 +97,7 @@ export async function fetchMedicalContext(
     .sort((a, b) => markerPriority(a.marker_key) - markerPriority(b.marker_key))
     .slice(0, 24);
 
-  const body_composition = (bodyCompRes.data || []).map((row) => {
+  const body_composition = (bodyCompRes.data || []).map((row: any) => {
     const date = String(row.measured_at || "").slice(0, 10);
     const age_days = diffDays(date, today);
     return {
@@ -116,7 +116,7 @@ export async function fetchMedicalContext(
     };
   });
 
-  const documents = (docRes.data || []).map((row) => {
+  const documents = (docRes.data || []).map((row: any) => {
     const age_days = diffDays(row.document_date, today);
     return {
       date: row.document_date,
@@ -147,10 +147,10 @@ export function formatMedicalContextBlock(ctx: Awaited<ReturnType<typeof fetchMe
   const labLines = ctx.latest_labs.map((r) =>
     `- ${r.marker_name} (${r.marker_key}): ${r.value} ${r.unit || ""}; data ${r.date}; ${r.age_days} dni temu; freshness=${r.freshness}; ref=${r.ref_text || "brak"}${r.flag ? `; flaga=${r.flag}` : ""}; zrodlo=${r.source}`
   );
-  const bodyLines = ctx.body_composition.map((r) =>
+  const bodyLines = ctx.body_composition.map((r: any) =>
     `- ${r.source}: ${r.measured_at}; ${r.age_days} dni temu; freshness=${r.freshness}; ${r.method}/${r.reliability}; masa ${r.weight_kg ?? "?"} kg; BF ${r.body_fat_pct ?? "?"}%; muscle ${r.muscle_mass_kg ?? "?"} kg; visceral ${r.visceral_fat_rating ?? "?"}`
   );
-  const docLines = ctx.documents.slice(0, 8).map((r) =>
+  const docLines = ctx.documents.slice(0, 8).map((r: any) =>
     `- ${r.date}; ${r.age_days} dni temu; ${r.type}; validity=${r.clinical_validity}; ${r.source}: ${r.summary}`
   );
 
