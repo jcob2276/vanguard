@@ -108,6 +108,12 @@ export default function Career({ session }) {
   const [booked, setBooked] = useState(() => Number(localStorage.getItem('sales_booked') || 0));
   const [fillers, setFillers] = useState(() => Number(localStorage.getItem('sales_fillers') || 0));
 
+  // Identity Drill Checklist state
+  const [drillDiction, setDrillDiction] = useState(() => localStorage.getItem('sales_drill_diction') === 'true');
+  const [drillConfidence, setDrillConfidence] = useState(() => localStorage.getItem('sales_drill_confidence') === 'true');
+  const [drillPsychology, setDrillPsychology] = useState(() => localStorage.getItem('sales_drill_psychology') === 'true');
+  const [drillNegotiation, setDrillNegotiation] = useState(() => localStorage.getItem('sales_drill_negotiation') === 'true');
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('sales_outreach', String(outreach));
@@ -115,10 +121,22 @@ export default function Career({ session }) {
     localStorage.setItem('sales_disqualified', String(disqualified));
     localStorage.setItem('sales_booked', String(booked));
     localStorage.setItem('sales_fillers', String(fillers));
-  }, [outreach, connected, disqualified, booked, fillers]);
+    localStorage.setItem('sales_drill_diction', String(drillDiction));
+    localStorage.setItem('sales_drill_confidence', String(drillConfidence));
+    localStorage.setItem('sales_drill_psychology', String(drillPsychology));
+    localStorage.setItem('sales_drill_negotiation', String(drillNegotiation));
+  }, [outreach, connected, disqualified, booked, fillers, drillDiction, drillConfidence, drillPsychology, drillNegotiation]);
 
   const saveSalesMetrics = async () => {
-    const summary = `Sales Lab: ${outreach} outreach, ${connected} connected, ${disqualified} odrzuconych (No-Fit), ${booked} booked, filery: ${fillers}`;
+    const drillsCompleted = [];
+    if (drillDiction) drillsCompleted.push('Dykcja');
+    if (drillConfidence) drillsCompleted.push('Pewność');
+    if (drillPsychology) drillsCompleted.push('Perswazja');
+    if (drillNegotiation) drillsCompleted.push('Negocjacje');
+
+    const drillsText = drillsCompleted.length > 0 ? ` [Trening: ${drillsCompleted.join(', ')}]` : '';
+    const summary = `Closer Training: ${outreach} outreach, ${connected} connected, ${disqualified} odrzuconych (No-Fit), ${booked} booked, filery: ${fillers}${drillsText}`;
+    
     run(async () => {
       await createEvidence(userId, {
         project_id: null,
@@ -131,6 +149,10 @@ export default function Career({ session }) {
       setDisqualified(0);
       setBooked(0);
       setFillers(0);
+      setDrillDiction(false);
+      setDrillConfidence(false);
+      setDrillPsychology(false);
+      setDrillNegotiation(false);
     });
   };
 
@@ -367,13 +389,52 @@ export default function Career({ session }) {
           ))}
         </div>
 
+        {/* Daily Identity & Drills Checklist */}
+        <div className="rounded-xl border border-indigo-500/15 bg-surface/50 p-4.5 space-y-3">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted font-display">
+            Codzienny trening tożsamości closera
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {[
+              { id: 'diction', label: '🗣️ Dykcja (Korek w zęby, rozgrzewka)', checked: drillDiction, set: setDrillDiction, desc: 'Rozgrzewka aparatu mowy i 3 min głośnego czytania' },
+              { id: 'confidence', label: '🧘 Pewność Siebie (Pauzy i oddech)', checked: drillConfidence, set: setDrillConfidence, desc: '3 sekundy ciszy przed odpowiedzią, ton z przepony' },
+              { id: 'psychology', label: '🧠 Perswazja (Gra w pytania, słuchanie)', checked: drillPsychology, set: setDrillPsychology, desc: 'Słuchanie aktywne, bez filarów językowych' },
+              { id: 'negotiation', label: '🤝 Negocjacje (Obiekcje i drop ceny)', checked: drillNegotiation, set: setDrillNegotiation, desc: 'Price Drop Silence i techniki zbijania oporu' },
+            ].map((drill) => (
+              <div
+                key={drill.id}
+                onClick={() => drill.set(!drill.checked)}
+                className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                  drill.checked
+                    ? 'border-indigo-500/30 bg-indigo-550/8'
+                    : 'border-border-custom bg-surface hover:bg-surface-solid'
+                }`}
+              >
+                <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all ${
+                  drill.checked ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-border-custom bg-surface'
+                }`}>
+                  {drill.checked && <CheckSquare size={10} className="text-white" />}
+                </div>
+                <div>
+                  <p className={`text-[11px] font-black uppercase tracking-tight ${drill.checked ? 'text-text-primary' : 'text-text-secondary'}`}>
+                    {drill.label}
+                  </p>
+                  <p className="text-[9px] font-medium text-text-muted mt-0.5 leading-snug">
+                    {drill.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Action Controls */}
         <div className="flex items-center gap-2 pt-2 border-t border-border-custom/50">
           <button
             type="button"
             onClick={saveSalesMetrics}
-            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0)}
-            className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-2.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-600/10 transition-all cursor-pointer disabled:opacity-45"
+            disabled={busy || (outreach === 0 && connected === 0 && disqualified === 0 && booked === 0 && fillers === 0 && !drillDiction && !drillConfidence && !drillPsychology && !drillNegotiation)}
+            className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 py-2.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-600/10 transition-all cursor-pointer disabled:opacity-45 font-display"
           >
             {busy ? 'Zapisywanie...' : 'Zapisz raport jako dowód'}
           </button>
@@ -386,9 +447,13 @@ export default function Career({ session }) {
                 setDisqualified(0);
                 setBooked(0);
                 setFillers(0);
+                setDrillDiction(false);
+                setDrillConfidence(false);
+                setDrillPsychology(false);
+                setDrillNegotiation(false);
               }
             }}
-            className="px-4 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[9px] font-black uppercase tracking-widest text-text-secondary cursor-pointer transition-all"
+            className="px-4 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[9px] font-black uppercase tracking-widest text-text-secondary cursor-pointer transition-all font-display"
           >
             Reset
           </button>
