@@ -146,7 +146,14 @@ function DayCounter() {
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
-  const [view, setView] = useState(() => normalizeView(localStorage.getItem('vanguard_view')));
+  const [view, setView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('todo') === 'new') {
+      window.history.replaceState({}, '', '/');
+      return 'todo';
+    }
+    return normalizeView(localStorage.getItem('vanguard_view'));
+  });
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);

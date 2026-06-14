@@ -11,13 +11,14 @@ export default defineConfig({
       devOptions: {
         enabled: false
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.png', 'favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
       manifest: {
         name: 'Vanguard',
         short_name: 'Vanguard',
         description: 'Elite performance, discipline and identity tracking system',
         theme_color: '#000000',
         background_color: '#000000',
+        start_url: '/',
         display: 'standalone',
         icons: [
           {
@@ -35,6 +36,22 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Dodaj notatkę',
+            short_name: 'Notatka',
+            description: 'Utwórz nową notatkę w Keep',
+            url: '/keep?new=1',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
+          },
+          {
+            name: 'Dodaj zadanie',
+            short_name: 'Zadanie',
+            description: 'Dodaj nowe zadanie do listy To Do',
+            url: '/?todo=new',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
           }
         ]
       }

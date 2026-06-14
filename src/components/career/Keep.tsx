@@ -58,8 +58,8 @@ const getColor = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
 
 // ─── Inline composer ─────────────────────────────────────────────────────────
 
-function NoteComposer({ onSave, busy }: { onSave: (n: Partial<Note>) => void; busy: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partial<Note>) => void; busy: boolean; autoExpand?: boolean }) {
+  const [expanded, setExpanded] = useState(autoExpand);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [color, setColor] = useState('default');
@@ -198,17 +198,6 @@ function NoteCard({
   const c = getColor(color);
 
   useEffect(() => {
-    if (!editing) return;
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        handleSave();
-      }
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [editing, title, content, color, tagsInput]);
-
-  useEffect(() => {
     if (!editing) {
       setTitle(note.title);
       setContent(note.content);
@@ -217,7 +206,7 @@ function NoteCard({
     }
   }, [note, editing]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const patch: Partial<Note> = {
       title: title.trim(),
       content: content.trim(),
@@ -226,7 +215,18 @@ function NoteCard({
     };
     onUpdate(note.id, patch);
     setEditing(false);
-  };
+  }, [color, content, note.id, onUpdate, tagsInput, title]);
+
+  useEffect(() => {
+    if (!editing) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        handleSave();
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [editing, handleSave]);
 
   return (
     <div
@@ -436,6 +436,11 @@ function MasonryGrid({
 
 export default function Keep({ session }: { session: any }) {
   const userId = session.user.id;
+  const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1';
+
+  useEffect(() => {
+    if (autoNewNote) window.history.replaceState({}, '', '/keep');
+  }, [autoNewNote]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -701,7 +706,7 @@ export default function Keep({ session }: { session: any }) {
 
           {/* Composer */}
           <div className="keep-composer-wrap">
-            <NoteComposer onSave={handleCreate} busy={busy} />
+            <NoteComposer onSave={handleCreate} busy={busy} autoExpand={autoNewNote} />
           </div>
 
           {loading ? (
