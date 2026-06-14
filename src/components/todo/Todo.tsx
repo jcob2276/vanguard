@@ -792,7 +792,7 @@ export default function Todo({ session, onBack }) {
               <p className="mt-0.5 text-[11px] font-medium text-text-secondary leading-snug">
                 {dailyStrain?.daily_status === 'green' && '🟢 Mocny dzień — Deep Work'}
                 {dailyStrain?.daily_status === 'yellow' && '🟡 Zrównoważony dzień'}
-                {dailyStrain?.daily_status === 'red' && '🔴 Regeneracja — Quick Wins only'}
+                {dailyStrain?.daily_status === 'red' && '🔴 Dzień ładowania baterii / Regeneracja'}
                 {!dailyStrain && 'Brak danych biometrycznych'}
               </p>
             </div>

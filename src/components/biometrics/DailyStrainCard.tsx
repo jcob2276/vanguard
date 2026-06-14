@@ -15,16 +15,16 @@ function decision(status, limiter, strain, provisional) {
   const fuelingLimiter = limiter === 'calories' || limiter === 'carbs';
   if (status === 'green') return { text: 'Możesz cisnąć', tone: 'text-emerald-600 dark:text-emerald-400' };
   if (status === 'red') {
-    if (limiter === 'calories' && !provisional) return { text: 'Odpuść — najpierw dojedz', tone: 'text-rose-600 dark:text-rose-400' };
-    if (limiter === 'sleep') return { text: 'Odpuść — sen za krótki', tone: 'text-rose-600 dark:text-rose-400' };
-    return { text: 'Regeneracja, nie trening', tone: 'text-rose-600 dark:text-rose-400' };
+    if (limiter === 'calories' && !provisional) return { text: 'Uzupełnij energię — niski bilans', tone: 'text-rose-600 dark:text-rose-400' };
+    if (limiter === 'sleep') return { text: 'Zadedykuj czas na sen i odpoczynek', tone: 'text-rose-600 dark:text-rose-400' };
+    return { text: 'Ładowanie baterii / Regeneracja', tone: 'text-rose-600 dark:text-rose-400' };
   }
   // yellow
   if (fuelingLimiter && !provisional) {
-    if (limiter === 'calories') return { text: 'Tylko easy — dobierz kalorie', tone: 'text-amber-600 dark:text-amber-400' };
-    return { text: 'Tylko easy — mało węgli', tone: 'text-amber-600 dark:text-amber-400' };
+    if (limiter === 'calories') return { text: 'Umiarkowanie — dobierz kalorie', tone: 'text-amber-600 dark:text-amber-400' };
+    return { text: 'Umiarkowanie — uzupełnij węgle', tone: 'text-amber-600 dark:text-amber-400' };
   }
-  if (limiter === 'sleep') return { text: 'Tylko easy — sen poniżej normy', tone: 'text-amber-600 dark:text-amber-400' };
+  if (limiter === 'sleep') return { text: 'Umiarkowanie — sen poniżej normy', tone: 'text-amber-600 dark:text-amber-400' };
   if (limiter === 'cardio_load' || limiter === 'strength_load')
     return { text: 'Umiarkowanie — wczoraj duży koszt', tone: 'text-amber-600 dark:text-amber-400' };
   return { text: strain != null && strain < 8 ? 'Lekki dzień — jest zapas' : 'Umiarkowanie — monitoruj', tone: 'text-amber-600 dark:text-amber-400' };

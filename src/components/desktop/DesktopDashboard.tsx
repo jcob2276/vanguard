@@ -128,12 +128,12 @@ function cockpitDecision(status, limiter, strain, provisional) {
   const fuelLimiter = limiter === 'calories' || limiter === 'carbs';
   if (status === 'green') return 'Możesz cisnąć — wszystko na zielono';
   if (status === 'red') {
-    if (limiter === 'sleep') return 'Odpuść — sen za krótki';
-    if (fuelLimiter && !provisional) return 'Odpuść — najpierw dojedz';
-    return 'Regeneracja, nie trening';
+    if (limiter === 'sleep') return 'Zadedykuj czas na sen i odpoczynek';
+    if (fuelLimiter && !provisional) return 'Uzupełnij energię — niski bilans';
+    return 'Ładowanie baterii / Regeneracja';
   }
-  if (limiter === 'sleep') return 'Tylko easy — sen poniżej normy';
-  if (fuelLimiter && !provisional) return 'Tylko easy — dobierz kalorie';
+  if (limiter === 'sleep') return 'Umiarkowanie — sen poniżej normy';
+  if (fuelLimiter && !provisional) return 'Umiarkowanie — dobierz kalorie';
   if (limiter === 'cardio_load' || limiter === 'strength_load') return 'Umiarkowanie — wczoraj duży koszt';
   return (strain || 0) < 8 ? 'Lekki dzień — jest zapas' : 'Umiarkowanie — monitoruj';
 }
