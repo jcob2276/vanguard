@@ -112,16 +112,19 @@ export async function gatherUserContext(session) {
         } : null
       },
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
-      desktop_footprint: footprintRes.data?.map(f => ({
+      desktop_footprint: footprintRes.data?.map(f => {
+        const payload = f.payload as any;
+        return ({
         timestamp: new Date(f.timestamp).toLocaleTimeString('pl-PL', {
           timeZone: 'Europe/Warsaw',
           hour: '2-digit',
           minute: '2-digit'
         }),
-        app: f.payload?.window?.app,
-        title: f.payload?.window?.title,
-        web_url: f.payload?.web?.url
-      })) || []
+        app: payload?.window?.app,
+        title: payload?.window?.title,
+        web_url: payload?.web?.url
+      });
+      }) || []
     };
 
     return stateVector;

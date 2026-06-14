@@ -4,19 +4,27 @@ import { Clock, Scale, Ruler, Activity, Zap, CheckSquare } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
+import type { Tables } from '../../lib/database.types';
 import { calculateProjection, generateNarrative } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
 import { TrendArrow } from './stats/TrendArrow';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 
+type BodyMetricRow = Tables<'body_metrics'>;
+type DailyNutritionRow = Tables<'daily_nutrition'>;
+type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: any[]; duration?: number | string };
+type NutritionChartPoint = { date: string; protein: number | null; calories: number | null };
+type TrendPoint = { cur: number | null; prev: number | null };
+type TrendsState = Partial<Record<'weight' | 'waist' | 'readiness' | 'sleep' | 'protein', TrendPoint>>;
+
 export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
-  const [bodyData, setBodyData] = useState<any[]>([]);
-  const [recentSessions, setRecentSessions] = useState<any[]>([]);
+  const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
+  const [recentSessions, setRecentSessions] = useState<WorkoutSessionRow[]>([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
-  const [nutritionData, setNutritionData] = useState<any[]>([]);
+  const [nutritionData, setNutritionData] = useState<NutritionChartPoint[]>([]);
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -38,7 +46,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [editingSession, setEditingSession] = useState<any>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [editForm, setEditForm] = useState<any>({ date: '', workout_day: '', logs: [] });
-  const [trends, setTrends] = useState<any>({});
+  const [trends, setTrends] = useState<TrendsState>({});
   const [projections, setProjections] = useState<any>(null);
   const [narrative, setNarrative] = useState('');
   const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
@@ -77,9 +85,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       }
 
       // Calculate Trends
-      const newTrends: any = {};
+      const newTrends: TrendsState = {};
       const ouraRaw = oura || [];
-      const nutrRaw = nutrition || [];
+      const nutrRaw: DailyNutritionRow[] = nutrition || [];
       
       if (body && body.length >= 2) {
         newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };

@@ -69,8 +69,8 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
     if (data) {
       setIdentity({
         long_term_mission: data.long_term_mission || '',
-        pillars: data.pillars || ['', '', ''],
-        avoidance_triggers: data.avoidance_triggers || '',
+        pillars: Array.isArray(data.pillars) ? data.pillars.map(String) : ['', '', ''],
+        avoidance_triggers: typeof data.avoidance_triggers === 'string' ? data.avoidance_triggers : '',
         behavioral_baseline: data.behavioral_baseline ? JSON.stringify(data.behavioral_baseline, null, 2) : '',
       });
     }

@@ -173,7 +173,7 @@ export default function Direction({ session }) {
         supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', subDays(now, 45).toISOString().split('T')[0]),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
-        supabase.from('todo_items').select('id, title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('created_at', { ascending: false }),
+        supabase.from('todo_items').select('id, title, status, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('created_at', { ascending: false }),
         supabase.from('life_goals').select('goal_cialo, date_cialo, goal_duch, date_duch, goal_konto, date_konto').eq('user_id', userId).maybeSingle(),
         supabase.from('todo_sections').select('id, name').eq('user_id', userId).eq('is_archived', false).order('sort_order', { ascending: true }),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
@@ -193,14 +193,16 @@ export default function Direction({ session }) {
         if (reviewData.week_sentiment) setWeekSentiment(reviewData.week_sentiment);
         if (reviewData.proud_of) setProudOf(reviewData.proud_of);
         if (reviewData.bottleneck) setBottleneck(reviewData.bottleneck);
-        if (reviewData.focus_goal_mappings) setFocusGoalMappings(reviewData.focus_goal_mappings);
+        if (reviewData.focus_goal_mappings && typeof reviewData.focus_goal_mappings === 'object' && !Array.isArray(reviewData.focus_goal_mappings)) {
+          setFocusGoalMappings(reviewData.focus_goal_mappings as Record<string, string>);
+        }
       }
 
       // Load the specific tasks user committed to (maintain their selection order)
       if (reviewData?.focus_task_ids?.length > 0) {
         const { data: ft } = await supabase
           .from('todo_items')
-          .select('id, title, status, priority')
+          .select('id, title, status, priority, ai_bucket, due_date, section_id')
           .in('id', reviewData.focus_task_ids)
           .eq('user_id', userId);
         setFocusTasks(

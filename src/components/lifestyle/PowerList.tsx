@@ -127,7 +127,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
 
     const { data, error } = await supabase
       .from('daily_wins')
-      .update(updates)
+      .update(updates as any)
       .eq('id', todayWin.id)
       .select()
       .single();
