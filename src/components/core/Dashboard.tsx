@@ -34,7 +34,7 @@ const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 
-const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'projekty'];
+const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
 const normalizeView = (view) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
@@ -366,8 +366,8 @@ export default function Dashboard({ session }) {
   const navItems = [
     { id: 'dzis', icon: Sun, label: 'Dziś' },
     { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
-    { id: 'historia', icon: Clock, label: 'Historia' },
     { id: 'projekty', icon: FolderKanban, label: 'Projekty' },
+    { id: 'historia', icon: Clock, label: 'Historia' },
   ];
 
   return (
