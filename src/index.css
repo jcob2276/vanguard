@@ -1475,6 +1475,43 @@
   flex-shrink: 0;
 }
 
+/* ── iOS Notes FAB ───────────────────────────────────────────── */
+.keep-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.45);
+  z-index: 1000;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+}
+.keep-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.55);
+}
+.keep-fab:active {
+  transform: scale(0.93);
+}
+.keep-fab:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .keep-fab {
+    bottom: 24px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+  }
+}
+
 /* ── Keyboard-pinned bar (iOS visualViewport) ────────────────── */
 .keep-static-bar.kb-open {
   background: rgba(249, 249, 251, 0.92) !important;

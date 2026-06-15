@@ -1160,10 +1160,6 @@ function MasonryGrid({
 export default function Keep({ session }: { session: any }) {
   const userId = session.user.id;
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1';
-
-  useEffect(() => {
-    if (autoNewNote) window.history.replaceState({}, '', '/keep');
-  }, [autoNewNote]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1319,6 +1315,42 @@ export default function Keep({ session }: { session: any }) {
     }
   };
 
+  // ─── New note (iOS FAB) ──────────────────────────────────────────────────────
+
+  const handleNewNote = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    const empty = { user_id: userId, title: '', content: '', color: 'default', is_pinned: false, is_archived: false, tags: [] as string[] };
+    try {
+      const { data, error: err } = await (supabase as any).from('vanguard_notes').insert(empty).select().single();
+      if (err) {
+        if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
+          const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          setNotes(prev => [local, ...prev]);
+          setEditingId(local.id);
+          return;
+        }
+        throw err;
+      }
+      setNotes(prev => [data, ...prev]);
+      setEditingId(data.id);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }, [userId]);
+
+  // Auto-open new note when navigated with ?new=1 (Telegram shortcut)
+  const autoNewNoteHandled = useRef(false);
+  useEffect(() => {
+    if (autoNewNote && !autoNewNoteHandled.current) {
+      autoNewNoteHandled.current = true;
+      window.history.replaceState({}, '', window.location.pathname);
+      handleNewNote();
+    }
+  }, [autoNewNote, handleNewNote]);
+
   // ─── Drag & Drop reorder ─────────────────────────────────────────────────────
 
   const handleReorder = (dragId: string, overId: string) => {
@@ -1449,12 +1481,6 @@ export default function Keep({ session }: { session: any }) {
             </div>
           )}
 
-          {/* Composer (visible only in main Notes tab) */}
-          {sidebarTab === 'notes' && (
-            <div className="keep-composer-wrap">
-              <NoteComposer onSave={handleCreate} busy={busy} autoExpand={autoNewNote} />
-            </div>
-          )}
 
           {loading ? (
             <div className="keep-loading">
@@ -1543,6 +1569,17 @@ export default function Keep({ session }: { session: any }) {
           )}
         </main>
       </div>
+
+      {/* iOS Notes-style FAB */}
+      <button
+        className="keep-fab"
+        onClick={handleNewNote}
+        disabled={busy}
+        title="Nowa notatka"
+        type="button"
+      >
+        {busy ? <Loader2 size={22} className="animate-spin" /> : <Plus size={24} strokeWidth={2} />}
+      </button>
 
       {/* Page-level Edit Modal */}
       {editingId && (
