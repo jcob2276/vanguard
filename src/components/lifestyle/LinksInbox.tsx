@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowLeft,
   Bookmark,
-  Check,
   BookOpen,
-  Trash2,
-  ExternalLink,
+  Check,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
+  ExternalLink,
   Inbox,
-  Filter
+  ListTodo,
+  StickyNote,
+  Trash2,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
@@ -26,22 +27,34 @@ interface SavedLink {
   created_at: string;
 }
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  'Kariera': { bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-500/10' },
-  'Zdrowie': { bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/10' },
-  'Technologia': { bg: 'bg-sky-500/10 dark:bg-sky-500/20', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/10' },
-  'Biznes': { bg: 'bg-amber-500/10 dark:bg-amber-500/20', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/10' },
-  'Inne': { bg: 'bg-slate-500/10 dark:bg-slate-500/20', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/10' },
+const CATEGORY_COLORS: Record<string, { pill: string }> = {
+  Kariera:    { pill: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+  Zdrowie:    { pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  Technologia:{ pill: 'bg-sky-500/10 text-sky-600 dark:text-sky-400' },
+  Biznes:     { pill: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  Inne:       { pill: 'bg-slate-500/10 text-slate-500 dark:text-slate-400' },
 };
+
+const STATUS_TABS: { id: 'unread' | 'read' | 'all'; label: string }[] = [
+  { id: 'unread', label: 'Nieprzeczytane' },
+  { id: 'read',   label: 'Przeczytane' },
+  { id: 'all',    label: 'Wszystkie' },
+];
+
+const CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
 
 export default function LinksInbox({ session, onBack }: { session: Session; onBack: () => void }) {
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
-
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
+
+  const goTo = (view: string) => {
+    localStorage.setItem('vanguard_view', view);
+    window.location.href = '/';
+  };
 
   const fetchLinks = async () => {
     setLoading(true);
@@ -51,7 +64,6 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
         .select('*')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setLinks((data as any) || []);
     } catch (err) {
@@ -68,24 +80,15 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
       const base = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          type: 'share_target',
-          url: actualUrl,
-          userId: session.user.id
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: 'share_target', url: actualUrl, userId: session.user.id }),
       });
-
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error || `HTTP ${res.status}`);
       }
-
-      setSharingStatus('Zapisano pomyślnie!');
-      setTimeout(() => setSharingStatus(null), 3000);
+      setSharingStatus('Zapisano!');
+      setTimeout(() => setSharingStatus(null), 2500);
     } catch (err) {
       console.error('[LinksInbox] Failed to process shared link:', err);
       alert(`Błąd zapisu linku: ${(err as Error).message}`);
@@ -97,279 +100,239 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const sharedUrl = params.get('share_url');
-    const sharedText = params.get('share_text');
-
-    const urlCandidate = sharedUrl || sharedText || '';
+    const urlCandidate = params.get('share_url') || params.get('share_text') || '';
     const match = urlCandidate.match(/https?:\/\/[^\s]+/);
-
     if (match) {
-      const actualUrl = match[0];
-      // Wyczyść URL w przeglądarce, aby nie przetwarzać ponownie przy odświeżeniu
       window.history.replaceState({}, document.title, '/');
-      saveSharedLink(actualUrl);
+      saveSharedLink(match[0]);
     } else {
       fetchLinks();
     }
   }, [session.user.id]);
 
-  const toggleReadStatus = async (id: string, currentStatus: 'unread' | 'read') => {
-    const newStatus = currentStatus === 'unread' ? 'read' : 'unread';
-    try {
-      // Optimistic update
-      setLinks(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
-
-      const { error } = await (supabase as any)
-        .from('vanguard_links')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', id);
-
-      if (error) throw error;
-    } catch (err) {
-      console.error('[LinksInbox] Failed to update link status:', err);
-      fetchLinks(); // Revert on failure
-    }
+  const toggleReadStatus = async (id: string, current: 'unread' | 'read') => {
+    const next = current === 'unread' ? 'read' : 'unread';
+    setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
+    const { error } = await (supabase as any)
+      .from('vanguard_links').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) fetchLinks();
   };
 
   const deleteLink = async (id: string) => {
     if (!confirm('Czy na pewno chcesz usunąć ten link?')) return;
-    try {
-      setLinks(prev => prev.filter(l => l.id !== id));
-      const { error } = await (supabase as any).from('vanguard_links').delete().eq('id', id);
-      if (error) throw error;
-    } catch (err) {
-      console.error('[LinksInbox] Failed to delete link:', err);
-      fetchLinks();
-    }
+    setLinks(prev => prev.filter(l => l.id !== id));
+    const { error } = await (supabase as any).from('vanguard_links').delete().eq('id', id);
+    if (error) fetchLinks();
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedLinkId(prev => (prev === id ? null : id));
-  };
-
-  // Filter links
   const filteredLinks = links.filter(link => {
     const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || link.category === categoryFilter;
+    const matchesCategory = !categoryFilter || link.category === categoryFilter;
     return matchesStatus && matchesCategory;
   });
 
   const unreadCount = links.filter(l => l.status === 'unread').length;
 
-  const categories = ['all', 'Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
-
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary active:scale-95 transition-all cursor-pointer"
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <h2 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Zapisane linki</h2>
-            <p className="text-[10px] font-bold text-text-muted mt-0.5">
-              {unreadCount > 0 ? `${unreadCount} nieprzeczytanych` : 'Wszystko przeczytane!'}
-            </p>
-          </div>
-        </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Bookmark size={15} />
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-background text-text-primary">
 
-      {/* Main content */}
-      <main className="flex-1 p-5 pb-24 space-y-6">
-        {/* Status filters */}
-        <div className="flex gap-1.5 p-1 rounded-xl bg-border-custom/30 border border-border-custom">
-          {(['unread', 'read', 'all'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                statusFilter === f
-                  ? 'bg-surface text-primary shadow-sm'
-                  : 'text-text-muted hover:text-text-primary'
-              }`}
-            >
-              {f === 'unread' ? 'Nieprzeczytane' : f === 'read' ? 'Przeczytane' : 'Wszystkie'}
-            </button>
-          ))}
-        </div>
+      {/* Sidebar */}
+      <aside className="keep-sidebar">
+        <p className="keep-sidebar-section-label">Workspace</p>
+        <a href="/keep" className="keep-sidebar-item">
+          <StickyNote size={15} /><span>Notatki</span>
+        </a>
+        <button className="keep-sidebar-item" onClick={() => goTo('todo')}>
+          <ListTodo size={15} /><span>Zadania</span>
+        </button>
+        <button className="keep-sidebar-item active">
+          <BookOpen size={15} /><span>Pocket</span>
+        </button>
 
-        {/* Category tags filter */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-5 px-5 scrollbar-none">
-          <div className="flex gap-2">
-            {categories.map(cat => (
+        {CATEGORIES.length > 0 && (
+          <>
+            <div className="keep-sidebar-separator" />
+            <p className="keep-sidebar-section-label">Kategorie</p>
+            {CATEGORIES.map(cat => (
               <button
                 key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all shrink-0 cursor-pointer ${
-                  categoryFilter === cat
-                    ? 'bg-primary/10 border-primary/20 text-primary'
-                    : 'bg-surface border-border-custom text-text-secondary hover:border-text-secondary/20'
-                }`}
+                className={`keep-sidebar-item ${categoryFilter === cat ? 'active' : ''}`}
+                onClick={() => setCategoryFilter(p => p === cat ? null : cat)}
               >
-                {cat === 'all' ? '🏷️ Wszystkie' : cat}
+                <span className={`h-2 w-2 rounded-full shrink-0 ${
+                  cat === 'Kariera' ? 'bg-indigo-500' :
+                  cat === 'Zdrowie' ? 'bg-emerald-500' :
+                  cat === 'Technologia' ? 'bg-sky-500' :
+                  cat === 'Biznes' ? 'bg-amber-500' : 'bg-slate-400'
+                }`} />
+                <span>{cat}</span>
               </button>
             ))}
-          </div>
-        </div>
-
-        {sharingStatus && (
-          <div className="flex items-center gap-3 p-4 bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold rounded-[20px] animate-pulse">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
-            <span>{sharingStatus}</span>
-          </div>
+          </>
         )}
+      </aside>
 
-        {/* Links list */}
-        {loading ? (
-          <div className="flex min-h-[300px] items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : filteredLinks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[320px] text-center p-8 rounded-[24px] border border-dashed border-border-custom bg-surface/30">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-border-custom/50 text-text-muted mb-4">
-              <Inbox size={22} />
-            </div>
-            <p className="text-[13px] font-semibold text-text-secondary">Brak zapisanych linków</p>
-            <p className="text-[10px] text-text-muted mt-1 max-w-[200px] leading-relaxed">
-              Prześlij link na Telegramie, a pojawi się tutaj gotowy do przeczytania.
+      {/* Main column */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
+          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px]">
+            <ChevronLeft size={22} strokeWidth={2.5} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Pocket</h1>
+            <p className="text-[12px] text-text-muted">
+              {unreadCount > 0 ? `${unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
             </p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredLinks.map(link => {
-              const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
-              const isExpanded = expandedLinkId === link.id;
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Bookmark size={15} />
+          </div>
+        </header>
 
-              return (
-                <div
-                  key={link.id}
-                  className={`group rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-4 transition-all duration-300 shadow-sm ${
-                    link.status === 'read' ? 'opacity-70 hover:opacity-100' : ''
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[640px] mx-auto px-5 py-5 pb-24 space-y-4">
+
+            {/* Status tabs */}
+            <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07)]">
+              {STATUS_TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all ${
+                    statusFilter === tab.id
+                      ? 'bg-background text-text-primary shadow-sm'
+                      : 'text-text-muted hover:text-text-secondary'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1" onClick={() => toggleExpand(link.id)}>
-                      {/* Meta badges */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[9px] font-bold text-text-muted tracking-tight">
-                          🌐 {link.domain || 'link'}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wide border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>
-                          {link.category}
-                        </span>
-                      </div>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-                      {/* Title */}
-                      <h3 className="font-display text-[14.5px] font-black tracking-tight text-text-primary mt-2 group-hover:text-primary transition-colors cursor-pointer leading-snug">
-                        {link.title}
-                      </h3>
-                    </div>
+            {sharingStatus && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-[12px] font-semibold rounded-[14px] animate-pulse">
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
+                {sharingStatus}
+              </div>
+            )}
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* Open Link */}
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-lg p-2 text-text-secondary hover:text-text-primary hover:bg-border-custom/50 active:scale-90 transition-all"
-                        title="Otwórz link"
-                      >
-                        <ExternalLink size={14} />
-                      </a>
-                    </div>
-                  </div>
+            {/* Links */}
+            {loading ? (
+              <div className="flex min-h-[240px] items-center justify-center">
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : filteredLinks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+                <Inbox size={28} className="text-text-muted/40 mb-3" />
+                <p className="text-[14px] font-semibold text-text-secondary">Brak linków</p>
+                <p className="text-[12px] text-text-muted mt-1 max-w-[200px] leading-relaxed">
+                  Wyślij link na Telegramie — pojawi się tutaj automatycznie.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredLinks.map(link => {
+                  const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
+                  const isExpanded = expandedLinkId === link.id;
 
-                  {/* Description */}
-                  {link.description && (
-                    <p className="text-[11.5px] text-text-secondary leading-relaxed mt-2" onClick={() => toggleExpand(link.id)}>
-                      {link.description}
-                    </p>
-                  )}
-
-                  {/* AI Takeaways (Collapsible) */}
-                  {link.takeaways && link.takeaways.length > 0 && (
-                    <div 
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isExpanded ? 'max-h-[300px] mt-4 pt-3 border-t border-border-custom' : 'max-h-0'
+                  return (
+                    <div
+                      key={link.id}
+                      className={`rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-opacity ${
+                        link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                       }`}
                     >
-                      <h4 className="text-[9px] font-bold uppercase tracking-widest text-text-muted mb-2.5">
-                        💡 AI Takeaways (Kluczowe Wnioski)
-                      </h4>
-                      <ul className="space-y-2">
-                        {link.takeaways.map((takeaway, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-[12px] leading-relaxed text-text-primary">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[9px] font-bold text-primary">
-                              {i + 1}
+                      {/* Top row */}
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            <span className="text-[11px] text-text-muted">{link.domain || 'link'}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${catStyle.pill}`}>
+                              {link.category}
                             </span>
-                            <span>{takeaway}</span>
-                          </li>
-                        ))}
-                      </ul>
+                          </div>
+                          <h3 className={`text-[15px] font-semibold leading-snug tracking-tight ${
+                            link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
+                          }`}>
+                            {link.title}
+                          </h3>
+                          {link.description && (
+                            <p className="mt-1 text-[12.5px] text-text-muted leading-relaxed line-clamp-2">
+                              {link.description}
+                            </p>
+                          )}
+                        </div>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-colors"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      </div>
+
+                      {/* AI Takeaways */}
+                      {link.takeaways && link.takeaways.length > 0 && (
+                        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[400px] mt-4' : 'max-h-0'}`}>
+                          <div className="border-t border-border-custom/40 pt-3 space-y-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
+                            <ul className="space-y-2">
+                              {link.takeaways.map((t, i) => (
+                                <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-text-primary">
+                                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">{i + 1}</span>
+                                  {t}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-custom/30">
+                        {link.takeaways && link.takeaways.length > 0 ? (
+                          <button
+                            onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}
+                            className="flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
+                          >
+                            {isExpanded ? <><ChevronUp size={13} /> Zwiń</> : <><ChevronDown size={13} /> Wnioski</>}
+                          </button>
+                        ) : <div />}
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => toggleReadStatus(link.id, link.status)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+                              link.status === 'unread'
+                                ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                                : 'bg-surface-solid/60 text-text-muted hover:text-text-secondary'
+                            }`}
+                          >
+                            {link.status === 'unread' ? (
+                              <><Check size={12} /> Przeczytane</>
+                            ) : (
+                              <><BookOpen size={12} /> Cofnij</>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => deleteLink(link.id)}
+                            className="rounded-full p-1.5 text-text-muted/50 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Actions footer */}
-                  <div className="flex items-center justify-between border-t border-border-custom/40 mt-4 pt-3">
-                    {link.takeaways && link.takeaways.length > 0 ? (
-                      <button
-                        onClick={() => toggleExpand(link.id)}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary cursor-pointer"
-                      >
-                        {isExpanded ? (
-                          <>Zwiń <ChevronUp size={12} /></>
-                        ) : (
-                          <>Wnioski <ChevronDown size={12} /></>
-                        )}
-                      </button>
-                    ) : (
-                      <div />
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      {/* Read status toggle */}
-                      <button
-                        onClick={() => toggleReadStatus(link.id, link.status)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9.5px] font-bold border transition-all cursor-pointer ${
-                          link.status === 'unread'
-                            ? 'bg-primary/5 hover:bg-primary/10 border-primary/10 text-primary'
-                            : 'bg-surface-solid/40 hover:bg-surface-solid border-border-custom text-text-secondary'
-                        }`}
-                      >
-                        {link.status === 'unread' ? (
-                          <>
-                            <Check size={11} /> Przeczytane
-                          </>
-                        ) : (
-                          <>
-                            <BookOpen size={11} /> Cofnij do nieprzeczytanych
-                          </>
-                        )}
-                      </button>
-
-                      {/* Delete link */}
-                      <button
-                        onClick={() => deleteLink(link.id)}
-                        className="rounded-xl border border-border-custom bg-surface-solid/20 hover:bg-red-500/10 hover:text-red-500 p-2 text-text-secondary transition-all cursor-pointer"
-                        title="Usuń"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
