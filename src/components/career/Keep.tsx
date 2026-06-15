@@ -521,6 +521,9 @@ function NoteCard({
   onTogglePin,
   onUpdate,
   busy,
+  isEditing,
+  onOpen,
+  onClose,
   onDragStart,
   onDragEnter,
   onDragEnd,
@@ -532,13 +535,15 @@ function NoteCard({
   onTogglePin: (note: Note) => void;
   onUpdate: (id: string, patch: Partial<Note>) => void;
   busy: boolean;
+  isEditing: boolean;
+  onOpen: (id: string) => void;
+  onClose: () => void;
   onDragStart: (id: string) => void;
   onDragEnter: (id: string) => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
   isDragOver: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [color, setColor] = useState(note.color);
@@ -547,13 +552,13 @@ function NoteCard({
   const c = getColor(color);
 
   useEffect(() => {
-    if (!editing) {
+    if (!isEditing) {
       setTitle(note.title);
       setContent(note.content);
       setColor(note.color);
       setTagsInput(note.tags.join(', '));
     }
-  }, [note, editing]);
+  }, [note, isEditing]);
 
   const handleSave = useCallback(() => {
     const patch: Partial<Note> = {
@@ -563,33 +568,42 @@ function NoteCard({
       tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
     };
     onUpdate(note.id, patch);
-    setEditing(false);
-  }, [color, content, note.id, onUpdate, tagsInput, title]);
+    onClose();
+  }, [color, content, note.id, onUpdate, onClose, tagsInput, title]);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isEditing) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleSave();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isEditing, handleSave]);
 
   // NOTE: We do NOT use a mousedown-outside handler here.
-  // Closing is handled exclusively by the backdrop click and Zamknij button.
-  // This avoids false closes when clicking inside RichEditor or FloatingToolbar.
+  // Closing is handled exclusively by the backdrop click, Zamknij button, and Escape.
 
   return (
     <div
       ref={ref}
-      className={`keep-card ${editing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
-      style={editing ? {} : { backgroundColor: c.bg, borderColor: isDragOver ? '#6366f1' : c.border }}
-      onClick={() => !editing && setEditing(true)}
-      draggable={!editing}
+      className={`keep-card ${isEditing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
+      style={isEditing ? {} : { backgroundColor: c.bg, borderColor: isDragOver ? '#6366f1' : c.border }}
+      onClick={() => !isEditing && onOpen(note.id)}
+      draggable={!isEditing}
       onDragStart={() => onDragStart(note.id)}
       onDragEnter={() => onDragEnter(note.id)}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
     >
       {/* Pin badge */}
-      {note.is_pinned && !editing && (
+      {note.is_pinned && !isEditing && (
         <div className="keep-pin-badge">
           <Pin size={9} fill="currentColor" />
         </div>
       )}
 
-      {editing ? (
+      {isEditing ? (
         <>
           <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
           <div className="keep-modal-content" style={{ backgroundColor: c.bg, borderColor: c.border }} onClick={e => e.stopPropagation()}>
@@ -767,6 +781,9 @@ function MasonryGrid({
   onReorder,
   busy,
   columns,
+  editingId,
+  onOpenCard,
+  onCloseCard,
 }: {
   notes: Note[];
   onDelete: (id: string) => void;
@@ -775,6 +792,9 @@ function MasonryGrid({
   onReorder: (dragId: string, overId: string) => void;
   busy: boolean;
   columns: number;
+  editingId: string | null;
+  onOpenCard: (id: string) => void;
+  onCloseCard: () => void;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -806,6 +826,9 @@ function MasonryGrid({
               onTogglePin={onTogglePin}
               onUpdate={onUpdate}
               busy={busy}
+              isEditing={editingId === note.id}
+              onOpen={onOpenCard}
+              onClose={onCloseCard}
               onDragStart={handleDragStart}
               onDragEnter={handleDragEnter}
               onDragEnd={handleDragEnd}
@@ -837,6 +860,10 @@ export default function Keep({ session }: { session: any }) {
   const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive'>('notes');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [columns, setColumns] = useState(3);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const handleOpenCard = useCallback((id: string) => setEditingId(id), []);
+  const handleCloseCard = useCallback(() => setEditingId(null), []);
 
   // Responsive columns
   useEffect(() => {
@@ -1021,7 +1048,11 @@ export default function Keep({ session }: { session: any }) {
     onReorder: handleReorder,
     busy,
     columns,
+    editingId,
+    onOpenCard: handleOpenCard,
+    onCloseCard: handleCloseCard,
   };
+
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -1150,6 +1181,9 @@ export default function Keep({ session }: { session: any }) {
                           onTogglePin={handleTogglePin}
                           onUpdate={handleUpdate}
                           busy={busy}
+                          isEditing={editingId === note.id}
+                          onOpen={handleOpenCard}
+                          onClose={handleCloseCard}
                           onDragStart={() => {}}
                           onDragEnter={() => {}}
                           onDragEnd={() => {}}
@@ -1180,6 +1214,9 @@ export default function Keep({ session }: { session: any }) {
                           onTogglePin={handleTogglePin}
                           onUpdate={handleUpdate}
                           busy={busy}
+                          isEditing={editingId === note.id}
+                          onOpen={handleOpenCard}
+                          onClose={handleCloseCard}
                           onDragStart={() => {}}
                           onDragEnter={() => {}}
                           onDragEnd={() => {}}
@@ -1187,6 +1224,7 @@ export default function Keep({ session }: { session: any }) {
                           isDragOver={false}
                         />
                       ))}
+
                     </div>
                   )}
                 </section>
