@@ -106,7 +106,7 @@ serve(async (req) => {
     const startOfWeekStr = new Date(`${warsawMondayStr}T00:00:00${offset}`).toISOString()
     const endOfNextWeekStr = new Date(`${warsawSundayNextStr}T23:59:59.999${offset}`).toISOString()
 
-    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}`, {
+    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}&singleEvents=true&orderBy=startTime`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
     if (!calRes.ok) console.error('[sync-calendar] Calendar API error:', calRes.status);
