@@ -139,11 +139,11 @@ export default function Projects({ session }: { session: any }) {
   const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
 
   const handleAddTask = (projectId: string, section: any) => {
-    if (!newTask?.title.trim() || !section) return;
+    if (!newTask?.title.trim()) return;
     run(async () => {
       await createTodoItem(userId, {
         title: newTask.title.trim(),
-        section_id: section.id,
+        section_id: section?.id ?? null,
         priority: 'normal',
         tagsText: '',
         recurrence: newTask.recurrence || null,
@@ -359,7 +359,7 @@ export default function Projects({ session }: { session: any }) {
                           value={newTask.title}
                           onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
                           onKeyDown={e => {
-                            if (e.key === 'Enter') handleAddTask(project.id, s.section);
+                            if (e.key === 'Enter') { e.preventDefault(); handleAddTask(project.id, s.section); }
                             if (e.key === 'Escape') setNewTask(null);
                           }}
                           placeholder="Nowe zadanie..."
