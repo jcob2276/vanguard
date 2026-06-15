@@ -44,6 +44,7 @@ import {
   setTodoStatus,
   updateTodoItem,
 } from '../../lib/todo';
+import { listProjects } from '../../lib/projects';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
 import type { ReactNode } from 'react';
@@ -561,6 +562,7 @@ export default function Todo({ session, onBack }) {
   const [showOptions, setShowOptions] = useState(false);
   const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
   const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -588,13 +590,15 @@ export default function Todo({ session, onBack }) {
   const fetchAll = useCallback(async () => {
     const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     try {
-      const [s, i, { data: winData }] = await Promise.all([
+      const [s, i, { data: winData }, p] = await Promise.all([
         listTodoSections(userId),
         listTodoItems(userId),
         supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
+        listProjects(userId),
       ]);
       setSections(s || []);
       setItems(i || []);
+      setProjects(p || []);
       if (winData) setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winData[`task_${n}_todo_id`]).filter(Boolean)));
     } catch (err) { setError(err.message); }
   }, [userId]);
@@ -663,6 +667,25 @@ export default function Todo({ session, onBack }) {
 
   const allUniqueTags = useMemo(() => Array.from(new Set(openItems.flatMap(i => i.tags || []))).sort(), [openItems]);
   const allUniqueSections = useMemo(() => sections.filter(s => openItems.some(i => i.section_id === s.id)), [sections, openItems]);
+
+  const projectBySection = useMemo(() =>
+    Object.fromEntries(sections.filter(s => s.project_id).map(s => [s.id, projects.find(p => p.id === s.project_id)])),
+    [sections, projects],
+  );
+
+  const activeProject = useMemo(() => {
+    if (!activeFilterSection) return null;
+    const project = projectBySection[activeFilterSection];
+    if (!project) return null;
+    const sectionItems = items.filter(i => i.section_id === activeFilterSection);
+    const done  = sectionItems.filter(i => i.status === 'done').length;
+    const total = sectionItems.length;
+    const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+    const daysLeft = project.deadline
+      ? Math.round((new Date(project.deadline + 'T00:00:00').getTime() - new Date().getTime()) / 86400000)
+      : null;
+    return { ...project, done, total, progress, daysLeft };
+  }, [activeFilterSection, projectBySection, items]);
 
   const applyFilter = useCallback((arr) => arr.filter(i => {
     if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
@@ -855,16 +878,22 @@ export default function Todo({ session, onBack }) {
                 <span className="text-rose-500">Wyczyść</span>
               </button>
             ) : null}
-            {allUniqueSections.map(s => (
-              <button
-                key={s.id}
-                className={`keep-sidebar-item ${activeFilterSection === s.id ? 'active' : ''}`}
-                onClick={() => { setActiveFilterSection(p => p === s.id ? null : s.id); setActiveFilterTag(null); }}
-              >
-                <Filter size={13} />
-                <span>{s.name}</span>
-              </button>
-            ))}
+            {allUniqueSections.map(s => {
+              const proj = projectBySection[s.id];
+              const COLOR_DOT: Record<string, string> = { indigo: 'bg-indigo-500', violet: 'bg-violet-500', sky: 'bg-sky-500', emerald: 'bg-emerald-500', amber: 'bg-amber-500', rose: 'bg-rose-500' };
+              return (
+                <button
+                  key={s.id}
+                  className={`keep-sidebar-item ${activeFilterSection === s.id ? 'active' : ''}`}
+                  onClick={() => { setActiveFilterSection(p => p === s.id ? null : s.id); setActiveFilterTag(null); }}
+                >
+                  {proj
+                    ? <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[proj.color] ?? 'bg-text-muted'}`} />
+                    : <Filter size={13} />}
+                  <span>{s.name}</span>
+                </button>
+              );
+            })}
             {allUniqueTags.map(tag => (
               <button
                 key={tag}
@@ -901,6 +930,41 @@ export default function Todo({ session, onBack }) {
             <History size={17} />
           </button>
         </header>
+
+        {/* Project context banner */}
+        {activeProject && (() => {
+          const COLOR: Record<string, { dot: string; bar: string; text: string; bg: string }> = {
+            indigo:  { dot: 'bg-indigo-500',  bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',  bg: 'bg-indigo-500/8'  },
+            violet:  { dot: 'bg-violet-500',  bar: 'bg-violet-500',  text: 'text-violet-600 dark:text-violet-400',  bg: 'bg-violet-500/8'  },
+            sky:     { dot: 'bg-sky-500',     bar: 'bg-sky-500',     text: 'text-sky-600 dark:text-sky-400',        bg: 'bg-sky-500/8'     },
+            emerald: { dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400',bg: 'bg-emerald-500/8' },
+            amber:   { dot: 'bg-amber-500',   bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400',    bg: 'bg-amber-500/8'   },
+            rose:    { dot: 'bg-rose-500',    bar: 'bg-rose-500',    text: 'text-rose-600 dark:text-rose-400',      bg: 'bg-rose-500/8'    },
+          };
+          const c = COLOR[activeProject.color] ?? COLOR.indigo;
+          return (
+            <div className={`mx-5 mt-3 rounded-[14px] ${c.bg} px-4 py-3`}>
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.dot}`} />
+                  <span className={`text-[13px] font-semibold truncate ${c.text}`}>{activeProject.name}</span>
+                  {activeProject.goal && <span className="text-[11px] text-text-muted truncate hidden sm:block">· {activeProject.goal}</span>}
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`text-[12px] font-semibold ${c.text}`}>{activeProject.progress}%</span>
+                  {activeProject.daysLeft !== null && (
+                    <span className={`text-[11px] font-medium ${activeProject.daysLeft < 0 ? 'text-rose-500' : activeProject.daysLeft <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
+                      {activeProject.daysLeft < 0 ? `${Math.abs(activeProject.daysLeft)}d po terminie` : `${activeProject.daysLeft}d`}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 h-1 w-full rounded-full bg-black/10 dark:bg-white/10">
+                <div className={`h-full rounded-full transition-all ${c.bar}`} style={{ width: `${activeProject.progress}%` }} />
+              </div>
+            </div>
+          );
+        })()}
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
