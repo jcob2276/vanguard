@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
-  BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
@@ -9,12 +8,13 @@ import {
   FolderKanban,
   ListTodo,
   Plus,
+  Repeat2,
   Trash2,
   X,
 } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
 import { listProjects, createProject, updateProject, deleteProject, linkSectionToProject } from '../../lib/projects';
-import { listTodoSections, listTodoItems, createTodoSection } from '../../lib/todo';
+import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import DataStateNotice from '../core/DataStateNotice';
 
 const COLORS = [
@@ -50,6 +50,7 @@ export default function Projects({ session }: { session: any }) {
   const [showForm, setShowForm]   = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'paused' | 'done'>('active');
   const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
+  const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -132,6 +133,28 @@ export default function Projects({ session }: { session: any }) {
 
   const handleStatusCycle = (project: any) => {
     run(() => updateProject(project.id, { status: STATUS_NEXT[project.status] }));
+  };
+
+  const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
+  const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
+
+  const handleAddTask = (projectId: string, section: any) => {
+    if (!newTask?.title.trim() || !section) return;
+    run(async () => {
+      await createTodoItem(userId, {
+        title: newTask.title.trim(),
+        section_id: section.id,
+        priority: 'normal',
+        tagsText: '',
+        recurrence: newTask.recurrence || null,
+      });
+      setNewTask(null);
+    });
+  };
+
+  const handleToggleTask = (item: any) => {
+    const next = item.status === 'done' ? 'open' : 'done';
+    run(() => setTodoStatus(item, next));
   };
 
   const filtered = useMemo(() =>
@@ -296,56 +319,95 @@ export default function Projects({ session }: { session: any }) {
                 {isExpanded && (
                   <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
 
-                    {/* Open tasks preview */}
-                    {s.openItems.length > 0 ? (
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Otwarte zadania</p>
-                        {s.openItems.slice(0, 5).map((item: any) => (
-                          <div key={item.id} className="flex items-center gap-2 text-[13px] text-text-primary">
-                            <Circle size={12} className="shrink-0 text-text-muted/40" />
-                            <span className="truncate">{item.title}</span>
+                    {/* Task list */}
+                    <div className="space-y-1">
+                      {s.openItems.map((item: any) => (
+                        <button
+                          key={item.id}
+                          onClick={() => handleToggleTask(item)}
+                          className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left"
+                        >
+                          <div className={`h-[18px] w-[18px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom`}>
+                            <div className="h-1.5 w-1.5 rounded-full bg-transparent" />
                           </div>
-                        ))}
-                        {s.openItems.length > 5 && (
-                          <p className="text-[11px] text-text-muted pl-[20px]">+{s.openItems.length - 5} więcej</p>
-                        )}
+                          <span className="flex-1 truncate text-[13px] text-text-primary">{item.title}</span>
+                          {item.recurrence && <Repeat2 size={10} className="shrink-0 text-violet-400" />}
+                        </button>
+                      ))}
+                      {s.doneItems.slice(0, 2).map((item: any) => (
+                        <button
+                          key={item.id}
+                          onClick={() => handleToggleTask(item)}
+                          className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-40"
+                        >
+                          <div className="h-[18px] w-[18px] shrink-0 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <Check size={10} className="text-white" strokeWidth={3} />
+                          </div>
+                          <span className="flex-1 truncate text-[13px] line-through text-text-muted">{item.title}</span>
+                        </button>
+                      ))}
+                      {s.total === 0 && newTask?.projectId !== project.id && (
+                        <p className="text-[12px] text-text-muted/40 px-2 py-1">Brak zadań. Dodaj pierwsze poniżej.</p>
+                      )}
+                    </div>
+
+                    {/* Inline new task */}
+                    {newTask?.projectId === project.id ? (
+                      <div className="rounded-[12px] border border-border-custom/50 bg-surface-solid/40 px-3 py-2 space-y-2">
+                        <input
+                          autoFocus
+                          value={newTask.title}
+                          onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleAddTask(project.id, s.section);
+                            if (e.key === 'Escape') setNewTask(null);
+                          }}
+                          placeholder="Nowe zadanie..."
+                          className="w-full bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted/40"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as any) + 1) % RECURRENCE_CYCLE.length] } : t)}
+                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
+                          >
+                            <Repeat2 size={10} /> {RECURRENCE_LABEL[newTask.recurrence]}
+                          </button>
+                          <div className="flex-1" />
+                          <button onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary">
+                            <X size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleAddTask(project.id, s.section)}
+                            disabled={!newTask.title.trim() || busy}
+                            className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
+                          >
+                            Dodaj
+                          </button>
+                        </div>
                       </div>
-                    ) : s.total === 0 ? (
-                      <p className="text-[12px] text-text-muted/50 text-center py-2">Brak zadań — dodaj je w Todo.</p>
                     ) : (
-                      <div className="flex items-center gap-2 text-[13px] text-emerald-500">
-                        <Check size={14} />
-                        <span className="font-medium">Wszystkie zadania ukończone!</span>
-                      </div>
-                    )}
-
-                    {/* Last activity */}
-                    {s.lastActivity && (
-                      <p className="text-[11px] text-text-muted">
-                        Ostatnia aktywność: {s.daysSince === 0 ? 'dziś' : s.daysSince === 1 ? 'wczoraj' : `${s.daysSince} dni temu`}
-                      </p>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-1">
                       <button
-                        onClick={() => goTo('todo')}
-                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-semibold transition-colors ${col.text} bg-border-custom/20 hover:bg-border-custom/40`}
+                        onClick={() => setNewTask({ projectId: project.id, title: '', recurrence: '' })}
+                        className={`flex w-full items-center gap-2 rounded-[12px] border border-dashed border-border-custom/60 px-3 py-2 text-[12px] font-medium text-text-muted hover:text-text-secondary hover:border-border-custom transition-colors`}
                       >
-                        <ListTodo size={13} /> Otwórz w Todo
+                        <Plus size={13} /> Dodaj zadanie
                       </button>
+                    )}
+
+                    {/* Footer actions */}
+                    <div className="flex items-center gap-2 pt-0.5">
                       <button
                         onClick={() => handleStatusCycle(project)}
                         disabled={busy}
-                        className="flex items-center gap-1.5 rounded-full bg-surface-solid px-3 py-2 text-[12px] font-semibold text-text-secondary hover:text-text-primary transition-colors"
-                        title={`Zmień status → ${STATUS_LABEL[STATUS_NEXT[project.status]]}`}
+                        className="rounded-full bg-surface-solid px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:text-text-primary transition-colors"
                       >
-                        {STATUS_LABEL[project.status]}
+                        {STATUS_LABEL[project.status]} →
                       </button>
+                      <div className="flex-1" />
                       <button
                         onClick={() => handleDelete(project.id)}
                         disabled={busy}
-                        className="rounded-full p-2 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                       >
                         <Trash2 size={13} />
                       </button>
