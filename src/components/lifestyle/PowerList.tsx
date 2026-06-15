@@ -137,10 +137,10 @@ export default function PowerList({ session, todayWin, onUpdate }) {
     if (!error && onUpdate) onUpdate(data);
 
     const linkedTodoId = todayWin[todoIdField];
-    if (linkedTodoId && newValue) {
+    if (linkedTodoId) {
       updateTodoItem(linkedTodoId, {
-        status: 'done',
-        completed_at: new Date().toISOString(),
+        status: newValue ? 'done' : 'open',
+        completed_at: newValue ? new Date().toISOString() : null,
       }).catch(() => {});
     }
   }
