@@ -334,21 +334,127 @@ function RichEditor({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Space conversion: auto-create checkbox when user types [], - [], - [ ], or * [ ] followed by Space
+    if (e.key === ' ') {
+      const selection = window.getSelection();
+      if (selection && selection.anchorNode && selection.rangeCount > 0) {
+        const node = selection.anchorNode;
+        const text = node.textContent || '';
+        const offset = selection.anchorOffset;
+        const textBefore = text.slice(0, offset);
+        if (/^(?:\- \[ \]|\- \[\]|\[\]|\* \[ \])\s*$/.test(textBefore)) {
+          e.preventDefault();
+          const range = selection.getRangeAt(0);
+          range.setStart(node, 0);
+          range.setEnd(node, offset);
+          range.deleteContents();
+          insertHTML('<div class="keep-todo-item"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">&nbsp;</span></div>');
+          return;
+        }
+      }
+    }
+
     if (e.key === 'Enter') {
       const selection = window.getSelection();
       if (selection && selection.anchorNode) {
         let parent = selection.anchorNode.parentElement;
+        let todoItem: HTMLElement | null = null;
         while (parent && parent !== editorRef.current) {
           if (parent.classList.contains('keep-todo-item')) {
-            e.preventDefault();
-            document.execCommand('insertHTML', false, '<div class="keep-todo-item" contenteditable="true"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">&nbsp;</span></div>');
-            handleInput();
-            return;
+            todoItem = parent;
+            break;
           }
           parent = parent.parentElement;
         }
+
+        if (todoItem) {
+          e.preventDefault();
+          const textNode = todoItem.querySelector('.keep-todo-text');
+          const textVal = textNode?.textContent?.trim() || '';
+          // If the item is empty, pressing Enter turns it back into a standard paragraph
+          if (textVal === '' || textVal === '\u00a0' || textNode?.innerHTML === '<br>') {
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            todoItem.parentNode?.replaceChild(p, todoItem);
+            const r = document.createRange();
+            r.selectNodeContents(p);
+            r.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(r);
+            handleInput();
+            return;
+          }
+
+          // Otherwise, create a new checklist item below
+          const newTodo = document.createElement('div');
+          newTodo.className = 'keep-todo-item';
+          newTodo.innerHTML = '<span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">&nbsp;</span>';
+          
+          todoItem.parentNode?.insertBefore(newTodo, todoItem.nextSibling);
+          
+          const newTextSpan = newTodo.querySelector('.keep-todo-text') as HTMLElement;
+          if (newTextSpan) {
+            newTextSpan.focus();
+            const r = document.createRange();
+            if (newTextSpan.firstChild) {
+              r.setStart(newTextSpan.firstChild, 0);
+              r.collapse(true);
+            } else {
+              r.selectNodeContents(newTextSpan);
+              r.collapse(true);
+            }
+            selection.removeAllRanges();
+            selection.addRange(r);
+          }
+          handleInput();
+          return;
+        }
       }
     }
+
+    if (e.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (selection && selection.anchorNode && selection.isCollapsed) {
+        let parent = selection.anchorNode.parentElement;
+        let todoItem: HTMLElement | null = null;
+        while (parent && parent !== editorRef.current) {
+          if (parent.classList.contains('keep-todo-item')) {
+            todoItem = parent;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+
+        if (todoItem) {
+          const offset = selection.anchorOffset;
+          // If cursor is at the very beginning of the checklist item, convert it back to a normal paragraph
+          if (offset === 0) {
+            e.preventDefault();
+            const textNode = todoItem.querySelector('.keep-todo-text');
+            const p = document.createElement('p');
+            p.innerHTML = textNode?.innerHTML || '<br>';
+            if (p.innerHTML === '&nbsp;' || p.innerHTML === '') {
+              p.innerHTML = '<br>';
+            }
+            todoItem.parentNode?.replaceChild(p, todoItem);
+            
+            const r = document.createRange();
+            if (p.firstChild) {
+              r.setStart(p.firstChild, 0);
+              r.collapse(true);
+            } else {
+              r.selectNodeContents(p);
+              r.collapse(true);
+            }
+            selection.removeAllRanges();
+            selection.addRange(r);
+            handleInput();
+            return;
+          }
+        }
+      }
+    }
+
     // Tab inside table: move to next cell
     if (e.key === 'Tab') {
       const selection = window.getSelection();
@@ -413,34 +519,69 @@ function RichEditor({
           activeState={activeState}
         />
       )}
-      {/* Static always-visible formatting bar */}
+      {/* Static always-visible formatting bar — Apple Notes style */}
       {showStaticBar && (
         <div className="keep-static-bar">
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('bold'); }} className={`keep-static-btn ${activeState.bold ? 'active' : ''}`} title="Pogrubienie (Ctrl+B)">
-            <span style={{ fontWeight: 700, fontSize: 12 }}>B</span>
+          {/* Text formatting group */}
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('bold'); }}
+            className={`keep-static-btn ${activeState.bold ? 'active' : ''}`}
+            title="Pogrubienie"
+          >
+            <span style={{ fontWeight: 800, fontSize: 15, fontFamily: 'Georgia, serif', lineHeight: 1 }}>B</span>
           </button>
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('italic'); }} className={`keep-static-btn ${activeState.italic ? 'active' : ''}`} title="Kursywa (Ctrl+I)">
-            <span style={{ fontStyle: 'italic', fontSize: 12 }}>I</span>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('italic'); }}
+            className={`keep-static-btn ${activeState.italic ? 'active' : ''}`}
+            title="Kursywa"
+          >
+            <span style={{ fontStyle: 'italic', fontWeight: 600, fontSize: 15, fontFamily: 'Georgia, serif', lineHeight: 1 }}>I</span>
           </button>
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('h1'); }} className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`} title="Nagłówek">
-            <span style={{ fontWeight: 900, fontSize: 10 }}>H1</span>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('h1'); }}
+            className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
+            title="Nagłówek"
+          >
+            <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '-0.02em', lineHeight: 1 }}>H1</span>
           </button>
+
           <div className="keep-static-sep" />
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('todo'); }} className="keep-static-btn" title="Dodaj zadanie (checklist)">
-            <CheckSquare size={13} />
-            <span style={{ fontSize: 10, marginLeft: 3 }}>Zadanie</span>
+
+          {/* Block element group */}
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('todo'); }}
+            className="keep-static-btn"
+            title="Lista zadań"
+          >
+            <CheckSquare size={20} strokeWidth={1.5} />
           </button>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('table'); }}
+            className="keep-static-btn"
+            title="Tabela"
+          >
+            <Table2 size={20} strokeWidth={1.5} />
+          </button>
+
           <div className="keep-static-sep" />
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('table'); }} className="keep-static-btn" title="Wstaw tabelę">
-            <Table2 size={13} />
-            <span style={{ fontSize: 10, marginLeft: 3 }}>Tabela</span>
-          </button>
-          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('image'); }} className="keep-static-btn" title="Wstaw zdjęcie">
-            <Image size={13} />
-            <span style={{ fontSize: 10, marginLeft: 3 }}>Zdjęcie</span>
+
+          {/* Attachments */}
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('image'); }}
+            className="keep-static-btn"
+            title="Dodaj zdjęcie"
+          >
+            <Image size={20} strokeWidth={1.5} />
           </button>
         </div>
       )}
+
     </div>
   );
 }
@@ -556,50 +697,35 @@ function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partia
 
 // ─── Note Card ────────────────────────────────────────────────────────────────
 
-function NoteCard({
+// ─── Edit Note Modal ──────────────────────────────────────────────────────────
+
+function EditNoteModal({
   note,
+  onClose,
+  onUpdate,
   onDelete,
   onTogglePin,
-  onUpdate,
   busy,
-  isEditing,
-  onOpen,
-  onClose,
-  onDragStart,
-  onDragEnter,
-  onDragEnd,
-  onDragOver,
-  isDragOver,
 }: {
   note: Note;
+  onClose: () => void;
+  onUpdate: (id: string, patch: Partial<Note>) => void;
   onDelete: (id: string) => void;
   onTogglePin: (note: Note) => void;
-  onUpdate: (id: string, patch: Partial<Note>) => void;
   busy: boolean;
-  isEditing: boolean;
-  onOpen: (id: string) => void;
-  onClose: () => void;
-  onDragStart: (id: string) => void;
-  onDragEnter: (id: string) => void;
-  onDragEnd: () => void;
-  onDragOver: (e: React.DragEvent) => void;
-  isDragOver: boolean;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [color, setColor] = useState(note.color);
   const [tagsInput, setTagsInput] = useState(note.tags.join(', '));
-  const ref = useRef<HTMLDivElement>(null);
   const c = getColor(color);
 
   useEffect(() => {
-    if (!isEditing) {
-      setTitle(note.title);
-      setContent(note.content);
-      setColor(note.color);
-      setTagsInput(note.tags.join(', '));
-    }
-  }, [note, isEditing]);
+    setTitle(note.title);
+    setContent(note.content);
+    setColor(note.color);
+    setTagsInput(note.tags.join(', '));
+  }, [note]);
 
   const handleSave = useCallback(() => {
     const patch: Partial<Note> = {
@@ -614,23 +740,137 @@ function NoteCard({
 
   // Close on Escape key
   useEffect(() => {
-    if (!isEditing) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleSave();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [isEditing, handleSave]);
+  }, [handleSave]);
 
-  // NOTE: We do NOT use a mousedown-outside handler here.
-  // Closing is handled exclusively by the backdrop click, Zamknij button, and Escape.
+  return (
+    <>
+      <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
+      <div className="keep-modal-content" style={{ backgroundColor: c.bg, borderColor: c.border }} onClick={e => e.stopPropagation()}>
+        <div className="keep-ios-grab-handle" />
+        <input
+          autoFocus
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Tytuł"
+          className="keep-card-title-input"
+          style={{ color: c.text }}
+        />
+        <RichEditor
+          value={content}
+          onChange={setContent}
+          placeholder="Treść notatki…"
+          className="keep-card-content-input"
+          style={{ color: c.textSub }}
+          showStaticBar
+        />
+        <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
+          <Tag size={10} className="keep-tag-icon" />
+          <input
+            value={tagsInput}
+            onChange={e => setTagsInput(e.target.value)}
+            placeholder="Tagi…"
+            className="keep-composer-tags-input"
+          />
+        </div>
+        <div className="keep-color-row" style={{ marginBottom: 10 }}>
+          {COLORS.map(col => (
+            <button
+              key={col.id}
+              type="button"
+              title={col.label}
+              onClick={e => { e.stopPropagation(); setColor(col.id); }}
+              className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
+              style={{ backgroundColor: col.dot }}
+            />
+          ))}
+        </div>
+        <div className="keep-card-edit-actions">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onTogglePin(note); }}
+            className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
+            title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
+          >
+            <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
+            className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
+            title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
+          >
+            <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
+          </button>
+          <div style={{ flex: 1 }} />
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onDelete(note.id); }}
+            disabled={busy}
+            className="keep-icon-btn danger"
+            title="Usuń"
+          >
+            <Trash2 size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); handleSave(); }}
+            className="keep-btn-primary small"
+          >
+            Zamknij
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Note Card ────────────────────────────────────────────────────────────────
+
+function NoteCard({
+  note,
+  onDelete,
+  onTogglePin,
+  onUpdate,
+  busy,
+  isEditing,
+  onOpen,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDragOver,
+  isDragOver,
+}: {
+  note: Note;
+  onDelete: (id: string) => void;
+  onTogglePin: (note: Note) => void;
+  onUpdate: (id: string, patch: Partial<Note>) => void;
+  busy: boolean;
+  isEditing: boolean;
+  onOpen: (id: string) => void;
+  onDragStart: (id: string) => void;
+  onDragEnter: (id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  isDragOver: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const c = getColor(note.color);
 
   return (
     <div
       ref={ref}
       className={`keep-card ${isEditing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
-      style={isEditing ? {} : { backgroundColor: c.bg, borderColor: isDragOver ? '#6366f1' : c.border }}
-      onClick={() => !isEditing && onOpen(note.id)}
+      style={{
+        backgroundColor: c.bg,
+        borderColor: isDragOver ? '#6366f1' : c.border,
+        opacity: isEditing ? 0.6 : 1,
+      }}
+      onClick={() => onOpen(note.id)}
       draggable={!isEditing}
       onDragStart={() => onDragStart(note.id)}
       onDragEnter={() => onDragEnter(note.id)}
@@ -638,176 +878,93 @@ function NoteCard({
       onDragOver={onDragOver}
     >
       {/* Pin badge */}
-      {note.is_pinned && !isEditing && (
+      {note.is_pinned && (
         <div className="keep-pin-badge">
           <Pin size={9} fill="currentColor" />
         </div>
       )}
 
-      {isEditing ? (
-        <>
-          <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
-          <div className="keep-modal-content" style={{ backgroundColor: c.bg, borderColor: c.border }} onClick={e => e.stopPropagation()}>
-            <div className="keep-ios-grab-handle" />
-            <input
-              autoFocus
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="Tytuł"
-              className="keep-card-title-input"
-              style={{ color: c.text }}
-            />
-            <RichEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Treść notatki…"
-              className="keep-card-content-input"
-              style={{ color: c.textSub }}
-              showStaticBar
-            />
-            <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
-              <Tag size={10} className="keep-tag-icon" />
-              <input
-                value={tagsInput}
-                onChange={e => setTagsInput(e.target.value)}
-                placeholder="Tagi…"
-                className="keep-composer-tags-input"
-              />
-            </div>
-            <div className="keep-color-row" style={{ marginBottom: 10 }}>
-              {COLORS.map(col => (
-                <button
-                  key={col.id}
-                  type="button"
-                  title={col.label}
-                  onClick={e => { e.stopPropagation(); setColor(col.id); }}
-                  className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
-                  style={{ backgroundColor: col.dot }}
-                />
-              ))}
-            </div>
-            <div className="keep-card-edit-actions">
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onTogglePin(note); }}
-                className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
-                title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
-              >
-                <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
-              </button>
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
-                className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
-                title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
-              >
-                <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
-              </button>
-              <div style={{ flex: 1 }} />
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onDelete(note.id); }}
-                disabled={busy}
-                className="keep-icon-btn danger"
-                title="Usuń"
-              >
-                <Trash2 size={13} />
-              </button>
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); handleSave(); }}
-                className="keep-btn-primary small"
-              >
-                Zamknij
-              </button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Drag handle — shows on hover */}
-          <div className="keep-drag-handle" title="Przeciągnij aby przenieść">
-            <span />
-            <span />
-            <span />
-          </div>
+      {/* Drag handle — shows on hover */}
+      <div className="keep-drag-handle" title="Przeciągnij aby przenieść">
+        <span />
+        <span />
+        <span />
+      </div>
 
-          {note.title && (
-            <h3 className="keep-card-title" style={{ color: c.text }}>{note.title}</h3>
-          )}
-          {note.content && (
-            <div
-              className="keep-card-content"
-              style={{ color: c.textSub }}
-              dangerouslySetInnerHTML={{ __html: note.content }}
-              onClick={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.classList.contains('keep-todo-checkbox')) {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  const container = document.createElement('div');
-                  container.innerHTML = note.content;
-                  const checkboxes = Array.from(e.currentTarget.querySelectorAll('.keep-todo-checkbox'));
-                  const index = checkboxes.indexOf(target);
-                  if (index !== -1) {
-                    const docCheckboxes = container.querySelectorAll('.keep-todo-checkbox');
-                    const targetCheckbox = docCheckboxes[index] as HTMLElement;
-                    if (targetCheckbox) {
-                      const isChecked = targetCheckbox.classList.toggle('checked');
-                      const sibling = targetCheckbox.nextElementSibling as HTMLElement;
-                      if (sibling) {
-                        sibling.classList.toggle('completed', isChecked);
-                      }
-                      onUpdate(note.id, { content: container.innerHTML });
-                    }
-                  }
-                }
-              }}
-            />
-          )}
-          {note.tags.length > 0 && (
-            <div className="keep-card-tags">
-              {note.tags.map((t, i) => (
-                <span key={i} className="keep-tag" style={{ background: c.tagBg, color: c.tagText, borderColor: 'transparent' }}>{t}</span>
-              ))}
-            </div>
-          )}
-          <div className="keep-card-footer" style={{ borderTopColor: 'rgba(255,255,255,0.08)' }}>
-            <span className="keep-card-date" style={{ color: c.textSub, opacity: 0.6 }}>
-              {new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
-                day: 'numeric', month: 'short',
-              })}
-            </span>
-             <div className="keep-card-actions">
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onTogglePin(note); }}
-                className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
-                title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
-              >
-                <Pin size={11} fill={note.is_pinned ? 'currentColor' : 'none'} />
-              </button>
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
-                className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
-                title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
-              >
-                <Archive size={11} fill={note.is_archived ? 'currentColor' : 'none'} />
-              </button>
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onDelete(note.id); }}
-                disabled={busy}
-                className="keep-icon-btn danger"
-                title="Usuń"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          </div>
-        </>
+      {note.title && (
+        <h3 className="keep-card-title" style={{ color: c.text }}>{note.title}</h3>
       )}
+      {note.content && (
+        <div
+          className="keep-card-content"
+          style={{ color: c.textSub }}
+          dangerouslySetInnerHTML={{ __html: note.content }}
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.classList.contains('keep-todo-checkbox')) {
+              e.stopPropagation();
+              e.preventDefault();
+              const container = document.createElement('div');
+              container.innerHTML = note.content;
+              const checkboxes = Array.from(e.currentTarget.querySelectorAll('.keep-todo-checkbox'));
+              const index = checkboxes.indexOf(target);
+              if (index !== -1) {
+                const docCheckboxes = container.querySelectorAll('.keep-todo-checkbox');
+                const targetCheckbox = docCheckboxes[index] as HTMLElement;
+                if (targetCheckbox) {
+                  const isChecked = targetCheckbox.classList.toggle('checked');
+                  const sibling = targetCheckbox.nextElementSibling as HTMLElement;
+                  if (sibling) {
+                    sibling.classList.toggle('completed', isChecked);
+                  }
+                  onUpdate(note.id, { content: container.innerHTML });
+                }
+              }
+            }
+          }}
+        />
+      )}
+      {note.tags.length > 0 && (
+        <div className="keep-card-tags">
+          {note.tags.map((t, i) => (
+            <span key={i} className="keep-tag" style={{ background: c.tagBg, color: c.tagText, borderColor: 'transparent' }}>{t}</span>
+          ))}
+        </div>
+      )}
+      <div className="keep-card-footer" style={{ borderTopColor: 'rgba(255,255,255,0.08)' }}>
+        <span className="keep-card-date" style={{ color: c.textSub, opacity: 0.6 }}>
+          {new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
+            day: 'numeric', month: 'short',
+          })}
+        </span>
+         <div className="keep-card-actions">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onTogglePin(note); }}
+            className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
+            title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
+          >
+            <Pin size={11} fill={note.is_pinned ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
+            className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
+            title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
+          >
+            <Archive size={11} fill={note.is_archived ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onDelete(note.id); }}
+            disabled={busy}
+            className="keep-icon-btn danger"
+            title="Usuń"
+          >
+            <Trash2 size={11} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -824,7 +981,6 @@ function MasonryGrid({
   columns,
   editingId,
   onOpenCard,
-  onCloseCard,
 }: {
   notes: Note[];
   onDelete: (id: string) => void;
@@ -835,7 +991,6 @@ function MasonryGrid({
   columns: number;
   editingId: string | null;
   onOpenCard: (id: string) => void;
-  onCloseCard: () => void;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -869,7 +1024,6 @@ function MasonryGrid({
               busy={busy}
               isEditing={editingId === note.id}
               onOpen={onOpenCard}
-              onClose={onCloseCard}
               onDragStart={handleDragStart}
               onDragEnter={handleDragEnter}
               onDragEnd={handleDragEnd}
@@ -1091,7 +1245,6 @@ export default function Keep({ session }: { session: any }) {
     columns,
     editingId,
     onOpenCard: handleOpenCard,
-    onCloseCard: handleCloseCard,
   };
 
 
@@ -1224,7 +1377,6 @@ export default function Keep({ session }: { session: any }) {
                           busy={busy}
                           isEditing={editingId === note.id}
                           onOpen={handleOpenCard}
-                          onClose={handleCloseCard}
                           onDragStart={() => {}}
                           onDragEnter={() => {}}
                           onDragEnd={() => {}}
@@ -1257,7 +1409,6 @@ export default function Keep({ session }: { session: any }) {
                           busy={busy}
                           isEditing={editingId === note.id}
                           onOpen={handleOpenCard}
-                          onClose={handleCloseCard}
                           onDragStart={() => {}}
                           onDragEnter={() => {}}
                           onDragEnd={() => {}}
@@ -1274,6 +1425,23 @@ export default function Keep({ session }: { session: any }) {
           )}
         </main>
       </div>
+
+      {/* Page-level Edit Modal */}
+      {editingId && (
+        (() => {
+          const noteToEdit = notes.find(n => n.id === editingId);
+          return noteToEdit ? (
+            <EditNoteModal
+              note={noteToEdit}
+              onClose={handleCloseCard}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+              onTogglePin={handleTogglePin}
+              busy={busy}
+            />
+          ) : null;
+        })()
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 :root {
   --background: #f1f3f7;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
   --surface: rgba(255, 255, 255, 0.92);
   --surface-solid: #ffffff;
   --border: rgba(15, 23, 42, 0.12); /* Increased contrast border */
@@ -95,6 +97,8 @@
 
 .dark {
   --background: #07070a;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
   --surface: rgba(13, 13, 22, 0.65);
   --surface-solid: #0b0b12;
   --border: rgba(255, 255, 255, 0.05);
@@ -1226,104 +1230,132 @@
   color: white;
 }
 
-/* ── Static formatting bar (always visible in edit mode) ────── */
+/* ── Static formatting bar — Apple Notes style ───────────────── */
 
 .keep-static-bar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 8px;
-  padding: 4px 6px;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0;
+  margin-top: 12px;
+  padding: 0 4px;
+  height: 50px;
+  background: rgba(118, 118, 128, 0.10);
+  border-radius: 14px;
+  border: none;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-:root:not(.dark) .keep-static-bar {
-  background: rgba(248, 250, 252, 0.85);
-  border-color: rgba(0, 0, 0, 0.08);
+.keep-static-bar::-webkit-scrollbar { display: none; }
+
+/* Dark mode: slightly more visible */
+.dark .keep-static-bar {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .keep-static-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  padding: 4px 8px;
-  border-radius: 7px;
+  justify-content: center;
+  min-width: 48px;
+  height: 44px;
+  border-radius: 10px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.14s;
-  white-space: nowrap;
+  transition: background 0.12s, transform 0.08s;
+  flex-shrink: 0;
+  opacity: 0.75;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .keep-static-btn:hover {
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--primary);
+  background: rgba(118, 118, 128, 0.14);
+  opacity: 1;
+}
+
+.keep-static-btn:active {
+  transform: scale(0.9);
+  background: rgba(118, 118, 128, 0.2);
+  opacity: 1;
 }
 
 .keep-static-btn.active {
   background: var(--primary);
   color: white;
+  opacity: 1;
 }
 
 .keep-static-sep {
   width: 1px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 3px;
+  height: 26px;
+  background: rgba(118, 118, 128, 0.25);
+  margin: 0 4px;
   flex-shrink: 0;
-}
-
-:root:not(.dark) .keep-static-sep {
-  background: rgba(0, 0, 0, 0.1);
 }
 
 
 
 .keep-rich-editor .keep-table,
 .keep-card-content .keep-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
-  font-size: 12.5px;
-  border: 1.5px solid rgba(100, 116, 139, 0.35);
-  border-radius: 8px;
-  overflow: hidden;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 16px 0 !important;
+  font-size: 13.5px !important;
+  border: 1px solid rgba(100, 116, 139, 0.4) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+:root:not(.dark) .keep-rich-editor .keep-table,
+:root:not(.dark) .keep-card-content .keep-table {
+  background: rgba(15, 23, 42, 0.02) !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
 }
 
 .keep-rich-editor .keep-td,
 .keep-card-content .keep-td {
-  padding: 7px 10px;
-  border: 1px solid rgba(100, 116, 139, 0.25);
-  min-width: 60px;
-  vertical-align: top;
-  outline: none;
-  transition: background 0.15s;
-  color: inherit;
+  padding: 8px 12px !important;
+  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  min-width: 80px !important;
+  vertical-align: top !important;
+  outline: none !important;
+  color: inherit !important;
+}
+
+:root:not(.dark) .keep-rich-editor .keep-td,
+:root:not(.dark) .keep-card-content .keep-td {
+  border-color: rgba(15, 23, 42, 0.12) !important;
 }
 
 .keep-rich-editor .keep-th,
 .keep-card-content .keep-th {
-  background: rgba(100, 116, 139, 0.12);
-  font-weight: 700;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.8;
+  background: rgba(100, 116, 139, 0.15) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  opacity: 0.9 !important;
+  border: 1px solid rgba(100, 116, 139, 0.4) !important;
+}
+
+:root:not(.dark) .keep-rich-editor .keep-th,
+:root:not(.dark) .keep-card-content .keep-th {
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
 }
 
 .keep-rich-editor .keep-td:focus {
-  background: rgba(99, 102, 241, 0.12);
-  box-shadow: inset 0 0 0 1.5px var(--primary);
-  outline: none;
+  background: rgba(99, 102, 241, 0.12) !important;
+  box-shadow: inset 0 0 0 1.5px var(--primary) !important;
+  outline: none !important;
 }
 
 .keep-rich-editor .keep-td:hover {
-  background: rgba(100, 116, 139, 0.06);
+  background: rgba(100, 116, 139, 0.06) !important;
 }
 
 
