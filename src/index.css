@@ -19,6 +19,78 @@
   --btn-outline-bg: rgba(255, 255, 255, 0.8);
   --btn-secondary-bg: #f8fafc;
   --btn-secondary-hover: #f1f5f9;
+
+  /* Google Keep dynamic note colors - Light mode */
+  --keep-bg-default: var(--surface-solid);
+  --keep-border-default: var(--border);
+  --keep-text-default: var(--text-primary);
+  --keep-text-sub-default: var(--text-secondary);
+  --keep-tag-bg-default: rgba(15, 23, 42, 0.05);
+  --keep-tag-text-default: var(--text-muted);
+  --keep-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06);
+
+  --keep-bg-red: #f28b82;
+  --keep-border-red: transparent;
+  --keep-text-red: #202124;
+  --keep-text-sub-red: #5f6368;
+  --keep-tag-bg-red: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-red: #202124;
+
+  --keep-bg-orange: #fbbc04;
+  --keep-border-orange: transparent;
+  --keep-text-orange: #202124;
+  --keep-text-sub-orange: #5f6368;
+  --keep-tag-bg-orange: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-orange: #202124;
+
+  --keep-bg-yellow: #fff475;
+  --keep-border-yellow: transparent;
+  --keep-text-yellow: #202124;
+  --keep-text-sub-yellow: #5f6368;
+  --keep-tag-bg-yellow: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-yellow: #202124;
+
+  --keep-bg-green: #ccff90;
+  --keep-border-green: transparent;
+  --keep-text-green: #202124;
+  --keep-text-sub-green: #5f6368;
+  --keep-tag-bg-green: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-green: #202124;
+
+  --keep-bg-teal: #a7ffeb;
+  --keep-border-teal: transparent;
+  --keep-text-teal: #202124;
+  --keep-text-sub-teal: #5f6368;
+  --keep-tag-bg-teal: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-teal: #202124;
+
+  --keep-bg-blue: #cbf0f8;
+  --keep-border-blue: transparent;
+  --keep-text-blue: #202124;
+  --keep-text-sub-blue: #5f6368;
+  --keep-tag-bg-blue: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-blue: #202124;
+
+  --keep-bg-indigo: #aecbfa;
+  --keep-border-indigo: transparent;
+  --keep-text-indigo: #202124;
+  --keep-text-sub-indigo: #5f6368;
+  --keep-tag-bg-indigo: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-indigo: #202124;
+
+  --keep-bg-purple: #d7aefb;
+  --keep-border-purple: transparent;
+  --keep-text-purple: #202124;
+  --keep-text-sub-purple: #5f6368;
+  --keep-tag-bg-purple: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-purple: #202124;
+
+  --keep-bg-pink: #fdcfe8;
+  --keep-border-pink: transparent;
+  --keep-text-pink: #202124;
+  --keep-text-sub-pink: #5f6368;
+  --keep-tag-bg-pink: rgba(0, 0, 0, 0.06);
+  --keep-tag-text-pink: #202124;
 }
 
 .dark {
@@ -40,6 +112,78 @@
   --btn-outline-bg: rgba(255, 255, 255, 0.02);
   --btn-secondary-bg: rgba(255, 255, 255, 0.03);
   --btn-secondary-hover: rgba(255, 255, 255, 0.07);
+
+  /* Google Keep dynamic note colors - Dark mode */
+  --keep-bg-default: var(--surface-solid);
+  --keep-border-default: var(--border);
+  --keep-text-default: var(--text-primary);
+  --keep-text-sub-default: var(--text-secondary);
+  --keep-tag-bg-default: rgba(255, 255, 255, 0.06);
+  --keep-tag-text-default: var(--text-muted);
+  --keep-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  --keep-bg-red: #5c2b29;
+  --keep-border-red: transparent;
+  --keep-text-red: #f8fafc;
+  --keep-text-sub-red: #94a3b8;
+  --keep-tag-bg-red: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-red: #f8fafc;
+
+  --keep-bg-orange: #614a19;
+  --keep-border-orange: transparent;
+  --keep-text-orange: #f8fafc;
+  --keep-text-sub-orange: #94a3b8;
+  --keep-tag-bg-orange: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-orange: #f8fafc;
+
+  --keep-bg-yellow: #635d19;
+  --keep-border-yellow: transparent;
+  --keep-text-yellow: #f8fafc;
+  --keep-text-sub-yellow: #94a3b8;
+  --keep-tag-bg-yellow: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-yellow: #f8fafc;
+
+  --keep-bg-green: #345920;
+  --keep-border-green: transparent;
+  --keep-text-green: #f8fafc;
+  --keep-text-sub-green: #94a3b8;
+  --keep-tag-bg-green: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-green: #f8fafc;
+
+  --keep-bg-teal: #16504b;
+  --keep-border-teal: transparent;
+  --keep-text-teal: #f8fafc;
+  --keep-text-sub-teal: #94a3b8;
+  --keep-tag-bg-teal: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-teal: #f8fafc;
+
+  --keep-bg-blue: #2d555e;
+  --keep-border-blue: transparent;
+  --keep-text-blue: #f8fafc;
+  --keep-text-sub-blue: #94a3b8;
+  --keep-tag-bg-blue: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-blue: #f8fafc;
+
+  --keep-bg-indigo: #1d3b5e;
+  --keep-border-indigo: transparent;
+  --keep-text-indigo: #f8fafc;
+  --keep-text-sub-indigo: #94a3b8;
+  --keep-tag-bg-indigo: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-indigo: #f8fafc;
+
+  --keep-bg-purple: #42275e;
+  --keep-border-purple: transparent;
+  --keep-text-purple: #f8fafc;
+  --keep-text-sub-purple: #94a3b8;
+  --keep-tag-bg-purple: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-purple: #f8fafc;
+
+  --keep-bg-pink: #5b2245;
+  --keep-border-pink: transparent;
+  --keep-text-pink: #f8fafc;
+  --keep-text-sub-pink: #94a3b8;
+  --keep-tag-bg-pink: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-pink: #f8fafc;
 }
 
 @theme {
@@ -625,18 +769,18 @@
   user-select: none;
 }
 .keep-card:hover {
-  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  box-shadow: var(--keep-card-shadow-hover);
   transform: translateY(-2px);
 }
 .keep-card.editing {
   cursor: default;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
   z-index: 10;
   transform: none;
 }
 .keep-card.drag-over {
   border-color: #6366f1 !important;
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.3), 0 8px 28px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.3), 0 8px 28px rgba(0,0,0,0.15);
   transform: scale(1.01);
 }
 .keep-card[draggable="true"]:not(.editing) {
@@ -646,7 +790,7 @@
   cursor: grabbing;
   opacity: 0.85;
 }
-
+ 
 .keep-pin-badge {
   position: absolute;
   top: 10px;
@@ -654,7 +798,7 @@
   color: #f59e0b;
   opacity: 0.8;
 }
-
+ 
 /* ── Drag handle ─── */
 .keep-drag-handle {
   position: absolute;
@@ -678,7 +822,7 @@
 .keep-card:hover .keep-drag-handle {
   opacity: 1;
 }
-
+ 
 .keep-card-title {
   font-family: var(--font-display);
   font-size: 14px;
@@ -688,7 +832,7 @@
   margin-bottom: 8px;
   line-height: 1.3;
 }
-
+ 
 .keep-card-content {
   font-size: 13px;
   font-weight: 400;
@@ -697,7 +841,7 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-
+ 
 .keep-card-tags {
   display: flex;
   flex-wrap: wrap;
@@ -714,14 +858,14 @@
   border-radius: 999px;
   letter-spacing: 0.03em;
 }
-
+ 
 .keep-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid var(--border);
 }
 .keep-card-date {
   font-size: 10px;

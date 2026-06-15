@@ -13,6 +13,7 @@ import {
   Tag,
   Trash2,
   X,
+  Archive,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ interface Note {
   content: string;
   color: string;
   is_pinned: boolean;
+  is_archived?: boolean;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -42,16 +44,16 @@ const COLORS: {
   tagBg: string;
   tagText: string;
 }[] = [
-  { id: 'default', label: 'Domyślny',    bg: 'var(--surface-solid)', border: 'var(--border)',   dot: '#64748b', text: 'var(--text-primary)',   textSub: 'var(--text-secondary)', tagBg: 'rgba(255,255,255,0.06)', tagText: 'var(--text-muted)' },
-  { id: 'red',     label: 'Koralowy',    bg: '#5c1414',               border: '#9b2626',         dot: '#ef4444', text: '#fecaca',              textSub: '#fca5a5',               tagBg: 'rgba(239,68,68,0.2)',    tagText: '#fca5a5' },
-  { id: 'orange',  label: 'Pomarańczowy',bg: '#5c2a0e',               border: '#9a3412',         dot: '#f97316', text: '#fed7aa',              textSub: '#fdba74',               tagBg: 'rgba(249,115,22,0.2)',   tagText: '#fdba74' },
-  { id: 'yellow',  label: 'Żółty',       bg: '#4a3600',               border: '#92400e',         dot: '#f59e0b', text: '#fde68a',              textSub: '#fcd34d',               tagBg: 'rgba(245,158,11,0.2)',   tagText: '#fcd34d' },
-  { id: 'green',   label: 'Szałwia',     bg: '#0f3320',               border: '#166534',         dot: '#22c55e', text: '#bbf7d0',              textSub: '#86efac',               tagBg: 'rgba(34,197,94,0.15)',   tagText: '#86efac' },
-  { id: 'teal',    label: 'Teal',        bg: '#0a2e30',               border: '#115e59',         dot: '#14b8a6', text: '#99f6e4',              textSub: '#5eead4',               tagBg: 'rgba(20,184,166,0.15)', tagText: '#5eead4' },
-  { id: 'blue',    label: 'Niebieski',   bg: '#0c1f3f',               border: '#1d4ed8',         dot: '#3b82f6', text: '#bfdbfe',              textSub: '#93c5fd',               tagBg: 'rgba(59,130,246,0.15)', tagText: '#93c5fd' },
-  { id: 'indigo',  label: 'Indygo',      bg: '#1a1442',               border: '#4338ca',         dot: '#6366f1', text: '#c7d2fe',              textSub: '#a5b4fc',               tagBg: 'rgba(99,102,241,0.15)', tagText: '#a5b4fc' },
-  { id: 'purple',  label: 'Fioletowy',   bg: '#26103e',               border: '#7c3aed',         dot: '#a855f7', text: '#e9d5ff',              textSub: '#d8b4fe',               tagBg: 'rgba(168,85,247,0.15)', tagText: '#d8b4fe' },
-  { id: 'pink',    label: 'Różowy',      bg: '#3b0a22',               border: '#be185d',         dot: '#ec4899', text: '#fbcfe8',              textSub: '#f9a8d4',               tagBg: 'rgba(236,72,153,0.15)', tagText: '#f9a8d4' },
+  { id: 'default', label: 'Domyślny',    bg: 'var(--keep-bg-default)', border: 'var(--keep-border-default)', dot: '#64748b', text: 'var(--keep-text-default)', textSub: 'var(--keep-text-sub-default)', tagBg: 'var(--keep-tag-bg-default)', tagText: 'var(--keep-tag-text-default)' },
+  { id: 'red',     label: 'Koralowy',    bg: 'var(--keep-bg-red)',     border: 'var(--keep-border-red)',     dot: '#ef4444', text: 'var(--keep-text-red)',     textSub: 'var(--keep-text-sub-red)',     tagBg: 'var(--keep-tag-bg-red)',     tagText: 'var(--keep-tag-text-red)' },
+  { id: 'orange',  label: 'Pomarańczowy',bg: 'var(--keep-bg-orange)',   border: 'var(--keep-border-orange)',  dot: '#f97316', text: 'var(--keep-text-orange)',  textSub: 'var(--keep-text-sub-orange)',  tagBg: 'var(--keep-tag-bg-orange)',  tagText: 'var(--keep-tag-text-orange)' },
+  { id: 'yellow',  label: 'Żółty',       bg: 'var(--keep-bg-yellow)',   border: 'var(--keep-border-yellow)',  dot: '#f59e0b', text: 'var(--keep-text-yellow)',  textSub: 'var(--keep-text-sub-yellow)',  tagBg: 'var(--keep-tag-bg-yellow)',  tagText: 'var(--keep-tag-text-yellow)' },
+  { id: 'green',   label: 'Szałwia',     bg: 'var(--keep-bg-green)',    border: 'var(--keep-border-green)',   dot: '#22c55e', text: 'var(--keep-text-green)',   textSub: 'var(--keep-text-sub-green)',   tagBg: 'var(--keep-tag-bg-green)',   tagText: 'var(--keep-tag-text-green)' },
+  { id: 'teal',    label: 'Teal',        bg: 'var(--keep-bg-teal)',     border: 'var(--keep-border-teal)',    dot: '#14b8a6', text: 'var(--keep-text-teal)',     textSub: 'var(--keep-text-sub-teal)',     tagBg: 'var(--keep-tag-bg-teal)',     tagText: 'var(--keep-tag-text-teal)' },
+  { id: 'blue',    label: 'Niebieski',   bg: 'var(--keep-bg-blue)',     border: 'var(--keep-border-blue)',    dot: '#3b82f6', text: 'var(--keep-text-blue)',     textSub: 'var(--keep-text-sub-blue)',     tagBg: 'var(--keep-tag-bg-blue)',     tagText: 'var(--keep-tag-text-blue)' },
+  { id: 'indigo',  label: 'Indygo',      bg: 'var(--keep-bg-indigo)',   border: 'var(--keep-border-indigo)',  dot: '#6366f1', text: 'var(--keep-text-indigo)',   textSub: 'var(--keep-text-sub-indigo)',   tagBg: 'var(--keep-tag-bg-indigo)',   tagText: 'var(--keep-tag-text-indigo)' },
+  { id: 'purple',  label: 'Fioletowy',   bg: 'var(--keep-bg-purple)',   border: 'var(--keep-border-purple)',  dot: '#a855f7', text: 'var(--keep-text-purple)',   textSub: 'var(--keep-text-sub-purple)',   tagBg: 'var(--keep-tag-bg-purple)',   tagText: 'var(--keep-tag-text-purple)' },
+  { id: 'pink',    label: 'Różowy',      bg: 'var(--keep-bg-pink)',     border: 'var(--keep-border-pink)',    dot: '#ec4899', text: 'var(--keep-text-pink)',     textSub: 'var(--keep-text-sub-pink)',     tagBg: 'var(--keep-tag-bg-pink)',     tagText: 'var(--keep-tag-text-pink)' },
 ];
 
 const getColor = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
@@ -84,6 +86,7 @@ function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partia
       content: content.trim(),
       color,
       is_pinned: isPinned,
+      is_archived: false,
       tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
     });
     setTitle(''); setContent(''); setColor('default'); setTagsInput(''); setIsPinned(false);
@@ -297,6 +300,14 @@ function NoteCard({
             >
               <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
             </button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
+              className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
+              title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
+            >
+              <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
+            </button>
             <div style={{ flex: 1 }} />
             <button
               type="button"
@@ -344,7 +355,7 @@ function NoteCard({
                 day: 'numeric', month: 'short',
               })}
             </span>
-            <div className="keep-card-actions">
+             <div className="keep-card-actions">
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); onTogglePin(note); }}
@@ -352,6 +363,14 @@ function NoteCard({
                 title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
               >
                 <Pin size={11} fill={note.is_pinned ? 'currentColor' : 'none'} />
+              </button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
+                className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
+                title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
+              >
+                <Archive size={11} fill={note.is_archived ? 'currentColor' : 'none'} />
               </button>
               <button
                 type="button"
@@ -447,6 +466,7 @@ export default function Keep({ session }: { session: any }) {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive'>('notes');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [columns, setColumns] = useState(3);
 
@@ -607,6 +627,7 @@ export default function Keep({ session }: { session: any }) {
   const allTags = Array.from(new Set(notes.flatMap(n => n.tags))).sort();
 
   const filtered = notes.filter(n => {
+    const matchTab = sidebarTab === 'notes' ? !n.is_archived : !!n.is_archived;
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
@@ -614,11 +635,11 @@ export default function Keep({ session }: { session: any }) {
       n.content.toLowerCase().includes(q) ||
       n.tags.some(t => t.toLowerCase().includes(q));
     const matchTag = !activeTag || n.tags.includes(activeTag);
-    return matchSearch && matchTag;
+    return matchTab && matchSearch && matchTag;
   });
 
-  const pinned = filtered.filter(n => n.is_pinned);
-  const others = filtered.filter(n => !n.is_pinned);
+  const pinned = sidebarTab === 'notes' ? filtered.filter(n => n.is_pinned) : [];
+  const others = sidebarTab === 'notes' ? filtered.filter(n => !n.is_pinned) : filtered;
 
   const sharedGridProps = {
     onDelete: handleDelete,
@@ -676,17 +697,25 @@ export default function Keep({ session }: { session: any }) {
         {/* ── Sidebar ── */}
         <aside className="keep-sidebar">
           <button
-            className={`keep-sidebar-item ${!activeTag ? 'active' : ''}`}
-            onClick={() => setActiveTag(null)}
+            className={`keep-sidebar-item ${sidebarTab === 'notes' && !activeTag ? 'active' : ''}`}
+            onClick={() => { setSidebarTab('notes'); setActiveTag(null); }}
           >
             <CheckSquare size={15} />
-            <span>Wszystkie</span>
+            <span>Notatki</span>
           </button>
+          <button
+            className={`keep-sidebar-item ${sidebarTab === 'archive' && !activeTag ? 'active' : ''}`}
+            onClick={() => { setSidebarTab('archive'); setActiveTag(null); }}
+          >
+            <Archive size={15} />
+            <span>Archiwum</span>
+          </button>
+          <div className="keep-sidebar-separator" style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
           {allTags.map(tag => (
             <button
               key={tag}
               className={`keep-sidebar-item ${activeTag === tag ? 'active' : ''}`}
-              onClick={() => setActiveTag(t => (t === tag ? null : tag))}
+              onClick={() => { setSidebarTab('notes'); setActiveTag(t => (t === tag ? null : tag)); }}
             >
               <Tag size={13} />
               <span>{tag}</span>
@@ -704,10 +733,12 @@ export default function Keep({ session }: { session: any }) {
             </div>
           )}
 
-          {/* Composer */}
-          <div className="keep-composer-wrap">
-            <NoteComposer onSave={handleCreate} busy={busy} autoExpand={autoNewNote} />
-          </div>
+          {/* Composer (visible only in main Notes tab) */}
+          {sidebarTab === 'notes' && (
+            <div className="keep-composer-wrap">
+              <NoteComposer onSave={handleCreate} busy={busy} autoExpand={autoNewNote} />
+            </div>
+          )}
 
           {loading ? (
             <div className="keep-loading">
