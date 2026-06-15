@@ -91,12 +91,24 @@ serve(async (req) => {
       month: '2-digit',
       day: '2-digit'
     });
-    const warsawTodayStr = formatter.format(now);
-    const offset = getWarsawOffset(now);
-    const startOfDay = new Date(`${warsawTodayStr}T00:00:00${offset}`).toISOString()
-    const endOfDay = new Date(`${warsawTodayStr}T23:59:59.999${offset}`).toISOString()
+    
+    // Find Monday of the current week in Warsaw time context
+    const currentDay = now.getDay();
+    const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + daysToMonday);
+    const warsawMondayStr = formatter.format(monday);
+    
+    // Find Sunday of the next week (+13 days from Monday)
+    const sundayNext = new Date(monday);
+    sundayNext.setDate(monday.getDate() + 13);
+    const warsawSundayNextStr = formatter.format(sundayNext);
 
-    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}`, {
+    const offset = getWarsawOffset(now);
+    const startOfWeekStr = new Date(`${warsawMondayStr}T00:00:00${offset}`).toISOString()
+    const endOfNextWeekStr = new Date(`${warsawSundayNextStr}T23:59:59.999${offset}`).toISOString()
+
+    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
     if (!calRes.ok) console.error('[sync-calendar] Calendar API error:', calRes.status);
@@ -109,6 +121,17 @@ serve(async (req) => {
       end_time: e.end.dateTime || e.end.date,
       category: 'google_sync'
     }))
+
+    // First delete events in the sync window to handle modifications/deletions from Google Calendar
+    await safeExecute(
+      supabase
+        .from('vanguard_calendar')
+        .delete()
+        .eq('user_id', userId)
+        .eq('category', 'google_sync')
+        .gte('start_time', startOfWeekStr)
+        .lte('start_time', endOfNextWeekStr)
+    )
 
     if (calendarEvents.length > 0) {
       await safeExecute(

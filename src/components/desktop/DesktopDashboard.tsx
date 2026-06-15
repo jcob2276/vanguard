@@ -1271,7 +1271,11 @@ export default function DesktopDashboard({ session }) {
       if (!r.ok) throw new Error(fn);
     };
     try {
-      await Promise.all([call('sync-yazio', { userId, sync_history: true, days: 7 }), call('sync-oura', { userId })]);
+      await Promise.all([
+        call('sync-yazio', { userId, sync_history: true, days: 7 }),
+        call('sync-oura', { userId }),
+        call('sync-calendar', { userId })
+      ]);
       await Promise.all([call('sync-oura-enhanced', { userId, days: 2 }), call('sync-oura-timeseries', { userId, days: 2 })]);
       await call('sync-strava', {});
       await call('compute-daily-strain', { userId, days: 2 });
