@@ -235,7 +235,7 @@ function NoteCard({
     <div
       ref={ref}
       className={`keep-card ${editing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
-      style={{ backgroundColor: c.bg, borderColor: isDragOver ? '#6366f1' : c.border }}
+      style={editing ? {} : { backgroundColor: c.bg, borderColor: isDragOver ? '#6366f1' : c.border }}
       onClick={() => !editing && setEditing(true)}
       draggable={!editing}
       onDragStart={() => onDragStart(note.id)}
@@ -253,80 +253,80 @@ function NoteCard({
       {editing ? (
         <>
           <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
-          <div className="keep-ios-grab-handle" />
-          <input
-            autoFocus
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder="Tytuł"
-            className="keep-card-title-input"
-            style={{ color: c.text }}
-            onClick={e => e.stopPropagation()}
-          />
-          <textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            placeholder="Treść notatki…"
-            className="keep-card-content-input"
-            style={{ color: c.textSub }}
-            rows={6}
-            onClick={e => e.stopPropagation()}
-          />
-          <div className="keep-composer-tags-row" style={{ marginBottom: 8 }} onClick={e => e.stopPropagation()}>
-            <Tag size={10} className="keep-tag-icon" />
+          <div className="keep-modal-content" style={{ backgroundColor: c.bg, borderColor: c.border }} onClick={e => e.stopPropagation()}>
+            <div className="keep-ios-grab-handle" />
             <input
-              value={tagsInput}
-              onChange={e => setTagsInput(e.target.value)}
-              placeholder="Tagi…"
-              className="keep-composer-tags-input"
+              autoFocus
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Tytuł"
+              className="keep-card-title-input"
+              style={{ color: c.text }}
             />
-          </div>
-          <div className="keep-color-row" style={{ marginBottom: 10 }} onClick={e => e.stopPropagation()}>
-            {COLORS.map(col => (
-              <button
-                key={col.id}
-                type="button"
-                title={col.label}
-                onClick={e => { e.stopPropagation(); setColor(col.id); }}
-                className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
-                style={{ backgroundColor: col.dot }}
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              placeholder="Treść notatki…"
+              className="keep-card-content-input"
+              style={{ color: c.textSub }}
+              rows={6}
+            />
+            <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
+              <Tag size={10} className="keep-tag-icon" />
+              <input
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                placeholder="Tagi…"
+                className="keep-composer-tags-input"
               />
-            ))}
-          </div>
-          <div className="keep-card-edit-actions" onClick={e => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onTogglePin(note); }}
-              className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
-              title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
-            >
-              <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
-              className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
-              title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
-            >
-              <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
-            </button>
-            <div style={{ flex: 1 }} />
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onDelete(note.id); }}
-              disabled={busy}
-              className="keep-icon-btn danger"
-              title="Usuń"
-            >
-              <Trash2 size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); handleSave(); }}
-              className="keep-btn-primary small"
-            >
-              Zamknij
-            </button>
+            </div>
+            <div className="keep-color-row" style={{ marginBottom: 10 }}>
+              {COLORS.map(col => (
+                <button
+                  key={col.id}
+                  type="button"
+                  title={col.label}
+                  onClick={e => { e.stopPropagation(); setColor(col.id); }}
+                  className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
+                  style={{ backgroundColor: col.dot }}
+                />
+              ))}
+            </div>
+            <div className="keep-card-edit-actions">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onTogglePin(note); }}
+                className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
+                title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
+              >
+                <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
+              </button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
+                className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
+                title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
+              >
+                <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
+              </button>
+              <div style={{ flex: 1 }} />
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onDelete(note.id); }}
+                disabled={busy}
+                className="keep-icon-btn danger"
+                title="Usuń"
+              >
+                <Trash2 size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); handleSave(); }}
+                className="keep-btn-primary small"
+              >
+                Zamknij
+              </button>
+            </div>
           </div>
         </>
       ) : (
