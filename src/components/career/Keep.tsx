@@ -5,15 +5,19 @@ import {
   ArrowLeft,
   CheckSquare,
   Grid3X3,
+  Highlighter,
   Image,
   LayoutList,
   Loader2,
   Pin,
   Plus,
+  Quote,
   Search,
+  Strikethrough,
   Table2,
   Tag,
   Trash2,
+  Underline,
   X,
   Archive,
 } from 'lucide-react';
@@ -69,7 +73,7 @@ function FloatingToolbar({
 }: {
   range: Range;
   onAction: (action: string) => void;
-  activeState: { bold: boolean; italic: boolean; h1: boolean; list: boolean };
+  activeState: { bold: boolean; italic: boolean; h1: boolean; list: boolean; underline: boolean; strikethrough: boolean; blockquote: boolean };
 }) {
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
@@ -165,7 +169,8 @@ function RichEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [toolbarRange, setToolbarRange] = useState<Range | null>(null);
-  const [activeState, setActiveState] = useState({ bold: false, italic: false, h1: false, list: false });
+  const [activeState, setActiveState] = useState({ bold: false, italic: false, h1: false, list: false, underline: false, strikethrough: false, blockquote: false });
+  const staticBarRef = useRef<HTMLDivElement>(null);
   // Saved selection before toolbar action steals focus
   const savedSelectionRef = useRef<{ range: Range } | null>(null);
 
@@ -174,6 +179,31 @@ function RichEditor({
       editorRef.current.innerHTML = value;
     }
   }, [value]);
+
+  // Pin formatting bar above keyboard on mobile (iOS visualViewport API)
+  useEffect(() => {
+    if (!showStaticBar) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const reposition = () => {
+      const bar = staticBarRef.current;
+      if (!bar) return;
+      const keyboardH = window.innerHeight - (vv.offsetTop + vv.height);
+      if (keyboardH > 50) {
+        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:0;right:0;z-index:99999;margin:0;border-radius:0;width:100%;padding:0 12px;`;
+        bar.classList.add('kb-open');
+      } else {
+        bar.style.cssText = '';
+        bar.classList.remove('kb-open');
+      }
+    };
+    vv.addEventListener('resize', reposition);
+    vv.addEventListener('scroll', reposition);
+    return () => {
+      vv.removeEventListener('resize', reposition);
+      vv.removeEventListener('scroll', reposition);
+    };
+  }, [showStaticBar]);
 
   const handleInput = () => {
     if (editorRef.current) {
@@ -195,7 +225,10 @@ function RichEditor({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
         h1: document.queryCommandValue('formatBlock') === 'h1',
-        list: false
+        list: false,
+        underline: document.queryCommandState('underline'),
+        strikethrough: document.queryCommandState('strikeThrough'),
+        blockquote: document.queryCommandValue('formatBlock') === 'blockquote',
       });
     } else {
       setToolbarRange(null);
@@ -292,6 +325,27 @@ function RichEditor({
         '</tr>' +
         '</tbody></table><p><br></p>';
       insertHTML(tableHtml);
+    } else if (action === 'underline') {
+      restoreSelection();
+      document.execCommand('underline', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'strikethrough') {
+      restoreSelection();
+      document.execCommand('strikeThrough', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'highlight') {
+      restoreSelection();
+      document.execCommand('hiliteColor', false, '#fef08a');
+      handleInput();
+      handleSelection();
+    } else if (action === 'blockquote') {
+      restoreSelection();
+      const isBlockquote = document.queryCommandValue('formatBlock') === 'blockquote';
+      document.execCommand('formatBlock', false, isBlockquote ? '<p>' : '<blockquote>');
+      handleInput();
+      handleSelection();
     } else if (action === 'image') {
       imageInputRef.current?.click();
     }
@@ -394,7 +448,7 @@ function RichEditor({
           
           const newTextSpan = newTodo.querySelector('.keep-todo-text') as HTMLElement;
           if (newTextSpan) {
-            newTextSpan.focus();
+            editorRef.current?.focus();
             const r = document.createRange();
             if (newTextSpan.firstChild) {
               r.setStart(newTextSpan.firstChild, 0);
@@ -521,8 +575,8 @@ function RichEditor({
       )}
       {/* Static always-visible formatting bar — Apple Notes style */}
       {showStaticBar && (
-        <div className="keep-static-bar">
-          {/* Text formatting group */}
+        <div className="keep-static-bar" ref={staticBarRef}>
+          {/* Text style group — iOS Notes Aa order */}
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('bold'); }}
@@ -541,16 +595,40 @@ function RichEditor({
           </button>
           <button
             type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('underline'); }}
+            className={`keep-static-btn ${activeState.underline ? 'active' : ''}`}
+            title="Podkreślenie"
+          >
+            <Underline size={18} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('strikethrough'); }}
+            className={`keep-static-btn ${activeState.strikethrough ? 'active' : ''}`}
+            title="Przekreślenie"
+          >
+            <Strikethrough size={18} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('h1'); }}
             className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
             title="Nagłówek"
           >
             <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '-0.02em', lineHeight: 1 }}>H1</span>
           </button>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('blockquote'); }}
+            className={`keep-static-btn ${activeState.blockquote ? 'active' : ''}`}
+            title="Cytat"
+          >
+            <Quote size={18} strokeWidth={2} />
+          </button>
 
           <div className="keep-static-sep" />
 
-          {/* Block element group */}
+          {/* Block elements group */}
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('todo'); }}
@@ -570,7 +648,15 @@ function RichEditor({
 
           <div className="keep-static-sep" />
 
-          {/* Attachments */}
+          {/* Media & highlight group */}
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('highlight'); }}
+            className="keep-static-btn"
+            title="Zaznacz tekst"
+          >
+            <Highlighter size={18} strokeWidth={2} />
+          </button>
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('image'); }}

@@ -853,33 +853,36 @@
 }
 
 @media (max-width: 640px) {
+  /* Full-screen iOS Notes style editing */
   .keep-modal-content {
-    top: auto !important;
+    top: 0 !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     transform: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    border-radius: 24px 24px 0 0 !important;
-    animation: keep-sheet-slide-up 0.32s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
-    max-height: 92vh !important;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3) !important;
-    padding: 16px 20px 32px !important;
+    border-radius: 0 !important;
+    animation: keep-modal-fadein 0.22s ease-out forwards !important;
+    max-height: 100dvh !important;
+    box-shadow: none !important;
+    padding: max(env(safe-area-inset-top), 14px) 20px max(env(safe-area-inset-bottom), 20px) !important;
   }
 
   .keep-ios-grab-handle {
-    display: block;
-    width: 36px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 99px;
-    margin: 0 auto 16px;
+    display: none !important;
   }
 
-  :root:not(.dark) .keep-ios-grab-handle {
-    background: rgba(15, 23, 42, 0.15);
+  /* Spacer at bottom so content doesn't go under the fixed bar */
+  .keep-card-content-input,
+  .keep-rich-editor {
+    padding-bottom: 64px;
   }
+}
+
+@keyframes keep-modal-fadein {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
 }
 .keep-card.drag-over {
   border-color: #6366f1 !important;
@@ -1176,7 +1179,7 @@
 }
 
 .keep-rich-editor .keep-todo-text, .keep-card-content .keep-todo-text {
-  flex-1: 1;
+  flex: 1;
 }
 
 .keep-rich-editor .keep-todo-text.completed, .keep-card-content .keep-todo-text.completed {
@@ -1298,7 +1301,57 @@
   flex-shrink: 0;
 }
 
+/* ── Keyboard-pinned bar (iOS visualViewport) ────────────────── */
+.keep-static-bar.kb-open {
+  background: rgba(249, 249, 251, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.06) !important;
+  height: 54px !important;
+}
+.dark .keep-static-bar.kb-open {
+  background: rgba(28, 28, 30, 0.92) !important;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08) !important;
+}
+.keep-static-bar.kb-open .keep-static-btn {
+  color: #1c1c1e;
+}
+.dark .keep-static-bar.kb-open .keep-static-btn {
+  color: rgba(255, 255, 255, 0.82);
+}
 
+/* ── Blockquote ──────────────────────────────────────────────── */
+.keep-rich-editor blockquote,
+.keep-card-content blockquote {
+  border-left: 3px solid var(--primary);
+  margin: 10px 0;
+  padding: 4px 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* ── Highlight ───────────────────────────────────────────────── */
+.keep-rich-editor [style*="background-color: rgb(254, 240, 138)"],
+.keep-rich-editor [style*="background-color: rgb(254, 240, 138)"] *,
+.keep-card-content [style*="background-color: rgb(254, 240, 138)"],
+.keep-card-content [style*="background-color: rgb(254, 240, 138)"] * {
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* In dark mode, switch yellow to a visible dark-mode highlight */
+.dark .keep-rich-editor [style*="background-color: rgb(254, 240, 138)"],
+.dark .keep-card-content [style*="background-color: rgb(254, 240, 138)"] {
+  background-color: rgba(234, 179, 8, 0.35) !important;
+  color: inherit !important;
+}
+
+/* ── Underline / strikethrough keep colors ───────────────────── */
+.keep-rich-editor u, .keep-card-content u { text-decoration: underline; }
+.keep-rich-editor s, .keep-rich-editor strike,
+.keep-card-content s, .keep-card-content strike { text-decoration: line-through; }
 
 .keep-rich-editor .keep-table,
 .keep-card-content .keep-table {
