@@ -773,10 +773,83 @@
   transform: translateY(-2px);
 }
 .keep-card.editing {
-  cursor: default;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-  z-index: 10;
-  transform: none;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: calc(100% - 32px) !important;
+  max-width: 500px !important;
+  height: auto !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  cursor: default !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35) !important;
+  animation: keep-modal-scale-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  padding: 20px !important;
+}
+
+.keep-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 9990;
+  cursor: pointer;
+  animation: keep-fade-in 0.22s ease-out forwards;
+}
+
+.keep-ios-grab-handle {
+  display: none;
+}
+
+@keyframes keep-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes keep-modal-scale-up {
+  from { transform: translate(-50%, -40%) scale(0.96); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes keep-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .keep-card.editing {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    animation: keep-sheet-slide-up 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+    max-height: 92vh !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3) !important;
+    padding: 16px 20px 32px !important;
+  }
+  
+  .keep-ios-grab-handle {
+    display: block;
+    width: 36px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 99px;
+    margin: 0 auto 16px;
+  }
+  
+  :root:not(.dark) .keep-ios-grab-handle {
+    background: rgba(15, 23, 42, 0.15);
+  }
 }
 .keep-card.drag-over {
   border-color: #6366f1 !important;

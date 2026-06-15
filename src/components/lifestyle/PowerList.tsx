@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
+import { Check, CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
 import { listTodoItems, updateTodoItem } from '../../lib/todo';
 import type { TablesUpdate } from '../../lib/database.types';
 
@@ -290,26 +290,26 @@ export default function PowerList({ session, todayWin, onUpdate }) {
               <button
                 key={i}
                 onClick={() => toggleTask(i)}
-                className={`group flex w-full cursor-pointer items-center justify-between rounded-[20px] border p-4 transition-all hover:-translate-y-0.5 ${
+                className={`group flex w-full cursor-pointer items-center justify-between rounded-[20px] border p-4 transition-all duration-200 active:scale-[0.98] ${
                   done
                     ? 'border-border-custom bg-surface/30 opacity-60 shadow-none'
-                    : 'border-border-custom bg-surface shadow-sm hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'
+                    : 'border-border-custom bg-surface shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'
                 }`}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-4 text-left">
                   <div
                     className={`flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
                       done
-                        ? 'border-dayC bg-dayC text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)]'
-                        : 'border-border-custom bg-surface-solid text-transparent group-hover:border-primary/40'
+                        ? 'border-dayC bg-dayC text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] scale-100'
+                        : 'border-border-custom bg-surface-solid text-transparent scale-95 group-hover:border-primary/40 group-active:scale-90'
                     }`}
                   >
-                    <CheckSquare size={13} fill={done ? 'currentColor' : 'none'} />
+                    <Check size={11} strokeWidth={3} className={`transition-transform duration-300 ${done ? 'scale-100' : 'scale-0'}`} />
                   </div>
                   <div className="min-w-0">
                     <p
-                      className={`text-[13px] font-semibold tracking-normal transition-all ${
-                        done ? 'text-text-muted line-through' : 'text-text-primary'
+                      className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${
+                        done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'
                       }`}
                     >
                       {task}

@@ -252,6 +252,8 @@ function NoteCard({
 
       {editing ? (
         <>
+          <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
+          <div className="keep-ios-grab-handle" />
           <input
             autoFocus
             value={title}
