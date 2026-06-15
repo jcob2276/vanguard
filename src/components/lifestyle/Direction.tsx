@@ -780,7 +780,7 @@ export default function Direction({ session }: { session: Session }) {
             </div>
 
             {/* Weekly Board Column Grid */}
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent">
+            <div className="space-y-3.5 pb-4">
               {DAYS_PL.map((dayLabel, i) => {
                 const dayDate = addDays(planWeekStart, i);
                 const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -789,18 +789,37 @@ export default function Direction({ session }: { session: Session }) {
                 const dayEvents = allCalEvents.filter((e) => 
                   new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
                 );
-                const dayLogs = habitLogs.filter((l) => l.date === dayKey);
+
+                const hasWins = dayWin && [0, 1, 2, 3, 4].some(slotIdx => dayWin[`task_${slotIdx + 1}`]);
+                const hasContent = dayEvents.length > 0 || hasWins;
+
+                if (!hasContent) {
+                  return (
+                    <div 
+                      key={i} 
+                      className={`flex items-center justify-between rounded-2xl border px-4 py-2.5 transition-all ${
+                        isToday ? 'border-primary/40 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[11px] font-black uppercase tracking-wider w-8 ${isToday ? 'text-primary' : 'text-text-muted'}`}>{dayLabel}</span>
+                        <span className="text-[10px] font-bold text-text-muted">{format(dayDate, 'd MMM', { locale: pl })}</span>
+                      </div>
+                      <span className="text-[9px] text-text-muted/40 font-bold uppercase tracking-wider">Brak planów</span>
+                    </div>
+                  );
+                }
 
                 return (
                   <div 
                     key={i} 
-                    className={`min-w-[260px] max-w-[280px] flex-1 flex flex-col rounded-[24px] border bg-surface p-4 shadow-sm transition-all ${
-                      isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom bg-surface'
+                    className={`flex flex-col rounded-[22px] border bg-surface p-4 shadow-sm transition-all duration-300 ${
+                      isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
                     }`}
                   >
-                    <div className="flex items-center justify-between border-b border-border-custom/50 pb-2.5 mb-3">
-                      <div>
-                        <h4 className="text-[12px] font-black uppercase text-text-primary tracking-wide">
+                    <div className="flex items-center justify-between border-b border-border-custom/40 pb-2 mb-3">
+                      <div className="flex items-center gap-3">
+                        <h4 className={`text-[12px] font-black uppercase tracking-wide w-8 ${isToday ? 'text-primary' : 'text-text-primary'}`}>
                           {dayLabel}
                         </h4>
                         <span className="text-[10px] font-bold text-text-muted">
@@ -814,40 +833,36 @@ export default function Direction({ session }: { session: Session }) {
                       )}
                     </div>
 
-                    <div className="space-y-4 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                       
-                      {/* Calendar */}
-                      <div>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Calendar size={11} className="text-primary shrink-0" />
-                          <span className="text-[8px] font-black uppercase tracking-wider text-text-muted">Harmonogram</span>
-                        </div>
-                        {dayEvents.length === 0 ? (
-                          <p className="text-[10px] font-medium text-text-muted/50 pl-4">Brak wydarzeń</p>
-                        ) : (
-                          <div className="space-y-1 pl-4">
+                      {/* Calendar (only if has events) */}
+                      {dayEvents.length > 0 && (
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Calendar size={11} className="text-primary shrink-0" />
+                            <span className="text-[8px] font-black uppercase tracking-wider text-text-muted">Harmonogram</span>
+                          </div>
+                          <div className="space-y-1.5 pl-3 border-l border-border-custom/50">
                             {dayEvents.map((ev, idx) => (
                               <div key={idx} className="flex items-baseline gap-1.5 text-[10px] font-semibold text-text-secondary font-display">
-                                <span className="text-primary font-black shrink-0 text-[9px] mr-1">
+                                <span className="text-primary font-black shrink-0 text-[8.5px] mr-1">
                                   {new Date(ev.start_time).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <span className="truncate">{ev.summary}</span>
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
-
-                      {/* Daily plan */}
-                      <div>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Target size={11} className="text-emerald-500 shrink-0" />
-                          <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
                         </div>
-                        {!dayWin ? (
-                          <p className="text-[10px] font-medium text-text-muted/50 pl-4">Brak planu</p>
-                        ) : (
-                          <div className="space-y-1.5 pl-4">
+                      )}
+
+                      {/* Daily plan (only if has plan) */}
+                      {hasWins && (
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Target size={11} className="text-emerald-500 shrink-0" />
+                            <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
+                          </div>
+                          <div className="space-y-2 pl-3 border-l border-border-custom/50">
                             {[0, 1, 2, 3, 4].map((slotIdx) => {
                               const task = dayWin[`task_${slotIdx + 1}`];
                               const done = dayWin[`done_${slotIdx + 1}`];
@@ -857,50 +872,22 @@ export default function Direction({ session }: { session: Session }) {
                                 <div 
                                   key={slotIdx} 
                                   onClick={() => isInteractive && togglePowerListTask(dayWin, slotIdx)}
-                                  className={`flex items-center gap-2 text-[11px] font-medium ${isInteractive ? 'cursor-pointer' : ''}`}
+                                  className={`flex items-center gap-2 text-[11px] font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                                 >
-                                  <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all ${
+                                  <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-300 ${
                                     done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-border-custom bg-surface'
                                   }`}>
                                     {done && <Check size={8} strokeWidth={3} className="text-white" />}
                                   </div>
-                                  <span className={`truncate ${done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+                                  <span className={`truncate ${done ? 'line-through text-text-muted opacity-70' : 'text-text-primary'}`}>
                                     {task}
                                   </span>
                                 </div>
                               );
                             })}
                           </div>
-                        )}
-                      </div>
-
-                      {/* Nawyki (Ukryte na żądanie użytkownika)
-                      <div>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Zap size={11} className="text-indigo-400 shrink-0" />
-                          <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Nawyki</span>
                         </div>
-                        {dayLogs.length === 0 ? (
-                          <p className="text-[10px] font-medium text-text-muted/50 pl-4">Brak</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 pl-4">
-                            {dayLogs.map((log) => {
-                              const habit = habits.find((h) => h.id === log.habit_id);
-                              if (!habit) return null;
-                              return (
-                                <div 
-                                  key={log.id} 
-                                  title={habit.name}
-                                  className="flex h-5 w-5 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 text-[10px] font-bold border border-indigo-500/15"
-                                >
-                                  {habit.icon || 'X'}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      */}
+                      )}
 
                     </div>
                   </div>
