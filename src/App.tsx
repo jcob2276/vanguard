@@ -5,6 +5,7 @@ import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
 import Dashboard from './components/core/Dashboard';
 import { useNotifications } from './hooks/useNotifications';
+import { ErrorBoundary } from './components/core/ErrorBoundary';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
 const KeepPage = lazy(() => import('./components/career/Keep'));
@@ -57,9 +58,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
