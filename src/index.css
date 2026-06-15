@@ -245,26 +245,31 @@
 @layer components {
   .card {
     background-color: var(--surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: 1.5rem; /* 24px */
     padding: 1.5rem;
     box-shadow: var(--shadow-card);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
   }
   
   .card:hover {
     border-color: rgba(99, 102, 241, 0.15);
     box-shadow: var(--shadow-card-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+  }
+
+  .card:active {
+    transform: translateY(0) scale(0.985);
   }
 
   .glass-panel {
     background: var(--surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px) saturate(120%);
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
     border: 1px solid var(--border);
+    border-radius: 1.5rem;
   }
 
   .btn-primary {
@@ -274,18 +279,18 @@
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     border-radius: 1rem; /* 16px */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.25);
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.2);
   }
   
   .btn-primary:hover {
     background-color: var(--color-primary-hover);
-    box-shadow: 0 6px 18px 0 rgba(79, 70, 229, 0.35);
+    box-shadow: 0 6px 18px 0 rgba(79, 70, 229, 0.3);
     transform: translateY(-1px);
   }
   
   .btn-primary:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.97);
   }
 
   .btn-outline {
@@ -296,13 +301,18 @@
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     border-radius: 1rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   }
   
   .btn-outline:hover {
     background-color: var(--surface-solid);
     border-color: rgba(99, 102, 241, 0.25);
     color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  .btn-outline:active {
+    transform: translateY(0) scale(0.97);
   }
 
   .input {

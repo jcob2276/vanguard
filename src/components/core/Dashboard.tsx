@@ -467,10 +467,11 @@ export default function Dashboard({ session }) {
       <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
         {/* Sliding background indicator pill */}
         <div 
-          className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)"
+          className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"
           style={{
             width: 'calc(25% - 3px)',
             left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
+            transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         />
         {navItems.map((item) => (
