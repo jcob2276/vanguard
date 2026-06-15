@@ -474,15 +474,20 @@ export default function Keep({ session }: { session: any }) {
   useEffect(() => {
     function update() {
       const w = window.innerWidth;
-      if (w < 640) setColumns(1);
-      else if (w < 900) setColumns(2);
-      else if (w < 1300) setColumns(3);
-      else setColumns(4);
+      if (w < 640) {
+        setColumns(viewMode === 'grid' ? 2 : 1);
+      } else if (w < 900) {
+        setColumns(2);
+      } else if (w < 1300) {
+        setColumns(3);
+      } else {
+        setColumns(4);
+      }
     }
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, []);
+  }, [viewMode]);
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
