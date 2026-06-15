@@ -1226,7 +1226,63 @@
   color: white;
 }
 
-/* ── Tables ─────────────────────────────────────────────────── */
+/* ── Static formatting bar (always visible in edit mode) ────── */
+
+.keep-static-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+:root:not(.dark) .keep-static-bar {
+  background: rgba(248, 250, 252, 0.85);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.keep-static-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+
+.keep-static-btn:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+}
+
+.keep-static-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.keep-static-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+:root:not(.dark) .keep-static-sep {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+
 
 .keep-rich-editor .keep-table,
 .keep-card-content .keep-table {

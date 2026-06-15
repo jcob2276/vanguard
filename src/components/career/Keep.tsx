@@ -152,13 +152,15 @@ function RichEditor({
   onChange,
   placeholder,
   className = '',
-  style = {}
+  style = {},
+  showStaticBar = false,
 }: {
   value: string;
   onChange: (html: string) => void;
   placeholder: string;
   className?: string;
   style?: React.CSSProperties;
+  showStaticBar?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -362,12 +364,41 @@ function RichEditor({
           {placeholder}
         </span>
       )}
+      {/* Floating selection toolbar */}
       {toolbarRange && (
         <FloatingToolbar
           range={toolbarRange}
           onAction={handleAction}
           activeState={activeState}
         />
+      )}
+      {/* Static always-visible formatting bar */}
+      {showStaticBar && (
+        <div className="keep-static-bar">
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('bold'); }} className={`keep-static-btn ${activeState.bold ? 'active' : ''}`} title="Pogrubienie (Ctrl+B)">
+            <span style={{ fontWeight: 700, fontSize: 12 }}>B</span>
+          </button>
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('italic'); }} className={`keep-static-btn ${activeState.italic ? 'active' : ''}`} title="Kursywa (Ctrl+I)">
+            <span style={{ fontStyle: 'italic', fontSize: 12 }}>I</span>
+          </button>
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('h1'); }} className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`} title="Nagłówek">
+            <span style={{ fontWeight: 900, fontSize: 10 }}>H1</span>
+          </button>
+          <div className="keep-static-sep" />
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('todo'); }} className="keep-static-btn" title="Dodaj zadanie (checklist)">
+            <CheckSquare size={13} />
+            <span style={{ fontSize: 10, marginLeft: 3 }}>Zadanie</span>
+          </button>
+          <div className="keep-static-sep" />
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('table'); }} className="keep-static-btn" title="Wstaw tabelę">
+            <Table2 size={13} />
+            <span style={{ fontSize: 10, marginLeft: 3 }}>Tabela</span>
+          </button>
+          <button type="button" onMouseDown={e => { e.preventDefault(); handleAction('image'); }} className="keep-static-btn" title="Wstaw zdjęcie">
+            <Image size={13} />
+            <span style={{ fontSize: 10, marginLeft: 3 }}>Zdjęcie</span>
+          </button>
+        </div>
       )}
     </div>
   );
@@ -446,6 +477,7 @@ function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partia
             placeholder="Utwórz notatkę…"
             className="keep-composer-content"
             style={{ color: c.textSub }}
+            showStaticBar
           />
           <div className="keep-composer-tags-row">
             <Tag size={11} className="keep-tag-icon" />
@@ -576,6 +608,7 @@ function NoteCard({
               placeholder="Treść notatki…"
               className="keep-card-content-input"
               style={{ color: c.textSub }}
+              showStaticBar
             />
             <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
               <Tag size={10} className="keep-tag-icon" />
