@@ -1,8 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Briefcase,
   Calendar,
+  FolderKanban,
   CheckSquare,
   Clock,
   Dumbbell,
@@ -30,16 +30,17 @@ const StravaWidget = lazy(() => import('../integrations/StravaWidget'));
 const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 const Photos = lazy(() => import('../identity/Photos'));
 const Direction = lazy(() => import('../lifestyle/Direction'));
-const Career = lazy(() => import('../career/Career'));
+const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 
-const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'kariera'];
+const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'projekty'];
 
 const normalizeView = (view) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
   if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
   if (view === 'stats' || view === 'photos') return 'historia';
+  if (view === 'kariera') return 'projekty';
   return view;
 };
 
@@ -366,7 +367,7 @@ export default function Dashboard({ session }) {
     { id: 'dzis', icon: Sun, label: 'Dziś' },
     { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
     { id: 'historia', icon: Clock, label: 'Historia' },
-    { id: 'kariera', icon: Briefcase, label: 'Kariera' },
+    { id: 'projekty', icon: FolderKanban, label: 'Projekty' },
   ];
 
   return (
@@ -462,9 +463,9 @@ export default function Dashboard({ session }) {
             </Suspense>
           </div>
 
-          <div className={`p-5 pb-8 ${view === 'kariera' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'projekty' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
-              <Career session={session} />
+              <Projects session={session} />
             </Suspense>
           </div>
         </main>
