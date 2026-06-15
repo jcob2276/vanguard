@@ -14,6 +14,9 @@ import {
   Paintbrush,
   Fingerprint,
   Bookmark,
+  Flame,
+  Zap,
+  Check,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
@@ -34,6 +37,7 @@ const Direction = lazy(() => import('../lifestyle/Direction'));
 const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
+const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
@@ -213,6 +217,62 @@ function DayCounter() {
   );
 }
 
+function MorningRitualCard({ isCompleted, streak, focusIntention, onClick }) {
+  return (
+    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
+            <Zap size={10} className="text-amber-400" fill="currentColor" /> OŚWIECONY EGOIZM
+          </p>
+          <h3 className="mt-1 font-display text-[15px] font-black tracking-tight text-text-primary leading-tight">
+            Zwycięski Poranek
+          </h3>
+        </div>
+        {streak > 0 && (
+          <div className="flex items-center gap-0.5 rounded-full bg-orange-500/10 px-2 py-0.5 text-orange-500 text-[10px] font-black">
+            <Flame size={11} fill="currentColor" />
+            <span>{streak} d</span>
+          </div>
+        )}
+      </div>
+
+      <div className="my-4 border-t border-border-custom" />
+
+      {isCompleted ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-emerald-500">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10">
+              <Check size={11} strokeWidth={3} />
+            </div>
+            <span className="text-xs font-black uppercase tracking-wider">Poranek wygrany! 🏆</span>
+          </div>
+          {focusIntention && (
+            <div className="rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3">
+              <p className="text-[9px] uppercase font-bold text-text-muted">Główna intencja na dziś:</p>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-text-primary">
+                "{focusIntention}"
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-text-secondary leading-relaxed">
+            Zacznij dzień od zaprogramowania głowy. 5-10 minut, które zmienią Twój dzień.
+          </p>
+          <button
+            onClick={onClick}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
+          >
+            <Play size={10} fill="currentColor" className="ml-0.5 shrink-0" /> Rozpocznij Rytuał ⚡
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Dashboard({ session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
@@ -246,6 +306,84 @@ export default function Dashboard({ session }) {
 
   const haptics = useHaptics();
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  // Morning Ritual State
+  const [ritualDates, setRitualDates] = useState<string[]>([]);
+  const [focusIntention, setFocusIntention] = useState('');
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchMorningRitualState = async () => {
+      try {
+        const { data } = await supabase
+          .from('vanguard_preferences')
+          .select('key, value')
+          .eq('user_id', userId)
+          .in('key', ['morning_ritual_dates', 'morning_last_lights_answer']);
+        
+        if (data) {
+          const datesPref = data.find(p => p.key === 'morning_ritual_dates');
+          if (datesPref) {
+            try { setRitualDates(JSON.parse(datesPref.value)); } catch {}
+          }
+          const lastLightsPref = data.find(p => p.key === 'morning_last_lights_answer');
+          if (lastLightsPref) {
+            try {
+              const parsed = JSON.parse(lastLightsPref.value);
+              const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+              if (parsed && parsed.date === todayStr) {
+                setFocusIntention(parsed.intention);
+              } else {
+                setFocusIntention('');
+              }
+            } catch {}
+          } else {
+            setFocusIntention('');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load morning ritual state in Dashboard:', err);
+      }
+    };
+    fetchMorningRitualState();
+  }, [userId, view]);
+
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const isCompletedToday = ritualDates.includes(todayStr);
+
+  const calculateStreak = () => {
+    if (ritualDates.length === 0) return 0;
+    const sorted = [...ritualDates]
+      .map(d => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime()); // Descending
+
+    const yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    
+    const formattedDates = sorted.map(d => d.toISOString().split('T')[0]);
+    if (!formattedDates.includes(todayStr) && !formattedDates.includes(yesterdayStr)) {
+      return 0;
+    }
+
+    let streak = 0;
+    let checkDate = new Date(formattedDates[0]);
+
+    if (formattedDates[0] === yesterdayStr && !formattedDates.includes(todayStr)) {
+      checkDate = new Date(yesterdayStr);
+    }
+
+    for (let i = 0; i < formattedDates.length; i++) {
+      const expectedStr = checkDate.toISOString().split('T')[0];
+      if (formattedDates.includes(expectedStr)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const streakCount = calculateStreak();
 
   const [transitioning, setTransitioning] = useState(false);
 
@@ -407,6 +545,14 @@ export default function Dashboard({ session }) {
     );
   }
 
+  if (view === 'morning-ritual') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <MorningRitual session={session} onBack={() => { setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis'); refresh(); }} />
+      </Suspense>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -491,6 +637,15 @@ export default function Dashboard({ session }) {
           <div className={`p-5 pb-8 ${view === 'dzis' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
+              <MorningRitualCard
+                isCompleted={isCompletedToday}
+                streak={streakCount}
+                focusIntention={focusIntention}
+                onClick={() => {
+                  localStorage.setItem('vanguard_previous_view', view);
+                  setView('morning-ritual');
+                }}
+              />
               <GoalsCard session={session} />
               <CommandButton
                 icon={Dumbbell}
