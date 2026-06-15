@@ -396,13 +396,22 @@ export default function Projects({ session }: { session: any }) {
 
                     {/* Footer actions */}
                     <div className="flex items-center gap-2 pt-0.5">
-                      <button
-                        onClick={() => handleStatusCycle(project)}
-                        disabled={busy}
-                        className="rounded-full bg-surface-solid px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:text-text-primary transition-colors"
-                      >
-                        {STATUS_LABEL[project.status]} →
-                      </button>
+                      <div className="flex gap-1">
+                        {(['active', 'paused', 'done'] as const).map(s => (
+                          <button
+                            key={s}
+                            disabled={busy}
+                            onClick={() => { if (project.status !== s) run(() => updateProject(project.id, { status: s })); }}
+                            className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                              project.status === s
+                                ? 'bg-primary/15 text-primary'
+                                : 'bg-surface-solid text-text-muted hover:text-text-secondary'
+                            }`}
+                          >
+                            {STATUS_LABEL[s]}
+                          </button>
+                        ))}
+                      </div>
                       <div className="flex-1" />
                       <button
                         onClick={() => handleDelete(project.id)}

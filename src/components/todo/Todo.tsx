@@ -666,7 +666,10 @@ export default function Todo({ session, onBack }) {
   const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
 
   const allUniqueTags = useMemo(() => Array.from(new Set(openItems.flatMap(i => i.tags || []))).sort(), [openItems]);
-  const allUniqueSections = useMemo(() => sections.filter(s => openItems.some(i => i.section_id === s.id)), [sections, openItems]);
+  const allUniqueSections = useMemo(() =>
+    sections.filter(s => s.project_id || openItems.some(i => i.section_id === s.id)),
+    [sections, openItems],
+  );
 
   const projectBySection = useMemo(() =>
     Object.fromEntries(sections.filter(s => s.project_id).map(s => [s.id, projects.find(p => p.id === s.project_id)])),
