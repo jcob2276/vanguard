@@ -38,6 +38,8 @@ const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
+const Piorunochron = lazy(() => import('../lifestyle/Piorunochron'));
+const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
@@ -310,6 +312,7 @@ export default function Dashboard({ session }) {
   // Morning Ritual State
   const [ritualDates, setRitualDates] = useState<string[]>([]);
   const [focusIntention, setFocusIntention] = useState('');
+  const [isPiorunochronOpen, setIsPiorunochronOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -647,6 +650,16 @@ export default function Dashboard({ session }) {
                 }}
               />
               <GoalsCard session={session} />
+              <Suspense fallback={<ViewFallback />}>
+                <BlockTimer session={session} />
+              </Suspense>
+              <CommandButton
+                icon={Zap}
+                tone="secondary"
+                eyebrow="Napięcie / Opór"
+                label="Uruchom Piorunochron ⚡"
+                onClick={() => setIsPiorunochronOpen(true)}
+              />
               <CommandButton
                 icon={Dumbbell}
                 eyebrow="Trening"
@@ -720,6 +733,15 @@ export default function Dashboard({ session }) {
           </button>
         ))}
       </nav>
+
+      <Suspense fallback={null}>
+        <Piorunochron
+          session={session}
+          isOpen={isPiorunochronOpen}
+          onClose={() => setIsPiorunochronOpen(false)}
+          onActionAdded={refresh}
+        />
+      </Suspense>
     </div>
   );
 }
