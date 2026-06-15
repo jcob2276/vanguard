@@ -214,46 +214,87 @@ function RichEditor({
     editorRef.current?.focus();
   };
 
+  // Cross-platform HTML insertion — works on mobile where execCommand('insertHTML') fails
+  const insertHTML = (html: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) {
+        range.deleteContents();
+        try {
+          const frag = range.createContextualFragment(html);
+          const lastNode = frag.lastChild;
+          range.insertNode(frag);
+          if (lastNode) {
+            const newRange = document.createRange();
+            newRange.setStartAfter(lastNode);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+          }
+          handleInput();
+          return;
+        } catch (_) { /* fall through to innerHTML append */ }
+      }
+    }
+    // Fallback: append at end
+    editor.innerHTML += html;
+    handleInput();
+    // Move cursor to end
+    const newRange = document.createRange();
+    newRange.selectNodeContents(editor);
+    newRange.collapse(false);
+    const s = window.getSelection();
+    if (s) { s.removeAllRanges(); s.addRange(newRange); }
+  };
+
   const handleAction = (action: string) => {
-    restoreSelection();
     if (action === 'bold') {
+      restoreSelection();
       document.execCommand('bold', false);
+      handleInput();
+      handleSelection();
     } else if (action === 'italic') {
+      restoreSelection();
       document.execCommand('italic', false);
+      handleInput();
+      handleSelection();
     } else if (action === 'h1') {
+      restoreSelection();
       const isH1 = document.queryCommandValue('formatBlock') === 'h1';
       document.execCommand('formatBlock', false, isH1 ? '<p>' : '<h1>');
+      handleInput();
+      handleSelection();
     } else if (action === 'todo') {
-      document.execCommand('insertHTML', false, '<div class="keep-todo-item" contenteditable="true"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">Nowe zadanie</span></div>');
+      insertHTML('<div class="keep-todo-item"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">Nowe zadanie</span></div><p><br></p>');
     } else if (action === 'table') {
-      const tableHtml = `
-        <table class="keep-table" contenteditable="false">
-          <tbody>
-            <tr>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-            </tr>
-            <tr>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-            </tr>
-            <tr>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-              <td class="keep-td" contenteditable="true"><br></td>
-            </tr>
-          </tbody>
-        </table><p><br></p>`;
-      document.execCommand('insertHTML', false, tableHtml);
+      const tableHtml =
+        '<table class="keep-table">' +
+        '<thead><tr>' +
+        '<th class="keep-td keep-th" contenteditable="true"><br></th>' +
+        '<th class="keep-td keep-th" contenteditable="true"><br></th>' +
+        '<th class="keep-td keep-th" contenteditable="true"><br></th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+        '<tr>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '</tr>' +
+        '<tr>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '<td class="keep-td" contenteditable="true"><br></td>' +
+        '</tr>' +
+        '</tbody></table><p><br></p>';
+      insertHTML(tableHtml);
     } else if (action === 'image') {
-      // Trigger file picker
       imageInputRef.current?.click();
-      return; // don't call handleInput yet — wait for file selection
     }
-    handleInput();
-    handleSelection();
   };
 
   const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
