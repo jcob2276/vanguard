@@ -874,7 +874,7 @@ export default function Direction({ session }: { session: Session }) {
                         )}
                       </div>
 
-                      {/* Habits */}
+                      {/* Nawyki (Ukryte na żądanie użytkownika)
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <Zap size={11} className="text-indigo-400 shrink-0" />
@@ -900,6 +900,7 @@ export default function Direction({ session }: { session: Session }) {
                           </div>
                         )}
                       </div>
+                      */}
 
                     </div>
                   </div>
