@@ -388,14 +388,6 @@ export default function Dashboard({ session }) {
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
             </button>
             <button
-              onClick={syncAll}
-              disabled={isSyncingAll}
-              className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary transition-all hover:text-text-primary hover:bg-surface-solid active:scale-95 disabled:opacity-40 cursor-pointer"
-              title="Sync wszystkiego (Oura + Yazio + Strava + Strain)"
-            >
-              <RefreshCw size={15} className={isSyncingAll ? 'animate-spin text-primary' : ''} />
-            </button>
-            <button
               onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
               title="Zadania"
@@ -415,13 +407,6 @@ export default function Dashboard({ session }) {
               title="Zapisane linki"
             >
               <Bookmark size={15} />
-            </button>
-            <button
-              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('fundament'); }}
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Fundament"
-            >
-              <Fingerprint size={15} />
             </button>
             <Link
               to="/dashboard"
