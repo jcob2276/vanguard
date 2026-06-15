@@ -128,6 +128,24 @@ export async function handleIncomingMessage(
         });
       }
 
+      // --- URL / Saved Link detection ---
+      if (text && /https?:\/\/[^\s]+/.test(text)) {
+        try {
+          const { handleSavedLink } = await import("../_handlers/savedLinks.ts");
+          const handled = await handleSavedLink(
+            chatId,
+            text,
+            telegramToken,
+            deepseekApiKey,
+            vanguardUserId,
+            supabase
+          );
+          if (handled) return;
+        } catch (err) {
+          console.error('[messages] Saved link handler failed:', err);
+        }
+      }
+
       // --- Mode routing ---
       let shouldRespond = false;
       let mode = 'stream';

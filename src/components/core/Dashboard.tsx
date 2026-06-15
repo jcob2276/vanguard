@@ -13,6 +13,7 @@ import {
   Sun,
   Paintbrush,
   Fingerprint,
+  Bookmark,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
@@ -31,6 +32,7 @@ const Photos = lazy(() => import('../identity/Photos'));
 const Direction = lazy(() => import('../lifestyle/Direction'));
 const Career = lazy(() => import('../career/Career'));
 const Todo = lazy(() => import('../todo/Todo'));
+const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'historia', 'kariera'];
 
@@ -152,6 +154,10 @@ export default function Dashboard({ session }) {
     if (params.get('todo') === 'new') {
       window.history.replaceState({}, '', '/');
       return 'todo';
+    }
+    if (params.get('share_url') || params.get('share_text')) {
+      // Return 'links' and do not clear query params yet so LinksInbox can read them
+      return 'links';
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
@@ -325,6 +331,14 @@ export default function Dashboard({ session }) {
     );
   }
 
+  if (view === 'links') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <LinksInbox session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+      </Suspense>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -395,6 +409,13 @@ export default function Dashboard({ session }) {
             >
               <Paintbrush size={15} />
             </Link>
+            <button
+              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('links'); }}
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+              title="Zapisane linki"
+            >
+              <Bookmark size={15} />
+            </button>
             <button
               onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('fundament'); }}
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"

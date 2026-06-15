@@ -53,7 +53,17 @@ export default defineConfig({
             url: '/?todo=new',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
           }
-        ]
+        ],
+        share_target: {
+          action: '/',
+          method: 'GET',
+          enctype: 'application/x-www-form-urlencoded',
+          params: {
+            title: 'share_title',
+            text: 'share_text',
+            url: 'share_url'
+          }
+        }
       }
     })
   ],
