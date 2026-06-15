@@ -312,7 +312,7 @@ export default function Dashboard({ session }) {
   if (view === 'fundament') {
     return (
       <Suspense fallback={<ViewFallback />}>
-        <Fundament session={session} onBack={() => setView('mirror')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
+        <Fundament session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
       </Suspense>
     );
   }
