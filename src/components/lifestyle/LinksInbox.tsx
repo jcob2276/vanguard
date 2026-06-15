@@ -63,7 +63,7 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
 
   const saveSharedLink = async (actualUrl: string) => {
     setLoading(true);
-    setSharingStatus('Przetwarzanie udostępnionego linku przez AI...');
+    setSharingStatus('Zapisywanie udostępnionego linku...');
     try {
       const base = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
