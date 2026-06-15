@@ -1064,7 +1064,7 @@ function NoteCard({
             className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
             title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
           >
-            <Pin size={11} fill={note.is_pinned ? 'currentColor' : 'none'} />
+            <Pin size={14} fill={note.is_pinned ? 'currentColor' : 'none'} />
           </button>
           <button
             type="button"
@@ -1072,7 +1072,7 @@ function NoteCard({
             className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
             title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
           >
-            <Archive size={11} fill={note.is_archived ? 'currentColor' : 'none'} />
+            <Archive size={14} fill={note.is_archived ? 'currentColor' : 'none'} />
           </button>
           <button
             type="button"
@@ -1081,7 +1081,7 @@ function NoteCard({
             className="keep-icon-btn danger"
             title="Usuń"
           >
-            <Trash2 size={11} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>

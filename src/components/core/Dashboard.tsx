@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -18,6 +18,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useHaptics } from '../../hooks/useHaptics';
 import AIInsight from '../ai/AIInsight';
 import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
@@ -82,19 +83,43 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
   );
 }
 
-function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing }) {
-  const progress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
+function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, session }) {
+  const PROTEIN_GOAL = 150;
+  const [proteinRows, setProteinRows] = useState<{ date: string; protein: number | null }[]>([]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase
+      .from('daily_nutrition')
+      .select('date, protein')
+      .eq('user_id', session.user.id)
+      .order('date', { ascending: false })
+      .limit(7)
+      .then(({ data }) => { if (data) setProteinRows([...data].reverse()); });
+  }, [session?.user?.id]);
+
+  const todayRaw = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const caloriesProgress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
+
+  const chart = useMemo(() => {
+    const result = proteinRows.map((r) => ({
+      key: r.date,
+      label: r.date.slice(8),
+      protein: Number(r.protein || 0),
+    }));
+    if (!result.some((r) => r.key === todayRaw)) {
+      result.push({ key: todayRaw, label: todayRaw.slice(8), protein: 0 });
+    }
+    return result.slice(-7);
+  }, [proteinRows, todayRaw]);
+
+  const todayProtein = chart.find((r) => r.key === todayRaw)?.protein ?? 0;
+  const proteinPct = Math.min((todayProtein / PROTEIN_GOAL) * 100, 100);
 
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted">Yazio weekly</p>
-          <p className="mt-1 font-display text-[26px] font-black tracking-tight text-text-primary leading-none">
-            {weeklyCalories}
-            <span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">/ {weeklyBudget} kcal</span>
-          </p>
-        </div>
+        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted">Żywienie</p>
         <button
           onClick={syncYazio}
           disabled={isSyncing}
@@ -104,16 +129,57 @@ function YazioWeeklyCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing })
           <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
         </button>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-border-custom">
+
+      <p className="font-display text-[26px] font-black tracking-tight text-text-primary leading-none">
+        {weeklyCalories}
+        <span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">/ {weeklyBudget} kcal</span>
+      </p>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-border-custom">
         <div
           className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-400 shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${caloriesProgress}%` }}
         />
       </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] font-medium text-text-muted">
+      <div className="mt-2.5 flex items-center justify-between text-[10px] font-medium text-text-muted">
         <span>Tydzień</span>
-        <span className="font-bold text-text-secondary">{Math.round(progress)}% budżetu</span>
+        <span className="font-bold text-text-secondary">{Math.round(caloriesProgress)}% budżetu</span>
       </div>
+
+      <div className="my-4 border-t border-border-custom" />
+
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary font-display">Białko dzisiaj</span>
+        <span className="text-[15px] font-black text-primary font-display">{todayProtein}g</span>
+      </div>
+      <div className="mb-1.5 flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-text-muted">
+        <span>Cel {PROTEIN_GOAL}g</span>
+        <span>{Math.round(proteinPct)}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-border-custom">
+        <div
+          className="h-full rounded-full bg-primary shadow-[0_2px_8px_rgba(79,70,229,0.2)] transition-all duration-700"
+          style={{ width: `${proteinPct}%` }}
+        />
+      </div>
+      {chart.length > 0 && (
+        <div className="mt-3 grid grid-cols-7 gap-1.5">
+          {chart.map((d) => {
+            const pct = Math.min((d.protein / PROTEIN_GOAL) * 100, 100);
+            const isToday = d.key === todayRaw;
+            return (
+              <div key={d.key} className="flex h-10 flex-col justify-end gap-1">
+                <div
+                  className={`rounded-sm transition-all ${isToday ? 'bg-primary' : 'bg-primary/35 dark:bg-primary/50'}`}
+                  style={{ height: `${Math.max(pct, 6)}%` }}
+                />
+                <span className={`text-center text-[7px] font-bold ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+                  {d.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -178,20 +244,21 @@ export default function Dashboard({ session }) {
     localStorage.setItem('vanguard_theme', theme);
   }, [theme]);
 
+  const haptics = useHaptics();
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const [transitioning, setTransitioning] = useState(false);
 
   const navigateTo = useCallback((newView) => {
     if (newView === view || transitioning) return;
+    haptics.light();
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx = TAB_ORDER.indexOf(newView);
     setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
     setTransitioning(true);
     setView(newView);
-    // clear transitioning after animation finishes (380ms)
     setTimeout(() => setTransitioning(false), 400);
-  }, [view, transitioning]);
+  }, [view, transitioning, haptics]);
   const { isSyncing, setSyncing } = useStore();
   const {
     weeklyCalories,
@@ -372,7 +439,7 @@ export default function Dashboard({ session }) {
 
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-24 shadow-sm">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
             <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
@@ -427,7 +494,7 @@ export default function Dashboard({ session }) {
               <GoalsCard session={session} />
               <CommandButton
                 icon={Dumbbell}
-                eyebrow="Physical Protocol"
+                eyebrow="Trening"
                 label="Zaloguj trening"
                 onClick={() => setShowWorkoutLogger(true)}
               />
@@ -442,11 +509,12 @@ export default function Dashboard({ session }) {
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 {/* <AIInsight session={session} /> */}
-                <YazioWeeklyCard
+                <NutritionCard
                   weeklyCalories={weeklyCalories}
                   weeklyBudget={weeklyBudget}
                   syncYazio={syncYazio}
                   isSyncing={isSyncing}
+                  session={session}
                 />
                 <Direction session={session} />
               </div>
@@ -471,7 +539,7 @@ export default function Dashboard({ session }) {
         </main>
       </div>
 
-      <nav className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl">
+      <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
         {/* Sliding background indicator pill */}
         <div 
           className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"
@@ -493,7 +561,7 @@ export default function Dashboard({ session }) {
             }`}
           >
             <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-            <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
           </button>
         ))}
       </nav>

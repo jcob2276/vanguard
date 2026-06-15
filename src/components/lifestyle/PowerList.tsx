@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
 import { Check, CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
 import { listTodoItems, updateTodoItem } from '../../lib/todo';
@@ -57,6 +58,7 @@ function TodoPicker({ items, onSelect, onClose }) {
 export default function PowerList({ session, todayWin, onUpdate }) {
   const userId = session.user.id;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const haptics = useHaptics();
 
   const [newTaskForm, setNewTaskForm] = useState([
     { task: '', todoId: null },
@@ -134,7 +136,10 @@ export default function PowerList({ session, todayWin, onUpdate }) {
       .select()
       .single();
 
-    if (!error && onUpdate) onUpdate(data);
+    if (!error) {
+      newValue ? haptics.success() : haptics.light();
+      if (onUpdate) onUpdate(data);
+    }
 
     const linkedTodoId = todayWin[todoIdField];
     if (linkedTodoId) {
@@ -168,9 +173,11 @@ export default function PowerList({ session, todayWin, onUpdate }) {
       const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
       if (error) {
         console.error('[startNewDay]', error);
+        haptics.error();
         alert('Błąd startu dnia');
-      } else if (onUpdate) {
-        onUpdate(data);
+      } else {
+        haptics.success();
+        if (onUpdate) onUpdate(data);
       }
     } finally {
       setSubmitting(false);
@@ -185,7 +192,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
         </h3>
         {todayWin?.result === 'Z' && (
           <div className="rounded-full border border-dayC/15 bg-dayC/10 px-2.5 py-0.5 font-display text-[9px] font-bold text-dayC">
-            Executed
+            Dzień wygrany
           </div>
         )}
       </div>
@@ -274,7 +281,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
             disabled={submitting}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zatwierdź operację'}
+            <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
           </button>
         </div>
       ) : (

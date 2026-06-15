@@ -16,7 +16,8 @@ export function WorkoutHistorySection({
 }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-[16px] font-display font-black uppercase tracking-tight text-text-primary">Historia treningów</h2>
+      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Siłownia</p>
+      <h2 className="mt-0.5 font-display text-[18px] font-black tracking-tight text-text-primary">Historia treningów</h2>
       <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface/50 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
         <table className="w-full text-left">
           <thead>

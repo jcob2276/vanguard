@@ -255,7 +255,9 @@ serve(async (req) => {
       const recovAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.readiness_score)).filter(Boolean))
       const hrvAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.hrv_avg)).filter(Boolean))
       const sleepAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.total_sleep_hours)).filter(Boolean))
-      const saunaCount = allLogs.filter((l: any) => SAUNA_KW.test(l.exercise_name || '')).length
+      const saunaCount = workoutsByWeek[wIdx].filter((w: any) =>
+        (w.exercise_logs || []).some((l: any) => SAUNA_KW.test(l.exercise_name || ''))
+      ).length
       const hasLongRun = runs.some((a: any) => classifyRun(a) === 'Długi bieg')
       const maxRunKm = runs.length ? Math.max(...runs.map((a: any) => (a.distance || 0) / 1000)) : 0
       return { sets, km: +km.toFixed(1), strainAvg, recovAvg, hrvAvg, sleepAvg, saunaCount, hasLongRun, maxRunKm: +maxRunKm.toFixed(1), runCount: runs.length }

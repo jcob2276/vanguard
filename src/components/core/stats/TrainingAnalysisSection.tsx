@@ -2,7 +2,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
   return (
     <section className="space-y-3.5">
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-display font-black uppercase tracking-tight text-text-primary">Trener AI</h2>
+        <h2 className="font-display text-[18px] font-black tracking-tight text-text-primary">Trener AI</h2>
         <button
           onClick={analyzeTrainingLoad}
           disabled={isAnalyzingTraining}
@@ -169,21 +169,6 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <div className="flex flex-wrap gap-2">
                   {r.missing_muscles.map((m, i) => (
                     <span key={i} className="rounded-lg border border-amber-500/20 bg-surface/80 dark:bg-black/20 px-2.5 py-0.5 text-[9.5px] font-black text-amber-600 dark:text-amber-300 shadow-sm">{m}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Key insights */}
-            {r.key_insights?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Wnioski</p>
-                <div className="space-y-1.5 rounded-[20px] border border-border-custom bg-surface/30 p-4">
-                  {r.key_insights.map((insight, i) => (
-                    <div key={i} className="flex gap-2.5 items-start">
-                      <span className="shrink-0 text-[9px] font-black text-text-muted mt-0.5">{i + 1}.</span>
-                      <p className="text-[11px] text-text-secondary leading-relaxed">{insight}</p>
-                    </div>
                   ))}
                 </div>
               </div>

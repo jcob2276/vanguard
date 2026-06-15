@@ -116,108 +116,109 @@ export default function Photos({ session }) {
   }
 
   return (
-    <div className="flex-1 p-6 space-y-4 text-text-primary">
-      
-      {/* HEADER */}
-      <header className="flex justify-between items-start">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-black uppercase italic text-text-primary tracking-tighter leading-none font-display">Visual Protocol</h2>
-          <p className="text-[9px] text-primary font-black uppercase tracking-[0.3em]">Transformacja Fizyczna</p>
-        </div>
-        <label className="cursor-pointer bg-surface border border-border-custom text-text-primary p-3 rounded-2xl hover:bg-primary hover:border-primary hover:text-white transition-all shadow-sm">
-          {uploading ? <div className="animate-spin h-5 w-5 border-2 border-text-muted/30 border-t-primary rounded-full" /> : <Camera size={20} />}
-          <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
-        </label>
-      </header>
+    <div className="space-y-4 text-text-primary">
 
-      {/* COMPARISON ENGINE */}
-      <section className="space-y-6">
-        <div className="relative aspect-[4/5] bg-surface-solid border border-border-custom rounded-[2rem] overflow-hidden shadow-md">
-          {/* Comparison Layer */}
+      {/* Card: Header + Comparison */}
+      <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
+        <div className="flex items-start justify-between px-5 pt-5 pb-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Postęp sylwetki</p>
+            <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Transformacja</h2>
+          </div>
+          <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-white shadow-sm">
+            {uploading ? <div className="animate-spin h-4 w-4 border-2 border-text-muted/30 border-t-primary rounded-full" /> : <Camera size={17} />}
+            <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
+          </label>
+        </div>
+
+        {/* Comparison */}
+        <div className="relative aspect-[4/5] bg-surface-solid border-t border-border-custom overflow-hidden">
           <div className="absolute inset-0 flex">
-            {/* Base (Left) */}
-            <div className="relative flex-1 border-r border-border-custom group overflow-hidden">
+            {/* Baza (Left) */}
+            <div className="relative flex-1 border-r border-border-custom overflow-hidden">
               {basePhoto ? (
                 <>
                   <img src={basePhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 left-4 bg-surface/80 backdrop-blur-md px-3 py-1 rounded-full border border-border-custom shadow-sm">
-                    <p className="text-[8px] font-black text-text-secondary uppercase tracking-widest">Base: {format(parseISO(basePhoto.date), 'dd.MM.yy')}</p>
+                    <p className="text-[9px] font-black text-text-secondary uppercase tracking-widest">Baza: {format(parseISO(basePhoto.date), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full text-[10px] font-black text-text-muted uppercase italic">Wybierz bazę</div>
+                <div className="flex items-center justify-center h-full text-[10px] font-black text-text-muted uppercase">Wybierz bazę</div>
               )}
             </div>
 
-            {/* Target (Right) */}
-            <div className="relative flex-1 group overflow-hidden">
+            {/* Cel (Right) */}
+            <div className="relative flex-1 overflow-hidden">
               {targetPhoto ? (
                 <>
                   <img src={targetPhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 right-4 bg-primary/10 backdrop-blur-md px-3 py-1 rounded-full border border-primary/25">
-                    <p className="text-[8px] font-black text-primary uppercase tracking-widest">Target: {format(parseISO(targetPhoto.date), 'dd.MM.yy')}</p>
+                    <p className="text-[9px] font-black text-primary uppercase tracking-widest">Cel: {format(parseISO(targetPhoto.date), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full text-[10px] font-black text-text-muted uppercase italic">Wybierz cel</div>
+                <div className="flex items-center justify-center h-full text-[10px] font-black text-text-muted uppercase">Wybierz cel</div>
               )}
             </div>
           </div>
 
-          {/* Center Badge */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none">
-            <div className="bg-surface/90 backdrop-blur-xl border border-border-custom w-12 h-12 rounded-full flex items-center justify-center shadow-md">
-              <span className="text-[10px] font-black text-text-primary italic">VS</span>
+          {/* VS Badge */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="bg-surface/90 backdrop-blur-xl border border-border-custom w-11 h-11 rounded-full flex items-center justify-center shadow-md">
+              <span className="text-[10px] font-black text-text-primary">VS</span>
             </div>
           </div>
 
-          {/* Bottom Metric */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-white px-6 py-2 rounded-full shadow-lg shadow-primary/20">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">+{daysDiff} Dni Progresu</p>
-          </div>
+          {/* Dni Progresu Badge */}
+          {daysDiff > 0 && (
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-primary text-white px-5 py-1.5 rounded-full shadow-lg shadow-primary/25">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] whitespace-nowrap">+{daysDiff} dni postępu</p>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
 
-      {/* TIMELINE (Interactive Selection) */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Timeline</h3>
-          <p className="text-[8px] font-bold text-text-muted uppercase">Kliknij aby zestawić</p>
+      {/* Oś czasu */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Oś czasu</p>
+          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Dotknij by zestawić</p>
         </div>
-        
-        <div className="flex gap-4 overflow-x-auto pb-6 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {photos.map((photo) => {
             const isBase = photo.id === baseId;
             const isTarget = photo.id === targetId;
 
             return (
               <div key={photo.id} className="snap-start shrink-0 space-y-2">
-                <button 
+                <button
                   onClick={() => handleSelect(photo.id)}
-                  className={`relative w-24 aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-500 cursor-pointer ${isBase ? 'border-primary scale-105 z-10 shadow-sm' : isTarget ? 'border-primary/60 scale-105 z-10 shadow-md shadow-primary/10' : 'border-border-custom opacity-50 hover:opacity-100'}`}
+                  className={`relative w-[88px] aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer ${isBase ? 'border-primary scale-[1.04] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[1.04] shadow-sm' : 'border-border-custom opacity-50 hover:opacity-80'}`}
                 >
-                  <img src={photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget && 'grayscale hover:grayscale-0'}`} />
+                  <img src={photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
                   {(isBase || isTarget) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]">
-                      <span className="text-[9px] font-black text-white uppercase bg-black/55 px-2 py-1 rounded border border-white/10">
-                        {isBase ? 'BASE' : 'TARGET'}
+                    <div className="absolute inset-0 flex items-end justify-center pb-2">
+                      <span className="text-[8px] font-black text-white uppercase bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10">
+                        {isBase ? 'Baza' : 'Cel'}
                       </span>
                     </div>
                   )}
                 </button>
-                <div className="flex justify-between items-center px-1">
-                  <span className={`text-[8px] font-black ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
+                <div className="flex justify-between items-center px-0.5">
+                  <span className={`text-[9px] font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
                     {format(parseISO(photo.date), 'dd.MM')}
                   </span>
-                  <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="text-text-muted hover:text-red-500 transition-colors p-1 rounded hover:bg-red-500/5 cursor-pointer">
-                    <Trash2 size={10} />
+                  <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded-lg hover:bg-rose-500/5 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
+                    <Trash2 size={11} />
                   </button>
                 </div>
               </div>
             );
           })}
         </div>
-      </section>
+      </div>
 
     </div>
   );

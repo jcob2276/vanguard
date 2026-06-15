@@ -4,9 +4,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Circle,
   FolderKanban,
-  ListTodo,
   Plus,
   Repeat2,
   Trash2,
@@ -158,8 +156,27 @@ export default function Projects({ session }: { session: any }) {
   };
 
   const filtered = useMemo(() =>
-    projects.filter(p => p.status === statusFilter),
-    [projects, statusFilter],
+    projects
+      .filter(p => p.status === statusFilter)
+      .sort((a, b) => {
+        const sa = stats[a.id];
+        const sb = stats[b.id];
+        if (!sa || !sb) return 0;
+        // overdue first (most negative daysLeft)
+        const aOverdue = sa.daysLeft !== null && sa.daysLeft < 0;
+        const bOverdue = sb.daysLeft !== null && sb.daysLeft < 0;
+        if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+        if (aOverdue && bOverdue) return (sa.daysLeft ?? 0) - (sb.daysLeft ?? 0);
+        // then slipping
+        if (sa.slipping !== sb.slipping) return sa.slipping ? -1 : 1;
+        // then closest deadline
+        if (sa.daysLeft !== null && sb.daysLeft !== null) return sa.daysLeft - sb.daysLeft;
+        if (sa.daysLeft !== null) return -1;
+        if (sb.daysLeft !== null) return 1;
+        // fallback: alphabetical
+        return a.name.localeCompare(b.name);
+      }),
+    [projects, statusFilter, stats],
   );
 
   if (loading) return (
@@ -227,7 +244,7 @@ export default function Projects({ session }: { session: any }) {
             disabled={busy || !form.name.trim()}
             className="w-full rounded-[12px] bg-primary py-2.5 text-[13px] font-semibold text-white disabled:opacity-40 hover:bg-primary-hover transition-colors"
           >
-            Utwórz projekt + sekcję w Todo
+            Utwórz projekt i sekcję w Zadaniach
           </button>
         </div>
       )}
@@ -280,12 +297,17 @@ export default function Projects({ session }: { session: any }) {
                         <span className="text-[15px] font-semibold text-text-primary leading-tight">{project.name}</span>
                         {s.slipping && (
                           <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                            <AlertTriangle size={9} /> Slipuje
+                            <AlertTriangle size={9} /> Slipuje {s.daysSince}d
                           </span>
                         )}
                       </div>
                       {project.goal && (
                         <p className="mt-0.5 text-[12px] text-text-muted line-clamp-1">{project.goal}</p>
+                      )}
+                      {!isExpanded && s.openItems[0] && (
+                        <p className="mt-1 text-[11px] text-text-muted/60 line-clamp-1">
+                          → {s.openItems[0].title}
+                        </p>
                       )}
                     </div>
                     <div className="shrink-0 flex items-center gap-2">

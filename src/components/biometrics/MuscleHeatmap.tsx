@@ -227,8 +227,8 @@ export default function MuscleHeatmap({ session }) {
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Mapa mięśni</p>
-            <p className="mt-1 text-sm font-black text-text-primary font-display">Co trenowałeś</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Mapa mięśni</p>
+            <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Co trenowałeś</h2>
           </div>
           <div className="flex shrink-0 gap-1">
             {PERIODS.map(p => (
@@ -241,7 +241,7 @@ export default function MuscleHeatmap({ session }) {
                     : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
                 }`}
               >
-                {p.label}
+                {p.label.toUpperCase()}
               </button>
             ))}
           </div>
@@ -259,7 +259,7 @@ export default function MuscleHeatmap({ session }) {
             </div>
             {neglected.length > 0 && (
               <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border-custom bg-surface px-3 py-2 shadow-sm">
-                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Braki</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Zaniedbane</span>
                 <span className="truncate text-[11px] font-bold capitalize text-text-secondary">{neglected.join(', ')}</span>
               </div>
             )}
@@ -289,12 +289,12 @@ export default function MuscleHeatmap({ session }) {
 
           {/* Ranked legend */}
           {ranked.length > 0 ? (
-            <div className="space-y-2.5 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
+            <div className="space-y-3 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
-                <div key={tag} className="grid grid-cols-[86px_1fr_76px] items-center gap-3">
-                  <span className="flex min-w-0 items-center gap-2 text-[10px] font-black capitalize text-text-secondary">
+                <div key={tag} className="grid grid-cols-[90px_1fr_72px] items-center gap-3">
+                  <span className="flex min-w-0 items-center gap-2 text-[11px] font-black capitalize text-text-secondary">
                     <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: tagColor(tag), boxShadow: `0 0 8px ${tagColor(tag)}` }}
                     />
                     <span className="truncate">{tag}</span>
@@ -310,11 +310,11 @@ export default function MuscleHeatmap({ session }) {
                     />
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] font-black tabular-nums text-text-muted">
+                    <div className="text-[11px] font-black tabular-nums text-text-secondary">
                       {formatSetCount(setsByTag[tag] ?? 0)} eff
                     </div>
-                    <div className="text-[8px] font-black tabular-nums text-text-muted/70">
-                      {formatSetCount(directByTag[tag] ?? 0)} bezp · {formatSetCount(indirectByTag[tag] ?? 0)} pośr
+                    <div className="text-[9px] font-bold tabular-nums text-text-muted/70">
+                      {formatSetCount(directByTag[tag] ?? 0)}b · {formatSetCount(indirectByTag[tag] ?? 0)}p
                     </div>
                   </div>
                 </div>
@@ -323,7 +323,7 @@ export default function MuscleHeatmap({ session }) {
                 <div className="flex flex-wrap gap-1.5 border-t border-border-custom pt-3">
                   <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
                   {neglected.map(tag => (
-                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-0.5 text-[9px] font-black capitalize text-text-secondary shadow-sm">
+                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-[10px] font-bold capitalize text-text-secondary shadow-sm">
                       {tag}
                     </span>
                   ))}

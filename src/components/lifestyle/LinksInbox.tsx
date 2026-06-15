@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Inbox,
   ListTodo,
+  PenLine,
   StickyNote,
   Trash2,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface SavedLink {
   title: string;
   description: string;
   takeaways: string[];
+  notes: string;
   category: string;
   domain: string;
   status: 'unread' | 'read';
@@ -50,6 +52,8 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
+  const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -116,6 +120,20 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
     const { error } = await (supabase as any)
       .from('vanguard_links').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
     if (error) fetchLinks();
+  };
+
+  const saveNotes = async (id: string) => {
+    const draft = notesDrafts[id];
+    if (draft === undefined) return;
+    const link = links.find(l => l.id === id);
+    if (!link || draft === (link.notes ?? '')) return;
+    await (supabase as any)
+      .from('vanguard_links')
+      .update({ notes: draft, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
+    setSavedNoteId(id);
+    setTimeout(() => setSavedNoteId(null), 1800);
   };
 
   const deleteLink = async (id: string) => {
@@ -252,6 +270,11 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${catStyle.pill}`}>
                               {link.category}
                             </span>
+                            {(link.notes || notesDrafts[link.id]) && (
+                              <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
+                                <PenLine size={9} />
+                              </span>
+                            )}
                           </div>
                           <h3 className={`text-[15px] font-semibold leading-snug tracking-tight ${
                             link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
@@ -274,9 +297,9 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
                         </a>
                       </div>
 
-                      {/* AI Takeaways */}
-                      {link.takeaways && link.takeaways.length > 0 && (
-                        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[400px] mt-4' : 'max-h-0'}`}>
+                      {/* Expanded: AI Takeaways + Przemyślenia */}
+                      <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[600px] mt-4' : 'max-h-0'}`}>
+                        {link.takeaways && link.takeaways.length > 0 && (
                           <div className="border-t border-border-custom/40 pt-3 space-y-2">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
                             <ul className="space-y-2">
@@ -288,19 +311,56 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
                               ))}
                             </ul>
                           </div>
+                        )}
+
+                        {/* Przemyślenia */}
+                        <div className="border-t border-border-custom/40 pt-3 mt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                              <PenLine size={10} /> Przemyślenia
+                            </p>
+                            {savedNoteId === link.id && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-500">
+                                <Check size={10} /> Zapisano
+                              </span>
+                            )}
+                          </div>
+                          <textarea
+                            value={notesDrafts[link.id] ?? (link.notes || '')}
+                            onChange={e => setNotesDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
+                            onBlur={() => saveNotes(link.id)}
+                            onFocus={e => {
+                              if (notesDrafts[link.id] === undefined) {
+                                setNotesDrafts(prev => ({ ...prev, [link.id]: link.notes || '' }));
+                              }
+                              e.currentTarget.style.height = 'auto';
+                              e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                            }}
+                            onInput={e => {
+                              const t = e.currentTarget;
+                              t.style.height = 'auto';
+                              t.style.height = t.scrollHeight + 'px';
+                            }}
+                            placeholder="Co myślisz o tym materiale? Zapisz refleksje, pytania, co chcesz wdrożyć…"
+                            rows={3}
+                            className="w-full resize-none bg-transparent text-[13px] leading-relaxed text-text-primary outline-none placeholder:text-text-muted/35"
+                          />
                         </div>
-                      )}
+                      </div>
 
                       {/* Footer */}
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-custom/30">
-                        {link.takeaways && link.takeaways.length > 0 ? (
-                          <button
-                            onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}
-                            className="flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
-                          >
-                            {isExpanded ? <><ChevronUp size={13} /> Zwiń</> : <><ChevronDown size={13} /> Wnioski</>}
-                          </button>
-                        ) : <div />}
+                        <button
+                          onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}
+                          className="flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
+                        >
+                          {isExpanded
+                            ? <><ChevronUp size={13} /> Zwiń</>
+                            : link.takeaways?.length > 0
+                              ? <><ChevronDown size={13} /> Wnioski · notatka</>
+                              : <><PenLine size={12} /> Notatka</>
+                          }
+                        </button>
 
                         <div className="flex items-center gap-1.5">
                           <button

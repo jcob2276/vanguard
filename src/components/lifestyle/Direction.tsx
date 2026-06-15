@@ -7,7 +7,6 @@ import {
   Plus,
   Shield,
   Target,
-  TrendingUp,
   Wallet,
   Zap,
 } from 'lucide-react';
@@ -371,37 +370,6 @@ export default function Direction({ session }: { session: Session }) {
   return (
     <div className="flex-1 space-y-6 overflow-y-auto">
 
-      {/* ── Plan status ── */}
-      <section className="space-y-3">
-        <SectionTitle icon={TrendingUp} title="Status planu dnia" detail="Czy dzienne wykonanie realnie niesie cele kierunkowe." />
-        <div className="grid grid-cols-2 gap-3">
-          <MiniStat label="Tydzień" value={stats.weeklyP > 2 ? 'Przegrany' : isSunday ? 'Wygrany' : 'W trakcie'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP}/2 P`} />
-          <MiniStat label="Miesiąc" value={stats.monthlyWin ? 'Wygrany' : 'W trakcie'} tone={stats.monthlyWin ? 'text-dayC' : 'text-orange-500'} detail={`${stats.weeks.filter((w) => w.isWeekWin).length}/3 W`} />
-        </div>
-        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 28 }).map((_, index) => {
-              const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
-              const dateObj = subDays(gridStart, -index);
-              const date = format(dateObj, 'yyyy-MM-dd');
-              const dayData = history.find((d) => d.date === date);
-              const isFuture = dateObj > new Date();
-              const isMissingLoss = date < todayDate() && !dayData && date >= '2026-05-03';
-              const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
-              return (
-                <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-lg ${color}`}>
-                  {date === todayDate() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <MiniStat label="Streak" value={stats.streak} tone="text-primary" detail="zwycięstw" />
-            <MiniStat label="Ten tydzień" value={stats.weeklyP > 2 ? 'Nie' : 'OK'} tone={stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'} detail={`${stats.weeklyP} porażek`} />
-          </div>
-        </div>
-      </section>
-
       {/* ── Tydzień ── */}
       <section className="space-y-3">
         <SectionTitle
@@ -672,115 +640,67 @@ export default function Direction({ session }: { session: Session }) {
             </button>
           </div>
         ) : (
-          /* ── Radar mode (Mon–Sat always; Sunday after plan saved) ── */
+          /* ── Radar mode ── */
           <div className="space-y-4">
 
-            {/* Previous Week's Bottleneck / Lesson Banner */}
+            {/* 1. Kompaktowe statsy */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Streak</p>
+                <p className="text-[20px] font-black font-display text-primary mt-1 leading-none">{stats.streak}</p>
+                <p className="text-[8px] font-bold text-text-muted mt-1">dni</p>
+              </div>
+              <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Tydzień</p>
+                <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>
+                  {stats.weeklyP > 2 ? 'Przeg.' : 'OK'}
+                </p>
+                <p className="text-[8px] font-bold text-text-muted mt-1">{stats.weeklyP}/2 P</p>
+              </div>
+              <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Miesiąc</p>
+                <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-orange-500'}`}>
+                  {stats.weeks.filter((w) => w.isWeekWin).length}/3
+                </p>
+                <p className="text-[8px] font-bold text-text-muted mt-1">tyg. wygr.</p>
+              </div>
+            </div>
+
+            {/* 2. Mapka 28 dni */}
+            <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+              <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 28 }).map((_, index) => {
+                  const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
+                  const dateObj = subDays(gridStart, -index);
+                  const date = format(dateObj, 'yyyy-MM-dd');
+                  const dayData = history.find((d) => d.date === date);
+                  const isFuture = dateObj > new Date();
+                  const isMissingLoss = date < todayDate() && !dayData && date >= '2026-05-03';
+                  const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
+                  return (
+                    <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-lg ${color}`}>
+                      {date === todayDate() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Lekcja z poprzedniego tygodnia */}
             {prevWeekReview?.bottleneck && (
               <div className="rounded-[20px] border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm flex gap-3 items-start animate-in fade-in-50 duration-300">
                 <span className="text-[18px] leading-none">💡</span>
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-0.5 font-display">Lekcja na ten tydzień</p>
-                  <p className="text-[12px] font-semibold text-text-primary leading-relaxed">
-                    {prevWeekReview.bottleneck}
-                  </p>
+                  <p className="text-[12px] font-semibold text-text-primary leading-relaxed">{prevWeekReview.bottleneck}</p>
                 </div>
               </div>
             )}
-            
-            {/* Header / Week sentiment & Weekly Focus summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Focus tasks card */}
-              {displayFocusTasks.length > 0 && (
-                <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
-                  <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Fokus tygodnia</p>
-                  <div className="space-y-3.5">
-                    {[
-                      { key: 'goal_cialo', label: 'Ciało', color: 'text-emerald-500' },
-                      { key: 'goal_duch', label: 'Duch', color: 'text-indigo-400' },
-                      { key: 'goal_konto', label: 'Konto', color: 'text-amber-400' },
-                      { key: 'other', label: 'Inne', color: 'text-text-muted' },
-                    ].map((category) => {
-                      const tasksInCategory = displayFocusTasks.filter(
-                        (todo) => (focusGoalMappings[todo.id] || 'other') === category.key
-                      );
-                      if (tasksInCategory.length === 0) return null;
-                      return (
-                        <div key={category.key} className="space-y-1.5">
-                          <p className={`text-[9px] font-black uppercase tracking-wider ${category.color} font-display`}>
-                            {category.label}
-                          </p>
-                          <div className="space-y-1.5 pl-2 border-l border-border-custom/60">
-                            {tasksInCategory.map((todo) => {
-                              const done = todo.status === 'done';
-                              return (
-                                <div key={todo.id} className="flex items-center gap-2.5">
-                                  <div className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500' : 'border-border-custom'}`}>
-                                    {done && <Check size={9} className="text-white" />}
-                                  </div>
-                                  <span className={`flex-1 truncate text-[12px] font-semibold ${done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
-                                    {todo.title}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
-              {/* Sentiment & Directional goals */}
-              <div className="space-y-3">
-                {currentReview?.week_sentiment && (
-                  <div className="rounded-[20px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
-                    <span className={`text-[9px] font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
-                      currentReview.week_sentiment === 'excellent' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                      : currentReview.week_sentiment === 'good' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                      : currentReview.week_sentiment === 'ok' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                      : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {SENTIMENTS.find((s) => s.value === currentReview.week_sentiment)?.label}
-                    </span>
-                  </div>
-                )}
-
-                {weekGoals && GOAL_DEFS.some((g) => weekGoals[g.key]) && (
-                  <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
-                    <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele kierunkowe</p>
-                    <div className="space-y-2.5">
-                      {GOAL_DEFS.filter((g) => weekGoals[g.key]).map(({ key, dateKey, Icon, color }) => {
-                        const days = weekGoals[dateKey] ? differenceInDays(parseISO(weekGoals[dateKey]), new Date()) : null;
-                        return (
-                          <div key={key} className="flex items-center gap-2.5">
-                            <Icon size={13} className={`${color} shrink-0`} />
-                            <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{weekGoals[key]}</span>
-                            {days !== null && (
-                              <span className={`shrink-0 text-[9px] font-bold ${days <= 0 ? 'text-rose-500 font-black' : days <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
-                                {days <= 0 ? `${Math.abs(days)}d po` : `za ${days}d`}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Weekly board header */}
-            <div className="pt-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Plan tygodnia</p>
-            </div>
-
-            {/* Weekly Board Column Grid */}
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
+            {/* 3. Weekly Board — na górze */}
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display mb-3">Plan tygodnia</p>
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
               {DAYS_PL.map((dayLabel, i) => {
                 const dayDate = addDays(planWeekStart, i);
                 const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -899,6 +819,83 @@ export default function Direction({ session }: { session: Session }) {
                   </div>
                 );
               })}
+              </div>
+            </div>
+
+            {/* 4. Fokus tygodnia — tylko jeśli zatwierdzony */}
+            {focusTasks.length > 0 && (
+              <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+                <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Fokus tygodnia</p>
+                <div className="space-y-3.5">
+                  {[
+                    { key: 'goal_cialo', label: 'Ciało', color: 'text-emerald-500' },
+                    { key: 'goal_duch', label: 'Duch', color: 'text-indigo-400' },
+                    { key: 'goal_konto', label: 'Konto', color: 'text-amber-400' },
+                    { key: 'other', label: 'Inne', color: 'text-text-muted' },
+                  ].map((category) => {
+                    const tasksInCategory = focusTasks.filter(
+                      (todo) => (focusGoalMappings[todo.id] || 'other') === category.key
+                    );
+                    if (tasksInCategory.length === 0) return null;
+                    return (
+                      <div key={category.key} className="space-y-1.5">
+                        <p className={`text-[9px] font-black uppercase tracking-wider ${category.color} font-display`}>{category.label}</p>
+                        <div className="space-y-1.5 pl-2 border-l border-border-custom/60">
+                          {tasksInCategory.map((todo) => {
+                            const done = todo.status === 'done';
+                            return (
+                              <div key={todo.id} className="flex items-center gap-2.5">
+                                <div className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500' : 'border-border-custom'}`}>
+                                  {done && <Check size={9} className="text-white" />}
+                                </div>
+                                <span className={`flex-1 truncate text-[12px] font-semibold ${done ? 'line-through text-text-muted' : 'text-text-primary'}`}>{todo.title}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 5. Sentyment + Cele */}
+            <div className="space-y-3">
+              {currentReview?.week_sentiment && (
+                <div className="rounded-[20px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
+                  <span className={`text-[9px] font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
+                    currentReview.week_sentiment === 'excellent' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : currentReview.week_sentiment === 'good' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                    : currentReview.week_sentiment === 'ok' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                    : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                  }`}>
+                    {SENTIMENTS.find((s) => s.value === currentReview.week_sentiment)?.label}
+                  </span>
+                </div>
+              )}
+              {weekGoals && GOAL_DEFS.some((g) => weekGoals[g.key]) && (
+                <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+                  <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele kierunkowe</p>
+                  <div className="space-y-2.5">
+                    {GOAL_DEFS.filter((g) => weekGoals[g.key]).map(({ key, dateKey, Icon, color }) => {
+                      const days = weekGoals[dateKey] ? differenceInDays(parseISO(weekGoals[dateKey]), new Date()) : null;
+                      return (
+                        <div key={key} className="flex items-center gap-2.5">
+                          <Icon size={13} className={`${color} shrink-0`} />
+                          <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{weekGoals[key]}</span>
+                          {days !== null && (
+                            <span className={`shrink-0 text-[9px] font-bold ${days <= 0 ? 'text-rose-500 font-black' : days <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
+                              {days <= 0 ? `${Math.abs(days)}d po` : `za ${days}d`}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

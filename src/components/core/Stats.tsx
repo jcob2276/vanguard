@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Clock, Scale, Ruler, Activity, Zap, CheckSquare } from 'lucide-react';
-import { format, parseISO, subDays } from 'date-fns';
+import { Clock, Activity, Zap, CheckSquare } from 'lucide-react';
+import { format, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
@@ -12,14 +12,12 @@ import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 
 type BodyMetricRow = Tables<'body_metrics'>;
-type DailyNutritionRow = Tables<'daily_nutrition'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
 type EditableExerciseLog = Omit<ExerciseLogRow, 'weight' | 'reps'> & {
   weight: number | string | null;
   reps: number | string | null;
 };
 type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: ExerciseLogRow[]; duration?: number | string };
-type NutritionChartPoint = { date: string; protein: number | null; calories: number | null };
 type TrendPoint = { cur: number | null; prev: number | null };
 type TrendsState = Partial<Record<'weight' | 'waist' | 'readiness' | 'sleep' | 'protein', TrendPoint>>;
 type ProjectionResult = { value: string; change: string } | null;
@@ -66,7 +64,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
   const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
   const [recentSessions, setRecentSessions] = useState<WorkoutSessionRow[]>([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
-  const [nutritionData, setNutritionData] = useState<NutritionChartPoint[]>([]);
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -100,24 +97,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       const [
         { data: body },
         { data: sessions },
-        { data: oura },
-        { data: nutrition }
+        { data: oura }
       ] = await Promise.all([
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60)
       ]);
 
       if (body) setBodyData(body);
-      
-      if (nutrition) {
-        setNutritionData([...nutrition].reverse().map(n => ({
-          date: format(parseISO(n.date), 'dd.MM'),
-          protein: n.protein,
-          calories: n.calories
-        })));
-      }
 
       if (sessions) {
         setRecentSessions(sessions.map(s => ({
@@ -129,19 +116,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       // Calculate Trends
       const newTrends: TrendsState = {};
       const ouraRaw = oura || [];
-      const nutrRaw: DailyNutritionRow[] = nutrition || [];
-      
+
       if (body && body.length >= 2) {
         newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };
         newTrends.waist = { cur: body[body.length - 1].waist, prev: body[body.length - 2].waist };
       }
       if (ouraRaw.length >= 2) {
-        // oura was reversed for trend, but let's use the raw data which was ordered desc
         newTrends.readiness = { cur: ouraRaw[0].readiness_score, prev: ouraRaw[1].readiness_score };
         newTrends.sleep = { cur: ouraRaw[0].total_sleep_hours, prev: ouraRaw[1].total_sleep_hours };
-      }
-      if (nutrRaw.length >= 2) {
-        newTrends.protein = { cur: nutrRaw[0].protein, prev: nutrRaw[1].protein };
       }
       setTrends(newTrends);
 
@@ -340,21 +322,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
   const isSunday = new Date().getDay() === 0;
   const latestBody = bodyData?.[bodyData.length - 1] || null;
-  const todayStr = format(new Date(), 'dd.MM');
-  const isLatestToday = nutritionData.length > 0 && nutritionData[nutritionData.length - 1].date === todayStr;
-  const todayProtein = isLatestToday ? Number(nutritionData[nutritionData.length - 1].protein || 0) : 0;
-  const proteinGoal = 150;
-  const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
-  
-  let recentProtein = [...nutritionData];
-  if (recentProtein.length > 0 && recentProtein[recentProtein.length - 1].date !== todayStr) {
-    recentProtein.push({
-      date: todayStr,
-      protein: 0,
-      calories: 0
-    });
-  }
-  recentProtein = recentProtein.slice(-7);
 
   return (
     <div className="space-y-6 pb-4">
@@ -370,24 +337,24 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         </section>
       )}
 
-      <section className="space-y-3">
-        <header className="flex items-end justify-between">
+      <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Pomiary</p>
-            <h2 className="mt-1 text-[18px] font-black tracking-tight text-text-primary font-display">Waga i talia</h2>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Pomiary ciała</p>
+            <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Waga i talia</h2>
           </div>
-          <Activity className="text-primary/30 dark:text-primary/45" size={20} />
-        </header>
-        <div className="space-y-4 rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
+          <Activity className="text-primary/30 dark:text-primary/45" size={18} />
+        </div>
+        <div className="space-y-4 px-5 pb-5">
           <div className="grid grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
-              <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
+              <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
                 Waga (kg) <TrendArrow current={trends.weight?.cur} previous={trends.weight?.prev} better="down" />
               </label>
               <input type="number" step="0.1" value={newMetric.weight} onChange={e => setNewMetric({...newMetric, weight: e.target.value})} className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]" placeholder={latestBody?.weight ? String(latestBody.weight) : '--'} />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
+              <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">
                 Talia (cm) <TrendArrow current={trends.waist?.cur} previous={trends.waist?.prev} better="down" />
               </label>
               <input type="number" step="0.1" value={newMetric.waist} onChange={e => setNewMetric({...newMetric, waist: e.target.value})} className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]" placeholder={latestBody?.waist ? String(latestBody.waist) : '--'} />
@@ -397,29 +364,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
-        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Waga</p>
-            <Scale size={14} className="text-text-muted" />
-          </div>
-          <p className="text-[22px] font-black text-text-primary font-display leading-none">{latestBody?.weight ?? '--'}<span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">kg</span></p>
-          {projections?.weight && <p className="mt-2 text-[10px] font-medium text-text-muted">6w: {projections.weight.value} kg</p>}
-        </div>
-        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Talia</p>
-            <Ruler size={14} className="text-text-muted" />
-          </div>
-          <p className="text-[22px] font-black text-text-primary font-display leading-none">{latestBody?.waist ?? '--'}<span className="ml-1 text-[12px] font-semibold text-text-muted tracking-normal">cm</span></p>
-          {projections?.waist && <p className="mt-2 text-[10px] font-medium text-text-muted">6w: {projections.waist.value} cm</p>}
-        </div>
-      </section>
-
       <section className="space-y-4 rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Eksport</p>
-          <h2 className="mt-1 text-[15px] font-black uppercase tracking-tight text-text-primary font-display">Raport danych</h2>
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Eksport</p>
+          <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Raport danych</h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="relative group">
@@ -446,7 +394,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
 
         <div className="flex flex-wrap gap-x-4 gap-y-3 pt-1">
           {[
-            { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłka/Strava)' },
+            { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłownia/Strava)' },
             { state: includeBody, setter: setIncludeBody, label: 'Pomiary Ciała' },
             { state: includeYazio, setter: setIncludeYazio, label: 'Dieta (Yazio)' },
             { state: includeJournal, setter: setIncludeJournal, label: 'Notatnik (Telegram)' },
@@ -714,38 +662,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
         </button>
 
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-display">Fueling</p>
-            <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Białko dzisiaj</h2>
-          </div>
-          <p className="text-[13px] font-bold text-primary font-display">{todayProtein}g</p>
-        </div>
-        <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Cel {proteinGoal}g</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-secondary">{Math.round(proteinPct)}%</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-border-custom">
-            <div className="h-full rounded-full bg-primary shadow-[0_2px_8px_rgba(79,70,229,0.2)]" style={{ width: `${proteinPct}%` }} />
-          </div>
-          {recentProtein.length > 0 && (
-            <div className="mt-4 grid grid-cols-7 gap-1.5">
-              {recentProtein.map((d) => {
-                const pct = Math.min((Number(d.protein || 0) / proteinGoal) * 100, 100);
-                return (
-                  <div key={d.date} className="flex h-14 flex-col justify-end gap-1">
-                    <div className="rounded-sm bg-primary/70 dark:bg-primary/80" style={{ height: `${Math.max(pct, 6)}%` }} />
-                    <span className="text-center text-[7px] font-bold text-text-muted">{d.date.slice(0, 2)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </section>
 
       {topSlot}
