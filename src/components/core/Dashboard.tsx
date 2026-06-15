@@ -258,6 +258,8 @@ export default function Dashboard({ session }) {
 
   const handleGoogleCallback = useCallback(async (code) => {
     setSyncing(true);
+    // Remove query params immediately to prevent infinite loop on re-renders/failures
+    window.history.replaceState({}, document.title, window.location.pathname);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
         method: 'POST',
@@ -272,12 +274,15 @@ export default function Dashboard({ session }) {
         })
       });
       const res = await response.json();
-      if (res.success) {
-        window.history.replaceState({}, document.title, '/');
+      if (res?.success) {
         await syncCalendar();
+      } else {
+        console.error('Google Auth Error:', res?.error);
+        alert('Błąd połączenia z Google: ' + (res?.error || 'Nieznany błąd'));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Google Auth Error:', err);
+      alert('Błąd połączenia z Google: ' + err.message);
     } finally {
       setSyncing(false);
     }

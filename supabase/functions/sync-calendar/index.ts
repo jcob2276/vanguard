@@ -21,9 +21,7 @@ serve(async (req) => {
           client_id: GOOGLE_CLIENT_ID!,
           client_secret: GOOGLE_CLIENT_SECRET!,
           redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
-          access_type: 'offline',
-          prompt: 'consent'
+          grant_type: 'authorization_code'
         })
       })
 
