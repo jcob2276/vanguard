@@ -780,7 +780,7 @@ export default function Direction({ session }: { session: Session }) {
             </div>
 
             {/* Weekly Board Column Grid */}
-            <div className="space-y-3.5 pb-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
               {DAYS_PL.map((dayLabel, i) => {
                 const dayDate = addDays(planWeekStart, i);
                 const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -797,15 +797,21 @@ export default function Direction({ session }: { session: Session }) {
                   return (
                     <div 
                       key={i} 
-                      className={`flex items-center justify-between rounded-2xl border px-4 py-2.5 transition-all ${
-                        isToday ? 'border-primary/40 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
+                      className={`min-w-[150px] max-w-[170px] shrink-0 flex flex-col rounded-[22px] border p-4 snap-align-start transition-all ${
+                        isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[11px] font-black uppercase tracking-wider w-8 ${isToday ? 'text-primary' : 'text-text-muted'}`}>{dayLabel}</span>
-                        <span className="text-[10px] font-bold text-text-muted">{format(dayDate, 'd MMM', { locale: pl })}</span>
+                      <div className="flex items-center justify-between border-b border-border-custom/30 pb-2 mb-3">
+                        <h4 className={`text-[12px] font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
+                          {dayLabel}
+                        </h4>
+                        <span className="text-[10px] font-bold text-text-muted">
+                          {format(dayDate, 'd MMM', { locale: pl })}
+                        </span>
                       </div>
-                      <span className="text-[9px] text-text-muted/40 font-bold uppercase tracking-wider">Brak planów</span>
+                      <div className="flex-1 flex items-center justify-center py-6">
+                        <span className="text-[9px] text-text-muted/40 font-bold uppercase tracking-wider">Brak planów</span>
+                      </div>
                     </div>
                   );
                 }
@@ -813,13 +819,13 @@ export default function Direction({ session }: { session: Session }) {
                 return (
                   <div 
                     key={i} 
-                    className={`flex flex-col rounded-[22px] border bg-surface p-4 shadow-sm transition-all duration-300 ${
+                    className={`min-w-[260px] max-w-[280px] shrink-0 flex flex-col rounded-[22px] border bg-surface p-4 shadow-sm transition-all duration-300 snap-align-start ${
                       isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
                     }`}
                   >
-                    <div className="flex items-center justify-between border-b border-border-custom/40 pb-2 mb-3">
+                    <div className="flex items-center justify-between border-b border-border-custom/40 pb-2 mb-3 shrink-0">
                       <div className="flex items-center gap-3">
-                        <h4 className={`text-[12px] font-black uppercase tracking-wide w-8 ${isToday ? 'text-primary' : 'text-text-primary'}`}>
+                        <h4 className={`text-[12px] font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
                           {dayLabel}
                         </h4>
                         <span className="text-[10px] font-bold text-text-muted">
@@ -833,7 +839,7 @@ export default function Direction({ session }: { session: Session }) {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                    <div className="space-y-4 flex-1 flex flex-col justify-start">
                       
                       {/* Calendar (only if has events) */}
                       {dayEvents.length > 0 && (
