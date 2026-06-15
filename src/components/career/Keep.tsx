@@ -534,16 +534,9 @@ function NoteCard({
     setEditing(false);
   }, [color, content, note.id, onUpdate, tagsInput, title]);
 
-  useEffect(() => {
-    if (!editing) return;
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        handleSave();
-      }
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [editing, handleSave]);
+  // NOTE: We do NOT use a mousedown-outside handler here.
+  // Closing is handled exclusively by the backdrop click and Zamknij button.
+  // This avoids false closes when clicking inside RichEditor or FloatingToolbar.
 
   return (
     <div
