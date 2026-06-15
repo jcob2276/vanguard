@@ -2,13 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
   AlertCircle,
+  Archive,
   ArrowLeft,
   CheckSquare,
+  ChevronLeft,
   Grid3X3,
   Highlighter,
   Image,
   LayoutList,
   Loader2,
+  MoreHorizontal,
   Pin,
   Plus,
   Quote,
@@ -19,7 +22,6 @@ import {
   Trash2,
   Underline,
   X,
-  Archive,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -804,6 +806,7 @@ function EditNoteModal({
   const [content, setContent] = useState(note.content);
   const [color, setColor] = useState(note.color);
   const [tagsInput, setTagsInput] = useState(note.tags.join(', '));
+  const [showMenu, setShowMenu] = useState(false);
   const c = getColor(color);
 
   useEffect(() => {
@@ -814,101 +817,130 @@ function EditNoteModal({
   }, [note]);
 
   const handleSave = useCallback(() => {
-    const patch: Partial<Note> = {
+    onUpdate(note.id, {
       title: title.trim(),
       content: content.trim(),
       color,
       tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
-    };
-    onUpdate(note.id, patch);
+    });
     onClose();
   }, [color, content, note.id, onUpdate, onClose, tagsInput, title]);
 
-  // Close on Escape key
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleSave();
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleSave(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [handleSave]);
 
+  const noteDate = new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+
   return (
     <>
       <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
-      <div className="keep-modal-content" style={{ backgroundColor: c.bg, borderColor: c.border }} onClick={e => e.stopPropagation()}>
-        <div className="keep-ios-grab-handle" />
-        <input
-          autoFocus
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Tytuł"
-          className="keep-card-title-input"
-          style={{ color: c.text }}
-        />
-        <RichEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Treść notatki…"
-          className="keep-card-content-input"
-          style={{ color: c.textSub }}
-          showStaticBar
-        />
-        <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
-          <Tag size={10} className="keep-tag-icon" />
-          <input
-            value={tagsInput}
-            onChange={e => setTagsInput(e.target.value)}
-            placeholder="Tagi…"
-            className="keep-composer-tags-input"
-          />
-        </div>
-        <div className="keep-color-row" style={{ marginBottom: 10 }}>
-          {COLORS.map(col => (
+      <div
+        className="keep-modal-content"
+        style={{ backgroundColor: c.bg, borderColor: c.border }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* ── iOS navigation bar ── */}
+        <nav className="keep-ios-nav" style={{ borderBottomColor: `${c.border}` }}>
+          <button type="button" className="keep-ios-back" onClick={handleSave}>
+            <ChevronLeft size={22} strokeWidth={2.5} />
+            <span>Notatki</span>
+          </button>
+          <span className="keep-ios-date" style={{ color: c.textSub }}>{noteDate}</span>
+          <div className="keep-ios-nav-right">
+            <button type="button" className="keep-ios-done" onClick={handleSave}>
+              Gotowe
+            </button>
             <button
-              key={col.id}
               type="button"
-              title={col.label}
-              onClick={e => { e.stopPropagation(); setColor(col.id); }}
-              className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
-              style={{ backgroundColor: col.dot }}
+              className="keep-ios-more"
+              onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
+            >
+              <MoreHorizontal size={22} />
+            </button>
+          </div>
+        </nav>
+
+        {/* ── Overflow menu (iOS popover style) ── */}
+        {showMenu && (
+          <>
+            <div className="keep-menu-overlay" onClick={() => setShowMenu(false)} />
+            <div className="keep-menu" onClick={e => e.stopPropagation()}>
+              <div className="keep-menu-colors">
+                {COLORS.map(col => (
+                  <button
+                    key={col.id}
+                    type="button"
+                    title={col.label}
+                    onClick={() => setColor(col.id)}
+                    className={`keep-swatch ${color === col.id ? 'selected' : ''}`}
+                    style={{ backgroundColor: col.dot }}
+                  />
+                ))}
+              </div>
+              <div className="keep-menu-rule" />
+              <button
+                type="button"
+                className="keep-menu-item"
+                onClick={() => { onTogglePin(note); setShowMenu(false); }}
+              >
+                <Pin size={17} fill={note.is_pinned ? 'currentColor' : 'none'} />
+                <span>{note.is_pinned ? 'Odepnij' : 'Przypnij'}</span>
+              </button>
+              <button
+                type="button"
+                className="keep-menu-item"
+                onClick={() => { onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); setShowMenu(false); onClose(); }}
+              >
+                <Archive size={17} />
+                <span>{note.is_archived ? 'Przywróć' : 'Archiwizuj'}</span>
+              </button>
+              <div className="keep-menu-rule" />
+              <button
+                type="button"
+                className="keep-menu-item danger"
+                onClick={() => { onDelete(note.id); onClose(); }}
+                disabled={busy}
+              >
+                <Trash2 size={17} />
+                <span>Usuń notatkę</span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── Note body ── */}
+        <div className="keep-modal-body">
+          <input
+            autoFocus
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Tytuł"
+            className="keep-ios-title-input"
+            style={{ color: c.text }}
+          />
+          <div className="keep-ios-meta-row" style={{ borderBottomColor: c.border }}>
+            <Tag size={10} style={{ opacity: 0.35, flexShrink: 0 }} />
+            <input
+              value={tagsInput}
+              onChange={e => setTagsInput(e.target.value)}
+              placeholder="Tagi…"
+              className="keep-ios-tags-input"
+              style={{ color: c.textSub }}
             />
-          ))}
-        </div>
-        <div className="keep-card-edit-actions">
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onTogglePin(note); }}
-            className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
-            title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
-          >
-            <Pin size={13} fill={note.is_pinned ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
-            className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
-            title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
-          >
-            <Archive size={13} fill={note.is_archived ? 'currentColor' : 'none'} />
-          </button>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onDelete(note.id); }}
-            disabled={busy}
-            className="keep-icon-btn danger"
-            title="Usuń"
-          >
-            <Trash2 size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); handleSave(); }}
-            className="keep-btn-primary small"
-          >
-            Zamknij
-          </button>
+          </div>
+          <RichEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Zacznij pisać…"
+            className="keep-ios-editor"
+            style={{ color: c.textSub }}
+            showStaticBar
+          />
         </div>
       </div>
     </>

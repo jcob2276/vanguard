@@ -809,15 +809,176 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
-  width: min(600px, 92vw);
-  border-radius: 20px;
+  width: min(560px, 94vw);
+  border-radius: 16px;
   border: 1px solid var(--border);
-  padding: 20px;
+  padding: 0;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   animation: keep-modal-scale-up 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
+
+/* ── iOS-style navigation bar ─────────────────────────────────── */
+.keep-ios-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+
+.keep-ios-back {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary);
+  font-size: 16px;
+  font-weight: 400;
+  flex-shrink: 0;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.keep-ios-date {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.55;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.keep-ios-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.keep-ios-done {
+  color: var(--primary);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 2px 4px;
+}
+
+.keep-ios-more {
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+/* ── Note body (scrollable) ───────────────────────────────────── */
+.keep-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 20px 90px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── iOS title input ─────────────────────────────────────────── */
+.keep-ios-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.25;
+  padding: 2px 0 10px;
+  color: var(--text-primary);
+}
+.keep-ios-title-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+/* ── Tags meta row ────────────────────────────────────────────── */
+.keep-ios-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 10px;
+  border-bottom: 0.5px solid var(--border);
+  margin-bottom: 14px;
+  color: var(--text-muted);
+}
+
+.keep-ios-tags-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.keep-ios-tags-input::placeholder { opacity: 0.5; }
+
+/* ── Overflow menu ────────────────────────────────────────────── */
+.keep-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+}
+
+.keep-menu {
+  position: absolute;
+  top: 54px;
+  right: 12px;
+  width: 220px;
+  background: var(--surface-solid);
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0,0,0,0.08);
+  z-index: 9999;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .keep-menu {
+  background: #1c1c1e;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255,255,255,0.08);
+}
+
+.keep-menu-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.keep-menu-rule {
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+.dark .keep-menu-rule { background: rgba(255, 255, 255, 0.1); }
+
+.keep-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.12s;
+}
+.keep-menu-item:hover, .keep-menu-item:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+.dark .keep-menu-item:hover { background: rgba(255, 255, 255, 0.07); }
+.keep-menu-item.danger { color: #ef4444; }
+.keep-menu-item:disabled { opacity: 0.4; pointer-events: none; }
 
 .keep-modal-backdrop {
   position: fixed;
@@ -853,7 +1014,6 @@
 }
 
 @media (max-width: 640px) {
-  /* Full-screen iOS Notes style editing */
   .keep-modal-content {
     top: 0 !important;
     bottom: 0 !important;
@@ -866,23 +1026,23 @@
     animation: keep-modal-fadein 0.22s ease-out forwards !important;
     max-height: 100dvh !important;
     box-shadow: none !important;
-    padding: max(env(safe-area-inset-top), 14px) 20px max(env(safe-area-inset-bottom), 20px) !important;
+    padding: 0 !important;
+    border: none !important;
   }
 
-  .keep-ios-grab-handle {
-    display: none !important;
+  .keep-ios-nav {
+    padding-top: max(env(safe-area-inset-top), 14px) !important;
+    border-radius: 0 !important;
   }
 
-  /* Spacer at bottom so content doesn't go under the fixed bar */
-  .keep-card-content-input,
-  .keep-rich-editor {
-    padding-bottom: 64px;
+  .keep-modal-body {
+    padding-bottom: max(calc(env(safe-area-inset-bottom) + 70px), 90px) !important;
   }
 }
 
 @keyframes keep-modal-fadein {
-  from { opacity: 0; transform: scale(0.98); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .keep-card.drag-over {
   border-color: #6366f1 !important;
@@ -1112,6 +1272,20 @@
   line-height: 1.65;
   font-size: 13.5px;
   word-break: break-word;
+  caret-color: var(--text-primary);
+}
+
+/* iOS editor gets more breathing room */
+.keep-ios-editor {
+  min-height: 200px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Fix caret color in table cells */
+.keep-rich-editor .keep-td,
+.keep-rich-editor .keep-th {
+  caret-color: var(--text-primary);
 }
 
 .keep-rich-editor p {
