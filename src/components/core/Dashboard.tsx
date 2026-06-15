@@ -429,7 +429,7 @@ export default function Dashboard({ session }) {
           <div className={`p-5 pb-8 ${view === 'tydzien' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
-                <AIInsight session={session} />
+                {/* <AIInsight session={session} /> */}
                 <YazioWeeklyCard
                   weeklyCalories={weeklyCalories}
                   weeklyBudget={weeklyBudget}
