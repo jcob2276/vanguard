@@ -5,11 +5,13 @@ import {
   ArrowLeft,
   CheckSquare,
   Grid3X3,
+  Image,
   LayoutList,
   Loader2,
   Pin,
   Plus,
   Search,
+  Table2,
   Tag,
   Trash2,
   X,
@@ -123,6 +125,24 @@ function FloatingToolbar({
       >
         <CheckSquare size={12} />
       </button>
+      {/* Divider */}
+      <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.12)', margin: '0 2px' }} />
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('table'); }}
+        className="keep-toolbar-btn"
+        title="Wstaw tabelę"
+      >
+        <Table2 size={12} />
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('image'); }}
+        className="keep-toolbar-btn"
+        title="Wstaw zdjęcie"
+      >
+        <Image size={12} />
+      </button>
     </div>
   );
 }
@@ -141,8 +161,11 @@ function RichEditor({
   style?: React.CSSProperties;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [toolbarRange, setToolbarRange] = useState<Range | null>(null);
   const [activeState, setActiveState] = useState({ bold: false, italic: false, h1: false, list: false });
+  // Saved selection before toolbar action steals focus
+  const savedSelectionRef = useRef<{ range: Range } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -165,6 +188,7 @@ function RichEditor({
     const range = selection.getRangeAt(0);
     if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
       setToolbarRange(range);
+      savedSelectionRef.current = { range: range.cloneRange() };
       setActiveState({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
@@ -176,7 +200,20 @@ function RichEditor({
     }
   };
 
+  // Restore saved selection before executing a command
+  const restoreSelection = () => {
+    if (savedSelectionRef.current) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedSelectionRef.current.range);
+      }
+    }
+    editorRef.current?.focus();
+  };
+
   const handleAction = (action: string) => {
+    restoreSelection();
     if (action === 'bold') {
       document.execCommand('bold', false);
     } else if (action === 'italic') {
@@ -186,9 +223,58 @@ function RichEditor({
       document.execCommand('formatBlock', false, isH1 ? '<p>' : '<h1>');
     } else if (action === 'todo') {
       document.execCommand('insertHTML', false, '<div class="keep-todo-item" contenteditable="true"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">Nowe zadanie</span></div>');
+    } else if (action === 'table') {
+      const tableHtml = `
+        <table class="keep-table" contenteditable="false">
+          <tbody>
+            <tr>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+            </tr>
+            <tr>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+            </tr>
+            <tr>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+              <td class="keep-td" contenteditable="true"><br></td>
+            </tr>
+          </tbody>
+        </table><p><br></p>`;
+      document.execCommand('insertHTML', false, tableHtml);
+    } else if (action === 'image') {
+      // Trigger file picker
+      imageInputRef.current?.click();
+      return; // don't call handleInput yet — wait for file selection
     }
     handleInput();
     handleSelection();
+  };
+
+  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Limit: 5 MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Zdjęcie jest za duże (max 5 MB). Użyj mniejszego pliku.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      restoreSelection();
+      document.execCommand('insertHTML', false,
+        `<figure class="keep-figure" contenteditable="false">
+          <img class="keep-inline-img" src="${src}" alt="Załącznik" />
+        </figure><p><br></p>`);
+      handleInput();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -220,10 +306,45 @@ function RichEditor({
         }
       }
     }
+    // Tab inside table: move to next cell
+    if (e.key === 'Tab') {
+      const selection = window.getSelection();
+      if (selection && selection.anchorNode) {
+        let parent = selection.anchorNode.parentElement;
+        while (parent && parent !== editorRef.current) {
+          if (parent.tagName === 'TD') {
+            e.preventDefault();
+            const allCells = Array.from(editorRef.current?.querySelectorAll('.keep-td') || []);
+            const idx = allCells.indexOf(parent);
+            if (idx !== -1) {
+              const next = allCells[idx + 1] as HTMLElement;
+              if (next) {
+                next.focus();
+                const r = document.createRange();
+                r.selectNodeContents(next);
+                r.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(r);
+              }
+            }
+            return;
+          }
+          parent = parent.parentElement;
+        }
+      }
+    }
   };
 
   return (
     <div className="relative w-full">
+      {/* Hidden image file input */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleImageFile}
+      />
       <div
         ref={editorRef}
         contentEditable
