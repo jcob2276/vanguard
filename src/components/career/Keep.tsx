@@ -4,12 +4,14 @@ import {
   AlertCircle,
   Archive,
   ArrowLeft,
+  BookOpen,
   CheckSquare,
   ChevronLeft,
   Grid3X3,
   Highlighter,
   Image,
   LayoutList,
+  ListTodo,
   Loader2,
   MoreHorizontal,
   Pin,
@@ -1171,6 +1173,11 @@ export default function Keep({ session }: { session: any }) {
   const [columns, setColumns] = useState(3);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const goTo = (view: string) => {
+    localStorage.setItem('vanguard_view', view);
+    window.location.href = '/';
+  };
+
   const handleOpenCard = useCallback((id: string) => setEditingId(id), []);
   const handleCloseCard = useCallback(() => setEditingId(null), []);
 
@@ -1444,6 +1451,7 @@ export default function Keep({ session }: { session: any }) {
       <div className="keep-body">
         {/* ── Sidebar ── */}
         <aside className="keep-sidebar">
+          <p className="keep-sidebar-section-label">Notatki</p>
           <button
             className={`keep-sidebar-item ${sidebarTab === 'notes' && !activeTag ? 'active' : ''}`}
             onClick={() => { setSidebarTab('notes'); setActiveTag(null); }}
@@ -1458,17 +1466,35 @@ export default function Keep({ session }: { session: any }) {
             <Archive size={15} />
             <span>Archiwum</span>
           </button>
-          <div className="keep-sidebar-separator" style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
-          {allTags.map(tag => (
-            <button
-              key={tag}
-              className={`keep-sidebar-item ${activeTag === tag ? 'active' : ''}`}
-              onClick={() => { setSidebarTab('notes'); setActiveTag(t => (t === tag ? null : tag)); }}
-            >
-              <Tag size={13} />
-              <span>{tag}</span>
-            </button>
-          ))}
+
+          <div className="keep-sidebar-separator" />
+
+          <p className="keep-sidebar-section-label">Nawigacja</p>
+          <button className="keep-sidebar-item" onClick={() => goTo('todo')}>
+            <ListTodo size={15} />
+            <span>To Do</span>
+          </button>
+          <button className="keep-sidebar-item" onClick={() => goTo('links')}>
+            <BookOpen size={15} />
+            <span>Pocket</span>
+          </button>
+
+          {allTags.length > 0 && (
+            <>
+              <div className="keep-sidebar-separator" />
+              <p className="keep-sidebar-section-label">Tagi</p>
+              {allTags.map(tag => (
+                <button
+                  key={tag}
+                  className={`keep-sidebar-item ${activeTag === tag ? 'active' : ''}`}
+                  onClick={() => { setSidebarTab('notes'); setActiveTag(t => (t === tag ? null : tag)); }}
+                >
+                  <Tag size={13} />
+                  <span>{tag}</span>
+                </button>
+              ))}
+            </>
+          )}
         </aside>
 
         {/* ── Main ── */}

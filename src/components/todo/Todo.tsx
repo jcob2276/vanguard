@@ -1,21 +1,41 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import {
+  BookOpen,
   Calendar,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Filter,
   GripVertical,
   History,
   Link2,
+  ListTodo,
   Pencil,
   Plus,
+  Repeat2,
   Settings2,
+  StickyNote,
   Sparkles,
+  Tag,
   Trash2,
   X,
 } from 'lucide-react';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const RECURRENCE_LABELS: Record<string, string> = { daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
+const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
+
+function nextOccurrenceDate(baseDateStr: string | null, recurrence: string, today: string): string {
+  const base = baseDateStr || today;
+  const d = new Date(base + 'T00:00:00');
+  if (recurrence === 'daily') d.setDate(d.getDate() + 1);
+  else if (recurrence === 'weekly') d.setDate(d.getDate() + 7);
+  else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
+  return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+}
 import DataStateNotice from '../core/DataStateNotice';
 import {
   createTodoItem,
@@ -175,24 +195,24 @@ function BucketHeader({ icon, title, count, collapsed, onToggle, isDropTarget })
   return (
     <button
       onClick={onToggle}
-      className={`flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 transition-all duration-200 ${
-        isDropTarget ? 'bg-primary/15 ring-2 ring-primary/25 scale-[1.01]' : 'hover:bg-surface-solid/50'
+      className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200 ${
+        isDropTarget ? 'bg-primary/12 ring-2 ring-primary/20 scale-[1.01]' : 'hover:bg-surface-solid/40'
       }`}
     >
-      <div className="flex items-center gap-2.5">
-        <span className="text-[14px]">{icon}</span>
-        <span className={`font-display text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${isDropTarget ? 'text-primary' : 'text-text-secondary'}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-[16px] leading-none">{icon}</span>
+        <span className={`text-[15px] font-semibold transition-colors ${isDropTarget ? 'text-primary' : 'text-text-primary'}`}>
           {title}
         </span>
         {count > 0 && (
-          <span className="rounded-full bg-text-primary/[0.06] px-2 py-0.5 text-[9px] font-black tabular-nums text-text-muted">
+          <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
             {count}
           </span>
         )}
       </div>
       {collapsed
-        ? <ChevronRight size={13} className="text-text-muted/50 shrink-0" />
-        : <ChevronDown size={13} className="text-text-muted/50 shrink-0" />}
+        ? <ChevronRight size={14} className="text-text-muted/40 shrink-0" />
+        : <ChevronDown size={14} className="text-text-muted/40 shrink-0" />}
     </button>
   );
 }
@@ -208,6 +228,7 @@ function TodoCard({
   isEditing, editingTitle, onEditStart, onEditChange, onEditSave,
   sectionName, onDragStart, isDragging,
   onShowContextMenu,
+  onMoveToToday, onSetRecurrence,
 }) {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
@@ -276,7 +297,7 @@ function TodoCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl transition-all duration-250 mb-1.5 ${completing ? 'scale-[0.96] opacity-0 duration-300' : ''} ${isDone ? 'opacity-55' : ''}`}
+      className={`group relative overflow-hidden rounded-[18px] transition-all duration-250 mb-2 ${completing ? 'scale-[0.96] opacity-0 duration-300' : ''} ${isDone ? 'opacity-50' : ''}`}
     >
       {/* Swipe hint overlays */}
       <div className={`absolute inset-0 flex items-center justify-start pl-5 text-emerald-500 pointer-events-none transition-opacity duration-150 ${swipeDir === 'right' ? 'opacity-100' : 'opacity-0'}`}>
@@ -293,8 +314,8 @@ function TodoCard({
         onTouchEnd={onTouchEnd}
         onContextMenu={(e) => { e.preventDefault(); onShowContextMenu(item, e.clientX, e.clientY); }}
         style={{ transform: `translateX(${swipeOffset}px)` }}
-        className="relative border border-border-custom/60 rounded-2xl px-3.5 py-3 bg-surface transition-all duration-150 ease-out
-          hover:border-border-custom hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:bg-surface-solid/30 dark:hover:shadow-[0_2px_16px_rgba(255,255,255,0.04)]"
+        className="relative rounded-[18px] px-4 py-3.5 bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] transition-all duration-150 ease-out
+          hover:shadow-[0_3px_14px_rgba(0,0,0,0.10)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.35)]"
       >
         <div className="flex items-start gap-3">
 
@@ -311,58 +332,70 @@ function TodoCard({
 
           {/* Emoji icon OR priority circle checkbox */}
           {icon ? (
-            <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="shrink-0 mt-px">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-xl text-[18px] leading-none transition-all ${isDone ? 'grayscale opacity-50' : ''}`}>
+            <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="shrink-0 mt-0.5">
+              <span className={`flex h-[26px] w-[26px] items-center justify-center rounded-xl text-[18px] leading-none transition-all ${isDone ? 'grayscale opacity-40' : ''}`}>
                 {icon}
               </span>
             </button>
           ) : (
-            <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="mt-[2px] shrink-0">
-              <div className={`h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+            <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="mt-0.5 shrink-0">
+              <div className={`h-[22px] w-[22px] rounded-full border-[2px] flex items-center justify-center transition-all duration-250 ${
                 isDone ? `${p.fill} border-transparent` : `${p.ring} bg-transparent`
               }`}>
-                {isDone && <Check size={10} className="text-white" strokeWidth={3} />}
+                {isDone && <Check size={11} className="text-white" strokeWidth={3} />}
               </div>
             </button>
           )}
 
           {/* Content */}
           <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onToggleExpand(item.id)}>
-            <p className={`text-[13.5px] font-semibold leading-snug transition-colors ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+            <p className={`text-[15px] font-medium leading-snug transition-colors ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
               {label}
             </p>
 
             {/* Metadata */}
-            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
               {dateInfo && (
-                <span className={`flex items-center gap-1 text-[10px] font-bold ${dateInfo.color}`}>
+                <span className={`flex items-center gap-1 text-[11px] font-medium ${dateInfo.color}`}>
                   <Calendar size={9} />
                   {dateInfo.text}
                 </span>
               )}
+              {item.recurrence && (
+                <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary/60">
+                  <Repeat2 size={9} /> {RECURRENCE_LABELS[item.recurrence]}
+                </span>
+              )}
               {subtasks.length > 0 && (
-                <span className="text-[10px] font-bold text-text-muted/70">
+                <span className="text-[11px] font-medium text-text-muted/60">
                   {doneCount}/{subtasks.length}
                 </span>
               )}
               {(item.tags || []).map((tag) => (
-                <span key={tag} className="text-[9px] font-bold text-text-muted/50">#{tag}</span>
+                <span key={tag} className="text-[10px] font-medium text-text-muted/50">#{tag}</span>
               ))}
               {isLinkedToPlan && (
-                <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary/80">
+                <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary/70">
                   <Link2 size={8} /> Plan
                 </span>
               )}
-              {item.ai_bucket && !item.due_date && (
-                <span className="flex items-center gap-0.5 text-[9px] text-text-muted/25">
-                  <Sparkles size={7} />
-                </span>
-              )}
               {sectionName && (
-                <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted/25">{sectionName}</span>
+                <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
               )}
             </div>
           </div>
+
+          {/* Quick "→ Dziś" action */}
+          {onMoveToToday && !isDone && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveToToday(); }}
+                className="flex items-center gap-1 rounded-full bg-orange-500/10 px-3 py-1 text-[11px] font-semibold text-orange-500 hover:bg-orange-500/20 transition-colors"
+              >
+                🔥 Przesuń na dziś
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Expanded */}
@@ -371,7 +404,7 @@ function TodoCard({
 
             {/* Inline title edit */}
             <div>
-              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-text-muted">Tytuł</p>
+              <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Tytuł</p>
               {isEditing ? (
                 <input
                   autoFocus value={editingTitle}
@@ -417,10 +450,32 @@ function TodoCard({
               </div>
             </div>
 
+            {/* Recurrence */}
+            {onSetRecurrence && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Powtarzanie</p>
+                <div className="flex gap-1.5">
+                  {(['', 'daily', 'weekly', 'monthly'] as const).map((r) => (
+                    <button
+                      key={r || 'none'}
+                      onClick={() => onSetRecurrence(r)}
+                      className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                        (item.recurrence || '') === r
+                          ? 'border-primary/20 bg-primary/10 text-primary'
+                          : 'border-border-custom/50 text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      {r === '' ? 'Nie' : r === 'daily' ? '↺ Dzień' : r === 'weekly' ? '↺ Tydzień' : '↺ Miesiąc'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Section picker */}
             {sections.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Sekcja</p>
+                <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Sekcja</p>
                 <div className="flex flex-wrap gap-1.5">
                   {sections.map((s) => (
                     <button
@@ -439,7 +494,7 @@ function TodoCard({
 
             {/* Subtasks */}
             <div>
-              <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Podzadania</p>
+              <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Podzadania</p>
               <div className="space-y-1">
                 {subtasks.map((st, idx) => (
                   <div key={idx} className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2">
@@ -504,7 +559,14 @@ export default function Todo({ session, onBack }) {
   const [editingTitle, setEditingTitle] = useState('');
   const [linkedPlanIds, setLinkedPlanIds] = useState(new Set());
   const [showOptions, setShowOptions] = useState(false);
-  const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '' });
+  const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
+  const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
+
+  const goTo = (view: string) => {
+    localStorage.setItem('vanguard_view', view);
+    window.location.href = '/';
+  };
+  const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
   const [contextMenu, setContextMenu] = useState(null); // { x, y, item }
 
   // Drag state
@@ -599,20 +661,29 @@ export default function Todo({ session, onBack }) {
   const openItems = useMemo(() => items.filter((i) => i.status === 'open'), [items]);
   const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
 
+  const allUniqueTags = useMemo(() => Array.from(new Set(openItems.flatMap(i => i.tags || []))).sort(), [openItems]);
+  const allUniqueSections = useMemo(() => sections.filter(s => openItems.some(i => i.section_id === s.id)), [sections, openItems]);
+
+  const applyFilter = useCallback((arr) => arr.filter(i => {
+    if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
+    if (activeFilterSection && i.section_id !== activeFilterSection) return false;
+    return true;
+  }), [activeFilterTag, activeFilterSection]);
+
   const { todayItems, soonItems, laterItems } = useMemo(() => {
     const todaySet = new Set(), soonSet = new Set();
-    const todayItems = openItems.filter((i) => {
+    const todayItems = applyFilter(openItems.filter((i) => {
       if (i.ai_bucket === 'today' || i.due_date === today) { todaySet.add(i.id); return true; }
       return false;
-    });
-    const soonItems = openItems.filter((i) => {
+    }));
+    const soonItems = applyFilter(openItems.filter((i) => {
       if (todaySet.has(i.id)) return false;
       if (i.ai_bucket === 'soon' || (i.due_date && i.due_date > today && i.due_date <= nextWeek)) { soonSet.add(i.id); return true; }
       return false;
-    });
-    const laterItems = openItems.filter((i) => !todaySet.has(i.id) && !soonSet.has(i.id));
+    }));
+    const laterItems = applyFilter(openItems.filter((i) => !todaySet.has(i.id) && !soonSet.has(i.id)));
     return { todayItems, soonItems, laterItems };
-  }, [openItems, today, nextWeek]);
+  }, [openItems, today, nextWeek, applyFilter]);
 
   // ── Actions ──
   const run = async (fn) => {
@@ -635,8 +706,8 @@ export default function Todo({ session, onBack }) {
     const title = parsedInput.title || form.title.trim();
     if (!title) return;
     run(async () => {
-      const newItem = await createTodoItem(userId, { ...form, title, priority: parsedInput.priority || form.priority, due_date: parsedInput.due_date || form.due_date, section_id: null });
-      setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '' });
+      const newItem = await createTodoItem(userId, { ...form, title, priority: parsedInput.priority || form.priority, due_date: parsedInput.due_date || form.due_date, section_id: null, recurrence: form.recurrence || null });
+      setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
       setShowOptions(false);
       if (!parsedInput.due_date && !parsedInput.priority) classifyInBackground(newItem);
     });
@@ -684,7 +755,22 @@ export default function Todo({ session, onBack }) {
     setExpandedId(null);
   }, []);
 
-  const renderCard = (item) => (
+  const handleComplete = useCallback((item) => {
+    const newStatus = item.status === 'done' ? 'open' : 'done';
+    run(async () => {
+      await setTodoStatus(item, newStatus);
+      if (newStatus === 'done' && item.recurrence) {
+        const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
+        await createTodoItem(userId, {
+          title: item.title, notes: item.notes, priority: item.priority,
+          tagsText: (item.tags || []).join(', '), section_id: item.section_id,
+          due_date: nextDate, recurrence: item.recurrence,
+        });
+      }
+    });
+  }, [today, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const renderCard = (item, { inToday = false } = {}) => (
     <TodoCard
       key={item.id}
       item={item}
@@ -692,7 +778,7 @@ export default function Todo({ session, onBack }) {
       today={today}
       expanded={expandedId === item.id}
       onToggleExpand={toggleExpand}
-      onToggle={() => run(() => setTodoStatus(item, item.status === 'done' ? 'open' : 'done'))}
+      onToggle={() => handleComplete(item)}
       onSetPriority={(pid) => { if (pid !== item.priority) run(() => updateTodoItem(item.id, { priority: pid })); }}
       onDrop={() => run(() => setTodoStatus(item, 'dropped'))}
       onToggleSubtask={(idx) => toggleSubtask(item, idx)}
@@ -710,6 +796,8 @@ export default function Todo({ session, onBack }) {
       onDragStart={handleDragStart}
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
+      onMoveToToday={!inToday ? () => moveBucket(item, 'today') : undefined}
+      onSetRecurrence={(r) => run(() => updateTodoItem(item.id, { recurrence: r || null }))}
     />
   );
 
@@ -722,7 +810,7 @@ export default function Todo({ session, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-text-primary">
+    <div className="flex h-screen overflow-hidden bg-background text-text-primary">
       {draggingItem && <DragGhost item={draggingItem} posRef={dragPosRef} />}
 
       {contextMenu && (
@@ -738,33 +826,88 @@ export default function Todo({ session, onBack }) {
         />
       )}
 
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-28">
+      {/* Sidebar */}
+      <aside className="keep-sidebar">
+        <p className="keep-sidebar-section-label">Workspace</p>
+        <a href="/keep" className="keep-sidebar-item">
+          <StickyNote size={15} />
+          <span>Notatki</span>
+        </a>
+        <button className="keep-sidebar-item active">
+          <ListTodo size={15} />
+          <span>Zadania</span>
+        </button>
+        <button className="keep-sidebar-item" onClick={() => goTo('links')}>
+          <BookOpen size={15} />
+          <span>Pocket</span>
+        </button>
+
+        {(allUniqueTags.length > 0 || allUniqueSections.length > 0) && (
+          <>
+            <div className="keep-sidebar-separator" />
+            <p className="keep-sidebar-section-label">Filtruj</p>
+            {activeFilterTag || activeFilterSection ? (
+              <button
+                className="keep-sidebar-item"
+                onClick={() => { setActiveFilterTag(null); setActiveFilterSection(null); }}
+              >
+                <X size={13} />
+                <span className="text-rose-500">Wyczyść</span>
+              </button>
+            ) : null}
+            {allUniqueSections.map(s => (
+              <button
+                key={s.id}
+                className={`keep-sidebar-item ${activeFilterSection === s.id ? 'active' : ''}`}
+                onClick={() => { setActiveFilterSection(p => p === s.id ? null : s.id); setActiveFilterTag(null); }}
+              >
+                <Filter size={13} />
+                <span>{s.name}</span>
+              </button>
+            ))}
+            {allUniqueTags.map(tag => (
+              <button
+                key={tag}
+                className={`keep-sidebar-item ${activeFilterTag === tag ? 'active' : ''}`}
+                onClick={() => { setActiveFilterTag(p => p === tag ? null : tag); setActiveFilterSection(null); }}
+              >
+                <Tag size={13} />
+                <span>{tag}</span>
+              </button>
+            ))}
+          </>
+        )}
+      </aside>
+
+      {/* Main column */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
 
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/85 px-5 py-4 backdrop-blur-xl">
-          <button onClick={onBack} className="rounded-full border border-border-custom bg-surface/50 p-2 text-text-secondary hover:text-text-primary hover:bg-surface transition-colors">
-            <ChevronLeft size={18} />
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
+          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px]">
+            <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-[16px] font-black uppercase tracking-tight text-text-primary">Zadania</h1>
-            <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-text-muted">
+            <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Zadania</h1>
+            <p className="text-[12px] text-text-muted">
               {openItems.length} otwarte · {todayItems.length} na dziś
             </p>
           </div>
           <button
             onClick={() => setShowDone((v) => !v)}
-            className={`rounded-full border p-2 transition-colors ${showDone ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border-custom text-text-muted hover:bg-surface'}`}
+            className={`rounded-full p-2 transition-colors ${showDone ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-surface'}`}
             title="Historia"
           >
-            <History size={15} />
+            <History size={17} />
           </button>
         </header>
 
-        <main className="space-y-4 p-5">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
           {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
           {/* Quick capture */}
-          <div className="rounded-2xl border border-border-custom bg-surface p-4">
+          <div className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
             <div className="flex items-center gap-2">
               <input
                 autoFocus
@@ -772,8 +915,19 @@ export default function Todo({ session, onBack }) {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
                 placeholder="Dodaj zadanie... p1 · jutro · 🏃 Bieganie"
-                className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[14px] font-semibold text-text-primary outline-none placeholder:text-text-muted/30 placeholder:font-normal"
+                className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[15px] font-normal text-text-primary outline-none placeholder:text-text-muted/35"
               />
+              <button
+                title={form.recurrence ? RECURRENCE_LABELS[form.recurrence] : 'Brak powtarzania'}
+                onClick={() => {
+                  const idx = RECURRENCE_CYCLE.indexOf(form.recurrence as any);
+                  const next = RECURRENCE_CYCLE[(idx + 1) % RECURRENCE_CYCLE.length];
+                  setForm(f => ({ ...f, recurrence: next }));
+                }}
+                className={`rounded-full border p-2 transition-colors ${form.recurrence ? 'bg-violet-500/15 text-violet-500 border-violet-500/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
+              >
+                <Repeat2 size={16} />
+              </button>
               <button
                 onClick={() => setShowOptions((v) => !v)}
                 className={`rounded-full border p-2 transition-colors ${showOptions ? 'bg-primary/15 text-primary border-primary/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
@@ -788,6 +942,14 @@ export default function Todo({ session, onBack }) {
                 <Plus size={16} />
               </button>
             </div>
+
+            {form.recurrence && (
+              <div className="mt-1.5 px-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-violet-500">
+                  <Repeat2 size={9} /> {RECURRENCE_LABELS[form.recurrence]}
+                </span>
+              </div>
+            )}
 
             {parsedInput.tokens.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5 px-1">
@@ -834,7 +996,7 @@ export default function Todo({ session, onBack }) {
           </div>
 
           {/* 3 buckets */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <div ref={todayZoneRef}>
               <BucketHeader icon="🔥" title="Dziś" count={todayItems.length} collapsed={collapsed.today}
                 onToggle={() => setCollapsed((p) => ({ ...p, today: !p.today }))} isDropTarget={dragTarget === 'today'} />
@@ -844,7 +1006,7 @@ export default function Todo({ session, onBack }) {
                     ? <p className={`px-3 py-5 text-center text-[11px] font-medium ${dragTarget === 'today' ? 'text-primary font-bold' : 'text-text-muted/50'}`}>
                         {dragTarget === 'today' ? '↓ Upuść tutaj — przeniesie na dziś' : 'Nic pilnego. Przeciągnij zadanie z poniższych bucketów.'}
                       </p>
-                    : todayItems.map(renderCard)}
+                    : todayItems.map(i => renderCard(i, { inToday: true }))}
                 </div>
               )}
             </div>
@@ -855,8 +1017,8 @@ export default function Todo({ session, onBack }) {
               {!collapsed.soon && (
                 <div className="pt-1">
                   {soonItems.length === 0
-                    ? <p className={`px-3 py-3 text-[10px] font-bold uppercase tracking-widest ${dragTarget === 'soon' ? 'text-primary' : 'text-text-muted/35'}`}>
-                        {dragTarget === 'soon' ? '↓ Upuść tutaj' : 'Pusto.'}
+                    ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'soon' ? 'text-primary' : 'text-text-muted/40'}`}>
+                        {dragTarget === 'soon' ? '↓ Upuść tutaj' : 'Pusto'}
                       </p>
                     : soonItems.map(renderCard)}
                 </div>
@@ -869,8 +1031,8 @@ export default function Todo({ session, onBack }) {
               {!collapsed.later && (
                 <div className="pt-1">
                   {laterItems.length === 0
-                    ? <p className={`px-3 py-3 text-[10px] font-bold uppercase tracking-widest ${dragTarget === 'later' ? 'text-primary' : 'text-text-muted/35'}`}>
-                        {dragTarget === 'later' ? '↓ Upuść tutaj' : 'Pusto.'}
+                    ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'later' ? 'text-primary' : 'text-text-muted/40'}`}>
+                        {dragTarget === 'later' ? '↓ Upuść tutaj' : 'Pusto'}
                       </p>
                     : laterItems.map(renderCard)}
                 </div>
@@ -884,6 +1046,7 @@ export default function Todo({ session, onBack }) {
                 <div className="pt-1">{doneItems.slice(0, 30).map(renderCard)}</div>
               </div>
             )}
+          </div>
           </div>
         </main>
       </div>

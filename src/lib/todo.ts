@@ -56,6 +56,7 @@ export async function createTodoItem(userId, fields) {
         priority: fields.priority || 'normal',
         tags,
         due_date: fields.due_date || null,
+        recurrence: fields.recurrence || null,
       })
       .select()
       .single(),
