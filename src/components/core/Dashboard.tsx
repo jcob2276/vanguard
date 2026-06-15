@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Sun,
   Paintbrush,
+  Fingerprint,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
@@ -389,6 +390,13 @@ export default function Dashboard({ session }) {
             >
               <Paintbrush size={15} />
             </Link>
+            <button
+              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('fundament'); }}
+              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+              title="Fundament"
+            >
+              <Fingerprint size={15} />
+            </button>
             <Link
               to="/dashboard"
               className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"

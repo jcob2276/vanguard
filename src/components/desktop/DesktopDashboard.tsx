@@ -7,10 +7,11 @@ import {
 } from 'recharts';
 import { format, parseISO, startOfWeek, differenceInDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
-import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap, CheckSquare, Square, Trash2, Plus, X } from 'lucide-react';
+import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap, CheckSquare, Square, Trash2, Plus, X, Fingerprint } from 'lucide-react';
 import { subDays } from 'date-fns';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
+const Fundament = lazy(() => import('../core/Fundament'));
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const RACE_DATE = new Date('2026-10-04T09:00:00+02:00');
@@ -1248,6 +1249,7 @@ export default function DesktopDashboard({ session }) {
   }
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
+  const [showFundament, setShowFundament] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
 
   useEffect(() => {
@@ -1283,6 +1285,21 @@ export default function DesktopDashboard({ session }) {
     } catch (e) { console.error('[sync]', e); }
     finally { setSyncing(false); }
   }, [syncing, accessToken, userId, refresh]);
+
+  function startGoogleAuth() {
+    const root = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const options = {
+      redirect_uri: window.location.origin,
+      client_id: '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com',
+      access_type: 'offline',
+      response_type: 'code',
+      prompt: 'consent',
+      scope: [
+        'https://www.googleapis.com/auth/calendar.readonly'
+      ].join(' ')
+    };
+    window.location.href = `${root}?${new URLSearchParams(options).toString()}`;
+  }
 
   // Keyboard shortcuts: s=sync, t=trening, d=dark toggle
   useEffect(() => {
@@ -1339,6 +1356,14 @@ export default function DesktopDashboard({ session }) {
   const volData   = weeklyVolume(sessions);
   const now       = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' });
 
+  if (showFundament) return (
+    <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+        <Fundament session={session} onBack={() => { setShowFundament(false); refresh(); }} onSyncCalendar={startGoogleAuth} isSyncing={syncing} />
+      </Suspense>
+    </div>
+  );
+
   if (showWorkout) return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
       <WorkoutLogger session={session} onBack={() => { setShowWorkout(false); refresh(); }} />
@@ -1369,6 +1394,11 @@ export default function DesktopDashboard({ session }) {
           <button onClick={syncAll} disabled={syncing}
             className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 disabled:opacity-40 cursor-pointer">
             <RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />
+          </button>
+          <button onClick={() => setShowFundament(true)}
+            className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer"
+            title="Fundament">
+            <Fingerprint size={14} />
           </button>
           <button onClick={() => setShowWorkout(true)}
             className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.07] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/[0.14] transition-all active:scale-95 cursor-pointer">
