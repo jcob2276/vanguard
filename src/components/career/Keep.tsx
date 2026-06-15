@@ -58,6 +58,200 @@ const COLORS: {
 
 const getColor = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
 
+// ─── Floating Toolbar & Rich Editor Helpers ─────────────────────────────────
+
+function FloatingToolbar({
+  range,
+  onAction,
+  activeState
+}: {
+  range: Range;
+  onAction: (action: string) => void;
+  activeState: { bold: boolean; italic: boolean; h1: boolean; list: boolean };
+}) {
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const rects = range.getClientRects();
+    if (rects.length > 0) {
+      const rect = rects[0];
+      const scrollY = window.scrollY || window.pageYOffset;
+      const scrollX = window.scrollX || window.pageXOffset;
+      setCoords({
+        top: rect.top + scrollY - 10,
+        left: rect.left + rect.width / 2 + scrollX
+      });
+    }
+  }, [range]);
+
+  return (
+    <div
+      ref={ref}
+      className="keep-floating-toolbar"
+      style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
+    >
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('bold'); }}
+        className={`keep-toolbar-btn ${activeState.bold ? 'active' : ''}`}
+        title="Pogrubienie"
+      >
+        <span className="font-bold text-[11px]">B</span>
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('italic'); }}
+        className={`keep-toolbar-btn ${activeState.italic ? 'active' : ''}`}
+        title="Kursywa"
+      >
+        <span className="italic text-[11px]">I</span>
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('h1'); }}
+        className={`keep-toolbar-btn ${activeState.h1 ? 'active' : ''}`}
+        title="Nagłówek"
+      >
+        <span className="font-black text-[10px]">H</span>
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onAction('todo'); }}
+        className={`keep-toolbar-btn ${activeState.list ? 'active' : ''}`}
+        title="Zadanie"
+      >
+        <CheckSquare size={12} />
+      </button>
+    </div>
+  );
+}
+
+function RichEditor({
+  value,
+  onChange,
+  placeholder,
+  className = '',
+  style = {}
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [toolbarRange, setToolbarRange] = useState<Range | null>(null);
+  const [activeState, setActiveState] = useState({ bold: false, italic: false, h1: false, list: false });
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) {
+      setToolbarRange(null);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+      setToolbarRange(range);
+      setActiveState({
+        bold: document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        h1: document.queryCommandValue('formatBlock') === 'h1',
+        list: false
+      });
+    } else {
+      setToolbarRange(null);
+    }
+  };
+
+  const handleAction = (action: string) => {
+    if (action === 'bold') {
+      document.execCommand('bold', false);
+    } else if (action === 'italic') {
+      document.execCommand('italic', false);
+    } else if (action === 'h1') {
+      const isH1 = document.queryCommandValue('formatBlock') === 'h1';
+      document.execCommand('formatBlock', false, isH1 ? '<p>' : '<h1>');
+    } else if (action === 'todo') {
+      document.execCommand('insertHTML', false, '<div class="keep-todo-item" contenteditable="true"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">Nowe zadanie</span></div>');
+    }
+    handleInput();
+    handleSelection();
+  };
+
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('keep-todo-checkbox')) {
+      e.preventDefault();
+      const isChecked = target.classList.toggle('checked');
+      const textSibling = target.nextElementSibling as HTMLElement;
+      if (textSibling) {
+        textSibling.classList.toggle('completed', isChecked);
+      }
+      handleInput();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      const selection = window.getSelection();
+      if (selection && selection.anchorNode) {
+        let parent = selection.anchorNode.parentElement;
+        while (parent && parent !== editorRef.current) {
+          if (parent.classList.contains('keep-todo-item')) {
+            e.preventDefault();
+            document.execCommand('insertHTML', false, '<div class="keep-todo-item" contenteditable="true"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">&nbsp;</span></div>');
+            handleInput();
+            return;
+          }
+          parent = parent.parentElement;
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="relative w-full">
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        onMouseUp={handleSelection}
+        onKeyUp={handleSelection}
+        onClick={handleEditorClick}
+        onKeyDown={handleKeyDown}
+        className={`keep-rich-editor ${className}`}
+        style={style}
+      />
+      {/* CSS Placeholder fallback */}
+      {(!value || value === '<br>' || value === '') && (
+        <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-50 text-[13px] select-none">
+          {placeholder}
+        </span>
+      )}
+      {toolbarRange && (
+        <FloatingToolbar
+          range={toolbarRange}
+          onAction={handleAction}
+          activeState={activeState}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Inline composer ─────────────────────────────────────────────────────────
 
 function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partial<Note>) => void; busy: boolean; autoExpand?: boolean }) {
@@ -125,11 +319,10 @@ function NoteComposer({ onSave, busy, autoExpand = false }: { onSave: (n: Partia
               <Pin size={15} fill={isPinned ? 'currentColor' : 'none'} />
             </button>
           </div>
-          <textarea
+          <RichEditor
             value={content}
-            onChange={e => setContent(e.target.value)}
+            onChange={setContent}
             placeholder="Utwórz notatkę…"
-            rows={4}
             className="keep-composer-content"
             style={{ color: c.textSub }}
           />
@@ -263,13 +456,12 @@ function NoteCard({
               className="keep-card-title-input"
               style={{ color: c.text }}
             />
-            <textarea
+            <RichEditor
               value={content}
-              onChange={e => setContent(e.target.value)}
+              onChange={setContent}
               placeholder="Treść notatki…"
               className="keep-card-content-input"
               style={{ color: c.textSub }}
-              rows={6}
             />
             <div className="keep-composer-tags-row" style={{ marginBottom: 8 }}>
               <Tag size={10} className="keep-tag-icon" />
@@ -342,7 +534,34 @@ function NoteCard({
             <h3 className="keep-card-title" style={{ color: c.text }}>{note.title}</h3>
           )}
           {note.content && (
-            <p className="keep-card-content" style={{ color: c.textSub }}>{note.content}</p>
+            <div
+              className="keep-card-content"
+              style={{ color: c.textSub }}
+              dangerouslySetInnerHTML={{ __html: note.content }}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.classList.contains('keep-todo-checkbox')) {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const container = document.createElement('div');
+                  container.innerHTML = note.content;
+                  const checkboxes = Array.from(e.currentTarget.querySelectorAll('.keep-todo-checkbox'));
+                  const index = checkboxes.indexOf(target);
+                  if (index !== -1) {
+                    const docCheckboxes = container.querySelectorAll('.keep-todo-checkbox');
+                    const targetCheckbox = docCheckboxes[index] as HTMLElement;
+                    if (targetCheckbox) {
+                      const isChecked = targetCheckbox.classList.toggle('checked');
+                      const sibling = targetCheckbox.nextElementSibling as HTMLElement;
+                      if (sibling) {
+                        sibling.classList.toggle('completed', isChecked);
+                      }
+                      onUpdate(note.id, { content: container.innerHTML });
+                    }
+                  }
+                }
+              }}
+            />
           )}
           {note.tags.length > 0 && (
             <div className="keep-card-tags">

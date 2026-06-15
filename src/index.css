@@ -1095,3 +1095,132 @@
   display: flex;
 }
 .keep-error-close:hover { opacity: 1; }
+
+/* ── WYSIWYG & Rich Text Styles ─────────────────────────────────────────── */
+
+.keep-rich-editor {
+  outline: none;
+  min-height: 100px;
+  line-height: 1.65;
+  font-size: 13.5px;
+  word-break: break-word;
+}
+
+.keep-rich-editor p {
+  margin-bottom: 0.5em;
+}
+
+.keep-rich-editor h1, .keep-card-content h1 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 12px 0 6px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+
+.keep-rich-editor h2, .keep-card-content h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+  color: var(--text-primary);
+}
+
+.keep-rich-editor ul, .keep-card-content ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+/* Checklist formatting */
+.keep-rich-editor .keep-todo-item, .keep-card-content .keep-todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0;
+  list-style: none;
+}
+
+.keep-rich-editor .keep-todo-checkbox, .keep-card-content .keep-todo-checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.5px solid var(--primary);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.keep-rich-editor .keep-todo-checkbox.checked, .keep-card-content .keep-todo-checkbox.checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.keep-rich-editor .keep-todo-checkbox.checked::after, .keep-card-content .keep-todo-checkbox.checked::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translate(0.5px, -0.5px);
+}
+
+.keep-rich-editor .keep-todo-text, .keep-card-content .keep-todo-text {
+  flex-1: 1;
+}
+
+.keep-rich-editor .keep-todo-text.completed, .keep-card-content .keep-todo-text.completed {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Floating Formatting Toolbar */
+.keep-floating-toolbar {
+  position: absolute;
+  z-index: 1000;
+  display: flex;
+  gap: 2px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -100%) translateY(-10px);
+  pointer-events: auto;
+  animation: keep-toolbar-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes keep-toolbar-pop {
+  from { opacity: 0; transform: translate(-50%, -100%) translateY(-2px) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
+}
+
+.keep-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.7);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.keep-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.keep-toolbar-btn.active {
+  background: var(--primary);
+  color: white;
+}
