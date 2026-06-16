@@ -1,17 +1,32 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronUp,
+  Edit3,
+  Flag,
   FolderKanban,
   Plus,
   Repeat2,
+  Save,
   Trash2,
   X,
 } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
-import { listProjects, createProject, updateProject, deleteProject, linkSectionToProject } from '../../lib/projects';
+import {
+  listProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+  linkSectionToProject,
+  listProjectCheckpoints,
+  createProjectCheckpoint,
+  updateProjectCheckpoint,
+  deleteProjectCheckpoint,
+  ProjectCheckpoint,
+} from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import DataStateNotice from '../core/DataStateNotice';
 
@@ -41,6 +56,7 @@ export default function Projects({ session }: { session: any }) {
   const [projects, setProjects]   = useState<any[]>([]);
   const [sections, setSections]   = useState<any[]>([]);
   const [items, setItems]         = useState<any[]>([]);
+  const [checkpoints, setCheckpoints] = useState<ProjectCheckpoint[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [busy, setBusy]           = useState(false);
@@ -49,6 +65,9 @@ export default function Projects({ session }: { session: any }) {
   const [statusFilter, setStatusFilter] = useState<'active' | 'paused' | 'done'>('active');
   const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
   const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
+  const [newCheckpoint, setNewCheckpoint] = useState<{ projectId: string; title: string; due_date: string } | null>(null);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -57,14 +76,16 @@ export default function Projects({ session }: { session: any }) {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i] = await Promise.all([
+      const [p, s, i, c] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
+        listProjectCheckpoints(userId),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
+      setCheckpoints(c ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -107,6 +128,15 @@ export default function Projects({ session }: { session: any }) {
     }));
   }, [projects, sections, items]);
 
+  const checkpointsByProject = useMemo(() => {
+    const grouped: Record<string, ProjectCheckpoint[]> = {};
+    checkpoints.forEach(cp => {
+      if (!grouped[cp.project_id]) grouped[cp.project_id] = [];
+      grouped[cp.project_id].push(cp);
+    });
+    return grouped;
+  }, [checkpoints]);
+
   // ── Handlers ──
   const handleCreate = () => {
     if (!form.name.trim()) return;
@@ -135,21 +165,77 @@ export default function Projects({ session }: { session: any }) {
     run(() => updateProject(project.id, { status: STATUS_NEXT[project.status] }));
   };
 
+  const startEditProject = (project: any) => {
+    setEditingProjectId(project.id);
+    setEditForm({
+      name: project.name || '',
+      goal: project.goal || '',
+      deadline: project.deadline || '',
+      color: project.color || 'indigo',
+    });
+  };
+
+  const handleSaveProject = (project: any) => {
+    if (!editForm.name.trim()) return;
+    run(async () => {
+      await updateProject(project.id, {
+        name: editForm.name.trim(),
+        goal: editForm.goal.trim() || null,
+        deadline: editForm.deadline || null,
+        color: editForm.color,
+      });
+      setEditingProjectId(null);
+    });
+  };
+
+  const ensureProjectSection = async (project: any, currentSection: any) => {
+    if (currentSection?.id) return currentSection;
+    const reusable = sections.find(s => s.name === project.name && !s.project_id);
+    if (reusable?.id) {
+      await linkSectionToProject(reusable.id, project.id);
+      return reusable;
+    }
+    const section = (await createTodoSection(userId, project.name)) as any;
+    await linkSectionToProject(section.id, project.id);
+    return section;
+  };
+
   const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
   const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
 
-  const handleAddTask = (projectId: string, section: any) => {
+  const handleAddTask = (project: any, section: any) => {
     if (!newTask?.title.trim()) return;
     run(async () => {
+      const projectSection = await ensureProjectSection(project, section);
       await createTodoItem(userId, {
         title: newTask.title.trim(),
-        section_id: section?.id ?? null,
+        section_id: projectSection?.id ?? null,
         priority: 'normal',
         tagsText: '',
         recurrence: newTask!.recurrence || undefined,
       });
       setNewTask(null);
     });
+  };
+
+  const handleAddCheckpoint = (projectId: string) => {
+    if (!newCheckpoint?.title.trim()) return;
+    run(async () => {
+      await createProjectCheckpoint(userId, {
+        project_id: projectId,
+        title: newCheckpoint.title.trim(),
+        due_date: newCheckpoint.due_date || null,
+      });
+      setNewCheckpoint(null);
+    });
+  };
+
+  const handleToggleCheckpoint = (checkpoint: ProjectCheckpoint) => {
+    const done = checkpoint.status === 'done';
+    run(() => updateProjectCheckpoint(checkpoint.id, {
+      status: done ? 'open' : 'done',
+      completed_at: done ? null : new Date().toISOString(),
+    }));
   };
 
   const handleToggleTask = (item: any) => {
@@ -281,6 +367,8 @@ export default function Projects({ session }: { session: any }) {
             const s = stats[project.id];
             const col = colorOf(project.color);
             const isExpanded = expandedId === project.id;
+            const projectCheckpoints = checkpointsByProject[project.id] ?? [];
+            const doneCheckpoints = projectCheckpoints.filter(cp => cp.status === 'done').length;
 
             return (
               <div
@@ -342,6 +430,172 @@ export default function Projects({ session }: { session: any }) {
                 {/* Expanded detail */}
                 {isExpanded && (
                   <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
+                    {/* Project metadata */}
+                    <div className="rounded-[14px] border border-border-custom/50 bg-surface-solid/30 p-3">
+                      {editingProjectId === project.id ? (
+                        <div className="space-y-3">
+                          <input
+                            value={editForm.name}
+                            onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                            className="w-full bg-transparent text-[14px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
+                            placeholder="Nazwa projektu"
+                          />
+                          <textarea
+                            value={editForm.goal}
+                            onChange={e => setEditForm(f => ({ ...f, goal: e.target.value }))}
+                            rows={2}
+                            className="w-full resize-none rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-[12px] text-text-secondary outline-none focus:border-primary/30"
+                            placeholder="Cel / opis projektu..."
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              value={editForm.deadline}
+                              onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))}
+                              className="min-w-0 flex-1 rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30"
+                            />
+                            <div className="flex gap-1">
+                              {COLORS.map(c => (
+                                <button
+                                  key={c.id}
+                                  onClick={() => setEditForm(f => ({ ...f, color: c.id }))}
+                                  className={`h-6 w-6 rounded-full ${c.dot} transition-transform ${editForm.color === c.id ? 'scale-110 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-45 hover:opacity-80'}`}
+                                  title={c.id}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setEditingProjectId(null)}
+                              className="rounded-full bg-surface-solid px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-text-secondary"
+                            >
+                              Anuluj
+                            </button>
+                            <button
+                              onClick={() => handleSaveProject(project)}
+                              disabled={busy || !editForm.name.trim()}
+                              className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
+                            >
+                              <Save size={11} /> Zapisz
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Szczegóły projektu</p>
+                            {project.goal ? (
+                              <p className="mt-1 text-[12px] leading-relaxed text-text-secondary">{project.goal}</p>
+                            ) : (
+                              <p className="mt-1 text-[12px] text-text-muted/50">Brak opisu celu.</p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                                project.deadline
+                                  ? s.daysLeft !== null && s.daysLeft < 0
+                                    ? 'bg-rose-500/10 text-rose-500'
+                                    : 'bg-primary/10 text-primary'
+                                  : 'bg-surface-solid text-text-muted'
+                              }`}>
+                                <CalendarDays size={11} />
+                                {project.deadline
+                                  ? `${format(new Date(project.deadline + 'T00:00:00'), 'dd.MM.yyyy')}${s.daysLeft !== null ? ` · ${s.daysLeft < 0 ? `${Math.abs(s.daysLeft)}d po` : `${s.daysLeft}d`}` : ''}`
+                                  : 'Brak daty zakończenia'}
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-muted">
+                                <Flag size={11} /> {doneCheckpoints}/{projectCheckpoints.length} checkpointów
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => startEditProject(project)}
+                            className="rounded-full p-2 text-text-muted hover:bg-surface-solid hover:text-text-primary"
+                            title="Edytuj projekt"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Checkpoints */}
+                    <div className="rounded-[14px] border border-border-custom/50 bg-surface-solid/20 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Checkpointy</p>
+                        {newCheckpoint?.projectId !== project.id && (
+                          <button
+                            onClick={() => setNewCheckpoint({ projectId: project.id, title: '', due_date: '' })}
+                            className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary"
+                          >
+                            <Plus size={11} /> Dodaj
+                          </button>
+                        )}
+                      </div>
+                      {projectCheckpoints.length > 0 && (
+                        <div className="space-y-1">
+                          {projectCheckpoints.map(cp => (
+                            <div key={cp.id} className="flex items-center gap-2 rounded-[10px] px-1.5 py-1.5 hover:bg-background/40">
+                              <button
+                                onClick={() => handleToggleCheckpoint(cp)}
+                                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
+                                  cp.status === 'done' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-border-custom text-transparent'
+                                }`}
+                              >
+                                <Check size={10} strokeWidth={3} />
+                              </button>
+                              <span className={`min-w-0 flex-1 truncate text-[12px] ${cp.status === 'done' ? 'text-text-muted line-through' : 'text-text-primary'}`}>{cp.title}</span>
+                              {cp.due_date && (
+                                <span className="shrink-0 text-[10px] font-semibold text-text-muted">
+                                  {format(new Date(cp.due_date + 'T00:00:00'), 'dd.MM')}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => run(() => deleteProjectCheckpoint(cp.id))}
+                                className="shrink-0 rounded-full p-1 text-text-muted/35 hover:bg-rose-500/10 hover:text-rose-500"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {newCheckpoint?.projectId === project.id ? (
+                        <div className="rounded-[12px] border border-border-custom/50 bg-background/50 p-2 space-y-2">
+                          <input
+                            autoFocus
+                            value={newCheckpoint!.title}
+                            onChange={e => setNewCheckpoint(cp => cp ? { ...cp, title: e.target.value } : cp)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); handleAddCheckpoint(project.id); }
+                              if (e.key === 'Escape') setNewCheckpoint(null);
+                            }}
+                            className="w-full bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted/40"
+                            placeholder="Nazwa checkpointu..."
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              value={newCheckpoint!.due_date}
+                              onChange={e => setNewCheckpoint(cp => cp ? { ...cp, due_date: e.target.value } : cp)}
+                              className="min-w-0 flex-1 rounded-[9px] border border-border-custom/50 bg-surface px-2.5 py-1.5 text-[11px] text-text-secondary outline-none"
+                            />
+                            <button onClick={() => setNewCheckpoint(null)} className="rounded-full p-1.5 text-text-muted hover:text-text-secondary">
+                              <X size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleAddCheckpoint(project.id)}
+                              disabled={!newCheckpoint!.title.trim() || busy}
+                              className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-30"
+                            >
+                              Dodaj
+                            </button>
+                          </div>
+                        </div>
+                      ) : projectCheckpoints.length === 0 ? (
+                        <p className="text-[12px] text-text-muted/45">Brak checkpointów.</p>
+                      ) : null}
+                    </div>
 
                     {/* Task list */}
                     <div className="space-y-1">
@@ -383,7 +637,7 @@ export default function Projects({ session }: { session: any }) {
                           value={newTask!.title}
                           onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
                           onKeyDown={e => {
-                            if (e.key === 'Enter') { e.preventDefault(); handleAddTask(project.id, s.section); }
+                            if (e.key === 'Enter') { e.preventDefault(); handleAddTask(project, s.section); }
                             if (e.key === 'Escape') setNewTask(null);
                           }}
                           placeholder="Nowe zadanie..."
@@ -401,7 +655,7 @@ export default function Projects({ session }: { session: any }) {
                             <X size={13} />
                           </button>
                           <button
-                            onClick={() => handleAddTask(project.id, s.section)}
+                            onClick={() => handleAddTask(project, s.section)}
                             disabled={!newTask!.title.trim() || busy}
                             className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
                           >

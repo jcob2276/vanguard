@@ -4,6 +4,19 @@ import type { Database } from './database.types';
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
 
+export type ProjectCheckpoint = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  title: string;
+  due_date: string | null;
+  status: 'open' | 'done' | 'dropped';
+  completed_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 function unwrap<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
   if (error) throw new Error(error.message);
   if (data === null) throw new Error('Data is null');
@@ -53,6 +66,62 @@ export async function linkSectionToProject(sectionId: string, projectId: string 
       .from('todo_sections')
       .update({ project_id: projectId })
       .eq('id', sectionId)
+      .select()
+      .single(),
+  );
+}
+
+export async function listProjectCheckpoints(userId: string): Promise<ProjectCheckpoint[]> {
+  return unwrap(
+    await (supabase as any)
+      .from('project_checkpoints')
+      .select('*')
+      .eq('user_id', userId)
+      .neq('status', 'dropped')
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true }),
+  );
+}
+
+export async function createProjectCheckpoint(
+  userId: string,
+  fields: { project_id: string; title: string; due_date?: string | null },
+): Promise<ProjectCheckpoint> {
+  return unwrap(
+    await (supabase as any)
+      .from('project_checkpoints')
+      .insert({
+        user_id: userId,
+        project_id: fields.project_id,
+        title: fields.title.trim(),
+        due_date: fields.due_date || null,
+      })
+      .select()
+      .single(),
+  );
+}
+
+export async function updateProjectCheckpoint(
+  id: string,
+  patch: Partial<Pick<ProjectCheckpoint, 'title' | 'due_date' | 'status' | 'completed_at' | 'sort_order'>>,
+): Promise<ProjectCheckpoint> {
+  return unwrap(
+    await (supabase as any)
+      .from('project_checkpoints')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single(),
+  );
+}
+
+export async function deleteProjectCheckpoint(id: string): Promise<ProjectCheckpoint> {
+  return unwrap(
+    await (supabase as any)
+      .from('project_checkpoints')
+      .delete()
+      .eq('id', id)
       .select()
       .single(),
   );
