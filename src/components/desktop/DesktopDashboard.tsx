@@ -762,6 +762,44 @@ const INTEL_CFG: Record<string, {
   knowledge:{ label: 'ZASADA',  urgencyMap: { high: 'border-amber-500/30 bg-amber-500/[0.04]', medium: 'border-amber-500/20 bg-amber-500/[0.03]', low: 'border-border-custom bg-surface-solid' }, dot: { high: 'bg-amber-500', medium: 'bg-amber-400', low: 'bg-amber-300' }, badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
 };
 
+const LOW_VALUE_INTEL_TYPES = new Set(['person', 'source_summary', 'operating_model', 'lesson', 'osoba']);
+const LOW_VALUE_INTEL_TITLES = new Set(['jakub', 'poprawka użytkownika', 'aktualny snapshot operacyjny', 'aktualne tematy ze streamu']);
+const LOW_VALUE_INTEL_TEXT = [
+  'osoba analizowana',
+  'poprawka:',
+  'desktop footprint',
+  'aktualny model operacyjny składa się',
+  'najmocniejszy sygnał:',
+  'content:',
+  'category:',
+];
+
+function cleanIntelText(value: string | null | undefined, max = 260) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > max ? `${text.slice(0, max).trim()}...` : text;
+}
+
+function isUsefulIntelCard(card: any) {
+  const headline = String(card.headline || '').trim().toLowerCase();
+  const evidence = String(card.evidence || '').trim().toLowerCase();
+  const meta = String(card.meta || '').trim().toLowerCase();
+  if (!headline || headline.length < 4) return false;
+  if (LOW_VALUE_INTEL_TYPES.has(meta)) return false;
+  if (LOW_VALUE_INTEL_TITLES.has(headline)) return false;
+  if (LOW_VALUE_INTEL_TEXT.some(marker => evidence.includes(marker))) return false;
+  if (card.type === 'pattern' && (card.count || 0) < 2) return false;
+  if ((card.type === 'wiki' || card.type === 'knowledge') && cleanIntelText(card.evidence).length < 40) return false;
+  return true;
+}
+
+function intelScore(card: any) {
+  const urgencyScore = card.urgency === 'high' ? 30 : card.urgency === 'medium' ? 15 : 0;
+  const typeScore = card.type === 'data' ? 80 : card.type === 'pattern' ? 55 : card.type === 'knowledge' ? 25 : 15;
+  const countScore = Math.min((card.count || 0) * 4, 20);
+  const importanceScore = Math.min(card.importance || 0, 10);
+  return typeScore + urgencyScore + countScore + importanceScore;
+}
+
 interface IntelligencePanelProps {
   oura: any[];
   sessions: any[];
@@ -800,7 +838,19 @@ function IntelligencePanel({ oura, sessions, nutrition, wins, patterns, wiki, kn
     })),
   ];
 
-  if (!cards.length) return (
+  const visibleCards = cards
+    .map(card => ({
+      ...card,
+      headline: cleanIntelText(card.headline, 120),
+      evidence: cleanIntelText(card.evidence),
+      count: card.count ?? Number(String(card.meta || '').match(/\d+/)?.[0] || 0),
+      importance: card.importance ?? card.importance_score ?? 0,
+    }))
+    .filter(isUsefulIntelCard)
+    .sort((a, b) => intelScore(b) - intelScore(a))
+    .slice(0, 6);
+
+  if (!visibleCards.length) return (
     <Panel title="Intelligence — za mało danych">
       <p className="text-[11px] text-text-muted text-center py-8">Wnioski pojawią się po kilku tygodniach danych.</p>
     </Panel>
@@ -809,7 +859,7 @@ function IntelligencePanel({ oura, sessions, nutrition, wins, patterns, wiki, kn
   return (
     <Panel title="Intelligence — co powinieneś wiedzieć">
       <div className="grid grid-cols-3 gap-3">
-        {cards.map((card, i) => {
+        {visibleCards.map((card, i) => {
           const cfg = INTEL_CFG[card.type] || INTEL_CFG.data;
           const urgency = card.urgency || 'medium';
           return (
