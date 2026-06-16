@@ -292,6 +292,7 @@ interface TodoCardProps {
   onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
   onMoveToToday?: () => void;
   onSetRecurrence: (r: string | null) => void;
+  dreamTitle?: string | null;
 }
 
 function TodoCard({
@@ -304,6 +305,7 @@ function TodoCard({
   sectionName, sectionGoalKey, onDragStart, isDragging,
   onShowContextMenu,
   onMoveToToday, onSetRecurrence,
+  dreamTitle,
 }: TodoCardProps) {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
@@ -457,9 +459,16 @@ function TodoCard({
               {sectionName && (() => {
                 const GoalIcon = sectionGoalKey ? GOAL_ICON[sectionGoalKey] : null;
                 return (
-                  <span className="flex items-center gap-1">
-                    {GoalIcon && <GoalIcon size={8} className={GOAL_COLOR[sectionGoalKey!]} />}
-                    <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="flex items-center gap-1">
+                      {GoalIcon && <GoalIcon size={8} className={GOAL_COLOR[sectionGoalKey!]} />}
+                      <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
+                    </span>
+                    {dreamTitle && (
+                      <span className="text-[10px] font-semibold text-primary/45 truncate max-w-[150px]" title={`Marzenie: ${dreamTitle}`}>
+                        ↳ {dreamTitle}
+                      </span>
+                    )}
                   </span>
                 );
               })()}
@@ -686,7 +695,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         listTodoItems(userId),
         supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
         listProjects(userId),
-        supabase.from('dreams').select('id, life_goal').eq('user_id', userId),
+        supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId),
       ]);
       setSections(s || []);
       setItems(i || []);
@@ -797,6 +806,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       const dream = dreams.find(d => d.id === proj.dream_id);
       const goal = dream?.life_goal;
       if (goal) result[sec.id] = goal;
+    }
+    return result;
+  }, [sections, projects, dreams]);
+
+  const sectionDreamMap = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const sec of sections) {
+      if (!sec.project_id) continue;
+      const proj = projects.find(p => p.id === sec.project_id);
+      if (!proj || !proj.dream_id) continue;
+      const dream = dreams.find(d => d.id === proj.dream_id);
+      if (dream?.title) result[sec.id] = dream.title;
     }
     return result;
   }, [sections, projects, dreams]);
@@ -940,6 +961,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       onEditSave={() => saveEditTitle(item)}
       sectionName={item.section_id ? sectionById[item.section_id]?.name : null}
       sectionGoalKey={item.section_id ? sectionGoalMap[item.section_id] ?? null : null}
+      dreamTitle={item.section_id ? sectionDreamMap[item.section_id] ?? null : null}
       onDragStart={handleDragStart}
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
