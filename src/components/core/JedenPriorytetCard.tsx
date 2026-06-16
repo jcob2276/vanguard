@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronRight, Flame, Search, Target } from 'lucide-react';
+import { Check, ChevronRight, Flame, Search, Shield, Target, Wallet, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { listTodoItems, listTodoSections } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useDailyPush } from '../../hooks/useDailyPush';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
+import type { GoalKey } from '../../hooks/useDailyPush';
 
 interface Props {
   session: Session;
@@ -39,6 +41,12 @@ const COLOR_CHIP: Record<string, string> = {
   emerald: 'text-emerald-600 dark:text-emerald-400',
   amber: 'text-amber-600 dark:text-amber-400',
   rose: 'text-rose-600 dark:text-rose-400',
+};
+
+const GOAL_META: Record<GoalKey, { icon: typeof Shield; color: string; label: string }> = {
+  cialo: { icon: Shield, color: 'text-emerald-500', label: 'Ciało' },
+  duch:  { icon: Zap,    color: 'text-indigo-500',  label: 'Duch'  },
+  konto: { icon: Wallet, color: 'text-amber-500',   label: 'Konto' },
 };
 
 function TaskPicker({ items, search, onSearch, onSelect, onClose }: {
@@ -105,6 +113,8 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
   const userId = session.user.id;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const haptics = useHaptics();
+
+  const suggestion = useDailyPush(userId);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [tasks, setTasks] = useState<EnrichedTask[]>([]);
@@ -188,15 +198,8 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
     return () => document.removeEventListener('mousedown', handler);
   }, [pickerOpen]);
 
-  const openPicker = () => {
-    haptics.light();
-    setPickerOpen(true);
-  };
-
-  const closePicker = () => {
-    setPickerOpen(false);
-    setSearch('');
-  };
+  const openPicker = () => { haptics.light(); setPickerOpen(true); };
+  const closePicker = () => { setPickerOpen(false); setSearch(''); };
 
   const pickTask = async (item: EnrichedTask) => {
     setSaving(true);
@@ -224,6 +227,17 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
     }
   };
 
+  const takeSuggestion = () => {
+    if (!suggestion) return;
+    pickTask({
+      id: suggestion.taskId,
+      title: suggestion.taskTitle,
+      groupKey: suggestion.projectId,
+      groupLabel: suggestion.projectName,
+      projectColor: suggestion.projectColor,
+    });
+  };
+
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
       {/* Header */}
@@ -248,21 +262,32 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
 
       <div className="px-5 pt-4 pb-5 space-y-3">
 
-        {/* EMPTY: pick a task */}
+        {/* EMPTY: show AI suggestion or manual picker */}
         {state === 'empty' && (
           <>
-            <p className="text-[11.5px] text-text-secondary leading-relaxed">
-              Co jest twoją <span className="font-black text-text-primary">jedną rzeczą</span> dziś — taką, że gdy to zrobisz, wszystko inne jest bonusem?
-            </p>
+            {suggestion ? (
+              <SuggestionCard
+                suggestion={suggestion}
+                saving={saving}
+                onTake={takeSuggestion}
+                onChooseOther={openPicker}
+              />
+            ) : (
+              <p className="text-[11.5px] text-text-secondary leading-relaxed">
+                Co jest twoją <span className="font-black text-text-primary">jedną rzeczą</span> dziś — taką, że gdy to zrobisz, wszystko inne jest bonusem?
+              </p>
+            )}
             <div className="relative" ref={pickerRef}>
-              <button
-                onClick={openPicker}
-                disabled={saving}
-                className="flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-primary/30 bg-primary/[0.02] px-4 py-3 text-left transition-all hover:bg-primary/[0.05] hover:border-primary/50 active:scale-[0.98] cursor-pointer disabled:opacity-50"
-              >
-                <span className="text-xs font-black text-primary">Wybierz z projektów / to-do</span>
-                <ChevronRight size={14} className="text-primary shrink-0" />
-              </button>
+              {!suggestion && (
+                <button
+                  onClick={openPicker}
+                  disabled={saving}
+                  className="flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-primary/30 bg-primary/[0.02] px-4 py-3 text-left transition-all hover:bg-primary/[0.05] hover:border-primary/50 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                >
+                  <span className="text-xs font-black text-primary">Wybierz z projektów / to-do</span>
+                  <ChevronRight size={14} className="text-primary shrink-0" />
+                </button>
+              )}
               {pickerOpen && (
                 <div className="absolute left-0 right-0 top-full z-20 mt-1.5">
                   <TaskPicker items={tasks} search={search} onSearch={setSearch} onSelect={pickTask} onClose={closePicker} />
@@ -341,5 +366,71 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
         </button>
       </div>
     </section>
+  );
+}
+
+function SuggestionCard({
+  suggestion,
+  saving,
+  onTake,
+  onChooseOther,
+}: {
+  suggestion: NonNullable<ReturnType<typeof useDailyPush>>;
+  saving: boolean;
+  onTake: () => void;
+  onChooseOther: () => void;
+}) {
+  const meta = GOAL_META[suggestion.goalKey];
+  const GoalIcon = meta.icon;
+  const dotColor = COLOR_DOT[suggestion.projectColor || ''] || 'bg-primary';
+  const chipColor = COLOR_CHIP[suggestion.projectColor || ''] || 'text-primary';
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-4 space-y-3">
+      {/* Header */}
+      <p className="text-[8.5px] font-black uppercase tracking-[0.2em] text-primary/70">
+        ↗ System proponuje na dziś
+      </p>
+
+      {/* Task */}
+      <p className="text-[14px] font-black text-text-primary leading-snug">
+        {suggestion.taskTitle}
+      </p>
+
+      {/* Chain context */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex items-center gap-1">
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} />
+          <span className={`text-[9px] font-bold ${chipColor}`}>{suggestion.projectName}</span>
+        </div>
+        <span className="text-[8px] text-text-muted">·</span>
+        <span className="text-[9px] text-text-secondary truncate max-w-[130px]">{suggestion.dreamTitle}</span>
+        <span className="text-[8px] text-text-muted">·</span>
+        <div className="flex items-center gap-0.5">
+          <GoalIcon size={9} className={meta.color} />
+          <span className={`text-[9px] font-bold ${meta.color}`}>{meta.label}</span>
+        </div>
+      </div>
+
+      {/* Reason */}
+      <p className="text-[9px] text-text-muted italic">{suggestion.reason}</p>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 pt-0.5">
+        <button
+          onClick={onTake}
+          disabled={saving}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[11px] font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+        >
+          Biorę to na dziś →
+        </button>
+        <button
+          onClick={onChooseOther}
+          className="w-full text-center text-[9px] font-bold text-text-muted hover:text-primary transition-colors cursor-pointer"
+        >
+          Wybierz inne zadanie
+        </button>
+      </div>
+    </div>
   );
 }
