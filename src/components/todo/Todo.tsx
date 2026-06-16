@@ -655,6 +655,8 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   };
   const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const quickCaptureRef = useRef<HTMLDivElement>(null);
 
   // Drag state
   const [draggingItem, setDraggingItem] = useState<any | null>(null);
@@ -700,6 +702,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   useEffect(() => {
     (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
   }, [fetchAll]);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (quickCaptureRef.current && !quickCaptureRef.current.contains(e.target as Node)) {
+        if (form.title.trim() === '') {
+          setIsExpanded(false);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [form.title]);
 
   // ── Drag tracking ──
   const getSectionAtPoint = useCallback((x: number, y: number) => {
@@ -1004,68 +1018,42 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
             {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
             {/* Quick capture */}
-            <div className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
+            <div ref={quickCaptureRef} className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
               <div className="flex items-center gap-2">
                 <input
-                  autoFocus
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
-                  placeholder="Dodaj zadanie... p1 · jutro · 🏃 Bieganie"
-                  className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[15px] font-normal text-text-primary outline-none placeholder:text-text-muted/35"
+                  onFocus={() => setIsExpanded(true)}
+                  placeholder="Dodaj zadanie..."
+                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-[16px] font-semibold text-text-primary outline-none placeholder:text-text-muted/35"
                 />
-                <button
-                  title={form.recurrence ? RECURRENCE_LABELS[form.recurrence] : 'Brak powtarzania'}
-                  onClick={() => {
-                    const idx = RECURRENCE_CYCLE.indexOf(form.recurrence as any);
-                    const next = RECURRENCE_CYCLE[(idx + 1) % RECURRENCE_CYCLE.length];
-                    setForm(f => ({ ...f, recurrence: next }));
-                  }}
-                  className={`rounded-full border p-2 transition-colors ${form.recurrence ? 'bg-violet-500/15 text-violet-500 border-violet-500/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
-                >
-                  <Repeat2 size={16} />
-                </button>
-                <button
-                  onClick={() => setShowOptions((v) => !v)}
-                  className={`rounded-full border p-2 transition-colors ${showOptions ? 'bg-primary/15 text-primary border-primary/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
-                >
-                  <Settings2 size={16} />
-                </button>
+                {form.title && (
+                  <button
+                    onClick={() => setForm({ ...form, title: '' })}
+                    className="p-1 text-text-muted/40 hover:text-text-primary transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+                {!isExpanded && (
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    className="rounded-full border border-border-custom/60 text-text-muted hover:text-text-primary p-2 transition-colors shrink-0"
+                  >
+                    <Settings2 size={16} />
+                  </button>
+                )}
                 <button
                   onClick={addItem}
                   disabled={busy || !form.title.trim()}
-                  className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all"
+                  className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all shrink-0"
                 >
                   <Plus size={16} />
                 </button>
               </div>
 
-              {form.recurrence && (
-                <div className="mt-1.5 px-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-violet-500">
-                    <Repeat2 size={9} /> {RECURRENCE_LABELS[form.recurrence]}
-                  </span>
-                </div>
-              )}
-
-              {parsedInput.tokens.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5 px-1">
-                  {parsedInput.tokens.map((token) => (
-                    <span key={`${token.type}-${token.value}`}
-                      className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                        token.type === 'priority' ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted') : 'bg-primary/10 text-primary'
-                      }`}
-                    >
-                      {token.label}
-                    </span>
-                  ))}
-                  {parsedInput.title && parsedInput.title !== form.title.trim() && (
-                    <span className="text-[9px] font-bold text-text-muted">→ {parsedInput.title}</span>
-                  )}
-                </div>
-              )}
-
-              {(form.title.trim() !== '' || showOptions) && (
+              {(isExpanded || form.title.trim() !== '' || showOptions) && (
                 <div className="mt-3 space-y-3 border-t border-border-custom pt-3">
                   <textarea
                     value={form.notes}
@@ -1170,6 +1158,21 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                       </div>
                     </div>
 
+                    {/* Recurrence Selector */}
+                    <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
+                      <span className="text-[10px] font-semibold text-text-muted">Powtarzanie</span>
+                      <select
+                        value={form.recurrence || ''}
+                        onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
+                        className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2.5 py-2 text-[12px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+                      >
+                        <option value="">Nigdy</option>
+                        <option value="daily">Codziennie</option>
+                        <option value="weekly">Co tydzień</option>
+                        <option value="monthly">Co miesiąc</option>
+                      </select>
+                    </div>
+
                     {/* Tags Input */}
                     <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
                       <span className="text-[10px] font-semibold text-text-muted">Tagi</span>
@@ -1179,6 +1182,41 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                         placeholder="np. zakup, praca"
                         className="min-w-0 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
                       />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between border-t border-border-custom pt-3">
+                    <div>
+                      {parsedInput.tokens.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {parsedInput.tokens.map((token) => (
+                            <span key={`${token.type}-${token.value}`}
+                              className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                                token.type === 'priority' ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted') : 'bg-primary/10 text-primary'
+                              }`}
+                            >
+                              {token.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setIsExpanded(false); }}
+                        className="rounded-xl border border-border-custom/60 px-4 py-2 text-[12px] font-semibold text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        Zwiń
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addItem}
+                        disabled={busy || !form.title.trim()}
+                        className="rounded-xl bg-primary px-5 py-2 text-[12px] font-bold text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all"
+                      >
+                        Dodaj
+                      </button>
                     </div>
                   </div>
                 </div>
