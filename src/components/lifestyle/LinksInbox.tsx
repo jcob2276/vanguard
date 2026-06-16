@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   BookOpen,
@@ -28,6 +27,8 @@ interface SavedLink {
   domain: string;
   status: 'unread' | 'read';
   created_at: string;
+  thumbnail_url?: string;
+  channel_name?: string;
 }
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
@@ -46,8 +47,7 @@ const STATUS_TABS: { id: 'unread' | 'read' | 'all'; label: string }[] = [
 
 const CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
 
-export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: 'todo' | 'keep') => void }) {
-  const navigate = useNavigate();
+export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
@@ -264,11 +264,23 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                       }`}
                     >
+                      {/* Thumbnail (YouTube) */}
+                      {link.thumbnail_url && (
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[18px] overflow-hidden">
+                          <img
+                            src={link.thumbnail_url}
+                            alt={link.title}
+                            className="w-full h-[180px] object-cover"
+                            loading="lazy"
+                          />
+                        </a>
+                      )}
+
                       {/* Top row */}
                       <div className="flex items-start gap-3">
                         <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
                           <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                            <span className="text-[11px] text-text-muted">{link.domain || 'link'}</span>
+                            <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${catStyle.pill}`}>
                               {link.category}
                             </span>
@@ -398,11 +410,11 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
-        <button onClick={() => onNavigateTo ? onNavigateTo('keep') : navigate('/keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => onNavigateTo?.('keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <StickyNote size={22} />
           <span className="text-[11px] font-semibold">Notatki</span>
         </button>
-        <button onClick={() => onNavigateTo ? onNavigateTo('todo') : goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => onNavigateTo?.('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <ListTodo size={22} />
           <span className="text-[11px] font-semibold">Zadania</span>
         </button>

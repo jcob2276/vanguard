@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   AlertCircle,
@@ -1171,10 +1170,10 @@ function MasonryGrid({
 
 // ─── Main Keep page ───────────────────────────────────────────────────────────
 
-export default function Keep({ session }: { session: any }) {
-  const navigate = useNavigate();
+export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session.user.id;
-  const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1';
+  const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1'
+    || localStorage.getItem('vanguard_keep_new') === '1';
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1186,9 +1185,13 @@ export default function Keep({ session }: { session: any }) {
   const [columns, setColumns] = useState(3);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const goTo = (view: string) => {
-    localStorage.setItem('vanguard_view', view);
-    navigate('/');
+  const goTo = (dest: string) => {
+    if (onNavigateTo) {
+      onNavigateTo(dest);
+    } else {
+      localStorage.setItem('vanguard_view', dest);
+      window.location.href = '/';
+    }
   };
 
   const handleOpenCard = useCallback((id: string) => setEditingId(id), []);
@@ -1425,9 +1428,9 @@ export default function Keep({ session }: { session: any }) {
       {/* ── Topbar ── */}
       <header className="keep-header">
         <div className="keep-header-left">
-          <a href="/" className="keep-back-btn" title="Wróć">
+          <button onClick={() => onBack ? onBack() : (window.location.href = '/')} className="keep-back-btn" title="Wróć">
             <ArrowLeft size={16} />
-          </a>
+          </button>
           <div className="keep-logo">
             <CheckSquare size={18} className="keep-logo-icon" />
             <span>Notatki</span>

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Calendar,
   FolderKanban,
@@ -38,6 +38,7 @@ const Direction = lazy(() => import('../lifestyle/Direction'));
 const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
+const Keep = lazy(() => import('../career/Keep'));
 const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
@@ -305,7 +306,6 @@ export default function Dashboard({ session }: { session: any }) {
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
-  const navigate = useNavigate();
 
   // Theme support
   const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -544,13 +544,25 @@ export default function Dashboard({ session }: { session: any }) {
     );
   }
 
+  if (view === 'keep') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <Keep
+          session={session}
+          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
+          onNavigateTo={(dest) => setView(dest)}
+        />
+      </Suspense>
+    );
+  }
+
   if (view === 'todo') {
     return (
       <Suspense fallback={<ViewFallback />}>
         <Todo
           session={session}
           onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
-          onNavigateTo={(dest) => { if (dest === 'keep') navigate('/keep'); else setView(dest); }}
+          onNavigateTo={(dest) => setView(dest)}
         />
       </Suspense>
     );
@@ -562,7 +574,7 @@ export default function Dashboard({ session }: { session: any }) {
         <LinksInbox
           session={session}
           onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
-          onNavigateTo={(dest) => { if (dest === 'keep') navigate('/keep'); else setView(dest); }}
+          onNavigateTo={(dest) => setView(dest)}
         />
       </Suspense>
     );

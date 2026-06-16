@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   BookOpen,
@@ -115,13 +114,16 @@ interface ContextMenuProps {
   y: number;
   item: any;
   today: string;
+  sections: any[];
   onClose: () => void;
   onComplete: () => void;
   onDrop: () => void;
-  onMoveBucket: (b: string) => void;
+  onMoveToToday: () => void;
+  onClearDueDate: () => void;
+  onMoveSection: (sId: string | null) => void;
 }
 
-function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBucket }: ContextMenuProps) {
+function ContextMenu({ x, y, item, today, sections, onClose, onComplete, onDrop, onMoveToToday, onClearDueDate, onMoveSection }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,7 +143,7 @@ function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBuc
 
   // Keep menu inside viewport
   const left = Math.min(x, window.innerWidth - 220);
-  const top = Math.min(y, window.innerHeight - 260);
+  const top = Math.min(y, window.innerHeight - 300);
 
   const MenuItem = ({ icon, label, onClick, danger = false }: { icon: ReactNode; label: ReactNode; onClick: () => void; danger?: boolean }) => (
     <button
@@ -156,8 +158,8 @@ function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBuc
   return (
     <div
       ref={ref}
-      style={{ position: 'fixed', left, top, zIndex: 10000, minWidth: 210 }}
-      className="overflow-hidden rounded-2xl border border-border-custom bg-surface/95 shadow-2xl backdrop-blur-xl"
+      style={{ position: 'fixed', left, top, zIndex: 10000, minWidth: 220 }}
+      className="max-h-[350px] overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 shadow-2xl backdrop-blur-xl"
     >
       <div className="border-b border-border-custom/40 px-4 py-2">
         <p className="truncate text-[10px] font-black uppercase tracking-widest text-text-muted">
@@ -167,9 +169,16 @@ function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBuc
       <div className="py-1">
         <MenuItem icon={item.status === 'done' ? '↩️' : '✅'} label={item.status === 'done' ? 'Cofnij ukończenie' : 'Oznacz jako gotowe'} onClick={onComplete} />
         <div className="mx-3 my-1 border-t border-border-custom/30" />
-        <MenuItem icon="🔥" label="Przenieś na Dziś" onClick={() => onMoveBucket('today')} />
-        <MenuItem icon="📅" label="Przenieś na Wkrótce" onClick={() => onMoveBucket('soon')} />
-        <MenuItem icon="🗄️" label="Przenieś w Tło" onClick={() => onMoveBucket('later')} />
+        <MenuItem icon="🔥" label="Przenieś na Dziś" onClick={onMoveToToday} />
+        {item.due_date && <MenuItem icon="❌" label="Usuń termin" onClick={onClearDueDate} />}
+        
+        <div className="mx-3 my-1 border-t border-border-custom/30" />
+        <p className="px-4 py-1 text-[9px] font-bold uppercase tracking-wider text-text-muted/65">Sekcja</p>
+        <MenuItem icon="📥" label="Skrzynka (brak sekcji)" onClick={() => onMoveSection(null)} />
+        {sections.map((s) => (
+          <MenuItem key={s.id} icon="📂" label={s.name} onClick={() => onMoveSection(s.id)} />
+        ))}
+        
         <div className="mx-3 my-1 border-t border-border-custom/30" />
         <MenuItem icon="🗑" label="Odpuść zadanie" onClick={onDrop} danger />
       </div>
@@ -617,31 +626,34 @@ function TodoCard({
 
 // ─── Todo (main) ──────────────────────────────────────────────────────────────
 
-export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: 'links' | 'keep') => void }) {
-  const navigate = useNavigate();
+export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session?.user?.id;
   const [sections, setSections] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [dreams, setDreams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const [collapsed, setCollapsed] = useState({ today: false, soon: true, later: true });
-  const [expandedId, setExpandedId] = useState(null);
-  const [editingId, setEditingId] = useState(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [linkedPlanIds, setLinkedPlanIds] = useState(new Set());
-  const [showOptions, setShowOptions] = useState(false);
+  const [linkedPlanIds, setLinkedPlanIds] = useState<Set<string>>(new Set());
+
+  // Filters
   const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
   const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [dreams, setDreams] = useState<any[]>([]);
 
-  const goTo = (view: string) => {
-    localStorage.setItem('vanguard_view', view);
-    window.location.href = '/';
+  // Options toggling
+  const [showOptions, setShowOptions] = useState(false);
+
+  const toggleExpand = useCallback((id: string) => setExpandedId(prev => prev === id ? null : id), []);
+
+  const goTo = (dest: 'todo' | 'keep' | 'links') => {
+    if (onNavigateTo) onNavigateTo(dest);
   };
-  const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
+  const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
 
   // Drag state
@@ -649,9 +661,13 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const [dragTarget, setDragTarget] = useState<string | null>(null);
   const dragPosRef = useRef({ x: 0, y: 0 });
   const dragItemRef = useRef<any | null>(null);
+  
   const todayZoneRef = useRef<HTMLDivElement>(null);
-  const soonZoneRef = useRef<HTMLDivElement>(null);
-  const laterZoneRef = useRef<HTMLDivElement>(null);
+  const inboxZoneRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const toggleSectionCollapse = (id: string) => { setCollapsedSections(prev => ({ ...prev, [id]: !prev[id] })); };
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const nextWeek = (() => {
@@ -686,18 +702,23 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   }, [fetchAll]);
 
   // ── Drag tracking ──
-  const getBucketAtPoint = useCallback((x: number, y: number) => {
-    for (const { ref, bucket } of [
-      { ref: todayZoneRef, bucket: 'today' },
-      { ref: soonZoneRef, bucket: 'soon' },
-      { ref: laterZoneRef, bucket: 'later' },
-    ]) {
-      if (!ref.current) continue;
-      const r = ref.current.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return bucket;
+  const getSectionAtPoint = useCallback((x: number, y: number) => {
+    if (todayZoneRef.current) {
+      const r = todayZoneRef.current.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return 'today';
+    }
+    if (inboxZoneRef.current) {
+      const r = inboxZoneRef.current.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return 'inbox';
+    }
+    for (const sec of sections) {
+      const el = sectionRefs.current[sec.id];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return sec.id;
     }
     return null;
-  }, []);
+  }, [sections]);
 
   useEffect(() => {
     if (!draggingItem) return;
@@ -705,26 +726,39 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       e.preventDefault();
       const t = e.touches?.[0] ?? e;
       dragPosRef.current = { x: t.clientX, y: t.clientY };
-      const b = getBucketAtPoint(t.clientX, t.clientY);
+      const b = getSectionAtPoint(t.clientX, t.clientY);
       setDragTarget((prev) => prev !== b ? b : prev);
     };
     const onEnd = (e: any) => {
       const t = e.changedTouches?.[0] ?? e;
-      const bucket = getBucketAtPoint(t.clientX, t.clientY);
+      const target = getSectionAtPoint(t.clientX, t.clientY);
       const item = dragItemRef.current;
-      if (bucket && item) {
-        const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const patch: { ai_bucket: string; ai_classified_at: string; due_date?: string | null } = { ai_bucket: bucket, ai_classified_at: new Date().toISOString() };
-        if (bucket === 'today') patch.due_date = now;
-        else if (item.due_date) patch.due_date = null;
-        setBusy(true);
-        updateTodoItem(item.id, patch).then(() => fetchAll()).catch((err) => setError(err.message)).finally(() => setBusy(false));
+      if (target && item) {
+        if (target === 'today') {
+          const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          setBusy(true);
+          updateTodoItem(item.id, { due_date: now, ai_bucket: 'today', ai_classified_at: new Date().toISOString() })
+            .then(() => fetchAll())
+            .catch((err) => setError(err.message))
+            .finally(() => setBusy(false));
+        } else if (target === 'inbox') {
+          setBusy(true);
+          updateTodoItem(item.id, { section_id: null })
+            .then(() => fetchAll())
+            .catch((err) => setError(err.message))
+            .finally(() => setBusy(false));
+        } else {
+          setBusy(true);
+          updateTodoItem(item.id, { section_id: target })
+            .then(() => fetchAll())
+            .catch((err) => setError(err.message))
+            .finally(() => setBusy(false));
+        }
       }
       dragItemRef.current = null;
       setDraggingItem(null);
       setDragTarget(null);
     };
-    // capture: true fires before stopPropagation in grip handlers
     document.addEventListener('mousemove', onMove, { capture: true });
     document.addEventListener('touchmove', onMove, { passive: false, capture: true });
     document.addEventListener('mouseup', onEnd, { capture: true });
@@ -735,20 +769,19 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       document.removeEventListener('mouseup', onEnd, { capture: true });
       document.removeEventListener('touchend', onEnd, { capture: true });
     };
-  }, [draggingItem, getBucketAtPoint, fetchAll]);
+  }, [draggingItem, getSectionAtPoint, fetchAll]);
 
   // ── Derived ──
   const sectionById = useMemo(() => Object.fromEntries(sections.map((s) => [s.id, s])), [sections]);
 
   const sectionGoalMap = useMemo(() => {
-    const dreamGoal = Object.fromEntries(dreams.filter((d: any) => d.life_goal).map((d: any) => [d.id, d.life_goal as string]));
-    const projectDream = Object.fromEntries(projects.filter((p: any) => p.dream_id).map((p: any) => [p.id, p.dream_id as string]));
     const result: Record<string, string> = {};
-    for (const sec of sections as any[]) {
+    for (const sec of sections) {
       if (!sec.project_id) continue;
-      const dreamId = projectDream[sec.project_id];
-      if (!dreamId) continue;
-      const goal = dreamGoal[dreamId];
+      const proj = projects.find(p => p.id === sec.project_id);
+      if (!proj || !proj.dream_id) continue;
+      const dream = dreams.find(d => d.id === proj.dream_id);
+      const goal = dream?.life_goal;
       if (goal) result[sec.id] = goal;
     }
     return result;
@@ -758,29 +791,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
 
   const allUniqueTags = useMemo(() => Array.from(new Set(openItems.flatMap(i => i.tags || []))).sort(), [openItems]);
-  const allUniqueSections = useMemo(() =>
-    sections.filter(s => s.project_id || openItems.some(i => i.section_id === s.id)),
-    [sections, openItems],
-  );
-
-  const projectBySection = useMemo(() =>
-    Object.fromEntries(sections.filter(s => s.project_id).map(s => [s.id, projects.find(p => p.id === s.project_id)])),
-    [sections, projects],
-  );
-
-  const activeProject = useMemo(() => {
-    if (!activeFilterSection) return null;
-    const project = projectBySection[activeFilterSection];
-    if (!project) return null;
-    const sectionItems = items.filter(i => i.section_id === activeFilterSection);
-    const done  = sectionItems.filter(i => i.status === 'done').length;
-    const total = sectionItems.length;
-    const progress = total === 0 ? 0 : Math.round((done / total) * 100);
-    const daysLeft = project.deadline
-      ? Math.round((new Date(project.deadline + 'T00:00:00').getTime() - new Date().getTime()) / 86400000)
-      : null;
-    return { ...project, done, total, progress, daysLeft };
-  }, [activeFilterSection, projectBySection, items]);
 
   const applyFilter = useCallback((arr: any[]) => arr.filter(i => {
     if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
@@ -788,20 +798,28 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     return true;
   }), [activeFilterTag, activeFilterSection]);
 
-  const { todayItems, soonItems, laterItems } = useMemo(() => {
-    const todaySet = new Set(), soonSet = new Set();
-    const todayItems = applyFilter(openItems.filter((i: any) => {
-      if (i.ai_bucket === 'today' || i.due_date === today) { todaySet.add(i.id); return true; }
-      return false;
+  const { todayItems, inboxItems, sectionsWithItems } = useMemo(() => {
+    const todayList = openItems.filter((i: any) => i.due_date === today || i.ai_bucket === 'today');
+    const todaySet = new Set(todayList.map(i => i.id));
+    const remainingItems = openItems.filter((i: any) => !todaySet.has(i.id));
+    const inbox = applyFilter(remainingItems.filter((i: any) => i.section_id === null));
+    const sectionsMap: Record<string, any[]> = {};
+    sections.forEach(s => { sectionsMap[s.id] = []; });
+    remainingItems.forEach((i: any) => {
+      if (i.section_id && sectionsMap[i.section_id] !== undefined) {
+        sectionsMap[i.section_id].push(i);
+      }
+    });
+    const sectionsList = sections.map(s => ({
+      ...s,
+      items: applyFilter(sectionsMap[s.id] || [])
     }));
-    const soonItems = applyFilter(openItems.filter((i: any) => {
-      if (todaySet.has(i.id)) return false;
-      if (i.ai_bucket === 'soon' || (i.due_date && i.due_date > today && i.due_date <= nextWeek)) { soonSet.add(i.id); return true; }
-      return false;
-    }));
-    const laterItems = applyFilter(openItems.filter((i: any) => !todaySet.has(i.id) && !soonSet.has(i.id)));
-    return { todayItems, soonItems, laterItems };
-  }, [openItems, today, nextWeek, applyFilter]);
+    return {
+      todayItems: applyFilter(todayList),
+      inboxItems: inbox,
+      sectionsWithItems: sectionsList
+    };
+  }, [openItems, sections, today, applyFilter]);
 
   // ── Actions ──
   const run = async (fn: () => Promise<any> | any) => {
@@ -824,20 +842,20 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     const title = parsedInput.title || form.title.trim();
     if (!title) return;
     run(async () => {
-      const newItem = await createTodoItem(userId, { ...form, title, priority: parsedInput.priority || form.priority, due_date: parsedInput.due_date || form.due_date, section_id: undefined, recurrence: form.recurrence || undefined });
-      setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
+      const targetSectionId = form.section_id || activeFilterSection || undefined;
+      const newItem = await createTodoItem(userId, {
+        ...form,
+        title,
+        priority: parsedInput.priority || form.priority,
+        due_date: parsedInput.due_date || form.due_date,
+        section_id: targetSectionId,
+        recurrence: form.recurrence || undefined
+      });
+      setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
       setShowOptions(false);
       if (!parsedInput.due_date && !parsedInput.priority) classifyInBackground(newItem);
     });
   };
-
-  const moveBucket = useCallback((item: any, bucket: string) => {
-    const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    const patch: { ai_bucket: string; ai_classified_at: string; due_date?: string | null } = { ai_bucket: bucket, ai_classified_at: new Date().toISOString() };
-    if (bucket === 'today') patch.due_date = now;
-    else if (item.due_date) patch.due_date = null;
-    run(() => updateTodoItem(item.id, patch));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSubtask = (item: any, idx: number) => {
     const { description, subtasks } = parseSubtasks(item.notes);
@@ -862,11 +880,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     dragItemRef.current = item;
     dragPosRef.current = { x, y };
     setDraggingItem(item);
-    setExpandedId(null);
-    setContextMenu(null);
   }, []);
-
-  const toggleExpand = useCallback((id: any) => setExpandedId((p) => p === id ? null : id), []);
 
   const showContextMenu = useCallback((item: any, x: number, y: number) => {
     setContextMenu({ x, y, item });
@@ -886,7 +900,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         });
       }
     });
-  }, [today, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [today, userId]);
 
   const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
     <TodoCard
@@ -915,7 +929,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       onDragStart={handleDragStart}
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
-      onMoveToToday={!inToday ? () => moveBucket(item, 'today') : undefined}
+      onMoveToToday={!inToday ? () => run(() => updateTodoItem(item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() })) : undefined}
       onSetRecurrence={(r: string | null) => run(() => updateTodoItem(item.id, { recurrence: r || undefined }))}
     />
   );
@@ -938,20 +952,23 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           y={contextMenu.y}
           item={contextMenu.item}
           today={today}
+          sections={sections}
           onClose={() => setContextMenu(null)}
           onComplete={() => run(() => setTodoStatus(contextMenu.item, contextMenu.item.status === 'done' ? 'open' : 'done'))}
           onDrop={() => run(() => setTodoStatus(contextMenu.item, 'dropped'))}
-          onMoveBucket={(bucket: string) => moveBucket(contextMenu.item, bucket)}
+          onMoveToToday={() => run(() => updateTodoItem(contextMenu.item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() }))}
+          onClearDueDate={() => run(() => updateTodoItem(contextMenu.item.id, { due_date: null, ai_bucket: null }))}
+          onMoveSection={(sId: string | null) => run(() => updateTodoItem(contextMenu.item.id, { section_id: sId }))}
         />
       )}
 
       {/* Sidebar */}
       <aside className="keep-sidebar">
         <p className="keep-sidebar-section-label">Workspace</p>
-        <a href="/keep" className="keep-sidebar-item">
+        <button className="keep-sidebar-item" onClick={() => goTo('keep')}>
           <StickyNote size={15} />
           <span>Notatki</span>
-        </a>
+        </button>
         <button className="keep-sidebar-item active">
           <ListTodo size={15} />
           <span>Zadania</span>
@@ -960,48 +977,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <BookOpen size={15} />
           <span>Pocket</span>
         </button>
-
-        {(allUniqueTags.length > 0 || allUniqueSections.length > 0) && (
-          <>
-            <div className="keep-sidebar-separator" />
-            <p className="keep-sidebar-section-label">Filtruj</p>
-            {activeFilterTag || activeFilterSection ? (
-              <button
-                className="keep-sidebar-item"
-                onClick={() => { setActiveFilterTag(null); setActiveFilterSection(null); }}
-              >
-                <X size={13} />
-                <span className="text-rose-500">Wyczyść</span>
-              </button>
-            ) : null}
-            {allUniqueSections.map(s => {
-              const proj = projectBySection[s.id];
-              const COLOR_DOT: Record<string, string> = { indigo: 'bg-indigo-500', violet: 'bg-violet-500', sky: 'bg-sky-500', emerald: 'bg-emerald-500', amber: 'bg-amber-500', rose: 'bg-rose-500' };
-              return (
-                <button
-                  key={s.id}
-                  className={`keep-sidebar-item ${activeFilterSection === s.id ? 'active' : ''}`}
-                  onClick={() => { setActiveFilterSection(p => p === s.id ? null : s.id); setActiveFilterTag(null); }}
-                >
-                  {proj
-                    ? <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[proj.color] ?? 'bg-text-muted'}`} />
-                    : <Filter size={13} />}
-                  <span>{s.name}</span>
-                </button>
-              );
-            })}
-            {allUniqueTags.map(tag => (
-              <button
-                key={tag}
-                className={`keep-sidebar-item ${activeFilterTag === tag ? 'active' : ''}`}
-                onClick={() => { setActiveFilterTag(p => p === tag ? null : tag); setActiveFilterSection(null); }}
-              >
-                <Tag size={13} />
-                <span>{tag}</span>
-              </button>
-            ))}
-          </>
-        )}
       </aside>
 
       {/* Main column */}
@@ -1014,9 +989,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Zadania</h1>
-            <p className="text-[12px] text-text-muted">
-              {openItems.length} otwarte · {todayItems.length} na dziś
-            </p>
           </div>
           <button
             onClick={() => setShowDone((v) => !v)}
@@ -1027,193 +999,341 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           </button>
         </header>
 
-        {/* Project context banner */}
-        {activeProject && (() => {
-          const COLOR: Record<string, { dot: string; bar: string; text: string; bg: string }> = {
-            indigo:  { dot: 'bg-indigo-500',  bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',  bg: 'bg-indigo-500/8'  },
-            violet:  { dot: 'bg-violet-500',  bar: 'bg-violet-500',  text: 'text-violet-600 dark:text-violet-400',  bg: 'bg-violet-500/8'  },
-            sky:     { dot: 'bg-sky-500',     bar: 'bg-sky-500',     text: 'text-sky-600 dark:text-sky-400',        bg: 'bg-sky-500/8'     },
-            emerald: { dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400',bg: 'bg-emerald-500/8' },
-            amber:   { dot: 'bg-amber-500',   bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400',    bg: 'bg-amber-500/8'   },
-            rose:    { dot: 'bg-rose-500',    bar: 'bg-rose-500',    text: 'text-rose-600 dark:text-rose-400',      bg: 'bg-rose-500/8'    },
-          };
-          const c = COLOR[activeProject.color] ?? COLOR.indigo;
-          return (
-            <div className={`mx-5 mt-3 rounded-[14px] ${c.bg} px-4 py-3`}>
-              <div className="flex items-center gap-2 justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.dot}`} />
-                  <span className={`text-[13px] font-semibold truncate ${c.text}`}>{activeProject.name}</span>
-                  {activeProject.goal && <span className="text-[11px] text-text-muted truncate hidden sm:block">· {activeProject.goal}</span>}
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={`text-[12px] font-semibold ${c.text}`}>{activeProject.progress}%</span>
-                  {activeProject.daysLeft !== null && (
-                    <span className={`text-[11px] font-medium ${activeProject.daysLeft < 0 ? 'text-rose-500' : activeProject.daysLeft <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
-                      {activeProject.daysLeft < 0 ? `${Math.abs(activeProject.daysLeft)}d po terminie` : `${activeProject.daysLeft}d`}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="mt-2 h-1 w-full rounded-full bg-black/10 dark:bg-white/10">
-                <div className={`h-full rounded-full transition-all ${c.bar}`} style={{ width: `${activeProject.progress}%` }} />
-              </div>
-            </div>
-          );
-        })()}
-
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
-          {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
+            {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-          {/* Quick capture */}
-          <div className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
-            <div className="flex items-center gap-2">
-              <input
-                autoFocus
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
-                placeholder="Dodaj zadanie... p1 · jutro · 🏃 Bieganie"
-                className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[15px] font-normal text-text-primary outline-none placeholder:text-text-muted/35"
-              />
-              <button
-                title={form.recurrence ? RECURRENCE_LABELS[form.recurrence] : 'Brak powtarzania'}
-                onClick={() => {
-                  const idx = RECURRENCE_CYCLE.indexOf(form.recurrence as any);
-                  const next = RECURRENCE_CYCLE[(idx + 1) % RECURRENCE_CYCLE.length];
-                  setForm(f => ({ ...f, recurrence: next }));
-                }}
-                className={`rounded-full border p-2 transition-colors ${form.recurrence ? 'bg-violet-500/15 text-violet-500 border-violet-500/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
-              >
-                <Repeat2 size={16} />
-              </button>
-              <button
-                onClick={() => setShowOptions((v) => !v)}
-                className={`rounded-full border p-2 transition-colors ${showOptions ? 'bg-primary/15 text-primary border-primary/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
-              >
-                <Settings2 size={16} />
-              </button>
-              <button
-                onClick={addItem}
-                disabled={busy || !form.title.trim()}
-                className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            {form.recurrence && (
-              <div className="mt-1.5 px-1">
-                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-violet-500">
-                  <Repeat2 size={9} /> {RECURRENCE_LABELS[form.recurrence]}
-                </span>
-              </div>
-            )}
-
-            {parsedInput.tokens.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5 px-1">
-                {parsedInput.tokens.map((token) => (
-                  <span key={`${token.type}-${token.value}`}
-                    className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                      token.type === 'priority' ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted') : 'bg-primary/10 text-primary'
-                    }`}
-                  >
-                    {token.label}
-                  </span>
-                ))}
-                {parsedInput.title && parsedInput.title !== form.title.trim() && (
-                  <span className="text-[9px] font-bold text-text-muted">→ {parsedInput.title}</span>
-                )}
-              </div>
-            )}
-
-            {showOptions && (
-              <div className="mt-3 space-y-2 border-t border-border-custom pt-3">
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  placeholder="Opis... (podzadania: - [ ] krok)"
-                  className="w-full resize-none rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2.5 text-[12px] font-medium text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+            {/* Quick capture */}
+            <div className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
+                  placeholder="Dodaj zadanie... p1 · jutro · 🏃 Bieganie"
+                  className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[15px] font-normal text-text-primary outline-none placeholder:text-text-muted/35"
                 />
-                <div className="flex gap-2">
-                  <input
-                    value={form.tagsText}
-                    onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
-                    placeholder="tagi: zakup, projekt"
-                    className="min-w-0 flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[11px] font-medium text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
-                  />
-                  <input
-                    type="date"
-                    value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                    className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[11px] font-bold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-                  />
-                </div>
+                <button
+                  title={form.recurrence ? RECURRENCE_LABELS[form.recurrence] : 'Brak powtarzania'}
+                  onClick={() => {
+                    const idx = RECURRENCE_CYCLE.indexOf(form.recurrence as any);
+                    const next = RECURRENCE_CYCLE[(idx + 1) % RECURRENCE_CYCLE.length];
+                    setForm(f => ({ ...f, recurrence: next }));
+                  }}
+                  className={`rounded-full border p-2 transition-colors ${form.recurrence ? 'bg-violet-500/15 text-violet-500 border-violet-500/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
+                >
+                  <Repeat2 size={16} />
+                </button>
+                <button
+                  onClick={() => setShowOptions((v) => !v)}
+                  className={`rounded-full border p-2 transition-colors ${showOptions ? 'bg-primary/15 text-primary border-primary/20' : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'}`}
+                >
+                  <Settings2 size={16} />
+                </button>
+                <button
+                  onClick={addItem}
+                  disabled={busy || !form.title.trim()}
+                  className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all"
+                >
+                  <Plus size={16} />
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* 3 buckets */}
-          <div className="space-y-2">
-            <div ref={todayZoneRef}>
-              <BucketHeader icon="🔥" title="Dziś" count={todayItems.length} collapsed={collapsed.today}
-                onToggle={() => setCollapsed((p) => ({ ...p, today: !p.today }))} isDropTarget={dragTarget === 'today'} />
-              {!collapsed.today && (
-                <div className="pt-1">
-                  {todayItems.length === 0
-                    ? <p className={`px-3 py-5 text-center text-[11px] font-medium ${dragTarget === 'today' ? 'text-primary font-bold' : 'text-text-muted/50'}`}>
-                        {dragTarget === 'today' ? '↓ Upuść tutaj — przeniesie na dziś' : 'Nic pilnego. Przeciągnij zadanie z poniższych bucketów.'}
-                      </p>
-                    : todayItems.map((i: any) => renderCard(i, { inToday: true }))}
+              {form.recurrence && (
+                <div className="mt-1.5 px-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-violet-500">
+                    <Repeat2 size={9} /> {RECURRENCE_LABELS[form.recurrence]}
+                  </span>
+                </div>
+              )}
+
+              {parsedInput.tokens.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5 px-1">
+                  {parsedInput.tokens.map((token) => (
+                    <span key={`${token.type}-${token.value}`}
+                      className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                        token.type === 'priority' ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted') : 'bg-primary/10 text-primary'
+                      }`}
+                    >
+                      {token.label}
+                    </span>
+                  ))}
+                  {parsedInput.title && parsedInput.title !== form.title.trim() && (
+                    <span className="text-[9px] font-bold text-text-muted">→ {parsedInput.title}</span>
+                  )}
+                </div>
+              )}
+
+              {(form.title.trim() !== '' || showOptions) && (
+                <div className="mt-3 space-y-3 border-t border-border-custom pt-3">
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    rows={2}
+                    placeholder="Opis... (podzadania: - [ ] krok)"
+                    className="w-full resize-none rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2.5 text-[12px] font-medium text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    {/* Section Selector */}
+                    <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                      <span className="text-[10px] font-semibold text-text-muted">Sekcja</span>
+                      <select
+                        value={form.section_id || ''}
+                        onChange={(e) => setForm({ ...form, section_id: e.target.value })}
+                        className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2.5 py-2 text-[12px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+                      >
+                        <option value="">📥 Skrzynka (brak sekcji)</option>
+                        {sections.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Priority Buttons */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-semibold text-text-muted">Priorytet</span>
+                      <div className="flex gap-1">
+                        {['urgent', 'high', 'normal', 'low'].map(p => {
+                          const isSelected = (parsedInput.priority || form.priority) === p;
+                          const meta = PRIORITY[p];
+                          const labelMap: Record<string, string> = { urgent: 'P1', high: 'P2', normal: 'P3', low: 'P4' };
+                          return (
+                            <button
+                              type="button"
+                              key={p}
+                              onClick={() => setForm(f => ({ ...f, priority: p }))}
+                              className={`rounded-xl px-3 py-2 text-[11px] font-bold border transition-all ${
+                                isSelected
+                                  ? `${meta.chip} border-current ring-1 ring-current`
+                                  : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
+                              }`}
+                            >
+                              {labelMap[p]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Due Date Selector */}
+                    <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+                      <span className="text-[10px] font-semibold text-text-muted">Termin</span>
+                      <div className="flex gap-1 items-center">
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, due_date: today }))}
+                          className={`rounded-xl px-2.5 py-2 text-[11px] font-semibold border transition-all ${
+                            (parsedInput.due_date || form.due_date) === today
+                              ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20'
+                              : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
+                          }`}
+                        >
+                          Dziś
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                            setForm(f => ({ ...f, due_date: tomorrowStr }));
+                          }}
+                          className={`rounded-xl px-2.5 py-2 text-[11px] font-semibold border transition-all ${
+                            (parsedInput.due_date || form.due_date) === (() => {
+                              const tomorrow = new Date();
+                              tomorrow.setDate(tomorrow.getDate() + 1);
+                              return tomorrow.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                            })()
+                              ? 'bg-sky-500/15 text-sky-500 border-sky-500/20'
+                              : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
+                          }`}
+                        >
+                          Jutro
+                        </button>
+                        <input
+                          type="date"
+                          value={parsedInput.due_date || form.due_date}
+                          onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                          className="min-w-0 flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2 py-1.5 text-[11px] font-bold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+                        />
+                        {(parsedInput.due_date || form.due_date) && (
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, due_date: '' })}
+                            className="p-1 text-text-muted hover:text-rose-500 transition-colors"
+                            title="Wyczyść datę"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tags Input */}
+                    <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
+                      <span className="text-[10px] font-semibold text-text-muted">Tagi</span>
+                      <input
+                        value={form.tagsText}
+                        onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
+                        placeholder="np. zakup, praca"
+                        className="min-w-0 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div ref={soonZoneRef}>
-              <BucketHeader icon="📅" title="Wkrótce" count={soonItems.length} collapsed={collapsed.soon}
-                onToggle={() => setCollapsed((p) => ({ ...p, soon: !p.soon }))} isDropTarget={dragTarget === 'soon'} />
-              {!collapsed.soon && (
-                <div className="pt-1">
-                  {soonItems.length === 0
-                    ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'soon' ? 'text-primary' : 'text-text-muted/40'}`}>
-                        {dragTarget === 'soon' ? '↓ Upuść tutaj' : 'Pusto'}
-                      </p>
-                    : soonItems.map((item: any) => renderCard(item))}
+            {/* Main List */}
+            <div className="space-y-4">
+              {activeFilterSection ? (
+                // Active Section View
+                (() => {
+                  const sec = sections.find(s => s.id === activeFilterSection);
+                  if (!sec) return null;
+                  const secItems = items.filter(i => i.status === 'open' && i.section_id === sec.id);
+                  const sortedItems = [...secItems].sort((a, b) => {
+                    const pA = PRIORITY_ORDER.indexOf(a.priority);
+                    const pB = PRIORITY_ORDER.indexOf(b.priority);
+                    if (pA !== pB) return pB - pA;
+                    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+                    if (a.due_date) return -1;
+                    if (b.due_date) return 1;
+                    return 0;
+                  });
+
+                  return (
+                    <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }}>
+                      <div className="flex items-center gap-2 px-3 py-2">
+                        <span className="text-[16px] leading-none">📂</span>
+                        <span className="text-[15px] font-bold text-text-primary">{sec.name}</span>
+                        <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                          {sortedItems.length}
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        {sortedItems.length === 0 ? (
+                          <p className="px-3 py-5 text-center text-[11px] font-medium text-text-muted/50">
+                            Brak otwartych zadań w tej sekcji.
+                          </p>
+                        ) : (
+                          sortedItems.map((i: any) => renderCard(i))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                // Overview Dashboard (Grouped sections)
+                <>
+                  {/* 1. Na dziś / Aktywne */}
+                  {(todayItems.length > 0 || dragTarget === 'today') && (
+                    <div ref={todayZoneRef} className="rounded-2xl border border-transparent bg-orange-500/3 dark:bg-orange-500/1 p-2">
+                      <BucketHeader
+                        icon="🔥"
+                        title="Na dziś / Aktywne"
+                        count={todayItems.length}
+                        collapsed={!!collapsedSections['today']}
+                        onToggle={() => toggleSectionCollapse('today')}
+                        isDropTarget={dragTarget === 'today'}
+                      />
+                      {!collapsedSections['today'] && (
+                        <div className="pt-1">
+                          {todayItems.length === 0 ? (
+                            <p className="px-3 py-5 text-center text-[11px] font-medium text-orange-500/50">
+                              ↓ Upuść tutaj — przeniesie na dziś
+                            </p>
+                          ) : (
+                            todayItems.map((i: any) => renderCard(i, { inToday: true }))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 2. Inbox / Skrzynka */}
+                  {(inboxItems.length > 0 || dragTarget === 'inbox') && (
+                    <div ref={inboxZoneRef} className="p-2">
+                      <BucketHeader
+                        icon="📥"
+                        title="Skrzynka / Inbox"
+                        count={inboxItems.length}
+                        collapsed={!!collapsedSections['inbox']}
+                        onToggle={() => toggleSectionCollapse('inbox')}
+                        isDropTarget={dragTarget === 'inbox'}
+                      />
+                      {!collapsedSections['inbox'] && (
+                        <div className="pt-1">
+                          {inboxItems.length === 0 ? (
+                            <p className="px-3 py-3 text-center text-[11px] text-text-muted/40">
+                              ↓ Upuść tutaj
+                            </p>
+                          ) : (
+                            inboxItems.map((i: any) => renderCard(i))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Sections */}
+                  {sectionsWithItems.map((sec) => {
+                    const isCollapsed = !!collapsedSections[sec.id];
+                    const hasItems = sec.items.length > 0;
+                    if (!hasItems && dragTarget !== sec.id) return null;
+
+                    return (
+                      <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }} className="p-2">
+                        <BucketHeader
+                          icon="📂"
+                          title={sec.name}
+                          count={sec.items.length}
+                          collapsed={isCollapsed}
+                          onToggle={() => toggleSectionCollapse(sec.id)}
+                          isDropTarget={dragTarget === sec.id}
+                        />
+                        {!isCollapsed && (
+                          <div className="pt-1">
+                            {sec.items.length === 0 ? (
+                              <p className="px-3 py-3 text-center text-[11px] text-text-muted/40">
+                                ↓ Upuść tutaj
+                              </p>
+                            ) : (
+                              sec.items.map((i: any) => renderCard(i))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Done items history */}
+              {showDone && doneItems.length > 0 && (
+                <div className="border-t border-border-custom/30 pt-2 p-2">
+                  <BucketHeader
+                    icon="✅"
+                    title="Historia"
+                    count={doneItems.length}
+                    collapsed={false}
+                    onToggle={() => setShowDone(false)}
+                    isDropTarget={false}
+                  />
+                  <div className="pt-1">
+                    {doneItems.slice(0, 30).map((i: any) => renderCard(i))}
+                  </div>
                 </div>
               )}
             </div>
-
-            <div ref={laterZoneRef}>
-              <BucketHeader icon="🗄️" title="W tle" count={laterItems.length} collapsed={collapsed.later}
-                onToggle={() => setCollapsed((p) => ({ ...p, later: !p.later }))} isDropTarget={dragTarget === 'later'} />
-              {!collapsed.later && (
-                <div className="pt-1">
-                  {laterItems.length === 0
-                    ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'later' ? 'text-primary' : 'text-text-muted/40'}`}>
-                        {dragTarget === 'later' ? '↓ Upuść tutaj' : 'Pusto'}
-                      </p>
-                    : laterItems.map((item: any) => renderCard(item))}
-                </div>
-              )}
-            </div>
-
-            {showDone && doneItems.length > 0 && (
-              <div className="border-t border-border-custom/30 pt-2">
-                <BucketHeader icon="✅" title="Historia" count={doneItems.length} collapsed={false}
-                  onToggle={() => setShowDone(false)} isDropTarget={false} />
-                <div className="pt-1">{doneItems.slice(0, 30).map((item: any) => renderCard(item))}</div>
-              </div>
-            )}
-          </div>
           </div>
         </main>
       </div>
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
-        <button onClick={() => onNavigateTo ? onNavigateTo('keep') : navigate('/keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => onNavigateTo?.('keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <StickyNote size={22} />
           <span className="text-[11px] font-semibold">Notatki</span>
         </button>
@@ -1221,7 +1341,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <ListTodo size={22} />
           <span className="text-[11px] font-semibold">Zadania</span>
         </button>
-        <button onClick={() => onNavigateTo ? onNavigateTo('links') : undefined} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => onNavigateTo?.('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <BookOpen size={22} />
           <span className="text-[11px] font-semibold">Pocket</span>
         </button>

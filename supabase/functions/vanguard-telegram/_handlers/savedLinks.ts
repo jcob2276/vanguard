@@ -33,47 +33,68 @@ export async function handleSavedLink(
     domain = "unknown";
   }
 
-  // 2. Try fetching HTML metadata
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 6000); // 6s timeout
+  let thumbnailUrl = "";
+  let channelName = "";
+  const isYouTube = domain === 'youtube.com' || domain === 'youtu.be';
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+  // 2a. YouTube: use oEmbed for proper title + thumbnail
+  if (isYouTube) {
+    try {
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      if (oembedRes.ok) {
+        const oembed = await oembedRes.json();
+        pageTitle = oembed.title || pageTitle;
+        thumbnailUrl = oembed.thumbnail_url || "";
+        channelName = oembed.author_name || "";
       }
-    });
-    clearTimeout(id);
+    } catch (err) {
+      console.warn(`[savedLinks] YouTube oEmbed failed: ${err}`);
+    }
+  }
 
-    if (res.ok) {
-      const html = await res.text();
+  // 2b. Try fetching HTML metadata (skip if YouTube already got title)
+  if (!isYouTube || !pageTitle) {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 6000); // 6s timeout
 
-      // Extract title
-      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      if (titleMatch?.[1]) {
-        pageTitle = titleMatch[1].trim();
-      }
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+      });
+      clearTimeout(id);
 
-      // Extract description
-      const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([\s\S]*?)["']/i) ||
-                        html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+(?:name|property)=["'](?:og:)?description["']/i);
-      if (descMatch?.[1]) {
-        pageDescription = descMatch[1].trim();
-      }
+      if (res.ok) {
+        const html = await res.text();
 
-      // If title is missing, look for og:title
-      if (!pageTitle) {
-        const ogTitleMatch = html.match(/<meta[^>]+(?:name|property)=["']og:title["'][^>]+content=["']([\s\S]*?)["']/i) ||
-                             html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+(?:name|property)=["']og:title["']/i);
-        if (ogTitleMatch?.[1]) {
-          pageTitle = ogTitleMatch[1].trim();
+        // Extract title
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        if (titleMatch?.[1]) {
+          pageTitle = titleMatch[1].trim();
+        }
+
+        // Extract description
+        const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([\s\S]*?)["']/i) ||
+                          html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+(?:name|property)=["'](?:og:)?description["']/i);
+        if (descMatch?.[1]) {
+          pageDescription = descMatch[1].trim();
+        }
+
+        // If title is missing, look for og:title
+        if (!pageTitle) {
+          const ogTitleMatch = html.match(/<meta[^>]+(?:name|property)=["']og:title["'][^>]+content=["']([\s\S]*?)["']/i) ||
+                               html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+(?:name|property)=["']og:title["']/i);
+          if (ogTitleMatch?.[1]) {
+            pageTitle = ogTitleMatch[1].trim();
+          }
         }
       }
+    } catch (err) {
+      console.warn(`[savedLinks] Failed to fetch page metadata: ${err}`);
     }
-  } catch (err) {
-    console.warn(`[savedLinks] Failed to fetch page metadata: ${err}`);
   }
 
   // Fallbacks if metadata parsing failed
@@ -96,7 +117,9 @@ export async function handleSavedLink(
       takeaways: [],
       category: "Inne",
       domain: domain,
-      status: "unread"
+      status: "unread",
+      ...(thumbnailUrl && { thumbnail_url: thumbnailUrl }),
+      ...(channelName && { channel_name: channelName }),
     });
 
     if (insertErr) throw insertErr;
@@ -138,37 +161,58 @@ export async function handleSavedLinkDirect(
     domain = "unknown";
   }
 
-  // Fetch HTML metadata
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 6000);
+  let thumbnailUrl = "";
+  let channelName = "";
+  const isYouTube = domain === 'youtube.com' || domain === 'youtu.be';
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+  // YouTube: use oEmbed for proper title + thumbnail
+  if (isYouTube) {
+    try {
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      if (oembedRes.ok) {
+        const oembed = await oembedRes.json();
+        pageTitle = oembed.title || pageTitle;
+        thumbnailUrl = oembed.thumbnail_url || "";
+        channelName = oembed.author_name || "";
       }
-    });
-    clearTimeout(id);
-
-    if (res.ok) {
-      const html = await res.text();
-      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      if (titleMatch?.[1]) pageTitle = titleMatch[1].trim();
-
-      const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([\s\S]*?)["']/i) ||
-                        html.match(/<meta[^>]+content=["']([\s\S]*?)["']/i);
-      if (descMatch?.[1]) pageDescription = descMatch[1].trim();
-
-      if (!pageTitle) {
-        const ogTitleMatch = html.match(/<meta[^>]+(?:name|property)=["']og:title["'][^>]+content=["']([\s\S]*?)["']/i) ||
-                             html.match(/<meta[^>]+content=["']([\s\S]*?)["']/i);
-        if (ogTitleMatch?.[1]) pageTitle = ogTitleMatch[1].trim();
-      }
+    } catch (err) {
+      console.warn(`[savedLinks] YouTube oEmbed failed: ${err}`);
     }
-  } catch (err) {
-    console.warn(`[savedLinks] Failed to fetch page metadata: ${err}`);
+  }
+
+  // Fetch HTML metadata (skip for YouTube if we already have title)
+  if (!isYouTube || !pageTitle) {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+      });
+      clearTimeout(id);
+
+      if (res.ok) {
+        const html = await res.text();
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        if (titleMatch?.[1]) pageTitle = titleMatch[1].trim();
+
+        const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([\s\S]*?)["']/i) ||
+                          html.match(/<meta[^>]+content=["']([\s\S]*?)["']/i);
+        if (descMatch?.[1]) pageDescription = descMatch[1].trim();
+
+        if (!pageTitle) {
+          const ogTitleMatch = html.match(/<meta[^>]+(?:name|property)=["']og:title["'][^>]+content=["']([\s\S]*?)["']/i) ||
+                               html.match(/<meta[^>]+content=["']([\s\S]*?)["']/i);
+          if (ogTitleMatch?.[1]) pageTitle = ogTitleMatch[1].trim();
+        }
+      }
+    } catch (err) {
+      console.warn(`[savedLinks] Failed to fetch page metadata: ${err}`);
+    }
   }
 
   if (!pageTitle) pageTitle = domain || url;
@@ -186,7 +230,9 @@ export async function handleSavedLinkDirect(
     takeaways: [],
     category: "Inne",
     domain: domain,
-    status: "unread"
+    status: "unread",
+    ...(thumbnailUrl && { thumbnail_url: thumbnailUrl }),
+    ...(channelName && { channel_name: channelName }),
   }).select('*').single();
 
   if (error) {
