@@ -7,6 +7,7 @@ import { useStore } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection, generateNarrative } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
+import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats';
 import { TrendArrow } from './stats/TrendArrow';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
@@ -285,7 +286,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   async function exportData() {
     setIsExporting(true);
     try {
-      const { exportStatsMarkdown } = await import('./stats/exportStats');
       await exportStatsMarkdown({
         supabase,
         session,
@@ -310,7 +310,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   async function exportOuraCSV() {
     setIsExportingOura(true);
     try {
-      const { exportOuraCsv } = await import('./stats/exportStats');
       await exportOuraCsv({ supabase, session, dateRange });
     } catch (err: any) {
       console.error('Export Oura CSV error:', err);
