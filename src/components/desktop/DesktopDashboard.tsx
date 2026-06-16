@@ -605,7 +605,7 @@ function MarathonPanel({ strava, grid, tick }: MarathonPanelProps) {
   );
 }
 
-// ── 4. Career & Goals ────────────────────────────────────────────────────────
+// ── 4. Projects & Goals ──────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { dot: string; badge: string; label: string }> = {
   doing:   { dot: 'bg-sky-500',     badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20',           label: 'W toku' },
   done:    { dot: 'bg-emerald-500', badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Done' },
@@ -647,7 +647,7 @@ function CareerSection({ goals, projects, moves }: CareerSectionProps) {
   ].slice(0, 14);
 
   return (
-    <Panel title="Kariera & Cele">
+    <Panel title="Projekty & Cele">
       {/* KPI strip */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         {[
@@ -688,7 +688,7 @@ function CareerSection({ goals, projects, moves }: CareerSectionProps) {
 
           {feedMoves.length > 0 && (
             <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted mb-2.5">Ruchy kariery</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted mb-2.5">Zadania projektowe</p>
               <div className="divide-y divide-border-custom/40">
                 {feedMoves.map((m: any) => {
                   const cfg  = STATUS_CFG[m.status] || STATUS_CFG.todo;
@@ -713,7 +713,7 @@ function CareerSection({ goals, projects, moves }: CareerSectionProps) {
           )}
 
           {!activeProj.length && !feedMoves.length && (
-            <p className="text-[11px] text-text-muted py-6 text-center">Brak projektów — dodaj je w module Kariery</p>
+            <p className="text-[11px] text-text-muted py-6 text-center">Brak projektów — dodaj je w sekcji Projekty</p>
           )}
         </div>
 
@@ -1077,9 +1077,9 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
           </div>
         </div>
 
-        {/* Kariera */}
+        {/* Projekty */}
         <div>
-          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 mb-3">Kariera</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 mb-3">Projekty</p>
           <div className="grid grid-cols-2 gap-x-5 gap-y-3">
             {CAREER.map(({ label, val, color }) => (
               <div key={label}>
@@ -1423,7 +1423,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const currMetrics = sprintMetrics(oura, sessions, strava, sprint.sprintStart, sprint.sprintEnd);
   const prevMetrics = sprint.prevStart ? sprintMetrics(oura, sessions, strava, sprint.prevStart, sprint.prevEnd) : null;
 
-  // Career metrics
+  // Project metrics
   const ws               = weekStartDate();
   const movesDoneThisWeek = (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws).length;
   const careerMetrics    = {
