@@ -1,41 +1,41 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import {
-  Timer,
-  Play,
-  Pause,
-  RotateCcw,
-  Volume2,
-  Check,
-  Zap,
-  Coffee,
-  CheckSquare
-} from 'lucide-react';
+import type { Tables } from '../../lib/database.types';
+import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../hooks/useHaptics';
 
 interface BlockTimerProps {
   session: Session;
+  todayWin?: Tables<'daily_wins'> | null;
 }
 
-export default function BlockTimer({ session }: BlockTimerProps) {
+export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const haptics = useHaptics();
   const userId = session?.user?.id;
 
-  // States: 'idle' | 'work' | 'break'
   const [timerMode, setTimerMode] = useState<'idle' | 'work' | 'break'>('idle');
-  const [blockDuration, setBlockDuration] = useState(90 * 60); // Default 90 minutes in seconds
-  const [breakDuration, setBreakDuration] = useState(15 * 60); // Default 15 minutes in seconds
-
-  const [timeLeft, setTimeLeft] = useState(blockDuration);
+  const [blockDuration, setBlockDuration] = useState(90 * 60);
+  const [breakDuration] = useState(15 * 60);
+  const [timeLeft, setTimeLeft] = useState(90 * 60);
   const [timerActive, setTimerActive] = useState(false);
   const [blockSubject, setBlockSubject] = useState('');
+  const [overrideSubject, setOverrideSubject] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load today's completed blocks from vanguard_stream
+  // Use priority task as default subject
+  const priorityTask = todayWin?.task_1 || null;
+
+  // When todayWin loads, pre-fill subject if not overridden
+  useEffect(() => {
+    if (priorityTask && !overrideSubject && timerMode === 'idle') {
+      setBlockSubject(priorityTask);
+    }
+  }, [priorityTask, overrideSubject, timerMode]);
+
   const fetchTodayBlocks = async () => {
     if (!userId) return;
     try {
@@ -47,20 +47,12 @@ export default function BlockTimer({ session }: BlockTimerProps) {
         .eq('source', 'block_timer')
         .eq('category', 'productivity')
         .gte('created_at', today + 'T00:00:00.000Z');
-
-      if (data) {
-        setCompletedCount(data.length);
-      }
-    } catch (err) {
-      console.error('Failed to load completed blocks:', err);
-    }
+      if (data) setCompletedCount(data.length);
+    } catch {}
   };
 
-  useEffect(() => {
-    fetchTodayBlocks();
-  }, [userId]);
+  useEffect(() => { fetchTodayBlocks(); }, [userId]);
 
-  // Timer tick logic
   useEffect(() => {
     if (timerActive) {
       timerRef.current = setInterval(() => {
@@ -77,94 +69,53 @@ export default function BlockTimer({ session }: BlockTimerProps) {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timerActive, timerMode]);
 
-  // Web Audio Gong
   const playGong = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(120, audioCtx.currentTime);
-      gain1.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3);
-      osc1.start(audioCtx.currentTime);
-      osc1.stop(audioCtx.currentTime + 3);
-
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(240, audioCtx.currentTime);
-      gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
-      osc2.start(audioCtx.currentTime);
-      osc2.stop(audioCtx.currentTime + 2.5);
-    } catch (e) {
-      console.warn('Gong sound blocked or unsupported by browser:', e);
-    }
+      [[120, 0.5, 3], [240, 0.2, 2.5]].forEach(([freq, vol, dur]) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + dur);
+      });
+    } catch {}
   };
 
   const handleTimerComplete = async () => {
     playGong();
     haptics.success();
-
     if (timerMode === 'work') {
-      // Complete work block
       setIsSubmitting(true);
       try {
-        const streamText = `[Blok Pracy] Ukończono 90-minutowy blok głębokiej pracy. Temat: "${blockSubject.trim() || 'Ogólna głęboka praca'}"`;
         await supabase.from('vanguard_stream').insert({
           user_id: userId,
-          content: streamText,
+          content: `[Blok Pracy] Ukończono ${Math.round(blockDuration / 60)}-minutowy blok. Temat: "${blockSubject.trim() || 'Głęboka praca'}"`,
           source: 'block_timer',
           category: 'productivity',
           classification: 'work_block_completion',
-          metadata: {
-            subject: blockSubject.trim() || 'Ogólna głęboka praca',
-            duration_minutes: Math.round(blockDuration / 60)
-          }
+          metadata: { subject: blockSubject.trim() || 'Głęboka praca', duration_minutes: Math.round(blockDuration / 60) }
         });
-
         await fetchTodayBlocks();
-        
-        // Transition to Break Mode
         setTimerMode('break');
         setTimeLeft(breakDuration);
-        setTimerActive(true); // Auto-start break
-      } catch (err) {
-        console.error('Error logging completed block:', err);
-      } finally {
-        setIsSubmitting(false);
-      }
+        setTimerActive(true);
+      } catch {} finally { setIsSubmitting(false); }
     } else if (timerMode === 'break') {
-      // Complete break
       setTimerMode('idle');
       setTimeLeft(blockDuration);
-      setBlockSubject('');
     }
   };
 
   const startTimer = () => {
-    if (timerMode === 'idle') {
-      setTimerMode('work');
-      setTimeLeft(blockDuration);
-    }
+    if (timerMode === 'idle') { setTimerMode('work'); setTimeLeft(blockDuration); }
     setTimerActive(true);
-    haptics.light();
-  };
-
-  const pauseTimer = () => {
-    setTimerActive(false);
     haptics.light();
   };
 
@@ -172,7 +123,7 @@ export default function BlockTimer({ session }: BlockTimerProps) {
     setTimerActive(false);
     setTimerMode('idle');
     setTimeLeft(blockDuration);
-    setBlockSubject('');
+    if (!overrideSubject) setBlockSubject(priorityTask || '');
     haptics.light();
   };
 
@@ -180,15 +131,13 @@ export default function BlockTimer({ session }: BlockTimerProps) {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
-    
-    if (h > 0) {
-      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const currentMax = timerMode === 'break' ? breakDuration : blockDuration;
   const progressPercent = Math.min(((currentMax - timeLeft) / currentMax) * 100, 100);
+  const usingPriority = priorityTask && blockSubject === priorityTask && !overrideSubject;
 
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
@@ -209,35 +158,58 @@ export default function BlockTimer({ session }: BlockTimerProps) {
 
       {timerMode === 'idle' ? (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs text-text-secondary leading-relaxed">
-              Zdefiniuj cel dla najbliższego 90-minutowego bloku głębokiej pracy:
-            </p>
-            <input
-              type="text"
-              value={blockSubject}
-              onChange={e => setBlockSubject(e.target.value)}
-              placeholder="np. Refaktoryzacja bazy danych, pisanie artykułu..."
-              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-primary"
-            />
-          </div>
 
-          {/* Duration Selectors */}
-          <div className="flex justify-between items-center text-[10px] text-text-muted">
-            <span>Długość bloku:</span>
-            <div className="flex gap-2">
+          {/* Subject — connected to priority or free input */}
+          {usingPriority ? (
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Blok na priorytet dnia</p>
+              <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.03] px-3.5 py-2.5">
+                <Zap size={12} className="shrink-0 text-primary" fill="currentColor" />
+                <p className="flex-1 text-[12.5px] font-bold text-text-primary leading-snug truncate">{priorityTask}</p>
+                <button
+                  onClick={() => { setOverrideSubject(true); setBlockSubject(''); haptics.light(); }}
+                  className="shrink-0 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-text-secondary cursor-pointer"
+                >
+                  Zmień
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Co robisz w tym bloku?</p>
+                {priorityTask && overrideSubject && (
+                  <button
+                    onClick={() => { setOverrideSubject(false); setBlockSubject(priorityTask); haptics.light(); }}
+                    className="flex items-center gap-1 text-[9px] font-bold text-primary hover:text-primary-hover cursor-pointer"
+                  >
+                    <X size={10} /> Wróć do priorytetu
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                value={blockSubject}
+                onChange={e => setBlockSubject(e.target.value)}
+                placeholder="np. Refaktoryzacja, pisanie artykułu..."
+                className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-primary"
+                autoFocus={overrideSubject}
+              />
+            </div>
+          )}
+
+          {/* Duration */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-text-muted">Długość bloku:</span>
+            <div className="flex gap-1.5">
               {[50, 90, 120].map(mins => (
                 <button
                   key={mins}
-                  onClick={() => {
-                    setBlockDuration(mins * 60);
-                    setTimeLeft(mins * 60);
-                    haptics.light();
-                  }}
-                  className={`rounded-lg border px-2.5 py-1 font-bold transition-all cursor-pointer ${
+                  onClick={() => { setBlockDuration(mins * 60); setTimeLeft(mins * 60); haptics.light(); }}
+                  className={`rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all cursor-pointer ${
                     blockDuration === mins * 60
                       ? 'border-primary/30 bg-primary/10 text-primary'
-                      : 'border-border-custom hover:border-text-secondary'
+                      : 'border-border-custom text-text-muted hover:border-text-secondary hover:text-text-secondary'
                   }`}
                 >
                   {mins} min
@@ -248,14 +220,14 @@ export default function BlockTimer({ session }: BlockTimerProps) {
 
           <button
             onClick={startTimer}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
+            disabled={!blockSubject.trim()}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Play size={11} fill="currentColor" className="ml-0.5 shrink-0" /> Uruchom Blok Pracy 🚀
+            <Play size={11} fill="currentColor" className="ml-0.5 shrink-0" /> Uruchom Blok Pracy
           </button>
         </div>
       ) : (
         <div className="space-y-4 text-center">
-          {/* Active Mode Banner */}
           <div className="flex justify-center">
             {timerMode === 'work' ? (
               <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">
@@ -263,12 +235,11 @@ export default function BlockTimer({ session }: BlockTimerProps) {
               </span>
             ) : (
               <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full">
-                <Coffee size={11} /> Zmiana Kanału (Przerwa)
+                <Coffee size={11} /> Przerwa — zresetuj wzrok
               </span>
             )}
           </div>
 
-          {/* Subject Display */}
           {timerMode === 'work' && blockSubject.trim() && (
             <p className="font-display text-xs font-black text-text-primary truncate max-w-xs mx-auto">
               "{blockSubject}"
@@ -277,18 +248,16 @@ export default function BlockTimer({ session }: BlockTimerProps) {
 
           {timerMode === 'break' && (
             <p className="text-[11px] text-text-secondary leading-relaxed max-w-xs mx-auto">
-              Idź na spacer, zrób pompki, zresetuj wzrok. Ogranicz reaktywność.
+              Idź na spacer, zrób pompki, ogranicz reaktywność.
             </p>
           )}
 
-          {/* Time & Progress */}
+          {/* Circular timer */}
           <div className="relative mx-auto w-36 h-36 flex items-center justify-center">
             <svg className="absolute w-full h-full transform -rotate-90">
               <circle cx="72" cy="72" r="64" className="stroke-border-custom fill-none" strokeWidth="3.5" />
               <circle
-                cx="72"
-                cy="72"
-                r="64"
+                cx="72" cy="72" r="64"
                 className={`fill-none transition-all duration-1000 ${timerMode === 'work' ? 'stroke-primary' : 'stroke-teal-500'}`}
                 strokeWidth="4"
                 strokeDasharray={2 * Math.PI * 64}
@@ -306,11 +275,10 @@ export default function BlockTimer({ session }: BlockTimerProps) {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="flex justify-center items-center gap-2">
             {timerActive ? (
               <button
-                onClick={pauseTimer}
+                onClick={() => { setTimerActive(false); haptics.light(); }}
                 className="flex items-center gap-1.5 rounded-xl border border-border-custom bg-surface px-4 py-2 text-xs font-bold text-text-secondary hover:text-text-primary active:scale-95 cursor-pointer"
               >
                 <Pause size={13} /> Pauza
@@ -320,7 +288,7 @@ export default function BlockTimer({ session }: BlockTimerProps) {
                 onClick={startTimer}
                 className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-wider text-white active:scale-95 cursor-pointer"
               >
-                <Play size={13} fill="currentColor" className="ml-0.5 shrink-0" /> Wznów
+                <Play size={13} fill="currentColor" className="ml-0.5" /> Wznów
               </button>
             )}
             <button

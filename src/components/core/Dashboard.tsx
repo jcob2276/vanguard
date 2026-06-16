@@ -25,6 +25,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import AIInsight from '../ai/AIInsight';
 import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
+import JedenPriorytetCard from './JedenPriorytetCard';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
@@ -38,7 +39,6 @@ const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
-const Piorunochron = lazy(() => import('../lifestyle/Piorunochron'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
@@ -312,7 +312,6 @@ export default function Dashboard({ session }) {
   // Morning Ritual State
   const [ritualDates, setRitualDates] = useState<string[]>([]);
   const [focusIntention, setFocusIntention] = useState('');
-  const [isPiorunochronOpen, setIsPiorunochronOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -640,26 +639,20 @@ export default function Dashboard({ session }) {
           <div className={`p-5 pb-8 ${view === 'dzis' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
-              <MorningRitualCard
-                isCompleted={isCompletedToday}
+              <JedenPriorytetCard
+                session={session}
+                todayWin={todayWin}
                 streak={streakCount}
-                focusIntention={focusIntention}
-                onClick={() => {
+                onUpdate={refresh}
+                onOpenRitual={() => {
                   localStorage.setItem('vanguard_previous_view', view);
                   setView('morning-ritual');
                 }}
               />
               <GoalsCard session={session} />
               <Suspense fallback={<ViewFallback />}>
-                <BlockTimer session={session} />
+                <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
-              <CommandButton
-                icon={Zap}
-                tone="secondary"
-                eyebrow="Napięcie / Opór"
-                label="Uruchom Piorunochron ⚡"
-                onClick={() => setIsPiorunochronOpen(true)}
-              />
               <CommandButton
                 icon={Dumbbell}
                 eyebrow="Trening"
@@ -734,14 +727,6 @@ export default function Dashboard({ session }) {
         ))}
       </nav>
 
-      <Suspense fallback={null}>
-        <Piorunochron
-          session={session}
-          isOpen={isPiorunochronOpen}
-          onClose={() => setIsPiorunochronOpen(false)}
-          onActionAdded={refresh}
-        />
-      </Suspense>
     </div>
   );
 }

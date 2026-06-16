@@ -7,7 +7,8 @@ import {
 } from 'recharts';
 import { format, parseISO, startOfWeek, differenceInDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
-import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap, CheckSquare, Square, Trash2, Plus, X, Fingerprint } from 'lucide-react';
+import { RefreshCw, Dumbbell, Smartphone, Moon, Sun, Target, Briefcase, Zap, CheckSquare, Square, Trash2, Plus, X, Fingerprint, Check, Star, Sparkles, ImageIcon, ArrowRight, Type } from 'lucide-react';
+import { createProject } from '../../lib/projects';
 import { subDays } from 'date-fns';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
@@ -158,7 +159,9 @@ function computeDigest(sessions, oura, strava) {
   const weekRuns    = strava.filter(a => ['Run','TrailRun','VirtualRun'].includes(a.sport_type) && a.start_date.slice(0,10) >= ws);
   const weekOura    = oura.filter(o => o.date >= ws);
   return {
-    sessions: trainSess.length,
+    sessions: trainSess.length + weekRuns.length,
+    gym: trainSess.length,
+    runs: weekRuns.length,
     wellness: wellnessSess.length,
     kmRun: weekRuns.reduce((s, a) => s + (parseFloat(a.distance)||0), 0) / 1000,
     avgSleep: avg(weekOura.map(o => o.total_sleep_hours).filter(Boolean)),
@@ -586,7 +589,7 @@ function CockpitBanner({ strain, oura }) {
 }
 
 // ── 2. Heatmap with tooltip ───────────────────────────────────────────────────
-function Heatmap({ sessions }) {
+function Heatmap({ sessions, strava = [] }) {
   const [tooltip, setTooltip] = useState(null);
   const today    = new Date();
   const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -598,10 +601,19 @@ function Heatmap({ sessions }) {
     const exercises = [...new Set((s.exercise_logs||[]).map(l => l.exercise_name))].slice(0, 3);
     dateMap[s.date] = { vol, wellness, name: s.workout_day, exercises, rpe: s.session_rpe };
   }
+  const runMap: Record<string, number> = {};
+  for (const a of strava) {
+    if (!['Run','TrailRun','VirtualRun'].includes(a.sport_type)) continue;
+    const d = a.start_date.slice(0, 10);
+    runMap[d] = (runMap[d] || 0) + (parseFloat(a.distance) || 0) / 1000;
+  }
 
-  const start = new Date(today.getTime() - 90 * 86400000);
-  const dow   = start.getDay();
-  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+  const dow = today.getDay();
+  const thisMonday = new Date(today);
+  thisMonday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+  thisMonday.setHours(0, 0, 0, 0);
+  const start = new Date(thisMonday);
+  start.setDate(thisMonday.getDate() - 12 * 7);
   const weeks = [], cur = new Date(start);
   while (weeks.length < 13) {
     const week = [];
@@ -613,10 +625,20 @@ function Heatmap({ sessions }) {
     weeks.push(week);
   }
 
-  const cellColor = ({ future, data }) => {
+  const cellColor = ({ future, date, data }) => {
     if (future) return 'bg-transparent border border-border-custom/20';
-    if (!data)  return 'bg-border-custom';
-    if (data.wellness) return 'bg-teal-500/50';
+    const hasRun = !!runMap[date];
+    const hasGym = !!data;
+    if (!hasRun && !hasGym) return 'bg-border-custom';
+    if (data?.wellness && !hasRun) return 'bg-teal-500/50';
+    if (hasRun && !hasGym) {
+      const km = runMap[date];
+      if (km < 5)  return 'bg-amber-400/40';
+      if (km < 12) return 'bg-amber-500/60';
+      return 'bg-amber-600/80';
+    }
+    // both gym + run
+    if (hasRun && hasGym) return 'bg-violet-500/70';
     const v = data.vol;
     if (v < 3000)  return 'bg-indigo-400/30';
     if (v < 8000)  return 'bg-indigo-500/55';
@@ -638,17 +660,20 @@ function Heatmap({ sessions }) {
               <div className="text-[8px] text-text-muted h-6 flex items-end pb-0.5">
                 {wi % 3 === 0 ? format(parseISO(week[0].date), 'dd.MM') : ''}
               </div>
-              {week.map((day, di) => (
-                <div
-                  key={di}
-                  className={`h-3.5 rounded-sm transition-opacity ${day.data ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} ${cellColor(day)}`}
-                  onMouseEnter={day.data ? (e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setTooltip({ day, rect });
-                  } : undefined}
-                  onMouseLeave={() => setTooltip(null)}
-                />
-              ))}
+              {week.map((day, di) => {
+                const hasActivity = !!day.data || !!runMap[day.date];
+                return (
+                  <div
+                    key={di}
+                    className={`h-3.5 rounded-sm transition-opacity ${hasActivity ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} ${cellColor({ ...day, date: day.date })}`}
+                    onMouseEnter={hasActivity ? (e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setTooltip({ day, kmRun: runMap[day.date] || 0, rect });
+                    } : undefined}
+                    onMouseLeave={() => setTooltip(null)}
+                  />
+                );
+              })}
             </div>
           ))}
         </div>
@@ -666,17 +691,24 @@ function Heatmap({ sessions }) {
           className="rounded-[14px] border border-border-custom bg-surface shadow-xl px-3.5 py-2.5 min-w-[160px]"
         >
           <p className="text-[9px] font-black text-text-muted mb-1">{tooltip.day.date}</p>
-          {tooltip.day.data.name && <p className="text-[12px] font-black text-text-primary leading-tight">{tooltip.day.data.name}</p>}
-          {tooltip.day.data.wellness ? (
-            <p className="text-[10px] text-teal-500 font-bold mt-0.5">Wellness</p>
-          ) : (
-            <>
-              {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-indigo-400 mt-0.5">{(tooltip.day.data.vol/1000).toFixed(1)} Mg</p>}
-              {tooltip.day.data.rpe && <p className="text-[9px] text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
-            </>
+          {tooltip.kmRun > 0 && (
+            <p className="text-[11px] font-bold text-amber-400 mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
           )}
-          {tooltip.day.data.exercises.length > 0 && (
-            <p className="text-[9px] text-text-muted mt-1 leading-relaxed">{tooltip.day.data.exercises.join(' · ')}</p>
+          {tooltip.day.data && (
+            <>
+              {tooltip.day.data.name && <p className="text-[12px] font-black text-text-primary leading-tight">{tooltip.day.data.name}</p>}
+              {tooltip.day.data.wellness ? (
+                <p className="text-[10px] text-teal-500 font-bold mt-0.5">Wellness</p>
+              ) : (
+                <>
+                  {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-indigo-400 mt-0.5">{(tooltip.day.data.vol/1000).toFixed(1)} Mg</p>}
+                  {tooltip.day.data.rpe && <p className="text-[9px] text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
+                </>
+              )}
+              {tooltip.day.data.exercises?.length > 0 && (
+                <p className="text-[9px] text-text-muted mt-1 leading-relaxed">{tooltip.day.data.exercises.join(' · ')}</p>
+              )}
+            </>
           )}
         </div>,
         document.body
@@ -687,10 +719,14 @@ function Heatmap({ sessions }) {
         {[
           { color: 'bg-border-custom',  label: 'Odpoczynek' },
           { color: 'bg-teal-500/50',    label: 'Wellness' },
+          { color: 'bg-amber-400/40',   label: 'Bieg <5km' },
+          { color: 'bg-amber-500/60',   label: 'Bieg 5-12km' },
+          { color: 'bg-amber-600/80',   label: 'Bieg >12km' },
           { color: 'bg-indigo-400/30',  label: '<3 Mg' },
           { color: 'bg-indigo-500/55',  label: '3–8 Mg' },
           { color: 'bg-indigo-600/80',  label: '8–15 Mg' },
           { color: 'bg-indigo-700',     label: '>15 Mg' },
+          { color: 'bg-violet-500/70',  label: 'Bieg+Siłownia' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className={`w-3 h-3 rounded-sm ${color}`} />
@@ -979,15 +1015,30 @@ function computeLenieInsight(logs) {
   const peakDay  = sorted[0] ? DOW_PL[+sorted[0][0]] : null;
   const peakN    = sorted[0] ? +sorted[0][1] : 0;
 
-  // Top trigger keywords
-  const STOP = new Set('i w z na do sie to ze a nie jest bylo mi jak po przez od o ich je co byl ta te ten ta to'.split(' '));
-  const wc   = {};
+  // Top trigger keywords — context_note (weighted x2) + final_stimulus combined
+  // Filter: appears in 2+ distinct entries, but not in >60% of entries with text
+  const STOP = new Set('i w z na do sie to ze a nie jest bylo mi jak po przez od o ich je co byl ta te ten ta to mnie bo ale go mu tak juz czy wiec az no wtedy kiedy wlaczyl wlaczalem mialem bylo'.split(' '));
+  const wc: Record<string, number> = {};
+  const entryCount: Record<string, number> = {};
+  const entriesWithText = recent.filter(l => l.final_stimulus || l.context_note).length;
+
   for (const l of recent) {
-    for (const w of (l.final_stimulus || '').toLowerCase().split(/\W+/)) {
-      if (w.length > 3 && !STOP.has(w)) wc[w] = (wc[w] || 0) + 1;
+    const text = [(l.context_note || ''), (l.context_note || ''), (l.final_stimulus || '')].join(' ');
+    const seen = new Set<string>();
+    for (const w of text.toLowerCase().split(/\W+/)) {
+      if (w.length > 3 && !STOP.has(w) && !seen.has(w)) {
+        wc[w] = (wc[w] || 0) + 1;
+        entryCount[w] = (entryCount[w] || 0) + 1;
+        seen.add(w);
+      }
     }
   }
-  const topW = Object.entries(wc).sort((a, b) => +b[1] - +a[1]).slice(0, 2).map(([w]) => w);
+  const noiseThreshold = Math.max(2, Math.ceil(entriesWithText * 0.6));
+  const topW = Object.entries(entryCount)
+    .filter(([, c]) => c >= 2 && c < noiseThreshold)
+    .sort((a, b) => (wc[b[0]] || 0) - (wc[a[0]] || 0))
+    .slice(0, 3)
+    .map(([w]) => w);
 
   // Trend
   const trend = total60 > 0 ? Math.round((total30 - total60) / total60 * 100) : null;
@@ -1247,6 +1298,124 @@ export default function DesktopDashboard({ session }) {
       if (!error) setHabitLogs(prev => [...prev, data]);
     }
   }
+  // ── Dreams (Lista 200 Marzeń) ─────────────────────────────────────────────
+  const [dreams, setDreams] = useState<any[]>([]);
+  const [newDreamTitle, setNewDreamTitle] = useState('');
+  const [newDreamCategory, setNewDreamCategory] = useState('inne');
+  const [dreamFilter, setDreamFilter] = useState('all');
+  const [isAddingDream, setIsAddingDream] = useState(false);
+  const [editingDream, setEditingDream] = useState<any | null>(null);
+  const [editDreamTitle, setEditDreamTitle] = useState('');
+  const [editDreamDesc, setEditDreamDesc] = useState('');
+  const [editDreamCat, setEditDreamCat] = useState('inne');
+  const [savingDream, setSavingDream] = useState(false);
+
+  const [visionItems, setVisionItems] = useState<any[]>([]);
+  const [newVisionContent, setNewVisionContent] = useState('');
+  const [newVisionType, setNewVisionType] = useState('affirmation');
+  const [newVisionColor, setNewVisionColor] = useState('indigo');
+  const [isAddingVision, setIsAddingVision] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('dreams').select('*').eq('user_id', userId)
+      .order('is_done', { ascending: true })
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setDreams(data); });
+    supabase.from('vision_board_items').select('*').eq('user_id', userId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setVisionItems(data); });
+  }, [userId]);
+
+  async function addDream() {
+    if (!newDreamTitle.trim()) return;
+    const { data, error } = await supabase.from('dreams')
+      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory })
+      .select().single();
+    if (!error && data) { setDreams(prev => [data, ...prev]); setNewDreamTitle(''); setIsAddingDream(false); }
+  }
+
+  async function toggleDream(dream: any) {
+    const is_done = !dream.is_done;
+    const { data, error } = await supabase.from('dreams')
+      .update({ is_done, done_at: is_done ? new Date().toISOString() : null })
+      .eq('id', dream.id).select().single();
+    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
+  }
+
+  async function deleteDream(id: string) {
+    await supabase.from('dreams').delete().eq('id', id);
+    setDreams(prev => prev.filter(d => d.id !== id));
+    if (editingDream?.id === id) setEditingDream(null);
+  }
+
+  async function toggleTop5(dream: any) {
+    const is_top5 = !dream.is_top5;
+    const { data, error } = await supabase.from('dreams').update({ is_top5 }).eq('id', dream.id).select().single();
+    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
+  }
+
+  function openDreamModal(dream: any) {
+    setEditingDream(dream);
+    setEditDreamTitle(dream.title);
+    setEditDreamDesc(dream.description || '');
+    setEditDreamCat(dream.category);
+  }
+
+  async function saveDreamEdit() {
+    if (!editingDream) return;
+    setSavingDream(true);
+    const { data, error } = await supabase.from('dreams')
+      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat })
+      .eq('id', editingDream.id).select().single();
+    if (!error && data) {
+      setDreams(prev => prev.map(d => d.id === editingDream.id ? data : d));
+      setEditingDream(null);
+    }
+    setSavingDream(false);
+  }
+
+  async function dreamToProject(dream: any) {
+    try {
+      const project = await createProject(userId!, { name: dream.title, goal: dream.description || undefined });
+      await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
+      alert(`Projekt "${dream.title}" utworzony!`);
+    } catch (e: any) {
+      alert('Błąd: ' + e.message);
+    }
+  }
+
+  async function addVisionItem() {
+    if (!newVisionContent.trim()) return;
+    const { data, error } = await supabase.from('vision_board_items')
+      .insert({ user_id: userId, type: newVisionType, content: newVisionContent.trim(), color: newVisionColor })
+      .select().single();
+    if (!error && data) { setVisionItems(prev => [data, ...prev]); setNewVisionContent(''); setIsAddingVision(false); }
+  }
+
+  async function deleteVisionItem(id: string) {
+    await supabase.from('vision_board_items').delete().eq('id', id);
+    setVisionItems(prev => prev.filter(v => v.id !== id));
+  }
+
+  const DREAM_CATEGORIES = ['all', 'finanse', 'ciało', 'relacje', 'doświadczenia', 'wolność', 'inne'];
+  const DREAM_CAT_LABEL: Record<string, string> = { all: 'Wszystkie', finanse: 'Finanse', ciało: 'Ciało', relacje: 'Relacje', doświadczenia: 'Doświadczenia', wolność: 'Wolność', inne: 'Inne' };
+  const DREAM_CAT_COLOR: Record<string, string> = { finanse: 'text-emerald-500', ciało: 'text-rose-500', relacje: 'text-violet-500', doświadczenia: 'text-amber-500', wolność: 'text-sky-500', inne: 'text-text-muted' };
+
+  const VB_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    indigo:  { bg: 'bg-indigo-500/10',  text: 'text-indigo-300',  border: 'border-indigo-500/25' },
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-300', border: 'border-emerald-500/25' },
+    amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-300',   border: 'border-amber-500/25' },
+    rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-300',    border: 'border-rose-500/25' },
+    violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-300',  border: 'border-violet-500/25' },
+    sky:     { bg: 'bg-sky-500/10',     text: 'text-sky-300',     border: 'border-sky-500/25' },
+  };
+
+  const filteredDreams = dreamFilter === 'all' ? dreams : dreams.filter(d => d.category === dreamFilter);
+  const doneDreams = dreams.filter(d => d.is_done).length;
+  const top5Dreams = dreams.filter(d => d.is_top5 && !d.is_done).slice(0, 5);
+
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
   const [showFundament, setShowFundament] = useState(false);
@@ -1437,6 +1606,7 @@ export default function DesktopDashboard({ session }) {
   );
 
   return (
+    <>
     <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border-custom bg-background/95 backdrop-blur-md px-8 py-3.5 flex items-center gap-4">
@@ -1496,7 +1666,7 @@ export default function DesktopDashboard({ session }) {
 
         {/* Heatmap */}
         <Panel title="Konsekwencja treningowa — 13 tygodni">
-          <Heatmap sessions={sessions} />
+          <Heatmap sessions={sessions} strava={strava} />
         </Panel>
 
         {/* Charts Row */}
@@ -1785,6 +1955,301 @@ export default function DesktopDashboard({ session }) {
           </div>
         </div>
 
+        {/* Lista 200 Marzeń */}
+        <Panel title="">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Lista Marzeń</p>
+                <p className="mt-0.5 font-display text-[15px] font-black tracking-tight text-text-primary leading-none">
+                  200 Marzeń
+                  <span className="ml-2 text-[11px] font-bold text-text-muted">
+                    {doneDreams > 0 ? `${doneDreams} zrealizowanych` : `${dreams.length} zapisanych`}
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddingDream(p => !p)}
+                className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+              >
+                <Plus size={11} /> Dodaj marzenie
+              </button>
+            </div>
+
+            {/* Add form */}
+            {isAddingDream && (
+              <div className="rounded-xl border border-primary/15 bg-primary/[0.03] p-3.5 space-y-2.5">
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    value={newDreamTitle}
+                    onChange={e => setNewDreamTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addDream()}
+                    placeholder="Wpisz marzenie..."
+                    className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
+                  />
+                  <select
+                    value={newDreamCategory}
+                    onChange={e => setNewDreamCategory(e.target.value)}
+                    className="rounded-xl border border-border-custom bg-surface px-3 py-2 text-[11px] font-bold text-text-secondary outline-none focus:border-primary cursor-pointer"
+                  >
+                    {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
+                      <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
+                    ))}
+                  </select>
+                  <button onClick={addDream} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">
+                    Dodaj
+                  </button>
+                  <button onClick={() => setIsAddingDream(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Top 5 Marzeń */}
+            {top5Dreams.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 flex items-center gap-1.5">
+                  <Star size={9} fill="currentColor" /> Top 5 Marzeń
+                </p>
+                <div className="space-y-1.5">
+                  {top5Dreams.map(dream => (
+                    <div key={dream.id} className="flex items-center gap-2.5 rounded-[14px] border border-amber-500/20 bg-amber-500/[0.04] px-3.5 py-2.5">
+                      <Star size={10} className="shrink-0 text-amber-500" fill="currentColor" />
+                      <button onClick={() => openDreamModal(dream)} className="flex-1 text-left text-[11px] font-bold text-text-primary hover:text-primary truncate cursor-pointer">
+                        {dream.title}
+                      </button>
+                      {dream.description && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary/40" title="Ma wizję" />}
+                      <span className={`text-[7px] font-black uppercase tracking-widest shrink-0 ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>{dream.category}</span>
+                      <button
+                        onClick={() => dreamToProject(dream)}
+                        className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                      >
+                        <ArrowRight size={9} /> Projekt
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-border-custom" />
+              </div>
+            )}
+
+            {/* Category filter */}
+            <div className="flex gap-1.5 flex-wrap">
+              {DREAM_CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setDreamFilter(cat)}
+                  className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                    dreamFilter === cat
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'border-border-custom text-text-muted hover:border-text-secondary hover:text-text-secondary'
+                  }`}
+                >
+                  {DREAM_CAT_LABEL[cat]}
+                  {cat !== 'all' && dreams.filter(d => d.category === cat).length > 0 && (
+                    <span className="ml-1 opacity-60">{dreams.filter(d => d.category === cat).length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Dreams list */}
+            {filteredDreams.length === 0 ? (
+              <p className="py-6 text-center text-[11px] text-text-muted/50">
+                {dreams.length === 0 ? 'Zacznij od zapisania pierwszego marzenia' : 'Brak marzeń w tej kategorii'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-1.5 max-h-[480px] overflow-y-auto pr-1">
+                {filteredDreams.map(dream => (
+                  <div
+                    key={dream.id}
+                    onClick={() => openDreamModal(dream)}
+                    className={`group flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5 transition-all cursor-pointer ${
+                      dream.is_done
+                        ? 'border-emerald-500/15 bg-emerald-500/[0.04] opacity-60'
+                        : dream.is_top5
+                        ? 'border-amber-500/15 bg-amber-500/[0.02] hover:border-amber-500/30'
+                        : 'border-border-custom bg-surface hover:border-primary/20'
+                    }`}
+                  >
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleDream(dream); }}
+                      className={`shrink-0 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 transition-all cursor-pointer ${
+                        dream.is_done
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : 'border-border-custom hover:border-primary'
+                      }`}
+                    >
+                      {dream.is_done && <Check size={9} strokeWidth={3} />}
+                    </button>
+                    <p className={`flex-1 text-[11px] font-semibold leading-snug min-w-0 truncate ${dream.is_done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+                      {dream.title}
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {dream.is_top5 && !dream.is_done && <Star size={8} className="text-amber-500" fill="currentColor" />}
+                      {dream.description && <span className="w-1 h-1 rounded-full bg-primary/40" />}
+                      <span className={`text-[7px] font-black uppercase tracking-widest ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>
+                        {dream.category}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteDream(dream.id); }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Progress bar */}
+            {dreams.length > 0 && (
+              <div className="space-y-1.5 pt-1 border-t border-border-custom">
+                <div className="flex justify-between text-[8px] font-bold text-text-muted uppercase tracking-widest">
+                  <span>{doneDreams} zrealizowanych</span>
+                  <span>{dreams.length} / 200</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-border-custom overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${Math.min((dreams.length / 200) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        {/* Vision Board */}
+        <Panel title="">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Wizualizacja</p>
+                <p className="mt-0.5 font-display text-[15px] font-black tracking-tight text-text-primary leading-none">
+                  Vision Board
+                  <span className="ml-2 text-[11px] font-bold text-text-muted">{visionItems.length} elementów</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddingVision(p => !p)}
+                className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+              >
+                <Plus size={11} /> Dodaj
+              </button>
+            </div>
+
+            {/* Add form */}
+            {isAddingVision && (
+              <div className="rounded-xl border border-primary/15 bg-primary/[0.03] p-3.5 space-y-2.5">
+                {/* Type selector */}
+                <div className="flex gap-1.5">
+                  {[
+                    { v: 'affirmation', label: 'Afirmacja', icon: <Sparkles size={10} /> },
+                    { v: 'image',       label: 'Obraz (URL)', icon: <ImageIcon size={10} /> },
+                    { v: 'word',        label: 'Słowo',    icon: <Type size={10} /> },
+                  ].map(({ v, label, icon }) => (
+                    <button
+                      key={v}
+                      onClick={() => setNewVisionType(v)}
+                      className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        newVisionType === v ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      {icon} {label}
+                    </button>
+                  ))}
+                </div>
+                {/* Color selector */}
+                <div className="flex gap-1.5 items-center">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">Kolor:</span>
+                  {Object.keys(VB_COLORS).map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setNewVisionColor(c)}
+                      className={`w-5 h-5 rounded-full border-2 transition-all cursor-pointer ${VB_COLORS[c].bg} ${newVisionColor === c ? 'border-primary scale-125' : 'border-transparent hover:scale-110'}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    value={newVisionContent}
+                    onChange={e => setNewVisionContent(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addVisionItem()}
+                    placeholder={newVisionType === 'image' ? 'URL obrazka...' : newVisionType === 'word' ? 'Jedno słowo...' : 'Afirmacja: Jestem...'}
+                    className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
+                  />
+                  <button onClick={addVisionItem} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">
+                    Dodaj
+                  </button>
+                  <button onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Board grid */}
+            {visionItems.length === 0 ? (
+              <div className="py-8 text-center space-y-2">
+                <Sparkles size={20} className="mx-auto text-text-muted/30" />
+                <p className="text-[11px] text-text-muted/50">Dodaj afirmacje, obrazy i słowa które cię inspirują</p>
+              </div>
+            ) : (
+              <div className="columns-2 gap-2 space-y-0">
+                {visionItems.map(item => {
+                  const c = VB_COLORS[item.color] || VB_COLORS.indigo;
+                  return (
+                    <div key={item.id} className="group relative break-inside-avoid mb-2">
+                      {item.type === 'image' ? (
+                        <div className="relative overflow-hidden rounded-[14px] border border-border-custom bg-surface">
+                          <img
+                            src={item.content}
+                            alt=""
+                            className="w-full object-cover"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <button
+                            onClick={() => deleteVisionItem(item.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-all cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : item.type === 'word' ? (
+                        <div className={`relative flex items-center justify-center rounded-[14px] border ${c.border} ${c.bg} px-4 py-5`}>
+                          <p className={`font-display text-[22px] font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
+                          <button
+                            onClick={() => deleteVisionItem(item.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={`relative rounded-[14px] border ${c.border} ${c.bg} px-3.5 py-4`}>
+                          <p className={`text-[12px] font-bold leading-snug ${c.text}`}>{item.content}</p>
+                          <button
+                            onClick={() => deleteVisionItem(item.id)}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Panel>
+
         {/* Intelligence — conclusions, not data */}
         <IntelligencePanel
           oura={oura} sessions={sessions} nutrition={nutrition} wins={wins}
@@ -1793,5 +2258,92 @@ export default function DesktopDashboard({ session }) {
 
       </main>
     </div>
+
+    {/* Dream edit modal */}
+    {editingDream && createPortal(
+      <div
+        className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+        onClick={() => setEditingDream(null)}
+      >
+        <div
+          className="w-full max-w-lg rounded-[24px] border border-border-custom bg-surface p-6 shadow-2xl space-y-4"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-primary" />
+              <h2 className="font-display text-[15px] font-black text-text-primary">Pogłęb wizję</h2>
+            </div>
+            <button onClick={() => setEditingDream(null)} className="text-text-muted hover:text-text-primary cursor-pointer transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
+            <input
+              value={editDreamTitle}
+              onChange={e => setEditDreamTitle(e.target.value)}
+              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
+            <select
+              value={editDreamCat}
+              onChange={e => setEditDreamCat(e.target.value)}
+              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary cursor-pointer"
+            >
+              {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
+                <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
+              Wizja — jak się czujesz gdy to osiągasz?
+            </label>
+            <textarea
+              value={editDreamDesc}
+              onChange={e => setEditDreamDesc(e.target.value)}
+              placeholder="Opisz jak to wygląda, jak się czujesz, co widzisz, słyszysz, czujesz w tym momencie..."
+              rows={5}
+              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary resize-none placeholder:text-text-muted/40"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={saveDreamEdit}
+              disabled={savingDream || !editDreamTitle.trim()}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40"
+            >
+              <Check size={11} strokeWidth={2.5} /> Zapisz wizję
+            </button>
+            <button
+              onClick={() => { toggleTop5(editingDream); setEditingDream(prev => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
+              className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                editingDream.is_top5
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                  : 'border-border-custom text-text-muted hover:border-amber-500/30 hover:text-amber-500'
+              }`}
+            >
+              <Star size={11} fill={editingDream.is_top5 ? 'currentColor' : 'none'} />
+              Top 5
+            </button>
+            <button
+              onClick={() => { deleteDream(editingDream.id); }}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/20 text-rose-400/50 hover:text-rose-500 hover:border-rose-500/30 transition-all cursor-pointer"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
