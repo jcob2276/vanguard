@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   BookOpen,
@@ -45,7 +46,8 @@ const STATUS_TABS: { id: 'unread' | 'read' | 'all'; label: string }[] = [
 
 const CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
 
-export default function LinksInbox({ session, onBack }: { session: Session; onBack: () => void }) {
+export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: 'todo' | 'keep') => void }) {
+  const navigate = useNavigate();
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
@@ -393,6 +395,22 @@ export default function LinksInbox({ session, onBack }: { session: Session; onBa
           </div>
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
+        <button onClick={() => onNavigateTo ? onNavigateTo('keep') : navigate('/keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <StickyNote size={22} />
+          <span className="text-[11px] font-semibold">Notatki</span>
+        </button>
+        <button onClick={() => onNavigateTo ? onNavigateTo('todo') : goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <ListTodo size={22} />
+          <span className="text-[11px] font-semibold">Zadania</span>
+        </button>
+        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
+          <BookOpen size={22} />
+          <span className="text-[11px] font-semibold">Pocket</span>
+        </button>
+      </nav>
     </div>
   );
 }

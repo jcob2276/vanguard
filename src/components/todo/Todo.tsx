@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   BookOpen,
@@ -616,7 +617,8 @@ function TodoCard({
 
 // ─── Todo (main) ──────────────────────────────────────────────────────────────
 
-export default function Todo({ session, onBack }: { session: any; onBack: () => void }) {
+export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: 'links' | 'keep') => void }) {
+  const navigate = useNavigate();
   const userId = session?.user?.id;
   const [sections, setSections] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -1208,6 +1210,22 @@ export default function Todo({ session, onBack }: { session: any; onBack: () => 
           </div>
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
+        <button onClick={() => onNavigateTo ? onNavigateTo('keep') : navigate('/keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <StickyNote size={22} />
+          <span className="text-[11px] font-semibold">Notatki</span>
+        </button>
+        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
+          <ListTodo size={22} />
+          <span className="text-[11px] font-semibold">Zadania</span>
+        </button>
+        <button onClick={() => onNavigateTo ? onNavigateTo('links') : undefined} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <BookOpen size={22} />
+          <span className="text-[11px] font-semibold">Pocket</span>
+        </button>
+      </nav>
     </div>
   );
 }

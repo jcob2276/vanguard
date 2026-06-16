@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Calendar,
   FolderKanban,
@@ -305,6 +305,7 @@ export default function Dashboard({ session }: { session: any }) {
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const navigate = useNavigate();
 
   // Theme support
   const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -546,7 +547,11 @@ export default function Dashboard({ session }: { session: any }) {
   if (view === 'todo') {
     return (
       <Suspense fallback={<ViewFallback />}>
-        <Todo session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+        <Todo
+          session={session}
+          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
+          onNavigateTo={(dest) => { if (dest === 'keep') navigate('/keep'); else setView(dest); }}
+        />
       </Suspense>
     );
   }
@@ -554,7 +559,11 @@ export default function Dashboard({ session }: { session: any }) {
   if (view === 'links') {
     return (
       <Suspense fallback={<ViewFallback />}>
-        <LinksInbox session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+        <LinksInbox
+          session={session}
+          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
+          onNavigateTo={(dest) => { if (dest === 'keep') navigate('/keep'); else setView(dest); }}
+        />
       </Suspense>
     );
   }

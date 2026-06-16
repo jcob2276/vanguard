@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   AlertCircle,
@@ -380,6 +381,17 @@ function RichEditor({
 
   const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+    if (target.classList.contains('keep-inline-img')) {
+      e.preventDefault();
+      const src = (target as HTMLImageElement).src;
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = `zdjecie-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
     if (target.classList.contains('keep-todo-checkbox')) {
       e.preventDefault();
       const isChecked = target.classList.toggle('checked');
@@ -1160,6 +1172,7 @@ function MasonryGrid({
 // ─── Main Keep page ───────────────────────────────────────────────────────────
 
 export default function Keep({ session }: { session: any }) {
+  const navigate = useNavigate();
   const userId = session.user.id;
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1';
   const [notes, setNotes] = useState<Note[]>([]);
@@ -1175,7 +1188,7 @@ export default function Keep({ session }: { session: any }) {
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
-    window.location.href = '/';
+    navigate('/');
   };
 
   const handleOpenCard = useCallback((id: string) => setEditingId(id), []);
@@ -1526,7 +1539,7 @@ export default function Keep({ session }: { session: any }) {
               </p>
             </div>
           ) : (
-            <div className="keep-sections">
+            <div className="keep-sections pb-20 md:pb-0">
               {/* Pinned */}
               {pinned.length > 0 && (
                 <section className="keep-section">
@@ -1623,6 +1636,22 @@ export default function Keep({ session }: { session: any }) {
           ) : null;
         })()
       )}
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
+        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
+          <CheckSquare size={22} />
+          <span className="text-[11px] font-semibold">Notatki</span>
+        </button>
+        <button onClick={() => goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <ListTodo size={22} />
+          <span className="text-[11px] font-semibold">Zadania</span>
+        </button>
+        <button onClick={() => goTo('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <BookOpen size={22} />
+          <span className="text-[11px] font-semibold">Pocket</span>
+        </button>
+      </nav>
     </div>
   );
 }
