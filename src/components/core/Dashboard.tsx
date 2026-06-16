@@ -89,12 +89,24 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
   );
 }
 
-function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, session }: { weeklyCalories: number; weeklyBudget: number; syncYazio: () => void; isSyncing: boolean; session: any }) {
-  const PROTEIN_GOAL = 150;
+function NutritionCard({ weeklyCalories, syncYazio, isSyncing, session }: { weeklyCalories: number; syncYazio: () => void; isSyncing: boolean; session: any }) {
+  const [proteinGoal, setProteinGoal] = useState(150);
+  const [weeklyBudget, setWeeklyBudget] = useState(12600);
   const [proteinRows, setProteinRows] = useState<{ date: string; protein: number | null }[]>([]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
+    supabase
+      .from('nutrition_targets')
+      .select('target_kcal, protein_floor_g')
+      .eq('user_id', session.user.id)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.target_kcal) setWeeklyBudget(data.target_kcal * 7);
+        if (data?.protein_floor_g) setProteinGoal(data.protein_floor_g);
+      });
     supabase
       .from('daily_nutrition')
       .select('date, protein')
@@ -120,7 +132,7 @@ function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, ses
   }, [proteinRows, todayRaw]);
 
   const todayProtein = chart.find((r) => r.key === todayRaw)?.protein ?? 0;
-  const proteinPct = Math.min((todayProtein / PROTEIN_GOAL) * 100, 100);
+  const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
 
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
@@ -158,7 +170,7 @@ function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, ses
         <span className="text-[15px] font-black text-primary font-display">{todayProtein}g</span>
       </div>
       <div className="mb-1.5 flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-text-muted">
-        <span>Cel {PROTEIN_GOAL}g</span>
+        <span>Cel {proteinGoal}g</span>
         <span>{Math.round(proteinPct)}%</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-border-custom">
@@ -170,7 +182,7 @@ function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, ses
       {chart.length > 0 && (
         <div className="mt-3 grid grid-cols-7 gap-1.5">
           {chart.map((d) => {
-            const pct = Math.min((d.protein / PROTEIN_GOAL) * 100, 100);
+            const pct = Math.min((d.protein / proteinGoal) * 100, 100);
             const isToday = d.key === todayRaw;
             return (
               <div key={d.key} className="flex h-10 flex-col justify-end gap-1">
@@ -576,8 +588,6 @@ export default function Dashboard({ session }: { session: any }) {
     );
   }
 
-  const weeklyBudget = 12600;
-
   const navItems = [
     { id: 'dzis', icon: Sun, label: 'Dziś' },
     { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
@@ -669,10 +679,8 @@ export default function Dashboard({ session }: { session: any }) {
           <div className={`p-5 pb-8 ${view === 'tydzien' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
-                {/* <AIInsight session={session} /> */}
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
-                  weeklyBudget={weeklyBudget}
                   syncYazio={syncYazio}
                   isSyncing={isSyncing}
                   session={session}

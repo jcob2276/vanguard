@@ -1033,6 +1033,7 @@ export type Database = {
           id: string
           is_done: boolean
           is_top5: boolean
+          life_goal: string | null
           sort_order: number
           title: string
           user_id: string
@@ -1045,6 +1046,7 @@ export type Database = {
           id?: string
           is_done?: boolean
           is_top5?: boolean
+          life_goal?: string | null
           sort_order?: number
           title: string
           user_id: string
@@ -1057,6 +1059,7 @@ export type Database = {
           id?: string
           is_done?: boolean
           is_top5?: boolean
+          life_goal?: string | null
           sort_order?: number
           title?: string
           user_id?: string
@@ -2143,6 +2146,53 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      project_checkpoints: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          project_id: string
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          project_id?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_checkpoints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
