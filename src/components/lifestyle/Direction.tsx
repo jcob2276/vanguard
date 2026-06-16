@@ -33,7 +33,7 @@ type WeeklyReviewRow = Tables<'weekly_reviews'>;
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
 type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
 type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
-type TodoSectionRow = Pick<Tables<'todo_sections'>, 'id' | 'name'>;
+type TodoSectionRow = Pick<Tables<'todo_sections'>, 'id' | 'name' | 'project_id'>;
 
 const todayDate = () => format(new Date(), 'yyyy-MM-dd');
 const todayWarsaw = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -104,6 +104,9 @@ export default function Direction({ session }: { session: Session }) {
   const [addingTask, setAddingTask] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
 
+  const [chainProjects, setChainProjects] = useState<any[]>([]);
+  const [chainDreams, setChainDreams] = useState<any[]>([]);
+
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
@@ -163,7 +166,7 @@ export default function Direction({ session }: { session: Session }) {
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
         supabase.from('todo_items').select('id, title, status, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('created_at', { ascending: false }),
         supabase.from('life_goals').select('goal_cialo, date_cialo, goal_duch, date_duch, goal_konto, date_konto').eq('user_id', userId).maybeSingle(),
-        supabase.from('todo_sections').select('id, name').eq('user_id', userId).eq('is_archived', false).order('sort_order', { ascending: true }),
+        supabase.from('todo_sections').select('id, name, project_id').eq('user_id', userId).eq('is_archived', false).order('sort_order', { ascending: true }),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
       ]);
 
@@ -216,6 +219,42 @@ export default function Direction({ session }: { session: Session }) {
   useEffect(() => {
     setTimeout(() => { if (session?.user?.id) fetchData(); }, 0);
   }, [session?.user?.id, fetchData]);
+
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    Promise.all([
+      supabase.from('projects').select('id, dream_id').eq('user_id', uid),
+      supabase.from('dreams').select('id, life_goal').eq('user_id', uid),
+    ]).then(([{ data: p }, { data: d }]) => {
+      setChainProjects(p ?? []);
+      setChainDreams(d ?? []);
+    }).catch(() => {});
+  }, [session?.user?.id]);
+
+  const sectionGoalMap = useMemo(() => {
+    const dreamGoal = Object.fromEntries(
+      chainDreams.filter((d: any) => d.life_goal).map((d: any) => [d.id, `goal_${d.life_goal}` as string])
+    );
+    const projectDream = Object.fromEntries(
+      chainProjects.filter((p: any) => p.dream_id).map((p: any) => [p.id, p.dream_id as string])
+    );
+    const result: Record<string, string> = {};
+    for (const sec of todoSections as any[]) {
+      if (!sec.project_id) continue;
+      const dreamId = projectDream[sec.project_id];
+      if (!dreamId) continue;
+      const goal = dreamGoal[dreamId];
+      if (goal) result[sec.id] = goal;
+    }
+    return result;
+  }, [chainProjects, chainDreams, todoSections]);
+
+  const GOAL_CHIP: Record<string, { label: string; chip: string }> = {
+    goal_cialo: { label: 'Ciało', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+    goal_duch:  { label: 'Duch',  chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'   },
+    goal_konto: { label: 'Konto', chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'       },
+  };
 
   const stats = useMemo(() => {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
@@ -313,12 +352,20 @@ export default function Direction({ session }: { session: Session }) {
   }
 
   function toggleTaskSelection(id: string) {
+    const isSelected = selectedTaskIds.has(id);
     setSelectedTaskIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else if (next.size < 3) next.add(id);
       return next;
     });
+    if (!isSelected) {
+      const todo = weekTodos.find(t => t.id === id);
+      const autoGoal = todo?.section_id ? sectionGoalMap[todo.section_id] : null;
+      if (autoGoal) {
+        setFocusGoalMappings(prev => ({ ...prev, [id]: prev[id] ?? autoGoal }));
+      }
+    }
   }
 
   async function addQuickTask() {
@@ -556,10 +603,16 @@ export default function Direction({ session }: { session: Session }) {
                           {isSelected && <Check size={10} className="text-white" />}
                         </div>
                         <span className="flex-1 truncate text-[12px] font-semibold text-text-primary">{todo.title}</span>
+                        {todo.section_id && sectionGoalMap[todo.section_id] && (() => {
+                          const g = GOAL_CHIP[sectionGoalMap[todo.section_id]];
+                          return g ? (
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black ${g.chip}`}>{g.label}</span>
+                          ) : null;
+                        })()}
                         {todo.ai_bucket && (
                           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black ${
-                            todo.ai_bucket === 'today' ? 'bg-rose-500/10 text-rose-500' 
-                            : todo.ai_bucket === 'soon' ? 'bg-primary/10 text-primary' 
+                            todo.ai_bucket === 'today' ? 'bg-rose-500/10 text-rose-500'
+                            : todo.ai_bucket === 'soon' ? 'bg-primary/10 text-primary'
                             : 'bg-text-muted/10 text-text-muted'
                           }`}>
                             {todo.ai_bucket === 'today' ? 'Dziś' : todo.ai_bucket === 'soon' ? 'Wkrótce' : 'W tle'}

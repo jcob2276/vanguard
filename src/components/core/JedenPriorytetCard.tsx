@@ -32,6 +32,15 @@ const COLOR_DOT: Record<string, string> = {
   rose: 'bg-rose-500',
 };
 
+const COLOR_CHIP: Record<string, string> = {
+  indigo: 'text-indigo-600 dark:text-indigo-400',
+  violet: 'text-violet-600 dark:text-violet-400',
+  sky: 'text-sky-600 dark:text-sky-400',
+  emerald: 'text-emerald-600 dark:text-emerald-400',
+  amber: 'text-amber-600 dark:text-amber-400',
+  rose: 'text-rose-600 dark:text-rose-400',
+};
+
 function TaskPicker({ items, search, onSearch, onSelect, onClose }: {
   items: EnrichedTask[];
   search: string;
@@ -101,6 +110,7 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
   const [tasks, setTasks] = useState<EnrichedTask[]>([]);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [priorityProject, setPriorityProject] = useState<{ name: string; color: string | null } | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const priorityTask = todayWin?.task_1 || null;
@@ -143,6 +153,27 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
       }
     })();
   }, [pickerOpen, userId, tasks.length]);
+
+  // Resolve project for the current priority task
+  useEffect(() => {
+    const todoId = todayWin?.task_1_todo_id;
+    if (!todoId) { setPriorityProject(null); return; }
+    (async () => {
+      try {
+        const [{ data: item }, sections, projects] = await Promise.all([
+          supabase.from('todo_items').select('section_id').eq('id', todoId).maybeSingle(),
+          listTodoSections(userId),
+          listProjects(userId),
+        ]);
+        if (!item?.section_id) { setPriorityProject(null); return; }
+        const sectionMap = new Map((sections ?? []).map((s: any) => [s.id, s]));
+        const projectMap = new Map((projects ?? []).map((p: any) => [p.id, p]));
+        const section = sectionMap.get(item.section_id) as any;
+        const project = section?.project_id ? projectMap.get(section.project_id) as any : null;
+        setPriorityProject(project ? { name: project.name, color: project.color } : null);
+      } catch { setPriorityProject(null); }
+    })();
+  }, [todayWin?.task_1_todo_id, userId]);
 
   // Close picker on outside click
   useEffect(() => {
@@ -246,7 +277,15 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
           <>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-primary/30" />
-              <p className="flex-1 text-[13px] font-black text-text-primary leading-snug">{priorityTask}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-black text-text-primary leading-snug">{priorityTask}</p>
+                {priorityProject && (
+                  <p className="mt-1 flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${COLOR_DOT[priorityProject.color || ''] || 'bg-primary'}`} />
+                    <span className={`text-[9px] font-bold ${COLOR_CHIP[priorityProject.color || ''] || 'text-primary'}`}>{priorityProject.name}</span>
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-border-custom/60 bg-text-primary/[0.02] px-3.5 py-2.5">
               <p className="flex-1 text-[10px] text-text-muted leading-snug">
@@ -274,9 +313,15 @@ export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpen
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <Check size={13} strokeWidth={3} className="text-emerald-500" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500">WIN — +1%</p>
                 <p className="text-[12.5px] font-black text-text-primary leading-tight mt-0.5 truncate">{priorityTask}</p>
+                {priorityProject && (
+                  <p className="mt-0.5 flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${COLOR_DOT[priorityProject.color || ''] || 'bg-primary'}`} />
+                    <span className={`text-[9px] font-bold ${COLOR_CHIP[priorityProject.color || ''] || 'text-primary'}`}>{priorityProject.name}</span>
+                  </p>
+                )}
               </div>
             </div>
             <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] px-3.5 py-2">

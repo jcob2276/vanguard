@@ -2,8 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
 import { Check, CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
-import { listTodoItems, updateTodoItem } from '../../lib/todo';
+import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
+import { listProjects } from '../../lib/projects';
 import type { TablesUpdate } from '../../lib/database.types';
+
+const COLOR_DOT: Record<string, string> = {
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  sky: 'bg-sky-500',
+  emerald: 'bg-emerald-500',
+  amber: 'bg-amber-500',
+  rose: 'bg-rose-500',
+};
 
 const PRIORITY_DOT: Record<string, string> = {
   low: 'bg-emerald-500',
@@ -66,6 +76,8 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const haptics = useHaptics();
 
+  const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
+
   const [newTaskForm, setNewTaskForm] = useState<Array<{ task: string; todoId: string | null }>>([
     { task: '', todoId: null },
     { task: '', todoId: null },
@@ -77,6 +89,37 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Resolve projects for today's linked todo items
+  useEffect(() => {
+    if (!todayWin) return;
+    const ids = [
+      todayWin.task_1_todo_id,
+      todayWin.task_2_todo_id,
+      todayWin.task_3_todo_id,
+      todayWin.task_4_todo_id,
+      todayWin.task_5_todo_id,
+    ].filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    (async () => {
+      try {
+        const [{ data: items }, sections, projects] = await Promise.all([
+          supabase.from('todo_items').select('id, section_id').in('id', ids),
+          listTodoSections(userId),
+          listProjects(userId),
+        ]);
+        const sectionMap = new Map((sections ?? []).map((s: any) => [s.id, s]));
+        const projectData = new Map((projects ?? []).map((p: any) => [p.id, p]));
+        const result: Record<string, { name: string; color: string | null }> = {};
+        for (const item of items ?? []) {
+          const section = sectionMap.get(item.section_id) as any;
+          const project = section?.project_id ? projectData.get(section.project_id) as any : null;
+          if (project) result[item.id] = { name: project.name, color: project.color };
+        }
+        setProjectMap(result);
+      } catch {}
+    })();
+  }, [todayWin?.id, userId]);
 
   useEffect(() => {
     if (todayWin) return;
@@ -339,11 +382,19 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
                   </div>
                 </div>
 
-                {linkedTodoId && !done && (
-                  <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
-                    <Link2 size={8} /> Zadanie
-                  </span>
-                )}
+                {linkedTodoId && (() => {
+                  const proj = projectMap[linkedTodoId];
+                  return proj ? (
+                    <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+                      <span className={`h-1.5 w-1.5 rounded-full ${COLOR_DOT[proj.color || ''] || 'bg-primary'}`} />
+                      {proj.name}
+                    </span>
+                  ) : !done ? (
+                    <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+                      <Link2 size={8} /> Zadanie
+                    </span>
+                  ) : null;
+                })()}
               </button>
             );
           })}

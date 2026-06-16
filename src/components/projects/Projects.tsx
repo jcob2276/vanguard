@@ -11,8 +11,11 @@ import {
   Plus,
   Repeat2,
   Save,
+  Shield,
   Trash2,
+  Wallet,
   X,
+  Zap,
 } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
 import {
@@ -28,6 +31,7 @@ import {
   ProjectCheckpoint,
 } from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
+import { supabase } from '../../lib/supabase';
 import DataStateNotice from '../core/DataStateNotice';
 
 const COLORS = [
@@ -40,6 +44,12 @@ const COLORS = [
 ];
 
 const colorOf = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
+
+const LIFE_GOAL_META: Record<string, { icon: typeof Shield; text: string; chip: string }> = {
+  cialo: { icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  duch:  { icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'   },
+  konto: { icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'      },
+};
 
 const STATUS_TABS = [
   { id: 'active', label: 'Aktywne' },
@@ -57,6 +67,7 @@ export default function Projects({ session }: { session: any }) {
   const [sections, setSections]   = useState<any[]>([]);
   const [items, setItems]         = useState<any[]>([]);
   const [checkpoints, setCheckpoints] = useState<ProjectCheckpoint[]>([]);
+  const [dreams, setDreams]       = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [busy, setBusy]           = useState(false);
@@ -76,16 +87,18 @@ export default function Projects({ session }: { session: any }) {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c] = await Promise.all([
+      const [p, s, i, c, { data: d }] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
         listProjectCheckpoints(userId),
+        supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
       setCheckpoints(c ?? []);
+      setDreams(d ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -127,6 +140,11 @@ export default function Projects({ session }: { session: any }) {
       return [p.id, { section, openItems, doneItems, total, progress, lastActivity, daysSince, slipping, daysLeft }];
     }));
   }, [projects, sections, items]);
+
+  const dreamById = useMemo(() =>
+    Object.fromEntries(dreams.map(d => [d.id, d])),
+    [dreams],
+  );
 
   const checkpointsByProject = useMemo(() => {
     const grouped: Record<string, ProjectCheckpoint[]> = {};
@@ -394,6 +412,18 @@ export default function Projects({ session }: { session: any }) {
                       {project.goal && (
                         <p className="mt-0.5 text-[12px] text-text-muted line-clamp-1">{project.goal}</p>
                       )}
+                      {project.dream_id && dreamById[project.dream_id] && (() => {
+                        const dream = dreamById[project.dream_id];
+                        const goalMeta = dream.life_goal ? LIFE_GOAL_META[dream.life_goal] : null;
+                        const GoalIcon = goalMeta?.icon;
+                        return (
+                          <p className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-violet-500 dark:text-violet-400">
+                            {GoalIcon && <GoalIcon size={9} className={`shrink-0 ${goalMeta!.text}`} />}
+                            <span>✦</span>
+                            <span className="truncate">{dream.title}</span>
+                          </p>
+                        );
+                      })()}
                       {!isExpanded && s.openItems[0] && (
                         <p className="mt-1 text-[11px] text-text-muted/60 line-clamp-1">
                           → {s.openItems[0].title}

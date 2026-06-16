@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, useCallback } from 'react';
+import { Suspense, lazy, useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import SmartAlerts, { AlertItem } from './SmartAlerts';
@@ -1213,6 +1213,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const [editDreamTitle, setEditDreamTitle] = useState('');
   const [editDreamDesc, setEditDreamDesc] = useState('');
   const [editDreamCat, setEditDreamCat] = useState('inne');
+  const [editDreamLifeGoal, setEditDreamLifeGoal] = useState<string | null>(null);
+  const [newDreamLifeGoal, setNewDreamLifeGoal] = useState<string | null>(null);
   const [savingDream, setSavingDream] = useState(false);
 
   const [visionItems, setVisionItems] = useState<any[]>([]);
@@ -1236,9 +1238,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
   async function addDream() {
     if (!newDreamTitle.trim()) return;
     const { data, error } = await supabase.from('dreams')
-      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory })
+      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory, life_goal: newDreamLifeGoal || null } as any)
       .select().single();
-    if (!error && data) { setDreams(prev => [data, ...prev]); setNewDreamTitle(''); setIsAddingDream(false); }
+    if (!error && data) { setDreams(prev => [data, ...prev]); setNewDreamTitle(''); setNewDreamLifeGoal(null); setIsAddingDream(false); }
   }
 
   async function toggleDream(dream: any) {
@@ -1266,13 +1268,14 @@ export default function DesktopDashboard({ session }: { session: any }) {
     setEditDreamTitle(dream.title);
     setEditDreamDesc(dream.description || '');
     setEditDreamCat(dream.category);
+    setEditDreamLifeGoal(dream.life_goal || null);
   }
 
   async function saveDreamEdit() {
     if (!editingDream) return;
     setSavingDream(true);
     const { data, error } = await supabase.from('dreams')
-      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat })
+      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat, life_goal: editDreamLifeGoal || null } as any)
       .eq('id', editingDream.id).select().single();
     if (!error && data) {
       setDreams(prev => prev.map(d => d.id === editingDream.id ? data : d));
@@ -1322,6 +1325,10 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const filteredDreams = dreamFilter === 'all' ? dreams : dreams.filter(d => d.category === dreamFilter);
   const doneDreams = dreams.filter(d => d.is_done).length;
   const top5Dreams = dreams.filter(d => d.is_top5 && !d.is_done).slice(0, 5);
+  const projectByDreamId = useMemo(() =>
+    Object.fromEntries((projects || []).filter((p: any) => p.dream_id).map((p: any) => [p.dream_id, p])),
+    [projects],
+  );
 
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
@@ -1913,6 +1920,15 @@ export default function DesktopDashboard({ session }: { session: any }) {
                     <X size={13} />
                   </button>
                 </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cel:</span>
+                  {([['cialo', 'Ciało', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'], ['duch', 'Duch', 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500'], ['konto', 'Konto', 'border-amber-500/40 bg-amber-500/10 text-amber-600']] as [string, string, string][]).map(([val, label, active]) => (
+                    <button key={val} onClick={() => setNewDreamLifeGoal(newDreamLifeGoal === val ? null : val)}
+                      className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${newDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1931,12 +1947,18 @@ export default function DesktopDashboard({ session }: { session: any }) {
                       </button>
                       {dream.description && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary/40" title="Ma wizję" />}
                       <span className={`text-[7px] font-black uppercase tracking-widest shrink-0 ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>{dream.category}</span>
-                      <button
-                        onClick={() => dreamToProject(dream)}
-                        className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                      >
-                        <ArrowRight size={9} /> Projekt
-                      </button>
+                      {projectByDreamId[dream.id] ? (
+                        <span className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/[0.04] px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary/70">
+                          <ArrowRight size={9} /> {projectByDreamId[dream.id].name}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => dreamToProject(dream)}
+                          className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                        >
+                          <ArrowRight size={9} /> Projekt
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1999,6 +2021,11 @@ export default function DesktopDashboard({ session }: { session: any }) {
                     <div className="flex items-center gap-1 shrink-0">
                       {dream.is_top5 && !dream.is_done && <Star size={8} className="text-amber-500" fill="currentColor" />}
                       {dream.description && <span className="w-1 h-1 rounded-full bg-primary/40" />}
+                      {projectByDreamId[dream.id] && (
+                        <span className="text-[7px] font-black uppercase tracking-widest text-primary/60 border border-primary/20 rounded px-1 py-0.5">
+                          proj
+                        </span>
+                      )}
                       <span className={`text-[7px] font-black uppercase tracking-widest ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>
                         {dream.category}
                       </span>
@@ -2196,17 +2223,30 @@ export default function DesktopDashboard({ session }: { session: any }) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
-            <select
-              value={editDreamCat}
-              onChange={e => setEditDreamCat(e.target.value)}
-              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary cursor-pointer"
-            >
-              {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
-                <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
-              ))}
-            </select>
+          <div className="flex gap-3">
+            <div className="space-y-1.5 flex-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
+              <select
+                value={editDreamCat}
+                onChange={e => setEditDreamCat(e.target.value)}
+                className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary cursor-pointer"
+              >
+                {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
+                  <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
+              <div className="flex gap-1.5">
+                {([['cialo', 'Ciało', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'], ['duch', 'Duch', 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500'], ['konto', 'Konto', 'border-amber-500/40 bg-amber-500/10 text-amber-600']] as [string, string, string][]).map(([val, label, active]) => (
+                  <button key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
+                    className={`rounded-xl border px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1.5">

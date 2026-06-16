@@ -4,6 +4,7 @@ import type { Tables } from '../../lib/database.types';
 import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../hooks/useHaptics';
+import { listProjects } from '../../lib/projects';
 
 interface BlockTimerProps {
   session: Session;
@@ -13,6 +14,9 @@ interface BlockTimerProps {
 export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const haptics = useHaptics();
   const userId = session?.user?.id;
+
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const [timerMode, setTimerMode] = useState<'idle' | 'work' | 'break'>('idle');
   const [blockDuration, setBlockDuration] = useState(90 * 60);
@@ -52,6 +56,13 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   };
 
   useEffect(() => { fetchTodayBlocks(); }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    listProjects(userId)
+      .then(data => { if (data) setProjects((data as any[]).filter(p => p.status === 'active')); })
+      .catch(() => {});
+  }, [userId]);
 
   useEffect(() => {
     if (timerActive) {
@@ -100,7 +111,11 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           source: 'block_timer',
           category: 'productivity',
           classification: 'work_block_completion',
-          metadata: { subject: blockSubject.trim() || 'Głęboka praca', duration_minutes: Math.round(blockDuration / 60) }
+          metadata: {
+            subject: blockSubject.trim() || 'Głęboka praca',
+            duration_minutes: Math.round(blockDuration / 60),
+            ...(selectedProjectId ? { project_id: selectedProjectId, project_name: projects.find(p => p.id === selectedProjectId)?.name } : {}),
+          }
         });
         await fetchTodayBlocks();
         setTimerMode('break');
@@ -124,6 +139,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     setTimerMode('idle');
     setTimeLeft(blockDuration);
     if (!overrideSubject) setBlockSubject(priorityTask || '');
+    setSelectedProjectId(null);
     haptics.light();
   };
 
@@ -198,6 +214,23 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
             </div>
           )}
 
+          {/* Project link */}
+          {projects.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-[10px] text-text-muted">Projekt:</span>
+              <select
+                value={selectedProjectId || ''}
+                onChange={e => setSelectedProjectId(e.target.value || null)}
+                className="min-w-0 flex-1 rounded-lg border border-border-custom bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-text-primary outline-none focus:border-primary cursor-pointer"
+              >
+                <option value="">— opcjonalnie —</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Duration */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-text-muted">Długość bloku:</span>
@@ -241,9 +274,17 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           </div>
 
           {timerMode === 'work' && blockSubject.trim() && (
-            <p className="font-display text-xs font-black text-text-primary truncate max-w-xs mx-auto">
-              "{blockSubject}"
-            </p>
+            <div className="space-y-1 text-center">
+              <p className="font-display text-xs font-black text-text-primary truncate max-w-xs mx-auto">
+                "{blockSubject}"
+              </p>
+              {selectedProjectId && (() => {
+                const proj = projects.find(p => p.id === selectedProjectId);
+                return proj ? (
+                  <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{proj.name}</p>
+                ) : null;
+              })()}
+            </div>
           )}
 
           {timerMode === 'break' && (

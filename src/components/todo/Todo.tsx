@@ -16,11 +16,14 @@ import {
   Plus,
   Repeat2,
   Settings2,
+  Shield,
   StickyNote,
   Sparkles,
   Tag,
   Trash2,
+  Wallet,
   X,
+  Zap,
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -50,6 +53,13 @@ import { supabase } from '../../lib/supabase';
 import type { ReactNode } from 'react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
+
+const GOAL_ICON: Record<string, typeof Shield> = { cialo: Shield, duch: Zap, konto: Wallet };
+const GOAL_COLOR: Record<string, string> = {
+  cialo: 'text-emerald-500/50',
+  duch:  'text-indigo-500/50',
+  konto: 'text-amber-500/50',
+};
 
 const PRIORITY_ORDER = ['low', 'normal', 'high', 'urgent'];
 
@@ -266,6 +276,7 @@ interface TodoCardProps {
   onEditChange: (val: string) => void;
   onEditSave: () => void;
   sectionName?: string | null;
+  sectionGoalKey?: string | null;
   onDragStart?: (item: any, clientX: number, clientY: number) => void;
   isDragging: boolean;
   onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
@@ -280,7 +291,7 @@ function TodoCard({
   busy, today,
   isLinkedToPlan, sections, onMoveSection,
   isEditing, editingTitle, onEditStart, onEditChange, onEditSave,
-  sectionName, onDragStart, isDragging,
+  sectionName, sectionGoalKey, onDragStart, isDragging,
   onShowContextMenu,
   onMoveToToday, onSetRecurrence,
 }: TodoCardProps) {
@@ -433,9 +444,15 @@ function TodoCard({
                   <Link2 size={8} /> Plan
                 </span>
               )}
-              {sectionName && (
-                <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
-              )}
+              {sectionName && (() => {
+                const GoalIcon = sectionGoalKey ? GOAL_ICON[sectionGoalKey] : null;
+                return (
+                  <span className="flex items-center gap-1">
+                    {GoalIcon && <GoalIcon size={8} className={GOAL_COLOR[sectionGoalKey!]} />}
+                    <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
@@ -616,6 +633,7 @@ export default function Todo({ session, onBack }: { session: any; onBack: () => 
   const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
   const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
+  const [dreams, setDreams] = useState<any[]>([]);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -643,15 +661,17 @@ export default function Todo({ session, onBack }: { session: any; onBack: () => 
   const fetchAll = useCallback(async () => {
     const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     try {
-      const [s, i, { data: winData }, p] = await Promise.all([
+      const [s, i, { data: winData }, p, { data: d }] = await Promise.all([
         listTodoSections(userId),
         listTodoItems(userId),
         supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
         listProjects(userId),
+        supabase.from('dreams').select('id, life_goal').eq('user_id', userId),
       ]);
       setSections(s || []);
       setItems(i || []);
       setProjects(p || []);
+      setDreams(d || []);
       if (winData) {
         const winDataAny = winData as any;
         setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winDataAny[`task_${n}_todo_id`]).filter(Boolean)));
@@ -717,6 +737,20 @@ export default function Todo({ session, onBack }: { session: any; onBack: () => 
 
   // ── Derived ──
   const sectionById = useMemo(() => Object.fromEntries(sections.map((s) => [s.id, s])), [sections]);
+
+  const sectionGoalMap = useMemo(() => {
+    const dreamGoal = Object.fromEntries(dreams.filter((d: any) => d.life_goal).map((d: any) => [d.id, d.life_goal as string]));
+    const projectDream = Object.fromEntries(projects.filter((p: any) => p.dream_id).map((p: any) => [p.id, p.dream_id as string]));
+    const result: Record<string, string> = {};
+    for (const sec of sections as any[]) {
+      if (!sec.project_id) continue;
+      const dreamId = projectDream[sec.project_id];
+      if (!dreamId) continue;
+      const goal = dreamGoal[dreamId];
+      if (goal) result[sec.id] = goal;
+    }
+    return result;
+  }, [sections, projects, dreams]);
   const parsedInput = useMemo(() => parseTodoQuickInput(form.title), [form.title]);
   const openItems = useMemo(() => items.filter((i) => i.status === 'open'), [items]);
   const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
@@ -875,6 +909,7 @@ export default function Todo({ session, onBack }: { session: any; onBack: () => 
       onEditChange={setEditingTitle}
       onEditSave={() => saveEditTitle(item)}
       sectionName={item.section_id ? sectionById[item.section_id]?.name : null}
+      sectionGoalKey={item.section_id ? sectionGoalMap[item.section_id] ?? null : null}
       onDragStart={handleDragStart}
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
