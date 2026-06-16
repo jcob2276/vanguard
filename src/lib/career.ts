@@ -1,7 +1,9 @@
 /**
- * Career module data layer (MVP).
+ * DEPRECATED: Career module data layer.
  *
- * Thin wrappers over the supabase client for the four career_* tables.
+ * The active project model is `projects`; active tasks live in `todo_*`.
+ * These wrappers remain only for legacy data compatibility with the removed
+ * Kariera screen. Do not add new product reads/writes here.
  * Every read filters by user_id. Every write throws on error (no silent swallow).
  * Momentum / last meaningful output / next move are DERIVED here in the frontend —
  * never stored. No AI classification, no Telegram in MVP.

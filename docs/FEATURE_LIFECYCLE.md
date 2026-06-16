@@ -20,7 +20,10 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
 | Strava/Yazio/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
-| Todoist sync | Dropped | Removed 2026-06-13. Vanguard will own tasks/projects natively through Career OS instead of importing an external todo model. |
+| Projects | Active | `projects` is the canonical app model for the Projekty section. `todo_sections.project_id` is an optional bridge for project-scoped tasks; projects are not defined by Todo. |
+| Todo | Active | `todo_sections` / `todo_items` power the separate Zadania section and quick task surfaces. |
+| Career module | Deprecated | `career_projects`, `career_moves`, `career_evidence`, and `career_decisions` are legacy from the removed Kariera section. Do not build new reads/writes here; keep only compatibility until data can be archived or removed deliberately. |
+| Todoist sync | Dropped | Removed 2026-06-13. Vanguard owns tasks/projects natively through `todo_*` and `projects` instead of importing an external todo model. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |

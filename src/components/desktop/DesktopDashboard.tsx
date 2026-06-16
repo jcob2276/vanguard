@@ -626,13 +626,13 @@ const LIFE_PILLARS = [
   { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto',  color: 'text-amber-400',   borderBg: 'bg-amber-500/[0.05] border-amber-500/20',     Icon: Briefcase },
 ];
 
-interface CareerSectionProps {
+interface ProjectsSectionProps {
   goals: any;
   projects: any[];
   moves: any[];
 }
 
-function CareerSection({ goals, projects, moves }: CareerSectionProps) {
+function ProjectsSection({ goals, projects, moves }: ProjectsSectionProps) {
   const projMap    = Object.fromEntries((projects||[]).map((p: any) => [p.id, p]));
   const activeProj = (projects||[]).filter((p: any) => p.sense_status !== 'cut' && p.sense_status !== 'completed');
   const ws         = weekStartDate();
@@ -949,7 +949,7 @@ interface SprintPanelProps {
   onSave: (goalText: string) => Promise<void>;
   metrics: any;
   prevMetrics: any;
-  careerMetrics: any;
+  projectMetrics: any;
   goals: any;
   currentWeight: number | null;
   weight30ago: number | null;
@@ -963,7 +963,7 @@ interface BodyMetric {
   dec?: number;
 }
 
-function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerMetrics, goals, currentWeight, weight30ago }: SprintPanelProps) {
+function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, projectMetrics, goals, currentWeight, weight30ago }: SprintPanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft,   setDraft]   = useState(sprintGoal?.goal_text || '');
   const [saving,  setSaving]  = useState(false);
@@ -990,11 +990,11 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
     ...(currentWeight != null ? [{ label: 'Waga', curr: currentWeight, prev: weight30ago, fmt: (v: number) => `${v.toFixed(1)}`, dec: 1 }] : []),
   ];
 
-  const CAREER = [
-    { label: 'Done w sprincie', val: careerMetrics?.doneInSprint, color: 'text-emerald-500' },
-    { label: 'W toku',          val: careerMetrics?.inProgress,   color: 'text-sky-400' },
-    { label: 'Zablokowane',     val: careerMetrics?.blocked,      color: careerMetrics?.blocked > 0 ? 'text-rose-500' : 'text-text-primary' },
-    { label: 'Projekty',        val: careerMetrics?.activeProjects,color: 'text-amber-400' },
+  const PROJECTS = [
+    { label: 'Done w sprincie', val: projectMetrics?.doneInSprint, color: 'text-emerald-500' },
+    { label: 'W toku',          val: projectMetrics?.inProgress,   color: 'text-sky-400' },
+    { label: 'Zablokowane',     val: projectMetrics?.blocked,      color: projectMetrics?.blocked > 0 ? 'text-rose-500' : 'text-text-primary' },
+    { label: 'Projekty',        val: projectMetrics?.activeProjects,color: 'text-amber-400' },
   ];
 
   return (
@@ -1081,7 +1081,7 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
         <div>
           <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 mb-3">Projekty</p>
           <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-            {CAREER.map(({ label, val, color }) => (
+            {PROJECTS.map(({ label, val, color }) => (
               <div key={label}>
                 <p className="text-[8px] font-black uppercase tracking-widest text-text-muted mb-0.5">{label}</p>
                 <p className={`font-display text-[18px] font-black leading-none ${color}`}>{val ?? '—'}</p>
@@ -1426,7 +1426,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   // Project metrics
   const ws               = weekStartDate();
   const movesDoneThisWeek = (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws).length;
-  const careerMetrics    = {
+  const projectMetrics   = {
     doneInSprint:   (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= sprint.sprintStart).length,
     inProgress:     (moves||[]).filter(m => m.status === 'doing').length,
     blocked:        (moves||[]).filter(m => m.status === 'blocked').length,
@@ -1515,7 +1515,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
           onSave={saveSprintGoal}
           metrics={currMetrics}
           prevMetrics={prevMetrics}
-          careerMetrics={careerMetrics}
+          projectMetrics={projectMetrics}
           goals={goals}
           currentWeight={currentWeight}
           weight30ago={weight30ago}

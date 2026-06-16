@@ -13,6 +13,7 @@ Supabase project: configured per deployment through environment variables.
 |-----------|------|--------|
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
 | **Integrations** | Oura, Yazio, Calendar, Strava, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
+| **Projects & Todo** | Native projects and separate task surfaces | `src/components/projects`, `src/components/todo`, `projects`, `todo_*` tables |
 | **Legacy workout** | Existing workout UI/data model | `src/`, `workout_*` tables |
 
 
@@ -110,6 +111,10 @@ Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midd
 | `vanguard_daily_aggregates` | Daily biometric/state snapshot |
 | `vanguard_oracle_runs` | Oracle audit log (read-only telemetry) |
 | `user_fundament` | Identity / philosophy (context, not live truth) |
+| `projects` | Canonical project model for the Projekty section |
+| `todo_sections`, `todo_items` | Separate task model; `todo_sections.project_id` is only an optional project bridge |
+
+Deprecated legacy tables: `career_projects`, `career_moves`, `career_evidence`, `career_decisions`. These belonged to the removed Kariera module and must not be used for new product reads/writes.
 
 ---
 
