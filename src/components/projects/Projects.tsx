@@ -72,7 +72,7 @@ export default function Projects({ session }: { session: any }) {
     (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
   }, [fetchAll]);
 
-  const run = async (fn: () => Promise<void>) => {
+  const run = async (fn: () => Promise<any>) => {
     setBusy(true);
     try { await fn(); await fetchAll(); }
     catch (err: any) { setError(err.message); }
@@ -111,14 +111,16 @@ export default function Projects({ session }: { session: any }) {
   const handleCreate = () => {
     if (!form.name.trim()) return;
     run(async () => {
-      const project = await createProject(userId, {
+      const project = (await createProject(userId, {
         name: form.name.trim(),
         goal: form.goal.trim() || undefined,
         deadline: form.deadline || undefined,
         color: form.color,
-      });
-      const section = await createTodoSection(userId, form.name.trim());
-      await linkSectionToProject(section.id, project.id);
+      })) as any;
+      const section = (await createTodoSection(userId, form.name.trim())) as any;
+      if (section?.id && project?.id) {
+        await linkSectionToProject(section.id, project.id);
+      }
       setForm({ name: '', goal: '', deadline: '', color: 'indigo' });
       setShowForm(false);
     });
@@ -144,7 +146,7 @@ export default function Projects({ session }: { session: any }) {
         section_id: section?.id ?? null,
         priority: 'normal',
         tagsText: '',
-        recurrence: newTask.recurrence || null,
+        recurrence: newTask!.recurrence || undefined,
       });
       setNewTask(null);
     });
@@ -378,7 +380,7 @@ export default function Projects({ session }: { session: any }) {
                       <div className="rounded-[12px] border border-border-custom/50 bg-surface-solid/40 px-3 py-2 space-y-2">
                         <input
                           autoFocus
-                          value={newTask.title}
+                          value={newTask!.title}
                           onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
                           onKeyDown={e => {
                             if (e.key === 'Enter') { e.preventDefault(); handleAddTask(project.id, s.section); }
@@ -390,9 +392,9 @@ export default function Projects({ session }: { session: any }) {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as any) + 1) % RECURRENCE_CYCLE.length] } : t)}
-                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
+                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask!.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
                           >
-                            <Repeat2 size={10} /> {RECURRENCE_LABEL[newTask.recurrence]}
+                            <Repeat2 size={10} /> {RECURRENCE_LABEL[newTask!.recurrence]}
                           </button>
                           <div className="flex-1" />
                           <button onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary">
@@ -400,7 +402,7 @@ export default function Projects({ session }: { session: any }) {
                           </button>
                           <button
                             onClick={() => handleAddTask(project.id, s.section)}
-                            disabled={!newTask.title.trim() || busy}
+                            disabled={!newTask!.title.trim() || busy}
                             className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
                           >
                             Dodaj

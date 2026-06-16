@@ -4,14 +4,14 @@ import { supabase } from '../../lib/supabase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-function fmtPace(secPerKm) {
+function fmtPace(secPerKm: number | null | undefined) {
   if (!secPerKm) return '--';
   const minutes = Math.floor(secPerKm / 60);
   const seconds = Math.round(secPerKm % 60);
   return `${minutes}:${String(seconds).padStart(2, '0')}/km`;
 }
 
-function fmtTime(seconds) {
+function fmtTime(seconds: number | null | undefined) {
   if (!seconds) return '--';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -19,7 +19,7 @@ function fmtTime(seconds) {
   return `${minutes}m`;
 }
 
-function fmtDate(iso) {
+function fmtDate(iso: string | null | undefined) {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString('pl-PL', {
     timeZone: 'Europe/Warsaw',
@@ -28,12 +28,12 @@ function fmtDate(iso) {
   });
 }
 
-function isRun(activity) {
+function isRun(activity: any) {
   const text = `${activity.sport_type || ''} ${activity.type || ''} ${activity.name || ''}`.toLowerCase();
   return text.includes('run') || text.includes('bieg');
 }
 
-function RunRow({ activity }) {
+function RunRow({ activity }: { activity: any }) {
   const distance = activity.distance ? (Number(activity.distance) / 1000).toFixed(2) : '--';
   const hrAvg = activity.hr_avg ? Math.round(activity.hr_avg) : null;
 
@@ -85,11 +85,11 @@ function RunRow({ activity }) {
   );
 }
 
-export default function StravaWidget({ session }) {
-  const [activities, setActivities] = useState([]);
+export default function StravaWidget({ session }: { session: any }) {
+  const [activities, setActivities] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchActivities = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -107,7 +107,7 @@ export default function StravaWidget({ session }) {
       setActivities((data || []).filter(isRun).slice(0, 3));
     } catch (e) {
       console.error('[StravaWidget] fetch error:', e);
-      setError(e.message);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export default function StravaWidget({ session }) {
       await fetchActivities();
     } catch (e) {
       console.error('[StravaWidget] sync error:', e);
-      setError(e.message);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSyncing(false);
     }

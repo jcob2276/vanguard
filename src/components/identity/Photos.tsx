@@ -3,15 +3,15 @@ import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 
-export default function Photos({ session }) {
+export default function Photos({ session }: { session: any }) {
   const [loading, setLoading] = useState(true);
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [photoDate, setPhotoDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
   
   // Selection logic for comparison
-  const [baseId, setBaseId] = useState(null);
-  const [targetId, setTargetId] = useState(null);
+  const [baseId, setBaseId] = useState<string | null>(null);
+  const [targetId, setTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPhotos();
@@ -39,7 +39,7 @@ export default function Photos({ session }) {
     ? Math.abs(differenceInDays(parseISO(targetPhoto.date), parseISO(basePhoto.date))) 
     : 0;
 
-  function handleSelect(id) {
+  function handleSelect(id: string) {
     if (id === baseId) return; 
     if (id === targetId) {
       setTargetId(null);
@@ -48,7 +48,7 @@ export default function Photos({ session }) {
     setTargetId(id);
   }
 
-  async function uploadPhoto(e) {
+  async function uploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     try {
       setUploading(true);
       if (!e.target.files || e.target.files.length === 0) return;
@@ -57,17 +57,17 @@ export default function Photos({ session }) {
       await supabase.storage.from('progress-photos').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
       await supabase.from('progress_photos').insert({ 
-        user_id: session.user.id, 
-        image_url: publicUrl, 
-        date: photoDate 
+         user_id: session.user.id, 
+         image_url: publicUrl, 
+         date: photoDate 
       });
       fetchPhotos();
     } catch (error) {
-      alert('Błąd: ' + error.message);
+      alert('Błąd: ' + (error instanceof Error ? error.message : String(error)));
     } finally { setUploading(false); }
   }
 
-  async function deletePhoto(id, url) {
+  async function deletePhoto(id: string, url: string) {
     if (!confirm('Usunąć?')) return;
     const fileName = `${session.user.id}/${url.split('/').pop()}`;
     await supabase.storage.from('progress-photos').remove([fileName]);

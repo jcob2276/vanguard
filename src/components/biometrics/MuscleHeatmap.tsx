@@ -60,7 +60,7 @@ const BACK_REGIONS = [
   ]},
 ];
 
-const HEAT_COLORS = {
+const HEAT_COLORS: Record<string, string> = {
   klatka: '#24b7ff',
   plecy: '#12d6c8',
   barki: '#21e7ff',
@@ -76,7 +76,7 @@ const HEAT_COLORS = {
 
 const fallbackHeat = '#00f2ff';
 
-function Shape({ s, opacity, glow, color }) {
+function Shape({ s, opacity, glow, color }: { s: any; opacity: number; glow: boolean; color: string }) {
   const fill   = opacity > 0.04 ? color : 'currentColor';
   const filter = glow ? 'url(#mglow)' : undefined;
   if (s.t === 'ellipse')
@@ -84,7 +84,7 @@ function Shape({ s, opacity, glow, color }) {
   return <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.r} fill={fill} fillOpacity={opacity} filter={filter} />;
 }
 
-function BodySVG({ regions, intensity }) {
+function BodySVG({ regions, intensity }: { regions: any[]; intensity: Record<string, number> }) {
   return (
     <svg viewBox="0 0 100 194" className="w-full h-full text-text-primary/10">
       <defs>
@@ -114,7 +114,7 @@ function BodySVG({ regions, intensity }) {
         const op  = raw > 0 ? 0.16 + raw * 0.52 : 0.035;
         const glow = raw > 0.18;
         const color = HEAT_COLORS[tag] ?? fallbackHeat;
-        return shapes.map((s, i) => (
+        return shapes.map((s: any, i: number) => (
           <Shape key={`${tag}-${i}`} s={s} opacity={op} glow={glow} color={color} />
         ));
       })}
@@ -130,18 +130,18 @@ const PERIODS = [
   { label: '90d', days: 90 },
 ];
 
-function tagsForLog(log) {
+function tagsForLog(log: any) {
   if (Array.isArray(log.muscle_tags) && log.muscle_tags.length > 0) {
     return log.muscle_tags;
   }
   return tagsForExercise(log.exercise_name);
 }
 
-function tagColor(tag) {
+function tagColor(tag: string) {
   return HEAT_COLORS[tag] ?? fallbackHeat;
 }
 
-export default function MuscleHeatmap({ session }) {
+export default function MuscleHeatmap({ session }: { session: any }) {
   const [period, setPeriod]     = useState(30);
   const [intensity, setIntensity] = useState<Record<string, number>>({});   // tag → 0–1
   const [setsByTag, setSetsByTag] = useState<Record<string, number>>({});   // tag → count
@@ -219,7 +219,7 @@ export default function MuscleHeatmap({ session }) {
   const trainedTags = new Set(Object.entries(setsByTag).filter(([, n]) => n > 0).map(([tag]) => tag));
   const neglected = MUSCLE_TAGS.filter(tag => !trainedTags.has(tag)).slice(0, 4);
   const topTag = ranked[0]?.[0] ?? null;
-  const formatSetCount = (count) => Number.isInteger(count) ? count : count.toFixed(1);
+  const formatSetCount = (count: number) => Number.isInteger(count) ? count : count.toFixed(1);
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">

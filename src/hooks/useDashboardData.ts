@@ -42,60 +42,39 @@ export function useDashboardData() {
       let totalCal = 0;
       let todayData = null;
 
-
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
       const todayDate = new Date(today + 'T12:00:00');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
       const monday = mondayDate.toLocaleDateString('en-CA');
-      const { data: nutrition } = await supabase
-        .from('daily_nutrition')
-        .select('calories')
-        .eq('user_id', session.user.id)
-        .gte('date', monday);
+
+      const [
+        nutritionRes,
+        tDataRes,
+        protDataRes,
+        workoutTodayRes,
+        ouraDataRes,
+        lastWorkoutRes
+      ] = await Promise.all([
+        supabase.from('daily_nutrition').select('calories').eq('user_id', session.user.id).gte('date', monday),
+        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
+        supabase.from('daily_nutrition').select('protein').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
+        supabase.from('workout_sessions').select('id').eq('user_id', session.user.id).eq('date', today).limit(1).maybeSingle(),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(30),
+        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle()
+      ]);
+
+      const nutrition = nutritionRes.data;
+      const tData = tDataRes.data;
+      const protData = protDataRes.data;
+      const workoutToday = workoutTodayRes.data;
+      const ouraData = ouraDataRes.data;
+      const lastWorkout = lastWorkoutRes.data;
 
       totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
-      const { data: tData } = await supabase
-        .from('daily_wins')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('date', today)
-        .maybeSingle();
-      
       todayData = tData;
-
-      const { data: protData } = await supabase
-        .from('daily_nutrition')
-        .select('protein')
-        .eq('user_id', session.user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      const { data: workoutToday } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .eq('date', today)
-        .limit(1)
-        .maybeSingle();
-
-      const { data: ouraData } = await supabase
-        .from('oura_daily_summary')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(30);
 
       // --- NOWY SILNIK VANGUARD CORE ---
       const core = new VanguardCore(session.user.id, supabase);
-      
-      // Pobieramy datę ostatniego treningu
-      const { data: lastWorkout } = await supabase
-        .from('workout_sessions')
-        .select('date')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
 
       const signals = computeSignals(
         ouraData?.[0] || null,
@@ -112,7 +91,7 @@ export function useDashboardData() {
         todayWin: todayData,
         proteinToday: protData?.protein || 0,
         hasWorkoutToday: !!workoutToday,
-        ouraToday: ouraData,
+        ouraToday: ouraData || [],
         readiness: ouraData?.[0]?.readiness_score || 0,
         stability: realStability,
         operationalState: realState,
@@ -152,13 +131,13 @@ export function useDashboardData() {
       console.log('[syncYazio] odpowiedź:', res);
       if (!response.ok) throw new Error(res.error || `HTTP ${response.status}`);
       if (res.success) {
-        const dates = (res.results || []).map(r => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
+        const dates = (res.results || []).map((r: any) => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
         alert(`Sync OK\n${dates}`);
         await fetchData();
       } else {
         alert('Błąd synchronizacji: ' + (res.error || 'Nieznany błąd'));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[syncYazio] błąd:', err);
       alert('Błąd synchronizacji: ' + err.message);
     } finally {
@@ -166,7 +145,7 @@ export function useDashboardData() {
     }
   };
 
-  const autoSyncCalendar = async (session) => {
+  const autoSyncCalendar = async (session: any) => {
     try {
       const { data: lastEvent } = await supabase
         .from('vanguard_calendar')
@@ -178,7 +157,7 @@ export function useDashboardData() {
         .maybeSingle();
 
       const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-      const lastSync = lastEvent ? new Date(lastEvent.start_time).getTime() : 0;
+      const lastSync = lastEvent?.start_time ? new Date(lastEvent.start_time).getTime() : 0;
 
       if (lastSync < twoHoursAgo) {
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {

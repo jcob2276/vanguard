@@ -16,7 +16,7 @@ import { supabase } from '../../lib/supabase';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
 
-function SectionHeader({ icon: Icon, title, detail }) {
+function SectionHeader({ icon: Icon, title, detail }: { icon: React.ComponentType<any>; title: string; detail?: string | null }) {
   return (
     <header className="space-y-1">
       <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
@@ -27,7 +27,7 @@ function SectionHeader({ icon: Icon, title, detail }) {
   );
 }
 
-function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }) {
+function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; danger?: boolean; rows?: number }) {
   return (
     <label className="block space-y-2">
       <span className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
@@ -46,7 +46,7 @@ function TextAreaBlock({ label, value, onChange, placeholder, danger = false, ro
   );
 }
 
-export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }) {
+export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }: { onBack: () => void; session: any; onSyncCalendar: () => Promise<void> | void; isSyncing: boolean }) {
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
@@ -111,7 +111,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       alert('Fundament zapisany.');
     } catch (err) {
       console.error('Save Identity Error:', err);
-      alert(`Błąd zapisu: ${err.message}`);
+      alert(`Błąd zapisu: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSaving(false);
     }

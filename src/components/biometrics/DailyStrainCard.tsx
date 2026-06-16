@@ -35,11 +35,11 @@ function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: Lu
   );
 }
 
-export default function DailyStrainCard({ session }) {
-  const [row, setRow] = useState(null);
-  const [oura, setOura] = useState(null);
+export default function DailyStrainCard({ session }: { session: any }) {
+  const [row, setRow] = useState<any | null>(null);
+  const [oura, setOura] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRow = useCallback(async () => {
@@ -81,7 +81,7 @@ export default function DailyStrainCard({ session }) {
       const { data: { session: s } } = await supabase.auth.getSession();
       const token = s?.access_token;
       const base = import.meta.env.VITE_SUPABASE_URL;
-      const call = async (fn, body) => {
+      const call = async (fn: string, body: any) => {
         const response = await fetch(`${base}/functions/v1/${fn}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -108,7 +108,7 @@ export default function DailyStrainCard({ session }) {
       await call('compute-daily-strain', { userId: session.user.id, days: 2 });
       // 4. odśwież kartę
       await fetchRow();
-    } catch (e) {
+    } catch (e: any) {
       console.error('DailyStrainCard refresh:', e);
       setError(e.message || 'Refresh failed');
     } finally {
@@ -158,16 +158,19 @@ export default function DailyStrainCard({ session }) {
     row.recovery_score == null ? 'recovery bez danych Oura' : null,
   ].filter(Boolean);
 
+  const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
+  const limiterKey = (row.main_limiter || '') as keyof typeof LIMITER_PL;
+
   return (
-    <section className={`relative overflow-hidden rounded-[24px] border ${STATUS_RING[row.daily_status]} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
-      <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[row.daily_status]}`} />
+    <section className={`relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
+      <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
       <div className="relative space-y-2.5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Trening dziś</p>
           <div className="flex items-center gap-2.5">
             <div className="text-right">
               <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Limiter</p>
-              <p className="text-[11px] font-extrabold uppercase text-text-primary font-display mt-0.5">{LIMITER_PL[row.main_limiter] || row.main_limiter}</p>
+              <p className="text-[11px] font-extrabold uppercase text-text-primary font-display mt-0.5">{LIMITER_PL[limiterKey] || row.main_limiter}</p>
             </div>
             <button onClick={refresh} disabled={refreshing}
               title="Sync + przelicz"

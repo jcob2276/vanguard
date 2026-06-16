@@ -16,7 +16,7 @@ type FootprintPayload = {
  * AI CONTEXT 3.1 - Unified & Complete Bridge
  * Fixed in turn 81: Now provides 1:1 identical STATE_VECTOR as AIInsight.
  */
-export async function gatherUserContext(session) {
+export async function gatherUserContext(session: any) {
   if (!session?.user?.id) return "Brak sesji użytkownika.";
 
   const userId = session.user.id;
@@ -60,9 +60,9 @@ export async function gatherUserContext(session) {
     const personalBaseline = await core.getPersonalBaseline();
     const { state: vanguardState, score: stabilityScore } = await core.determineState(currentMetrics, personalBaseline);
     const history = historyRes.data || [];
-    const avg = (items, key) => {
-      const values = (items || []).map(item => Number(item?.[key])).filter(Number.isFinite);
-      return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+    const avg = (items: any[] | null, key: string): number | null => {
+      const values = (items || []).map((item: any) => Number(item?.[key])).filter(Number.isFinite);
+      return values.length ? Math.round(values.reduce((sum: number, value: number) => sum + value, 0) / values.length) : null;
     };
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
@@ -127,7 +127,7 @@ export async function gatherUserContext(session) {
           ? f.payload as FootprintPayload
           : null;
         return ({
-        timestamp: new Date(f.timestamp).toLocaleTimeString('pl-PL', {
+        timestamp: new Date(f.timestamp || '').toLocaleTimeString('pl-PL', {
           timeZone: 'Europe/Warsaw',
           hour: '2-digit',
           minute: '2-digit'

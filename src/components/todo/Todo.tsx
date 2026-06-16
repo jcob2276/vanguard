@@ -53,7 +53,7 @@ import type { ReactNode } from 'react';
 
 const PRIORITY_ORDER = ['low', 'normal', 'high', 'urgent'];
 
-const PRIORITY = {
+const PRIORITY: Record<string, { ring: string; fill: string; chip: string; label: string }> = {
   low:    { ring: 'border-emerald-400', fill: 'bg-emerald-500', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', label: 'Quick Win' },
   normal: { ring: 'border-sky-400',     fill: 'bg-sky-500',     chip: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',            label: 'Focus' },
   high:   { ring: 'border-violet-500',  fill: 'bg-violet-500',  chip: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',   label: 'Deep Work' },
@@ -63,12 +63,12 @@ const PRIORITY = {
 
 // Detect leading emoji in task title (e.g. "🏃 Bieganie" → icon="🏃", label="Bieganie")
 const EMOJI_RE = /^(\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|️|‍\p{Extended_Pictographic})*)\s*/u;
-function splitEmoji(title) {
+function splitEmoji(title: string) {
   const m = title.match(EMOJI_RE);
   return m ? { icon: m[1], label: title.slice(m[0].length) } : { icon: null, label: title };
 }
 
-function relativeDate(dateStr, today) {
+function relativeDate(dateStr: string | null | undefined, today: string) {
   if (!dateStr) return null;
   if (dateStr === today) return { text: 'Dziś', color: 'text-emerald-500' };
   const diff = Math.round((new Date(dateStr + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / 86400000);
@@ -78,10 +78,10 @@ function relativeDate(dateStr, today) {
   return { text: format(new Date(dateStr + 'T00:00:00'), 'd MMM'), color: 'text-text-muted' };
 }
 
-const parseSubtasks = (notes) => {
+const parseSubtasks = (notes: string | null) => {
   if (!notes) return { description: '', subtasks: [] };
-  const subtasks = [];
-  const descLines = [];
+  const subtasks: Array<{ id: number; checked: boolean; text: string }> = [];
+  const descLines: string[] = [];
   notes.split('\n').forEach((line, index) => {
     const m = line.match(/^\s*[-*]\s+\[([ xX])\]\s*(.*)$/);
     if (m) subtasks.push({ id: index, checked: m[1].toLowerCase() === 'x', text: m[2].trim() });
@@ -90,7 +90,7 @@ const parseSubtasks = (notes) => {
   return { description: descLines.join('\n').trim(), subtasks };
 };
 
-const serializeSubtasks = (description, subtasks) => {
+const serializeSubtasks = (description: string, subtasks: Array<{ checked: boolean; text: string }>) => {
   const d = description.trim();
   const s = subtasks.map(st => `- [${st.checked ? 'x' : ' '}] ${st.text}`).join('\n');
   if (d && s) return `${d}\n\n${s}`;
@@ -99,12 +99,23 @@ const serializeSubtasks = (description, subtasks) => {
 
 // ─── ContextMenu ─────────────────────────────────────────────────────────────
 
-function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBucket }) {
-  const ref = useRef(null);
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  item: any;
+  today: string;
+  onClose: () => void;
+  onComplete: () => void;
+  onDrop: () => void;
+  onMoveBucket: (b: string) => void;
+}
+
+function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBucket }: ContextMenuProps) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    const closeKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const close = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    const closeKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     setTimeout(() => {
       document.addEventListener('mousedown', close);
       document.addEventListener('touchstart', close);
@@ -157,10 +168,15 @@ function ContextMenu({ x, y, item, today, onClose, onComplete, onDrop, onMoveBuc
 
 // ─── DragGhost ────────────────────────────────────────────────────────────────
 
-function DragGhost({ item, posRef }) {
-  const ref = useRef(null);
+interface DragGhostProps {
+  item: any;
+  posRef: React.MutableRefObject<{ x: number; y: number }>;
+}
+
+function DragGhost({ item, posRef }: DragGhostProps) {
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    let raf;
+    let raf: number;
     const tick = () => {
       if (ref.current && posRef.current) {
         const { x, y } = posRef.current;
@@ -192,7 +208,16 @@ function DragGhost({ item, posRef }) {
 
 // ─── BucketHeader ─────────────────────────────────────────────────────────────
 
-function BucketHeader({ icon, title, count, collapsed, onToggle, isDropTarget }) {
+interface BucketHeaderProps {
+  icon: string;
+  title: string;
+  count: number;
+  collapsed: boolean;
+  onToggle: () => void;
+  isDropTarget: boolean;
+}
+
+function BucketHeader({ icon, title, count, collapsed, onToggle, isDropTarget }: BucketHeaderProps) {
   return (
     <button
       onClick={onToggle}
@@ -220,6 +245,34 @@ function BucketHeader({ icon, title, count, collapsed, onToggle, isDropTarget })
 
 // ─── TodoCard ────────────────────────────────────────────────────────────────
 
+interface TodoCardProps {
+  item: any;
+  onToggle: () => void;
+  onDrop: () => void;
+  onSetPriority: (p: string) => void;
+  expanded: boolean;
+  onToggleExpand: (id: string) => void;
+  onToggleSubtask: (index: number) => void;
+  onAddSubtask: (text: string) => void;
+  onDeleteSubtask: (index: number) => void;
+  busy: boolean;
+  today: string;
+  isLinkedToPlan: boolean;
+  sections: any[];
+  onMoveSection: (sId: string | null) => void;
+  isEditing: boolean;
+  editingTitle: string;
+  onEditStart: (t: string) => void;
+  onEditChange: (val: string) => void;
+  onEditSave: () => void;
+  sectionName?: string | null;
+  onDragStart?: (item: any, clientX: number, clientY: number) => void;
+  isDragging: boolean;
+  onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
+  onMoveToToday?: () => void;
+  onSetRecurrence: (r: string | null) => void;
+}
+
 function TodoCard({
   item, onToggle, onDrop, onSetPriority,
   expanded, onToggleExpand,
@@ -230,15 +283,15 @@ function TodoCard({
   sectionName, onDragStart, isDragging,
   onShowContextMenu,
   onMoveToToday, onSetRecurrence,
-}) {
+}: TodoCardProps) {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
-  const [swipeDir, setSwipeDir] = useState(null);
+  const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
   const [newSubtask, setNewSubtask] = useState('');
   const [completing, setCompleting] = useState(false);
-  const longPressTimer = useRef(null);
-  const gripLongPressTimer = useRef(null);
+  const longPressTimer = useRef<any>(null);
+  const gripLongPressTimer = useRef<any>(null);
 
   const { description, subtasks } = useMemo(() => parseSubtasks(item.notes), [item.notes]);
   const doneCount = subtasks.filter(s => s.checked).length;
@@ -248,7 +301,7 @@ function TodoCard({
   const dateInfo = relativeDate(item.due_date, today);
 
   // ── Touch swipe (card body) ──
-  const onTouchStart = (e) => {
+  const onTouchStart = (e: React.TouchEvent) => {
     if (isDragging) return;
     const t = e.targetTouches[0];
     setTouchStartX(t.clientX);
@@ -259,7 +312,7 @@ function TodoCard({
       onShowContextMenu(item, t.clientX, t.clientY);
     }, 600);
   };
-  const onTouchMove = (e) => {
+  const onTouchMove = (e: React.TouchEvent) => {
     clearTimeout(longPressTimer.current);
     if (isDragging) return;
     const dx = e.targetTouches[0].clientX - touchStartX;
@@ -284,7 +337,7 @@ function TodoCard({
   };
 
   // ── Grip: long press (mobile) / mousedown (desktop) ──
-  const onGripTouchStart = (e) => {
+  const onGripTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
     const t = e.touches[0];
     gripLongPressTimer.current = setTimeout(() => {
@@ -292,9 +345,9 @@ function TodoCard({
       onDragStart?.(item, t.clientX, t.clientY);
     }, 350);
   };
-  const onGripTouchEnd = (e) => { e.stopPropagation(); clearTimeout(gripLongPressTimer.current); };
-  const onGripTouchMove = (e) => { e.stopPropagation(); clearTimeout(gripLongPressTimer.current); };
-  const onGripMouseDown = (e) => { e.preventDefault(); onDragStart?.(item, e.clientX, e.clientY); };
+  const onGripTouchEnd = (e: React.TouchEvent) => { e.stopPropagation(); clearTimeout(gripLongPressTimer.current); };
+  const onGripTouchMove = (e: React.TouchEvent) => { e.stopPropagation(); clearTimeout(gripLongPressTimer.current); };
+  const onGripMouseDown = (e: React.MouseEvent) => { e.preventDefault(); onDragStart?.(item, e.clientX, e.clientY); };
 
   return (
     <div
@@ -372,7 +425,7 @@ function TodoCard({
                   {doneCount}/{subtasks.length}
                 </span>
               )}
-              {(item.tags || []).map((tag) => (
+              {(item.tags || []).map((tag: string) => (
                 <span key={tag} className="text-[10px] font-medium text-text-muted/50">#{tag}</span>
               ))}
               {isLinkedToPlan && (
@@ -546,13 +599,13 @@ function TodoCard({
 
 // ─── Todo (main) ──────────────────────────────────────────────────────────────
 
-export default function Todo({ session, onBack }) {
-  const userId = session.user.id;
-  const [sections, setSections] = useState([]);
-  const [items, setItems] = useState([]);
+export default function Todo({ session, onBack }: { session: any; onBack: () => void }) {
+  const userId = session?.user?.id;
+  const [sections, setSections] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [collapsed, setCollapsed] = useState({ today: false, soon: true, later: true });
   const [expandedId, setExpandedId] = useState(null);
@@ -569,16 +622,16 @@ export default function Todo({ session, onBack }) {
     window.location.href = '/';
   };
   const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
-  const [contextMenu, setContextMenu] = useState(null); // { x, y, item }
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
 
   // Drag state
-  const [draggingItem, setDraggingItem] = useState(null);
-  const [dragTarget, setDragTarget] = useState(null);
+  const [draggingItem, setDraggingItem] = useState<any | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
   const dragPosRef = useRef({ x: 0, y: 0 });
-  const dragItemRef = useRef(null);
-  const todayZoneRef = useRef(null);
-  const soonZoneRef = useRef(null);
-  const laterZoneRef = useRef(null);
+  const dragItemRef = useRef<any | null>(null);
+  const todayZoneRef = useRef<HTMLDivElement>(null);
+  const soonZoneRef = useRef<HTMLDivElement>(null);
+  const laterZoneRef = useRef<HTMLDivElement>(null);
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const nextWeek = (() => {
@@ -599,8 +652,11 @@ export default function Todo({ session, onBack }) {
       setSections(s || []);
       setItems(i || []);
       setProjects(p || []);
-      if (winData) setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winData[`task_${n}_todo_id`]).filter(Boolean)));
-    } catch (err) { setError(err.message); }
+      if (winData) {
+        const winDataAny = winData as any;
+        setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winDataAny[`task_${n}_todo_id`]).filter(Boolean)));
+      }
+    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
   }, [userId]);
 
   useEffect(() => {
@@ -608,7 +664,7 @@ export default function Todo({ session, onBack }) {
   }, [fetchAll]);
 
   // ── Drag tracking ──
-  const getBucketAtPoint = useCallback((x, y) => {
+  const getBucketAtPoint = useCallback((x: number, y: number) => {
     for (const { ref, bucket } of [
       { ref: todayZoneRef, bucket: 'today' },
       { ref: soonZoneRef, bucket: 'soon' },
@@ -623,14 +679,14 @@ export default function Todo({ session, onBack }) {
 
   useEffect(() => {
     if (!draggingItem) return;
-    const onMove = (e) => {
+    const onMove = (e: any) => {
       e.preventDefault();
       const t = e.touches?.[0] ?? e;
       dragPosRef.current = { x: t.clientX, y: t.clientY };
       const b = getBucketAtPoint(t.clientX, t.clientY);
       setDragTarget((prev) => prev !== b ? b : prev);
     };
-    const onEnd = (e) => {
+    const onEnd = (e: any) => {
       const t = e.changedTouches?.[0] ?? e;
       const bucket = getBucketAtPoint(t.clientX, t.clientY);
       const item = dragItemRef.current;
@@ -690,7 +746,7 @@ export default function Todo({ session, onBack }) {
     return { ...project, done, total, progress, daysLeft };
   }, [activeFilterSection, projectBySection, items]);
 
-  const applyFilter = useCallback((arr) => arr.filter(i => {
+  const applyFilter = useCallback((arr: any[]) => arr.filter(i => {
     if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
     if (activeFilterSection && i.section_id !== activeFilterSection) return false;
     return true;
@@ -698,28 +754,28 @@ export default function Todo({ session, onBack }) {
 
   const { todayItems, soonItems, laterItems } = useMemo(() => {
     const todaySet = new Set(), soonSet = new Set();
-    const todayItems = applyFilter(openItems.filter((i) => {
+    const todayItems = applyFilter(openItems.filter((i: any) => {
       if (i.ai_bucket === 'today' || i.due_date === today) { todaySet.add(i.id); return true; }
       return false;
     }));
-    const soonItems = applyFilter(openItems.filter((i) => {
+    const soonItems = applyFilter(openItems.filter((i: any) => {
       if (todaySet.has(i.id)) return false;
       if (i.ai_bucket === 'soon' || (i.due_date && i.due_date > today && i.due_date <= nextWeek)) { soonSet.add(i.id); return true; }
       return false;
     }));
-    const laterItems = applyFilter(openItems.filter((i) => !todaySet.has(i.id) && !soonSet.has(i.id)));
+    const laterItems = applyFilter(openItems.filter((i: any) => !todaySet.has(i.id) && !soonSet.has(i.id)));
     return { todayItems, soonItems, laterItems };
   }, [openItems, today, nextWeek, applyFilter]);
 
   // ── Actions ──
-  const run = async (fn) => {
+  const run = async (fn: () => Promise<any> | any) => {
     setBusy(true);
     try { await fn(); await fetchAll(); }
-    catch (err) { setError(err.message); }
+    catch (err) { setError(err instanceof Error ? err.message : String(err)); }
     finally { setBusy(false); }
   };
 
-  const classifyInBackground = useCallback((item) => {
+  const classifyInBackground = useCallback((item: any) => {
     const base = import.meta.env.VITE_SUPABASE_URL;
     fetch(`${base}/functions/v1/vanguard-todo-classify`, {
       method: 'POST',
@@ -732,14 +788,14 @@ export default function Todo({ session, onBack }) {
     const title = parsedInput.title || form.title.trim();
     if (!title) return;
     run(async () => {
-      const newItem = await createTodoItem(userId, { ...form, title, priority: parsedInput.priority || form.priority, due_date: parsedInput.due_date || form.due_date, section_id: null, recurrence: form.recurrence || null });
+      const newItem = await createTodoItem(userId, { ...form, title, priority: parsedInput.priority || form.priority, due_date: parsedInput.due_date || form.due_date, section_id: undefined, recurrence: form.recurrence || undefined });
       setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '' });
       setShowOptions(false);
       if (!parsedInput.due_date && !parsedInput.priority) classifyInBackground(newItem);
     });
   };
 
-  const moveBucket = useCallback((item, bucket) => {
+  const moveBucket = useCallback((item: any, bucket: string) => {
     const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const patch: { ai_bucket: string; ai_classified_at: string; due_date?: string | null } = { ai_bucket: bucket, ai_classified_at: new Date().toISOString() };
     if (bucket === 'today') patch.due_date = now;
@@ -747,26 +803,26 @@ export default function Todo({ session, onBack }) {
     run(() => updateTodoItem(item.id, patch));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleSubtask = (item, idx) => {
+  const toggleSubtask = (item: any, idx: number) => {
     const { description, subtasks } = parseSubtasks(item.notes);
-    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.map((st, i) => i === idx ? { ...st, checked: !st.checked } : st)) }));
+    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.map((st: any, i: number) => i === idx ? { ...st, checked: !st.checked } : st)) }));
   };
-  const addSubtask = (item, text) => {
+  const addSubtask = (item: any, text: string) => {
     if (!text.trim()) return;
     const { description, subtasks } = parseSubtasks(item.notes);
     run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, [...subtasks, { checked: false, text: text.trim() }]) }));
   };
-  const deleteSubtask = (item, idx) => {
+  const deleteSubtask = (item: any, idx: number) => {
     const { description, subtasks } = parseSubtasks(item.notes);
     run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.filter((_, i) => i !== idx)) }));
   };
-  const saveEditTitle = (item) => {
+  const saveEditTitle = (item: any) => {
     const title = editingTitle.trim();
     if (title && title !== item.title) run(() => updateTodoItem(item.id, { title }));
     setEditingId(null); setEditingTitle('');
   };
 
-  const handleDragStart = useCallback((item, x, y) => {
+  const handleDragStart = useCallback((item: any, x: number, y: number) => {
     dragItemRef.current = item;
     dragPosRef.current = { x, y };
     setDraggingItem(item);
@@ -774,14 +830,14 @@ export default function Todo({ session, onBack }) {
     setContextMenu(null);
   }, []);
 
-  const toggleExpand = useCallback((id) => setExpandedId((p) => p === id ? null : id), []);
+  const toggleExpand = useCallback((id: any) => setExpandedId((p) => p === id ? null : id), []);
 
-  const showContextMenu = useCallback((item, x, y) => {
+  const showContextMenu = useCallback((item: any, x: number, y: number) => {
     setContextMenu({ x, y, item });
     setExpandedId(null);
   }, []);
 
-  const handleComplete = useCallback((item) => {
+  const handleComplete = useCallback((item: any) => {
     const newStatus = item.status === 'done' ? 'open' : 'done';
     run(async () => {
       await setTodoStatus(item, newStatus);
@@ -796,7 +852,7 @@ export default function Todo({ session, onBack }) {
     });
   }, [today, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const renderCard = (item, { inToday = false } = {}) => (
+  const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
     <TodoCard
       key={item.id}
       item={item}
@@ -805,17 +861,17 @@ export default function Todo({ session, onBack }) {
       expanded={expandedId === item.id}
       onToggleExpand={toggleExpand}
       onToggle={() => handleComplete(item)}
-      onSetPriority={(pid) => { if (pid !== item.priority) run(() => updateTodoItem(item.id, { priority: pid })); }}
+      onSetPriority={(pid: string) => { if (pid !== item.priority) run(() => updateTodoItem(item.id, { priority: pid })); }}
       onDrop={() => run(() => setTodoStatus(item, 'dropped'))}
-      onToggleSubtask={(idx) => toggleSubtask(item, idx)}
-      onAddSubtask={(text) => addSubtask(item, text)}
-      onDeleteSubtask={(idx) => deleteSubtask(item, idx)}
+      onToggleSubtask={(idx: number) => toggleSubtask(item, idx)}
+      onAddSubtask={(text: string) => addSubtask(item, text)}
+      onDeleteSubtask={(idx: number) => deleteSubtask(item, idx)}
       isLinkedToPlan={linkedPlanIds.has(item.id)}
       sections={sections}
-      onMoveSection={(sId) => { if (sId !== item.section_id) run(() => updateTodoItem(item.id, { section_id: sId })); }}
+      onMoveSection={(sId: string | null) => { if (sId !== item.section_id) run(() => updateTodoItem(item.id, { section_id: sId })); }}
       isEditing={editingId === item.id}
       editingTitle={editingTitle}
-      onEditStart={(t) => { setEditingId(item.id); setEditingTitle(t); }}
+      onEditStart={(t: string) => { setEditingId(item.id); setEditingTitle(t); }}
       onEditChange={setEditingTitle}
       onEditSave={() => saveEditTitle(item)}
       sectionName={item.section_id ? sectionById[item.section_id]?.name : null}
@@ -823,7 +879,7 @@ export default function Todo({ session, onBack }) {
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
       onMoveToToday={!inToday ? () => moveBucket(item, 'today') : undefined}
-      onSetRecurrence={(r) => run(() => updateTodoItem(item.id, { recurrence: r || null }))}
+      onSetRecurrence={(r: string | null) => run(() => updateTodoItem(item.id, { recurrence: r || undefined }))}
     />
   );
 
@@ -848,7 +904,7 @@ export default function Todo({ session, onBack }) {
           onClose={() => setContextMenu(null)}
           onComplete={() => run(() => setTodoStatus(contextMenu.item, contextMenu.item.status === 'done' ? 'open' : 'done'))}
           onDrop={() => run(() => setTodoStatus(contextMenu.item, 'dropped'))}
-          onMoveBucket={(bucket) => moveBucket(contextMenu.item, bucket)}
+          onMoveBucket={(bucket: string) => moveBucket(contextMenu.item, bucket)}
         />
       )}
 
@@ -1073,7 +1129,7 @@ export default function Todo({ session, onBack }) {
                     ? <p className={`px-3 py-5 text-center text-[11px] font-medium ${dragTarget === 'today' ? 'text-primary font-bold' : 'text-text-muted/50'}`}>
                         {dragTarget === 'today' ? '↓ Upuść tutaj — przeniesie na dziś' : 'Nic pilnego. Przeciągnij zadanie z poniższych bucketów.'}
                       </p>
-                    : todayItems.map(i => renderCard(i, { inToday: true }))}
+                    : todayItems.map((i: any) => renderCard(i, { inToday: true }))}
                 </div>
               )}
             </div>
@@ -1087,7 +1143,7 @@ export default function Todo({ session, onBack }) {
                     ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'soon' ? 'text-primary' : 'text-text-muted/40'}`}>
                         {dragTarget === 'soon' ? '↓ Upuść tutaj' : 'Pusto'}
                       </p>
-                    : soonItems.map(renderCard)}
+                    : soonItems.map((item: any) => renderCard(item))}
                 </div>
               )}
             </div>
@@ -1101,7 +1157,7 @@ export default function Todo({ session, onBack }) {
                     ? <p className={`px-3 py-3 text-[12px] font-medium ${dragTarget === 'later' ? 'text-primary' : 'text-text-muted/40'}`}>
                         {dragTarget === 'later' ? '↓ Upuść tutaj' : 'Pusto'}
                       </p>
-                    : laterItems.map(renderCard)}
+                    : laterItems.map((item: any) => renderCard(item))}
                 </div>
               )}
             </div>
@@ -1110,7 +1166,7 @@ export default function Todo({ session, onBack }) {
               <div className="border-t border-border-custom/30 pt-2">
                 <BucketHeader icon="✅" title="Historia" count={doneItems.length} collapsed={false}
                   onToggle={() => setShowDone(false)} isDropTarget={false} />
-                <div className="pt-1">{doneItems.slice(0, 30).map(renderCard)}</div>
+                <div className="pt-1">{doneItems.slice(0, 30).map((item: any) => renderCard(item))}</div>
               </div>
             )}
           </div>

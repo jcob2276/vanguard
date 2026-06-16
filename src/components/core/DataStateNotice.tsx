@@ -24,7 +24,13 @@ const TONES = {
   },
 };
 
-export default function DataStateNotice({ title, detail, tone = 'info' }) {
+interface DataStateNoticeProps {
+  title: string;
+  detail?: string | null;
+  tone?: 'info' | 'warning' | 'loading';
+}
+
+export default function DataStateNotice({ title, detail, tone = 'info' }: DataStateNoticeProps) {
   const state = TONES[tone] || TONES.info;
   const Icon = state.icon;
 

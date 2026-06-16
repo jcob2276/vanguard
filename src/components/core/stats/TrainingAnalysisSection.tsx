@@ -1,4 +1,4 @@
-export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad, isAnalyzingTraining }) {
+export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad, isAnalyzingTraining }: { trainingAnalysis: any; analyzeTrainingLoad: () => void; isAnalyzingTraining: boolean }) {
   return (
     <section className="space-y-3.5">
       <div className="flex items-center justify-between">
@@ -31,10 +31,10 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             : 'text-text-secondary border-border-custom bg-surface/40';
         const recovLabel = r.recovery_status === 'deficit' ? 'Deficyt' : r.recovery_status === 'ok' ? 'Regeneracja OK' : 'Gotowość wysoka';
 
-        const StatRow = ({ label, week, base, unit = '', higherBetter = true }) => {
+        const StatRow = ({ label, week, base, unit = '', higherBetter = true }: { label: string; week: any; base: any; unit?: string; higherBetter?: boolean }) => {
           if (week == null && base == null) return null;
           const pctVal = (base && base > 0) ? ((week - base) / base * 100) : null;
-          const fmtNumber = (value) => Number.isInteger(Number(value)) ? value : Number(value).toFixed(1);
+          const fmtNumber = (value: any) => Number.isInteger(Number(value)) ? value : Number(value).toFixed(1);
           const weekText = week == null ? '—' : typeof week === 'number' ? fmtNumber(week) : week;
           const baseText = base == null ? '—' : typeof base === 'number' ? fmtNumber(base) : base;
           const up = pctVal != null && pctVal > 0;
@@ -79,7 +79,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[8px] font-black uppercase text-text-muted w-20 shrink-0 tracking-widest">Km/tydz</span>
                   <div className="flex items-end gap-1.5 h-6">
-                    {s.km_trend.map((v, i) => {
+                    {s.km_trend.map((v: any, i: number) => {
                       const maxV = Math.max(...s.km_trend.filter(Boolean), 1);
                       const h = Math.max(2, Math.round((v / maxV) * 20));
                       return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_rgba(79,70,229,0.3)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
@@ -120,10 +120,10 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             </div>
 
             {/* Injury risk details */}
-            {r.injury_risk && (r.injury_risk.flags?.length > 0 || r.injury_risk.prevention) && (
+            {r.injury_risk && ((r.injury_risk.flags?.length ?? 0) > 0 || r.injury_risk.prevention) && (
               <div className={`rounded-[20px] border p-4 space-y-2 ${injuryColor}`}>
                 <p className="text-[8px] font-black uppercase tracking-widest opacity-80">Ryzyko kontuzji</p>
-                {r.injury_risk.flags?.map((f, i) => (
+                {r.injury_risk.flags?.map((f: any, i: number) => (
                   <p key={i} className="text-[10.5px] leading-snug font-medium opacity-90">• {f}</p>
                 ))}
                 {r.injury_risk.prevention && (
@@ -133,7 +133,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             )}
 
             {/* Strength prescription */}
-            {r.strength_prescription?.exercises?.length > 0 && (
+            {(r.strength_prescription?.exercises?.length ?? 0) > 0 && (
               <div className="space-y-2.5">
                 <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Następna siłownia</p>
                 {r.strength_prescription.focus && (
@@ -143,7 +143,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                   <p className="text-[9.5px] text-amber-600 dark:text-amber-300 leading-relaxed bg-amber-500/5 p-2 rounded-lg border border-amber-500/10 font-medium">{r.strength_prescription.critic}</p>
                 )}
                 <div className="space-y-2">
-                  {r.strength_prescription.exercises.map((ex, i) => (
+                  {r.strength_prescription.exercises.map((ex: any, i: number) => (
                     <div key={i} className="rounded-[16px] border border-border-custom bg-surface/40 px-3.5 py-3 flex items-start gap-3">
                       <div className="shrink-0 w-5 h-5 rounded bg-primary/10 flex items-center justify-center mt-0.5">
                         <span className="text-[9px] font-black text-primary">{i + 1}</span>
@@ -163,11 +163,11 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             )}
 
             {/* Muscle gaps */}
-            {r.missing_muscles?.length > 0 && (
+            {(r.missing_muscles?.length ?? 0) > 0 && (
               <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/5 p-4">
                 <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2">Brakujące partie</p>
                 <div className="flex flex-wrap gap-2">
-                  {r.missing_muscles.map((m, i) => (
+                  {r.missing_muscles.map((m: any, i: number) => (
                     <span key={i} className="rounded-lg border border-amber-500/20 bg-surface/80 dark:bg-black/20 px-2.5 py-0.5 text-[9.5px] font-black text-amber-600 dark:text-amber-300 shadow-sm">{m}</span>
                   ))}
                 </div>
@@ -183,11 +183,11 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             )}
 
             {/* Recommendations */}
-            {r.recommendations?.length > 0 && (
+            {(r.recommendations?.length ?? 0) > 0 && (
               <div className="space-y-2.5">
                 <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Rekomendacje</p>
                 <div className="space-y-2">
-                  {r.recommendations.map((rec, i) => (
+                  {r.recommendations.map((rec: any, i: number) => (
                     <div key={i} className="rounded-[20px] border border-border-custom bg-surface/30 p-4 flex gap-3 shadow-sm">
                       <span className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary">{rec.priority}</span>
                       <div className="min-w-0">

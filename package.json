@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "typecheck": "node scripts/ops/check-edge-functions.mjs",
     "typecheck:ui": "tsc --noEmit",
+    "db:update-types": "npx supabase gen types typescript --project-id pdvqkgfsqziqlhptatgf > src/lib/database.types.ts",
     "audit:registry": "node scripts/analysis/audit-registry.mjs",
     "smoke:ui": "node scripts/ops/smoke-ui.mjs",
     "oss:audit": "node scripts/ops/oss-audit.mjs",

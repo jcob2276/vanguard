@@ -1,6 +1,6 @@
 import { ArrowUp, ArrowDown, ArrowRight } from 'lucide-react';
 
-export function TrendArrow({ current, previous, better = 'up' }) {
+export function TrendArrow({ current, previous, better = 'up' }: { current: number | null | undefined; previous: number | null | undefined; better?: 'up' | 'down' }) {
   if (previous === undefined || previous === null || current === undefined || current === null) return null;
 
   const diff = current - previous;

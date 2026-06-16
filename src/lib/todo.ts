@@ -1,12 +1,23 @@
 import { supabase } from './supabase';
+import type { Database } from './database.types';
 
-function unwrap({ data, error }) {
+type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
+type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
+type TodoSectionRow = Database['public']['Tables']['todo_sections']['Row'];
+
+function unwrap<T>({ data, error }: { data: T | null; error: any }): T {
   if (error) throw new Error(error.message);
+  if (!data) throw new Error('No data returned');
   return data;
 }
 
-export async function listTodoSections(userId) {
-  return unwrap(
+function unwrapList<T>({ data, error }: { data: T[] | null; error: any }): T[] {
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function listTodoSections(userId: string): Promise<TodoSectionRow[]> {
+  return unwrapList(
     await supabase
       .from('todo_sections')
       .select('*')
@@ -17,8 +28,8 @@ export async function listTodoSections(userId) {
   );
 }
 
-export async function listTodoItems(userId) {
-  return unwrap(
+export async function listTodoItems(userId: string): Promise<TodoItemRow[]> {
+  return unwrapList(
     await supabase
       .from('todo_items')
       .select('*')
@@ -29,7 +40,7 @@ export async function listTodoItems(userId) {
   );
 }
 
-export async function createTodoSection(userId, name, sortOrder = 999) {
+export async function createTodoSection(userId: string, name: string, sortOrder = 999): Promise<TodoSectionRow> {
   return unwrap(
     await supabase
       .from('todo_sections')
@@ -39,7 +50,17 @@ export async function createTodoSection(userId, name, sortOrder = 999) {
   );
 }
 
-export async function createTodoItem(userId, fields) {
+interface CreateTodoItemFields {
+  title: string;
+  notes?: string;
+  priority?: string;
+  tagsText?: string;
+  due_date?: string;
+  recurrence?: string;
+  section_id?: string;
+}
+
+export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
   const tags = String(fields.tagsText || '')
     .split(',')
     .map((t) => t.trim())
@@ -63,7 +84,7 @@ export async function createTodoItem(userId, fields) {
   );
 }
 
-export async function updateTodoItem(id, patch) {
+export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise<TodoItemRow> {
   return unwrap(
     await supabase
       .from('todo_items')
@@ -74,14 +95,14 @@ export async function updateTodoItem(id, patch) {
   );
 }
 
-export async function setTodoStatus(item, status) {
+export async function setTodoStatus(item: { id: string }, status: string): Promise<TodoItemRow> {
   return updateTodoItem(item.id, {
     status,
     completed_at: status === 'done' ? new Date().toISOString() : null,
   });
 }
 
-export async function archiveTodoSection(id) {
+export async function archiveTodoSection(id: string): Promise<TodoSectionRow> {
   return unwrap(
     await supabase
       .from('todo_sections')

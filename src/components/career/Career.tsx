@@ -25,13 +25,13 @@ const VALUE_TYPES = ['leverage', 'system', 'revenue', 'opti'];
 const WORK_MODES = ['deep', 'shallow'];
 const SENSE_CYCLE = ['worth_it', 'speculative', 'waste'];
 
-const SENSE = {
+const SENSE: Record<string, { label: string; cls: string }> = {
   worth_it: { label: 'worth it', cls: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400' },
   speculative: { label: 'speculative', cls: 'border-amber-500/20 bg-amber-500/8 text-amber-600 dark:text-amber-400' },
   waste: { label: 'waste', cls: 'border-rose-500/20 bg-rose-500/8 text-rose-600 dark:text-rose-400' },
 };
 
-const VT = {
+const VT: Record<string, string> = {
   leverage: 'border-indigo-500/20 bg-indigo-500/8 text-indigo-600 dark:text-indigo-400',
   system: 'border-cyan-500/20 bg-cyan-500/8 text-cyan-600 dark:text-cyan-400',
   revenue: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400',
@@ -101,7 +101,7 @@ function loadCloserDrills(): CloserDrillState {
   }, {} as CloserDrillState);
 }
 
-function plural(n, [one, few, many]) {
+function plural(n: number, [one, few, many]: [string, string, string]) {
   const v = Math.abs(n) % 100;
   const v10 = v % 10;
   if (v > 10 && v < 20) return many;
@@ -144,20 +144,26 @@ function Pill({ active, onClick, children, tone = null }: { active: boolean; onC
   );
 }
 
-export default function Career({ session }) {
-  const userId = session.user.id;
-  const [projects, setProjects] = useState([]);
-  const [moves, setMoves] = useState([]);
-  const [evidence, setEvidence] = useState([]);
-  const [decisions, setDecisions] = useState([]);
+export default function Career({ session }: { session: any }) {
+  const userId = session?.user?.id;
+  const [projects, setProjects] = useState<any[]>([]);
+  const [moves, setMoves] = useState<any[]>([]);
+  const [evidence, setEvidence] = useState<any[]>([]);
+  const [decisions, setDecisions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showMoveForm, setShowMoveForm] = useState(false);
   const [showDecisionForm, setShowDecisionForm] = useState(false);
-  const [projectForm, setProjectForm] = useState({ name: '', thesis: '', leverage_level: null, cost_level: null, risk_level: null });
+  const [projectForm, setProjectForm] = useState<{
+    name: string;
+    thesis: string;
+    leverage_level: number | null;
+    cost_level: string | null;
+    risk_level: string | null;
+  }>({ name: '', thesis: '', leverage_level: null, cost_level: null, risk_level: null });
   const [moveForm, setMoveForm] = useState({ title: '', project_id: '', value_type: 'leverage', work_mode: 'deep' });
   const [decisionForm, setDecisionForm] = useState({ title: '', decision: '', decision_type: 'commit', project_id: '', review_date: '' });
 
@@ -232,7 +238,7 @@ export default function Career({ session }) {
       setDecisions(d || []);
     } catch (err) {
       console.error('Career fetch:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
     }
   }, [userId]);
 
@@ -246,10 +252,10 @@ export default function Career({ session }) {
   const doneMoves = useMemo(() => moves.filter((m) => m.status === 'done').slice(0, 6), [moves]);
   const activeCount = projects.filter((p) => p.status === 'active').length;
 
-  const run = async (fn) => {
+  const run = async (fn: () => Promise<any> | any) => {
     setBusy(true);
     try { await fn(); await fetchAll(); }
-    catch (err) { console.error('Career action:', err); setError(err.message); }
+    catch (err) { console.error('Career action:', err); setError(err instanceof Error ? err.message : String(err)); }
     finally { setBusy(false); }
   };
 
@@ -298,12 +304,12 @@ export default function Career({ session }) {
     });
   };
 
-  const cycleSense = (project) => {
+  const cycleSense = (project: any) => {
     const next = SENSE_CYCLE[(SENSE_CYCLE.indexOf(project.sense_status) + 1) % SENSE_CYCLE.length];
     run(() => updateProject(project.id, { sense_status: next }));
   };
 
-  const openMoveFormFor = (projectId) => {
+  const openMoveFormFor = (projectId: string) => {
     setMoveForm((f) => ({ ...f, project_id: projectId }));
     setShowMoveForm(true);
   };

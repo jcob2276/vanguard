@@ -13,6 +13,18 @@ export function WorkoutHistorySection({
   deleteSession,
   deleteLog,
   setEditingSession,
+}: {
+  recentSessions: any[];
+  showAllSessions: boolean;
+  setShowAllSessions: React.Dispatch<React.SetStateAction<boolean>>;
+  editingSession: string | null;
+  editForm: any;
+  setEditForm: React.Dispatch<React.SetStateAction<any>>;
+  startEditing: (session: any) => void;
+  updateSession: () => void;
+  deleteSession: (id: any) => void;
+  deleteLog: (id: any) => void;
+  setEditingSession: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   return (
     <section className="space-y-3">
@@ -28,7 +40,7 @@ export function WorkoutHistorySection({
             </tr>
           </thead>
           <tbody className="divide-y divide-border-custom text-[10px] font-semibold text-text-primary">
-            {recentSessions.slice(0, showAllSessions ? 12 : 4).map(s => (
+            {recentSessions.slice(0, showAllSessions ? 12 : 4).map((s: any) => (
               <tr key={s.id} className="transition-colors hover:bg-primary/[0.02] dark:hover:bg-white/[0.02]">
                 <td className="p-3">
                   {editingSession === s.id ? (
@@ -52,12 +64,12 @@ export function WorkoutHistorySection({
                         placeholder="Nazwa treningu..."
                         className="w-full bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] font-bold text-text-primary outline-none focus:border-primary/50"
                       />
-                      {editForm.logs.map((log, idx) => {
+                      {editForm.logs.map((log: any, idx: number) => {
                         const isWellness = log.muscle_tags?.includes('wellness') ||
                           ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'].some(
                             w => (log.exercise_name || '').toLowerCase().startsWith(w)
                           );
-                        const updateLog = (field, value) => {
+                        const updateLog = (field: string, value: any) => {
                           const newLogs = [...editForm.logs];
                           newLogs[idx] = { ...newLogs[idx], [field]: value };
                           setEditForm({...editForm, logs: newLogs});

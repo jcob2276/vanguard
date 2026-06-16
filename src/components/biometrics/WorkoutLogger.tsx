@@ -5,26 +5,50 @@ import type { Tables } from '../../lib/database.types';
 
 import { EXERCISES, ALL_TAGS, tagClass, normalize } from '../../data/exercises';
 
+interface WorkoutSet {
+  id: number;
+  kg: string;
+  reps: string;
+  rir: string;
+  msp: boolean;
+}
+
+interface WorkoutExercise {
+  id: number;
+  name: string;
+  tags: string[];
+  sets: WorkoutSet[];
+}
+
+interface WorkoutActivity {
+  id: number;
+  name: string;
+  min: string;
+  note: string;
+}
+
 type ExerciseHistoryRow = Pick<Tables<'exercise_logs'>, 'weight' | 'reps' | 'rir' | 'set_number' | 'session_id'> & {
   workout_sessions?: Pick<Tables<'workout_sessions'>, 'date'> | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const newSet      = () => ({ id: Date.now() + Math.random(), kg: '', reps: '', rir: '', msp: false });
-const newExercise = () => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
-const newActivity = () => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
+const newSet      = (): WorkoutSet => ({ id: Date.now() + Math.random(), kg: '', reps: '', rir: '', msp: false });
+const newExercise = (): WorkoutExercise => ({ id: Date.now() + Math.random(), name: '', tags: [], sets: [newSet()] });
+const newActivity = (): WorkoutActivity => ({ id: Date.now() + Math.random(), name: '', min: '', note: '' });
 
 const numInput = "h-11 w-full bg-surface-solid border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_rgba(79,70,229,0.08)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 
-function epley(kg, reps) {
-  const k = parseFloat(kg), r = parseInt(reps);
+function epley(kg: string | number | null | undefined, reps: string | number | null | undefined): number | null {
+  if (kg === null || kg === undefined || reps === null || reps === undefined) return null;
+  const k = typeof kg === 'number' ? kg : parseFloat(kg);
+  const r = typeof reps === 'number' ? reps : parseInt(reps);
   if (!k || !r || r <= 0) return null;
   return r === 1 ? k : k * (1 + r / 30);
 }
 
-function useStopwatch(startTs) {
+function useStopwatch(startTs: number | null): string | null {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!startTs) return;
@@ -38,9 +62,9 @@ function useStopwatch(startTs) {
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-function useExerciseHistory(name, userId) {
-  const [lastSession, setLastSession]     = useState(null);
-  const [allTimeBest1RM, setAllTimeBest1RM] = useState(null);
+function useExerciseHistory(name: string, userId: string | undefined) {
+  const [lastSession, setLastSession]     = useState<ExerciseHistoryRow[] | null>(null);
+  const [allTimeBest1RM, setAllTimeBest1RM] = useState<number | null>(null);
 
   useEffect(() => {
     const trimmed = name.trim();
@@ -66,10 +90,10 @@ function useExerciseHistory(name, userId) {
         if (!bySession[row.session_id]) bySession[row.session_id] = [];
         bySession[row.session_id].push(row);
       }
-      const last = Object.values(bySession)[0].sort((a, b) => a.set_number - b.set_number);
+      const last = Object.values(bySession)[0].sort((a, b) => (a.set_number || 0) - (b.set_number || 0));
       setLastSession(last);
 
-      const best = sorted.reduce((max, r) => { const e = epley(r.weight, r.reps); return e && e > max ? e : max; }, 0);
+      const best = sorted.reduce((max: number, r: ExerciseHistoryRow) => { const e = epley(r.weight, r.reps); return e && e > max ? e : max; }, 0);
       setAllTimeBest1RM(best > 0 ? best : null);
     }, 500);
     return () => clearTimeout(timeout);
@@ -78,7 +102,7 @@ function useExerciseHistory(name, userId) {
   return { lastSession, allTimeBest1RM };
 }
 
-function formatLastSession(sets) {
+function formatLastSession(sets: ExerciseHistoryRow[] | null | undefined): string | null {
   if (!sets?.length) return null;
   const ws = [...new Set(sets.map(s => s.weight))];
   const rs = [...new Set(sets.map(s => s.reps))];
@@ -88,10 +112,10 @@ function formatLastSession(sets) {
 
 // ─── Autocomplete input ───────────────────────────────────────────────────────
 
-function ExerciseNameInput({ value, tags, onChange }) {
+function ExerciseNameInput({ value, tags, onChange }: { value: string; tags: string[]; onChange: (name: string, tags: string[]) => void }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   // Sync external value → local query (e.g. on reset)
   useEffect(() => { setQuery(value); }, [value]);
@@ -99,13 +123,13 @@ function ExerciseNameInput({ value, tags, onChange }) {
   const matches = query.trim().length === 0 ? [] :
     EXERCISES.filter(e => normalize(e.name).includes(normalize(query))).slice(0, 8);
 
-  function select(ex) {
+  function select(ex: typeof EXERCISES[number]) {
     setQuery(ex.name);
     onChange(ex.name, ex.tags);
     setOpen(false);
   }
 
-  function handleChange(e) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
     setQuery(v);
     onChange(v, tags); // keep existing tags when typing freely
@@ -147,7 +171,7 @@ function ExerciseNameInput({ value, tags, onChange }) {
 
 // ─── Tag editor ───────────────────────────────────────────────────────────────
 
-function TagRow({ tags, onChange }) {
+function TagRow({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
   const [picking, setPicking] = useState(false);
   const available = ALL_TAGS.filter(t => !tags.includes(t));
 
@@ -192,8 +216,8 @@ function TagRow({ tags, onChange }) {
 
 // ─── Volume by muscle tag ─────────────────────────────────────────────────────
 
-function VolumeBar({ exercises }) {
-  const vol = {};
+function VolumeBar({ exercises }: { exercises: WorkoutExercise[] }) {
+  const vol: Record<string, number> = {};
   exercises.forEach(ex => {
     const exVol = (ex.sets ?? []).reduce((sum, s) => {
       const kg = parseFloat(s.kg) || 0;
@@ -223,20 +247,20 @@ function VolumeBar({ exercises }) {
 
 // ─── Progressive overload suggestion ─────────────────────────────────────────
 
-function getSuggestion(lastSession) {
+function getSuggestion(lastSession: ExerciseHistoryRow[] | null | undefined): number | null {
   if (!lastSession?.length) return null;
-  const maxW = Math.max(...lastSession.map(s => s.weight));
+  const maxW = Math.max(...lastSession.map(s => Number(s.weight || 0)));
   if (!maxW) return null;
-  const minReps = Math.min(...lastSession.map(s => s.reps));
-  const maxReps = Math.max(...lastSession.map(s => s.reps));
+  const minReps = Math.min(...lastSession.map(s => Number(s.reps || 0)));
+  const maxReps = Math.max(...lastSession.map(s => Number(s.reps || 0)));
   const repsConsistent = (maxReps - minReps) <= 1;
   const increment = maxW >= 40 ? 2.5 : 1.25;
 
   if (!repsConsistent) return maxW;
 
-  const rirValues = lastSession.map(s => s.rir).filter(r => r != null && r !== '');
+  const rirValues = lastSession.map(s => s.rir).filter((r): r is number => r != null);
   const avgRir = rirValues.length > 0
-    ? rirValues.reduce((a, b) => a + parseFloat(b), 0) / rirValues.length
+    ? rirValues.reduce((a, b) => a + b, 0) / rirValues.length
     : null;
 
   // RIR 0 — failed/near-failure, don't increase
@@ -246,7 +270,7 @@ function getSuggestion(lastSession) {
 
 // ─── Exercise card ────────────────────────────────────────────────────────────
 
-function ExerciseCard({ exercise, onChange, onRemove, userId }) {
+function ExerciseCard({ exercise, onChange, onRemove, userId }: { exercise: WorkoutExercise; onChange: (ex: WorkoutExercise) => void; onRemove: () => void; userId: string | undefined }) {
   const [collapsed, setCollapsed] = useState(false);
   const sets = exercise.sets ?? [];
   const tags = exercise.tags ?? [];
@@ -257,11 +281,11 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
     const last = sets[sets.length - 1];
     onChange({ ...exercise, sets: [...exercise.sets, { ...newSet(), kg: last.kg, reps: last.reps, rir: last.rir }] });
   }
-  function removeSet(id) {
+  function removeSet(id: number) {
     if (sets.length <= 1) return;
     onChange({ ...exercise, sets: sets.filter(s => s.id !== id) });
   }
-  function updateSet(id, field, value) {
+  function updateSet(id: number, field: string, value: any) {
     onChange({ ...exercise, sets: sets.map(s => s.id === id ? { ...s, [field]: value } : s) });
   }
 
@@ -296,8 +320,8 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
           <span className="text-[10px] font-bold text-text-secondary">{formatLastSession(lastSession)}</span>
           {(() => {
             const s = getSuggestion(lastSession);
-            const lastW = Math.max(...lastSession.map(x => x.weight));
-            const progressed = s > lastW;
+            const lastW = Math.max(...lastSession.map(x => x.weight ?? 0));
+            const progressed = s !== null && s > lastW;
             return s ? (
               <span className={`ml-auto text-[10px] font-black ${progressed ? 'text-emerald-500' : 'text-text-secondary'}`}>
                 → {s}kg{progressed ? ' ↑' : ''}
@@ -319,7 +343,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                 <span />
               </div>
               {exercise.sets.map((set, idx) => {
-                const adjustWellness = (field, step) => {
+                const adjustWellness = (field: 'reps' | 'kg', step: number) => {
                   const cur = parseFloat(set[field]);
                   if (isNaN(cur)) {
                     updateSet(set.id, field, field === 'reps' ? '15' : '80');
@@ -371,7 +395,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
                 const set1RM = epley(set.kg, set.reps);
                 const isPR = set1RM && allTimeBest1RM && set1RM > allTimeBest1RM;
 
-                const adjustValue = (field, step, isInt = false) => {
+                const adjustValue = (field: 'kg' | 'reps' | 'rir', step: number, isInt = false) => {
                   const currentVal = parseFloat(set[field]);
                   if (isNaN(currentVal)) {
                     if (field === 'kg') updateSet(set.id, field, '40');
@@ -463,7 +487,7 @@ function ExerciseCard({ exercise, onChange, onRemove, userId }) {
 
 // ─── Activity card ────────────────────────────────────────────────────────────
 
-function ActivityCard({ activity, onChange, onRemove }) {
+function ActivityCard({ activity, onChange, onRemove }: { activity: WorkoutActivity; onChange: (act: WorkoutActivity) => void; onRemove: () => void }) {
   return (
     <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 space-y-3 shadow-sm">
       <div className="flex items-center gap-2">
@@ -492,14 +516,14 @@ function ActivityCard({ activity, onChange, onRemove }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function WorkoutLogger({ session, onBack }) {
+export default function WorkoutLogger({ session, onBack }: { session: any; onBack: () => void }) {
   const [workoutName, setWorkoutName] = useState('');
-  const [exercises, setExercises]     = useState([newExercise()]);
-  const [activities, setActivities]   = useState([]);
+  const [exercises, setExercises]     = useState<WorkoutExercise[]>([newExercise()]);
+  const [activities, setActivities]   = useState<WorkoutActivity[]>([]);
   const [notes, setNotes]             = useState('');
-  const [sessionRpe, setSessionRpe]   = useState(null);
+  const [sessionRpe, setSessionRpe]   = useState<number | null>(null);
   const [saving, setSaving]           = useState(false);
-  const [timerStart, setTimerStart]   = useState(null);
+  const [timerStart, setTimerStart]   = useState<number | null>(null);
   
   // Custom manual time overrides
   const [manualTime, setManualTime] = useState(false);
@@ -512,12 +536,12 @@ export default function WorkoutLogger({ session, onBack }) {
   const userId  = session?.user?.id;
 
   const addExercise    = () => setExercises(p => [...p, newExercise()]);
-  const removeExercise = id => { if (exercises.length > 1) setExercises(p => p.filter(e => e.id !== id)); };
-  const updateExercise = u  => setExercises(p => p.map(e => e.id === u.id ? u : e));
+  const removeExercise = (id: number) => { if (exercises.length > 1) setExercises(p => p.filter(e => e.id !== id)); };
+  const updateExercise = (u: WorkoutExercise) => setExercises(p => p.map(e => e.id === u.id ? u : e));
 
   const addActivity    = () => setActivities(p => [...p, newActivity()]);
-  const removeActivity = id => setActivities(p => p.filter(a => a.id !== id));
-  const updateActivity = u  => setActivities(p => p.map(a => a.id === u.id ? u : a));
+  const removeActivity = (id: number) => setActivities(p => p.filter(a => a.id !== id));
+  const updateActivity = (u: WorkoutActivity) => setActivities(p => p.map(a => a.id === u.id ? u : a));
 
   async function save() {
     const validEx = exercises.filter(e => e.name.trim());
@@ -541,8 +565,8 @@ export default function WorkoutLogger({ session, onBack }) {
         set_number: i + 1, weight: 0, reps: parseInt(a.min) || 0, rpe: null, rir: null, muscle_tags: [],
       }));
 
-      let finalStart = null;
-      let finalEnd = null;
+      let finalStart: string | null = null;
+      let finalEnd: string | null = null;
 
       if (manualTime) {
         finalStart = new Date(`${workoutDate}T${startTimeManual}:00`).toISOString();
@@ -557,17 +581,17 @@ export default function WorkoutLogger({ session, onBack }) {
       const { error } = await supabase.rpc('save_workout_atomic', {
         p_user_id:     userId,
         p_day_key:     workoutName.trim() || 'Trening',
-        p_start_time:  finalStart,
-        p_end_time:    finalEnd,
+        p_start_time:  (finalStart as string),
+        p_end_time:    (finalEnd as string),
         p_notes:       notes,
         p_msp_passed:  mspPassed,
         p_logs:        [...exLogs, ...acLogs],
-        p_session_rpe: sessionRpe,
+        p_session_rpe: sessionRpe ?? undefined,
       });
       if (error) throw error;
       onBack();
     } catch (err) {
-      alert(err.message);
+      alert(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }

@@ -3,7 +3,7 @@ const PRIORITY_TOKENS = {
   p2: { priority: 'high', label: 'P2' },
   p3: { priority: 'normal', label: 'P3' },
   p4: { priority: 'low', label: 'P4' },
-};
+} as const;
 
 const WEEKDAYS = [
   ['nd', 'niedz', 'niedziela'],
@@ -30,58 +30,59 @@ const MONTHS = [
   ['gru', 'grudnia'],
 ];
 
-function startOfDay(date) {
+function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function addDays(date, days) {
+function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
 }
 
-function toDateKey(date) {
+function toDateKey(date: Date): string {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function nextWeekday(now, weekday) {
+function nextWeekday(now: Date, weekday: number): Date {
   const today = startOfDay(now);
   const diff = (weekday - today.getDay() + 7) % 7 || 7;
   return addDays(today, diff);
 }
 
-function futureDateForMonthDay(now, monthIndex, day) {
+function futureDateForMonthDay(now: Date, monthIndex: number, day: number): Date {
   const today = startOfDay(now);
   let date = new Date(today.getFullYear(), monthIndex, day);
   if (date < today) date = new Date(today.getFullYear() + 1, monthIndex, day);
   return date;
 }
 
-function tokenPattern(words) {
-  return words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+function tokenPattern(words: string[]): string {
+  return words.map((w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
 }
 
-function cleanTitle(title) {
+function cleanTitle(title: string): string {
   return title
     .replace(/\s+/g, ' ')
     .replace(/\s+([,.!?])/g, '$1')
     .trim();
 }
 
-function consumeMatch(text, match) {
+function consumeMatch(text: string, match: RegExpMatchArray): string {
+  if (match.index === undefined) return text;
   return `${text.slice(0, match.index)} ${text.slice(match.index + match[0].length)}`;
 }
 
-export function parseTodoQuickInput(input, now = new Date()) {
+export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
-  const tokens = [];
+  const tokens: Array<{ type: 'priority' | 'date'; label: string; value: string }> = [];
 
   const priorityMatch = title.match(/(^|\s)(p[1-4])(?=\s|$)/i);
   if (priorityMatch) {
-    const raw = priorityMatch[2].toLowerCase();
+    const raw = priorityMatch[2].toLowerCase() as keyof typeof PRIORITY_TOKENS;
     const meta = PRIORITY_TOKENS[raw];
     tokens.push({ type: 'priority', label: meta.label, value: meta.priority });
     title = consumeMatch(title, priorityMatch);

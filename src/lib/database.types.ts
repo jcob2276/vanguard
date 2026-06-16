@@ -1024,6 +1024,45 @@ export type Database = {
           },
         ]
       }
+      dreams: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          done_at: string | null
+          id: string
+          is_done: boolean
+          is_top5: boolean
+          sort_order: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          id?: string
+          is_done?: boolean
+          is_top5?: boolean
+          sort_order?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          id?: string
+          is_done?: boolean
+          is_top5?: boolean
+          sort_order?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercise_logs: {
         Row: {
           created_at: string | null
@@ -2105,6 +2144,50 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          color: string
+          created_at: string | null
+          deadline: string | null
+          dream_id: string | null
+          goal: string | null
+          id: string
+          name: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          deadline?: string | null
+          dream_id?: string | null
+          goal?: string | null
+          id?: string
+          name: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          deadline?: string | null
+          dream_id?: string | null
+          goal?: string | null
+          id?: string
+          name?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_goals: {
         Row: {
           created_at: string | null
@@ -2283,6 +2366,7 @@ export type Database = {
           id: string
           notes: string | null
           priority: string
+          recurrence: string | null
           section_id: string | null
           sort_order: number
           status: string
@@ -2300,6 +2384,7 @@ export type Database = {
           id?: string
           notes?: string | null
           priority?: string
+          recurrence?: string | null
           section_id?: string | null
           sort_order?: number
           status?: string
@@ -2317,6 +2402,7 @@ export type Database = {
           id?: string
           notes?: string | null
           priority?: string
+          recurrence?: string | null
           section_id?: string | null
           sort_order?: number
           status?: string
@@ -2341,6 +2427,7 @@ export type Database = {
           id: string
           is_archived: boolean
           name: string
+          project_id: string | null
           sort_order: number
           updated_at: string
           user_id: string
@@ -2350,6 +2437,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           name: string
+          project_id?: string | null
           sort_order?: number
           updated_at?: string
           user_id: string
@@ -2359,11 +2447,20 @@ export type Database = {
           id?: string
           is_archived?: boolean
           name?: string
+          project_id?: string | null
           sort_order?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "todo_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_plan_workouts: {
         Row: {
@@ -3163,6 +3260,90 @@ export type Database = {
         }
         Relationships: []
       }
+      vanguard_links: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          domain: string
+          id: string
+          notes: string
+          status: string
+          takeaways: string[]
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          domain?: string
+          id?: string
+          notes?: string
+          status?: string
+          takeaways?: string[]
+          title?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          domain?: string
+          id?: string
+          notes?: string
+          status?: string
+          takeaways?: string[]
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vanguard_notes: {
+        Row: {
+          color: string
+          content: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_pinned: boolean
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vanguard_oracle_runs: {
         Row: {
           answer: string | null
@@ -3644,6 +3825,36 @@ export type Database = {
           },
         ]
       }
+      vision_board_items: {
+        Row: {
+          color: string
+          content: string
+          created_at: string
+          id: string
+          sort_order: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          content: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          type?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weekly_reviews: {
         Row: {
           bottleneck: string | null
@@ -4124,6 +4335,7 @@ export type Database = {
           total_records: number
         }[]
       }
+      get_desktop_dashboard_data: { Args: { p_user_id: string }; Returns: Json }
       get_vanguard_graph_context:
         | {
             Args: {

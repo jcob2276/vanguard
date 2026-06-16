@@ -43,7 +43,7 @@ const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
-const normalizeView = (view) => {
+const normalizeView = (view: string | null | undefined) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
   if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
   if (view === 'stats' || view === 'photos') return 'historia';
@@ -59,7 +59,7 @@ function ViewFallback() {
   );
 }
 
-function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', disabled = false }) {
+function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', disabled = false }: { icon: any; label: string; eyebrow?: string; onClick: () => void; tone?: string; disabled?: boolean }) {
   const primary = tone === 'primary';
   return (
     <button
@@ -89,7 +89,7 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
   );
 }
 
-function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, session }) {
+function NutritionCard({ weeklyCalories, weeklyBudget, syncYazio, isSyncing, session }: { weeklyCalories: number; weeklyBudget: number; syncYazio: () => void; isSyncing: boolean; session: any }) {
   const PROTEIN_GOAL = 150;
   const [proteinRows, setProteinRows] = useState<{ date: string; protein: number | null }[]>([]);
 
@@ -219,7 +219,7 @@ function DayCounter() {
   );
 }
 
-function MorningRitualCard({ isCompleted, streak, focusIntention, onClick }) {
+function MorningRitualCard({ isCompleted, streak, focusIntention, onClick }: { isCompleted: boolean; streak: number; focusIntention: string | null; onClick: () => void }) {
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
       <div className="flex items-center justify-between">
@@ -275,7 +275,7 @@ function MorningRitualCard({ isCompleted, streak, focusIntention, onClick }) {
   );
 }
 
-export default function Dashboard({ session }) {
+export default function Dashboard({ session }: { session: any }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => {
@@ -389,7 +389,7 @@ export default function Dashboard({ session }) {
 
   const [transitioning, setTransitioning] = useState(false);
 
-  const navigateTo = useCallback((newView) => {
+  const navigateTo = useCallback((newView: string) => {
     if (newView === view || transitioning) return;
     haptics.light();
     const fromIdx = TAB_ORDER.indexOf(view);
@@ -416,7 +416,7 @@ export default function Dashboard({ session }) {
     if (isSyncingAll) return;
     setIsSyncingAll(true);
     const base = import.meta.env.VITE_SUPABASE_URL;
-    const call = async (fn, body = {}) => {
+    const call = async (fn: string, body: any = {}) => {
       const res = await fetch(`${base}/functions/v1/${fn}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -470,7 +470,7 @@ export default function Dashboard({ session }) {
     }
   }, [accessToken, refresh, setSyncing, userId]);
 
-  const handleGoogleCallback = useCallback(async (code) => {
+  const handleGoogleCallback = useCallback(async (code: string) => {
     setSyncing(true);
     // Remove query params immediately to prevent infinite loop on re-renders/failures
     window.history.replaceState({}, document.title, window.location.pathname);

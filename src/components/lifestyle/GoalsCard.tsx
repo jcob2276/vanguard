@@ -26,10 +26,11 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
 
   if (!goals) return null;
 
-  const hasAny = GOALS.some(g => goals[g.key]);
+  const goalsAny = goals as any;
+  const hasAny = GOALS.some(g => goalsAny[g.key]);
   if (!hasAny) return null;
 
-  const THEME_GOALS = {
+  const THEME_GOALS: Record<string, { bg: string; text: string }> = {
     goal_cialo: { bg: 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/10 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400' },
     goal_duch: { bg: 'bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/10 dark:border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400' },
     goal_konto: { bg: 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/10 dark:border-amber-500/20', text: 'text-amber-600 dark:text-amber-400' }

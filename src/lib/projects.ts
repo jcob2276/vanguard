@@ -1,7 +1,12 @@
 import { supabase } from './supabase';
+import type { Database } from './database.types';
 
-function unwrap({ data, error }) {
+type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
+type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
+
+function unwrap<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
   if (error) throw new Error(error.message);
+  if (data === null) throw new Error('Data is null');
   return data;
 }
 
@@ -15,12 +20,7 @@ export async function listProjects(userId: string) {
   );
 }
 
-export async function createProject(userId: string, fields: {
-  name: string;
-  goal?: string;
-  deadline?: string;
-  color?: string;
-}) {
+export async function createProject(userId: string, fields: Omit<ProjectInsert, 'user_id'>) {
   return unwrap(
     await supabase
       .from('projects')
@@ -30,7 +30,7 @@ export async function createProject(userId: string, fields: {
   );
 }
 
-export async function updateProject(id: string, patch: Record<string, unknown>) {
+export async function updateProject(id: string, patch: ProjectUpdate) {
   return unwrap(
     await supabase
       .from('projects')

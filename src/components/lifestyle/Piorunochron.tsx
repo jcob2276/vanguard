@@ -133,9 +133,10 @@ export default function Piorunochron({ session, isOpen, onClose, onActionAdded }
 
       if (winToday) {
         // Find first empty task slot in daily_wins
+        const winTodayAny = winToday as any;
         let emptySlotIdx = -1;
         for (let i = 1; i <= 5; i++) {
-          if (!winToday[`task_${i}`]) {
+          if (!winTodayAny[`task_${i}`]) {
             emptySlotIdx = i;
             break;
           }

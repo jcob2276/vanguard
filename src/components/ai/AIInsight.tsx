@@ -16,16 +16,16 @@ function readCache() {
   return null;
 }
 
-function writeCache(text) {
+function writeCache(text: string | null) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ text, ts: Date.now() }));
   } catch (_e) { /* localStorage unavailable */ }
 }
 
-export default function AIInsight({ session }) {
-  const [insight, setInsight] = useState(() => readCache());
+export default function AIInsight({ session }: { session: any }) {
+  const [insight, setInsight] = useState<string | null>(() => readCache());
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchInsight = useCallback(async (force = false) => {
     if (!session?.user?.id) return;
@@ -57,7 +57,8 @@ export default function AIInsight({ session }) {
 
     } catch (err) {
       console.error('Vanguard Oracle Error:', err);
-      setError(`Błąd systemu: ${err.message || 'Brak odpowiedzi od Wyroczni.'}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Błąd systemu: ${msg}`);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,10 @@
 import { Suspense, lazy, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import SmartAlerts, { AlertItem } from './SmartAlerts';
+import WeeklyDigest from './WeeklyDigest';
+import CockpitBanner from './CockpitBanner';
+import Heatmap from './Heatmap';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -19,7 +23,7 @@ const RACE_DATE = new Date('2026-10-04T09:00:00+02:00');
 const C = { indigo: '#6366f1', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e', sky: '#38bdf8', violet: '#a78bfa' };
 const LIMITER_PL = { sleep: 'sen', calories: 'kalorie', carbs: 'węgle', cardio_load: 'cardio', strength_load: 'siłownia', mental_load: 'głowa', recovery_ok: 'OK' };
 const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
-const isLogWellness  = (l) => (l.muscle_tags||[]).includes('wellness') || WELLNESS_NAMES.some(w => (l.exercise_name||'').toLowerCase().startsWith(w));
+const isLogWellness  = (l: any) => (l.muscle_tags||[]).includes('wellness') || WELLNESS_NAMES.some(w => (l.exercise_name||'').toLowerCase().startsWith(w));
 
 type ChartTooltipPayload = {
   color?: string;
@@ -29,11 +33,13 @@ type ChartTooltipPayload = {
 
 type LenieLog = {
   date: string;
+  final_stimulus?: string | null;
+  context_note?: string | null;
 };
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
-const daysBefore = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+const daysBefore = (n: number) => new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+const avg = (arr: number[]) => arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
 
 function weekStartDate() {
   const ds = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -43,20 +49,20 @@ function weekStartDate() {
   return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
 
-function sessionVol(s) {
-  return (s.exercise_logs || []).reduce((sum, l) => {
+function sessionVol(s: any) {
+  return (s.exercise_logs || []).reduce((sum: number, l: any) => {
     if (isLogWellness(l)) return sum;
     return sum + (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
   }, 0);
 }
 
-function sessionMuscles(s) {
+function sessionMuscles(s: any) {
   const seen = new Set();
-  (s.exercise_logs || []).forEach(l => (l.muscle_tags || []).forEach(t => { if (t !== 'wellness') seen.add(t); }));
+  (s.exercise_logs || []).forEach((l: any) => (l.muscle_tags || []).forEach((t: any) => { if (t !== 'wellness') seen.add(t); }));
   return [...seen].slice(0, 3).join(', ') || '—';
 }
 
-function weeklyVolume(sessions) {
+function weeklyVolume(sessions: any[]) {
   const map: Record<string, number> = {}, dates: Record<string, Date> = {};
   for (const s of sessions) {
     const ws = startOfWeek(new Date(s.date + 'T12:00:00'), { weekStartsOn: 1 });
@@ -68,7 +74,7 @@ function weeklyVolume(sessions) {
     .map(([k, v]) => ({ week: format(dates[k], 'dd.MM'), vol: Math.round(v / 100) / 10 }));
 }
 
-function muscleBreakdown(sessions) {
+function muscleBreakdown(sessions: any[]) {
   const map: Record<string, number> = {};
   const cutoff = daysBefore(30);
   for (const s of sessions) {
@@ -84,8 +90,8 @@ function muscleBreakdown(sessions) {
     .map(([m, v]) => ({ m, v: Math.round(v) }));
 }
 
-function weeklyRunKm(strava) {
-  const runs = strava.filter(a => ['Run', 'TrailRun', 'VirtualRun', 'Hike'].includes(a.sport_type));
+function weeklyRunKm(strava: any[]) {
+  const runs = strava.filter((a: any) => ['Run', 'TrailRun', 'VirtualRun', 'Hike'].includes(a.sport_type));
   const map: Record<string, number> = {}, dates: Record<string, Date> = {};
   for (const a of runs) {
     const ws = startOfWeek(new Date(a.start_date), { weekStartsOn: 1 });
@@ -97,23 +103,23 @@ function weeklyRunKm(strava) {
     .map(([k, v]) => ({ week: format(dates[k], 'dd.MM'), km: Math.round(v / 100) / 10 }));
 }
 
-function computeCorrelations(oura, sessions) {
+function computeCorrelations(oura: any[], sessions: any[]) {
   if (oura.length < 10) return [];
-  const sessionMap = Object.fromEntries(sessions.map(s => [s.date, s]));
-  const nextDate = (d) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + 1); return dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }); };
-  const prevDate = (d) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() - 1); return dt.toLocaleDateString('en-CA'); };
-  const goodSleep   = oura.filter(o => (o.total_sleep_hours || 0) >= 7);
-  const shortSleep  = oura.filter(o => o.total_sleep_hours > 0 && o.total_sleep_hours < 6.5);
-  const volAfter    = (days) => days.map(o => sessionVol(sessionMap[nextDate(o.date)] || { exercise_logs: [] })).filter(v => v > 0);
+  const sessionMap = Object.fromEntries(sessions.map((s: any) => [s.date, s]));
+  const nextDate = (d: string) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + 1); return dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }); };
+  const prevDate = (d: string) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() - 1); return dt.toLocaleDateString('en-CA'); };
+  const goodSleep   = oura.filter((o: any) => (o.total_sleep_hours || 0) >= 7);
+  const shortSleep  = oura.filter((o: any) => o.total_sleep_hours > 0 && o.total_sleep_hours < 6.5);
+  const volAfter    = (days: any[]) => days.map((o: any) => sessionVol(sessionMap[nextDate(o.date)] || { exercise_logs: [] })).filter((v: number) => v > 0);
   const avgGoodVol  = avg(volAfter(goodSleep));
   const avgShortVol = avg(volAfter(shortSleep));
-  const withHRV     = oura.filter(o => o.hrv_avg && o.readiness_score).sort((a, b) => a.hrv_avg - b.hrv_avg);
+  const withHRV     = oura.filter((o: any) => o.hrv_avg && o.readiness_score).sort((a: any, b: any) => a.hrv_avg - b.hrv_avg);
   const t           = Math.floor(withHRV.length / 3);
-  const avgReadHigh = avg(withHRV.slice(-t).map(o => o.readiness_score));
-  const avgReadLow  = avg(withHRV.slice(0, t).map(o => o.readiness_score));
-  const trainedDates = new Set(sessions.map(s => s.date));
-  const recovAfterTrain = oura.filter(o => trainedDates.has(prevDate(o.date))).map(o => o.readiness_score).filter(Boolean);
-  const recovAfterRest  = oura.filter(o => !trainedDates.has(prevDate(o.date))).map(o => o.readiness_score).filter(Boolean);
+  const avgReadHigh = avg(withHRV.slice(-t).map((o: any) => o.readiness_score));
+  const avgReadLow  = avg(withHRV.slice(0, t).map((o: any) => o.readiness_score));
+  const trainedDates = new Set(sessions.map((s: any) => s.date));
+  const recovAfterTrain = oura.filter((o: any) => trainedDates.has(prevDate(o.date))).map((o: any) => o.readiness_score).filter(Boolean);
+  const recovAfterRest  = oura.filter((o: any) => !trainedDates.has(prevDate(o.date))).map((o: any) => o.readiness_score).filter(Boolean);
   return [
     avgGoodVol && avgShortVol && Math.abs(avgGoodVol - avgShortVol) > 500 ? {
       title: 'Sen a objętość treningu',
@@ -129,15 +135,15 @@ function computeCorrelations(oura, sessions) {
     } : null,
     recovAfterTrain.length > 2 && recovAfterRest.length > 2 ? {
       title: 'Readiness po treningu vs odpoczynku',
-      good: { label: 'Po treningu', val: `${Math.round(avg(recovAfterTrain))}/100` },
-      bad:  { label: 'Po odpoczynku', val: `${Math.round(avg(recovAfterRest))}/100` },
-      delta: Math.round(avg(recovAfterTrain) - avg(recovAfterRest)),
-      positive: avg(recovAfterTrain) >= avg(recovAfterRest),
+      good: { label: 'Po treningu', val: `${Math.round(avg(recovAfterTrain) ?? 0)}/100` },
+      bad:  { label: 'Po odpoczynku', val: `${Math.round(avg(recovAfterRest) ?? 0)}/100` },
+      delta: Math.round((avg(recovAfterTrain) ?? 0) - (avg(recovAfterRest) ?? 0)),
+      positive: (avg(recovAfterTrain) ?? 0) >= (avg(recovAfterRest) ?? 0),
     } : null,
   ].filter(Boolean);
 }
 
-function cockpitDecision(status, limiter, strain, provisional) {
+function cockpitDecision(status: any, limiter: any, strain: any, provisional: any) {
   const fuelLimiter = limiter === 'calories' || limiter === 'carbs';
   if (status === 'green') return 'Możesz cisnąć — wszystko na zielono';
   if (status === 'red') {
@@ -151,48 +157,48 @@ function cockpitDecision(status, limiter, strain, provisional) {
   return (strain || 0) < 8 ? 'Lekki dzień — jest zapas' : 'Umiarkowanie — monitoruj';
 }
 
-function computeDigest(sessions, oura, strava) {
+function computeDigest(sessions: any[], oura: any[], strava: any[]) {
   const ws = weekStartDate();
-  const weekSess    = sessions.filter(s => s.date >= ws);
-  const wellnessSess = weekSess.filter(s => (s.exercise_logs||[]).length > 0 && (s.exercise_logs||[]).every(l => isLogWellness(l)));
-  const trainSess   = weekSess.filter(s => !wellnessSess.includes(s));
-  const weekRuns    = strava.filter(a => ['Run','TrailRun','VirtualRun'].includes(a.sport_type) && a.start_date.slice(0,10) >= ws);
-  const weekOura    = oura.filter(o => o.date >= ws);
+  const weekSess    = sessions.filter((s: any) => s.date >= ws);
+  const wellnessSess = weekSess.filter((s: any) => (s.exercise_logs||[]).length > 0 && (s.exercise_logs||[]).every((l: any) => isLogWellness(l)));
+  const trainSess   = weekSess.filter((s: any) => !wellnessSess.includes(s));
+  const weekRuns    = strava.filter((a: any) => ['Run','TrailRun','VirtualRun'].includes(a.sport_type) && a.start_date.slice(0,10) >= ws);
+  const weekOura    = oura.filter((o: any) => o.date >= ws);
   return {
     sessions: trainSess.length + weekRuns.length,
     gym: trainSess.length,
     runs: weekRuns.length,
     wellness: wellnessSess.length,
-    kmRun: weekRuns.reduce((s, a) => s + (parseFloat(a.distance)||0), 0) / 1000,
-    avgSleep: avg(weekOura.map(o => o.total_sleep_hours).filter(Boolean)),
-    avgReadiness: avg(weekOura.map(o => o.readiness_score).filter(Boolean)),
-    totalVol: trainSess.reduce((s, sess) => s + sessionVol(sess), 0),
+    kmRun: weekRuns.reduce((s: number, a: any) => s + (parseFloat(a.distance)||0), 0) / 1000,
+    avgSleep: avg(weekOura.map((o: any) => o.total_sleep_hours).filter(Boolean)),
+    avgReadiness: avg(weekOura.map((o: any) => o.readiness_score).filter(Boolean)),
+    totalVol: trainSess.reduce((s: number, sess: any) => s + sessionVol(sess), 0),
   };
 }
 
-function computeAlerts(oura, sessions, nutrition) {
-  const alerts = [];
+function computeAlerts(oura: any[], sessions: any[], nutrition: any[]) {
+  const alerts: AlertItem[] = [];
   const lat = oura[oura.length - 1];
-  const avg7HRV = avg(oura.slice(-8, -1).map(o => o.hrv_avg).filter(Boolean));
+  const avg7HRV = avg(oura.slice(-8, -1).map((o: any) => o.hrv_avg).filter(Boolean));
   if (lat?.hrv_avg && avg7HRV && (avg7HRV - lat.hrv_avg) / avg7HRV > 0.12)
     alerts.push({ type: 'warn', msg: `HRV o ${Math.round(avg7HRV - lat.hrv_avg)}ms poniżej 7-dniowej średniej` });
-  const lastS = [...sessions].filter(s => sessionVol(s) > 0).reverse()[0];
+  const lastS = [...sessions].filter((s: any) => sessionVol(s) > 0).reverse()[0];
   const daysSince = lastS ? Math.floor((Date.now() - new Date(lastS.date + 'T12:00:00').getTime()) / 86400000) : null;
   if (daysSince !== null && daysSince >= 3)
     alerts.push({ type: 'warn', msg: `${daysSince} dni bez treningu siłowego` });
-  const lowSleep = oura.slice(-3).filter(o => o.total_sleep_hours > 0 && o.total_sleep_hours < 7).length;
+  const lowSleep = oura.slice(-3).filter((o: any) => o.total_sleep_hours > 0 && o.total_sleep_hours < 7).length;
   if (lowSleep >= 2) alerts.push({ type: 'warn', msg: `${lowSleep}/3 ostatnich nocy poniżej 7h snu` });
-  const lowKcal = nutrition.slice(-3).filter(n => n.calories > 100 && n.calories < 2200).length;
+  const lowKcal = nutrition.slice(-3).filter((n: any) => n.calories > 100 && n.calories < 2200).length;
   if (lowKcal >= 2) alerts.push({ type: 'info', msg: `Niskie kalorie ${lowKcal} dni pod rząd` });
   if (!alerts.length && (lat?.readiness_score ?? 0) >= 70)
     alerts.push({ type: 'ok', msg: 'Sygnały OK — dobry dzień na ciśnięcie' });
   return alerts;
 }
 
-const calcSleepDebt = (oura) =>
-  +oura.slice(-7).reduce((acc, o) => o.total_sleep_hours ? acc + (8 - o.total_sleep_hours) : acc, 0).toFixed(1);
+const calcSleepDebt = (oura: any[]) =>
+  +oura.slice(-7).reduce((acc: number, o: any) => o.total_sleep_hours ? acc + (8 - o.total_sleep_hours) : acc, 0).toFixed(1);
 
-function trendDelta(oura, field) {
+function trendDelta(oura: any[], field: string) {
   const latest = oura[oura.length - 1]?.[field];
   const week   = oura[Math.max(0, oura.length - 8)]?.[field];
   if (!latest || !week) return null;
@@ -200,7 +206,7 @@ function trendDelta(oura, field) {
   return delta !== 0 ? { delta: Math.abs(delta), up: delta > 0 } : null;
 }
 
-function pushPullBalance(sessions) {
+function pushPullBalance(sessions: any[]) {
   const PUSH = new Set(['klatka', 'triceps', 'barki', 'przedni-bark']);
   const PULL = new Set(['plecy', 'biceps', 'tylny-bark', 'grzbiet', 'trapez']);
   let push = 0, pull = 0;
@@ -210,8 +216,8 @@ function pushPullBalance(sessions) {
     for (const l of (s.exercise_logs || [])) {
       const tags = l.muscle_tags || [];
       const v = (parseFloat(l.weight)||0) * (parseInt(l.reps)||0);
-      if (tags.some(t => PUSH.has(t))) push += v;
-      if (tags.some(t => PULL.has(t))) pull += v;
+      if (tags.some((t: any) => PUSH.has(t))) push += v;
+      if (tags.some((t: any) => PULL.has(t))) pull += v;
     }
   }
   return push + pull > 0 ? { push, pull } : null;
@@ -220,8 +226,8 @@ function pushPullBalance(sessions) {
 // ── Insights helpers ──────────────────────────────────────────────────────────
 const DOW_PL = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
 
-function computeDayOfWeekReadiness(oura) {
-  const groups = {};
+function computeDayOfWeekReadiness(oura: any[]) {
+  const groups: Record<number, number[]> = {};
   for (const o of oura) {
     if (!o.readiness_score) continue;
     const d = new Date(o.date + 'T12:00:00').getDay();
@@ -230,12 +236,12 @@ function computeDayOfWeekReadiness(oura) {
   }
   return [1,2,3,4,5,6,0].map(d => ({
     day: DOW_PL[d],
-    avg: groups[d]?.length ? Math.round(avg(groups[d])) : null,
+    avg: groups[d]?.length ? Math.round(avg(groups[d]) ?? 0) : null,
     count: groups[d]?.length || 0,
   }));
 }
 
-function computeSleepBuckets(oura) {
+function computeSleepBuckets(oura: any[]) {
   const BUCKETS: Array<[string, (h: number) => boolean]> = [['<6h', h => h < 6], ['6-7h', h => h >= 6 && h < 7], ['7-8h', h => h >= 7 && h < 8], ['>8h', h => h >= 8]];
   const acc: Record<string, number[]> = Object.fromEntries(BUCKETS.map(([l]) => [l, []]));
   for (let i = 0; i < oura.length - 1; i++) {
@@ -247,35 +253,35 @@ function computeSleepBuckets(oura) {
   }
   return BUCKETS.map(([label]) => ({
     label,
-    avg: acc[label].length >= 2 ? Math.round(avg(acc[label])) : null,
+    avg: acc[label].length >= 2 ? Math.round(avg(acc[label]) ?? 0) : null,
     count: acc[label].length,
   }));
 }
 
-function computeNutritionImpact(oura, nutrition) {
-  const nutrMap = Object.fromEntries((nutrition||[]).map(n => [n.date, n]));
-  const nextDay = (d) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + 1); return dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }); };
-  const high = [], low = [];
+function computeNutritionImpact(oura: any[], nutrition: any[]) {
+  const nutrMap = Object.fromEntries((nutrition||[]).map((n: any) => [n.date, n]));
+  const nextDay = (d: string) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + 1); return dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }); };
+  const high: number[] = [], low: number[] = [];
   for (const o of oura) {
     const n = nutrMap[o.date];
-    if (!n?.protein || !oura.find(x => x.date === nextDay(o.date))?.readiness_score) continue;
-    const next = oura.find(x => x.date === nextDay(o.date)).readiness_score;
+    if (!n?.protein || !oura.find((x: any) => x.date === nextDay(o.date))?.readiness_score) continue;
+    const next = oura.find((x: any) => x.date === nextDay(o.date)).readiness_score;
     if (n.protein >= 150) high.push(next); else low.push(next);
   }
-  const avgHigh = high.length >= 3 ? Math.round(avg(high)) : null;
-  const avgLow  = low.length >= 3  ? Math.round(avg(low))  : null;
+  const avgHigh = high.length >= 3 ? Math.round(avg(high) ?? 0) : null;
+  const avgLow  = low.length >= 3  ? Math.round(avg(low) ?? 0)  : null;
   return avgHigh && avgLow ? { high: avgHigh, low: avgLow, delta: avgHigh - avgLow } : null;
 }
 
-function computeNarrativeInsights(oura, sessions, nutrition, wins) {
+function computeNarrativeInsights(oura: any[], sessions: any[], nutrition: any[], wins: any[]) {
   const out = [];
 
   // Day-of-week readiness pattern
   const dow = computeDayOfWeekReadiness(oura);
-  const bestDow  = dow.filter(d => d.avg && d.count >= 3).sort((a, b) => b.avg - a.avg)[0];
-  const worstDow = dow.filter(d => d.avg && d.count >= 3).sort((a, b) => a.avg - b.avg)[0];
+  const bestDow  = dow.filter(d => d.avg !== null && d.count >= 3).sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))[0];
+  const worstDow = dow.filter(d => d.avg !== null && d.count >= 3).sort((a, b) => (a.avg ?? 0) - (b.avg ?? 0))[0];
   if (bestDow && worstDow && bestDow.day !== worstDow.day) {
-    const delta = bestDow.avg - worstDow.avg;
+    const delta = (bestDow.avg ?? 0) - (worstDow.avg ?? 0);
     if (delta >= 7) out.push({
       type: 'data', urgency: delta >= 14 ? 'high' : 'medium',
       headline: `${bestDow.day} to Twój szczyt — ${bestDow.avg}/100 readiness`,
@@ -285,10 +291,10 @@ function computeNarrativeInsights(oura, sessions, nutrition, wins) {
 
   // Sleep → next day impact
   const buckets = computeSleepBuckets(oura);
-  const bestBucket  = buckets.filter(b => b.avg && b.count >= 2).sort((a, b) => b.avg - a.avg)[0];
-  const worstBucket = buckets.filter(b => b.avg && b.count >= 2).sort((a, b) => a.avg - b.avg)[0];
+  const bestBucket  = buckets.filter(b => b.avg !== null && b.count >= 2).sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))[0];
+  const worstBucket = buckets.filter(b => b.avg !== null && b.count >= 2).sort((a, b) => (a.avg ?? 0) - (b.avg ?? 0))[0];
   if (bestBucket && worstBucket && bestBucket.label !== worstBucket.label) {
-    const delta = bestBucket.avg - worstBucket.avg;
+    const delta = (bestBucket.avg ?? 0) - (worstBucket.avg ?? 0);
     if (delta >= 8) out.push({
       type: 'data', urgency: delta >= 16 ? 'high' : 'medium',
       headline: `Sen ${bestBucket.label} → readiness ${bestBucket.avg}. Sen ${worstBucket.label} → ${worstBucket.avg}.`,
@@ -297,7 +303,7 @@ function computeNarrativeInsights(oura, sessions, nutrition, wins) {
   }
 
   // Sleep debt this week
-  const debt = oura.slice(-7).reduce((acc, o) => o.total_sleep_hours ? acc + Math.max(0, 7.5 - o.total_sleep_hours) : acc, 0);
+  const debt = oura.slice(-7).reduce((acc: number, o: any) => o.total_sleep_hours ? acc + Math.max(0, 7.5 - o.total_sleep_hours) : acc, 0);
   if (debt >= 4) out.push({
     type: 'data', urgency: 'high',
     headline: `Skumulowany dług senny 7 dni: ${debt.toFixed(1)}h`,
@@ -314,18 +320,18 @@ function computeNarrativeInsights(oura, sessions, nutrition, wins) {
 
   // Training gap
   const ws = weekStartDate();
-  const thisWeek = sessions.filter(s => s.date >= ws).length;
-  const prev3wk = [7, 14, 21].map(off => sessions.filter(s => s.date >= daysBefore(off + 7) && s.date < daysBefore(off)).length);
+  const thisWeek = sessions.filter((s: any) => s.date >= ws).length;
+  const prev3wk = [7, 14, 21].map(off => sessions.filter((s: any) => s.date >= daysBefore(off + 7) && s.date < daysBefore(off)).length);
   const avgPrev = avg(prev3wk.filter(v => v > 0));
-  if (thisWeek === 0 && avgPrev >= 2) out.push({
+  if (thisWeek === 0 && avgPrev !== null && avgPrev >= 2) out.push({
     type: 'data', urgency: 'high',
-    headline: `Zerowe treningi w tym tygodniu — Twoja norma to ${avgPrev.toFixed(1)}×/tydzień`,
+    headline: `Zerowe treningi w tym tygodniu — Twoja norma to ${(avgPrev ?? 0).toFixed(1)}×/tydzień`,
     evidence: `Ostatnie 3 tygodnie: ${prev3wk.join(', ')} sesji. Ten tydzień: 0. Konsekwencja jest Twoim głównym dźwignią.`,
   });
 
   // HRV trend
-  const hrv7   = avg(oura.slice(-7).map(o => o.hrv_avg).filter(Boolean));
-  const hrv14  = avg(oura.slice(-14, -7).map(o => o.hrv_avg).filter(Boolean));
+  const hrv7   = avg(oura.slice(-7).map((o: any) => o.hrv_avg).filter(Boolean));
+  const hrv14  = avg(oura.slice(-14, -7).map((o: any) => o.hrv_avg).filter(Boolean));
   if (hrv7 && hrv14) {
     const delta = Math.round(hrv7 - hrv14);
     if (Math.abs(delta) >= 5) out.push({
@@ -359,7 +365,7 @@ function getSprintInfo() {
   const sprintEnd      = new Date(anchor.getTime() + (startOffset + 83)   * 86400000);
   const prevStart      = sprintNumber > 1 ? new Date(anchor.getTime() + (startOffset - SPRINT_DAYS) * 86400000) : null;
   const prevEnd        = prevStart        ? new Date(anchor.getTime() + (startOffset - 1)            * 86400000) : null;
-  const fmt = (dt) => dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const fmt = (dt: Date) => dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   return {
     personalYear, sprintNumber, weekInSprint, dayInSprint,
     daysLeft: SPRINT_DAYS - dayInSprint - 1,
@@ -370,33 +376,33 @@ function getSprintInfo() {
   };
 }
 
-function sprintMetrics(oura, sessions, strava, start, end) {
+function sprintMetrics(oura: any[], sessions: any[], strava: any[], start: string | null, end: string | null) {
   if (!start || !end) return null;
-  const o    = oura.filter(r => r.date >= start && r.date <= end);
-  const s    = sessions.filter(r => r.date >= start && r.date <= end);
-  const runs = strava.filter(a => {
+  const o    = oura.filter((r: any) => r.date >= start && r.date <= end);
+  const s    = sessions.filter((r: any) => r.date >= start && r.date <= end);
+  const runs = strava.filter((a: any) => {
     const d = a.start_date.slice(0, 10);
     return d >= start && d <= end && ['Run', 'TrailRun', 'VirtualRun'].includes(a.sport_type);
   });
   return {
-    avgReadiness: avg(o.map(r => r.readiness_score).filter(Boolean)),
-    avgSleep:     avg(o.map(r => r.total_sleep_hours).filter(Boolean)),
-    avgHRV:       avg(o.map(r => r.hrv_avg).filter(Boolean)),
-    totalVol:     s.reduce((sum, sess) => sum + sessionVol(sess), 0),
-    trainDays:    s.filter(sess => sessionVol(sess) > 0).length,
-    kmRun:        runs.reduce((sum, a) => sum + (parseFloat(a.distance) || 0), 0) / 1000,
+    avgReadiness: avg(o.map((r: any) => r.readiness_score).filter(Boolean)),
+    avgSleep:     avg(o.map((r: any) => r.total_sleep_hours).filter(Boolean)),
+    avgHRV:       avg(o.map((r: any) => r.hrv_avg).filter(Boolean)),
+    totalVol:     s.reduce((sum: number, sess: any) => sum + sessionVol(sess), 0),
+    trainDays:    s.filter((sess: any) => sessionVol(sess) > 0).length,
+    kmRun:        runs.reduce((sum: number, a: any) => sum + (parseFloat(a.distance) || 0), 0) / 1000,
   };
 }
 
 // ── Streak helper ────────────────────────────────────────────────────────────
-function computeWeekStreak(sessions) {
+function computeWeekStreak(sessions: any[]) {
   const ws = weekStartDate();
   let streak = 0;
   const cursor = new Date(ws + 'T12:00:00');
   for (let i = 0; i < 52; i++) {
     const wStart = cursor.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const wEnd   = new Date(cursor.getTime() + 6 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    const hasTrain = sessions.some(s => s.date >= wStart && s.date <= wEnd && sessionVol(s) > 0);
+    const hasTrain = sessions.some((s: any) => s.date >= wStart && s.date <= wEnd && sessionVol(s) > 0);
     if (!hasTrain) break;
     streak++;
     cursor.setDate(cursor.getDate() - 7);
@@ -405,40 +411,82 @@ function computeWeekStreak(sessions) {
 }
 
 // ── Data hook ─────────────────────────────────────────────────────────────────
-function useDesktopData(userId) {
-  const [s, setS] = useState({ loading: true, oura: [], nutrition: [], sessions: [], body: [], strain: null, strava: [], projects: [], moves: [], goals: null, sprintGoals: [], stream: [], patterns: [], wins: [], wiki: [], knowledge: [], lenieLogs: [], habits: [], habitLogs: [] });
+function useDesktopData(userId: string | undefined) {
+  const [s, setS] = useState<{
+    loading: boolean;
+    oura: any[];
+    nutrition: any[];
+    sessions: any[];
+    body: any[];
+    strain: any | null;
+    strava: any[];
+    projects: any[];
+    moves: any[];
+    goals: any | null;
+    sprintGoals: any[];
+    stream: any[];
+    patterns: any[];
+    wins: any[];
+    wiki: any[];
+    knowledge: any[];
+    lenieLogs: any[];
+    habits: any[];
+    habitLogs: any[];
+  }>({
+    loading: true,
+    oura: [],
+    nutrition: [],
+    sessions: [],
+    body: [],
+    strain: null,
+    strava: [],
+    projects: [],
+    moves: [],
+    goals: null,
+    sprintGoals: [],
+    stream: [],
+    patterns: [],
+    wins: [],
+    wiki: [],
+    knowledge: [],
+    lenieLogs: [],
+    habits: [],
+    habitLogs: [],
+  });
+
   const load = useCallback(async () => {
     if (!userId) return;
     setS(p => ({ ...p, loading: true }));
-    const [
-      { data: oura }, { data: nutrition }, { data: sessions },
-      { data: body },  { data: strain },   { data: strava },
-      { data: projects }, { data: moves },  { data: goals },
-      { data: sprintGoalRows }, { data: streamRows }, { data: patternRows }, { data: winsRows },
-      { data: wikiRows }, { data: knowledgeRows }, { data: lenieRows },
-      { data: habitsRows }, { data: habitLogsRows },
-    ] = await Promise.all([
-      supabase.from('oura_daily_summary').select('date,hrv_avg,rhr_avg,total_sleep_hours,readiness_score').eq('user_id', userId).gte('date', daysBefore(60)).order('date', { ascending: true }),
-      supabase.from('daily_nutrition').select('date,calories,protein').eq('user_id', userId).gte('date', daysBefore(14)).order('date', { ascending: true }),
-      supabase.from('workout_sessions').select('id,date,workout_day,session_rpe,exercise_logs(exercise_name,weight,reps,muscle_tags)').eq('user_id', userId).gte('date', daysBefore(91)).order('date', { ascending: true }),
-      supabase.from('body_metrics').select('date,weight').eq('user_id', userId).gte('date', daysBefore(90)).order('date', { ascending: true }),
-      supabase.from('daily_strain').select('daily_status,main_limiter,strain_score,recovery_score,fueling_score,fueling_provisional').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('strava_activities_clean').select('sport_type,distance,start_date').eq('user_id', userId).gte('start_date', daysBefore(84)+'T00:00:00').order('start_date', { ascending: true }),
-      supabase.from('career_projects').select('id,name,status,sense_status,area,thesis').eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }),
-      supabase.from('career_moves').select('id,title,status,completed_at,planned_for,project_id').eq('user_id', userId).neq('status', 'dropped').order('updated_at', { ascending: false }).limit(80),
-      supabase.from('life_goals').select('goal_cialo,goal_duch,goal_konto,date_cialo,date_duch,date_konto').eq('user_id', userId).maybeSingle(),
-      supabase.from('sprint_goals').select('id,personal_year,sprint_number,goal_text').eq('user_id', userId).order('personal_year').order('sprint_number'),
-      supabase.from('vanguard_stream').select('id,source,content,classification,category,tags,importance_score,timestamp').eq('user_id', userId).neq('source', 'eval_interview').gte('importance_score', 5).gte('timestamp', daysBefore(14)+'T00:00:00').order('importance_score', { ascending: false }).order('timestamp', { ascending: false }).limit(14),
-      supabase.from('vanguard_behavioral_patterns').select('id,title,evidence_text,pattern_type,occurrence_count,confidence,last_seen,status').eq('user_id', userId).eq('status', 'active').order('occurrence_count', { ascending: false }).limit(10),
-      supabase.from('daily_wins').select('date,mood_score,daily_rpe,journal_entry,tags').eq('user_id', userId).gte('date', daysBefore(14)).order('date', { ascending: true }),
-      supabase.from('vanguard_wiki_pages').select('id,title,page_type,summary,confidence,updated_at').eq('user_id', userId).eq('status', 'active').not('summary', 'is', null).order('updated_at', { ascending: false }).limit(6),
-      supabase.from('vanguard_knowledge').select('id,title,content,category,importance_score,tags').eq('user_id', userId).eq('is_verified', true).gte('importance_score', 7).order('importance_score', { ascending: false }).limit(6),
-      supabase.from('habit_logs').select('date,logged_at,final_stimulus,context_note,habits!inner(name,is_positive)').eq('user_id', userId).eq('habits.is_positive', false).ilike('habits.name', '%lenie%').order('date', { ascending: false }).limit(10),
-      supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-      supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', subDays(new Date(), 30).toISOString().split('T')[0]),
-    ]);
-    setS({ loading: false, oura: oura||[], nutrition: nutrition||[], sessions: sessions||[], body: body||[], strain: strain||null, strava: strava||[], projects: projects||[], moves: moves||[], goals: goals||null, sprintGoals: sprintGoalRows||[], stream: streamRows||[], patterns: patternRows||[], wins: winsRows||[], wiki: wikiRows||[], knowledge: knowledgeRows||[], lenieLogs: lenieRows||[], habits: habitsRows||[], habitLogs: habitLogsRows||[] });
+    const { data, error } = await supabase.rpc('get_desktop_dashboard_data', { p_user_id: userId });
+    if (error) {
+      console.error('Error loading dashboard data:', error);
+      setS(p => ({ ...p, loading: false }));
+      return;
+    }
+    const d = data as any;
+    setS({
+      loading: false,
+      oura: d?.oura || [],
+      nutrition: d?.nutrition || [],
+      sessions: d?.sessions || [],
+      body: d?.body || [],
+      strain: d?.strain || null,
+      strava: d?.strava || [],
+      projects: d?.projects || [],
+      moves: d?.moves || [],
+      goals: d?.goals || null,
+      sprintGoals: d?.sprintGoals || [],
+      stream: d?.stream || [],
+      patterns: d?.patterns || [],
+      wins: d?.wins || [],
+      wiki: d?.wiki || [],
+      knowledge: d?.knowledge || [],
+      lenieLogs: d?.lenieLogs || [],
+      habits: d?.habits || [],
+      habitLogs: d?.habitLogs || [],
+    });
   }, [userId]);
+
   useEffect(() => { load(); }, [load]);
   return { ...s, refresh: load };
 }
@@ -454,7 +502,13 @@ function Tip({ active = false, payload = [], label = '' }: { active?: boolean; p
   );
 }
 
-function Panel({ title, children, className = '' }) {
+interface PanelProps {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function Panel({ title, children, className = '' }: PanelProps) {
   return (
     <div className={`rounded-[20px] border border-border-custom bg-surface p-5 shadow-sm ${className}`}>
       {title && <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted mb-4 pb-2.5 border-b border-border-custom">{title}</p>}
@@ -463,7 +517,17 @@ function Panel({ title, children, className = '' }) {
   );
 }
 
-function KPI({ label, value, unit, color = 'text-text-primary', barMax, note, trend }) {
+interface KPIProps {
+  label: string;
+  value?: any;
+  unit?: string;
+  color?: string;
+  barMax?: number;
+  note?: string | null;
+  trend?: { up: boolean; delta: number } | null;
+}
+
+function KPI({ label, value, unit, color = 'text-text-primary', barMax, note, trend }: KPIProps) {
   const pct = barMax && value ? Math.min((value / barMax) * 100, 100) : null;
   return (
     <div className="rounded-[16px] border border-border-custom bg-surface px-4 py-3.5 flex flex-col gap-0.5 shadow-sm">
@@ -482,269 +546,19 @@ function KPI({ label, value, unit, color = 'text-text-primary', barMax, note, tr
   );
 }
 
-// ── Smart Alerts ──────────────────────────────────────────────────────────────
-function SmartAlerts({ alerts }) {
-  const [dismissed, setDismissed] = useState(new Set());
-  const visible = alerts.filter((_, i) => !dismissed.has(i));
-  if (!visible.length) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {alerts.map((a, i) => {
-        if (dismissed.has(i)) return null;
-        const cfg = {
-          warn: 'bg-amber-500/[0.07] border-amber-500/25 text-amber-700 dark:text-amber-400',
-          info: 'bg-sky-500/[0.07] border-sky-500/25 text-sky-700 dark:text-sky-400',
-          ok:   'bg-emerald-500/[0.07] border-emerald-500/25 text-emerald-700 dark:text-emerald-400',
-        }[a.type];
-        const icon = { warn: '⚠', info: 'ℹ', ok: '✓' }[a.type];
-        return (
-          <div key={i} className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold ${cfg}`}>
-            <span>{icon}</span>
-            <span>{a.msg}</span>
-            <button onClick={() => setDismissed(d => new Set([...d, i]))} className="ml-1 opacity-40 hover:opacity-100 transition-opacity cursor-pointer text-[13px] leading-none">×</button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Weekly Digest ─────────────────────────────────────────────────────────────
-function WeeklyDigest({ digest, movesDoneThisWeek, streak }) {
-  if (!digest) return null;
-  const items = [
-    digest.sessions > 0 && { label: 'treningi', value: `${digest.sessions}×`, color: 'text-indigo-500' },
-    digest.totalVol > 0 && { label: 'objętość', value: `${(digest.totalVol/1000).toFixed(1)} Mg`, color: 'text-indigo-400' },
-    digest.kmRun > 0.1 && { label: 'km biegu', value: digest.kmRun.toFixed(1), color: 'text-amber-500' },
-    movesDoneThisWeek > 0 && { label: 'ruchy kariery', value: `${movesDoneThisWeek}×`, color: 'text-amber-400' },
-    digest.avgSleep && { label: 'śr. sen', value: `${digest.avgSleep.toFixed(1)}h`, color: digest.avgSleep >= 7 ? 'text-emerald-500' : 'text-amber-500' },
-    digest.avgReadiness && { label: 'śr. readiness', value: `${Math.round(digest.avgReadiness)}/100`, color: digest.avgReadiness >= 70 ? 'text-emerald-500' : 'text-amber-500' },
-    digest.wellness > 0 && { label: 'wellness', value: `${digest.wellness}×`, color: 'text-teal-500' },
-    streak > 1 && { label: 'tyg. z rzędu', value: `${streak}×`, color: 'text-violet-400' },
-  ].filter(Boolean);
-  if (!items.length) return null;
-  return (
-    <div className="rounded-[16px] border border-border-custom bg-surface/60 px-5 py-3 flex items-center gap-8">
-      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted shrink-0">Ten tydzień</span>
-      <div className="flex items-center gap-8 flex-wrap">
-        {items.map(({ label, value, color }) => (
-          <div key={label} className="flex items-baseline gap-1.5">
-            <span className={`font-display text-[19px] font-black leading-none ${color}`}>{value}</span>
-            <span className="text-[8px] text-text-muted font-bold">{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── 1. Cockpit ────────────────────────────────────────────────────────────────
-function CockpitBanner({ strain, oura }) {
-  const latest = oura[oura.length - 1];
-  if (!strain && !latest) return null;
-  const status = strain?.daily_status || 'unknown';
-  const cfg = {
-    green:  { bg: 'bg-emerald-500/[0.05] border-emerald-500/25', dot: 'bg-emerald-500', pulse: 'bg-emerald-400', tag: 'ZIELONY' },
-    yellow: { bg: 'bg-amber-500/[0.05] border-amber-500/25',     dot: 'bg-amber-400',   pulse: 'bg-amber-300',   tag: 'ŻÓŁTY' },
-    red:    { bg: 'bg-rose-500/[0.05] border-rose-500/25',       dot: 'bg-rose-500',     pulse: 'bg-rose-400',    tag: 'CZERWONY' },
-  }[status] || { bg: 'bg-surface border-border-custom', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
-  const msg     = strain ? cockpitDecision(status, strain.main_limiter, strain.strain_score, strain.fueling_provisional) : '—';
-  const limiter = strain?.main_limiter && strain.main_limiter !== 'recovery_ok' ? LIMITER_PL[strain.main_limiter] : null;
-  const readColor = !latest?.readiness_score ? 'text-text-muted' : latest.readiness_score >= 70 ? 'text-emerald-500' : latest.readiness_score >= 50 ? 'text-amber-500' : 'text-rose-500';
-  const ouraAge = latest?.date ? Math.floor((Date.now() - new Date(latest.date + 'T12:00:00').getTime()) / 86400000) : null;
-  return (
-    <div className={`rounded-[24px] border ${cfg.bg} px-8 py-6 flex items-center justify-between gap-8`}>
-      <div>
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="relative flex items-center justify-center w-3 h-3">
-            <div className={`absolute w-3 h-3 rounded-full ${cfg.pulse} opacity-40 animate-ping`} />
-            <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-text-muted">{cfg.tag} — COCKPIT</span>
-        </div>
-        <p className="font-display text-[32px] font-black leading-tight text-text-primary">{msg}</p>
-        {limiter && <p className="text-[11px] text-text-secondary mt-1.5">Limiter: <span className="font-black">{limiter}</span></p>}
-        {ouraAge !== null && ouraAge > 0 && (
-          <p className="text-[8px] text-text-muted/60 mt-2">● Oura: {ouraAge === 1 ? 'wczoraj' : `${ouraAge} dni temu`}</p>
-        )}
-      </div>
-      <div className="flex gap-6 shrink-0">
-        {[
-          { label: 'Readiness', val: latest?.readiness_score, unit: '/100', color: readColor },
-          { label: 'HRV',       val: latest?.hrv_avg,          unit: 'ms' },
-          { label: 'Sen',       val: latest?.total_sleep_hours ? +latest.total_sleep_hours.toFixed(1) : null, unit: 'h' },
-          { label: 'Recovery',  val: strain?.recovery_score,   unit: '/100' },
-          { label: 'Fueling',   val: strain?.fueling_score,    unit: '/100' },
-        ].map(({ label, val, unit, color }) => (
-          <div key={label} className="text-center">
-            <p className="text-[8px] font-black uppercase tracking-widest text-text-muted mb-1">{label}</p>
-            <p className={`font-display text-[22px] font-black leading-none ${color || 'text-text-primary'}`}>
-              {val ?? '—'}<span className="text-[10px] text-text-muted font-semibold ml-0.5">{unit}</span>
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── 2. Heatmap with tooltip ───────────────────────────────────────────────────
-function Heatmap({ sessions, strava = [] }) {
-  const [tooltip, setTooltip] = useState(null);
-  const today    = new Date();
-  const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-
-  const dateMap = {};
-  for (const s of sessions) {
-    const vol      = sessionVol(s);
-    const wellness = (s.exercise_logs||[]).length > 0 && (s.exercise_logs||[]).every(l => isLogWellness(l));
-    const exercises = [...new Set((s.exercise_logs||[]).map(l => l.exercise_name))].slice(0, 3);
-    dateMap[s.date] = { vol, wellness, name: s.workout_day, exercises, rpe: s.session_rpe };
-  }
-  const runMap: Record<string, number> = {};
-  for (const a of strava) {
-    if (!['Run','TrailRun','VirtualRun'].includes(a.sport_type)) continue;
-    const d = a.start_date.slice(0, 10);
-    runMap[d] = (runMap[d] || 0) + (parseFloat(a.distance) || 0) / 1000;
-  }
-
-  const dow = today.getDay();
-  const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
-  thisMonday.setHours(0, 0, 0, 0);
-  const start = new Date(thisMonday);
-  start.setDate(thisMonday.getDate() - 12 * 7);
-  const weeks = [], cur = new Date(start);
-  while (weeks.length < 13) {
-    const week = [];
-    for (let d = 0; d < 7; d++) {
-      const ds = cur.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-      week.push({ date: ds, future: ds > todayStr, data: dateMap[ds] || null });
-      cur.setDate(cur.getDate() + 1);
-    }
-    weeks.push(week);
-  }
-
-  const cellColor = ({ future, date, data }) => {
-    if (future) return 'bg-transparent border border-border-custom/20';
-    const hasRun = !!runMap[date];
-    const hasGym = !!data;
-    if (!hasRun && !hasGym) return 'bg-border-custom';
-    if (data?.wellness && !hasRun) return 'bg-teal-500/50';
-    if (hasRun && !hasGym) {
-      const km = runMap[date];
-      if (km < 5)  return 'bg-amber-400/40';
-      if (km < 12) return 'bg-amber-500/60';
-      return 'bg-amber-600/80';
-    }
-    // both gym + run
-    if (hasRun && hasGym) return 'bg-violet-500/70';
-    const v = data.vol;
-    if (v < 3000)  return 'bg-indigo-400/30';
-    if (v < 8000)  return 'bg-indigo-500/55';
-    if (v < 15000) return 'bg-indigo-600/80';
-    return 'bg-indigo-700';
-  };
-
-  const DAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'];
-
-  return (
-    <div>
-      <div className="flex gap-1.5 items-start">
-        <div className="flex flex-col gap-[5px] pt-7 mr-1">
-          {DAYS.map(d => <div key={d} className="text-[8px] text-text-muted w-4 h-3.5 flex items-center">{d}</div>)}
-        </div>
-        <div className="flex gap-1 flex-1 overflow-hidden">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[5px] flex-1">
-              <div className="text-[8px] text-text-muted h-6 flex items-end pb-0.5">
-                {wi % 3 === 0 ? format(parseISO(week[0].date), 'dd.MM') : ''}
-              </div>
-              {week.map((day, di) => {
-                const hasActivity = !!day.data || !!runMap[day.date];
-                return (
-                  <div
-                    key={di}
-                    className={`h-3.5 rounded-sm transition-opacity ${hasActivity ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} ${cellColor({ ...day, date: day.date })}`}
-                    onMouseEnter={hasActivity ? (e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setTooltip({ day, kmRun: runMap[day.date] || 0, rect });
-                    } : undefined}
-                    onMouseLeave={() => setTooltip(null)}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {tooltip && createPortal(
-        <div
-          style={{
-            position: 'fixed',
-            left: Math.min(tooltip.rect.right + 10, window.innerWidth - 190),
-            top: Math.max(8, tooltip.rect.top - 36),
-            zIndex: 9999,
-            pointerEvents: 'none',
-          }}
-          className="rounded-[14px] border border-border-custom bg-surface shadow-xl px-3.5 py-2.5 min-w-[160px]"
-        >
-          <p className="text-[9px] font-black text-text-muted mb-1">{tooltip.day.date}</p>
-          {tooltip.kmRun > 0 && (
-            <p className="text-[11px] font-bold text-amber-400 mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
-          )}
-          {tooltip.day.data && (
-            <>
-              {tooltip.day.data.name && <p className="text-[12px] font-black text-text-primary leading-tight">{tooltip.day.data.name}</p>}
-              {tooltip.day.data.wellness ? (
-                <p className="text-[10px] text-teal-500 font-bold mt-0.5">Wellness</p>
-              ) : (
-                <>
-                  {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-indigo-400 mt-0.5">{(tooltip.day.data.vol/1000).toFixed(1)} Mg</p>}
-                  {tooltip.day.data.rpe && <p className="text-[9px] text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
-                </>
-              )}
-              {tooltip.day.data.exercises?.length > 0 && (
-                <p className="text-[9px] text-text-muted mt-1 leading-relaxed">{tooltip.day.data.exercises.join(' · ')}</p>
-              )}
-            </>
-          )}
-        </div>,
-        document.body
-      )}
-
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border-custom">
-        <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">Legenda:</span>
-        {[
-          { color: 'bg-border-custom',  label: 'Odpoczynek' },
-          { color: 'bg-teal-500/50',    label: 'Wellness' },
-          { color: 'bg-amber-400/40',   label: 'Bieg <5km' },
-          { color: 'bg-amber-500/60',   label: 'Bieg 5-12km' },
-          { color: 'bg-amber-600/80',   label: 'Bieg >12km' },
-          { color: 'bg-indigo-400/30',  label: '<3 Mg' },
-          { color: 'bg-indigo-500/55',  label: '3–8 Mg' },
-          { color: 'bg-indigo-600/80',  label: '8–15 Mg' },
-          { color: 'bg-indigo-700',     label: '>15 Mg' },
-          { color: 'bg-violet-500/70',  label: 'Bieg+Siłownia' },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className={`w-3 h-3 rounded-sm ${color}`} />
-            <span className="text-[8px] text-text-muted">{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── 3. Marathon ───────────────────────────────────────────────────────────────
-function MarathonPanel({ strava, grid, tick }) {
+interface MarathonPanelProps {
+  strava: any[];
+  grid: string;
+  tick: string;
+}
+
+function MarathonPanel({ strava, grid, tick }: MarathonPanelProps) {
   const daysLeft  = differenceInDays(RACE_DATE, new Date());
   const weeksLeft = Math.ceil(daysLeft / 7);
   const kmData    = weeklyRunKm(strava);
   const recent4   = kmData.slice(-4);
-  const avgKm     = recent4.length ? Math.round(avg(recent4.map(w => w.km)) * 10) / 10 : null;
+  const avgKm     = recent4.length ? Math.round((avg(recent4.map(w => w.km)) ?? 0) * 10) / 10 : null;
   const bestKm    = kmData.length  ? Math.max(...kmData.map(w => w.km)) : null;
   return (
     <Panel title="Maraton Gdańsk — 04.10.2026">
@@ -792,14 +606,14 @@ function MarathonPanel({ strava, grid, tick }) {
 }
 
 // ── 4. Career & Goals ────────────────────────────────────────────────────────
-const STATUS_CFG = {
+const STATUS_CFG: Record<string, { dot: string; badge: string; label: string }> = {
   doing:   { dot: 'bg-sky-500',     badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20',           label: 'W toku' },
   done:    { dot: 'bg-emerald-500', badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Done' },
   blocked: { dot: 'bg-rose-500',    badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20',         label: 'Blokada' },
   todo:    { dot: 'bg-text-muted',  badge: 'bg-surface border-border-custom text-text-muted',          label: 'Plan' },
 };
 
-const SENSE_CFG = {
+const SENSE_CFG: Record<string, { label: string; cls: string }> = {
   sense:     { label: 'Sens',     cls: 'text-emerald-500 border-emerald-500/30 bg-emerald-500/[0.06]' },
   unsure:    { label: 'Niepewny', cls: 'text-amber-500 border-amber-500/30 bg-amber-500/[0.06]' },
   cut:       { label: 'Odcięty', cls: 'text-rose-500 border-rose-500/30 bg-rose-500/[0.06]' },
@@ -812,18 +626,24 @@ const LIFE_PILLARS = [
   { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto',  color: 'text-amber-400',   borderBg: 'bg-amber-500/[0.05] border-amber-500/20',     Icon: Briefcase },
 ];
 
-function CareerSection({ goals, projects, moves }) {
-  const projMap    = Object.fromEntries((projects||[]).map(p => [p.id, p]));
-  const activeProj = (projects||[]).filter(p => p.sense_status !== 'cut' && p.sense_status !== 'completed');
+interface CareerSectionProps {
+  goals: any;
+  projects: any[];
+  moves: any[];
+}
+
+function CareerSection({ goals, projects, moves }: CareerSectionProps) {
+  const projMap    = Object.fromEntries((projects||[]).map((p: any) => [p.id, p]));
+  const activeProj = (projects||[]).filter((p: any) => p.sense_status !== 'cut' && p.sense_status !== 'completed');
   const ws         = weekStartDate();
-  const doneWeek   = (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws);
-  const inProgress = (moves||[]).filter(m => m.status === 'doing');
-  const blocked    = (moves||[]).filter(m => m.status === 'blocked');
+  const doneWeek   = (moves||[]).filter((m: any) => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws);
+  const inProgress = (moves||[]).filter((m: any) => m.status === 'doing');
+  const blocked    = (moves||[]).filter((m: any) => m.status === 'blocked');
 
   const feedMoves  = [
     ...inProgress,
     ...blocked,
-    ...(moves||[]).filter(m => m.status === 'done').slice(0, 8),
+    ...(moves||[]).filter((m: any) => m.status === 'done').slice(0, 8),
   ].slice(0, 14);
 
   return (
@@ -850,7 +670,7 @@ function CareerSection({ goals, projects, moves }) {
             <div>
               <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted mb-2.5">Projekty ({activeProj.length})</p>
               <div className="grid grid-cols-2 gap-2">
-                {activeProj.slice(0, 6).map(p => {
+                {activeProj.slice(0, 6).map((p: any) => {
                   const sense = SENSE_CFG[p.sense_status] || SENSE_CFG.unsure;
                   return (
                     <div key={p.id} className="rounded-[12px] border border-border-custom bg-surface-solid px-3.5 py-3 flex items-start gap-3">
@@ -870,7 +690,7 @@ function CareerSection({ goals, projects, moves }) {
             <div>
               <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted mb-2.5">Ruchy kariery</p>
               <div className="divide-y divide-border-custom/40">
-                {feedMoves.map(m => {
+                {feedMoves.map((m: any) => {
                   const cfg  = STATUS_CFG[m.status] || STATUS_CFG.todo;
                   const proj = projMap[m.project_id];
                   const dateStr = m.completed_at
@@ -930,33 +750,48 @@ function CareerSection({ goals, projects, moves }) {
 }
 
 // ── 5. Intelligence Panel ─────────────────────────────────────────────────────
-const INTEL_CFG = {
+const INTEL_CFG: Record<string, {
+  label: string;
+  urgencyMap: Record<string, string>;
+  dot: Record<string, string>;
+  badge: string;
+}> = {
   data:     { label: 'DANE',    urgencyMap: { high: 'border-rose-500/30 bg-rose-500/[0.04]', medium: 'border-amber-500/30 bg-amber-500/[0.04]', low: 'border-border-custom bg-surface-solid' }, dot: { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-text-muted' }, badge: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
   pattern:  { label: 'WZORZEC', urgencyMap: { high: 'border-rose-500/30 bg-rose-500/[0.04]', medium: 'border-amber-500/30 bg-amber-500/[0.04]', low: 'border-border-custom bg-surface-solid' }, dot: { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-text-muted' }, badge: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
   wiki:     { label: 'WIEDZA',  urgencyMap: { high: 'border-emerald-500/30 bg-emerald-500/[0.04]', medium: 'border-emerald-500/20 bg-emerald-500/[0.03]', low: 'border-border-custom bg-surface-solid' }, dot: { high: 'bg-emerald-500', medium: 'bg-emerald-400', low: 'bg-emerald-400/50' }, badge: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
   knowledge:{ label: 'ZASADA',  urgencyMap: { high: 'border-amber-500/30 bg-amber-500/[0.04]', medium: 'border-amber-500/20 bg-amber-500/[0.03]', low: 'border-border-custom bg-surface-solid' }, dot: { high: 'bg-amber-500', medium: 'bg-amber-400', low: 'bg-amber-300' }, badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
 };
 
-function IntelligencePanel({ oura, sessions, nutrition, wins, patterns, wiki, knowledge }) {
+interface IntelligencePanelProps {
+  oura: any[];
+  sessions: any[];
+  nutrition: any[];
+  wins: any[];
+  patterns: any[];
+  wiki: any[];
+  knowledge: any[];
+}
+
+function IntelligencePanel({ oura, sessions, nutrition, wins, patterns, wiki, knowledge }: IntelligencePanelProps) {
   const dataInsights = computeNarrativeInsights(oura, sessions, nutrition, wins);
 
-  const cards = [
+  const cards: any[] = [
     ...dataInsights.map(i => ({ ...i, type: 'data' })),
-    ...(patterns||[]).map(p => ({
+    ...(patterns||[]).map((p: any) => ({
       type: 'pattern',
       urgency: (p.confidence||0) >= 0.7 ? 'high' : 'medium',
       headline: p.title,
       evidence: p.evidence_text,
       meta: `${p.occurrence_count}× · ${p.last_seen || ''}`,
     })),
-    ...(wiki||[]).filter(w => w.summary).map(w => ({
+    ...(wiki||[]).filter((w: any) => w.summary).map((w: any) => ({
       type: 'wiki',
       urgency: 'medium',
       headline: w.title,
       evidence: w.summary,
       meta: w.page_type,
     })),
-    ...(knowledge||[]).map(k => ({
+    ...(knowledge||[]).map((k: any) => ({
       type: 'knowledge',
       urgency: (k.importance_score||0) >= 9 ? 'high' : 'medium',
       headline: k.title,
@@ -997,30 +832,30 @@ function IntelligencePanel({ oura, sessions, nutrition, wins, patterns, wiki, kn
 }
 
 // -- Lenie mini-panel --------------------------------------------------------
-function computeLenieInsight(logs) {
+function computeLenieInsight(logs: any[]) {
   if (!logs?.length) return null;
-  const DOW_PL   = ['Nd', 'Pn', 'Wt', 'Sr', 'Cz', 'Pt', 'Sb'];
+  const DOW_PL   = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
   const DOW_FULL = ['niedziela', 'poniedzialek', 'wtorek', 'sroda', 'czwartek', 'piatek', 'sobota'];
   const recent   = logs.slice(0, 10);
-  const total30  = logs.filter(l => l.date >= daysBefore(30)).length;
-  const total60  = logs.filter(l => l.date >= daysBefore(60) && l.date < daysBefore(30)).length;
+  const total30  = logs.filter((l: any) => l.date >= daysBefore(30)).length;
+  const total60  = logs.filter((l: any) => l.date >= daysBefore(60) && l.date < daysBefore(30)).length;
 
   // Day-of-week peak
-  const dowCount = {};
+  const dowCount: Record<number, number> = {};
   for (const l of recent) {
     const d = new Date(l.date + 'T12:00:00').getDay();
     dowCount[d] = (dowCount[d] || 0) + 1;
   }
-  const sorted   = Object.entries(dowCount).sort((a, b) => +b[1] - +a[1]);
+  const sorted   = Object.entries(dowCount).sort((a, b) => b[1] - a[1]);
   const peakDay  = sorted[0] ? DOW_PL[+sorted[0][0]] : null;
-  const peakN    = sorted[0] ? +sorted[0][1] : 0;
+  const peakN    = sorted[0] ? sorted[0][1] : 0;
 
   // Top trigger keywords — context_note (weighted x2) + final_stimulus combined
   // Filter: appears in 2+ distinct entries, but not in >60% of entries with text
   const STOP = new Set('i w z na do sie to ze a nie jest bylo mi jak po przez od o ich je co byl ta te ten ta to mnie bo ale go mu tak juz czy wiec az no wtedy kiedy wlaczyl wlaczalem mialem bylo'.split(' '));
   const wc: Record<string, number> = {};
   const entryCount: Record<string, number> = {};
-  const entriesWithText = recent.filter(l => l.final_stimulus || l.context_note).length;
+  const entriesWithText = recent.filter((l: any) => l.final_stimulus || l.context_note).length;
 
   for (const l of recent) {
     const text = [(l.context_note || ''), (l.context_note || ''), (l.final_stimulus || '')].join(' ');
@@ -1076,7 +911,7 @@ function LeniePanelMini({ logs, userId: _userId = null, accessToken: _accessToke
     : daysFree <= 2  ? 'text-amber-400'
     : 'text-emerald-500';
 
-  const insight = computeLenieInsight(logs);
+  const insight = computeLenieInsight(logs || []);
 
   if (!logs?.length) return null;
 
@@ -1108,7 +943,27 @@ function LeniePanelMini({ logs, userId: _userId = null, accessToken: _accessToke
 }
 
 // ── Sprint Panel ──────────────────────────────────────────────────────────────
-function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerMetrics, goals, currentWeight, weight30ago }) {
+interface SprintPanelProps {
+  sprint: any;
+  sprintGoal: any;
+  onSave: (goalText: string) => Promise<void>;
+  metrics: any;
+  prevMetrics: any;
+  careerMetrics: any;
+  goals: any;
+  currentWeight: number | null;
+  weight30ago: number | null;
+}
+
+interface BodyMetric {
+  label: string;
+  curr: any;
+  prev: any;
+  fmt: (v: any) => string;
+  dec?: number;
+}
+
+function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerMetrics, goals, currentWeight, weight30ago }: SprintPanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft,   setDraft]   = useState(sprintGoal?.goal_text || '');
   const [saving,  setSaving]  = useState(false);
@@ -1120,19 +975,19 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
     setEditing(false);
   };
 
-  const delta = (curr, prev, decimals = 0) => {
+  const delta = (curr: any, prev: any, decimals = 0) => {
     if (curr == null || prev == null) return null;
     const d = +(curr - prev).toFixed(decimals);
     return d !== 0 ? { abs: Math.abs(d), up: d > 0 } : null;
   };
 
-  const BODY = [
-    { label: 'Readiness', curr: metrics?.avgReadiness, prev: prevMetrics?.avgReadiness, fmt: v => `${Math.round(v)}` },
-    { label: 'Sen avg',   curr: metrics?.avgSleep,     prev: prevMetrics?.avgSleep,     fmt: v => `${v.toFixed(1)}h`, dec: 1 },
-    { label: 'Treningi',  curr: metrics?.trainDays,    prev: prevMetrics?.trainDays,    fmt: v => `${v}×` },
-    { label: 'Km biegu',  curr: metrics?.kmRun,        prev: prevMetrics?.kmRun,        fmt: v => `${v.toFixed(0)}`, dec: 1 },
-    { label: 'Objętość',  curr: metrics?.totalVol ? +(metrics.totalVol/1000).toFixed(1) : null, prev: prevMetrics?.totalVol ? +(prevMetrics.totalVol/1000).toFixed(1) : null, fmt: v => `${v}Mg`, dec: 1 },
-    ...(currentWeight != null ? [{ label: 'Waga', curr: currentWeight, prev: weight30ago, fmt: v => `${v.toFixed(1)}`, dec: 1 }] : []),
+  const BODY: BodyMetric[] = [
+    { label: 'Readiness', curr: metrics?.avgReadiness, prev: prevMetrics?.avgReadiness, fmt: (v: number) => `${Math.round(v)}` },
+    { label: 'Sen avg',   curr: metrics?.avgSleep,     prev: prevMetrics?.avgSleep,     fmt: (v: number) => `${v.toFixed(1)}h`, dec: 1 },
+    { label: 'Treningi',  curr: metrics?.trainDays,    prev: prevMetrics?.trainDays,    fmt: (v: number) => `${v}×` },
+    { label: 'Km biegu',  curr: metrics?.kmRun,        prev: prevMetrics?.kmRun,        fmt: (v: number) => `${v.toFixed(0)}`, dec: 1 },
+    { label: 'Objętość',  curr: metrics?.totalVol ? +(metrics.totalVol/1000).toFixed(1) : null, prev: prevMetrics?.totalVol ? +(prevMetrics.totalVol/1000).toFixed(1) : null, fmt: (v: number) => `${v}Mg`, dec: 1 },
+    ...(currentWeight != null ? [{ label: 'Waga', curr: currentWeight, prev: weight30ago, fmt: (v: number) => `${v.toFixed(1)}`, dec: 1 }] : []),
   ];
 
   const CAREER = [
@@ -1263,7 +1118,7 @@ function SprintPanel({ sprint, sprintGoal, onSave, metrics, prevMetrics, careerM
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function DesktopDashboard({ session }) {
+export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
   const { oura, nutrition, sessions, body, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
@@ -1281,21 +1136,21 @@ export default function DesktopDashboard({ session }) {
     if (!error) { setHabits(prev => [...prev, data]); setNewHabit({ name: '', icon: '✅', is_positive: true }); setIsAddingHabit(false); }
   }
 
-  async function deleteHabit(id) {
+  async function deleteHabit(id: string) {
     if (!confirm('Usunąć nawyk?')) return;
     await supabase.from('habits').delete().eq('id', id);
     setHabits(prev => prev.filter(h => h.id !== id));
   }
 
-  async function toggleHabit(habitId) {
+  async function toggleHabit(habitId: string) {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    const existing = habitLogs.find(l => l.habit_id === habitId && l.date === today);
+    const existing = habitLogs.find((l: any) => l.habit_id === habitId && l.date === today);
     if (existing) {
       const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
-      if (!error) setHabitLogs(prev => prev.filter(l => l.id !== existing.id));
+      if (!error) setHabitLogs((prev: any) => prev.filter((l: any) => l.id !== existing.id));
     } else {
       const { data, error } = await supabase.from('habit_logs').insert({ user_id: userId, habit_id: habitId, date: today, completed: true }).select().single();
-      if (!error) setHabitLogs(prev => [...prev, data]);
+      if (!error) setHabitLogs((prev: any) => [...prev, data]);
     }
   }
   // ── Dreams (Lista 200 Marzeń) ─────────────────────────────────────────────
@@ -1378,9 +1233,11 @@ export default function DesktopDashboard({ session }) {
 
   async function dreamToProject(dream: any) {
     try {
-      const project = await createProject(userId!, { name: dream.title, goal: dream.description || undefined });
-      await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
-      alert(`Projekt "${dream.title}" utworzony!`);
+      const project = (await createProject(userId!, { name: dream.title, goal: dream.description || undefined })) as any;
+      if (project) {
+        await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
+        alert(`Projekt "${dream.title}" utworzony!`);
+      }
     } catch (e: any) {
       alert('Błąd: ' + e.message);
     }
@@ -1499,7 +1356,7 @@ export default function DesktopDashboard({ session }) {
     if (syncing) return;
     setSyncing(true);
     const base = import.meta.env.VITE_SUPABASE_URL;
-    const call = async (fn, b = {}) => {
+    const call = async (fn: string, b: Record<string, any> = {}) => {
       const r = await fetch(`${base}/functions/v1/${fn}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -1538,8 +1395,9 @@ export default function DesktopDashboard({ session }) {
 
   // Keyboard shortcuts: s=sync, t=trening, d=dark toggle
   useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey) return;
       if (e.key === 's') syncAll();
       if (e.key === 't') setShowWorkout(true);
       if (e.key === 'd') setTheme(th => th === 'light' ? 'dark' : 'light');
@@ -1575,7 +1433,7 @@ export default function DesktopDashboard({ session }) {
     activeProjects: (projects||[]).filter(p => p.sense_status !== 'cut' && p.sense_status !== 'completed').length,
   };
 
-  const saveSprintGoal = useCallback(async (text) => {
+  const saveSprintGoal = useCallback(async (text: string) => {
     await supabase.from('sprint_goals').upsert({
       user_id: userId,
       personal_year: sprint.personalYear,
@@ -1837,7 +1695,7 @@ export default function DesktopDashboard({ session }) {
                       key={index}
                       x={x}
                       y={y}
-                      textAnchor={lbl.align}
+                      textAnchor={lbl.align as 'start' | 'middle' | 'end'}
                       className="text-[9px] font-black uppercase tracking-wider fill-text-primary"
                     >
                       {lbl.label}
@@ -2323,7 +2181,7 @@ export default function DesktopDashboard({ session }) {
               <Check size={11} strokeWidth={2.5} /> Zapisz wizję
             </button>
             <button
-              onClick={() => { toggleTop5(editingDream); setEditingDream(prev => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
+              onClick={() => { toggleTop5(editingDream); setEditingDream((prev: any) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
               className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
                 editingDream.is_top5
                   ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'

@@ -4,7 +4,7 @@
  * Używa standardu AES-GCM (Web Crypto API).
  */
 
-export async function encryptData(text) {
+export async function encryptData(text: string | null | undefined): Promise<string | null> {
   if (!text) return null;
 
   // W uproszczonej wersji na potrzeby lokalne używamy Base64 z prostym przesunięciem 
@@ -16,7 +16,7 @@ export async function encryptData(text) {
     .join('');
 }
 
-export async function decryptData(encoded) {
+export async function decryptData(encoded: string | null | undefined): Promise<string | null> {
   if (!encoded) return null;
   try {
     const reversed = encoded.split('').reverse().join('');

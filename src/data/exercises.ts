@@ -1,4 +1,4 @@
-export function normalize(s) {
+export function normalize(s: string): string {
   return s.toLowerCase()
     .replace(/ą/g,'a').replace(/ć/g,'c').replace(/ę/g,'e').replace(/ł/g,'l')
     .replace(/ń/g,'n').replace(/ó/g,'o').replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z');
@@ -110,7 +110,7 @@ export const MUSCLE_TAGS = [
 
 export const TAG_SET_WEIGHTS = [1, 0.55, 0.35, 0.25];
 
-const STIMULUS_PROFILES = [
+const STIMULUS_PROFILES: Array<{ patterns: string[]; stimulus: Record<string, { direct?: number; indirect?: number }> }> = [
   {
     patterns: ['wyciskanie plaskie', 'wyciskanie sztangi na lawce', 'wyciskanie hantli na lawce', 'bench'],
     stimulus: {
@@ -259,19 +259,19 @@ const STIMULUS_PROFILES = [
   },
 ];
 
-export function stimulusForExercise(name, fallbackTags = []) {
+export function stimulusForExercise(name: string, fallbackTags: string[] = []): Record<string, { direct?: number; indirect?: number }> {
   const key = normalize(String(name || ''));
   const profile = STIMULUS_PROFILES.find((p) => p.patterns.some((pattern) => key.includes(normalize(pattern))));
-  if (profile) return profile.stimulus;
+  if (profile) return profile.stimulus as Record<string, { direct?: number; indirect?: number }>;
 
-  return fallbackTags.reduce((acc, tag, index) => {
+  return fallbackTags.reduce<Record<string, { direct?: number; indirect?: number }>>((acc, tag, index) => {
     if (index === 0) acc[tag] = { direct: 1 };
     else acc[tag] = { indirect: TAG_SET_WEIGHTS[index] ?? 0.25 };
     return acc;
   }, {});
 }
 
-export const TAG_COLOR = {
+export const TAG_COLOR: Record<string, string> = {
   klatka:        'bg-blue-500/15 text-blue-300 border-blue-500/25',
   plecy:         'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
   barki:         'bg-violet-500/15 text-violet-300 border-violet-500/25',
@@ -288,14 +288,14 @@ export const TAG_COLOR = {
   wellness:      'bg-teal-400/15 text-teal-300 border-teal-400/25',
 };
 
-export function tagClass(tag) {
+export function tagClass(tag: string): string {
   return TAG_COLOR[tag] ?? 'bg-white/10 text-white/50 border-white/15';
 }
 
 // Find tags for a given exercise name (fuzzy, normalized)
-export function tagsForExercise(name) {
+export function tagsForExercise(name: string): string[] {
   const key = normalize(name.trim());
-  if (EXERCISE_MAP.has(key)) return EXERCISE_MAP.get(key);
+  if (EXERCISE_MAP.has(key)) return EXERCISE_MAP.get(key) || [];
   // Partial match fallback
   for (const [k, tags] of EXERCISE_MAP) {
     if (k.includes(key) || key.includes(k)) return tags;

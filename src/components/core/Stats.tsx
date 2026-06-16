@@ -58,7 +58,7 @@ type FoodAnalysisResult =
     };
 type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
-export default function Stats({ session, topSlot = null, runningSlot = null }) {
+export default function Stats({ session, topSlot = null, runningSlot = null }: { session: any; topSlot?: any; runningSlot?: any }) {
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
@@ -135,7 +135,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         });
       }
 
-      setNarrative(generateNarrative(body, ouraRaw, sessions));
+      setNarrative(generateNarrative(body, ouraRaw, sessions) ?? '');
     } catch (err) {
       console.error('Fetch Stats Error:', err);
     } finally {
@@ -147,7 +147,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     fetchStats();
   }, [fetchStats]);
 
-  async function saveMetrics(e) {
+  async function saveMetrics(e: any) {
     e.preventDefault();
     const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
     const payload: TablesInsert<'body_metrics'> = {
@@ -165,7 +165,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
     else { alert('Zapisano!'); fetchStats(); }
   }
 
-  async function deleteSession(id) {
+  async function deleteSession(id: any) {
     if (confirm('Usunąć trening?')) {
       await supabase.from('workout_sessions').delete().eq('id', id);
       fetchStats();
@@ -210,7 +210,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         alert('B????d analizy: ' + (res.error || 'Nieznany b????d'));
       }
     } catch (err) {
-      alert('B????d po????czenia: ' + err.message);
+      alert('Błąd połączenia: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsAnalyzing(false);
     }
@@ -226,29 +226,31 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         userId: session.user.id
       });
       if (res.success) setTrainingAnalysis(res);
-      else throw new Error(res.error || 'Nieznany b????d');
+      else throw new Error(res.error || 'Nieznany błąd');
     } catch (err) {
-      alert('B????d analizy treningu: ' + err.message);
+      alert('Błąd analizy treningu: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsAnalyzingTraining(false);
     }
   }
 
-  async function startEditing(session) {
+  async function startEditing(session: any) {
+    if (!session) return;
     setEditingSession(session.id);
     setEditForm({
       date: session.date,
       workout_day: session.workout_day ?? '',
-      logs: session.exercise_logs.map(log => ({ ...log }))
+      logs: (session.exercise_logs || []).map((log: any) => ({ ...log }))
     });
   }
 
   async function updateSession() {
+    if (!editingSession) return;
     try {
       // 1. Update session date
       const { error: sessionError } = await supabase
         .from('workout_sessions')
-        .update({ date: editForm.date, workout_day: editForm.workout_day })
+        .update({ date: editForm.date!, workout_day: editForm.workout_day })
         .eq('id', editingSession);
       if (sessionError) throw sessionError;
       
@@ -261,7 +263,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
         }
         const { error: logError } = await supabase.from('exercise_logs').update({ 
           weight, 
-          reps 
+          reps: reps ?? undefined
         }).eq('id', log.id);
         if (logError) throw logError;
       }
@@ -273,7 +275,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
       alert('Błąd podczas aktualizacji');
     }
   }
-  async function deleteLog(id) {
+  async function deleteLog(id: any) {
     if (confirm('Usunąć tę serię?')) {
       await supabase.from('exercise_logs').delete().eq('id', id);
       setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
@@ -476,8 +478,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase text-text-muted">Jakość dnia {analyzeResult.date}</span>
-                <span className={`text-lg font-black ${analyzeResult.day_quality_score >= 70 ? 'text-dayC' : analyzeResult.day_quality_score >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
-                  {analyzeResult.day_quality_score}/100
+                <span className={`text-lg font-black ${(analyzeResult.day_quality_score ?? 0) >= 70 ? 'text-dayC' : (analyzeResult.day_quality_score ?? 0) >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
+                  {analyzeResult.day_quality_score ?? 0}/100
                 </span>
               </div>
               <p className="text-[11px] text-text-secondary leading-relaxed">{analyzeResult.day_quality_analysis}</p>
@@ -496,33 +498,37 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               </div>
 
               {/* Protein distribution by meal */}
-              {analyzeResult.protein_distribution?.length > 0 && (
-                <div className="border-t border-border-custom pt-3 space-y-2">
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-text-muted">Białko / posiłek</p>
-                  {analyzeResult.protein_distribution.map((m, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold w-20 shrink-0 text-text-muted capitalize truncate">{m.meal}</span>
-                      <div className="flex-1 h-1.5 bg-border-custom rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${Math.min(100, (m.protein_g / 60) * 100)}%`,
-                            backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#f43f5e'
-                          }}
-                        />
+              {(() => {
+                const protDist = analyzeResult.protein_distribution;
+                if (!protDist || protDist.length === 0) return null;
+                return (
+                  <div className="border-t border-border-custom pt-3 space-y-2">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-text-muted">Białko / posiłek</p>
+                    {protDist.map((m, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold w-20 shrink-0 text-text-muted capitalize truncate">{m.meal}</span>
+                        <div className="flex-1 h-1.5 bg-border-custom rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (m.protein_g / 60) * 100)}%`,
+                              backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#f43f5e'
+                            }}
+                          />
+                        </div>
+                        <span className={`text-[9px] font-bold w-10 text-right shrink-0 ${m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-amber-550' : 'text-dayB'}`}>
+                          {m.protein_g}g
+                        </span>
                       </div>
-                      <span className={`text-[9px] font-bold w-10 text-right shrink-0 ${m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-amber-550' : 'text-dayB'}`}>
-                        {m.protein_g}g
-                      </span>
-                    </div>
-                  ))}
-                  {analyzeResult.protein_distribution.some(m => m.note) && (
-                    <p className="text-[9px] text-text-muted leading-relaxed">
-                      {analyzeResult.protein_distribution.find(m => m.note)?.note}
-                    </p>
-                  )}
-                </div>
-              )}
+                    ))}
+                    {protDist.some(m => m.note) && (
+                      <p className="text-[9px] text-text-muted leading-relaxed">
+                        {protDist.find(m => m.note)?.note}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -530,8 +536,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
             <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase text-text-muted">Średnia {analyzeResult.dateFrom} → {analyzeResult.dateTo}</span>
-                <span className={`text-lg font-black ${analyzeResult.avg_score >= 70 ? 'text-dayC' : analyzeResult.avg_score >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
-                  {analyzeResult.avg_score}/100
+                <span className={`text-lg font-black ${(analyzeResult.avg_score ?? 0) >= 70 ? 'text-dayC' : (analyzeResult.avg_score ?? 0) >= 45 ? 'text-amber-500' : 'text-dayB'}`}>
+                  {analyzeResult.avg_score ?? 0}/100
                 </span>
               </div>
 
@@ -543,13 +549,13 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                       <div
                         className="h-full rounded-full"
                         style={{
-                          width: d.fasting ? '100%' : `${d.score}%`,
-                          backgroundColor: d.fasting ? '#4f46e5' : d.incomplete ? '#94a3b8' : d.score >= 70 ? '#10b981' : d.score >= 45 ? '#f59e0b' : '#f43f5e'
+                          width: d.fasting ? '100%' : `${d.score ?? 0}%`,
+                          backgroundColor: d.fasting ? '#4f46e5' : d.incomplete ? '#94a3b8' : (d.score ?? 0) >= 70 ? '#10b981' : (d.score ?? 0) >= 45 ? '#f59e0b' : '#f43f5e'
                         }}
                       />
                     </div>
-                    <span className={`w-8 shrink-0 text-[9px] font-bold text-right ${d.fasting ? 'text-indigo-650' : d.incomplete ? 'text-text-muted' : d.score >= 70 ? 'text-dayC' : d.score >= 45 ? 'text-amber-550' : 'text-dayB'}`}>
-                      {d.fasting ? '🔵' : d.incomplete ? '⚠️' : d.score}
+                    <span className={`w-8 shrink-0 text-[9px] font-bold text-right ${d.fasting ? 'text-indigo-650' : d.incomplete ? 'text-text-muted' : (d.score ?? 0) >= 70 ? 'text-dayC' : (d.score ?? 0) >= 45 ? 'text-amber-550' : 'text-dayB'}`}>
+                      {d.fasting ? '🔵' : d.incomplete ? '⚠️' : d.score ?? 0}
                     </span>
                   </div>
                 ))}
@@ -558,21 +564,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               <p className="text-[11px] text-text-secondary leading-relaxed border-t border-border-custom pt-3">{analyzeResult.pattern_analysis}</p>
 
               <div className="grid grid-cols-2 gap-3">
-                {analyzeResult.top_issues?.length > 0 && (
+                {(analyzeResult.top_issues?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-[8px] font-bold uppercase tracking-widest text-dayB mb-1.5">Do poprawy</p>
                     <ul className="space-y-1">
-                      {analyzeResult.top_issues.map((t, i) => (
+                      {analyzeResult.top_issues?.map((t, i) => (
                         <li key={i} className="text-[9px] text-text-muted">· {t}</li>
                       ))}
                     </ul>
                   </div>
                 )}
-                {analyzeResult.strengths?.length > 0 && (
+                {(analyzeResult.strengths?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-[8px] font-bold uppercase tracking-widest text-dayC mb-1.5">Mocne strony</p>
                     <ul className="space-y-1">
-                      {analyzeResult.strengths.map((s, i) => (
+                      {analyzeResult.strengths?.map((s, i) => (
                         <li key={i} className="text-[9px] text-text-muted">· {s}</li>
                       ))}
                     </ul>
@@ -580,11 +586,11 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
                 )}
               </div>
 
-              {analyzeResult.action_steps?.length > 0 && (
+              {(analyzeResult.action_steps?.length ?? 0) > 0 && (
                 <div className="border-t border-border-custom pt-3">
                   <p className="text-[8px] font-bold uppercase tracking-widest text-primary mb-2">Co zrobić jutro</p>
                   <ol className="space-y-1.5">
-                    {analyzeResult.action_steps.map((s, i) => (
+                    {analyzeResult.action_steps?.map((s, i) => (
                       <li key={i} className="flex gap-2 text-[10px] text-text-secondary">
                         <span className="font-bold text-primary shrink-0">{i + 1}.</span>
                         <span>{s}</span>
@@ -636,11 +642,11 @@ export default function Stats({ session, topSlot = null, runningSlot = null }) {
               )}
 
               {/* Chronic gaps */}
-              {analyzeResult.chronic_gaps?.length > 0 && (
+              {(analyzeResult.chronic_gaps?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-[8px] font-bold uppercase tracking-widest text-orange-550 mb-1.5">Chroniczne braki</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {analyzeResult.chronic_gaps.map((g, i) => (
+                    {analyzeResult.chronic_gaps?.map((g, i) => (
                       <span key={i} className="rounded border border-orange-500/20 bg-orange-500/5 px-2 py-0.5 text-[9px] text-orange-600 dark:text-orange-400">{g}</span>
                     ))}
                   </div>

@@ -6,7 +6,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Sync theme with document class on mount
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function Auth() {
     }
   }, []);
 
-  const handleAuth = async (e) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -27,7 +27,8 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error) {
-      setError(error.message === 'Invalid login credentials' ? 'Błędne poświadczenia dostępu.' : error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      setError(msg === 'Invalid login credentials' ? 'Błędne poświadczenia dostępu.' : msg);
     } finally {
       setLoading(false);
     }

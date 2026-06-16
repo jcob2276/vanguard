@@ -1,4 +1,4 @@
-export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }) {
+export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }: { supabase: any; supabaseUrl: string; userId: string; days?: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   const response = await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
     method: 'POST',
@@ -11,7 +11,7 @@ export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 2
   return response.json();
 }
 
-export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }) {
+export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: any; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   const body = analyzePeriod === 1
     ? { userId, date: analyzeDate }
@@ -32,7 +32,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
   return response.json();
 }
 
-export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId }) {
+export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId }: { supabase: any; supabaseUrl: string; userId: string }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   const response = await fetch(`${supabaseUrl}/functions/v1/analyze-training-load`, {
     method: 'POST',

@@ -67,7 +67,7 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
   );
 }
 
-function MiniStat({ label, value, tone = 'text-text-primary', detail }) {
+function MiniStat({ label, value, tone = 'text-text-primary', detail }: { label: string; value: string | number; tone?: string; detail?: string | null }) {
   return (
     <div className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
       <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</p>
@@ -122,12 +122,14 @@ export default function Direction({ session }: { session: Session }) {
   const showPlanningMode = isSunday && !planSaved;
 
   const planCalEvents = allCalEvents.filter((e) => {
+    if (!e.start_time) return false;
     const eDay = new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     return eDay >= format(planWeekStart, 'yyyy-MM-dd') && eDay <= format(planWeekEnd, 'yyyy-MM-dd');
   });
-  const todayCalEvents = allCalEvents.filter((e) =>
-    new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === todayWarsaw()
-  );
+  const todayCalEvents = allCalEvents.filter((e) => {
+    if (!e.start_time) return false;
+    return new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === todayWarsaw();
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -185,18 +187,18 @@ export default function Direction({ session }: { session: Session }) {
       }
 
       // Load the specific tasks user committed to (maintain their selection order)
-      if (reviewData?.focus_task_ids?.length > 0) {
+      if (reviewData?.focus_task_ids && reviewData.focus_task_ids.length > 0) {
         const { data: ft } = await supabase
           .from('todo_items')
-          .select('id, title, status, priority, ai_bucket, due_date, section_id')
+          .select('*')
           .in('id', reviewData.focus_task_ids)
           .eq('user_id', userId);
         setFocusTasks(
-          reviewData.focus_task_ids.map((id) => (ft || []).find((t) => t.id === id)).filter(Boolean)
+          reviewData.focus_task_ids.map((id) => (ft || []).find((t) => t.id === id)).filter(Boolean) as any[]
         );
       }
 
-      const pastUnfinished = historyData?.filter((d) => d.date < today && d.result === null) || [];
+      const pastUnfinished = historyData?.filter((d) => d.date && d.date < today && d.result === null) || [];
       if (pastUnfinished.length > 0) {
         const { error } = await supabase.from('daily_wins').update({ result: 'P' }).in('id', pastUnfinished.map((d) => d.id));
         if (!error) {
@@ -218,7 +220,7 @@ export default function Direction({ session }: { session: Session }) {
   const stats = useMemo(() => {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
     let streak = 0;
-    const sorted = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sorted = [...history].sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
     const today = todayDate();
     const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
     if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
@@ -231,7 +233,7 @@ export default function Direction({ session }: { session: Session }) {
     for (let i = 0; i < 4; i++) {
       const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
       const end = endOfWeek(start, { weekStartsOn: 1 });
-      const weekDays = history.filter((d) => parseISO(d.date) >= start && parseISO(d.date) <= end);
+      const weekDays = history.filter((d) => d.date && parseISO(d.date) >= start && parseISO(d.date) <= end);
       const now = startOfDay(new Date());
       const expectedPastDays = isWithinInterval(now, { start, end }) ? differenceInDays(now, start) : 7;
       const explicitP = weekDays.filter((d) => d.result === 'P').length;
@@ -249,7 +251,7 @@ export default function Direction({ session }: { session: Session }) {
   const pastWeekStats = useMemo(() => {
     const today = new Date();
     const last7Days = history.filter((d) => {
-      const diff = Math.round((today.getTime() - new Date(d.date).getTime()) / 86400000);
+      const diff = Math.round((today.getTime() - new Date(d.date || '').getTime()) / 86400000);
       return diff >= 0 && diff < 7;
     });
     const wins = last7Days.filter((d) => d.result === 'Z').length;
@@ -257,7 +259,7 @@ export default function Direction({ session }: { session: Session }) {
     const last7DaysStrings = Array.from({ length: 7 }).map((_, i) =>
       format(subDays(new Date(), i), 'yyyy-MM-dd')
     );
-    const totalLogs = habitLogs.filter((log) => last7DaysStrings.includes(log.date)).length;
+    const totalLogs = habitLogs.filter((log) => log.date && last7DaysStrings.includes(log.date)).length;
     const totalPossible = habits.length * 7;
     const habitPercent = totalPossible > 0 ? Math.round((totalLogs / totalPossible) * 100) : 0;
 
@@ -274,15 +276,16 @@ export default function Direction({ session }: { session: Session }) {
 
 
   async function togglePowerListTask(dayWin: DailyWinRow, index: number) {
+    const dayWinAny = dayWin as any;
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
-    const newValue = !dayWin[field];
+    const newValue = !dayWinAny[field];
     const timestamp = newValue ? new Date().toISOString() : null;
 
     const allDone = [1, 2, 3, 4, 5].every(i => {
-      if (!dayWin[`task_${i}`]) return true;
+      if (!dayWinAny[`task_${i}`]) return true;
       if (i === index + 1) return newValue;
-      return dayWin[`done_${i}`];
+      return dayWinAny[`done_${i}`];
     });
 
     const updates: TablesUpdate<'daily_wins'> = {
@@ -309,7 +312,7 @@ export default function Direction({ session }: { session: Session }) {
     }
   }
 
-  function toggleTaskSelection(id) {
+  function toggleTaskSelection(id: string) {
     setSelectedTaskIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -447,7 +450,7 @@ export default function Direction({ session }: { session: Session }) {
                   const dayDate = addDays(planWeekStart, i);
                   const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
                   const hasEvent = planCalEvents.some((e) =>
-                    new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
+                    new Date(e.start_time!).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
                   );
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -461,7 +464,7 @@ export default function Direction({ session }: { session: Session }) {
               {planCalEvents.length > 0 && (
                 <div className="max-h-[110px] overflow-y-auto space-y-1 rounded-xl border border-border-custom bg-surface/30 p-2.5">
                   {planCalEvents.map((ev, i) => {
-                    const eDay = new Date(ev.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                    const eDay = new Date(ev.start_time!).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
                     const dayIdx = DAYS_PL.findIndex((_, j) =>
                       addDays(planWeekStart, j).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === eDay
                     );
@@ -469,7 +472,7 @@ export default function Direction({ session }: { session: Session }) {
                       <p key={i} className="text-[10px] font-semibold text-text-secondary truncate">
                         <span className="font-black text-primary mr-1">{dayIdx >= 0 ? DAYS_PL[dayIdx] : ''}</span>
                         <span className="text-text-muted text-[9px] mr-1.5">
-                          {new Date(ev.start_time).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(ev.start_time!).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
                         </span>
                         {ev.summary}
                       </p>
@@ -707,10 +710,11 @@ export default function Direction({ session }: { session: Session }) {
                 const isToday = dayKey === todayWarsaw();
                 const dayWin = history.find((d) => d.date === dayKey);
                 const dayEvents = allCalEvents.filter((e) => 
-                  new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
+                  e.start_time && new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
                 );
 
-                const hasWins = dayWin && [0, 1, 2, 3, 4].some(slotIdx => dayWin[`task_${slotIdx + 1}`]);
+                const dayWinAny = dayWin as any;
+                const hasWins = dayWinAny && [0, 1, 2, 3, 4].some(slotIdx => dayWinAny[`task_${slotIdx + 1}`]);
                 const hasContent = dayEvents.length > 0 || hasWins;
 
                 if (!hasContent) {
@@ -772,7 +776,7 @@ export default function Direction({ session }: { session: Session }) {
                             {dayEvents.map((ev, idx) => (
                               <div key={idx} className="flex items-baseline gap-1.5 text-[10px] font-semibold text-text-secondary font-display">
                                 <span className="text-primary font-black shrink-0 text-[8.5px] mr-1">
-                                  {new Date(ev.start_time).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(ev.start_time!).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <span className="truncate">{ev.summary}</span>
                               </div>
@@ -790,14 +794,15 @@ export default function Direction({ session }: { session: Session }) {
                           </div>
                           <div className="space-y-2 pl-3 border-l border-border-custom/50">
                             {[0, 1, 2, 3, 4].map((slotIdx) => {
-                              const task = dayWin[`task_${slotIdx + 1}`];
-                              const done = dayWin[`done_${slotIdx + 1}`];
+                              const dayWinAny = dayWin as any;
+                              const task = dayWinAny[`task_${slotIdx + 1}`];
+                              const done = dayWinAny[`done_${slotIdx + 1}`];
                               if (!task) return null;
                               const isInteractive = isToday;
                               return (
                                 <div 
                                   key={slotIdx} 
-                                  onClick={() => isInteractive && togglePowerListTask(dayWin, slotIdx)}
+                                  onClick={() => isInteractive && togglePowerListTask(dayWin!, slotIdx)}
                                   className={`flex items-center gap-2 text-[11px] font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                                 >
                                   <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-300 ${
@@ -875,16 +880,17 @@ export default function Direction({ session }: { session: Session }) {
                   </span>
                 </div>
               )}
-              {weekGoals && GOAL_DEFS.some((g) => weekGoals[g.key]) && (
+              {weekGoals && GOAL_DEFS.some((g) => (weekGoals as any)[g.key]) && (
                 <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
                   <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele kierunkowe</p>
                   <div className="space-y-2.5">
-                    {GOAL_DEFS.filter((g) => weekGoals[g.key]).map(({ key, dateKey, Icon, color }) => {
-                      const days = weekGoals[dateKey] ? differenceInDays(parseISO(weekGoals[dateKey]), new Date()) : null;
+                    {GOAL_DEFS.filter((g) => (weekGoals as any)[g.key]).map(({ key, dateKey, Icon, color }) => {
+                      const weekGoalsAny = weekGoals as any;
+                      const days = weekGoalsAny[dateKey] ? differenceInDays(parseISO(weekGoalsAny[dateKey]), new Date()) : null;
                       return (
                         <div key={key} className="flex items-center gap-2.5">
                           <Icon size={13} className={`${color} shrink-0`} />
-                          <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{weekGoals[key]}</span>
+                          <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{weekGoalsAny[key]}</span>
                           {days !== null && (
                             <span className={`shrink-0 text-[9px] font-bold ${days <= 0 ? 'text-rose-500 font-black' : days <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
                               {days <= 0 ? `${Math.abs(days)}d po` : `za ${days}d`}

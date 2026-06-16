@@ -5,15 +5,21 @@ import { Check, CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-rea
 import { listTodoItems, updateTodoItem } from '../../lib/todo';
 import type { TablesUpdate } from '../../lib/database.types';
 
-const PRIORITY_DOT = {
+const PRIORITY_DOT: Record<string, string> = {
   low: 'bg-emerald-500',
   normal: 'bg-blue-500',
   high: 'bg-indigo-500',
   urgent: 'bg-rose-500',
 };
-const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 
-function TodoPicker({ items, onSelect, onClose }) {
+interface TodoPickerProps {
+  items: any[];
+  onSelect: (item: any) => void;
+  onClose: () => void;
+}
+
+function TodoPicker({ items, onSelect, onClose }: TodoPickerProps) {
   const [search, setSearch] = useState('');
   const filtered = search
     ? items.filter((i) => i.title.toLowerCase().includes(search.toLowerCase()))
@@ -55,22 +61,22 @@ function TodoPicker({ items, onSelect, onClose }) {
   );
 }
 
-export default function PowerList({ session, todayWin, onUpdate }) {
+export default function PowerList({ session, todayWin, onUpdate }: { session: any; todayWin: any; onUpdate?: (data: any) => void }) {
   const userId = session.user.id;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const haptics = useHaptics();
 
-  const [newTaskForm, setNewTaskForm] = useState([
+  const [newTaskForm, setNewTaskForm] = useState<Array<{ task: string; todoId: string | null }>>([
     { task: '', todoId: null },
     { task: '', todoId: null },
     { task: '', todoId: null },
     { task: '', todoId: null },
     { task: '', todoId: null },
   ]);
-  const [todoItems, setTodoItems] = useState([]);
+  const [todoItems, setTodoItems] = useState<any[]>([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
-  const pickerRef = useRef(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (todayWin) return;
@@ -91,8 +97,8 @@ export default function PowerList({ session, todayWin, onUpdate }) {
 
   useEffect(() => {
     if (pickerSlot < 0) return;
-    const handler = (e) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
         setPickerSlot(-1);
       }
     };
@@ -100,7 +106,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [pickerSlot]);
 
-  const updateSlot = (i, patch) => {
+  const updateSlot = (i: number, patch: Partial<{ task: string; todoId: string | null }>) => {
     setNewTaskForm((prev) => {
       const n = [...prev];
       n[i] = { ...n[i], ...patch };
@@ -108,7 +114,7 @@ export default function PowerList({ session, todayWin, onUpdate }) {
     });
   };
 
-  async function toggleTask(index) {
+  async function toggleTask(index: number) {
     if (!todayWin) return;
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
