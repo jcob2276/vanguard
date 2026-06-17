@@ -244,7 +244,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : filteredLinks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+              <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
                 <Inbox size={28} className="text-text-muted/40 mb-3" />
                 <p className="text-[14px] font-semibold text-text-secondary">Brak linków</p>
                 <p className="text-[12px] text-text-muted mt-1 max-w-[200px] leading-relaxed">
@@ -260,13 +260,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                   return (
                     <div
                       key={link.id}
-                      className={`rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-opacity ${
+                      className={`rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] active:scale-[0.99] ${
                         link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                       }`}
                     >
                       {/* Thumbnail (YouTube) */}
                       {link.thumbnail_url && (
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[18px] overflow-hidden">
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[24px] overflow-hidden">
                           <img
                             src={link.thumbnail_url}
                             alt={link.title}

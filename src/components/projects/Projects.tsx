@@ -312,7 +312,7 @@ export default function Projects({ session }: { session: any }) {
 
       {/* New project form */}
       {showForm && (
-        <div className="rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
+        <div className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
           <input
             autoFocus
             value={form.name}
@@ -374,7 +374,7 @@ export default function Projects({ session }: { session: any }) {
 
       {/* Project cards */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center rounded-[18px] bg-surface/50">
+        <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
           <FolderKanban size={28} className="text-text-muted/30 mb-3" />
           <p className="text-[14px] font-semibold text-text-secondary">Brak projektów</p>
           <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy" żeby zacząć.</p>
@@ -391,7 +391,7 @@ export default function Projects({ session }: { session: any }) {
             return (
               <div
                 key={project.id}
-                className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] overflow-hidden"
+                className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
               >
                 {/* Card header */}
                 <button

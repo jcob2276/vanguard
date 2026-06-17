@@ -105,7 +105,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             </div>
 
             {/* Summaries */}
-            <div className="space-y-2 rounded-[20px] border border-border-custom bg-surface/30 p-4">
+            <div className="space-y-2 rounded-[24px] border border-border-custom bg-surface/30 p-4">
               {r.coach_decision_summary && (
                 <p className="text-[11.5px] text-dayC font-semibold leading-relaxed border-l-2 border-dayC/40 pl-2.5 mb-2">{r.coach_decision_summary}</p>
               )}
@@ -121,7 +121,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
 
             {/* Injury risk details */}
             {r.injury_risk && ((r.injury_risk.flags?.length ?? 0) > 0 || r.injury_risk.prevention) && (
-              <div className={`rounded-[20px] border p-4 space-y-2 ${injuryColor}`}>
+              <div className={`rounded-[24px] border p-4 space-y-2 ${injuryColor}`}>
                 <p className="text-[8px] font-black uppercase tracking-widest opacity-80">Ryzyko kontuzji</p>
                 {r.injury_risk.flags?.map((f: any, i: number) => (
                   <p key={i} className="text-[10.5px] leading-snug font-medium opacity-90">• {f}</p>
@@ -164,7 +164,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
 
             {/* Muscle gaps */}
             {(r.missing_muscles?.length ?? 0) > 0 && (
-              <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/5 p-4">
+              <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/5 p-4">
                 <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2">Brakujące partie</p>
                 <div className="flex flex-wrap gap-2">
                   {r.missing_muscles.map((m: any, i: number) => (
@@ -188,7 +188,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Rekomendacje</p>
                 <div className="space-y-2">
                   {r.recommendations.map((rec: any, i: number) => (
-                    <div key={i} className="rounded-[20px] border border-border-custom bg-surface/30 p-4 flex gap-3 shadow-sm">
+                    <div key={i} className="rounded-[24px] border border-border-custom bg-surface/30 p-4 flex gap-3 shadow-sm">
                       <span className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary">{rec.priority}</span>
                       <div className="min-w-0">
                         <p className="text-[11.5px] font-black text-text-primary">{rec.action}</p>

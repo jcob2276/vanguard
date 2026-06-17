@@ -402,32 +402,71 @@
 .bg-dayC { background-color: #10b981; }
 .bg-dayD { background-color: #f59e0b; }
 
-/* Premium Native Transition Animations */
+/* ── View Transitions API — iOS/Pixel tab swipe ── */
+@keyframes vt-enter-right {
+  from { transform: translateX(48px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0)    scale(1);    opacity: 1; }
+}
+@keyframes vt-exit-left {
+  from { transform: translateX(0)     scale(1);    opacity: 1; }
+  to   { transform: translateX(-28px) scale(0.97); opacity: 0; }
+}
+@keyframes vt-enter-left {
+  from { transform: translateX(-48px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0)     scale(1);    opacity: 1; }
+}
+@keyframes vt-exit-right {
+  from { transform: translateX(0)    scale(1);    opacity: 1; }
+  to   { transform: translateX(28px) scale(0.97); opacity: 0; }
+}
+
+:root[data-slide="right"]::view-transition-old(tab-content) {
+  animation: 0.22s ease-in vt-exit-left both;
+}
+:root[data-slide="right"]::view-transition-new(tab-content) {
+  animation: 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) vt-enter-right both;
+}
+:root[data-slide="left"]::view-transition-old(tab-content) {
+  animation: 0.22s ease-in vt-exit-right both;
+}
+:root[data-slide="left"]::view-transition-new(tab-content) {
+  animation: 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) vt-enter-left both;
+}
+
+/* Suppress default full-page fade — only tab-content animates */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Assigns view-transition-name without TS CSSProperties conflict */
+.vt-tab-main {
+  view-transition-name: tab-content;
+}
+
+/* ── Fallback (przeglądarki bez VT) ── */
 @keyframes spring-slide-right {
-  0% { transform: translateX(24px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(40px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0)    scale(1);    opacity: 1; }
 }
-
 @keyframes spring-slide-left {
-  0% { transform: translateX(-24px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(-40px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0)     scale(1);    opacity: 1; }
 }
-
-@keyframes ios-modal-slide-up {
-  0% { transform: translateY(40px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
 .animate-spring-right {
-  animation: spring-slide-right 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: spring-slide-right 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-
 .animate-spring-left {
-  animation: spring-slide-left 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: spring-slide-left 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* ── iOS modal slide-up ── */
+@keyframes ios-modal-slide-up {
+  from { transform: translateY(48px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
 .animate-ios-modal {
-  animation: ios-modal-slide-up 0.42s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
+  animation: ios-modal-slide-up 0.38s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

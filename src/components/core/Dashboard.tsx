@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -43,6 +44,7 @@ const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
+const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
 
 const normalizeView = (view: string | null | undefined) => {
   if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
@@ -403,15 +405,23 @@ export default function Dashboard({ session }: { session: any }) {
   const [transitioning, setTransitioning] = useState(false);
 
   const navigateTo = useCallback((newView: string) => {
-    if (newView === view || transitioning) return;
+    if (newView === view) return;
     haptics.light();
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx = TAB_ORDER.indexOf(newView);
-    setSlideDir(toIdx >= fromIdx ? 'right' : 'left');
-    setTransitioning(true);
-    setView(newView);
-    setTimeout(() => setTransitioning(false), 400);
-  }, [view, transitioning, haptics]);
+    const dir = toIdx >= fromIdx ? 'right' : 'left';
+    document.documentElement.dataset.slide = dir;
+    setSlideDir(dir);
+    if (supportsVT) {
+      (document as any).startViewTransition(() => {
+        flushSync(() => setView(newView));
+      });
+    } else {
+      setTransitioning(true);
+      setView(newView);
+      setTimeout(() => setTransitioning(false), 400);
+    }
+  }, [view, haptics]);
   const { isSyncing, setSyncing } = useStore();
   const {
     weeklyCalories,
@@ -665,9 +675,9 @@ export default function Dashboard({ session }: { session: any }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden vt-tab-main">
           {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
-          <div className={`p-5 pb-8 ${view === 'dzis' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
               <JedenPriorytetCard
@@ -697,7 +707,7 @@ export default function Dashboard({ session }: { session: any }) {
             </div>
           </div>
 
-          <div className={`p-5 pb-8 ${view === 'tydzien' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'tydzien' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <NutritionCard
@@ -711,7 +721,7 @@ export default function Dashboard({ session }: { session: any }) {
             </Suspense>
           </div>
 
-          <div className={`p-5 pb-8 ${view === 'historia' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'historia' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
@@ -721,7 +731,7 @@ export default function Dashboard({ session }: { session: any }) {
             </Suspense>
           </div>
 
-          <div className={`p-5 pb-8 ${view === 'projekty' ? (slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'projekty' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <Projects session={session} />
             </Suspense>

@@ -346,7 +346,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
               <button
                 key={i}
                 onClick={() => toggleTask(i)}
-                className={`group flex w-full cursor-pointer items-center justify-between rounded-[20px] border p-4 transition-all duration-200 active:scale-[0.98] ${
+                className={`group flex w-full cursor-pointer items-center justify-between rounded-[24px] border p-4 transition-all duration-200 active:scale-[0.98] ${
                   done
                     ? 'border-border-custom bg-surface/30 opacity-60 shadow-none'
                     : 'border-border-custom bg-surface shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'

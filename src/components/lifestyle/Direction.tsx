@@ -69,7 +69,7 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
 
 function MiniStat({ label, value, tone = 'text-text-primary', detail }: { label: string; value: string | number; tone?: string; detail?: string | null }) {
   return (
-    <div className="rounded-[20px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
+    <div className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-4 shadow-sm">
       <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</p>
       <p className={`mt-2 text-[20px] font-black uppercase leading-none tracking-tight ${tone} font-display`}>{value}</p>
       {detail && <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-text-muted">{detail}</p>}
@@ -723,7 +723,7 @@ export default function Direction({ session }: { session: Session }) {
             </div>
 
             {/* 2. Mapka 28 dni */}
-            <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+            <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
               <div className="grid grid-cols-7 gap-2">
                 {Array.from({ length: 28 }).map((_, index) => {
                   const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
@@ -744,7 +744,7 @@ export default function Direction({ session }: { session: Session }) {
 
             {/* 3. Lekcja z poprzedniego tygodnia */}
             {prevWeekReview?.bottleneck && (
-              <div className="rounded-[20px] border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm flex gap-3 items-start animate-in fade-in-50 duration-300">
+              <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm flex gap-3 items-start animate-in fade-in-50 duration-300">
                 <span className="text-[18px] leading-none">💡</span>
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-0.5 font-display">Lekcja na ten tydzień</p>
@@ -774,7 +774,7 @@ export default function Direction({ session }: { session: Session }) {
                   return (
                     <div 
                       key={i} 
-                      className={`min-w-[150px] max-w-[170px] shrink-0 flex flex-col rounded-[22px] border p-4 snap-align-start transition-all ${
+                      className={`min-w-[150px] max-w-[170px] shrink-0 flex flex-col rounded-[24px] border p-4 snap-align-start transition-all ${
                         isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
                       }`}
                     >
@@ -796,7 +796,7 @@ export default function Direction({ session }: { session: Session }) {
                 return (
                   <div 
                     key={i} 
-                    className={`min-w-[260px] max-w-[280px] shrink-0 flex flex-col rounded-[22px] border bg-surface p-4 shadow-sm transition-all duration-300 snap-align-start ${
+                    className={`min-w-[260px] max-w-[280px] shrink-0 flex flex-col rounded-[24px] border bg-surface p-4 shadow-sm transition-all duration-300 snap-align-start ${
                       isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
                     }`}
                   >
@@ -882,7 +882,7 @@ export default function Direction({ session }: { session: Session }) {
 
             {/* 4. Fokus tygodnia — tylko jeśli zatwierdzony */}
             {focusTasks.length > 0 && (
-              <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+              <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
                 <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Fokus tygodnia</p>
                 <div className="space-y-3.5">
                   {[
@@ -921,7 +921,7 @@ export default function Direction({ session }: { session: Session }) {
             {/* 5. Sentyment + Cele */}
             <div className="space-y-3">
               {currentReview?.week_sentiment && (
-                <div className="rounded-[20px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
+                <div className="rounded-[24px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
                   <span className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
                   <span className={`text-[9px] font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
                     currentReview.week_sentiment === 'excellent' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
@@ -934,7 +934,7 @@ export default function Direction({ session }: { session: Session }) {
                 </div>
               )}
               {weekGoals && GOAL_DEFS.some((g) => (weekGoals as any)[g.key]) && (
-                <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+                <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
                   <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele kierunkowe</p>
                   <div className="space-y-2.5">
                     {GOAL_DEFS.filter((g) => (weekGoals as any)[g.key]).map(({ key, dateKey, Icon, color }) => {

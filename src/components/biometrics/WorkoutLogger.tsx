@@ -626,7 +626,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
         </div>
 
         {/* Manual Time Picker Row */}
-        <div className="rounded-[20px] border border-border-custom bg-surface p-4 space-y-3 shadow-sm">
+        <div className="rounded-[24px] border border-border-custom bg-surface p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock size={14} className="text-text-muted" />
