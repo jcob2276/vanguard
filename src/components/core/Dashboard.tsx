@@ -680,7 +680,7 @@ export default function Dashboard({ session }: { session: any }) {
           <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
-              <JedenPriorytetCard
+              {/* <JedenPriorytetCard
                 session={session}
                 todayWin={todayWin}
                 streak={streakCount}
@@ -689,8 +689,8 @@ export default function Dashboard({ session }: { session: any }) {
                   localStorage.setItem('vanguard_previous_view', view);
                   setView('morning-ritual');
                 }}
-              />
-              {/* <GoalsCard session={session} /> */}
+              /> */}
+              <GoalsCard session={session} />
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
