@@ -699,10 +699,7 @@ export default function Dashboard({ session }: { session: any }) {
                   setView('morning-ritual');
                 }}
               /> */}
-              <GoalsCard session={session} onOpenWeeklyReview={() => {
-                localStorage.setItem('vanguard_previous_view', view);
-                setView('weekly-review');
-              }} />
+              <GoalsCard session={session} />
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
@@ -745,7 +742,10 @@ export default function Dashboard({ session }: { session: any }) {
 
           <div className={`p-5 pb-8 ${view === 'projekty' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
-              <Projects session={session} />
+              <Projects session={session} onNavigateTo={(dest) => {
+                localStorage.setItem('vanguard_previous_view', view);
+                setView(dest);
+              }} />
             </Suspense>
           </div>
         </main>

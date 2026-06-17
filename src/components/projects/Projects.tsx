@@ -60,7 +60,7 @@ const STATUS_TABS = [
 const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
 const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
 
-export default function Projects({ session }: { session: any }) {
+export default function Projects({ session, onNavigateTo }: { session: any; onNavigateTo?: (view: string) => void }) {
   const userId = session.user.id;
 
   const [projects, setProjects]   = useState<any[]>([]);
@@ -320,15 +320,25 @@ export default function Projects({ session }: { session: any }) {
           <h2 className="text-[20px] font-bold tracking-tight text-text-primary">Projekty</h2>
           <p className="text-[12px] text-text-muted">{projects.filter(p => p.status === 'active').length} aktywnych</p>
         </div>
-        <button
-          onClick={() => setShowForm(v => !v)}
-          className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
-            showForm ? 'bg-surface-solid text-text-muted' : 'bg-primary text-white shadow-md shadow-primary/20'
-          }`}
-        >
-          {showForm ? <X size={14} /> : <Plus size={14} />}
-          {showForm ? 'Anuluj' : 'Nowy'}
-        </button>
+        <div className="flex items-center gap-2">
+          {onNavigateTo && (
+            <button
+              onClick={() => onNavigateTo('weekly-review')}
+              className="rounded-full border border-border-custom bg-surface/50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
+            >
+              Weekly Review
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(v => !v)}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
+              showForm ? 'bg-surface-solid text-text-muted' : 'bg-primary text-white shadow-md shadow-primary/20'
+            }`}
+          >
+            {showForm ? <X size={14} /> : <Plus size={14} />}
+            {showForm ? 'Anuluj' : 'Nowy'}
+          </button>
+        </div>
       </div>
 
       {/* New project form */}

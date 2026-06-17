@@ -45,7 +45,7 @@ const THEME: Record<string, { card: string; accent: string; text: string; chip: 
   },
 };
 
-export default function GoalsCard({ session, onOpenWeeklyReview }: { session: Session; onOpenWeeklyReview?: () => void }) {
+export default function GoalsCard({ session }: { session: Session }) {
   const [goals, setGoals]     = useState<LifeGoalRow | null>(null);
   const [bhag, setBhag]       = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -121,17 +121,7 @@ export default function GoalsCard({ session, onOpenWeeklyReview }: { session: Se
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Cele</p>
-        {onOpenWeeklyReview && (
-          <button
-            onClick={onOpenWeeklyReview}
-            className="rounded-xl border border-border-custom bg-surface/50 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
-          >
-            Weekly Review →
-          </button>
-        )}
-      </div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Cele</p>
 
       {/* ── 3 clean goal cards ── */}
       <div className="space-y-2.5">
