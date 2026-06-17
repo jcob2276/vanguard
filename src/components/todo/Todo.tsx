@@ -1167,6 +1167,15 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     finally { setBusy(false); }
   };
 
+  // Optimistic mutation — updates local state immediately, reverts on error
+  const mutate = (patch: (prev: any[]) => any[], apiFn: () => Promise<any>) => {
+    setItems(patch);
+    apiFn().catch((err) => {
+      setError(err instanceof Error ? err.message : String(err));
+      fetchAll();
+    });
+  };
+
   const classifyInBackground = useCallback((item: any) => {
     const base = import.meta.env.VITE_SUPABASE_URL;
     fetch(`${base}/functions/v1/vanguard-todo-classify`, {
@@ -1250,36 +1259,69 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
   const handleComplete = useCallback((item: any) => {
     const newStatus = item.status === 'done' ? 'open' : 'done';
-    run(async () => {
-      await setTodoStatus(item, newStatus);
-      if (newStatus === 'done' && item.recurrence) {
-        const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
-        await createTodoItem(userId, {
-          title: item.title, notes: item.notes, priority: item.priority,
-          tagsText: (item.tags || []).join(', '), section_id: item.section_id,
-          due_date: nextDate, recurrence: item.recurrence,
-        });
-      }
-    });
+    const now = new Date().toISOString();
+    setItems(prev => prev.map(i => i.id === item.id
+      ? { ...i, status: newStatus, completed_at: newStatus === 'done' ? now : null }
+      : i
+    ));
+    setTodoStatus(item, newStatus)
+      .then(async () => {
+        if (newStatus === 'done' && item.recurrence) {
+          const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
+          const newItem = await createTodoItem(userId, {
+            title: item.title, notes: item.notes, priority: item.priority,
+            tagsText: (item.tags || []).join(', '), section_id: item.section_id,
+            due_date: nextDate, recurrence: item.recurrence,
+          });
+          setItems(prev => [...prev, newItem]);
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : String(err));
+        setItems(prev => prev.map(i => i.id === item.id
+          ? { ...i, status: item.status, completed_at: item.completed_at }
+          : i
+        ));
+      });
   }, [today, userId]);
 
   const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
     <TodoCard
       key={item.id}
       item={item}
-      busy={busy}
+      busy={false}
       today={today}
       expanded={expandedId === item.id}
       onToggleExpand={toggleExpand}
       onToggle={() => handleComplete(item)}
-      onSetPriority={(pid: string) => { if (pid !== item.priority) run(() => updateTodoItem(item.id, { priority: pid })); }}
-      onDrop={() => run(() => setTodoStatus(item, 'dropped'))}
+      onSetPriority={(pid: string) => {
+        if (pid === item.priority) return;
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, priority: pid } : i));
+        updateTodoItem(item.id, { priority: pid }).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, priority: item.priority } : i));
+        });
+      }}
+      onDrop={() => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'dropped' } : i));
+        setTodoStatus(item, 'dropped').catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: item.status } : i));
+        });
+      }}
       onToggleSubtask={(idx: number) => toggleSubtask(item, idx)}
       onAddSubtask={(text: string) => addSubtask(item, text)}
       onDeleteSubtask={(idx: number) => deleteSubtask(item, idx)}
       isLinkedToPlan={linkedPlanIds.has(item.id)}
       sections={sections}
-      onMoveSection={(sId: string | null) => { if (sId !== item.section_id) run(() => updateTodoItem(item.id, { section_id: sId })); }}
+      onMoveSection={(sId: string | null) => {
+        if (sId === item.section_id) return;
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, section_id: sId } : i));
+        updateTodoItem(item.id, { section_id: sId }).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, section_id: item.section_id } : i));
+        });
+      }}
       isEditing={editingId === item.id}
       editingTitle={editingTitle}
       onEditStart={(t: string) => { setEditingId(item.id); setEditingTitle(t); }}
@@ -1291,8 +1333,20 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       onDragStart={handleDragStart}
       isDragging={draggingItem !== null}
       onShowContextMenu={showContextMenu}
-      onMoveToToday={!inToday ? () => run(() => updateTodoItem(item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() })) : undefined}
-      onSetRecurrence={(r: string | null) => run(() => updateTodoItem(item.id, { recurrence: r || undefined }))}
+      onMoveToToday={!inToday ? () => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() } : i));
+        updateTodoItem(item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() }).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, due_date: item.due_date, ai_bucket: item.ai_bucket, ai_classified_at: item.ai_classified_at } : i));
+        });
+      } : undefined}
+      onSetRecurrence={(r: string | null) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, recurrence: r || null } : i));
+        updateTodoItem(item.id, { recurrence: r || undefined }).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, recurrence: item.recurrence } : i));
+        });
+      }}
       session={session}
       onAddSubtasksBatch={(texts: string[]) => addSubtasksBatch(item, texts)}
     />
@@ -1318,11 +1372,48 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           today={today}
           sections={sections}
           onClose={() => setContextMenu(null)}
-          onComplete={() => run(() => setTodoStatus(contextMenu.item, contextMenu.item.status === 'done' ? 'open' : 'done'))}
-          onDrop={() => run(() => setTodoStatus(contextMenu.item, 'dropped'))}
-          onMoveToToday={() => run(() => updateTodoItem(contextMenu.item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() }))}
-          onClearDueDate={() => run(() => updateTodoItem(contextMenu.item.id, { due_date: null, ai_bucket: null }))}
-          onMoveSection={(sId: string | null) => run(() => updateTodoItem(contextMenu.item.id, { section_id: sId }))}
+          onComplete={() => {
+            const cm = contextMenu;
+            const newStatus = cm.item.status === 'done' ? 'open' : 'done';
+            setContextMenu(null);
+            handleComplete(cm.item);
+          }}
+          onDrop={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, status: 'dropped' } : i));
+            setTodoStatus(cm.item, 'dropped').catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, status: cm.item.status } : i));
+            });
+          }}
+          onMoveToToday={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() } : i));
+            updateTodoItem(cm.item.id, { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: cm.item.due_date, ai_bucket: cm.item.ai_bucket, ai_classified_at: cm.item.ai_classified_at } : i));
+            });
+          }}
+          onClearDueDate={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: null, ai_bucket: null } : i));
+            updateTodoItem(cm.item.id, { due_date: null, ai_bucket: null }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: cm.item.due_date, ai_bucket: cm.item.ai_bucket } : i));
+            });
+          }}
+          onMoveSection={(sId: string | null) => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, section_id: sId } : i));
+            updateTodoItem(cm.item.id, { section_id: sId }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, section_id: cm.item.section_id } : i));
+            });
+          }}
         />
       )}
 
