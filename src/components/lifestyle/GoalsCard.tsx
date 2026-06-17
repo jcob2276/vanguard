@@ -191,7 +191,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                       <span className={`text-[9px] shrink-0 ${theme.text}`}>✦</span>
                       <span className="text-[11px] text-text-secondary truncate flex-1">{dream.title}</span>
                       {proj && (
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
+                        <span className={`shrink-0 max-w-[80px] truncate rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
                           {proj.name}
                         </span>
                       )}
@@ -303,16 +303,16 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                               <div className="min-w-0 flex-1">
                                 <p className="text-[11px] font-semibold text-text-primary truncate leading-snug">{dream.title}</p>
                                 {proj ? (
-                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                    <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
+                                  <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                                    <span className={`max-w-[110px] truncate shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
                                       {proj.name}
                                     </span>
                                     {stalled ? (
-                                      <span className="flex items-center gap-0.5 text-[8px] font-bold text-amber-500">
+                                      <span className="flex items-center gap-0.5 text-[8px] font-bold text-amber-500 shrink-0">
                                         <AlertTriangle size={8} /> brak zadań
                                       </span>
                                     ) : (
-                                      <span className="text-[8px] text-text-muted">{openCount} otwartych</span>
+                                      <span className="text-[8px] text-text-muted shrink-0">{openCount} otwartych</span>
                                     )}
                                   </div>
                                 ) : (
@@ -323,11 +323,6 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                           );
                         })}
 
-                        {withoutProject.length > 0 && (
-                          <p className="text-[8px] text-amber-500/70 font-bold pl-3.5 mt-0.5">
-                            ! {withoutProject.length} {withoutProject.length === 1 ? 'marzenie bez' : 'marzeń bez'} projektu
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
