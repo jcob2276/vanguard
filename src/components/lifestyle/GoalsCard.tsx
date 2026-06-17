@@ -44,7 +44,7 @@ export default function GoalsCard({ session }: { session: Session }) {
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Cele</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Kierunek</p>
 
       <div className="space-y-2.5">
         {PILLARS.map(({ id, goalKey, dateKey, label, icon: Icon }) => {

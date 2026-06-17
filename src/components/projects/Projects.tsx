@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
   AlertTriangle,
   CalendarDays,
   Check,
@@ -8,15 +9,20 @@ import {
   Edit3,
   Flag,
   FolderKanban,
+  GitBranch,
   Plus,
   Repeat2,
   Save,
   Shield,
+  Target,
   Trash2,
+  TrendingUp,
   Wallet,
   X,
   Zap,
 } from 'lucide-react';
+import { listGoals, createGoal, deleteGoal } from '../../lib/goals';
+import type { Goal } from '../../lib/goals';
 import { differenceInDays, format } from 'date-fns';
 import {
   listProjects,
@@ -60,7 +66,7 @@ const STATUS_TABS = [
 const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
 const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
 
-export default function Projects({ session, onNavigateTo }: { session: any; onNavigateTo?: (view: string) => void }) {
+export default function Projects({ session, onNavigateTo, reviewOverdueDays = null }: { session: any; onNavigateTo?: (view: string) => void; reviewOverdueDays?: number | null }) {
   const userId = session.user.id;
 
   const [projects, setProjects]   = useState<any[]>([]);
@@ -74,7 +80,7 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showForm, setShowForm]   = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'paused' | 'done'>('active');
-  const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
+  const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '', goal_id: '' });
   const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
@@ -82,25 +88,37 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
   const [retroProject, setRetroProject] = useState<any | null>(null);
   const [retroForm, setRetroForm] = useState({ good: '', improve: '', rating: 0 });
 
-  const goTo = (view: string) => {
-    localStorage.setItem('vanguard_view', view);
-    window.location.href = '/';
-  };
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [kpis, setKpis] = useState<any[]>([]);
+  const [lifeGoals, setLifeGoals] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'projekty' | 'cele' | 'hierarchia'>('hierarchia');
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [newGoal, setNewGoal] = useState({ title: '', dream_id: '', pillar: '', target_date: '' });
+  const [inlineGoalFor, setInlineGoalFor] = useState<string | null>(null);
+  const [inlineGoalTitle, setInlineGoalTitle] = useState('');
+  const [inlineProjectFor, setInlineProjectFor] = useState<string | null>(null);
+  const [inlineProjectTitle, setInlineProjectTitle] = useState('');
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, { data: d }] = await Promise.all([
+      const [p, s, i, c, { data: d }, g, { data: k }, { data: lg }] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
         listProjectCheckpoints(userId),
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
+        listGoals(userId),
+        supabase.from('goal_kpis').select('id, name, pillar, goal_id, target').eq('user_id', userId),
+        supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
       setCheckpoints(c ?? []);
       setDreams(d ?? []);
+      setGoals(g ?? []);
+      setKpis(k ?? []);
+      setLifeGoals(lg ?? null);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -158,6 +176,25 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
   }, [checkpoints]);
 
   // ── Handlers ──
+  const handleCreateGoal = () => {
+    if (!newGoal.title.trim()) return;
+    run(async () => {
+      await createGoal(userId, {
+        title: newGoal.title.trim(),
+        dream_id: newGoal.dream_id || null,
+        pillar: newGoal.pillar || null,
+        target_date: newGoal.target_date || null,
+      });
+      setNewGoal({ title: '', dream_id: '', pillar: '', target_date: '' });
+      setShowGoalForm(false);
+    });
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    if (!confirm('Usunąć cel? Projekty i KPI powiązane zostają (stracą link do celu).')) return;
+    run(() => deleteGoal(id));
+  };
+
   const handleCreate = () => {
     if (!form.name.trim()) return;
     run(async () => {
@@ -167,12 +204,13 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
         deadline: form.deadline || undefined,
         color: form.color,
         dream_id: form.dream_id || undefined,
+        goal_id: (form.goal_id || undefined) as any,
       })) as any;
       const section = (await createTodoSection(userId, form.name.trim())) as any;
       if (section?.id && project?.id) {
         await linkSectionToProject(section.id, project.id);
       }
-      setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
+      setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '', goal_id: '' });
       setShowForm(false);
     });
   };
@@ -318,10 +356,10 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[20px] font-bold tracking-tight text-text-primary">Projekty</h2>
-          <p className="text-[12px] text-text-muted">{projects.filter(p => p.status === 'active').length} aktywnych</p>
+          <p className="text-[12px] text-text-muted">{projects.filter(p => p.status === 'active').length} aktywnych · {goals.length} celów</p>
         </div>
         <div className="flex items-center gap-2">
-          {onNavigateTo && (
+          {onNavigateTo && !(reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
             <button
               onClick={() => onNavigateTo('weekly-review')}
               className="rounded-full border border-border-custom bg-surface/50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
@@ -329,17 +367,413 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
               Weekly Review
             </button>
           )}
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
-              showForm ? 'bg-surface-solid text-text-muted' : 'bg-primary text-white shadow-md shadow-primary/20'
-            }`}
-          >
-            {showForm ? <X size={14} /> : <Plus size={14} />}
-            {showForm ? 'Anuluj' : 'Nowy'}
-          </button>
+          {viewMode === 'projekty' && (
+            <button
+              onClick={() => setShowForm(v => !v)}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
+                showForm ? 'bg-surface-solid text-text-muted' : 'bg-primary text-white shadow-md shadow-primary/20'
+              }`}
+            >
+              {showForm ? <X size={14} /> : <Plus size={14} />}
+              {showForm ? 'Anuluj' : 'Nowy'}
+            </button>
+          )}
+          {viewMode === 'cele' && (
+            <button
+              onClick={() => setShowGoalForm(v => !v)}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
+                showGoalForm ? 'bg-surface-solid text-text-muted' : 'bg-primary text-white shadow-md shadow-primary/20'
+              }`}
+            >
+              {showGoalForm ? <X size={14} /> : <Plus size={14} />}
+              {showGoalForm ? 'Anuluj' : 'Nowy cel'}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* View mode tabs */}
+      <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+        {([
+          { id: 'hierarchia', label: 'Hierarchia', icon: GitBranch },
+          { id: 'cele',       label: 'Cele',       icon: Target },
+          { id: 'projekty',   label: 'Projekty',   icon: FolderKanban },
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setViewMode(tab.id)}
+            className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all ${
+              viewMode === tab.id
+                ? 'bg-background text-text-primary shadow-sm'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            <tab.icon size={12} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── CELE VIEW ── */}
+      {viewMode === 'cele' && (
+        <div className="space-y-4">
+          {showGoalForm && (
+            <div className="rounded-[20px] border border-border-custom bg-surface p-4 space-y-3">
+              <input
+                autoFocus
+                value={newGoal.title}
+                onChange={e => setNewGoal(g => ({ ...g, title: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateGoal(); }}
+                placeholder="Nazwa celu..."
+                className="w-full bg-transparent text-[15px] font-medium text-text-primary outline-none placeholder:text-text-muted/40"
+              />
+              <select
+                value={newGoal.dream_id}
+                onChange={e => setNewGoal(g => ({ ...g, dream_id: e.target.value }))}
+                className="w-full rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+              >
+                <option value="">— Z którego marzenia? (opcjonalnie) —</option>
+                {dreams.filter(d => !d.is_done).map(d => (
+                  <option key={d.id} value={d.id}>{d.title}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <select
+                  value={newGoal.pillar}
+                  onChange={e => setNewGoal(g => ({ ...g, pillar: e.target.value }))}
+                  className="flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+                >
+                  <option value="">— Filar —</option>
+                  <option value="cialo">Ciało</option>
+                  <option value="duch">Duch</option>
+                  <option value="konto">Konto</option>
+                </select>
+                <input
+                  type="date"
+                  value={newGoal.target_date}
+                  onChange={e => setNewGoal(g => ({ ...g, target_date: e.target.value }))}
+                  className="flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30"
+                />
+              </div>
+              <button
+                onClick={handleCreateGoal}
+                disabled={busy || !newGoal.title.trim()}
+                className="w-full rounded-[12px] bg-primary py-2.5 text-[13px] font-semibold text-white disabled:opacity-40"
+              >
+                Utwórz cel
+              </button>
+            </div>
+          )}
+
+          {goals.length === 0 && !showGoalForm && (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
+              <Target size={28} className="text-text-muted/30 mb-3" />
+              <p className="text-[14px] font-semibold text-text-secondary">Brak celów</p>
+              <p className="text-[12px] text-text-muted mt-1">Cele łączą marzenia z projektami.</p>
+            </div>
+          )}
+
+          {(['cialo', 'duch', 'konto'] as const).map(pillar => {
+            const PILLAR_META = {
+              cialo: { label: 'Ciało',  Icon: Shield, chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+              duch:  { label: 'Duch',   Icon: Zap,    chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'   },
+              konto: { label: 'Konto',  Icon: Wallet, chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'      },
+            };
+            const meta = PILLAR_META[pillar];
+            const pillarGoals = goals.filter(g => {
+              if (g.pillar === pillar) return true;
+              if (!g.pillar && g.dream_id) {
+                const dream = dreamById[g.dream_id];
+                return dream?.life_goal === pillar;
+              }
+              return false;
+            });
+            if (pillarGoals.length === 0) return null;
+            return (
+              <div key={pillar} className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <meta.Icon size={12} className={meta.chip.split(' ')[1]} />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">{meta.label}</span>
+                </div>
+                {pillarGoals.map(goal => {
+                  const linkedProjects = projects.filter(p => (p as any).goal_id === goal.id);
+                  const linkedKpis = kpis.filter(k => k.goal_id === goal.id);
+                  const dream = goal.dream_id ? dreamById[goal.dream_id] : null;
+                  return (
+                    <div key={goal.id} className="flex items-center gap-3 rounded-[16px] border border-border-custom bg-surface px-4 py-3">
+                      <Target size={14} className="shrink-0 text-text-muted/50" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-semibold text-text-primary leading-tight">{goal.title}</p>
+                        {dream && (
+                          <p className="text-[11px] text-text-muted mt-0.5 truncate">✦ {dream.title}</p>
+                        )}
+                        <div className="flex gap-2 mt-1.5">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${linkedProjects.length > 0 ? 'bg-primary/10 text-primary' : 'bg-rose-500/10 text-rose-500'}`}>
+                            {linkedProjects.length > 0 ? `${linkedProjects.length} projekt${linkedProjects.length > 1 ? 'y' : ''}` : '⚠ brak projektu'}
+                          </span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${linkedKpis.length > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
+                            {linkedKpis.length > 0 ? `${linkedKpis.length} KPI` : '⚠ brak KPI'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="shrink-0 rounded-full p-1.5 text-text-muted/35 hover:bg-rose-500/10 hover:text-rose-500"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {/* Goals without a known pillar */}
+          {goals.filter(g => {
+            if (g.pillar && ['cialo','duch','konto'].includes(g.pillar)) return false;
+            if (g.dream_id && dreamById[g.dream_id]?.life_goal) return false;
+            return true;
+          }).map(goal => {
+            const linkedProjects = projects.filter(p => (p as any).goal_id === goal.id);
+            const linkedKpis = kpis.filter(k => k.goal_id === goal.id);
+            return (
+              <div key={goal.id} className="flex items-center gap-3 rounded-[16px] border border-border-custom bg-surface px-4 py-3">
+                <Target size={14} className="shrink-0 text-text-muted/50" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-text-primary">{goal.title}</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${linkedProjects.length > 0 ? 'bg-primary/10 text-primary' : 'bg-rose-500/10 text-rose-500'}`}>
+                      {linkedProjects.length > 0 ? `${linkedProjects.length} projekt${linkedProjects.length > 1 ? 'y' : ''}` : '⚠ brak projektu'}
+                    </span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${linkedKpis.length > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
+                      {linkedKpis.length > 0 ? `${linkedKpis.length} KPI` : '⚠ brak KPI'}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={() => handleDeleteGoal(goal.id)} className="shrink-0 rounded-full p-1.5 text-text-muted/35 hover:bg-rose-500/10 hover:text-rose-500">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── HIERARCHIA VIEW ── */}
+      {viewMode === 'hierarchia' && (
+        <div className="space-y-5">
+          {(['cialo', 'duch', 'konto'] as const).map(pillarId => {
+            const PILLAR_CFG = {
+              cialo: { label: 'Ciało',  icon: Shield, goalKey: 'goal_cialo',
+                border: 'border-emerald-500/25', headerBg: 'bg-emerald-500/[0.05]',
+                text: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/15' },
+              duch:  { label: 'Duch',   icon: Zap,    goalKey: 'goal_duch',
+                border: 'border-indigo-500/25',  headerBg: 'bg-indigo-500/[0.05]',
+                text: 'text-indigo-600 dark:text-indigo-400', iconBg: 'bg-indigo-500/15' },
+              konto: { label: 'Konto',  icon: Wallet, goalKey: 'goal_konto',
+                border: 'border-amber-500/25',   headerBg: 'bg-amber-500/[0.05]',
+                text: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/15' },
+            }[pillarId];
+            const PillarIcon = PILLAR_CFG.icon;
+            const lifeGoalText = (lifeGoals as any)?.[PILLAR_CFG.goalKey] ?? null;
+            const pillarGoals = goals.filter(g =>
+              g.pillar === pillarId ||
+              (!g.pillar && g.dream_id && dreamById[g.dream_id]?.life_goal === pillarId)
+            );
+            if (!lifeGoalText && pillarGoals.length === 0) return null;
+            const isAddingGoal = inlineGoalFor === pillarId;
+            return (
+              <div key={pillarId} className={`rounded-[24px] border ${PILLAR_CFG.border} overflow-hidden`}>
+                {/* Pillar header */}
+                <div className={`px-4 py-3.5 ${PILLAR_CFG.headerBg} border-b ${PILLAR_CFG.border}`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className={`flex items-center justify-center w-6 h-6 rounded-lg ${PILLAR_CFG.iconBg}`}>
+                      <PillarIcon size={12} className={PILLAR_CFG.text} />
+                    </span>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${PILLAR_CFG.text} flex-1`}>{PILLAR_CFG.label}</span>
+                    <button
+                      onClick={() => { setInlineGoalFor(isAddingGoal ? null : pillarId); setInlineGoalTitle(''); }}
+                      className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors shrink-0"
+                    >
+                      <Plus size={10} /> Cel
+                    </button>
+                  </div>
+                  {lifeGoalText && (
+                    <p className="text-[12px] font-medium text-text-primary leading-snug mt-1.5">{lifeGoalText}</p>
+                  )}
+                </div>
+
+                {/* Inline new goal form */}
+                {isAddingGoal && (
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border-custom/20 bg-primary/[0.03]">
+                    <Target size={11} className="text-primary/50 shrink-0" />
+                    <input
+                      autoFocus
+                      value={inlineGoalTitle}
+                      onChange={e => setInlineGoalTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && inlineGoalTitle.trim()) {
+                          run(async () => {
+                            await createGoal(userId, { title: inlineGoalTitle.trim(), pillar: pillarId });
+                            setInlineGoalFor(null); setInlineGoalTitle('');
+                          });
+                        }
+                        if (e.key === 'Escape') { setInlineGoalFor(null); setInlineGoalTitle(''); }
+                      }}
+                      placeholder="Nazwa celu… (Enter żeby zapisać)"
+                      className="flex-1 bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted/40"
+                    />
+                    <button onClick={() => { setInlineGoalFor(null); setInlineGoalTitle(''); }} className="text-text-muted hover:text-text-secondary">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Goals list */}
+                {pillarGoals.length > 0 && (
+                  <div className="px-4 pb-3 pt-2 space-y-3">
+                    {pillarGoals.map(goal => {
+                      const whyDream = goal.dream_id ? dreamById[goal.dream_id] : null;
+                      const goalProjects = projects.filter(p => (p as any).goal_id === goal.id);
+                      const goalKpis = kpis.filter(k => k.goal_id === goal.id);
+                      const hasProject = goalProjects.length > 0;
+                      const hasKpi = goalKpis.length > 0;
+                      const isAddingProject = inlineProjectFor === goal.id;
+                      return (
+                        <div key={goal.id} className="space-y-1.5">
+                          {/* Goal row */}
+                          <div className="flex items-center gap-2">
+                            <Target size={11} className="text-primary/50 shrink-0" />
+                            <span className="text-[13px] font-semibold text-text-primary flex-1 min-w-0">{goal.title}</span>
+                            {whyDream && (
+                              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-surface-solid text-text-muted shrink-0 truncate max-w-[90px]" title={whyDream.title}>
+                                ✦ {whyDream.title}
+                              </span>
+                            )}
+                            {!hasKpi && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">⚠ KPI</span>}
+                            <button
+                              onClick={() => { setInlineProjectFor(isAddingProject ? null : goal.id); setInlineProjectTitle(''); }}
+                              className="flex items-center gap-1 rounded-full bg-surface-solid px-2 py-0.5 text-[9px] font-semibold text-text-muted hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+                            >
+                              <Plus size={9} /> Projekt
+                            </button>
+                          </div>
+
+                          {/* Inline new project form */}
+                          {isAddingProject && (
+                            <div className="ml-4 flex items-center gap-2 rounded-[10px] border border-primary/20 bg-primary/[0.04] px-3 py-2">
+                              <span className="h-2 w-2 rounded-full shrink-0 bg-indigo-500" />
+                              <input
+                                autoFocus
+                                value={inlineProjectTitle}
+                                onChange={e => setInlineProjectTitle(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && inlineProjectTitle.trim()) {
+                                    run(async () => {
+                                      const proj = (await createProject(userId, { name: inlineProjectTitle.trim(), goal_id: goal.id as any, color: 'indigo' })) as any;
+                                      const sec = (await createTodoSection(userId, inlineProjectTitle.trim())) as any;
+                                      if (sec?.id && proj?.id) await linkSectionToProject(sec.id, proj.id);
+                                      setInlineProjectFor(null); setInlineProjectTitle('');
+                                    });
+                                  }
+                                  if (e.key === 'Escape') { setInlineProjectFor(null); setInlineProjectTitle(''); }
+                                }}
+                                placeholder="Nazwa projektu… (Enter)"
+                                className="flex-1 bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted/40"
+                              />
+                              <button onClick={() => { setInlineProjectFor(null); setInlineProjectTitle(''); }} className="text-text-muted hover:text-text-secondary">
+                                <X size={11} />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Projects under goal */}
+                          {goalProjects.map(p => {
+                            const col = colorOf(p.color);
+                            const s = stats[p.id];
+                            return (
+                              <div key={p.id} className="ml-4 flex items-center gap-2 rounded-[10px] border border-border-custom/40 bg-surface-solid/30 px-3 py-2">
+                                <span className={`h-2 w-2 rounded-full shrink-0 ${col.dot}`} />
+                                <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{p.name}</span>
+                                {s && <span className="text-[10px] text-text-muted shrink-0">{s.progress}%</span>}
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${p.status === 'active' ? 'bg-primary/10 text-primary' : p.status === 'done' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-surface-solid text-text-muted'}`}>
+                                  {p.status === 'active' ? 'aktywny' : p.status === 'done' ? 'gotowy' : 'pauza'}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          {/* KPIs under goal */}
+                          {goalKpis.map(kpi => (
+                            <div key={kpi.id} className="ml-4 flex items-center gap-2 rounded-[10px] border border-emerald-500/15 bg-emerald-500/[0.04] px-3 py-2">
+                              <TrendingUp size={10} className="text-emerald-500 shrink-0" />
+                              <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{kpi.name}</span>
+                              {kpi.target && <span className="text-[10px] text-text-muted shrink-0">cel: {kpi.target}</span>}
+                            </div>
+                          ))}
+
+                          {!hasProject && !isAddingProject && (
+                            <p className="ml-4 text-[11px] text-text-muted/45 italic">Brak projektu — kliknij „+ Projekt"</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Empty pillar state */}
+                {pillarGoals.length === 0 && !isAddingGoal && (
+                  <p className="px-4 py-3 text-[12px] text-text-muted/50">Kliknij „+ Cel" żeby dodać pierwszy cel.</p>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Truly orphan projects: no goal_id AND no dream_id */}
+          {projects.filter(p => !(p as any).goal_id && !p.dream_id && p.status === 'active').length > 0 && (
+            <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/[0.04] overflow-hidden">
+              <p className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-amber-500/10">Projekty bez celu ⚠</p>
+              {projects.filter(p => !(p as any).goal_id && !p.dream_id && p.status === 'active').map(p => (
+                <div key={p.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10 last:border-0">
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${colorOf(p.color).dot}`} />
+                  <span className="text-[13px] text-text-secondary flex-1">{p.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {goals.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
+              <GitBranch size={28} className="text-text-muted/30 mb-3" />
+              <p className="text-[14px] font-semibold text-text-secondary">Zacznij od celów</p>
+              <p className="text-[12px] text-text-muted mt-1">Kliknij „+ Cel" w filarze żeby dodać pierwszy cel.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {viewMode === 'projekty' && <>
+      {/* Weekly Review overdue banner */}
+      {onNavigateTo && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+        <button
+          onClick={() => onNavigateTo('weekly-review')}
+          className="w-full flex items-center gap-3 rounded-[20px] border border-rose-500/25 bg-rose-500/8 px-4 py-3.5 text-left cursor-pointer hover:bg-rose-500/12 transition-all group"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15">
+            <TrendingUp size={16} className="text-rose-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">
+              {reviewOverdueDays >= 100 ? 'Nigdy nie zrobiony' : `${reviewOverdueDays} dni bez przeglądu`}
+            </p>
+            <p className="text-[13px] font-bold text-text-primary leading-tight mt-0.5">
+              Czas na Weekly Review KPI
+            </p>
+          </div>
+          <AlertCircle size={16} className="shrink-0 text-rose-500 group-hover:scale-110 transition-transform" />
+        </button>
+      )}
 
       {/* New project form */}
       {showForm && (
@@ -358,6 +792,18 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
             placeholder="Cel (opcjonalnie)..."
             className="w-full bg-transparent text-[13px] text-text-secondary outline-none placeholder:text-text-muted/35"
           />
+          {goals.length > 0 && (
+            <select
+              value={form.goal_id}
+              onChange={e => setForm(f => ({ ...f, goal_id: e.target.value }))}
+              className="w-full rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+            >
+              <option value="">— Pod który cel? (opcjonalnie) —</option>
+              {goals.filter(g => g.status === 'active').map(g => (
+                <option key={g.id} value={g.id}>{g.title}</option>
+              ))}
+            </select>
+          )}
           {dreams.filter(d => !d.is_done).length > 0 && (
             <select
               value={form.dream_id}
@@ -757,18 +1203,22 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
                     {/* Footer actions */}
                     <div className="flex items-center gap-2 pt-0.5">
                       <div className="flex gap-1">
-                        {(['active', 'paused', 'done'] as const).map(s => (
+                        {(['active', 'paused', 'done'] as const).map(st => (
                           <button
-                            key={s}
+                            key={st}
                             disabled={busy}
-                            onClick={() => { if (project.status !== s) run(() => updateProject(project.id, { status: s })); }}
+                            onClick={() => {
+                              if (project.status === st) return;
+                              if (st === 'done') handleStatusCycle(project);
+                              else run(() => updateProject(project.id, { status: st }));
+                            }}
                             className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                              project.status === s
+                              project.status === st
                                 ? 'bg-primary/15 text-primary'
                                 : 'bg-surface-solid text-text-muted hover:text-text-secondary'
                             }`}
                           >
-                            {STATUS_LABEL[s]}
+                            {STATUS_LABEL[st]}
                           </button>
                         ))}
                       </div>
@@ -788,6 +1238,8 @@ export default function Projects({ session, onNavigateTo }: { session: any; onNa
           })}
         </div>
       )}
+
+      </>}
 
       {/* ── Retrospektywa modal ── */}
       {retroProject && (

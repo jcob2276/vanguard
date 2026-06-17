@@ -28,7 +28,7 @@ export async function gatherUserContext(session: any) {
     const lastWeekStart = format(startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const fourteenDaysAgo = format(subDays(new Date(), 13), 'yyyy-MM-dd');
     
-    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes] = await Promise.all([
+    const settled = await Promise.allSettled([
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).order('date', { ascending: true }),
@@ -47,8 +47,17 @@ export async function gatherUserContext(session: any) {
         .select('date, calories, protein')
         .eq('user_id', userId)
         .gte('date', fourteenDaysAgo)
-        .order('date', { ascending: false })
+        .order('date', { ascending: false }),
+      // Goal chain queries
+      supabase.from('goals').select('id, title, pillar, dream_id, target_date, status').eq('user_id', userId).eq('status', 'active'),
+      supabase.from('projects').select('id, name, status, goal_id, deadline').eq('user_id', userId).not('goal_id', 'is', null),
+      supabase.from('goal_kpis').select('id, name, pillar, goal_id, target, higher_is_better').eq('user_id', userId).not('goal_id', 'is', null),
+      supabase.from('kpi_entries').select('kpi_id, value').eq('user_id', userId).eq('week_start', currentWeekStart),
+      supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId).eq('is_done', false),
     ]);
+    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes] = settled.map(r =>
+      r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
+    ) as any[];
 
     const currentMetrics = computeSignals(
       latestOuraRes.data, 
@@ -66,6 +75,54 @@ export async function gatherUserContext(session: any) {
     };
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
+
+    // ── Goal chain ──────────────────────────────────────────────────────────
+    const goalsData: any[]        = goalsRes.data || [];
+    const goalProjectsData: any[] = goalProjectsRes.data || [];
+    const goalKpisData: any[]     = goalKpisRes.data || [];
+    const kpiEntriesData: any[]   = kpiEntriesRes.data || [];
+    const dreamsData: any[]       = dreamsRes.data || [];
+
+    const dreamById: Record<string, any> = Object.fromEntries(dreamsData.map(d => [d.id, d]));
+    const kpiCurrentByKpiId: Record<string, number | null> = Object.fromEntries(
+      kpiEntriesData.map(e => [e.kpi_id, e.value])
+    );
+
+    const goal_chain = goalsData.map(goal => {
+      const dream = goal.dream_id ? dreamById[goal.dream_id] : null;
+      const linkedProjects = goalProjectsData.filter(p => p.goal_id === goal.id);
+      const linkedKpis = goalKpisData.filter(k => k.goal_id === goal.id);
+      return {
+        dream: dream?.title ?? null,
+        pillar: goal.pillar ?? dream?.life_goal ?? null,
+        goal: goal.title,
+        target_date: goal.target_date ?? null,
+        projects: linkedProjects.map(p => ({
+          name: p.name,
+          status: p.status,
+          deadline: p.deadline ?? null,
+        })),
+        kpis: linkedKpis.map(k => ({
+          name: k.name,
+          target: k.target ?? null,
+          current_week: kpiCurrentByKpiId[k.id] ?? null,
+          higher_is_better: k.higher_is_better,
+        })),
+        coverage: {
+          has_active_project: linkedProjects.some(p => p.status === 'active'),
+          has_kpi: linkedKpis.length > 0,
+        },
+      };
+    });
+
+    const strategic_gaps = {
+      goals_without_active_project: goal_chain.filter(g => !g.coverage.has_active_project).map(g => g.goal),
+      goals_without_kpi: goal_chain.filter(g => !g.coverage.has_kpi).map(g => g.goal),
+      dreams_without_goal: dreamsData
+        .filter(d => !goalsData.some(g => g.dream_id === d.id))
+        .map(d => d.title),
+    };
+    // ────────────────────────────────────────────────────────────────────────
 
     // 1:1 Identical Vector with AIInsight.tsx
     const stateVector = {
@@ -121,8 +178,10 @@ export async function gatherUserContext(session: any) {
           improvements: lastReviewRes.data.do_differently
         } : null
       },
+      goal_chain,
+      strategic_gaps,
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
-      desktop_footprint: footprintRes.data?.map(f => {
+      desktop_footprint: footprintRes.data?.map((f: any) => {
         const payload = f.payload && typeof f.payload === 'object' && !Array.isArray(f.payload)
           ? f.payload as FootprintPayload
           : null;

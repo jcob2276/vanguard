@@ -1,3 +1,5 @@
+import { startOfDay, addDays, format } from 'date-fns';
+
 const PRIORITY_TOKENS = {
   p1: { priority: 'urgent', label: 'P1' },
   p2: { priority: 'high', label: 'P2' },
@@ -30,21 +32,8 @@ const MONTHS = [
   ['gru', 'grudnia'],
 ];
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
 function toDateKey(date: Date): string {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return format(date, 'yyyy-MM-dd');
 }
 
 function nextWeekday(now: Date, weekday: number): Date {

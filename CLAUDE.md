@@ -14,6 +14,13 @@ Jesteś Antigravity, agentyczny AI asystent parowany z Jakubem. Styl: krótki, b
 | "frontend", "komponent", "widok", "css" | frontend-dev | docs/DEV_GUIDE.md |
 | "klasyfikacja", "classify", "oracle" | core-logic | docs/ARCHITECTURE.md |
 
+## Ponytail Skills (zainstalowane)
+- `/ponytail [lite|full|ultra|off]` — przełącz tryb lazy senior dev (YAGNI, stdlib first)
+- `/ponytail-review` — sprawdź bieżące zmiany pod kątem over-engineeringu
+- `/ponytail-audit` — skanuj cały repo pod kątem bloatu
+- `/ponytail-debt` — zbierz wszystkie `ponytail:` komentarze do ledgera
+- `/ponytail-help` — quick reference
+
 ## Critical Rules
 1. **Timezone:** Zawsze używaj `Europe/Warsaw` na poziomie DB i JS (patrz [DEV_GUIDE.md](docs/DEV_GUIDE.md)).
 2. **Supabase & Auth:** Zawsze używaj `createServiceClient()` i `resolveUserScope()` (patrz [DEV_GUIDE.md](docs/DEV_GUIDE.md)).

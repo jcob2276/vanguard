@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
+  AlertCircle,
   Calendar,
   FolderKanban,
   CheckSquare,
@@ -26,7 +27,6 @@ import { useHaptics } from '../../hooks/useHaptics';
 import AIInsight from '../ai/AIInsight';
 import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
-import JedenPriorytetCard from './JedenPriorytetCard';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
@@ -100,24 +100,30 @@ function NutritionCard({ weeklyCalories, syncYazio, isSyncing, session }: { week
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    supabase
-      .from('nutrition_targets')
-      .select('target_kcal, protein_floor_g')
-      .eq('user_id', session.user.id)
-      .order('date', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('nutrition_targets')
+          .select('target_kcal, protein_floor_g')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
         if (data?.target_kcal) setWeeklyBudget(data.target_kcal * 7);
         if (data?.protein_floor_g) setProteinGoal(data.protein_floor_g);
-      });
-    supabase
-      .from('daily_nutrition')
-      .select('date, protein')
-      .eq('user_id', session.user.id)
-      .order('date', { ascending: false })
-      .limit(7)
-      .then(({ data }) => { if (data) setProteinRows([...data].reverse()); });
+      } catch (e) { console.error('nutrition_targets fetch failed', e); }
+    })();
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('daily_nutrition')
+          .select('date, protein')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false })
+          .limit(7);
+        if (data) setProteinRows([...data].reverse());
+      } catch (e) { console.error('daily_nutrition fetch failed', e); }
+    })();
   }, [session?.user?.id]);
 
   const todayRaw = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -403,6 +409,45 @@ export default function Dashboard({ session }: { session: any }) {
 
   const streakCount = calculateStreak();
 
+  const [powerListStreak, setPowerListStreak] = useState(0);
+  const [reviewOverdueDays, setReviewOverdueDays] = useState<number | null>(null);
+  const [nudgeKey, setNudgeKey] = useState(0);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchNudgeData = async () => {
+      try {
+        const fromDate = new Date();
+        fromDate.setDate(fromDate.getDate() - 31);
+        const fromStr = fromDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const [{ data: wins }, { data: reviews }] = await Promise.all([
+          supabase.from('daily_wins').select('plan_date, task_1').eq('user_id', userId).gte('plan_date', fromStr).order('plan_date', { ascending: false }),
+          (supabase as any).from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
+        ]);
+        if (wins) {
+          const filled = new Set((wins as any[]).filter(w => w.task_1).map(w => w.plan_date as string));
+          let count = 0;
+          const d = new Date();
+          for (let i = 0; i < 32; i++) {
+            if (!filled.has(d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }))) break;
+            count++;
+            d.setDate(d.getDate() - 1);
+          }
+          setPowerListStreak(count);
+        }
+        if (reviews) {
+          if ((reviews as any[]).length > 0) {
+            const last = new Date((reviews as any[])[0].week_start + 'T00:00:00');
+            setReviewOverdueDays(Math.floor((Date.now() - last.getTime()) / 86400000));
+          } else {
+            setReviewOverdueDays(999);
+          }
+        }
+      } catch (e) { console.error('fetchNudgeData failed', e); }
+    };
+    fetchNudgeData();
+  }, [userId, nudgeKey]);
+
   const [transitioning, setTransitioning] = useState(false);
 
   const navigateTo = useCallback((newView: string) => {
@@ -602,7 +647,13 @@ export default function Dashboard({ session }: { session: any }) {
   if (view === 'weekly-review') {
     return (
       <Suspense fallback={<ViewFallback />}>
-        <WeeklyReview session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+        <WeeklyReview
+          session={session}
+          onBack={() => {
+            setNudgeKey(k => k + 1);
+            setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis');
+          }}
+        />
       </Suspense>
     );
   }
@@ -689,6 +740,28 @@ export default function Dashboard({ session }: { session: any }) {
           <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <div className="space-y-7">
               <DayCounter />
+
+              {/* Streak + Weekly Review nudge */}
+              <div className="flex flex-wrap items-center gap-2 -mt-3">
+                <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition-all ${
+                  powerListStreak > 0
+                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-500'
+                    : 'border-border-custom bg-surface text-text-muted/40'
+                }`}>
+                  <Flame size={11} className={powerListStreak > 0 ? 'fill-amber-500' : ''} />
+                  {powerListStreak === 0 ? 'Zacznij passę' : `${powerListStreak} ${powerListStreak === 1 ? 'dzień' : 'dni'} z rzędu`}
+                </div>
+                {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+                  <button
+                    onClick={() => navigateTo('projekty')}
+                    className="flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[11px] font-black text-rose-500 cursor-pointer hover:bg-rose-500/20 transition-all"
+                  >
+                    <AlertCircle size={11} />
+                    {reviewOverdueDays >= 100 ? 'Zacznij Weekly Review →' : `${reviewOverdueDays}d bez review →`}
+                  </button>
+                )}
+              </div>
+
               {/* <JedenPriorytetCard
                 session={session}
                 todayWin={todayWin}
@@ -742,10 +815,14 @@ export default function Dashboard({ session }: { session: any }) {
 
           <div className={`p-5 pb-8 ${view === 'projekty' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
-              <Projects session={session} onNavigateTo={(dest) => {
-                localStorage.setItem('vanguard_previous_view', view);
-                setView(dest);
-              }} />
+              <Projects
+                session={session}
+                reviewOverdueDays={reviewOverdueDays}
+                onNavigateTo={(dest) => {
+                  localStorage.setItem('vanguard_previous_view', view);
+                  setView(dest);
+                }}
+              />
             </Suspense>
           </div>
         </main>
@@ -767,12 +844,17 @@ export default function Dashboard({ session }: { session: any }) {
             onClick={() => navigateTo(item.id)}
             disabled={transitioning}
             className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
-              view === item.id 
-                ? 'text-primary font-black' 
+              view === item.id
+                ? 'text-primary font-black'
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >
-            <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+            <div className="relative">
+              <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+              {item.id === 'projekty' && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+                <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
+              )}
+            </div>
             <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
           </button>
         ))}

@@ -13,7 +13,8 @@ export function useNotifications() {
       if (now.getHours() === 20 && now.getMinutes() === 30) {
         if (Notification.permission === "granted") {
           // Zapobiegamy wielokrotnym powiadomieniom w tej samej minucie
-          const lastNotified = localStorage.getItem('last_reminder_date');
+          let lastNotified: string | null = null;
+          try { lastNotified = localStorage.getItem('last_reminder_date'); } catch (_e) { /* unavailable */ }
           const today = now.toDateString();
 
           if (lastNotified !== today) {
@@ -23,7 +24,7 @@ export function useNotifications() {
               tag: 'daily-reminder',
               requireInteraction: true
             });
-            localStorage.setItem('last_reminder_date', today);
+            try { localStorage.setItem('last_reminder_date', today); } catch (_e) { /* unavailable */ }
           }
         }
       }

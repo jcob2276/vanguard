@@ -40,14 +40,22 @@ export default function AIInsight({ session }: { session: any }) {
     try {
       const stateVector = await gatherUserContext(session);
 
-      const { data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
-        body: {
-          state_vector: stateVector,
-          current_query: 'Jak wygląda mój stan dziś? Co widzisz w danych?',
-          user_id: session.user.id,
-          mode: 'mirror'
-        }
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      let data: any, functionError: any;
+      try {
+        ({ data, error: functionError } = await supabase.functions.invoke('vanguard-oracle', {
+          body: {
+            state_vector: stateVector,
+            current_query: 'Jak wygląda mój stan dziś? Co widzisz w danych?',
+            user_id: session.user.id,
+            mode: 'mirror'
+          },
+          signal: controller.signal,
+        }));
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (functionError) throw functionError;
       if (data?.text) {

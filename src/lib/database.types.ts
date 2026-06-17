@@ -1251,6 +1251,103 @@ export type Database = {
           },
         ]
       }
+      goal_kpis: {
+        Row: {
+          created_at: string | null
+          goal_id: string | null
+          higher_is_better: boolean
+          id: string
+          name: string
+          pillar: string
+          sort_order: number
+          target: number | null
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          goal_id?: string | null
+          higher_is_better?: boolean
+          id?: string
+          name: string
+          pillar: string
+          sort_order?: number
+          target?: number | null
+          unit?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          goal_id?: string | null
+          higher_is_better?: boolean
+          id?: string
+          name?: string
+          pillar?: string
+          sort_order?: number
+          target?: number | null
+          unit?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_kpis_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          description: string | null
+          dream_id: string | null
+          id: string
+          pillar: string | null
+          sort_order: number
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dream_id?: string | null
+          id?: string
+          pillar?: string | null
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dream_id?: string | null
+          id?: string
+          pillar?: string | null
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habit_logs: {
         Row: {
           completed: boolean | null
@@ -1319,9 +1416,45 @@ export type Database = {
         }
         Relationships: []
       }
+      kpi_entries: {
+        Row: {
+          created_at: string | null
+          id: string
+          kpi_id: string
+          user_id: string
+          value: number | null
+          week_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          kpi_id: string
+          user_id: string
+          value?: number | null
+          week_start: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          kpi_id?: string
+          user_id?: string
+          value?: number | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_entries_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "goal_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       life_goals: {
         Row: {
           about_me: string | null
+          bhag_pillar: string | null
           created_at: string | null
           date_cialo: string | null
           date_duch: string | null
@@ -1335,6 +1468,7 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
+          bhag_pillar?: string | null
           created_at?: string | null
           date_cialo?: string | null
           date_duch?: string | null
@@ -1348,6 +1482,7 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
+          bhag_pillar?: string | null
           created_at?: string | null
           date_cialo?: string | null
           date_duch?: string | null
@@ -2201,8 +2336,12 @@ export type Database = {
           deadline: string | null
           dream_id: string | null
           goal: string | null
+          goal_id: string | null
           id: string
           name: string
+          retrospective_good: string | null
+          retrospective_improve: string | null
+          retrospective_rating: number | null
           status: string
           user_id: string
         }
@@ -2212,8 +2351,12 @@ export type Database = {
           deadline?: string | null
           dream_id?: string | null
           goal?: string | null
+          goal_id?: string | null
           id?: string
           name: string
+          retrospective_good?: string | null
+          retrospective_improve?: string | null
+          retrospective_rating?: number | null
           status?: string
           user_id: string
         }
@@ -2223,8 +2366,12 @@ export type Database = {
           deadline?: string | null
           dream_id?: string | null
           goal?: string | null
+          goal_id?: string | null
           id?: string
           name?: string
+          retrospective_good?: string | null
+          retrospective_improve?: string | null
+          retrospective_rating?: number | null
           status?: string
           user_id?: string
         }
@@ -2234,6 +2381,13 @@ export type Database = {
             columns: ["dream_id"]
             isOneToOne: false
             referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
             referencedColumns: ["id"]
           },
         ]
@@ -3313,6 +3467,7 @@ export type Database = {
       vanguard_links: {
         Row: {
           category: string
+          channel_name: string | null
           created_at: string
           description: string
           domain: string
@@ -3320,6 +3475,7 @@ export type Database = {
           notes: string
           status: string
           takeaways: string[]
+          thumbnail_url: string | null
           title: string
           updated_at: string
           url: string
@@ -3327,6 +3483,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          channel_name?: string | null
           created_at?: string
           description?: string
           domain?: string
@@ -3334,6 +3491,7 @@ export type Database = {
           notes?: string
           status?: string
           takeaways?: string[]
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
           url: string
@@ -3341,6 +3499,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          channel_name?: string | null
           created_at?: string
           description?: string
           domain?: string
@@ -3348,6 +3507,7 @@ export type Database = {
           notes?: string
           status?: string
           takeaways?: string[]
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
           url?: string
@@ -3902,6 +4062,36 @@ export type Database = {
           sort_order?: number
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_kpi_reviews: {
+        Row: {
+          ai_brief: Json | null
+          created_at: string | null
+          id: string
+          user_id: string
+          week_start: string
+          what_didnt_work: string | null
+          what_worked: string | null
+        }
+        Insert: {
+          ai_brief?: Json | null
+          created_at?: string | null
+          id?: string
+          user_id: string
+          week_start: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
+        }
+        Update: {
+          ai_brief?: Json | null
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          week_start?: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
         }
         Relationships: []
       }

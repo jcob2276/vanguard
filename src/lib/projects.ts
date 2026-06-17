@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
+import { unwrap } from './supabaseUtils';
 
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
@@ -16,12 +17,6 @@ export type ProjectCheckpoint = {
   created_at: string;
   updated_at: string;
 };
-
-function unwrap<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
-  if (error) throw new Error(error.message);
-  if (data === null) throw new Error('Data is null');
-  return data;
-}
 
 export async function listProjects(userId: string) {
   return unwrap(

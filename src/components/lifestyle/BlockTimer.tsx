@@ -10,6 +10,30 @@ interface BlockTimerProps {
   todayWin?: Tables<'daily_wins'> | null;
 }
 
+const STORAGE_KEY = 'vanguard_block_timer_v1';
+
+type Saved = {
+  mode: 'work' | 'break';
+  endTime: number | null;
+  pausedTimeLeft: number | null;
+  blockDuration: number;
+  blockSubject: string;
+  overrideSubject: boolean;
+};
+
+function saveTimer(s: Saved) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+}
+function clearTimer() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+}
+function loadTimer(): Saved | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const haptics = useHaptics();
   const userId = session?.user?.id;
@@ -23,29 +47,73 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const [overrideSubject, setOverrideSubject] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [restoredFromSave, setRestoredFromSave] = useState(false);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef  = useRef<NodeJS.Timeout | null>(null);
+  const modeRef   = useRef(timerMode);
+  const subjectRef = useRef(blockSubject);
+  const durationRef = useRef(blockDuration);
 
-  // Use priority task as default subject
+  useEffect(() => { modeRef.current = timerMode; }, [timerMode]);
+  useEffect(() => { subjectRef.current = blockSubject; }, [blockSubject]);
+  useEffect(() => { durationRef.current = blockDuration; }, [blockDuration]);
+
   const priorityTask = todayWin?.task_1 || null;
 
-  // When todayWin loads, pre-fill subject if not overridden
+  // ── Restore from localStorage on mount ──
   useEffect(() => {
-    if (priorityTask && !overrideSubject && timerMode === 'idle') {
+    const saved = loadTimer();
+    if (!saved) return;
+
+    setBlockDuration(saved.blockDuration);
+    setBlockSubject(saved.blockSubject);
+    setOverrideSubject(saved.overrideSubject);
+    setRestoredFromSave(true);
+
+    if (saved.endTime !== null) {
+      const remaining = Math.round((saved.endTime - Date.now()) / 1000);
+      if (remaining > 5) {
+        setTimerMode(saved.mode);
+        setTimeLeft(remaining);
+        setTimerActive(true);
+      } else {
+        // Expired while phone was off — treat as completed, reset quietly
+        clearTimer();
+      }
+    } else if (saved.pausedTimeLeft !== null) {
+      setTimerMode(saved.mode);
+      setTimeLeft(saved.pausedTimeLeft);
+      setTimerActive(false);
+    }
+  }, []);
+
+  // Pre-fill from priority task only when idle and no saved state
+  useEffect(() => {
+    if (priorityTask && !overrideSubject && timerMode === 'idle' && !restoredFromSave) {
       setBlockSubject(priorityTask);
     }
-  }, [priorityTask, overrideSubject, timerMode]);
+  }, [priorityTask, overrideSubject, timerMode, restoredFromSave]);
+
+  // ── Persist state whenever it changes ──
+  useEffect(() => {
+    if (timerMode === 'idle') { clearTimer(); return; }
+    saveTimer({
+      mode: timerMode as 'work' | 'break',
+      endTime: timerActive ? Date.now() + timeLeft * 1000 : null,
+      pausedTimeLeft: timerActive ? null : timeLeft,
+      blockDuration,
+      blockSubject,
+      overrideSubject,
+    });
+  }, [timerMode, timerActive, timeLeft, blockDuration, blockSubject, overrideSubject]);
 
   const fetchTodayBlocks = async () => {
     if (!userId) return;
     try {
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
       const { data } = await supabase
-        .from('vanguard_stream')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('source', 'block_timer')
-        .eq('category', 'productivity')
+        .from('vanguard_stream').select('id')
+        .eq('user_id', userId).eq('source', 'block_timer').eq('category', 'productivity')
         .gte('created_at', today + 'T00:00:00.000Z');
       if (data) setCompletedCount(data.length);
     } catch {}
@@ -91,28 +159,30 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const handleTimerComplete = async () => {
     playGong();
     haptics.success();
-    if (timerMode === 'work') {
+    const mode = modeRef.current;
+    const subject = subjectRef.current;
+    const dur = durationRef.current;
+
+    if (mode === 'work') {
       setIsSubmitting(true);
       try {
         await supabase.from('vanguard_stream').insert({
           user_id: userId,
-          content: `[Blok Pracy] Ukończono ${Math.round(blockDuration / 60)}-minutowy blok. Temat: "${blockSubject.trim() || 'Głęboka praca'}"`,
+          content: `[Blok Pracy] Ukończono ${Math.round(dur / 60)}-minutowy blok. Temat: "${subject.trim() || 'Głęboka praca'}"`,
           source: 'block_timer',
           category: 'productivity',
           classification: 'work_block_completion',
-          metadata: {
-            subject: blockSubject.trim() || 'Głęboka praca',
-            duration_minutes: Math.round(blockDuration / 60),
-          }
+          metadata: { subject: subject.trim() || 'Głęboka praca', duration_minutes: Math.round(dur / 60) },
         });
         await fetchTodayBlocks();
         setTimerMode('break');
         setTimeLeft(breakDuration);
         setTimerActive(true);
       } catch {} finally { setIsSubmitting(false); }
-    } else if (timerMode === 'break') {
+    } else {
+      clearTimer();
       setTimerMode('idle');
-      setTimeLeft(blockDuration);
+      setTimeLeft(durationRef.current);
     }
   };
 
@@ -123,9 +193,11 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   };
 
   const resetTimer = () => {
+    clearTimer();
     setTimerActive(false);
     setTimerMode('idle');
     setTimeLeft(blockDuration);
+    setRestoredFromSave(false);
     if (!overrideSubject) setBlockSubject(priorityTask || '');
     haptics.light();
   };
@@ -161,8 +233,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
 
       {timerMode === 'idle' ? (
         <div className="space-y-4">
-
-          {/* Subject — connected to priority or free input */}
           {usingPriority ? (
             <div className="space-y-1.5">
               <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Blok na priorytet dnia</p>
@@ -201,7 +271,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
             </div>
           )}
 
-          {/* Duration */}
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Długość bloku</span>
             <div className="grid grid-cols-3 gap-2">
@@ -255,7 +324,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
             </p>
           )}
 
-          {/* Circular timer */}
           <div className="relative mx-auto w-36 h-36 flex items-center justify-center">
             <svg className="absolute w-full h-full transform -rotate-90">
               <circle cx="72" cy="72" r="64" className="stroke-border-custom fill-none" strokeWidth="3.5" />

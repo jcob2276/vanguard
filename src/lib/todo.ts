@@ -1,20 +1,10 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
+import { unwrap, unwrapList } from './supabaseUtils';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
 type TodoSectionRow = Database['public']['Tables']['todo_sections']['Row'];
-
-function unwrap<T>({ data, error }: { data: T | null; error: any }): T {
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error('No data returned');
-  return data;
-}
-
-function unwrapList<T>({ data, error }: { data: T[] | null; error: any }): T[] {
-  if (error) throw new Error(error.message);
-  return data || [];
-}
 
 export async function listTodoSections(userId: string): Promise<TodoSectionRow[]> {
   return unwrapList(

@@ -26,6 +26,27 @@ import {
   X,
 } from 'lucide-react';
 
+// ─── Sanitize ────────────────────────────────────────────────────────────────
+
+function sanitizeHtml(html: string): string {
+  const FORBIDDEN = new Set(['script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'style', 'base']);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const walk = (el: Element) => {
+    for (const child of Array.from(el.children).reverse()) {
+      if (FORBIDDEN.has(child.tagName.toLowerCase())) { child.remove(); continue; }
+      for (const attr of Array.from(child.attributes)) {
+        if (attr.name.startsWith('on') || (attr.name === 'href' && /^javascript:/i.test(attr.value))) {
+          child.removeAttribute(attr.name);
+        }
+      }
+      walk(child);
+    }
+  };
+  walk(doc.body);
+  return doc.body.innerHTML;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Note {
@@ -1029,7 +1050,7 @@ function NoteCard({
         <div
           className="keep-card-content"
           style={{ color: c.textSub }}
-          dangerouslySetInnerHTML={{ __html: note.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
           onClick={(e) => {
             const target = e.target as HTMLElement;
             if (target.classList.contains('keep-todo-checkbox')) {
