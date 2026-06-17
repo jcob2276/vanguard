@@ -314,7 +314,9 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
 
                 {pickerSlot === i && (
                   <TodoPicker
-                    items={todoItems}
+                    items={todoItems.filter(item =>
+                      !newTaskForm.some((slot, idx) => idx !== i && slot.todoId === item.id)
+                    )}
                     onSelect={(item) => {
                       updateSlot(i, { task: item.title, todoId: item.id });
                     }}
