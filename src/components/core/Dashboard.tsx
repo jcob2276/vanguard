@@ -690,7 +690,7 @@ export default function Dashboard({ session }: { session: any }) {
                   setView('morning-ritual');
                 }}
               />
-              <GoalsCard session={session} />
+              {/* <GoalsCard session={session} /> */}
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
