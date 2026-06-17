@@ -41,6 +41,7 @@ const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../career/Keep'));
 const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
+const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
@@ -598,6 +599,14 @@ export default function Dashboard({ session }: { session: any }) {
     );
   }
 
+  if (view === 'weekly-review') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <WeeklyReview session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} />
+      </Suspense>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -690,7 +699,10 @@ export default function Dashboard({ session }: { session: any }) {
                   setView('morning-ritual');
                 }}
               /> */}
-              <GoalsCard session={session} />
+              <GoalsCard session={session} onOpenWeeklyReview={() => {
+                localStorage.setItem('vanguard_previous_view', view);
+                setView('weekly-review');
+              }} />
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
