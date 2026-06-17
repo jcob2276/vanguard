@@ -102,6 +102,17 @@ export async function setTodoStatus(item: { id: string }, status: string): Promi
   });
 }
 
+export async function renameTodoSection(id: string, name: string): Promise<TodoSectionRow> {
+  return unwrap(
+    await supabase
+      .from('todo_sections')
+      .update({ name: name.trim() })
+      .eq('id', id)
+      .select()
+      .single(),
+  );
+}
+
 export async function archiveTodoSection(id: string): Promise<TodoSectionRow> {
   return unwrap(
     await supabase

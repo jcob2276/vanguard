@@ -41,9 +41,12 @@ function nextOccurrenceDate(baseDateStr: string | null, recurrence: string, toda
 }
 import DataStateNotice from '../core/DataStateNotice';
 import {
+  archiveTodoSection,
   createTodoItem,
+  createTodoSection,
   listTodoItems,
   listTodoSections,
+  renameTodoSection,
   setTodoStatus,
   updateTodoItem,
 } from '../../lib/todo';
@@ -237,28 +240,22 @@ interface BucketHeaderProps {
   isDropTarget: boolean;
 }
 
-function BucketHeader({ icon, title, count, collapsed, onToggle, isDropTarget }: BucketHeaderProps) {
+function BucketHeader({ icon: _icon, title, count, collapsed, onToggle, isDropTarget }: BucketHeaderProps) {
   return (
     <button
       onClick={onToggle}
-      className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200 ${
-        isDropTarget ? 'bg-primary/12 ring-2 ring-primary/20 scale-[1.01]' : 'hover:bg-surface-solid/40'
-      }`}
+      className="flex w-full items-center gap-2 py-2.5 transition-all duration-200"
     >
-      <div className="flex items-center gap-2">
-        <span className="text-[16px] leading-none">{icon}</span>
-        <span className={`text-[15px] font-semibold transition-colors ${isDropTarget ? 'text-primary' : 'text-text-primary'}`}>
-          {title}
+      <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDropTarget ? 'text-primary' : 'text-text-muted/45'}`}>
+        {title}
+      </span>
+      {count > 0 && (
+        <span className={`text-[10px] font-medium tabular-nums transition-colors ${isDropTarget ? 'text-primary/60' : 'text-text-muted/25'}`}>
+          {count}
         </span>
-        {count > 0 && (
-          <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
-            {count}
-          </span>
-        )}
-      </div>
-      {collapsed
-        ? <ChevronRight size={14} className="text-text-muted/40 shrink-0" />
-        : <ChevronDown size={14} className="text-text-muted/40 shrink-0" />}
+      )}
+      <div className="flex-1" />
+      {collapsed && <ChevronRight size={10} className="text-text-muted/25 shrink-0" />}
     </button>
   );
 }
@@ -317,8 +314,20 @@ function TodoCard({
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
   const [newSubtask, setNewSubtask] = useState('');
   const [completing, setCompleting] = useState(false);
+  const [completingOut, setCompletingOut] = useState(false);
+  const [expandMounted, setExpandMounted] = useState(false);
   const longPressTimer = useRef<any>(null);
   const gripLongPressTimer = useRef<any>(null);
+  const prevSwipeRef = useRef(0);
+
+  useEffect(() => {
+    if (expanded) {
+      setExpandMounted(true);
+    } else {
+      const t = setTimeout(() => setExpandMounted(false), 280);
+      return () => clearTimeout(t);
+    }
+  }, [expanded]);
 
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantResult, setAssistantResult] = useState<{ type: 'decompose' | 'first_move' | 'evaluate'; text: string; subtasks?: string[] } | null>(null);
@@ -411,12 +420,19 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
     if (isDragging) return;
     const dx = e.targetTouches[0].clientX - touchStartX;
     const dy = Math.abs(e.targetTouches[0].clientY - touchStartY);
-    if (dy > 12) return; // vertical scroll, ignore
-    setSwipeOffset(Math.max(-130, Math.min(130, dx)));
+    if (dy > 12) return;
+    const newOffset = Math.max(-130, Math.min(130, dx));
+    const prev = prevSwipeRef.current;
+    if ((prev < 100 && newOffset >= 100) || (prev > -100 && newOffset <= -100)) {
+      if (navigator.vibrate) navigator.vibrate(12);
+    }
+    prevSwipeRef.current = newOffset;
+    setSwipeOffset(newOffset);
     setSwipeDir(dx > 40 ? 'right' : dx < -40 ? 'left' : null);
   };
   const onTouchEnd = () => {
     clearTimeout(longPressTimer.current);
+    prevSwipeRef.current = 0;
     if (!isDragging) {
       if (swipeOffset > 100) handleComplete();
       else if (swipeOffset < -100) onDrop();
@@ -427,7 +443,8 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
   const handleComplete = () => {
     if (isDone) { onToggle(); return; }
     setCompleting(true);
-    setTimeout(() => { onToggle(); setCompleting(false); }, 300);
+    setTimeout(() => setCompletingOut(true), 130);
+    setTimeout(() => { onToggle(); }, 380);
   };
 
   // ── Grip: long press (mobile) / mousedown (desktop) ──
@@ -445,25 +462,31 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-[18px] transition-all duration-250 mb-2 ${completing ? 'scale-[0.96] opacity-0 duration-300' : ''} ${isDone ? 'opacity-50' : ''}`}
+      className={`group relative ${isDone ? 'opacity-40' : ''}`}
+      style={completingOut ? {
+        transform: 'translateX(28px)',
+        opacity: 0,
+        pointerEvents: 'none',
+        transition: 'transform 0.28s cubic-bezier(0.4,0,1,1), opacity 0.22s ease-out',
+      } : { transition: 'opacity 0.15s' }}
     >
       {/* Swipe hint overlays */}
-      <div className={`absolute inset-0 flex items-center justify-start pl-5 text-emerald-500 pointer-events-none transition-opacity duration-150 ${swipeDir === 'right' ? 'opacity-100' : 'opacity-0'}`}>
-        <Check size={18} strokeWidth={3} />
+      <div className={`absolute inset-0 flex items-center justify-start pl-3 text-emerald-500 pointer-events-none transition-opacity duration-150 ${swipeDir === 'right' ? 'opacity-100' : 'opacity-0'}`}>
+        <Check size={15} strokeWidth={3} />
       </div>
-      <div className={`absolute inset-0 flex items-center justify-end pr-5 text-rose-400 pointer-events-none transition-opacity duration-150 ${swipeDir === 'left' ? 'opacity-100' : 'opacity-0'}`}>
-        <X size={18} />
+      <div className={`absolute inset-0 flex items-center justify-end pr-3 text-rose-400 pointer-events-none transition-opacity duration-150 ${swipeDir === 'left' ? 'opacity-100' : 'opacity-0'}`}>
+        <X size={15} />
       </div>
 
-      {/* Card */}
+      {/* Row */}
       <div
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onContextMenu={(e) => { e.preventDefault(); onShowContextMenu(item, e.clientX, e.clientY); }}
         style={{ transform: `translateX(${swipeOffset}px)` }}
-        className="relative rounded-[18px] px-4 py-3.5 bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] transition-all duration-150 ease-out
-          hover:shadow-[0_3px_14px_rgba(0,0,0,0.10)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.35)]"
+        onClick={(e) => e.stopPropagation()}
+        className="relative border-b border-border-custom/10 px-1 py-3 transition-all duration-150 ease-out hover:bg-surface-solid/20"
       >
         <div className="flex items-start gap-3">
 
@@ -473,72 +496,69 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
             onTouchEnd={onGripTouchEnd}
             onTouchMove={onGripTouchMove}
             onMouseDown={onGripMouseDown}
-            className="mt-0.5 shrink-0 touch-none cursor-grab text-text-muted/15 group-hover:text-text-muted/35 transition-colors select-none"
+            className="mt-0.5 shrink-0 touch-none cursor-grab text-transparent group-hover:text-text-muted/15 transition-colors select-none"
           >
-            <GripVertical size={14} />
+            <GripVertical size={13} />
           </div>
 
           {/* Emoji icon OR priority circle checkbox */}
           {icon ? (
             <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="shrink-0 mt-0.5">
-              <span className={`flex h-[26px] w-[26px] items-center justify-center rounded-xl text-[18px] leading-none transition-all ${isDone ? 'grayscale opacity-40' : ''}`}>
+              <span className={`flex h-[20px] w-[20px] items-center justify-center text-[15px] leading-none transition-all ${isDone ? 'grayscale opacity-40' : ''}`}>
                 {icon}
               </span>
             </button>
           ) : (
             <button onClick={(e) => { e.stopPropagation(); handleComplete(); }} disabled={busy} className="mt-0.5 shrink-0">
-              <div className={`h-[22px] w-[22px] rounded-full border-[2px] flex items-center justify-center transition-all duration-250 ${
-                isDone ? `${p.fill} border-transparent` : `${p.ring} bg-transparent`
+              <div className={`h-[15px] w-[15px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-200 ${
+                completing || isDone
+                  ? `bg-emerald-500 border-transparent ${completing && !completingOut ? 'scale-[1.35]' : 'scale-100'}`
+                  : `${p.ring} bg-transparent`
               }`}>
-                {isDone && <Check size={11} className="text-white" strokeWidth={3} />}
+                {(completing || isDone) && <Check size={7} className="text-white" strokeWidth={3} />}
               </div>
             </button>
           )}
 
           {/* Content */}
           <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onToggleExpand(item.id)}>
-            <p className={`text-[15px] font-medium leading-snug transition-colors ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+            <p className={`text-[14px] font-medium leading-snug transition-colors ${isDone ? 'line-through text-text-muted/50' : 'text-text-primary'}`}>
               {label}
             </p>
 
             {/* Metadata */}
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              {dateInfo && (
-                <span className={`flex items-center gap-1 text-[11px] font-medium ${dateInfo.color}`}>
-                  <Calendar size={9} />
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0">
+              {dateInfo && !isDone && (
+                <span className={`text-[10px] font-medium ${dateInfo.color}`}>
                   {dateInfo.text}
                 </span>
               )}
               {item.recurrence && (
-                <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary/60">
-                  <Repeat2 size={9} /> {RECURRENCE_LABELS[item.recurrence]}
+                <span className="flex items-center gap-0.5 text-[10px] text-primary/40">
+                  <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
                 </span>
               )}
               {subtasks.length > 0 && (
-                <span className="text-[11px] font-medium text-text-muted/60">
+                <span className="text-[10px] text-text-muted/40">
                   {doneCount}/{subtasks.length}
                 </span>
               )}
               {(item.tags || []).map((tag: string) => (
-                <span key={tag} className="text-[10px] font-medium text-text-muted/50">#{tag}</span>
+                <span key={tag} className="text-[10px] text-text-muted/35">#{tag}</span>
               ))}
               {isLinkedToPlan && (
-                <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary/70">
-                  <Link2 size={8} /> Plan
+                <span className="flex items-center gap-0.5 text-[10px] text-primary/50">
+                  <Link2 size={7} /> Plan
                 </span>
               )}
               {sectionName && (() => {
                 const GoalIcon = sectionGoalKey ? GOAL_ICON[sectionGoalKey] : null;
                 return (
-                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <span className="flex items-center gap-1">
-                      {GoalIcon && <GoalIcon size={8} className={GOAL_COLOR[sectionGoalKey!]} />}
-                      <span className="text-[10px] font-medium text-text-muted/30 uppercase tracking-wider">{sectionName}</span>
-                    </span>
+                  <span className="flex items-center gap-1">
+                    {GoalIcon && <GoalIcon size={7} className={GOAL_COLOR[sectionGoalKey!]} />}
+                    <span className="text-[10px] text-text-muted/25 uppercase tracking-wider">{sectionName}</span>
                     {dreamTitle && (
-                      <span className="text-[10px] font-semibold text-primary/45 truncate max-w-[150px]" title={`Marzenie: ${dreamTitle}`}>
-                        ↳ {dreamTitle}
-                      </span>
+                      <span className="text-[10px] text-primary/30 truncate max-w-[120px]">· {dreamTitle}</span>
                     )}
                   </span>
                 );
@@ -548,20 +568,27 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
 
           {/* Quick "→ Dziś" action */}
           {onMoveToToday && !isDone && (
-            <div className="mt-2 flex justify-end">
-              <button
-                onClick={(e) => { e.stopPropagation(); onMoveToToday(); }}
-                className="flex items-center gap-1 rounded-full bg-orange-500/10 px-3 py-1 text-[11px] font-semibold text-orange-500 hover:bg-orange-500/20 transition-colors"
-              >
-                🔥 Przesuń na dziś
-              </button>
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveToToday(); }}
+              className="shrink-0 text-[11px] font-medium text-text-muted/30 hover:text-orange-500 transition-colors"
+              title="Przesuń na dziś"
+            >
+              →
+            </button>
           )}
         </div>
 
         {/* Expanded */}
-        {expanded && (
-          <div className="mt-3.5 space-y-3.5 border-t border-border-custom/40 pt-3.5" onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: expanded ? '1fr' : '0fr',
+            transition: 'grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)',
+          }}
+        >
+        <div style={{ overflow: 'hidden' }}>
+        {expandMounted && (
+          <div className="mt-3 space-y-3 border-t border-border-custom/10 pt-3" onClick={(e) => e.stopPropagation()}>
 
             {/* Inline title edit */}
             <div>
@@ -779,6 +806,121 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
             </button>
           </div>
         )}
+        </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SectionTabs ─────────────────────────────────────────────────────────────
+
+interface SectionTabsProps {
+  sections: any[];
+  active: string | null;
+  onSelect: (id: string | null) => void;
+  onAdd: (name: string) => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function SectionTabs({ sections, active, onSelect, onAdd, onRename, onDelete }: SectionTabsProps) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState('');
+
+  const commitAdd = () => {
+    const n = newName.trim();
+    if (n) onAdd(n);
+    setNewName('');
+    setAdding(false);
+  };
+
+  const commitRename = (id: string) => {
+    const n = renameVal.trim();
+    if (n) onRename(id, n);
+    setRenamingId(null);
+  };
+
+  return (
+    <div className="overflow-x-auto border-b border-border-custom/15">
+      <div className="flex min-w-max items-stretch px-5">
+
+        {/* "Wszystkie" tab */}
+        <button
+          onClick={() => onSelect(null)}
+          className={`border-b-2 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap transition-all ${
+            active === null ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-primary'
+          }`}
+        >
+          Wszystkie
+        </button>
+
+        {/* Section tabs */}
+        {sections.map((s) => (
+          <div key={s.id} className="group/tab relative flex items-stretch">
+            {renamingId === s.id ? (
+              <input
+                autoFocus
+                value={renameVal}
+                onChange={(e) => setRenameVal(e.target.value)}
+                onBlur={() => commitRename(s.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitRename(s.id);
+                  if (e.key === 'Escape') setRenamingId(null);
+                }}
+                className="border-b-2 border-primary bg-transparent py-2.5 text-[12px] font-semibold text-primary outline-none w-[100px] px-3"
+              />
+            ) : (
+              <button
+                onClick={() => onSelect(s.id)}
+                onDoubleClick={() => { setRenamingId(s.id); setRenameVal(s.name); }}
+                className={`border-b-2 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap transition-all ${
+                  active === s.id ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-primary'
+                }`}
+              >
+                {s.name}
+              </button>
+            )}
+
+            {/* Delete button — visible on hover of active tab */}
+            {active === s.id && renamingId !== s.id && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
+                className="mb-0.5 self-center opacity-0 group-hover/tab:opacity-100 transition-opacity text-text-muted/30 hover:text-rose-400 pr-1"
+                title="Usuń sekcję"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
+        ))}
+
+        {/* Add section */}
+        {adding ? (
+          <div className="flex items-stretch">
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onBlur={commitAdd}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitAdd();
+                if (e.key === 'Escape') { setAdding(false); setNewName(''); }
+              }}
+              placeholder="Nazwa listy..."
+              className="border-b-2 border-primary bg-transparent py-2.5 px-3 text-[12px] font-semibold text-primary outline-none placeholder:text-primary/40 w-[120px]"
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="border-b-2 border-transparent px-3 py-2.5 text-[12px] font-medium text-text-muted/40 hover:text-text-primary transition-colors whitespace-nowrap"
+          >
+            +
+          </button>
+        )}
       </div>
     </div>
   );
@@ -827,6 +969,35 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const todayZoneRef = useRef<HTMLDivElement>(null);
   const inboxZoneRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const mainRef = useRef<HTMLElement>(null);
+  const pullStartY = useRef(0);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+
+  const onMainTouchStart = (e: React.TouchEvent) => {
+    if (mainRef.current && mainRef.current.scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+    } else {
+      pullStartY.current = 0;
+    }
+  };
+  const onMainTouchMove = (e: React.TouchEvent) => {
+    if (!pullStartY.current) return;
+    const dy = e.touches[0].clientY - pullStartY.current;
+    if (dy > 0 && mainRef.current && mainRef.current.scrollTop === 0) {
+      setPullDistance(Math.min(dy * 0.45, 56));
+    }
+  };
+  const onMainTouchEnd = async () => {
+    if (pullDistance >= 48 && !pullRefreshing) {
+      setPullRefreshing(true);
+      if (navigator.vibrate) navigator.vibrate(15);
+      await fetchAll();
+      setPullRefreshing(false);
+    }
+    setPullDistance(0);
+    pullStartY.current = 0;
+  };
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const toggleSectionCollapse = (id: string) => { setCollapsedSections(prev => ({ ...prev, [id]: !prev[id] })); };
@@ -1027,20 +1198,37 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const addItem = () => {
     const title = parsedInput.title || form.title.trim();
     if (!title) return;
-    run(async () => {
-      const targetSectionId = form.section_id || activeFilterSection || undefined;
-      const newItem = await createTodoItem(userId, {
-        ...form,
-        title,
-        priority: parsedInput.priority || form.priority,
-        due_date: parsedInput.due_date || form.due_date,
-        section_id: targetSectionId,
-        recurrence: form.recurrence || undefined
+
+    // Capture before reset
+    const priority = parsedInput.priority || form.priority;
+    const due_date = parsedInput.due_date || form.due_date || null;
+    const section_id = form.section_id || activeFilterSection || null;
+    const notes = form.notes || null;
+    const tagsText = form.tagsText;
+    const recurrence = form.recurrence || null;
+    const tags = tagsText.split(',').map((t) => t.trim()).filter(Boolean);
+
+    // Optimistic: add instantly
+    const tempId = `__temp_${Date.now()}`;
+    const optimistic: any = {
+      id: tempId, user_id: userId, title, notes, priority, due_date,
+      section_id, recurrence, tags, status: 'open',
+      ai_bucket: null, ai_classified_at: null, sort_order: 0,
+      created_at: new Date().toISOString(), completed_at: null,
+    };
+    setItems((prev) => [optimistic, ...prev]);
+    setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
+    setIsExpanded(false);
+
+    createTodoItem(userId, { title, notes: notes || undefined, priority, due_date: due_date || undefined, section_id: section_id || undefined, recurrence: recurrence || undefined, tagsText })
+      .then((newItem) => {
+        setItems((prev) => prev.map((i) => i.id === tempId ? newItem : i));
+        if (!due_date && priority === 'normal') classifyInBackground(newItem);
+      })
+      .catch((err) => {
+        setItems((prev) => prev.filter((i) => i.id !== tempId));
+        setError(err.message);
       });
-      setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
-      setShowOptions(false);
-      if (!parsedInput.due_date && !parsedInput.priority) classifyInBackground(newItem);
-    });
   };
 
   const toggleSubtask = (item: any, idx: number) => {
@@ -1194,20 +1382,49 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        {/* Section tabs */}
+        <SectionTabs
+          sections={sections}
+          active={activeFilterSection}
+          onSelect={setActiveFilterSection}
+          onAdd={(name) => run(() => createTodoSection(userId, name))}
+          onRename={(id, name) => run(() => renameTodoSection(id, name))}
+          onDelete={(id) => { setActiveFilterSection(null); run(() => archiveTodoSection(id)); }}
+        />
+
+        <main
+          ref={mainRef}
+          className="flex-1 overflow-y-auto"
+          onClick={() => setExpandedId(null)}
+          onTouchStart={onMainTouchStart}
+          onTouchMove={onMainTouchMove}
+          onTouchEnd={onMainTouchEnd}
+        >
+          {/* Pull-to-refresh indicator */}
+          {(pullDistance > 0 || pullRefreshing) && (
+            <div
+              className="flex items-center justify-center overflow-hidden transition-all duration-150"
+              style={{ height: pullRefreshing ? 40 : pullDistance }}
+            >
+              <div
+                className={`h-4 w-4 rounded-full border-2 border-primary border-t-transparent ${pullRefreshing ? 'animate-spin' : ''}`}
+                style={{ transform: pullRefreshing ? undefined : `rotate(${pullDistance * 4}deg)` }}
+              />
+            </div>
+          )}
           <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
             {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
             {/* Quick capture */}
-            <div ref={quickCaptureRef} className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4">
+            <div ref={quickCaptureRef} className="border-b border-border-custom/20 pb-3">
               <div className="flex items-center gap-2">
                 <input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
                   onFocus={() => setIsExpanded(true)}
-                  placeholder="Dodaj zadanie..."
-                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-[16px] font-semibold text-text-primary outline-none placeholder:text-text-muted/35"
+                  placeholder="Nowe zadanie..."
+                  className="min-w-0 flex-1 bg-transparent py-2 text-[14px] font-medium text-text-primary outline-none placeholder:text-text-muted/25"
                 />
                 {form.title && (
                   <button
@@ -1448,7 +1665,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 <>
                   {/* 1. Na dziś / Aktywne */}
                   {(todayItems.length > 0 || dragTarget === 'today') && (
-                    <div ref={todayZoneRef} className="rounded-2xl border border-transparent bg-orange-500/3 dark:bg-orange-500/1 p-2">
+                    <div ref={todayZoneRef}>
                       <BucketHeader
                         icon="🔥"
                         title="Na dziś / Aktywne"
@@ -1473,7 +1690,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
                   {/* 2. Inbox / Skrzynka */}
                   {(inboxItems.length > 0 || dragTarget === 'inbox') && (
-                    <div ref={inboxZoneRef} className="p-2">
+                    <div ref={inboxZoneRef}>
                       <BucketHeader
                         icon="📥"
                         title="Skrzynka / Inbox"
@@ -1503,7 +1720,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                     if (!hasItems && dragTarget !== sec.id) return null;
 
                     return (
-                      <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }} className="p-2">
+                      <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }}>
                         <BucketHeader
                           icon="📂"
                           title={sec.name}
@@ -1531,7 +1748,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
               {/* Done items history */}
               {showDone && doneItems.length > 0 && (
-                <div className="border-t border-border-custom/30 pt-2 p-2">
+                <div className="border-t border-border-custom/20 pt-2">
                   <BucketHeader
                     icon="✅"
                     title="Historia"
