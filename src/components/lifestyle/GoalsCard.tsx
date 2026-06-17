@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Shield, Zap, Wallet, ChevronDown, ChevronUp, AlertTriangle, Plus, Check, X } from 'lucide-react';
+import { Shield, Zap, Wallet, ChevronDown, ChevronUp, Plus, Check, X, Crown } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
@@ -47,6 +47,7 @@ const THEME: Record<string, { card: string; accent: string; text: string; chip: 
 
 export default function GoalsCard({ session }: { session: Session }) {
   const [goals, setGoals]     = useState<LifeGoalRow | null>(null);
+  const [bhag, setBhag]       = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   // Lazy-loaded for the expanded map
@@ -62,8 +63,21 @@ export default function GoalsCard({ session }: { session: Session }) {
 
   useEffect(() => {
     supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle()
-      .then(({ data }) => { if (data) setGoals(data); });
+      .then(({ data }) => {
+        if (data) {
+          setGoals(data);
+          setBhag((data as any).bhag_pillar ?? null);
+        }
+      });
   }, [session.user.id]);
+
+  async function toggleBhag(pillarId: string) {
+    const next = bhag === pillarId ? null : pillarId;
+    setBhag(next);
+    await supabase.from('life_goals')
+      .update({ bhag_pillar: next } as any)
+      .eq('user_id', session.user.id);
+  }
 
   useEffect(() => {
     if (!expanded || mapLoaded) return;
@@ -126,7 +140,19 @@ export default function GoalsCard({ session }: { session: Session }) {
                   <Icon size={12} className={theme.text} />
                 </span>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${theme.text}`}>{label}</span>
+                <button
+                  onClick={() => toggleBhag(id)}
+                  title={bhag === id ? 'Usuń BHAG' : 'Ustaw jako BHAG #1'}
+                  className={`rounded-md p-0.5 transition-colors cursor-pointer ${bhag === id ? theme.text : 'text-text-muted/25 hover:text-text-muted/60'}`}
+                >
+                  <Crown size={11} className={bhag === id ? 'fill-current' : ''} />
+                </button>
                 <div className="flex-1" />
+                {bhag === id && (
+                  <span className={`rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.badge} border`}>
+                    #1 BHAG
+                  </span>
+                )}
                 {days !== null && (
                   <span className={`rounded-lg border px-2 py-0.5 text-[9px] font-bold ${
                     urgent ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400' : theme.badge

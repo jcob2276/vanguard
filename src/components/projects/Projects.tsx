@@ -79,6 +79,8 @@ export default function Projects({ session }: { session: any }) {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
   const [newCheckpoint, setNewCheckpoint] = useState<{ projectId: string; title: string; due_date: string } | null>(null);
+  const [retroProject, setRetroProject] = useState<any | null>(null);
+  const [retroForm, setRetroForm] = useState({ good: '', improve: '', rating: 0 });
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -181,7 +183,25 @@ export default function Projects({ session }: { session: any }) {
   };
 
   const handleStatusCycle = (project: any) => {
-    run(() => updateProject(project.id, { status: STATUS_NEXT[project.status] }));
+    const next = STATUS_NEXT[project.status];
+    if (next === 'done') {
+      setRetroProject(project);
+      setRetroForm({ good: '', improve: '', rating: 0 });
+    } else {
+      run(() => updateProject(project.id, { status: next }));
+    }
+  };
+
+  const handleRetroSubmit = async (skip = false) => {
+    if (!retroProject) return;
+    const patch: any = { status: 'done' };
+    if (!skip) {
+      if (retroForm.good.trim())    patch.retrospective_good    = retroForm.good.trim();
+      if (retroForm.improve.trim()) patch.retrospective_improve = retroForm.improve.trim();
+      if (retroForm.rating > 0)     patch.retrospective_rating  = retroForm.rating;
+    }
+    await run(() => updateProject(retroProject.id, patch));
+    setRetroProject(null);
   };
 
   const startEditProject = (project: any) => {
@@ -756,6 +776,75 @@ export default function Projects({ session }: { session: any }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Retrospektywa modal ── */}
+      {retroProject && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Projekt ukończony</p>
+              <h3 className="text-[17px] font-black text-text-primary leading-tight">{retroProject.name}</h3>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co poszło dobrze?</label>
+                <textarea
+                  value={retroForm.good}
+                  onChange={e => setRetroForm(f => ({ ...f, good: e.target.value }))}
+                  rows={2}
+                  placeholder="Najlepszy moment, decyzja, wynik..."
+                  className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co zrobić inaczej?</label>
+                <textarea
+                  value={retroForm.improve}
+                  onChange={e => setRetroForm(f => ({ ...f, improve: e.target.value }))}
+                  rows={2}
+                  placeholder="Błąd, bloker, coś czego uniknąć..."
+                  className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1.5">Ocena projektu</label>
+                <div className="flex gap-2">
+                  {[1,2,3,4,5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setRetroForm(f => ({ ...f, rating: f.rating === n ? 0 : n }))}
+                      className={`flex-1 rounded-xl py-2 text-[13px] font-black transition-all cursor-pointer ${
+                        retroForm.rating >= n
+                          ? 'bg-primary text-white shadow-sm'
+                          : 'bg-surface-solid text-text-muted hover:bg-primary/10'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => handleRetroSubmit(true)}
+                className="flex-1 rounded-xl border border-border-custom py-3 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              >
+                Pomiń
+              </button>
+              <button
+                onClick={() => handleRetroSubmit(false)}
+                disabled={busy}
+                className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                Zapisz i zamknij
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
