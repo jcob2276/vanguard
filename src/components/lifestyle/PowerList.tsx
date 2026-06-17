@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
-import { Check, CheckSquare, Link2, Search, Target, Upload, X } from 'lucide-react';
+import { Check, Link2, Search, Shield, Target, Upload, Wallet, X, Zap } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
 import type { TablesUpdate } from '../../lib/database.types';
+
+const SPHERE_SLOTS = [
+  { category: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', placeholder: 'Priorytet Ciało — co dziś?' },
+  { category: 'duch',  label: 'Duch',  icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  placeholder: 'Priorytet Duch — co dziś?'  },
+  { category: 'konto', label: 'Konto', icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   placeholder: 'Priorytet Konto — co dziś?' },
+];
 
 const COLOR_DOT: Record<string, string> = {
   indigo: 'bg-indigo-500',
@@ -211,9 +217,9 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
       const entry = {
         user_id: userId,
         date: today,
-        task_1: newTaskForm[0].task, category_1: 'general', task_1_todo_id: newTaskForm[0].todoId,
-        task_2: newTaskForm[1].task, category_2: 'general', task_2_todo_id: newTaskForm[1].todoId,
-        task_3: newTaskForm[2].task, category_3: 'general', task_3_todo_id: newTaskForm[2].todoId,
+        task_1: newTaskForm[0].task, category_1: 'cialo', task_1_todo_id: newTaskForm[0].todoId,
+        task_2: newTaskForm[1].task, category_2: 'duch',  task_2_todo_id: newTaskForm[1].todoId,
+        task_3: newTaskForm[2].task, category_3: 'konto', task_3_todo_id: newTaskForm[2].todoId,
         task_4: newTaskForm[3].task, category_4: 'general', task_4_todo_id: newTaskForm[3].todoId,
         task_5: newTaskForm[4].task, category_5: 'general', task_5_todo_id: newTaskForm[4].todoId,
         result: null,
@@ -262,69 +268,61 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
           </div>
 
           <div className="space-y-2.5" ref={pickerRef}>
-            {newTaskForm.map((slot, i) => (
-              <div key={i}>
-                <div
-                  className={`flex items-center gap-2 rounded-xl border bg-surface transition-colors ${
-                    pickerSlot === i ? 'border-primary/40 bg-surface-solid' : 'border-border-custom'
-                  }`}
-                >
-                  {slot.todoId ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-2 px-3.5 py-3">
-                      <span
-                        className={`h-2 w-2 shrink-0 rounded-full ${
-                          PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority] || 'bg-blue-500'
-                        }`}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">
-                        {slot.task}
+            {newTaskForm.map((slot, i) => {
+              const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
+              const SphereIcon = sphere?.icon;
+              return (
+                <div key={i}>
+                  <div
+                    className={`flex items-center gap-2 rounded-xl border bg-surface transition-colors ${
+                      pickerSlot === i ? 'border-primary/40 bg-surface-solid' : 'border-border-custom'
+                    }`}
+                  >
+                    {/* Sphere badge for slots 0-2 */}
+                    {sphere && SphereIcon && (
+                      <span className={`ml-3 flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${sphere.bg} ${sphere.text}`}>
+                        <SphereIcon size={8} /> {sphere.label}
                       </span>
-                    </div>
-                  ) : (
-                    <input
-                      placeholder={`Zadanie ${i + 1}`}
-                      value={slot.task}
-                      onChange={(e) => updateSlot(i, { task: e.target.value })}
-                      className="min-w-0 flex-1 bg-transparent px-3.5 py-3 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-muted/40"
+                    )}
+
+                    {slot.todoId ? (
+                      <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-3">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority] || 'bg-blue-500'}`} />
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">{slot.task}</span>
+                      </div>
+                    ) : (
+                      <input
+                        placeholder={sphere?.placeholder ?? `Zadanie ${i + 1}`}
+                        value={slot.task}
+                        onChange={(e) => updateSlot(i, { task: e.target.value })}
+                        className={`min-w-0 flex-1 bg-transparent py-3 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-muted/40 ${sphere ? 'px-2' : 'px-3.5'}`}
+                      />
+                    )}
+
+                    {slot.todoId ? (
+                      <button onClick={() => updateSlot(i, { task: '', todoId: null })}
+                        className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-rose-500/10 hover:text-rose-500" title="Usuń powiązanie">
+                        <X size={14} />
+                      </button>
+                    ) : (
+                      <button onClick={() => setPickerSlot(pickerSlot === i ? -1 : i)}
+                        className={`mr-3 shrink-0 rounded-full p-1.5 transition-colors ${pickerSlot === i ? 'bg-primary/15 text-primary' : 'text-text-muted hover:bg-primary/10 hover:text-primary'}`}
+                        title="Wybierz z zadań">
+                        <Link2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {pickerSlot === i && (
+                    <TodoPicker
+                      items={todoItems.filter(item => !newTaskForm.some((slot, idx) => idx !== i && slot.todoId === item.id))}
+                      onSelect={(item) => updateSlot(i, { task: item.title, todoId: item.id })}
+                      onClose={() => setPickerSlot(-1)}
                     />
                   )}
-
-                  {slot.todoId ? (
-                    <button
-                      onClick={() => updateSlot(i, { task: '', todoId: null })}
-                      className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-rose-500/10 hover:text-rose-500"
-                      title="Usuń powiązanie"
-                    >
-                      <X size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setPickerSlot(pickerSlot === i ? -1 : i)}
-                      className={`mr-3 shrink-0 rounded-full p-1.5 transition-colors ${
-                        pickerSlot === i
-                          ? 'bg-primary/15 text-primary'
-                          : 'text-text-muted hover:bg-primary/10 hover:text-primary'
-                      }`}
-                      title="Wybierz z zadań"
-                    >
-                      <Link2 size={14} />
-                    </button>
-                  )}
                 </div>
-
-                {pickerSlot === i && (
-                  <TodoPicker
-                    items={todoItems.filter(item =>
-                      !newTaskForm.some((slot, idx) => idx !== i && slot.todoId === item.id)
-                    )}
-                    onSelect={(item) => {
-                      updateSlot(i, { task: item.title, todoId: item.id });
-                    }}
-                    onClose={() => setPickerSlot(-1)}
-                  />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
@@ -344,6 +342,9 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
             const linkedTodoId = todayWin[`task_${i + 1}_todo_id`];
             if (!task) return null;
 
+            const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
+            const SphereIcon = sphere?.icon;
+
             return (
               <button
                 key={i}
@@ -354,7 +355,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
                     : 'border-border-custom bg-surface shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'
                 }`}
               >
-                <div className="flex min-w-0 flex-1 items-center gap-4 text-left">
+                <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <div
                     className={`flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
                       done
@@ -364,21 +365,20 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
                   >
                     <Check size={11} strokeWidth={3} className={`transition-transform duration-300 ${done ? 'scale-100' : 'scale-0'}`} />
                   </div>
-                  <div className="min-w-0">
-                    <p
-                      className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${
-                        done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'
-                      }`}
-                    >
-                      {task}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {sphere && SphereIcon && (
+                        <span className={`flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[7px] font-black uppercase tracking-widest ${sphere.bg} ${sphere.text}`}>
+                          <SphereIcon size={7} /> {sphere.label}
+                        </span>
+                      )}
+                      <p className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
+                        {task}
+                      </p>
+                    </div>
                     {done && completedAt && (
                       <p className="mt-0.5 text-[9px] font-semibold text-dayC/80">
-                        Zrobione o{' '}
-                        {new Date(completedAt).toLocaleTimeString('pl-PL', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        Zrobione o {new Date(completedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>
