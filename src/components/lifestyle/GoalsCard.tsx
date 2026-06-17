@@ -137,7 +137,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Cele kierunkowe</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Marzenia</p>
         <div className="flex items-center gap-1">
           {onEditClick && (
             <button onClick={onEditClick} className="p-1.5 text-text-muted hover:text-text-primary transition-colors cursor-pointer">
@@ -217,7 +217,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                         if (e.key === 'Enter') addDream(lifeGoalVal);
                         if (e.key === 'Escape') setAddingDreamFor(null);
                       }}
-                      placeholder="Marzenie..."
+                      placeholder="Cel..."
                       className={`min-w-0 flex-1 bg-transparent text-[11px] font-medium text-text-primary outline-none border-b border-border-custom ${theme.inputFocus} placeholder:text-text-muted/40 pb-0.5 transition-colors`}
                     />
                     <button
@@ -239,7 +239,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                     onClick={() => { setAddingDreamFor(key); }}
                     className={`mt-0.5 flex items-center gap-1 text-[9px] font-bold ${theme.text} opacity-50 hover:opacity-100 transition-opacity cursor-pointer`}
                   >
-                    <Plus size={9} /> marzenie
+                    <Plus size={9} /> cel
                   </button>
                 )}
               </div>
@@ -259,7 +259,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
       {/* Bird's-eye view */}
       {expanded && (
         <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Mapa organizmu</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Mapa celów</p>
           {!extraLoaded ? (
             <div className="flex justify-center py-4">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -283,13 +283,13 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                       <div className="flex-1 border-t border-border-custom" />
                       {allDreams.length > 0 && (
                         <span className="text-[8px] font-bold text-text-muted">
-                          {withProject.length}/{allDreams.length} aktywnych
+                          {withProject.length}/{allDreams.length} z projektem
                         </span>
                       )}
                     </div>
 
                     {allDreams.length === 0 ? (
-                      <p className="pl-4 text-[9px] italic text-text-muted/50">brak marzeń — dodaj powyżej</p>
+                      <p className="pl-4 text-[9px] italic text-text-muted/50">brak celów — dodaj powyżej</p>
                     ) : (
                       <div className="space-y-2 pl-3.5">
                         {allDreams.map(dream => {
