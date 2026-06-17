@@ -4,7 +4,6 @@ import type { Tables } from '../../lib/database.types';
 import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../hooks/useHaptics';
-import { listProjects } from '../../lib/projects';
 
 interface BlockTimerProps {
   session: Session;
@@ -14,9 +13,6 @@ interface BlockTimerProps {
 export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const haptics = useHaptics();
   const userId = session?.user?.id;
-
-  const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const [timerMode, setTimerMode] = useState<'idle' | 'work' | 'break'>('idle');
   const [blockDuration, setBlockDuration] = useState(90 * 60);
@@ -56,13 +52,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   };
 
   useEffect(() => { fetchTodayBlocks(); }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    listProjects(userId)
-      .then(data => { if (data) setProjects((data as any[]).filter(p => p.status === 'active')); })
-      .catch(() => {});
-  }, [userId]);
 
   useEffect(() => {
     if (timerActive) {
@@ -114,7 +103,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           metadata: {
             subject: blockSubject.trim() || 'Głęboka praca',
             duration_minutes: Math.round(blockDuration / 60),
-            ...(selectedProjectId ? { project_id: selectedProjectId, project_name: projects.find(p => p.id === selectedProjectId)?.name } : {}),
           }
         });
         await fetchTodayBlocks();
@@ -139,7 +127,6 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     setTimerMode('idle');
     setTimeLeft(blockDuration);
     if (!overrideSubject) setBlockSubject(priorityTask || '');
-    setSelectedProjectId(null);
     haptics.light();
   };
 
@@ -214,32 +201,15 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
             </div>
           )}
 
-          {/* Project link */}
-          {projects.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 text-[10px] text-text-muted">Projekt:</span>
-              <select
-                value={selectedProjectId || ''}
-                onChange={e => setSelectedProjectId(e.target.value || null)}
-                className="min-w-0 flex-1 rounded-lg border border-border-custom bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-text-primary outline-none focus:border-primary cursor-pointer"
-              >
-                <option value="">— opcjonalnie —</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Duration */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-text-muted">Długość bloku:</span>
-            <div className="flex gap-1.5">
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Długość bloku</span>
+            <div className="grid grid-cols-3 gap-2">
               {[50, 90, 120].map(mins => (
                 <button
                   key={mins}
                   onClick={() => { setBlockDuration(mins * 60); setTimeLeft(mins * 60); haptics.light(); }}
-                  className={`rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all cursor-pointer ${
+                  className={`rounded-[16px] border py-3 text-[13px] font-black transition-all cursor-pointer ${
                     blockDuration === mins * 60
                       ? 'border-primary/30 bg-primary/10 text-primary'
                       : 'border-border-custom text-text-muted hover:border-text-secondary hover:text-text-secondary'
@@ -254,9 +224,9 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           <button
             onClick={startTimer}
             disabled={!blockSubject.trim()}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-primary py-4 text-[13px] font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Play size={11} fill="currentColor" className="ml-0.5 shrink-0" /> Uruchom Blok Pracy
+            <Play size={13} fill="currentColor" className="shrink-0" /> Uruchom Blok Pracy
           </button>
         </div>
       ) : (
@@ -274,17 +244,9 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           </div>
 
           {timerMode === 'work' && blockSubject.trim() && (
-            <div className="space-y-1 text-center">
-              <p className="font-display text-xs font-black text-text-primary truncate max-w-xs mx-auto">
-                "{blockSubject}"
-              </p>
-              {selectedProjectId && (() => {
-                const proj = projects.find(p => p.id === selectedProjectId);
-                return proj ? (
-                  <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{proj.name}</p>
-                ) : null;
-              })()}
-            </div>
+            <p className="font-display text-xs font-black text-text-primary truncate max-w-xs mx-auto">
+              "{blockSubject}"
+            </p>
           )}
 
           {timerMode === 'break' && (
