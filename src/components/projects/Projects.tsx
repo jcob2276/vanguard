@@ -74,7 +74,7 @@ export default function Projects({ session }: { session: any }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showForm, setShowForm]   = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'paused' | 'done'>('active');
-  const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
+  const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
   const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
@@ -164,12 +164,13 @@ export default function Projects({ session }: { session: any }) {
         goal: form.goal.trim() || undefined,
         deadline: form.deadline || undefined,
         color: form.color,
+        dream_id: form.dream_id || undefined,
       })) as any;
       const section = (await createTodoSection(userId, form.name.trim())) as any;
       if (section?.id && project?.id) {
         await linkSectionToProject(section.id, project.id);
       }
-      setForm({ name: '', goal: '', deadline: '', color: 'indigo' });
+      setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
       setShowForm(false);
     });
   };
@@ -327,6 +328,27 @@ export default function Projects({ session }: { session: any }) {
             placeholder="Cel (opcjonalnie)..."
             className="w-full bg-transparent text-[13px] text-text-secondary outline-none placeholder:text-text-muted/35"
           />
+          {dreams.filter(d => !d.is_done).length > 0 && (
+            <select
+              value={form.dream_id}
+              onChange={e => setForm(f => ({ ...f, dream_id: e.target.value }))}
+              className="w-full rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+            >
+              <option value="">— Marzenie (opcjonalnie) —</option>
+              {(['cialo', 'duch', 'konto'] as const).map(goal => {
+                const group = dreams.filter(d => d.life_goal === goal && !d.is_done);
+                if (!group.length) return null;
+                const labels: Record<string, string> = { cialo: 'Ciało', duch: 'Duch', konto: 'Konto' };
+                return (
+                  <optgroup key={goal} label={labels[goal]}>
+                    {group.map(d => (
+                      <option key={d.id} value={d.id}>{d.title}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          )}
           <div className="flex items-center gap-3">
             <input
               type="date"

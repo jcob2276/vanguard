@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Shield, Zap, Wallet, Edit2, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Shield, Zap, Wallet, Edit2, ChevronDown, ChevronUp, AlertTriangle, Plus, X, Check } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { Tables } from '../../lib/database.types';
@@ -21,10 +21,10 @@ const GOALS = [
   { key: 'goal_konto', dateKey: 'date_konto', label: 'Konto', icon: Wallet },
 ];
 
-const THEME: Record<string, { bg: string; text: string; chip: string; border: string }> = {
-  goal_cialo: { bg: 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/10 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
-  goal_duch:  { bg: 'bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/10 dark:border-indigo-500/20',   text: 'text-indigo-600 dark:text-indigo-400',   chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',   border: 'border-indigo-500/20'  },
-  goal_konto: { bg: 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/10 dark:border-amber-500/20',       text: 'text-amber-600 dark:text-amber-400',     chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',      border: 'border-amber-500/20'   },
+const THEME: Record<string, { bg: string; text: string; chip: string; border: string; inputFocus: string }> = {
+  goal_cialo: { bg: 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/10 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', inputFocus: 'focus:border-emerald-500/40' },
+  goal_duch:  { bg: 'bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/10 dark:border-indigo-500/20',   text: 'text-indigo-600 dark:text-indigo-400',   chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',   border: 'border-indigo-500/20',  inputFocus: 'focus:border-indigo-500/40'  },
+  goal_konto: { bg: 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/10 dark:border-amber-500/20',       text: 'text-amber-600 dark:text-amber-400',     chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',      border: 'border-amber-500/20',   inputFocus: 'focus:border-amber-500/40'   },
 };
 
 export default function GoalsCard({ session, onEditClick = null }: { session: Session; onEditClick?: (() => void) | null }) {
@@ -37,6 +37,12 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
   const [extraLoaded, setExtraLoaded] = useState(false);
   const [sections, setSections] = useState<any[]>([]);
   const [openItems, setOpenItems] = useState<any[]>([]);
+
+  // Dream inline add state
+  const [addingDreamFor, setAddingDreamFor] = useState<string | null>(null);
+  const [newDreamTitle, setNewDreamTitle] = useState('');
+  const [savingDream, setSavingDream] = useState(false);
+  const dreamInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const uid = session.user.id;
@@ -59,6 +65,14 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
         setWeekCounts(counts);
       });
   }, [session.user.id]);
+
+  useEffect(() => {
+    if (addingDreamFor) {
+      setTimeout(() => dreamInputRef.current?.focus(), 50);
+    } else {
+      setNewDreamTitle('');
+    }
+  }, [addingDreamFor]);
 
   // Lazy-load task counts when expanded
   useEffect(() => {
@@ -91,6 +105,30 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
     return counts;
   }, [sections, openItems]);
 
+  async function addDream(lifeGoalVal: string) {
+    const title = newDreamTitle.trim();
+    if (!title || savingDream) return;
+    setSavingDream(true);
+    const { data, error } = await supabase.from('dreams').insert({
+      user_id: session.user.id,
+      title,
+      life_goal: lifeGoalVal,
+      category: 'inne',
+    }).select('id, title, life_goal, is_done').single();
+    setSavingDream(false);
+    if (!error && data) {
+      setDreams(prev => [...prev, data]);
+      setAddingDreamFor(null);
+      // Refresh expanded map
+      if (expanded) setExtraLoaded(false);
+    }
+  }
+
+  async function deleteDream(dreamId: string) {
+    setDreams(prev => prev.filter(d => d.id !== dreamId));
+    await supabase.from('dreams').delete().eq('id', dreamId).eq('user_id', session.user.id);
+  }
+
   if (!goals) return null;
   const goalsAny = goals as any;
   const hasAny = GOALS.some(g => goalsAny[g.key]);
@@ -119,6 +157,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
           const theme = THEME[key];
           const lifeGoalVal = LIFE_GOAL_KEY[key];
           const linkedDreams = dreams.filter(d => d.life_goal === lifeGoalVal);
+          const isAddingHere = addingDreamFor === key;
 
           return (
             <div key={key} className={`rounded-[24px] border ${theme.bg} p-3.5 shadow-sm`}>
@@ -143,27 +182,67 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                 )}
               </div>
 
-              {linkedDreams.length > 0 && (
-                <div className="mt-2.5 space-y-1 pl-[26px]">
-                  {linkedDreams.slice(0, 3).map(dream => {
-                    const proj = projectByDreamId[dream.id];
-                    return (
-                      <div key={dream.id} className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[9px] text-text-muted shrink-0">✦</span>
-                        <span className="text-[11px] text-text-secondary truncate">{dream.title}</span>
-                        {proj && (
-                          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
-                            {proj.name}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {!expanded && linkedDreams.length > 3 && (
-                    <p className="text-[9px] text-text-muted pl-3">+{linkedDreams.length - 3} więcej</p>
-                  )}
-                </div>
-              )}
+              {/* Dreams list */}
+              <div className="mt-2.5 space-y-1 pl-[26px]">
+                {linkedDreams.map(dream => {
+                  const proj = projectByDreamId[dream.id];
+                  return (
+                    <div key={dream.id} className="group flex items-center gap-1.5 min-w-0">
+                      <span className={`text-[9px] shrink-0 ${theme.text}`}>✦</span>
+                      <span className="text-[11px] text-text-secondary truncate flex-1">{dream.title}</span>
+                      {proj && (
+                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.chip}`}>
+                          {proj.name}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => deleteDream(dream.id)}
+                        className="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-muted hover:text-rose-500 transition-all cursor-pointer"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Inline add form */}
+                {isAddingHere ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className={`text-[9px] shrink-0 ${theme.text}`}>✦</span>
+                    <input
+                      ref={dreamInputRef}
+                      value={newDreamTitle}
+                      onChange={e => setNewDreamTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') addDream(lifeGoalVal);
+                        if (e.key === 'Escape') setAddingDreamFor(null);
+                      }}
+                      placeholder="Marzenie..."
+                      className={`min-w-0 flex-1 bg-transparent text-[11px] font-medium text-text-primary outline-none border-b border-border-custom ${theme.inputFocus} placeholder:text-text-muted/40 pb-0.5 transition-colors`}
+                    />
+                    <button
+                      onClick={() => addDream(lifeGoalVal)}
+                      disabled={!newDreamTitle.trim() || savingDream}
+                      className={`shrink-0 p-0.5 rounded ${theme.text} disabled:opacity-30 transition-opacity cursor-pointer`}
+                    >
+                      <Check size={12} />
+                    </button>
+                    <button
+                      onClick={() => setAddingDreamFor(null)}
+                      className="shrink-0 p-0.5 rounded text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setAddingDreamFor(key); }}
+                    className={`mt-0.5 flex items-center gap-1 text-[9px] font-bold ${theme.text} opacity-50 hover:opacity-100 transition-opacity cursor-pointer`}
+                  >
+                    <Plus size={9} /> marzenie
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -174,7 +253,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
         onClick={() => setExpanded(e => !e)}
         className="flex w-full items-center justify-center gap-1.5 pt-0.5 text-[9px] font-bold uppercase tracking-widest text-text-muted hover:text-primary transition-colors cursor-pointer"
       >
-        {expanded ? <><ChevronUp size={10} /> Zwiń</> : <><ChevronDown size={10} /> Przegląd systemu</>}
+        {expanded ? <><ChevronUp size={10} /> Zwiń</> : <><ChevronDown size={10} /> Mapa systemu</>}
       </button>
 
       {/* Bird's-eye view */}
@@ -198,7 +277,6 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
 
                 return (
                   <div key={key} className="space-y-2">
-                    {/* Pillar header */}
                     <div className="flex items-center gap-2">
                       <Icon size={11} className={theme.text} />
                       <span className={`text-[9px] font-black uppercase tracking-widest ${theme.text}`}>{label}</span>
@@ -211,7 +289,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
                     </div>
 
                     {allDreams.length === 0 ? (
-                      <p className="pl-4 text-[9px] italic text-text-muted/50">brak marzeń pod tym celem</p>
+                      <p className="pl-4 text-[9px] italic text-text-muted/50">brak marzeń — dodaj powyżej</p>
                     ) : (
                       <div className="space-y-2 pl-3.5">
                         {allDreams.map(dream => {
