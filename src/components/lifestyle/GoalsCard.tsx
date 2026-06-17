@@ -121,7 +121,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
           const linkedDreams = dreams.filter(d => d.life_goal === lifeGoalVal);
 
           return (
-            <div key={key} className={`rounded-[20px] border ${theme.bg} p-3.5 shadow-sm`}>
+            <div key={key} className={`rounded-[24px] border ${theme.bg} p-3.5 shadow-sm`}>
               <div className="flex items-start gap-3">
                 <Icon size={14} className={`${theme.text} mt-0.5 shrink-0`} />
                 <div className="min-w-0 flex-1">
@@ -179,7 +179,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
 
       {/* Bird's-eye view */}
       {expanded && (
-        <div className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm space-y-4">
+        <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-4">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Mapa organizmu</p>
           {!extraLoaded ? (
             <div className="flex justify-center py-4">
