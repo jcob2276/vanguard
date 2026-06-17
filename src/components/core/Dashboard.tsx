@@ -66,7 +66,7 @@ function CommandButton({ icon: Icon, label, eyebrow, onClick, tone = 'primary', 
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center justify-between rounded-[20px] border p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:transform-none cursor-pointer ${
+      className={`flex w-full items-center justify-between rounded-[24px] border p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:transform-none cursor-pointer ${
         primary
           ? 'border-primary/10 bg-primary/[0.06] hover:bg-primary/[0.1] shadow-[0_8px_20px_rgba(79,70,229,0.05)]'
           : 'border-border-custom bg-surface backdrop-blur-md hover:border-primary/20 hover:bg-surface-solid hover:shadow-md'
@@ -224,7 +224,7 @@ function DayCounter() {
   const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   return (
-    <div className="py-4.5 px-5 border-l-4 border-primary/50 bg-primary/[0.02] dark:bg-primary/[0.04] backdrop-blur-md rounded-r-[20px] my-2 shadow-sm">
+    <div className="py-4.5 px-5 border-l-4 border-primary/50 bg-primary/[0.02] dark:bg-primary/[0.04] backdrop-blur-md rounded-r-[24px] my-2 shadow-sm">
       <p className="font-display text-[14.5px] font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
         "{quote}"
       </p>
@@ -278,7 +278,7 @@ function MorningRitualCard({ isCompleted, streak, focusIntention, onClick }: { i
           </p>
           <button
             onClick={onClick}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
           >
             <Play size={10} fill="currentColor" className="ml-0.5 shrink-0" /> Rozpocznij Rytuał ⚡
           </button>

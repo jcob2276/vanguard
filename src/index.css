@@ -22,6 +22,21 @@
   --btn-secondary-bg: #f8fafc;
   --btn-secondary-hover: #f1f5f9;
 
+  /* ── Pixel + iOS Design Tokens ── */
+  --radius-sm: 10px;   /* tagi, chipy, badge */
+  --radius-md: 16px;   /* przyciski, inputy */
+  --radius-lg: 24px;   /* karty, panele */
+  --radius-xl: 28px;   /* modale, sheety */
+  --radius-full: 9999px;
+
+  /* Pixel-style tonal surfaces */
+  --tonal-primary: rgba(79, 70, 229, 0.08);
+  --tonal-primary-strong: rgba(79, 70, 229, 0.14);
+
+  /* iOS-style spring easing */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+
   /* Google Keep dynamic note colors - Light mode */
   --keep-bg-default: var(--surface-solid);
   --keep-border-default: var(--border);
@@ -247,52 +262,81 @@
 }
 
 @layer components {
+  /* ── Card — iOS large radius + glass ── */
   .card {
     background-color: var(--surface);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
-    border-radius: 1.5rem; /* 24px */
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: var(--shadow-card);
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.25s var(--ease-out);
   }
-  
   .card:hover {
     border-color: rgba(99, 102, 241, 0.15);
     box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
   }
-
   .card:active {
     transform: translateY(0) scale(0.985);
   }
 
+  /* ── Glass panel — iOS frosted surface ── */
   .glass-panel {
     background: var(--surface);
-    backdrop-filter: blur(24px) saturate(120%);
-    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
     border: 1px solid var(--border);
-    border-radius: 1.5rem;
+    border-radius: var(--radius-lg);
   }
 
+  /* ── Pixel tile — ikonka w zaokrąglonym kwadracie ── */
+  .pixel-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--tonal-primary);
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  /* ── Pixel label — uppercase metadata (Pixel style) ── */
+  .pixel-label {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── iOS surface — sheet / modal surface ── */
+  .ios-surface {
+    background: var(--surface);
+    backdrop-filter: blur(32px) saturate(160%);
+    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* ── Buttons ── */
   .btn-primary {
     background-color: var(--color-primary);
     color: white;
     font-family: var(--font-display);
     font-weight: 700;
     padding: 0.75rem 1.5rem;
-    border-radius: 1rem; /* 16px */
-    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.2);
+    border-radius: var(--radius-md);
+    transition: all 0.2s var(--ease-out);
+    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.22);
   }
-  
   .btn-primary:hover {
     background-color: var(--color-primary-hover);
-    box-shadow: 0 6px 18px 0 rgba(79, 70, 229, 0.3);
+    box-shadow: 0 6px 18px 0 rgba(79, 70, 229, 0.32);
     transform: translateY(-1px);
   }
-  
   .btn-primary:active {
     transform: translateY(0) scale(0.97);
   }
@@ -304,31 +348,29 @@
     font-family: var(--font-display);
     font-weight: 700;
     padding: 0.75rem 1.5rem;
-    border-radius: 1rem;
-    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: var(--radius-md);
+    transition: all 0.2s var(--ease-out);
   }
-  
   .btn-outline:hover {
     background-color: var(--surface-solid);
     border-color: rgba(99, 102, 241, 0.25);
     color: var(--text-primary);
     transform: translateY(-1px);
   }
-
   .btn-outline:active {
     transform: translateY(0) scale(0.97);
   }
 
+  /* ── Input ── */
   .input {
     background-color: var(--input-bg);
     border: 1px solid var(--border);
-    border-radius: 1rem;
+    border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
     color: var(--text-primary);
     width: 100%;
     transition: all 0.2s;
   }
-  
   .input:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -336,6 +378,7 @@
     background-color: var(--surface-solid);
   }
 
+  /* ── Label ── */
   .label {
     font-family: var(--font-display);
     font-size: 11px;

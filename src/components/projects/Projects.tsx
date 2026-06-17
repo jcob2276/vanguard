@@ -312,7 +312,7 @@ export default function Projects({ session }: { session: any }) {
 
       {/* New project form */}
       {showForm && (
-        <div className="rounded-[18px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
+        <div className="rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
           <input
             autoFocus
             value={form.name}
