@@ -160,7 +160,7 @@ export default function GoalsCard({ session, onEditClick = null }: { session: Se
           const isAddingHere = addingDreamFor === key;
 
           return (
-            <div key={key} className={`rounded-[24px] border ${theme.bg} p-3.5 shadow-sm`}>
+            <div key={key} className={`rounded-[24px] border ${theme.bg} p-3.5 shadow-sm min-w-0 overflow-hidden`}>
               <div className="flex items-start gap-3">
                 <Icon size={14} className={`${theme.text} mt-0.5 shrink-0`} />
                 <div className="min-w-0 flex-1">
