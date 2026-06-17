@@ -863,7 +863,7 @@ function SectionTabs({ sections, active, onSelect, onAdd, onRename, onDelete }: 
 
         {/* Section tabs */}
         {sections.map((s) => (
-          <div key={s.id} className="group/tab relative flex items-stretch">
+          <div key={s.id} className="relative flex items-stretch">
             {renamingId === s.id ? (
               <input
                 autoFocus
@@ -874,12 +874,18 @@ function SectionTabs({ sections, active, onSelect, onAdd, onRename, onDelete }: 
                   if (e.key === 'Enter') commitRename(s.id);
                   if (e.key === 'Escape') setRenamingId(null);
                 }}
-                className="border-b-2 border-primary bg-transparent py-2.5 text-[12px] font-semibold text-primary outline-none w-[100px] px-3"
+                className="border-b-2 border-primary bg-transparent py-2.5 text-[12px] font-semibold text-primary outline-none w-[110px] px-3"
               />
             ) : (
               <button
-                onClick={() => onSelect(s.id)}
-                onDoubleClick={() => { setRenamingId(s.id); setRenameVal(s.name); }}
+                onClick={() => {
+                  if (active === s.id) {
+                    setRenamingId(s.id);
+                    setRenameVal(s.name);
+                  } else {
+                    onSelect(s.id);
+                  }
+                }}
                 className={`border-b-2 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap transition-all ${
                   active === s.id ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-primary'
                 }`}
@@ -888,11 +894,11 @@ function SectionTabs({ sections, active, onSelect, onAdd, onRename, onDelete }: 
               </button>
             )}
 
-            {/* Delete button — visible on hover of active tab */}
+            {/* Delete — always visible on active tab */}
             {active === s.id && renamingId !== s.id && (
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
-                className="mb-0.5 self-center opacity-0 group-hover/tab:opacity-100 transition-opacity text-text-muted/30 hover:text-rose-400 pr-1"
+                className="self-center pr-1 text-text-muted/25 hover:text-rose-400 active:text-rose-400 transition-colors"
                 title="Usuń sekcję"
               >
                 <X size={10} />
