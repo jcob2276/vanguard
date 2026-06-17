@@ -444,7 +444,11 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
     if (isDone) { onToggle(); return; }
     setCompleting(true);
     setTimeout(() => setCompletingOut(true), 130);
-    setTimeout(() => { onToggle(); }, 380);
+    setTimeout(() => {
+      onToggle();
+      setCompleting(false);
+      setCompletingOut(false);
+    }, 420);
   };
 
   // ── Grip: long press (mobile) / mousedown (desktop) ──
@@ -969,35 +973,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const todayZoneRef = useRef<HTMLDivElement>(null);
   const inboxZoneRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const mainRef = useRef<HTMLElement>(null);
-  const pullStartY = useRef(0);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [pullRefreshing, setPullRefreshing] = useState(false);
-
-  const onMainTouchStart = (e: React.TouchEvent) => {
-    if (mainRef.current && mainRef.current.scrollTop === 0) {
-      pullStartY.current = e.touches[0].clientY;
-    } else {
-      pullStartY.current = 0;
-    }
-  };
-  const onMainTouchMove = (e: React.TouchEvent) => {
-    if (!pullStartY.current) return;
-    const dy = e.touches[0].clientY - pullStartY.current;
-    if (dy > 0 && mainRef.current && mainRef.current.scrollTop === 0) {
-      setPullDistance(Math.min(dy * 0.45, 56));
-    }
-  };
-  const onMainTouchEnd = async () => {
-    if (pullDistance >= 48 && !pullRefreshing) {
-      setPullRefreshing(true);
-      if (navigator.vibrate) navigator.vibrate(15);
-      await fetchAll();
-      setPullRefreshing(false);
-    }
-    setPullDistance(0);
-    pullStartY.current = 0;
-  };
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const toggleSectionCollapse = (id: string) => { setCollapsedSections(prev => ({ ...prev, [id]: !prev[id] })); };
@@ -1393,25 +1368,9 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         />
 
         <main
-          ref={mainRef}
           className="flex-1 overflow-y-auto"
           onClick={() => setExpandedId(null)}
-          onTouchStart={onMainTouchStart}
-          onTouchMove={onMainTouchMove}
-          onTouchEnd={onMainTouchEnd}
         >
-          {/* Pull-to-refresh indicator */}
-          {(pullDistance > 0 || pullRefreshing) && (
-            <div
-              className="flex items-center justify-center overflow-hidden transition-all duration-150"
-              style={{ height: pullRefreshing ? 40 : pullDistance }}
-            >
-              <div
-                className={`h-4 w-4 rounded-full border-2 border-primary border-t-transparent ${pullRefreshing ? 'animate-spin' : ''}`}
-                style={{ transform: pullRefreshing ? undefined : `rotate(${pullDistance * 4}deg)` }}
-              />
-            </div>
-          )}
           <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
             {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
