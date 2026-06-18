@@ -1186,7 +1186,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         const pm = goalCreatePillar ? PILLAR_META[goalCreatePillar] : null;
 
         return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden">
 
               {/* Header strip */}
