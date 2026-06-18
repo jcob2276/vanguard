@@ -511,17 +511,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
               Weekly Review
             </button>
           )}
-          {viewMode === 'projekty' && (
-            <button
-              onClick={() => setShowForm(v => !v)}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-colors ${
-                showForm ? 'bg-surface-solid text-text-muted' : 'bg-surface-solid border border-border-custom text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              {showForm ? <X size={14} /> : <Plus size={14} />}
-              {showForm ? 'Anuluj' : 'Nowy'}
-            </button>
-          )}
           <button
             onClick={() => { setGoalCreateOpen(true); setGoalCreateStep('pillar'); }}
             className="flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[12px] font-semibold text-white shadow-md shadow-primary/20"
