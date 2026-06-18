@@ -91,12 +91,17 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const [lifeGoals, setLifeGoals] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'projekty' | 'hierarchia'>('hierarchia');
   const [kpis, setKpis] = useState<any[]>([]);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
   const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
   const [kpiInputVal, setKpiInputVal] = useState('');
+  const [kpiUpdateOpen, setKpiUpdateOpen] = useState(false);
+  const [kpiUpdateIdx, setKpiUpdateIdx] = useState(0);
+  const [kpiUpdateVal, setKpiUpdateVal] = useState('');
+  const [kpiUpdateValues, setKpiUpdateValues] = useState<Record<string, number>>({});
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }] = await Promise.all([
+      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }, { data: snapData }] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
@@ -104,6 +109,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
         supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
+        (supabase as any).from('goal_kpi_snapshots').select('kpi_id, value, recorded_at').eq('user_id', userId).order('recorded_at', { ascending: false }).limit(100),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
@@ -112,6 +118,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       setDreams(d ?? []);
       setLifeGoals(lg ?? null);
       setKpis(kpiData ?? []);
+      setSnapshots(snapData ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -168,14 +175,22 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     return grouped;
   }, [checkpoints]);
 
-  const kpisByPillar = useMemo(() => {
+  const kpisByProject = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     kpis.forEach(k => {
-      if (!grouped[k.pillar]) grouped[k.pillar] = [];
-      grouped[k.pillar].push(k);
+      if (!k.project_id) return;
+      if (!grouped[k.project_id]) grouped[k.project_id] = [];
+      grouped[k.project_id].push(k);
     });
     return grouped;
   }, [kpis]);
+
+  const lastSnapshotByKpi = useMemo(() => {
+    const map: Record<string, any> = {};
+    snapshots.forEach(s => { if (!map[s.kpi_id]) map[s.kpi_id] = s; });
+    return map;
+  }, [snapshots]);
+
 
   // ── Handlers ──
   const handleCreate = () => {
@@ -307,8 +322,32 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     if (isNaN(num)) { setEditingKpiId(null); return; }
     run(async () => {
       await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
+      await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
       setEditingKpiId(null);
     });
+  };
+
+  const handleKpiUpdateNext = () => {
+    const kpi = activeKpis[kpiUpdateIdx];
+    const num = parseFloat(kpiUpdateVal);
+    const newValues = isNaN(num) ? kpiUpdateValues : { ...kpiUpdateValues, [kpi.id]: num };
+
+    if (kpiUpdateIdx < activeKpis.length - 1) {
+      setKpiUpdateValues(newValues);
+      setKpiUpdateIdx(i => i + 1);
+      setKpiUpdateVal('');
+    } else {
+      run(async () => {
+        for (const [kpiId, val] of Object.entries(newValues)) {
+          await supabase.from('goal_kpis').update({ current_value: val } as any).eq('id', kpiId);
+          await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: val });
+        }
+        setKpiUpdateOpen(false);
+        setKpiUpdateIdx(0);
+        setKpiUpdateVal('');
+        setKpiUpdateValues({});
+      });
+    }
   };
 
   const filtered = useMemo(() =>
@@ -338,6 +377,11 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const activeProjects = useMemo(
     () => projects.filter(p => p.status === 'active'),
     [projects],
+  );
+
+  const activeKpis = useMemo(() =>
+    kpis.filter(k => k.project_id && activeProjects.some(p => p.id === k.project_id)),
+    [kpis, activeProjects],
   );
 
   const directionalGoalCount = useMemo(
@@ -427,6 +471,14 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       {/* ── HIERARCHIA VIEW ── */}
       {viewMode === 'hierarchia' && (
         <div className="space-y-5">
+          {activeKpis.length > 0 && (
+            <button
+              onClick={() => { setKpiUpdateOpen(true); setKpiUpdateIdx(0); setKpiUpdateVal(''); setKpiUpdateValues({}); }}
+              className="w-full flex items-center justify-center gap-2 rounded-[16px] border border-border-custom/60 bg-surface/50 py-2.5 text-[12px] font-semibold text-text-muted hover:text-text-primary hover:border-border-custom transition-all"
+            >
+              <TrendingUp size={13} /> Zaktualizuj KPI
+            </button>
+          )}
           {(['cialo', 'duch', 'konto'] as const).map(pillarId => {
             const PILLAR_CFG = {
               cialo: { label: 'Ciało',  icon: Shield, goalKey: 'goal_cialo',
@@ -459,54 +511,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                   {lifeGoalText && (
                     <p className="text-[12px] font-medium text-text-primary leading-snug mt-1.5">{lifeGoalText}</p>
                   )}
-                  {(kpisByPillar[pillarId] ?? []).length > 0 && (
-                    <div className="mt-2.5 space-y-2.5">
-                      {(kpisByPillar[pillarId] ?? []).map(kpi => {
-                        const pct = kpi.target != null && kpi.current_value != null
-                          ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100))
-                          : 0;
-                        return (
-                          <div key={kpi.id}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[11px] text-text-secondary flex-1 truncate">{kpi.name}</span>
-                              {editingKpiId === kpi.id ? (
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    autoFocus
-                                    type="number"
-                                    value={kpiInputVal}
-                                    onChange={e => setKpiInputVal(e.target.value)}
-                                    onBlur={() => handleUpdateKpiValue(kpi.id, kpiInputVal)}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter') handleUpdateKpiValue(kpi.id, kpiInputVal);
-                                      if (e.key === 'Escape') setEditingKpiId(null);
-                                    }}
-                                    className="w-14 rounded-lg border border-primary/30 bg-background/80 px-1.5 py-0.5 text-[11px] text-text-primary outline-none text-right"
-                                  />
-                                  <span className="text-[10px] text-text-muted">{kpi.unit}</span>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => { setEditingKpiId(kpi.id); setKpiInputVal(kpi.current_value != null ? String(kpi.current_value) : ''); }}
-                                  className={`text-[11px] font-semibold shrink-0 ${PILLAR_CFG.text} hover:opacity-70 transition-opacity`}
-                                >
-                                  {kpi.current_value != null ? kpi.current_value : '—'}
-                                  {kpi.target != null && (
-                                    <span className="font-normal text-text-muted"> / {kpi.target} {kpi.unit}</span>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            {kpi.target != null && (
-                              <div className="h-1 w-full rounded-full bg-border-custom/40">
-                                <div className={`h-full rounded-full transition-all ${PILLAR_CFG.bar}`} style={{ width: `${pct}%` }} />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
 
                 {pillarProjects.length > 0 ? (
@@ -527,6 +531,52 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                             )}
                             {s && <span className="text-[10px] text-text-muted shrink-0">{s.progress}%</span>}
                           </div>
+                          {/* KPIs */}
+                          {(kpisByProject[project.id] ?? []).map(kpi => {
+                            const last = lastSnapshotByKpi[kpi.id];
+                            const delta = kpi.current_value != null && last != null ? kpi.current_value - last.value : null;
+                            const pct = kpi.target != null && kpi.current_value != null
+                              ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100)) : 0;
+                            return (
+                              <div key={kpi.id} className="ml-5 mt-1">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="text-[10px] text-text-secondary flex-1 truncate">{kpi.name}</span>
+                                  <span className="flex items-center gap-1.5 shrink-0">
+                                    {delta !== null && (
+                                      <span className={`text-[9px] font-bold ${delta > 0 ? 'text-emerald-500' : delta < 0 ? 'text-rose-500' : 'text-text-muted'}`}>
+                                        {delta > 0 ? `↑${delta}` : delta < 0 ? `↓${Math.abs(delta)}` : '→'}
+                                      </span>
+                                    )}
+                                    {editingKpiId === kpi.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          autoFocus type="number" value={kpiInputVal}
+                                          onChange={e => setKpiInputVal(e.target.value)}
+                                          onBlur={() => handleUpdateKpiValue(kpi.id, kpiInputVal)}
+                                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateKpiValue(kpi.id, kpiInputVal); if (e.key === 'Escape') setEditingKpiId(null); }}
+                                          className="w-12 rounded border border-primary/30 bg-background px-1 py-0.5 text-[11px] text-right text-text-primary outline-none"
+                                        />
+                                        <span className="text-[9px] text-text-muted">{kpi.unit}</span>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setEditingKpiId(kpi.id); setKpiInputVal(kpi.current_value != null ? String(kpi.current_value) : ''); }}
+                                        className={`text-[11px] font-semibold ${col.text} hover:opacity-70`}
+                                      >
+                                        {kpi.current_value != null ? kpi.current_value : '—'}
+                                        {kpi.target != null && <span className="font-normal text-text-muted"> / {kpi.target} {kpi.unit}</span>}
+                                      </button>
+                                    )}
+                                  </span>
+                                </div>
+                                {kpi.target != null && (
+                                  <div className="h-[3px] w-full rounded-full bg-border-custom/30">
+                                    <div className={`h-full rounded-full transition-all ${col.bar}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                           {/* Checkpoints */}
                           {cps.map(cp => (
                             <div key={cp.id} className="ml-5 flex items-center gap-2 py-1">
@@ -1052,6 +1102,56 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       )}
 
       </>}
+
+      {/* ── KPI Update modal ── */}
+      {kpiUpdateOpen && activeKpis.length > 0 && (() => {
+        const kpi = activeKpis[kpiUpdateIdx];
+        const last = lastSnapshotByKpi[kpi.id];
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">
+                  KPI {kpiUpdateIdx + 1} / {activeKpis.length}
+                </p>
+                <h3 className="text-[17px] font-black text-text-primary leading-tight">{kpi.name}</h3>
+                <div className="flex items-center gap-3 mt-1">
+                  {kpi.target != null && (
+                    <span className="text-[12px] text-text-muted">cel: {kpi.target} {kpi.unit}</span>
+                  )}
+                  {last != null && (
+                    <span className="text-[12px] text-text-muted">poprzednio: {last.value}</span>
+                  )}
+                </div>
+              </div>
+              <input
+                autoFocus
+                type="number"
+                value={kpiUpdateVal}
+                onChange={e => setKpiUpdateVal(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleKpiUpdateNext(); }}
+                placeholder={kpi.unit || 'wartość'}
+                className="w-full rounded-[14px] border border-border-custom bg-surface-solid/40 px-4 py-4 text-[28px] font-black text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30 text-center tracking-tight"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setKpiUpdateOpen(false); setKpiUpdateIdx(0); setKpiUpdateValues({}); }}
+                  className="rounded-xl border border-border-custom py-3 px-4 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={handleKpiUpdateNext}
+                  disabled={busy}
+                  className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {kpiUpdateIdx < activeKpis.length - 1 ? 'Dalej →' : 'Zapisz wszystko'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Retrospektywa modal ── */}
       {retroProject && (
