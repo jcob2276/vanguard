@@ -90,16 +90,20 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
 
   const [lifeGoals, setLifeGoals] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'projekty' | 'hierarchia'>('hierarchia');
+  const [kpis, setKpis] = useState<any[]>([]);
+  const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
+  const [kpiInputVal, setKpiInputVal] = useState('');
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, { data: d }, { data: lg }] = await Promise.all([
+      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
         listProjectCheckpoints(userId),
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
         supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
@@ -107,6 +111,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       setCheckpoints(c ?? []);
       setDreams(d ?? []);
       setLifeGoals(lg ?? null);
+      setKpis(kpiData ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -162,6 +167,15 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     });
     return grouped;
   }, [checkpoints]);
+
+  const kpisByPillar = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    kpis.forEach(k => {
+      if (!grouped[k.pillar]) grouped[k.pillar] = [];
+      grouped[k.pillar].push(k);
+    });
+    return grouped;
+  }, [kpis]);
 
   // ── Handlers ──
   const handleCreate = () => {
@@ -288,6 +302,15 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     run(() => setTodoStatus(item, next));
   };
 
+  const handleUpdateKpiValue = (kpiId: string, raw: string) => {
+    const num = parseFloat(raw);
+    if (isNaN(num)) { setEditingKpiId(null); return; }
+    run(async () => {
+      await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
+      setEditingKpiId(null);
+    });
+  };
+
   const filtered = useMemo(() =>
     projects
       .filter(p => p.status === statusFilter)
@@ -408,13 +431,13 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
             const PILLAR_CFG = {
               cialo: { label: 'Ciało',  icon: Shield, goalKey: 'goal_cialo',
                 border: 'border-emerald-500/25', headerBg: 'bg-emerald-500/[0.05]',
-                text: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/15' },
+                text: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/15', bar: 'bg-emerald-500' },
               duch:  { label: 'Duch',   icon: Zap,    goalKey: 'goal_duch',
                 border: 'border-indigo-500/25',  headerBg: 'bg-indigo-500/[0.05]',
-                text: 'text-indigo-600 dark:text-indigo-400', iconBg: 'bg-indigo-500/15' },
+                text: 'text-indigo-600 dark:text-indigo-400', iconBg: 'bg-indigo-500/15', bar: 'bg-indigo-500' },
               konto: { label: 'Konto',  icon: Wallet, goalKey: 'goal_konto',
                 border: 'border-amber-500/25',   headerBg: 'bg-amber-500/[0.05]',
-                text: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/15' },
+                text: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/15', bar: 'bg-amber-500' },
             }[pillarId];
             const PillarIcon = PILLAR_CFG.icon;
             const lifeGoalText = (lifeGoals as any)?.[PILLAR_CFG.goalKey] ?? null;
@@ -435,6 +458,54 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                   </div>
                   {lifeGoalText && (
                     <p className="text-[12px] font-medium text-text-primary leading-snug mt-1.5">{lifeGoalText}</p>
+                  )}
+                  {(kpisByPillar[pillarId] ?? []).length > 0 && (
+                    <div className="mt-2.5 space-y-2.5">
+                      {(kpisByPillar[pillarId] ?? []).map(kpi => {
+                        const pct = kpi.target != null && kpi.current_value != null
+                          ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100))
+                          : 0;
+                        return (
+                          <div key={kpi.id}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[11px] text-text-secondary flex-1 truncate">{kpi.name}</span>
+                              {editingKpiId === kpi.id ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    autoFocus
+                                    type="number"
+                                    value={kpiInputVal}
+                                    onChange={e => setKpiInputVal(e.target.value)}
+                                    onBlur={() => handleUpdateKpiValue(kpi.id, kpiInputVal)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') handleUpdateKpiValue(kpi.id, kpiInputVal);
+                                      if (e.key === 'Escape') setEditingKpiId(null);
+                                    }}
+                                    className="w-14 rounded-lg border border-primary/30 bg-background/80 px-1.5 py-0.5 text-[11px] text-text-primary outline-none text-right"
+                                  />
+                                  <span className="text-[10px] text-text-muted">{kpi.unit}</span>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => { setEditingKpiId(kpi.id); setKpiInputVal(kpi.current_value != null ? String(kpi.current_value) : ''); }}
+                                  className={`text-[11px] font-semibold shrink-0 ${PILLAR_CFG.text} hover:opacity-70 transition-opacity`}
+                                >
+                                  {kpi.current_value != null ? kpi.current_value : '—'}
+                                  {kpi.target != null && (
+                                    <span className="font-normal text-text-muted"> / {kpi.target} {kpi.unit}</span>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {kpi.target != null && (
+                              <div className="h-1 w-full rounded-full bg-border-custom/40">
+                                <div className={`h-full rounded-full transition-all ${PILLAR_CFG.bar}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
