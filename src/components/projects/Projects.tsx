@@ -9,7 +9,6 @@ import {
   Edit3,
   Flag,
   FolderKanban,
-  GitBranch,
   Plus,
   Repeat2,
   Save,
@@ -62,11 +61,6 @@ const GOAL_QUESTIONS = [
   { key: 'weekly_actions', q: 'Co robisz co tydzień żeby to osiągnąć?', hint: 'Konkretne powtarzalne działania — to będą Twoje KPI' },
 ] as const;
 
-const LIFE_GOAL_META: Record<string, { icon: typeof Shield; text: string; chip: string }> = {
-  cialo: { icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  duch:  { icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'   },
-  konto: { icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'      },
-};
 
 const STATUS_TABS = [
   { id: 'active', label: 'Aktywne' },
@@ -103,7 +97,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const [retroForm, setRetroForm] = useState({ good: '', improve: '', rating: 0 });
 
   const [lifeGoals, setLifeGoals] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'projekty' | 'hierarchia'>('hierarchia');
   const [kpis, setKpis] = useState<any[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
@@ -472,22 +465,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     return PILLARS.includes(lifeGoal) ? lifeGoal : null;
   }, [dreamById]);
 
-  const projectsByPillar = useMemo(() => {
-    const grouped: Record<PillarId, any[]> = { cialo: [], duch: [], konto: [] };
-    activeProjects.forEach(project => {
-      const pillar = projectPillar(project);
-      if (pillar) grouped[pillar].push(project);
-    });
-    return grouped;
-  }, [activeProjects, projectPillar]);
-
-  const unlinkedActiveProjects = useMemo(
-    () => activeProjects.filter(project => !projectPillar(project)),
-    [activeProjects, projectPillar],
-  );
-
-  const hasAnyHierarchyContent = directionalGoalCount > 0 || activeProjects.length > 0;
-
   if (loading) return (
     <DataStateNotice tone="loading" title="Ładowanie projektów" detail="" />
   );
@@ -503,6 +480,14 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
           <p className="text-[12px] text-text-muted">{activeProjects.length} aktywnych · {directionalGoalCount} kierunki</p>
         </div>
         <div className="flex items-center gap-2">
+          {activeKpis.length > 0 && (
+            <button
+              onClick={() => { setKpiUpdateOpen(true); setKpiUpdateIdx(0); setKpiUpdateVal(''); setKpiUpdateValues({}); }}
+              className="flex items-center gap-1.5 rounded-full border border-border-custom bg-surface/50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
+            >
+              <TrendingUp size={11} /> KPI
+            </button>
+          )}
           {onNavigateTo && !(reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
             <button
               onClick={() => onNavigateTo('weekly-review')}
@@ -520,199 +505,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         </div>
       </div>
 
-      {/* View mode tabs */}
-      <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-        {([
-          { id: 'hierarchia', label: 'Hierarchia', icon: GitBranch },
-          { id: 'projekty',   label: 'Projekty',   icon: FolderKanban },
-        ] as const).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setViewMode(tab.id)}
-            className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all ${
-              viewMode === tab.id
-                ? 'bg-background text-text-primary shadow-sm'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            <tab.icon size={12} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── HIERARCHIA VIEW ── */}
-      {viewMode === 'hierarchia' && (
-        <div className="space-y-5">
-          {activeKpis.length > 0 && (
-            <button
-              onClick={() => { setKpiUpdateOpen(true); setKpiUpdateIdx(0); setKpiUpdateVal(''); setKpiUpdateValues({}); }}
-              className="w-full flex items-center justify-center gap-2 rounded-[16px] border border-border-custom/60 bg-surface/50 py-2.5 text-[12px] font-semibold text-text-muted hover:text-text-primary hover:border-border-custom transition-all"
-            >
-              <TrendingUp size={13} /> Zaktualizuj KPI
-            </button>
-          )}
-          {(['cialo', 'duch', 'konto'] as const).map(pillarId => {
-            const PILLAR_CFG = {
-              cialo: { label: 'Ciało',  icon: Shield, goalKey: 'goal_cialo',
-                border: 'border-emerald-500/25', headerBg: 'bg-emerald-500/[0.05]',
-                text: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/15', bar: 'bg-emerald-500' },
-              duch:  { label: 'Duch',   icon: Zap,    goalKey: 'goal_duch',
-                border: 'border-indigo-500/25',  headerBg: 'bg-indigo-500/[0.05]',
-                text: 'text-indigo-600 dark:text-indigo-400', iconBg: 'bg-indigo-500/15', bar: 'bg-indigo-500' },
-              konto: { label: 'Konto',  icon: Wallet, goalKey: 'goal_konto',
-                border: 'border-amber-500/25',   headerBg: 'bg-amber-500/[0.05]',
-                text: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/15', bar: 'bg-amber-500' },
-            }[pillarId];
-            const PillarIcon = PILLAR_CFG.icon;
-            const lifeGoalText = (lifeGoals as any)?.[PILLAR_CFG.goalKey] ?? null;
-            const pillarProjects = projectsByPillar[pillarId] ?? [];
-            if (!lifeGoalText && pillarProjects.length === 0) return null;
-            return (
-              <div key={pillarId} className={`rounded-[24px] border ${PILLAR_CFG.border} overflow-hidden`}>
-                {/* Pillar header */}
-                <div className={`px-4 py-3.5 ${PILLAR_CFG.headerBg} border-b ${PILLAR_CFG.border}`}>
-                  <div className="flex items-center gap-2.5">
-                    <span className={`flex items-center justify-center w-6 h-6 rounded-lg ${PILLAR_CFG.iconBg}`}>
-                      <PillarIcon size={12} className={PILLAR_CFG.text} />
-                    </span>
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${PILLAR_CFG.text} flex-1`}>{PILLAR_CFG.label}</span>
-                    <span className="rounded-full bg-surface-solid/60 px-2.5 py-1 text-[10px] font-semibold text-text-muted">
-                      {pillarProjects.length} proj.
-                    </span>
-                  </div>
-                  {lifeGoalText && (
-                    <p className="text-[12px] font-medium text-text-primary leading-snug mt-1.5">{lifeGoalText}</p>
-                  )}
-                </div>
-
-                {pillarProjects.length > 0 ? (
-                  <div className="px-4 pb-3 pt-2 space-y-3">
-                    {pillarProjects.map(project => {
-                      const col = colorOf(project.color);
-                      const s = stats[project.id];
-                      const cps = checkpointsByProject[project.id] ?? [];
-                      const doneCps = cps.filter(cp => cp.status === 'done').length;
-                      return (
-                        <div key={project.id} className="space-y-1">
-                          {/* Project row */}
-                          <div className="flex items-center gap-2 rounded-[12px] border border-border-custom/40 bg-surface-solid/30 px-3 py-2">
-                            <span className={`h-2 w-2 rounded-full shrink-0 ${col.dot}`} />
-                            <p className="text-[12px] font-semibold text-text-primary truncate flex-1">{project.name}</p>
-                            {cps.length > 0 && (
-                              <span className="text-[10px] text-text-muted shrink-0">{doneCps}/{cps.length}</span>
-                            )}
-                            {s && <span className="text-[10px] text-text-muted shrink-0">{s.progress}%</span>}
-                          </div>
-                          {/* KPIs */}
-                          {(kpisByProject[project.id] ?? []).map(kpi => {
-                            const last = lastSnapshotByKpi[kpi.id];
-                            const delta = kpi.current_value != null && last != null ? kpi.current_value - last.value : null;
-                            const pct = kpi.target != null && kpi.current_value != null
-                              ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100)) : 0;
-                            return (
-                              <div key={kpi.id} className="ml-5 mt-1">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="text-[10px] text-text-secondary flex-1 truncate">{kpi.name}</span>
-                                  <span className="flex items-center gap-1.5 shrink-0">
-                                    {delta !== null && (
-                                      <span className={`text-[9px] font-bold ${delta > 0 ? 'text-emerald-500' : delta < 0 ? 'text-rose-500' : 'text-text-muted'}`}>
-                                        {delta > 0 ? `↑${delta}` : delta < 0 ? `↓${Math.abs(delta)}` : '→'}
-                                      </span>
-                                    )}
-                                    {editingKpiId === kpi.id ? (
-                                      <div className="flex items-center gap-1">
-                                        <input
-                                          autoFocus type="number" value={kpiInputVal}
-                                          onChange={e => setKpiInputVal(e.target.value)}
-                                          onBlur={() => handleUpdateKpiValue(kpi.id, kpiInputVal)}
-                                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateKpiValue(kpi.id, kpiInputVal); if (e.key === 'Escape') setEditingKpiId(null); }}
-                                          className="w-12 rounded border border-primary/30 bg-background px-1 py-0.5 text-[11px] text-right text-text-primary outline-none"
-                                        />
-                                        <span className="text-[9px] text-text-muted">{kpi.unit}</span>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => { setEditingKpiId(kpi.id); setKpiInputVal(kpi.current_value != null ? String(kpi.current_value) : ''); }}
-                                        className={`text-[11px] font-semibold ${col.text} hover:opacity-70`}
-                                      >
-                                        {kpi.current_value != null ? kpi.current_value : '—'}
-                                        {kpi.target != null && <span className="font-normal text-text-muted"> / {kpi.target} {kpi.unit}</span>}
-                                      </button>
-                                    )}
-                                  </span>
-                                </div>
-                                {kpi.target != null && (
-                                  <div className="h-[3px] w-full rounded-full bg-border-custom/30">
-                                    <div className={`h-full rounded-full transition-all ${col.bar}`} style={{ width: `${pct}%` }} />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          {/* Checkpoints */}
-                          {cps.map(cp => (
-                            <div key={cp.id} className="ml-5 flex items-center gap-2 py-1">
-                              <div className={`h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center ${
-                                cp.status === 'done'
-                                  ? 'border-emerald-500 bg-emerald-500'
-                                  : 'border-border-custom'
-                              }`}>
-                                {cp.status === 'done' && <Check size={8} className="text-white" strokeWidth={3} />}
-                              </div>
-                              <span className={`text-[11px] flex-1 truncate ${
-                                cp.status === 'done' ? 'line-through text-text-muted/50' : 'text-text-secondary'
-                              }`}>{cp.title}</span>
-                              {cp.due_date && (
-                                <span className="text-[9px] text-text-muted shrink-0">
-                                  {format(new Date(cp.due_date + 'T00:00:00'), 'dd.MM')}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                          {cps.length === 0 && (
-                            <p className="ml-5 text-[10px] text-text-muted/40 italic py-0.5">brak milestoneów</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="px-4 py-3 text-[12px] text-text-muted/50">Brak aktywnych projektów pod tym kierunkiem.</p>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Projects that exist but are not attached to a goal yet. Dream links are legacy context, not hierarchy ownership. */}
-          {unlinkedActiveProjects.length > 0 && (
-            <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/[0.04] overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-amber-500/10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Projekty bez filaru ⚠</p>
-                <p className="mt-0.5 text-[11px] text-text-muted">Brak marzenia przypisanego do Ciało/Duch/Konto. Edytuj projekt i wybierz marzenie.</p>
-              </div>
-              {unlinkedActiveProjects.map(p => {
-                return (
-                <div key={p.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10 last:border-0">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${colorOf(p.color).dot}`} />
-                  <p className="text-[13px] text-text-secondary truncate flex-1">{p.name}</p>
-                </div>
-                );
-              })}
-            </div>
-          )}
-
-          {!hasAnyHierarchyContent && (
-            <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
-              <GitBranch size={28} className="text-text-muted/30 mb-3" />
-              <p className="text-[14px] font-semibold text-text-secondary">Zacznij od celów</p>
-              <p className="text-[12px] text-text-muted mt-1">Kliknij „+ Cel" w filarze żeby dodać pierwszy cel.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {viewMode === 'projekty' && <>
       {/* Weekly Review overdue banner */}
       {onNavigateTo && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
         <button
@@ -822,7 +614,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
           <FolderKanban size={28} className="text-text-muted/30 mb-3" />
           <p className="text-[14px] font-semibold text-text-secondary">Brak projektów</p>
-          <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy" żeby zacząć.</p>
+          <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy cel" żeby zacząć.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -846,8 +638,18 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                   <div className="flex items-start gap-3">
                     <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${col.dot}`} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[15px] font-semibold text-text-primary leading-tight">{project.name}</span>
+                        {(() => {
+                          const pillar = projectPillar(project);
+                          if (!pillar) return null;
+                          const meta = PILLAR_META[pillar];
+                          return (
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>
+                              {meta.label}
+                            </span>
+                          );
+                        })()}
                         {s.slipping && (
                           <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                             <AlertTriangle size={9} /> Slipuje {s.daysSince}d
@@ -888,6 +690,30 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                       />
                     </div>
                   </div>
+
+                  {/* KPI mini-display */}
+                  {(kpisByProject[project.id] ?? []).length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                      {(kpisByProject[project.id] ?? []).map(kpi => {
+                        const pct = kpi.target != null && kpi.current_value != null
+                          ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100)) : null;
+                        return (
+                          <div key={kpi.id} className="flex items-center gap-1.5 min-w-0">
+                            <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${col.dot}`} />
+                            <span className="text-[10px] text-text-muted truncate">{kpi.name}</span>
+                            <span className={`text-[10px] font-bold ${col.text}`}>
+                              {kpi.current_value != null ? kpi.current_value : '—'}
+                              {kpi.unit ? ` ${kpi.unit}` : ''}
+                              {kpi.target != null && <span className="font-normal text-text-muted/60"> / {kpi.target}</span>}
+                            </span>
+                            {pct !== null && (
+                              <span className="text-[9px] text-text-muted/50">{pct}%</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </button>
 
                 {/* Expanded detail */}
@@ -1173,8 +999,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
           })}
         </div>
       )}
-
-      </>}
 
       {/* ── AI Goal Create modal ── */}
       {goalCreateOpen && (() => {
