@@ -164,22 +164,12 @@ export default function DailyStrainCard({ session }: { session: any }) {
   return (
     <section className={`relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
       <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
+      <button onClick={refresh} disabled={refreshing}
+        title="Sync + przelicz"
+        className="absolute top-3 right-3 z-10 rounded-xl border border-border-custom bg-surface-solid/40 p-2 text-text-muted transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50">
+        <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+      </button>
       <div className="relative space-y-2.5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Trening dziś</p>
-          <div className="flex items-center gap-2.5">
-            <div className="text-right">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">Limiter</p>
-              <p className="text-[11px] font-extrabold uppercase text-text-primary font-display mt-0.5">{LIMITER_PL[limiterKey] || row.main_limiter}</p>
-            </div>
-            <button onClick={refresh} disabled={refreshing}
-              title="Sync + przelicz"
-              className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5 text-text-muted transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center">
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            </button>
-          </div>
-        </div>
-
         <div className="flex gap-2">
           <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
@@ -199,7 +189,7 @@ export default function DailyStrainCard({ session }: { session: any }) {
               { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: 'text-dayB' },
               { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: 'text-primary' },
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
-              { icon: Footprints, label: 'Kroki', value: oura.steps ? oura.steps.toLocaleString() : '--', color: 'text-dayC' },
+              { icon: Footprints, label: 'Kroki', value: oura.steps > 0 ? oura.steps.toLocaleString() : '--', color: 'text-dayC' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="flex flex-col items-center gap-1 bg-surface-solid border border-border-custom rounded-xl py-2 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
                 <Icon size={12} className={color} />

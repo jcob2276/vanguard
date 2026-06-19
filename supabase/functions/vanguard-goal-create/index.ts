@@ -25,15 +25,35 @@ ZASADY:
 - project_name: krótka nazwa SYSTEMU (co robisz), nie cel (co chcesz osiągnąć)
 - affirmation: 1 zdanie, czas teraźniejszy, "Ja ${userName} mam/jestem/posiadam...", zawiera datę z celu
 - kpis: MAKSYMALNIE 2, tylko LEADING indicators (tygodniowe działania które kontrolujesz), NIE wyniki końcowe
-- checkpoints: MAKSYMALNIE 4 kamieni milowych chronologicznie, daty YYYY-MM-DD jeśli da się wywnioskować z celu
-- Odpowiedz TYLKO JSON, bez markdown`;
+- checkpoints: MAKSYMALNIE 4 kamieni milowych ŚCIŚLE chronologicznie (od najwcześniejszego do najpóźniejszego)
+  * Każdy checkpoint MUSI mieć datę wcześniejszą niż następny
+  * Ostatni checkpoint = data osiągnięcia celu głównego
+  * Pośrednie checkpointy = etapy NA DRODZE do celu, PRZED datą celu
+  * NIE dodawaj etapów po dacie celu
+- Odpowiedz TYLKO JSON, bez markdown
 
-    const userPrompt = `Cel: ${answers.goal}
+WYMAGANY SCHEMAT JSON (użyj dokładnie tych kluczy):
+{
+  "project_name": "string",
+  "affirmation": "string",
+  "kpis": [
+    { "name": "string", "unit": "string", "target": number_or_null }
+  ],
+  "checkpoints": [
+    { "title": "string", "due_date": "YYYY-MM-DD" }
+  ]
+}`;
+
+    const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const userPrompt = `Dzisiaj jest: ${today}
+Cel: ${answers.goal}
 Po co mi to: ${answers.why}
 Co musi się stać: ${answers.milestones}
 Dlaczego może się nie udać: ${answers.blockers}
 Co robię co tydzień: ${answers.weekly_actions}
-Filar życiowy: ${pillar}`;
+Filar życiowy: ${pillar}
+
+WAŻNE: Checkpointy muszą być w kolejności rosnącej dat. Żaden checkpoint nie może mieć daty późniejszej niż data celu z pola "Cel". Sprawdź każdą datę przed wygenerowaniem.`;
 
     const { content } = await deepseekChat({
       apiKey,

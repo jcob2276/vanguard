@@ -1127,7 +1127,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                           {goalCreatePreview.kpis.map((kpi: any, i: number) => (
                             <div key={i} className={`flex items-center gap-2 rounded-[10px] px-3 py-2 ${pm.bg}`}>
                               <div className={`h-1.5 w-1.5 rounded-full ${pm.dot}`} />
-                              <span className="text-[12px] font-semibold text-text-primary flex-1">{kpi.name}</span>
+                              <span className="text-[12px] font-semibold text-text-primary flex-1">{kpi.name || kpi.label || kpi.description || kpi.indicator || ''}</span>
                               {kpi.target != null && (
                                 <span className={`text-[11px] font-bold ${pm.text}`}>/ {kpi.target} {kpi.unit}</span>
                               )}
@@ -1141,10 +1141,10 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                         <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Kamienie milowe</p>
                         <div className="space-y-1.5">
                           {goalCreatePreview.checkpoints.map((cp: any, i: number) => (
-                            <div key={i} className="flex items-center gap-2.5">
-                              <div className="h-3.5 w-3.5 shrink-0 rounded-full border border-border-custom" />
-                              <span className="text-[12px] text-text-secondary flex-1">{cp.title}</span>
-                              {cp.due_date && <span className="text-[10px] text-text-muted">{cp.due_date.slice(5).replace('-', '.')}</span>}
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className="h-3.5 w-3.5 shrink-0 rounded-full border border-border-custom mt-0.5" />
+                              <span className="text-[12px] text-text-secondary flex-1 min-w-0">{cp.title || cp.name || cp.description || cp.milestone || ''}</span>
+                              {cp.due_date && <span className="text-[10px] text-text-muted shrink-0">{(() => { const [, m, d] = cp.due_date.split('-'); return `${d}.${m}`; })()}</span>}
                             </div>
                           ))}
                         </div>
