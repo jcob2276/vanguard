@@ -3,13 +3,15 @@ import { Sunrise, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
 
-const BRIEF_PROMPT = `Przygotuj zwięzły poranny brief dnia. Odpowiedz w 4-6 krótkich akapitach po polsku:
-1. Stan ciała dzisiaj (strain, sen, HRV) — ocena gotowości
-2. Priorytet dnia — co ma się wydarzyć żeby dzień był wygrany
-3. Główna pułapka / ryzyko dzisiaj (na podstawie wzorców friction)
-4. Jedno zdanie motywacyjne dopasowane do kontekstu
+const BRIEF_PROMPT = `Przygotuj zwięzły poranny brief dnia. Odpowiedz w 4-6 krótkich akapitach po polsku. Użyj danych z today_plan, open_todos i upcoming_checkpoints z kontekstu:
 
-Bądź konkretny. Nie lej wody. Nie używaj nagłówków — pisz jak briefing do akcji.`;
+1. Stan ciała (sen, HRV, gotowość) — jedna konkretna liczba/ocena
+2. Jeden główny ruch na dziś — wskaż konkretne zadanie z open_todos jeśli pasuje do priorytetu
+3. Co odciąć / co zignorować — wymień 1-2 rzeczy które NIE są dziś ważne
+4. Pułapka lub ryzyko — co może wysadzić dzień (na podstawie trybu, wzorców)
+5. Jedno zdanie wzmacniające — konkretne, nie ogólnikowe
+
+Bądź bezpośredni. Nie lej wody. Bez nagłówków — pisz jak briefing operacyjny. Jeśli tryb to rescue, zacznij od tego i skróć listę do absolutnego minimum.`;
 
 const CACHE_HOURS = 8;
 

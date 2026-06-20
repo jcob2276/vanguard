@@ -559,6 +559,7 @@ export default function Dashboard({ session }: { session: any }) {
 
   const [powerListStreak, setPowerListStreak] = useState(0);
   const [reviewOverdueDays, setReviewOverdueDays] = useState<number | null>(null);
+  const [urgentTodoCount, setUrgentTodoCount] = useState(0);
   const [nudgeKey, setNudgeKey] = useState(0);
 
   useEffect(() => {
@@ -568,9 +569,11 @@ export default function Dashboard({ session }: { session: any }) {
         const fromDate = new Date();
         fromDate.setDate(fromDate.getDate() - 31);
         const fromStr = fromDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const [{ data: wins }, { data: reviews }] = await Promise.all([
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const [{ data: wins }, { data: reviews }, { count: urgentCount }] = await Promise.all([
           supabase.from('daily_wins').select('plan_date, task_1').eq('user_id', userId).gte('plan_date', fromStr).order('plan_date', { ascending: false }),
           (supabase as any).from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
+          supabase.from('todo_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open').or(`priority.eq.urgent,and(due_date.lte.${todayStr},due_date.not.is.null)`),
         ]);
         if (wins) {
           const filled = new Set((wins as any[]).filter(w => w.task_1).map(w => w.plan_date as string));
@@ -591,6 +594,7 @@ export default function Dashboard({ session }: { session: any }) {
             setReviewOverdueDays(999);
           }
         }
+        if (urgentCount != null) setUrgentTodoCount(urgentCount);
       } catch (e) { console.error('fetchNudgeData failed', e); }
     };
     fetchNudgeData();
@@ -1018,6 +1022,11 @@ export default function Dashboard({ session }: { session: any }) {
               <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
               {item.id === 'projekty' && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
                 <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
+              )}
+              {item.id === 'dzis' && urgentTodoCount > 0 && (
+                <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                  {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
+                </span>
               )}
             </div>
             <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
