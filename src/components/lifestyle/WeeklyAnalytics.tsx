@@ -46,6 +46,8 @@ type DayDetail = {
   sleep_hours: number | null;
   hrv_avg: number | null;
   kcal: number | null;
+  day_score: number | null;
+  mode: string | null;
 };
 
 export default function WeeklyAnalytics({ session }: { session: any }) {
@@ -61,6 +63,7 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
   const [strainDetails, setStrainDetails] = useState<Record<string, any>>({});
   const [aggDetails, setAggDetails] = useState<Record<string, any>>({});
   const [dayModes, setDayModes] = useState<Record<string, string>>({});
+  const [dayScores, setDayScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DayDetail | null>(null);
 
@@ -82,7 +85,7 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
         .select('target_kcal').eq('user_id', userId)
         .order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_reconciliations')
-        .select('date, planning_summary')
+        .select('date, planning_summary, day_score')
         .eq('user_id', userId).gte('date', from),
     ]).then(([{ data: strainRows }, { data: aggRows }, { data: nutRows }, { data: targetRow }, { data: recRows }]) => {
       const s: Record<string, number> = {};
@@ -103,9 +106,11 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
         ad[r.date] = r;
       });
       (nutRows ?? []).forEach((r: any) => { k[r.date] = Number(r.calories); });
+      const ds: Record<string, number> = {};
       (recRows ?? []).forEach((r: any) => {
         const mode = (r.planning_summary as any)?.mode;
         if (mode) m[r.date] = mode;
+        if (r.day_score != null) ds[r.date] = Number(r.day_score);
       });
 
       setStrain(s);
@@ -115,6 +120,7 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
       setHrv(h);
       setKcal(k);
       setDayModes(m);
+      setDayScores(ds);
       if (targetRow?.target_kcal) setKcalTarget(Number(targetRow.target_kcal));
       setLoading(false);
     });
@@ -173,6 +179,8 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
       sleep_hours: ad?.sleep_hours ?? null,
       hrv_avg: ad?.hrv_avg ?? null,
       kcal: kcal[d] ?? null,
+      day_score: dayScores[d] ?? null,
+      mode: dayModes[d] ?? null,
     });
   };
 
@@ -340,9 +348,26 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
                   </p>
                 )}
               </div>
-              <button onClick={() => setSelected(null)} className="rounded-full p-2 text-text-muted hover:bg-surface-solid cursor-pointer">
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                {selected.day_score != null && (
+                  <span className={`rounded-xl px-2.5 py-1 text-[13px] font-black ${
+                    selected.day_score >= 7 ? 'bg-emerald-500/15 text-emerald-500' :
+                    selected.day_score >= 4 ? 'bg-amber-500/15 text-amber-500' :
+                                             'bg-rose-500/15 text-rose-500'
+                  }`}>{selected.day_score}/10</span>
+                )}
+                {selected.mode && (
+                  <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wider border ${
+                    selected.mode === 'rescue' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                    selected.mode === 'minimal' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                    selected.mode === 'optimal' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                    'bg-primary/10 text-primary border-primary/20'
+                  }`}>{selected.mode}</span>
+                )}
+                <button onClick={() => setSelected(null)} className="rounded-full p-2 text-text-muted hover:bg-surface-solid cursor-pointer">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Strain breakdown */}

@@ -1,16 +1,54 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
 
 type Msg = { role: 'user' | 'oracle'; text: string };
 
+const PROMPTS_BY_MODE: Record<string, string[]> = {
+  rescue: [
+    'Jestem w trybie ratunkowym — co jest teraz najważniejsze?',
+    'Skróć mój plan do 1 działania na dziś',
+    'Co odcinam żeby przeżyć ten tydzień?',
+    'Jak odblokować energię kiedy wszystko się wali?',
+  ],
+  minimal: [
+    'Co zrobić żeby ten dzień był wygrany przy minimalnej energii?',
+    'Jaki jest mój najważniejszy ruch przy niskiej energii?',
+    'Co mnie blokuje w tej chwili?',
+    'Jak wygląda mój sen i recovery?',
+  ],
+  default: [
+    'Jaki powinien być mój fokus dziś?',
+    'Oceń mój tydzień i powiedz co poprawić',
+    'Co mnie blokuje w tej chwili?',
+    'Jak wygląda mój sen i recovery?',
+  ],
+};
+
 export default function OracleCard({ session }: { session: any }) {
+  const userId = session?.user?.id;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentMode, setCurrentMode] = useState<string>('default');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    supabase
+      .from('daily_reconciliations')
+      .select('planning_summary')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .maybeSingle()
+      .then(({ data }) => {
+        const m = (data?.planning_summary as any)?.mode;
+        if (m) setCurrentMode(m);
+      });
+  }, [userId]);
 
   const history = messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'assistant',
@@ -85,12 +123,7 @@ export default function OracleCard({ session }: { session: any }) {
             <p className="text-[10px] text-text-muted text-center mb-3">
               Oracle ma dostęp do Twoich danych z ostatnich 48h.
             </p>
-            {[
-              'Jaki powinien być mój fokus dziś?',
-              'Oceń mój tydzień i powiedz co poprawić',
-              'Co mnie blokuje w tej chwili?',
-              'Jak wygląda mój sen i recovery?',
-            ].map(q => (
+            {(PROMPTS_BY_MODE[currentMode] ?? PROMPTS_BY_MODE.default).map(q => (
               <button
                 key={q}
                 onClick={() => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50); }}

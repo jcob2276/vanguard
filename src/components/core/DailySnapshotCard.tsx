@@ -9,17 +9,25 @@ const MODE_STYLE: Record<string, { label: string; cls: string }> = {
   optimal:  { label: 'Optymalny',       cls: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
 };
 
+const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 export default function DailySnapshotCard({ session }: { session: any }) {
   const userId = session?.user?.id;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const hourNum = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
+
   const [snap, setSnap] = useState<any>(null);
   const [strainState, setStrainState] = useState<{ daily_status: string | null; main_limiter: string | null } | null>(null);
   const [midday, setMidday] = useState<{ status: string | null; blocker: string | null } | null>(null);
+  const [dayScore, setDayScore] = useState<number | null>(null);
+  const [rescueStreak, setRescueStreak] = useState(0);
+  const [savingScore, setSavingScore] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const ago14 = new Date(Date.now() - 14 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
     Promise.all([
       supabase
@@ -36,19 +44,46 @@ export default function DailySnapshotCard({ session }: { session: any }) {
         .eq('user_id', userId)
         .eq('date', today)
         .maybeSingle(),
-    ]).then(([{ data: rec }, { data: strain }]) => {
+      supabase
+        .from('daily_reconciliations')
+        .select('date, planning_summary')
+        .eq('user_id', userId)
+        .gte('date', ago14)
+        .order('date', { ascending: false }),
+    ]).then(([{ data: rec }, { data: strain }, { data: history }]) => {
       if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, any>), day_score: rec.day_score, date: rec.date });
+      if (rec?.day_score != null) setDayScore(rec.day_score);
       if (strain) setStrainState({ daily_status: strain.daily_status, main_limiter: strain.main_limiter });
       if (rec?.midday_status || rec?.midday_blocker) setMidday({ status: rec.midday_status, blocker: rec.midday_blocker });
+
+      // Calculate consecutive rescue days
+      let streak = 0;
+      for (const row of (history ?? [])) {
+        const mode = (row.planning_summary as any)?.mode;
+        if (mode === 'rescue') streak++;
+        else break;
+      }
+      setRescueStreak(streak);
       setLoading(false);
     });
-  }, [userId]);
+  }, [userId, today]);
+
+  const saveScore = async (score: number) => {
+    if (savingScore) return;
+    setSavingScore(true);
+    setDayScore(score);
+    await (supabase as any).from('daily_reconciliations').upsert(
+      { user_id: userId, date: today, status: 'answered', mode: 'checkin', day_score: score },
+      { onConflict: 'user_id,date', ignoreDuplicates: false }
+    ).then(() => {}, () => {});
+    setSavingScore(false);
+  };
 
   if (loading || !snap) return null;
 
   const mode = MODE_STYLE[snap.mode ?? 'normal'] ?? MODE_STYLE.normal;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
   const isYesterday = snap.date && snap.date !== today;
+  const showScorePicker = hourNum >= 17 && dayScore == null && !isYesterday;
 
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm space-y-4">
@@ -60,14 +95,24 @@ export default function DailySnapshotCard({ session }: { session: any }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {snap.day_score != null && (
-            <span className="text-[11px] font-black text-text-primary">{snap.day_score}/10</span>
+          {dayScore != null && (
+            <span className="text-[11px] font-black text-text-primary">{dayScore}/10</span>
           )}
           <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${mode.cls}`}>
             {mode.label}
           </span>
         </div>
       </div>
+
+      {/* Rescue streak alert */}
+      {rescueStreak >= 3 && (
+        <div className="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2">
+          <span className="text-[13px]">🔴</span>
+          <p className="text-[11px] font-bold text-rose-400">
+            {rescueStreak} dni z rzędu tryb ratunkowy — czas zresetować priorytety
+          </p>
+        </div>
+      )}
 
       {/* One clear move */}
       {snap.one_clear_move && (
@@ -123,6 +168,28 @@ export default function DailySnapshotCard({ session }: { session: any }) {
              strainState.daily_status === 'yellow' ? 'Umiarkowane zmęczenie' : 'Wysokie obciążenie'}
             {strainState.main_limiter && strainState.main_limiter !== 'recovery_ok' && ` · limiter: ${strainState.main_limiter}`}
           </span>
+        </div>
+      )}
+
+      {/* Quick day score — shows after 17:00 if not yet scored */}
+      {showScorePicker && (
+        <div className="pt-1 border-t border-border-custom space-y-2">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Jak był dzień? (1–10)</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {SCORES.map(s => (
+              <button
+                key={s}
+                onClick={() => saveScore(s)}
+                disabled={savingScore}
+                className={`h-8 w-8 rounded-xl text-[11px] font-black transition-all active:scale-90 cursor-pointer disabled:opacity-40
+                  ${s <= 3 ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20' :
+                    s <= 6 ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' :
+                             'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </section>
