@@ -60,10 +60,7 @@ pg_cron 30 20 * * * (UTC) →  sync-strava
                                 └─► strava_activities (upsert)
 
 Brak cron (HTTP manual):
-  vanguard-briefing     →  DeepSeek → Telegram
-  vanguard-backfill     →  OpenAI embeddings backfill
   vanguard-graph-embedder
-  vanguard-debug-retrieval
   vanguard-eval-runner
   vanguard-friction-qa  →  DEPRECATED stub 410 (Telegram QA removed)
   analyze-training      →  DEPRECATED stub 410 (plan vs Strava Telegram analysis removed)
@@ -75,18 +72,18 @@ Brak cron (HTTP manual):
 | Funkcja | Status | Trigger | Uwagi |
 |---------|--------|---------|-------|
 | vanguard-auto-classify | ✅ aktywna | webhook INSERT vanguard_stream | |
-| vanguard-briefing | ✅ aktywna | HTTP manual / cron Dashboard | |
+| vanguard-briefing | dropped | Deleted from codebase | |
 | vanguard-oracle | ✅ aktywna | HTTP (z telegram) | write access DISABLED |
 | vanguard-analyst | ✅ aktywna | cron `0 3 * * *` | ⚠️ 2 cronjobы |
 | vanguard-architect | ✅ aktywna | HTTP (z telegram, deferred) | friction pipeline DISABLED |
 | vanguard-telegram | ✅ aktywna | Telegram webhook | |
 | save-daily-aggregate | ✅ aktywna | cron `0 4 * * *` | |
-| vanguard-backfill | ✅ aktywna | HTTP manual | |
+| vanguard-backfill | dropped | Deleted from codebase | |
 | vanguard-graph-embedder | ✅ aktywna | HTTP manual | |
 | ingest-vault-log | ✅ aktywna | HTTP (z telegram) | |
 | vanguard-friction-qa | DEPRECATED stub 410 | cron + Telegram QA removed | |
 | vanguard-eval-runner | ✅ aktywna | HTTP manual | resolved (gpt-4o-mini) |
-| vanguard-debug-retrieval | ✅ aktywna | HTTP manual | |
+| vanguard-debug-retrieval | dropped | Deleted from codebase | |
 | sync-oura / sync-yazio / sync-calendar | ✅ aktywne | HTTP manual | |
 | sync-strava | ✅ aktywna | pg_cron `30 20 * * *` / HTTP manual | tokeny w strava_tokens (rotacja auto) |
 | analyze-training | deprecated | HTTP manual | stub 410; plan vs Strava Telegram analysis removed |

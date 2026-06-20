@@ -32,6 +32,8 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Training plan-vs-Strava Telegram analysis | Dropped | `analyze-training` deleted from the codebase. Do not send plan-vs-Strava LLM reports to Telegram; `analyze-training-load` remains UI-only. |
 | Ghost prediction/intervention tables | Dropped | `vanguard_correlations`, `vanguard_temporal_links`, and `vanguard_youtube` dropped 2026-06-11 after their only runtime paths were removed. |
 | Declared intentions table | Dropped | `vanguard_intentions` dropped 2026-06-11: no writer, 0 rows, and Oracle read path removed. Rebuild only with explicit user-controlled write/status flow. |
+| Morning briefing & RAG diagnostics | Dropped | `vanguard-briefing`, `vanguard-backfill`, and `vanguard-debug-retrieval` Edge Functions dropped 2026-06-20 after being identified as unused or legacy. |
+
 
 ## Audit Rule
 

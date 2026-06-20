@@ -35,7 +35,7 @@ Telegram / voice / manual ingest
         │
         └──► ingest-vault-log (long-form) → stream chunks + graph RPC
 
-READ path: Oracle, briefing, synthesis, analyst
+READ path: Oracle, synthesis, analyst
          → confirmed_friction_events VIEW for patterns
          → vanguard_wiki_pages for high-level compiled memory
          → current-first: stream 72h > archive

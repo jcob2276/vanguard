@@ -59,7 +59,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 387 | 2026-06-11 |
-| `vanguard-briefing` | **manual** | HTTP POST `{ userId }`; long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 235 | 2026-06-11 |
+| `vanguard-briefing` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
 | `vanguard-weekly-brief` | **active** | Frontend Weekly Review trigger | true | `weekly_kpi_reviews`, `goal_kpis`, `kpi_entries`, `projects`, `daily_wins` | 191 | 2026-06-20 |
 | `vanguard-friction-qa` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
@@ -74,8 +74,8 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-eval-runner` | **manual** | HTTP batch eval vs oracle | **false** | `vanguard_eval_*` | 309 | 2026-06-11 |
 | `vanguard-eval-interview` | **active** | pg_cron `vanguard-eval-interview` Mon-Fri `0 10 * * 1-5` UTC (12:00 Warsaw) | **false** | `vanguard_eval_results`, `vanguard_eval_runs`, `vanguard_stream` | 199 | 2026-06-11 |
 | `vanguard-graph-embedder` | **manual** | HTTP one batch per call; repeat until `remaining=0` | **false** | `vanguard_entity_links` | 160 | 2026-06-11 |
-| `vanguard-backfill` | **manual** | HTTP embeddings/history backfill | true | `vanguard_stream`, `vanguard_knowledge` | 71 | 2026-06-11 |
-| `vanguard-debug-retrieval` | **manual** | HTTP debug RAG retrieval | true | `vanguard_knowledge`, `vanguard_entity_links` | 38 | 2026-06-11 |
+| `vanguard-backfill` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
+| `vanguard-debug-retrieval` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
 | `vanguard-goal-create` | **active** | Frontend Goal suggestion trigger | true | none (calls DeepSeek only) | 85 | 2026-06-20 |
 
