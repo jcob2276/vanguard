@@ -38,9 +38,9 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2630 | 2026-06-12 |
 | `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates, wiki, medical_* context) | 791 | 2026-06-13 |
-| `vanguard-morning-brief` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
-| `vanguard-morning-ping` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 24 | 2026-06-12 |
-| `vanguard-midday-check` | **deprecated** | HTTP POST returns 410; cron removed | **false** | none | 22 | 2026-06-12 |
+| `vanguard-morning-brief` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
+| `vanguard-morning-ping` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
+| `vanguard-midday-check` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 | `vanguard-daily-reconciliation` | **active** | pg_cron (~21:30 Warsaw; confirm `cron.job`) + manual `/koniec` | **false** | `daily_reconciliations`, `vanguard_stream`, `friction_events` | 219 | 2026-06-12 |
 | `vanguard-auto-classify` | **active** | DB trigger / cron on new stream rows | **false** | `vanguard_stream`, `friction_events` | 332 | 2026-06-11 |
 
@@ -60,7 +60,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 387 | 2026-06-11 |
 | `vanguard-briefing` | **manual** | HTTP POST `{ userId }`; long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 235 | 2026-06-11 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
-| `vanguard-friction-qa` | **deprecated** | HTTP POST returns 410; cron removed; no Telegram | **false** | none | 24 | 2026-06-12 |
+| `vanguard-friction-qa` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 
 > **Noon note:** the useful 12:00 Telegram flow is `vanguard-eval-interview` ("Wywiad"), not the legacy `vanguard-midday-check`.
 > **Evening note:** Telegram evening flow is reflection, not tomorrow planning. `/koniec` manually starts the same 24h reflection and the 21:30 cron skips if it already ran.
@@ -102,7 +102,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `sync-strava` | **active** | pg_cron `30 20 * * *` UTC (22:30 Warsaw) / manual | **false** | `strava_activities`, `strava_tokens` | 552 | 2026-06-11 |
-| `analyze-training` | **deprecated** | HTTP POST returns 410 | **false** | none | 24 | 2026-06-11 |
+| `analyze-training` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 | `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 151 | 2026-06-11 |
 | `sync-oura-enhanced` | **active** | Frontend / manual | true | `oura_enhanced`, `user_settings` | 207 | 2026-06-11 |
 | `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-11 |

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -10,27 +10,20 @@ import {
   Dumbbell,
   LayoutDashboard,
   Moon,
-  Play,
-  RefreshCw,
   Sun,
   Paintbrush,
-  Fingerprint,
   Bookmark,
-  Zap,
-  Check,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useHaptics } from '../../hooks/useHaptics';
-import AIInsight from '../ai/AIInsight';
+import { useNudgeData } from '../../hooks/useNudgeData';
+import { useSyncActions } from '../../hooks/useSyncActions';
 import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
-import { getTodayWarsaw } from '../../lib/date';
 import CommandButton from './CommandButton';
 import DayCounter from './DayCounter';
 import NutritionCard from './NutritionCard';
-import MorningRitualCard from './MorningRitualCard';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
@@ -90,7 +83,6 @@ export default function Dashboard({ session }: { session: any }) {
   });
   const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   // Theme support
   const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -107,110 +99,7 @@ export default function Dashboard({ session }: { session: any }) {
   const haptics = useHaptics();
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // Morning Ritual State
-  const [ritualDates, setRitualDates] = useState<string[]>([]);
-  const [focusIntention, setFocusIntention] = useState('');
-
-  useEffect(() => {
-    if (!userId) return;
-    const fetchMorningRitualState = async () => {
-      try {
-        const { data } = await supabase
-          .from('vanguard_preferences')
-          .select('key, value')
-          .eq('user_id', userId)
-          .in('key', ['morning_ritual_dates', 'morning_last_lights_answer']);
-        
-        if (data) {
-          const datesPref = data.find(p => p.key === 'morning_ritual_dates');
-          if (datesPref) {
-            try { setRitualDates(JSON.parse(datesPref.value)); } catch { /* ignore malformed pref */ }
-          }
-          const lastLightsPref = data.find(p => p.key === 'morning_last_lights_answer');
-          if (lastLightsPref) {
-            try {
-              const parsed = JSON.parse(lastLightsPref.value);
-              const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-              if (parsed && parsed.date === todayStr) {
-                setFocusIntention(parsed.intention);
-              } else {
-                setFocusIntention('');
-              }
-            } catch { /* ignore malformed pref */ }
-          } else {
-            setFocusIntention('');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load morning ritual state in Dashboard:', err);
-      }
-    };
-    fetchMorningRitualState();
-  }, [userId, view]);
-
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-  const isCompletedToday = ritualDates.includes(todayStr);
-
-  const calculateStreak = () => {
-    if (ritualDates.length === 0) return 0;
-    const sorted = [...ritualDates]
-      .map(d => new Date(d))
-      .sort((a, b) => b.getTime() - a.getTime()); // Descending
-
-    const yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    
-    const formattedDates = sorted.map(d => d.toISOString().split('T')[0]);
-    if (!formattedDates.includes(todayStr) && !formattedDates.includes(yesterdayStr)) {
-      return 0;
-    }
-
-    let streak = 0;
-    let checkDate = new Date(formattedDates[0]);
-
-    if (formattedDates[0] === yesterdayStr && !formattedDates.includes(todayStr)) {
-      checkDate = new Date(yesterdayStr);
-    }
-
-    for (let i = 0; i < formattedDates.length; i++) {
-      const expectedStr = checkDate.toISOString().split('T')[0];
-      if (formattedDates.includes(expectedStr)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-    return streak;
-  };
-
-  const streakCount = calculateStreak();
-
-  const [reviewOverdueDays, setReviewOverdueDays] = useState<number | null>(null);
-  const [urgentTodoCount, setUrgentTodoCount] = useState(0);
-  const [nudgeKey, setNudgeKey] = useState(0);
-
-  useEffect(() => {
-    if (!userId) return;
-    const fetchNudgeData = async () => {
-      try {
-        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const [{ data: reviews }, { count: urgentCount }] = await Promise.all([
-          (supabase as any).from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
-          supabase.from('todo_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open').or(`priority.eq.urgent,and(due_date.lte.${todayStr},due_date.not.is.null)`),
-        ]);
-        if (reviews) {
-          if ((reviews as any[]).length > 0) {
-            const last = new Date((reviews as any[])[0].week_start + 'T00:00:00');
-            setReviewOverdueDays(Math.floor((Date.now() - last.getTime()) / 86400000));
-          } else {
-            setReviewOverdueDays(999);
-          }
-        }
-        if (urgentCount != null) setUrgentTodoCount(urgentCount);
-      } catch (e) { console.error('fetchNudgeData failed', e); }
-    };
-    fetchNudgeData();
-  }, [userId, nudgeKey]);
+  const { reviewOverdueDays, urgentTodoCount, refresh: refreshNudge } = useNudgeData(userId);
 
   const [transitioning, setTransitioning] = useState(false);
 
@@ -233,130 +122,14 @@ export default function Dashboard({ session }: { session: any }) {
     }
   }, [view, haptics]);
   const { isSyncing, setSyncing } = useStore();
-  const {
-    weeklyCalories,
-    todayWin,
-    syncYazio,
-    loading,
-    refresh,
-  } = useDashboardData();
+  const { weeklyCalories, todayWin, syncYazio, loading, refresh } = useDashboardData();
+  const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
 
   const showLock = !todayWin;
 
   useEffect(() => {
     localStorage.setItem('vanguard_view', view);
   }, [view]);
-
-  const syncAll = useCallback(async () => {
-    if (isSyncingAll) return;
-    setIsSyncingAll(true);
-    const base = import.meta.env.VITE_SUPABASE_URL;
-    const call = async (fn: string, body: any = {}) => {
-      const res = await fetch(`${base}/functions/v1/${fn}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const p = await res.json().catch(() => ({}));
-        throw new Error(`${fn} failed: ${p.error || res.status}`);
-      }
-    };
-    try {
-      // 1. Podstawowe źródła (Oura + Yazio)
-      await Promise.all([
-        call('sync-yazio', { userId, sync_history: true, days: 7 }),
-        call('sync-oura', { userId }),
-      ]);
-      // 2. Pobranie szczegółowych serii Oura (zapisuje tętno do bazy)
-      await Promise.all([
-        call('sync-oura-enhanced', { userId, days: 2 }),
-        call('sync-oura-timeseries', { userId, days: 2 }),
-      ]);
-      // 3. Pobranie aktywności ze Strava (nakłada tętno z Oura)
-      await call('sync-strava', {});
-      // 4. Przeliczenie obciążenia (strain)
-      await call('compute-daily-strain', { userId, days: 2 });
-      // 5. Odświeżenie widoku
-      refresh();
-    } catch (err) {
-      console.error('[syncAll] error:', err);
-    } finally {
-      setIsSyncingAll(false);
-    }
-  }, [isSyncingAll, accessToken, userId, refresh]);
-
-  const syncCalendar = useCallback(async () => {
-    setSyncing(true);
-    try {
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ userId })
-      });
-      refresh();
-    } catch (err) {
-      console.error('Calendar Sync Error:', err);
-    } finally {
-      setSyncing(false);
-    }
-  }, [accessToken, refresh, setSyncing, userId]);
-
-  const handleGoogleCallback = useCallback(async (code: string) => {
-    setSyncing(true);
-    // Remove query params immediately to prevent infinite loop on re-renders/failures
-    window.history.replaceState({}, document.title, window.location.pathname);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          userId,
-          code,
-          redirectUri: window.location.origin
-        })
-      });
-      const res = await response.json();
-      if (res?.success) {
-        await syncCalendar();
-      } else {
-        console.error('Google Auth Error:', res?.error);
-        alert('Błąd połączenia z Google: ' + (res?.error || 'Nieznany błąd'));
-      }
-    } catch (err: any) {
-      console.error('Google Auth Error:', err);
-      alert('Błąd połączenia z Google: ' + err.message);
-    } finally {
-      setSyncing(false);
-    }
-  }, [accessToken, setSyncing, syncCalendar, userId]);
-
-  function startGoogleAuth() {
-    const root = 'https://accounts.google.com/o/oauth2/v2/auth';
-    const options = {
-      redirect_uri: window.location.origin,
-      client_id: '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com',
-      access_type: 'offline',
-      response_type: 'code',
-      prompt: 'consent',
-      scope: [
-        'https://www.googleapis.com/auth/calendar.readonly'
-      ].join(' ')
-    };
-    window.location.href = `${root}?${new URLSearchParams(options).toString()}`;
-  }
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    if (code && userId) handleGoogleCallback(code);
-  }, [handleGoogleCallback, userId]);
 
   if (view === 'fundament') {
     return (
@@ -416,7 +189,7 @@ export default function Dashboard({ session }: { session: any }) {
         <WeeklyReview
           session={session}
           onBack={() => {
-            setNudgeKey(k => k + 1);
+            refreshNudge();
             setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis');
           }}
         />
@@ -531,16 +304,6 @@ export default function Dashboard({ session }: { session: any }) {
                 </div>
               )}
 
-              {/* <JedenPriorytetCard
-                session={session}
-                todayWin={todayWin}
-                streak={streakCount}
-                onUpdate={refresh}
-                onOpenRitual={() => {
-                  localStorage.setItem('vanguard_previous_view', view);
-                  setView('morning-ritual');
-                }}
-              /> */}
               <GoalsCard session={session} />
               <Suspense fallback={<ViewFallback />}>
                 <DailySnapshotCard session={session} />

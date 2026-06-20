@@ -1,14 +1,5 @@
 import type { TelegramRouterContext } from "./config.ts";
 import { answerCallbackQuery, clearInlineKeyboard } from "../../_shared/telegram.ts";
-import { MORNING_CALLBACKS, handleMorningCallback } from "../_handlers/morning.ts";
-import {
-  MIDDAY_ARTIFACT_CALLBACKS,
-  MIDDAY_TA_CALLBACKS,
-  MIDDAY_BLOCK_CALLBACKS,
-  handleMiddayArtifactCallback,
-  handleMiddayTaCallback,
-  handleMiddayBlockerCallback,
-} from "../_handlers/midday.ts";
 import {
   ANALYSIS_ACTION_CALLBACKS,
   handleAnalysisActionCallback,
@@ -52,45 +43,6 @@ export async function handleCallbackQuery(
     vanguardUserId,
   } = ctx;
 
-  if (MORNING_CALLBACKS.includes(data)) {
-    await handleMorningCallback(
-      data,
-      chatId,
-      messageId,
-      callbackId,
-      supabase,
-      telegramToken,
-      vanguardUserId,
-    );
-    return;
-  }
-
-  if (MIDDAY_ARTIFACT_CALLBACKS.includes(data)) {
-    await handleMiddayArtifactCallback(
-      data,
-      chatId,
-      messageId,
-      callbackId,
-      supabase,
-      telegramToken,
-      vanguardUserId,
-    );
-    return;
-  }
-
-  if (MIDDAY_TA_CALLBACKS.includes(data)) {
-    await handleMiddayTaCallback(
-      data,
-      chatId,
-      messageId,
-      callbackId,
-      supabase,
-      telegramToken,
-      vanguardUserId,
-    );
-    return;
-  }
-
   if (ANALYSIS_ACTION_CALLBACKS.includes(data)) {
     await handleAnalysisActionCallback(
       data,
@@ -113,18 +65,6 @@ export async function handleCallbackQuery(
     return;
   }
 
-  if (MIDDAY_BLOCK_CALLBACKS.includes(data)) {
-    await handleMiddayBlockerCallback(
-      data,
-      chatId,
-      messageId,
-      callbackId,
-      supabase,
-      telegramToken,
-      vanguardUserId,
-    );
-    return;
-  }
 
   if (data.startsWith("planning_")) {
     await handlePlanningCallback(

@@ -14,7 +14,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 
 | Area | Status | Notes |
 |---|---|---|
-| Vanguard daily loop | Active | User stream, noon reflective interview, evening reflection. Autonomous morning brief/ping and legacy midday task check are deprecated stubs; Telegram evening no longer plans tomorrow. |
+| Vanguard daily loop | Active | User stream, noon reflective interview, evening reflection. Autonomous morning brief/ping and legacy midday task check are deleted from the codebase; Telegram evening no longer plans tomorrow. |
 | Vanguard stream/friction path | Active | Single write path: `vanguard_stream` -> `vanguard-auto-classify` -> `friction_events`. |
 | Oracle chat | Active | Reasoning layer only; no direct graph/knowledge writes from chat turns. |
 | Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |
@@ -29,7 +29,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
 | Unmounted web widgets | Dropped | OuraWidget, OuraEnhanced, SleepDebtCard, MentorChat (web Oracle chat), GraphMind, ThoughtStream, IntentionTracker, ManifestationBoard, LocationTracker, AWImporter — deleted 2026-06-11 after being deliberately unmounted in earlier commits; recover from git history if needed. |
-| Training plan-vs-Strava Telegram analysis | Dropped | `analyze-training` now returns 410. Do not send plan-vs-Strava LLM reports to Telegram; `analyze-training-load` remains UI-only. |
+| Training plan-vs-Strava Telegram analysis | Dropped | `analyze-training` deleted from the codebase. Do not send plan-vs-Strava LLM reports to Telegram; `analyze-training-load` remains UI-only. |
 | Ghost prediction/intervention tables | Dropped | `vanguard_correlations`, `vanguard_temporal_links`, and `vanguard_youtube` dropped 2026-06-11 after their only runtime paths were removed. |
 | Declared intentions table | Dropped | `vanguard_intentions` dropped 2026-06-11: no writer, 0 rows, and Oracle read path removed. Rebuild only with explicit user-controlled write/status flow. |
 

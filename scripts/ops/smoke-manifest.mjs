@@ -25,18 +25,15 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-nutrition-coach",
 ];
 
+
 /**
  * Per-function smoke profile.
  * - options: always run (JWT gateway check, no side effects)
  * - post: only with --invoke-safe or --invoke-crons
  */
 export const SMOKE_TARGETS = [
-  { name: "vanguard-morning-brief", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
-  { name: "vanguard-morning-ping", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
-  { name: "vanguard-midday-check", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
   { name: "vanguard-daily-reconciliation", post: "cron", sideEffects: "May send evening reconciliation Telegram" },
   { name: "vanguard-weekly-synthesis", post: "cron", sideEffects: "LLM + Telegram report" },
-  { name: "vanguard-friction-qa", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no Telegram" },
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
   { name: "save-daily-aggregate", post: "cron_secret", sideEffects: "Writes daily aggregate" },
   { name: "vanguard-telegram", post: "webhook", body: { update_id: 0 }, sideEffects: "OPTIONS preferred" },
@@ -49,7 +46,6 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-graph-embedder", post: "skip", sideEffects: "Manual embedding batch — OPTIONS only" },
   { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
   { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
-  { name: "analyze-training", post: "safe", body: {}, expectStatus: [410], sideEffects: "Deprecated stub; no DeepSeek, no Telegram" },
   { name: "compute-correlations", post: "skip", sideEffects: "Read-only correlation scan; requires authenticated user scope" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
   { name: "vanguard-nutrition-coach", post: "skip", sideEffects: "Calls DeepSeek + writes nutrition target — OPTIONS only" },

@@ -10,14 +10,36 @@ export async function handleSavedLink(
   telegramToken: string,
   deepseekApiKey: string,
   vanguardUserId: string,
-  supabase: any
+  supabase: any,
+  messageId?: number
 ): Promise<boolean> {
   // Regex to detect HTTP/HTTPS URL
   const urlMatch = text.match(/https?:\/\/[^\s]+/);
   if (!urlMatch) return false;
 
-  const url = urlMatch[0];
+  // Sanitize: handle double-URL concatenation (copy-paste artifact from some clients)
+  const url = urlMatch[0].replace(/(https?:\/\/.+?)(https?:\/\/.*)$/, '$1');
   console.log(`[savedLinks] Detected URL: ${url}`);
+
+  // Idempotency anchor — write to vanguard_stream NOW so Telegram retries are blocked
+  // by the existing idempotency guard in messages.ts (which checks telegram_message_id).
+  if (messageId) {
+    const { data: existing } = await supabase
+      .from('vanguard_stream')
+      .select('id')
+      .eq('metadata->>telegram_message_id', messageId.toString())
+      .maybeSingle();
+    if (existing) {
+      console.log(`[savedLinks] Idempotency: message ${messageId} already processed — skipping retry`);
+      return true;
+    }
+    await supabase.from('vanguard_stream').insert({
+      user_id: vanguardUserId,
+      source: 'telegram',
+      content: url,
+      metadata: { telegram_chat_id: chatId, telegram_message_id: messageId.toString(), mode: 'url_saved' }
+    });
+  }
 
   // 1. Send processing indicator
   await safeSendTelegram(chatId, "📥 **Przetwarzam link i generuję podsumowanie...**", telegramToken);

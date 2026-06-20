@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -27,8 +27,9 @@ export default function DailySnapshotCard({ session }: { session: any }) {
 
   useEffect(() => {
     if (!userId) return;
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    const ago14 = new Date(Date.now() - 14 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const todayMs = new Date(today + 'T12:00:00').getTime();
+    const yesterday = formatWarsawDate(todayMs - 86400000);
+    const ago14 = formatWarsawDate(todayMs - 14 * 86400000);
 
     Promise.all([
       supabase
