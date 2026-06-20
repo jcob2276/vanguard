@@ -54,8 +54,12 @@ export async function gatherUserContext(session: any) {
       supabase.from('goal_kpis').select('id, name, pillar, goal_id, target, higher_is_better').eq('user_id', userId).not('goal_id', 'is', null),
       supabase.from('kpi_entries').select('kpi_id, value').eq('user_id', userId).eq('week_start', currentWeekStart),
       supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId).eq('is_done', false),
+      // Daily context
+      supabase.from('daily_reconciliations').select('planning_summary, midday_status, midday_blocker, day_score').eq('user_id', userId).eq('date', today).maybeSingle(),
+      supabase.from('todo_items').select('title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('priority', { ascending: false }).limit(30),
+      supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', format(subDays(new Date(), -14), 'yyyy-MM-dd')).order('due_date', { ascending: true }).limit(5),
     ]);
-    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes] = settled.map(r =>
+    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes, todayRecRes, todosRes, checkpointsRes] = settled.map(r =>
       r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
     ) as any[];
 
@@ -180,6 +184,23 @@ export async function gatherUserContext(session: any) {
       },
       goal_chain,
       strategic_gaps,
+      today_plan: todayRecRes.data ? {
+        mode: (todayRecRes.data.planning_summary as any)?.mode ?? null,
+        one_clear_move: (todayRecRes.data.planning_summary as any)?.one_clear_move ?? null,
+        top3: (todayRecRes.data.planning_summary as any)?.top3 ?? [],
+        midday_status: todayRecRes.data.midday_status ?? null,
+        midday_blocker: todayRecRes.data.midday_blocker ?? null,
+        day_score: todayRecRes.data.day_score ?? null,
+      } : null,
+      open_todos: (todosRes.data ?? []).map((t: any) => ({
+        title: t.title,
+        priority: t.priority,
+        bucket: t.ai_bucket ?? (t.due_date ? 'due:' + t.due_date : 'unclassified'),
+      })),
+      upcoming_checkpoints: (checkpointsRes.data ?? []).map((c: any) => ({
+        title: c.title,
+        due_date: c.due_date,
+      })),
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
       desktop_footprint: footprintRes.data?.map((f: any) => {
         const payload = f.payload && typeof f.payload === 'object' && !Array.isArray(f.payload)
