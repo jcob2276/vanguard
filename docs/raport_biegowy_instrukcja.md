@@ -26,7 +26,7 @@ python -c "
 from garminconnect import Garmin
 
 EMAIL    = 'jakubsobon3@gmail.com'
-PASSWORD = 'Czarek100!'   # patrz scripts/garmin_auth.py
+PASSWORD = '...'   # patrz scripts/garmin_auth.py — nie wklejaj hasła tutaj
 
 api = Garmin(EMAIL, PASSWORD)
 api.login()
@@ -42,7 +42,7 @@ Następnie pobierz splity z kadencją — **ważne: deskryptory muszą być z TE
 ```python
 from garminconnect import Garmin
 
-api = Garmin('jakubsobon3@gmail.com', 'Czarek100!')
+api = Garmin('jakubsobon3@gmail.com', '...')  # hasło z scripts/garmin_auth.py
 api.login()
 
 details = api.get_activity_details(ACTIVITY_ID, 2000, 4000)
