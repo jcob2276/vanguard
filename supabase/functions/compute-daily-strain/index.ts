@@ -186,10 +186,11 @@ serve(async (req) => {
       const weight = Number(bw?.weight) || 75
 
       // ── Baseline HRV/RHR (90 dni, chronologicznie dla EWMA) ──
-      const { data: base } = await supabase.from('oura_daily_summary')
+      const { data: base, error: baseErr } = await supabase.from('oura_daily_summary')
         .select('date, hrv_avg, rhr_avg').eq('user_id', uid).gte('date', start90).order('date')
-      const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter(Boolean) as number[]
-      const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter(Boolean) as number[]
+      if (baseErr) console.error(`[strain] user ${uid} baseline query failed, EWMA will fall back to empty history:`, baseErr.message)
+      const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
+      const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
       const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
       const hrvBase = mean(hrvVals)
       const rhrBase = mean(rhrVals)

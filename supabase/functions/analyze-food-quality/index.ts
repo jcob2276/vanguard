@@ -8,8 +8,11 @@ function warsaw(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
 }
 
-function warsawOffsetStr(): string {
-  const d = new Date()
+// Computes the Warsaw UTC offset for a SPECIFIC date (defaults to now), not always "now" —
+// Warsaw is +01:00 in winter and +02:00 in summer, so a query for a past date must use that
+// date's own offset, not today's, or the UTC day boundary used to filter Strava start_date
+// activities can drift by an hour for any date in a different DST season than today.
+function warsawOffsetStr(d: Date = new Date()): string {
   const utcH = d.getUTCHours()
   const warH = parseInt(d.toLocaleString('en-CA', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false }), 10)
   const diff = (warH - utcH + 24) % 24
@@ -104,8 +107,8 @@ serve(async (req) => {
           .select('start_date, sport_type, distance, workout_type')
           .eq('user_id', userId)
           .eq('is_oura', false)
-          .gte('start_date', dateFrom + 'T00:00:00' + warsawOffsetStr())
-          .lte('start_date', dateTo + 'T23:59:59' + warsawOffsetStr()),
+          .gte('start_date', dateFrom + 'T00:00:00' + warsawOffsetStr(new Date(dateFrom + 'T12:00:00Z')))
+          .lte('start_date', dateTo + 'T23:59:59' + warsawOffsetStr(new Date(dateTo + 'T12:00:00Z'))),
       ])
 
       if (entriesR.error) throw new Error(`DB error (food_entries): ${entriesR.error.message}`)
@@ -325,8 +328,8 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
         .select('name, sport_type, distance, moving_time, hr_avg, workout_type')
         .eq('user_id', userId)
         .eq('is_oura', false)
-        .gte('start_date', targetDate + 'T00:00:00' + warsawOffsetStr())
-        .lte('start_date', targetDate + 'T23:59:59' + warsawOffsetStr()),
+        .gte('start_date', targetDate + 'T00:00:00' + warsawOffsetStr(new Date(targetDate + 'T12:00:00Z')))
+        .lte('start_date', targetDate + 'T23:59:59' + warsawOffsetStr(new Date(targetDate + 'T12:00:00Z'))),
     ])
 
     const todayEntries = todayEntriesR.data
@@ -461,25 +464,32 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
     }
     if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error('Nieprawidłowa struktura odpowiedzi AI')
 
-    const nameToId: Record<string, string> = {}
-    for (const e of todayEntries) nameToId[e.name] = e.id
+    // Map by name → ALL matching ids (same product eaten twice today must update both rows)
+    const nameToIds: Record<string, string[]> = {}
+    for (const e of todayEntries) (nameToIds[e.name] ||= []).push(e.id)
 
     const updatePromises = parsed.items
-      .filter((item: any) => nameToId[item.name])
-      .map((item: any) =>
-        supabase
-          .from('daily_food_entries')
-          .update({ food_quality_score: item.food_quality_score, quality_reason: item.quality_reason })
-          .eq('id', nameToId[item.name])
+      .filter((item: any) => nameToIds[item.name]?.length)
+      .flatMap((item: any) =>
+        nameToIds[item.name].map((id) =>
+          supabase
+            .from('daily_food_entries')
+            .update({ food_quality_score: item.food_quality_score, quality_reason: item.quality_reason })
+            .eq('id', id)
+        )
       )
-    await Promise.all(updatePromises)
+    const updateResults = await Promise.all(updatePromises)
+    updateResults.forEach((r, i) => {
+      if (r.error) console.error(`[analyze-food-quality] item update ${i} failed:`, r.error.message)
+    })
 
-    await supabase
+    const { error: nutritionUpsertErr } = await supabase
       .from('daily_nutrition')
       .upsert(
         { user_id: userId, date: targetDate, avg_food_quality: parsed.day_quality_score, food_quality_analysis: parsed.day_quality_analysis },
         { onConflict: 'user_id,date' }
       )
+    if (nutritionUpsertErr) console.error('[analyze-food-quality] daily_nutrition upsert failed:', nutritionUpsertErr.message)
 
     console.log(`[analyze-food-quality] ${targetDate}: ${parsed.items.length} items scored, day score ${parsed.day_quality_score}`)
 
