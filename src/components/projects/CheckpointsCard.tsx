@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, Check, ChevronRight, Flag, Shield, Wallet, Zap } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
@@ -35,7 +35,7 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
     const todayStr = getTodayWarsaw();
     const in14 = new Date();
     in14.setDate(in14.getDate() + 14);
-    const in14Str = in14.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const in14Str = formatWarsawDate(in14);
 
     Promise.all([
       supabase

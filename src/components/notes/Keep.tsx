@@ -72,7 +72,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const fetchNotes = useCallback(async () => {
     setError(null);
     try {
-      const { data, error: err } = await (supabase as any)
+      const { data, error: err } = await supabase
         .from('vanguard_notes')
         .select('*')
         .eq('user_id', userId)
@@ -115,7 +115,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     setError(null);
     const payload = { user_id: userId, ...partial };
     try {
-      const { data, error: err } = await (supabase as any)
+      const { data, error: err } = await supabase
         .from('vanguard_notes')
         .insert(payload)
         .select()
@@ -150,7 +150,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const handleUpdate = async (id: string, patch: Partial<Note>) => {
     const updatedAt = new Date().toISOString();
     try {
-      const { error: err } = await (supabase as any)
+      const { error: err } = await supabase
         .from('vanguard_notes')
         .update({ ...patch, updated_at: updatedAt })
         .eq('id', id);
@@ -168,7 +168,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const handleDelete = async (id: string) => {
     setBusy(true);
     try {
-      const { error: err } = await (supabase as any).from('vanguard_notes').delete().eq('id', id);
+      const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
       if (err && !(err.code === 'PGRST205')) throw err;
       setNotes(prev => {
         const updated = prev.filter(n => n.id !== id);
@@ -185,7 +185,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const handleTogglePin = async (note: Note) => {
     const next = !note.is_pinned;
     try {
-      const { error: err } = await (supabase as any)
+      const { error: err } = await supabase
         .from('vanguard_notes')
         .update({ is_pinned: next })
         .eq('id', note.id);
@@ -207,7 +207,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     setError(null);
     const empty = { user_id: userId, title: '', content: '', color: 'default', is_pinned: false, is_archived: false, tags: [] as string[] };
     try {
-      const { data, error: err } = await (supabase as any).from('vanguard_notes').insert(empty).select().single();
+      const { data, error: err } = await supabase.from('vanguard_notes').insert(empty).select().single();
       if (err) {
         if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
           const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };

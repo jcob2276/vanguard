@@ -13,7 +13,7 @@ export function useNudgeData(userId: string | undefined) {
       try {
         const today = getTodayWarsaw();
         const [{ data: reviews }, { count: urgentCount }] = await Promise.all([
-          (supabase as any).from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
+          supabase.from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
           supabase.from('todo_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open').or(`priority.eq.urgent,and(due_date.lte.${today},due_date.not.is.null)`),
         ]);
         if (reviews) {

@@ -2464,6 +2464,33 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          keys_auth: string
+          keys_p256dh: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          keys_auth: string
+          keys_p256dh: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          keys_auth?: string
+          keys_p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sprint_goals: {
         Row: {
           created_at: string | null
@@ -2643,6 +2670,8 @@ export type Database = {
           notes: string | null
           priority: string
           recurrence: string | null
+          reminder_at: string | null
+          reminder_sent: boolean
           section_id: string | null
           sort_order: number
           status: string
@@ -2661,6 +2690,8 @@ export type Database = {
           notes?: string | null
           priority?: string
           recurrence?: string | null
+          reminder_at?: string | null
+          reminder_sent?: boolean
           section_id?: string | null
           sort_order?: number
           status?: string
@@ -2679,6 +2710,8 @@ export type Database = {
           notes?: string | null
           priority?: string
           recurrence?: string | null
+          reminder_at?: string | null
+          reminder_sent?: boolean
           section_id?: string | null
           sort_order?: number
           status?: string

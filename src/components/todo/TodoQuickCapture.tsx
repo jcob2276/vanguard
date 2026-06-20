@@ -1,5 +1,6 @@
 import { Plus, Settings2, X } from 'lucide-react';
 import { PRIORITY } from './todoUtils';
+import { formatWarsawDate } from '../../lib/date';
 
 interface TodoFormState {
   title: string;
@@ -143,14 +144,14 @@ export default function TodoQuickCapture({
                   onClick={() => {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                    const tomorrowStr = formatWarsawDate(tomorrow);
                     setForm(f => ({ ...f, due_date: tomorrowStr }));
                   }}
                   className={`rounded-xl px-2.5 py-2 text-[11px] font-semibold border transition-all ${
                     (parsedInput.due_date || form.due_date) === (() => {
                       const tomorrow = new Date();
                       tomorrow.setDate(tomorrow.getDate() + 1);
-                      return tomorrow.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                      return formatWarsawDate(tomorrow);
                     })()
                       ? 'bg-sky-500/15 text-sky-500 border-sky-500/20'
                       : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'

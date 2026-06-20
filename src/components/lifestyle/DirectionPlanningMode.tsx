@@ -2,6 +2,7 @@ import { Check, Plus } from 'lucide-react';
 import { addDays, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { Tables } from '../../lib/database.types';
+import { formatWarsawDate } from '../../lib/date';
 import { DAYS_PL, SENTIMENTS, GOAL_CHIP } from './directionConstants';
 
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
@@ -133,9 +134,9 @@ export default function DirectionPlanningMode({
         <div className="flex gap-1 mb-2">
           {DAYS_PL.map((dayLabel, i) => {
             const dayDate = addDays(planWeekStart, i);
-            const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+            const dayKey = formatWarsawDate(dayDate);
             const hasEvent = planCalEvents.some((e) =>
-              new Date(e.start_time!).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
+              formatWarsawDate(new Date(e.start_time!)) === dayKey
             );
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -149,9 +150,9 @@ export default function DirectionPlanningMode({
         {planCalEvents.length > 0 && (
           <div className="max-h-[110px] overflow-y-auto space-y-1 rounded-xl border border-border-custom bg-surface/30 p-2.5">
             {planCalEvents.map((ev, i) => {
-              const eDay = new Date(ev.start_time!).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+              const eDay = formatWarsawDate(new Date(ev.start_time!));
               const dayIdx = DAYS_PL.findIndex((_, j) =>
-                addDays(planWeekStart, j).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === eDay
+                formatWarsawDate(addDays(planWeekStart, j)) === eDay
               );
               return (
                 <p key={i} className="text-[10px] font-semibold text-text-secondary truncate">

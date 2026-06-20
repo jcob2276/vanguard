@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
@@ -91,7 +91,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const nextWeek = (() => {
     const d = new Date(today + 'T00:00:00');
     d.setDate(d.getDate() + 7);
-    return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    return formatWarsawDate(d);
   })();
 
   const fetchAll = useCallback(async () => {

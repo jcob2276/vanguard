@@ -27,7 +27,7 @@ export default function MorningBriefCard({ session }: { session: any }) {
 
   useEffect(() => {
     if (!userId) return;
-    (supabase as any)
+    supabase
       .from('morning_briefs')
       .select('content, generated_at')
       .eq('user_id', userId)
@@ -65,7 +65,7 @@ export default function MorningBriefCard({ session }: { session: any }) {
       setBrief(text);
       const now = new Date().toISOString();
       setGeneratedAt(now);
-      await (supabase as any).from('morning_briefs').upsert(
+      await supabase.from('morning_briefs').upsert(
         { user_id: userId, date: today, content: text, generated_at: now },
         { onConflict: 'user_id,date' }
       );
@@ -78,7 +78,7 @@ export default function MorningBriefCard({ session }: { session: any }) {
 
   const forceRefresh = async () => {
     setBrief(null);
-    await (supabase as any).from('morning_briefs').delete().eq('user_id', userId).eq('date', today);
+    await supabase.from('morning_briefs').delete().eq('user_id', userId).eq('date', today);
     await generate();
   };
 

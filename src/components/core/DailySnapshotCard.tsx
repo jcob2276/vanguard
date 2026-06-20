@@ -74,7 +74,7 @@ export default function DailySnapshotCard({ session }: { session: any }) {
     if (savingScore) return;
     setSavingScore(true);
     setDayScore(score);
-    await (supabase as any).from('daily_reconciliations').upsert(
+    await supabase.from('daily_reconciliations').upsert(
       { user_id: userId, date: today, status: 'answered', mode: 'checkin', day_score: score },
       { onConflict: 'user_id,date', ignoreDuplicates: false }
     ).then(() => {}, () => {});

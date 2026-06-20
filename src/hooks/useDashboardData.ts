@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../lib/date';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
@@ -46,7 +46,7 @@ export function useDashboardData() {
       const today = getTodayWarsaw();
       const todayDate = new Date(today + 'T12:00:00');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
-      const monday = mondayDate.toLocaleDateString('en-CA');
+      const monday = formatWarsawDate(mondayDate);
 
       const [
         nutritionRes,

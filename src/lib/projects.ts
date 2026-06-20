@@ -5,18 +5,7 @@ import { unwrap } from './supabaseUtils';
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
 
-export type ProjectCheckpoint = {
-  id: string;
-  user_id: string;
-  project_id: string;
-  title: string;
-  due_date: string | null;
-  status: 'open' | 'done' | 'dropped';
-  completed_at: string | null;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-};
+export type ProjectCheckpoint = Database['public']['Tables']['project_checkpoints']['Row'];
 
 export async function listProjects(userId: string) {
   return unwrap(
@@ -68,7 +57,7 @@ export async function linkSectionToProject(sectionId: string, projectId: string 
 
 export async function listProjectCheckpoints(userId: string): Promise<ProjectCheckpoint[]> {
   return unwrap(
-    await (supabase as any)
+    await supabase
       .from('project_checkpoints')
       .select('*')
       .eq('user_id', userId)
@@ -84,7 +73,7 @@ export async function createProjectCheckpoint(
   fields: { project_id: string; title: string; due_date?: string | null },
 ): Promise<ProjectCheckpoint> {
   return unwrap(
-    await (supabase as any)
+    await supabase
       .from('project_checkpoints')
       .insert({
         user_id: userId,
@@ -102,7 +91,7 @@ export async function updateProjectCheckpoint(
   patch: Partial<Pick<ProjectCheckpoint, 'title' | 'due_date' | 'status' | 'completed_at' | 'sort_order'>>,
 ): Promise<ProjectCheckpoint> {
   return unwrap(
-    await (supabase as any)
+    await supabase
       .from('project_checkpoints')
       .update(patch)
       .eq('id', id)
@@ -113,7 +102,7 @@ export async function updateProjectCheckpoint(
 
 export async function deleteProjectCheckpoint(id: string): Promise<ProjectCheckpoint> {
   return unwrap(
-    await (supabase as any)
+    await supabase
       .from('project_checkpoints')
       .delete()
       .eq('id', id)

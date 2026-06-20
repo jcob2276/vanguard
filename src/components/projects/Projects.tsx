@@ -282,7 +282,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     run(async () => {
       const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
       if (updErr) throw new Error(updErr.message);
-      const { error: snapErr } = await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
+      const { error: snapErr } = await supabase.from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
       if (snapErr) throw new Error(snapErr.message);
       setEditingKpiId(null);
     });

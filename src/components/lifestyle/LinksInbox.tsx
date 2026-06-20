@@ -80,7 +80,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const fetchLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('vanguard_links')
         .select('*')
         .eq('user_id', session.user.id)
@@ -163,7 +163,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTimeout(() => setBouncingIds(prev => { const n = new Set(prev); n.delete(id); return n; }), 400);
     const next = current === 'unread' ? 'read' : 'unread';
     setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('vanguard_links').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
     if (error) fetchLinks();
   };
@@ -173,7 +173,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     if (draft === undefined) return;
     const link = links.find(l => l.id === id);
     if (!link || draft === (link.notes ?? '')) return;
-    await (supabase as any)
+    await supabase
       .from('vanguard_links')
       .update({ notes: draft, updated_at: new Date().toISOString() })
       .eq('id', id);
@@ -189,7 +189,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTimeout(async () => {
       setLinks(prev => prev.filter(l => l.id !== id));
       setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      await (supabase as any).from('vanguard_links').delete().eq('id', id);
+      await supabase.from('vanguard_links').delete().eq('id', id);
     }, 260);
   };
 

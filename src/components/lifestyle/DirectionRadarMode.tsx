@@ -1,7 +1,7 @@
 import { Calendar, Check, Shield, Target, Wallet, Zap } from 'lucide-react';
 import { addDays, differenceInDays, format, parseISO, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
@@ -108,11 +108,11 @@ export default function DirectionRadarMode({
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
         {DAYS_PL.map((dayLabel, i) => {
           const dayDate = addDays(planWeekStart, i);
-          const dayKey = dayDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          const dayKey = formatWarsawDate(dayDate);
           const isToday = dayKey === todayWarsaw();
           const dayWin = history.find((d) => d.date === dayKey);
           const dayEvents = allCalEvents.filter((e) =>
-            e.start_time && new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey
+            e.start_time && formatWarsawDate(new Date(e.start_time)) === dayKey
           );
 
           const dayWinAny = dayWin as any;

@@ -40,11 +40,11 @@ export function usePushNotifications(userId: string) {
       });
 
       const json = sub.toJSON();
-      await (supabase as any).from('push_subscriptions').upsert({
+      await supabase.from('push_subscriptions').upsert({
         user_id: userId,
-        endpoint: json.endpoint,
-        keys_p256dh: json.keys?.p256dh,
-        keys_auth: json.keys?.auth,
+        endpoint: json.endpoint ?? '',
+        keys_p256dh: json.keys?.p256dh ?? '',
+        keys_auth: json.keys?.auth ?? '',
       }, { onConflict: 'user_id,endpoint' });
 
       return true;
@@ -58,7 +58,7 @@ export function usePushNotifications(userId: string) {
     const sub = await getSubscription();
     if (!sub) return;
     await sub.unsubscribe();
-    await (supabase as any).from('push_subscriptions')
+    await supabase.from('push_subscriptions')
       .delete().eq('user_id', userId).eq('endpoint', sub.endpoint);
   };
 

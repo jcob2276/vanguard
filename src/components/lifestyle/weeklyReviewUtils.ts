@@ -1,4 +1,5 @@
 import { Shield, Zap, Wallet } from 'lucide-react';
+import { formatWarsawDate } from '../../lib/date';
 
 export const PILLARS = [
   {
@@ -44,20 +45,20 @@ export function getWeekStart(): string {
   const diff = day === 0 ? -6 : 1 - day;
   const mon = new Date(now);
   mon.setDate(now.getDate() + diff);
-  return mon.toLocaleDateString('en-CA');
+  return formatWarsawDate(mon);
 }
 
 export function getPrevWeekStart(ws: string): string {
   const d = new Date(ws + 'T00:00:00');
   d.setDate(d.getDate() - 7);
-  return d.toLocaleDateString('en-CA');
+  return formatWarsawDate(d);
 }
 
 export function getPastWeekStarts(current: string, n: number): string[] {
   const result: string[] = [];
   const d = new Date(current + 'T00:00:00');
   for (let i = 0; i < n; i++) {
-    result.unshift(d.toLocaleDateString('en-CA'));
+    result.unshift(formatWarsawDate(d));
     d.setDate(d.getDate() - 7);
   }
   return result;
