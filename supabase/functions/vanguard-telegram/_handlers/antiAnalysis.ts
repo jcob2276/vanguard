@@ -28,8 +28,11 @@ export async function checkAntiAnalysis(text: string, deepseekApiKey: string): P
         content: `Przeanalizuj tekst i określ, czy jest to czysta autoanaliza stanu psychicznego/emocjonalnego (self_analysis), projektowanie systemu/narzędzi (system_design), budowanie teorii/zasad/ram działania (framework_building), pre_mortem (teoretyzowanie o porażce przed działaniem) lub abstrakcyjne planowanie (abstract_planning) BEZ konkretnego, namacalnego fizycznego lub zewnętrznego działania (np. wysłanie maila, wdrożenie kodu, telefon do klienta, wykonanie zaplanowanego treningu). \nOdpowiedz TYLKO słowem "YES" jeśli to analiza bez namacalnego działania/artefaktu, lub "NO" w przeciwnym wypadku. Zero dodatkowych słów.\n\nTEKST DO OCENY:\n"${text.substring(0, 800)}"`
       }]
     });
-    const answer = answerRaw.trim().toUpperCase();
-    return answer.includes('YES');
+    // Exact match, not includes() — DeepSeek sometimes returns "YES, this is analysis" or
+    // "The answer is YES" despite the "Zero dodatkowych słów" instruction, which incorrectly
+    // tripped the guard for normal reflective messages under includes('YES').
+    const answer = answerRaw.trim().toUpperCase().replace(/[^A-Z]/g, '');
+    return answer === 'YES';
   } catch (err) {
     console.error('[anti-analysis] Check failed:', err);
   }

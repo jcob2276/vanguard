@@ -99,7 +99,11 @@ export async function handleSaturdayCheckin(
       parsed_response: { step: 'completed', answers },
       answered_at: new Date().toISOString()
     }).eq('id', reconciliationId);
-    if (updateErrSystem) console.error('[saturday] failed to save final answers:', updateErrSystem);
+    if (updateErrSystem) {
+      console.error('[saturday] failed to save final answers:', updateErrSystem);
+      await safeSendTelegram(chatId, '❌ Błąd zapisu — spróbuj ponownie.', telegramToken);
+      return;
+    }
 
     await sendChatAction(telegramToken, chatId, "typing");
 
@@ -120,13 +124,22 @@ export async function handleSaturdayCheckin(
         .limit(30)
     ]);
 
-    const frictionLines = (frictionRes.data || [])
-      .map((e: any) => `[${e.occurred_at?.split('T')[0]}] ${e.friction_type}: ${e.deviation || e.actual_behavior || ''}`)
-      .join('\n');
+    if (frictionRes.error) console.error('[saturday] friction query failed:', frictionRes.error.message);
+    if (streamRes.error) console.error('[saturday] stream query failed:', streamRes.error.message);
 
-    const streamLines = (streamRes.data || [])
-      .map((s: any) => `[${s.created_at?.split('T')[0]}] ${s.content}`)
-      .join('\n');
+    // Distinguish "DB error" from "naturally empty" in the LLM context — otherwise synthesis
+    // can confidently claim "no friction this week" when the truth is the query itself failed.
+    const frictionLines = frictionRes.error
+      ? '[BŁĄD ZAPYTANIA — nie traktuj jako "brak friction"]'
+      : (frictionRes.data || [])
+          .map((e: any) => `[${e.occurred_at?.split('T')[0]}] ${e.friction_type}: ${e.deviation || e.actual_behavior || ''}`)
+          .join('\n');
+
+    const streamLines = streamRes.error
+      ? '[BŁĄD ZAPYTANIA — nie traktuj jako "brak wpisów"]'
+      : (streamRes.data || [])
+          .map((s: any) => `[${s.created_at?.split('T')[0]}] ${s.content}`)
+          .join('\n');
 
     // Run LLM Behavioral Review
     let synthesisText = '';
@@ -189,12 +202,17 @@ ${streamLines || 'brak'}`
       synthesisText = '⚠️ Nie udało się wygenerować pełnej syntezy. Przechodzimy bezpośrednio do planowania.';
     }
 
-    // Propose Sunday plan (Bridge to tomorrow)
+    // Propose Sunday plan (Bridge to tomorrow). These are generic placeholders, not a real
+    // recommendation — overwritten below if the adversary returns one. If it doesn't,
+    // isGenericFallback stays true and the draft is tagged plan_fallback so it's never
+    // mistaken for a real plan (e.g. by Oracle's "today_plan" lookup) if the user blindly
+    // confirms it.
     let tomorrowArtifact = "Wykonanie pierwszego kroku wdrożeniowego";
     let tomorrowMinimum = "15 minut bez telefonu na start działania";
     let tomorrowStart = "08:45";
     let tomorrowTension = "Zmierzenie się z najtrudniejszym zadaniem tygodnia";
     let tomorrowTensionMin = "Rozpoczęcie zadania";
+    let isGenericFallback = true;
 
     // Try running Reality Adversary to get optimized recommendation
     try {
@@ -204,6 +222,7 @@ ${streamLines || 'brak'}`
         tomorrowMinimum = adversaryOutput.recommended_tension_action.minimum_version || "zdefiniuj minimum";
         tomorrowTension = adversaryOutput.recommended_tension_action.action;
         tomorrowTensionMin = adversaryOutput.recommended_tension_action.minimum_version || "zdefiniuj minimum";
+        isGenericFallback = false;
       }
     } catch (advErr) {
       console.warn('[saturday] adversary run failed:', advErr);
@@ -219,6 +238,10 @@ ${streamLines || 'brak'}`
     const planningDraft = {
       target_date: tomorrowWarsawDateStr,
       date: tomorrowWarsawDateStr,
+      // Honest signal for the LLM that regenerates the final plan from this history at
+      // closePlanningSession time, and for any downstream consumer that checks plan_fallback
+      // before treating planning_summary as a real plan (see messages.ts state vector lookup).
+      plan_fallback: isGenericFallback,
       day_mode: "work",
       top3: [tomorrowArtifact, "Uporządkowanie zadań", "Ruch napięciowy"],
       one_clear_move: tomorrowArtifact,
@@ -278,10 +301,14 @@ ${streamLines || 'brak'}`
     }).eq('id', reconciliationId);
     if (updateErrPlanning) console.error('[saturday] failed to activate planning session:', updateErrPlanning);
 
-    const bridgeText = 
+    const fallbackNotice = isGenericFallback
+      ? `\n\n⚠️ Adversary nie zwrócił konkretnej rekomendacji — poniżej są GENERYCZNE domyślne wartości, nie analiza Twojego tygodnia. Użyj "🔧 Zmień" żeby wpisać coś realne, zamiast potwierdzać domyślne.\n`
+      : '';
+
+    const bridgeText =
       `${synthesisText}\n\n` +
       `─────\n` +
-      `✅ Saturday Check-In zakończony.\n\n` +
+      `✅ Saturday Check-In zakończony.${fallbackNotice}\n\n` +
       `Jutro nie zaczynamy od planowania.\n` +
       `Jutro nie definiujemy całego dnia.\n` +
       `Definiujemy pierwszy ruch, który stabilizuje resztę.\n\n` +
@@ -314,5 +341,5 @@ async function sendTelegram(chatId: number, text: string, token: string) {
 }
 
 async function sendTelegramWithMarkup(chatId: number, text: string, replyMarkup: any, token: string) {
-  await safeSendTelegram(chatId, text, token, { reply_markup: replyMarkup });
+  await safeSendTelegram(chatId, text, token, { parse_mode: 'Markdown', reply_markup: replyMarkup });
 }

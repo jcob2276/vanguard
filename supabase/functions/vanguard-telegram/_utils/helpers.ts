@@ -22,17 +22,6 @@ export function inferVaultCategory(text: string): string {
   return "telegram_vault";
 }
 
-export function extractDayScore(text: string): number | null {
-  const normalized = text.toLowerCase();
-  const explicit = normalized.match(/(?:ocena(?:\s+dnia)?|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?):?\s*([1-5])(?:\s*\/\s*5)?/i);
-  if (explicit?.[1]) return Number(explicit[1]);
-
-  const numberedAnswer = normalized.match(/(?:^|\n|\s)4[).\:-]\s*([1-5])(?:\s*\/\s*5)?/i);
-  if (numberedAnswer?.[1]) return Number(numberedAnswer[1]);
-
-  return null;
-}
-
 export function getWarsawDateStr(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
@@ -48,5 +37,19 @@ export async function safeSendTelegram(
     disableNotification: options.disable_notification,
     replyMarkup: options.reply_markup,
   });
-  return result.ok;
+  if (result.ok) return true;
+
+  // Telegram rejects the whole message on unbalanced Markdown entities (e.g. a stray
+  // "*" or "_" in LLM-generated text). Retry once as plain text instead of dropping the
+  // message entirely — the user seeing literal asterisks is much better than no reply.
+  if (options.parse_mode) {
+    console.warn('[telegram] send with parse_mode failed, retrying as plain text:', result.description);
+    const retry = await sendMessageParsed(token, chatId, text, {
+      disableNotification: options.disable_notification,
+      replyMarkup: options.reply_markup,
+    });
+    return retry.ok;
+  }
+
+  return false;
 }

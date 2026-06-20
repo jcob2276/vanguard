@@ -26,30 +26,12 @@ export async function handleReconciliation(
 ): Promise<void> {
   const dayScore = extractDayScore(cleanText);
 
-  const { error: updateError } = await supabase
-    .from("daily_reconciliations")
-    .update({
-      status: "answered",
-      user_response: cleanText,
-      parsed_response: {
-        raw_response: cleanText,
-        stream_record_id: streamRecordId,
-        parser_version: "telegram_reflection_v1",
-        mode: "reflection",
-      },
-      day_score: dayScore,
-      answered_at: new Date().toISOString(),
-      planning_status: null,
-    })
-    .eq("id", reconciliationId);
-
-  if (updateError) {
-    console.error("[reconciliation] update failed:", updateError);
-    await safeSendTelegram(chatId, "Nie udalo sie zapisac refleksji.", telegramToken);
-    return;
-  }
-
+  // Run both extraction LLM calls first, then persist everything in ONE update below —
+  // three separate UPDATEs to the same row (status+response, then extraction, then p2)
+  // left a window where a mid-sequence failure produced a half-written row, and a Telegram
+  // retry of the whole handler would re-stamp answered_at with a new timestamp.
   let eveningExtraction: any = null;
+  let eveningExtractionVersion: string | null = null;
   try {
     const { content: rawExtract } = await deepseekChat({
       apiKey: deepseekApiKey,
@@ -69,12 +51,7 @@ export async function handleReconciliation(
     const jsonMatch = rawExtract.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       eveningExtraction = JSON.parse(jsonMatch[0]);
-      await supabase.from("daily_reconciliations")
-        .update({
-          evening_extraction: eveningExtraction,
-          evening_extraction_version: "reflection-v1",
-        })
-        .eq("id", reconciliationId);
+      eveningExtractionVersion = "reflection-v1";
     }
   } catch (extractErr) {
     console.warn("[reconciliation] reflection extraction failed:", extractErr);
@@ -83,14 +60,35 @@ export async function handleReconciliation(
   let p2Parsed: P2ParsedResponse | null = null;
   try {
     p2Parsed = await parseReconciliationResponse(cleanText, deepseekApiKey);
-    await supabase.from("daily_reconciliations")
-      .update({
-        p2_parsed: p2Parsed,
-        p2_parser_version: p2Parsed?.parser_version || null,
-      })
-      .eq("id", reconciliationId);
   } catch (p2Err) {
     console.warn("[reconciliation] p2 parser failed (non-fatal):", p2Err);
+  }
+
+  const { error: updateError } = await supabase
+    .from("daily_reconciliations")
+    .update({
+      status: "answered",
+      user_response: cleanText,
+      parsed_response: {
+        raw_response: cleanText,
+        stream_record_id: streamRecordId,
+        parser_version: "telegram_reflection_v1",
+        mode: "reflection",
+      },
+      day_score: dayScore,
+      answered_at: new Date().toISOString(),
+      planning_status: null,
+      evening_extraction: eveningExtraction,
+      evening_extraction_version: eveningExtractionVersion,
+      p2_parsed: p2Parsed,
+      p2_parser_version: p2Parsed?.parser_version || null,
+    })
+    .eq("id", reconciliationId);
+
+  if (updateError) {
+    console.error("[reconciliation] update failed:", updateError);
+    await safeSendTelegram(chatId, "Nie udalo sie zapisac refleksji.", telegramToken);
+    return;
   }
 
   try {
@@ -150,7 +148,9 @@ function extractDayScore(text: string): number | null {
   const normalized = text.toLowerCase();
   const explicit = normalized.match(/(?:ocena dnia|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?)\D*([1-5])(?:\s*\/\s*5)?/i);
   if (explicit?.[1]) return Number(explicit[1]);
-  const numberedAnswer = normalized.match(/(?:^|\n|\s)4[).\:-]\s*([1-5])(?:\s*\/\s*5)?/i);
+  // Anchored to end-of-line — "4) 3" alone on a line is the answer to question 4, but
+  // "4. 3 rzeczy poszly dobrze" (an unrelated numbered list item) must NOT match.
+  const numberedAnswer = normalized.match(/(?:^|\n)4[).\:-]\s*(?:ocena|score|dzie[nń])?\s*([1-5])(?:\s*\/\s*5)?\s*$/im);
   if (numberedAnswer?.[1]) return Number(numberedAnswer[1]);
   return null;
 }
