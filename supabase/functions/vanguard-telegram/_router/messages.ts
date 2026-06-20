@@ -17,6 +17,8 @@ import {
   handleInteractivePromptCommand,
   handlePostCommand,
   handleLenieCommand,
+  handleTodoCommand,
+  handleKeepCommand,
 } from "./commands.ts";
 
 export { DEFAULT_REPLY_KEYBOARD };
@@ -46,7 +48,7 @@ export async function handleIncomingMessage(
   const isVoice = !!message.voice;
   let text = message.text || "";
 
-  // --- Handle ForceReply replies ---
+  // --- Handle ForceReply replies (text messages only — voice handled after transcription) ---
   const replyTo = message.reply_to_message;
   if (replyTo && replyTo.text && text) {
     const promptText = replyTo.text;
@@ -58,6 +60,12 @@ export async function handleIncomingMessage(
       text = `? ${text}`;
     } else if (promptText.includes("Wpisz poprawkę do wiedzy")) {
       text = `poprawka: ${text}`;
+    } else if (promptText.includes("Nowe zadanie")) {
+      await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+      return;
+    } else if (promptText.includes("Vanguard Keep")) {
+      await handleKeepCommand(text, chatId, telegramToken, supabase, vanguardUserId, false);
+      return;
     }
   }
 
@@ -102,6 +110,14 @@ export async function handleIncomingMessage(
           await safeSendTelegram(chatId, "🎤 Słucham...", telegramToken, { disable_notification: true });
         }
         text = await transcribeAudio(message.voice!.file_id, telegramToken, openAiKey);
+
+        // ForceReply for voice: intercept Keep before stream recording
+        if (replyTo?.text && text) {
+          if (replyTo.text.includes("Vanguard Keep")) {
+            await handleKeepCommand(text, chatId, telegramToken, supabase, vanguardUserId, true);
+            return;
+          }
+        }
       }
 
       // Idempotency guard
@@ -195,6 +211,18 @@ export async function handleIncomingMessage(
       // --- /lenie command ---
       if (lowerText.startsWith('/lenie')) {
         await handleLenieCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+        return;
+      }
+
+      // --- /todo command ---
+      if (lowerText.startsWith('/todo')) {
+        await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+        return;
+      }
+
+      // --- /keep command ---
+      if (lowerText.startsWith('/keep')) {
+        await handleKeepCommand(text.slice(5).trim(), chatId, telegramToken, supabase, vanguardUserId, false);
         return;
       }
 
@@ -487,12 +515,14 @@ export async function handleIncomingMessage(
 
         // Extended state vector
         const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const [aggregateRes, workoutRes, winRes, planRows, ouraRes] = await Promise.all([
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        const [aggregateRes, workoutRes, winRes, planRows, ouraRes, notesRes] = await Promise.all([
           supabase.from('vanguard_daily_aggregates').select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('workout_sessions').select('created_at, workout_day').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('daily_wins').select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result').eq('user_id', vanguardUserId).eq('date', todayWarsawDate).maybeSingle(),
           supabase.from('daily_reconciliations').select('planning_summary, answered_at').eq('user_id', vanguardUserId).not('planning_summary', 'is', null).order('created_at', { ascending: false }).limit(5),
-          supabase.from('oura_daily_summary').select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(3)
+          supabase.from('oura_daily_summary').select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(3),
+          supabase.from('vanguard_notes').select('title, content, created_at').eq('user_id', vanguardUserId).eq('is_archived', false).gte('created_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(5)
         ]);
 
         const todayPlan = (planRows.data || []).find((r: any) =>
@@ -516,7 +546,8 @@ export async function handleIncomingMessage(
           nutrition: { calories_today: 0 },
           physical: { last_workout: workoutRes.data || 'Brak danych' },
           discipline: { today_wins: winRes.data || 'Nie ustawiono celów' },
-          ...(todayPlan ? { today_plan: todayPlan } : {})
+          ...(todayPlan ? { today_plan: todayPlan } : {}),
+          ...(notesRes.data?.length ? { recent_keep_notes: notesRes.data } : {})
         };
 
         const controller = new AbortController();

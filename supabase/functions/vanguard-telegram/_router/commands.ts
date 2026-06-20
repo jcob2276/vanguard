@@ -21,6 +21,10 @@ export const DEFAULT_REPLY_KEYBOARD = {
       { text: "🔚 Koniec" }
     ],
     [
+      { text: "📝 Todo" },
+      { text: "📒 Keep" }
+    ],
+    [
       { text: "🍽️ Dieta" }
     ]
   ],
@@ -173,7 +177,121 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
+  if (lowerText === '📝 todo' || lowerText === '/todo') {
+    await safeSendTelegram(chatId, "📝 **Nowe zadanie**\nWpisz co masz do zrobienia (opcjonalnie: `+jutro` `+tydzień` `!high`):", telegramToken, {
+      reply_markup: {
+        force_reply: true,
+        selective: true,
+        input_field_placeholder: "np. Zadzwoń do Marka +jutro !high"
+      }
+    });
+    return true;
+  }
+
+  if (lowerText === '📒 keep' || lowerText === '/keep') {
+    await safeSendTelegram(chatId, "📒 **Vanguard Keep**\nWpisz notatkę lub nagraj głosówkę:", telegramToken, {
+      reply_markup: {
+        force_reply: true,
+        selective: true,
+        input_field_placeholder: "Twoja notatka..."
+      }
+    });
+    return true;
+  }
+
   return false;
+}
+
+export async function handleTodoCommand(
+  text: string,
+  chatId: number,
+  telegramToken: string,
+  supabase: any,
+  vanguardUserId: string,
+): Promise<void> {
+  try {
+    let title = text.replace(/^\/todo\s*/i, '').trim();
+
+    // Parse flags
+    let dueDate: string | null = null;
+    let priority = 'normal';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (/\+jutro/i.test(title)) {
+      const d = new Date(today); d.setDate(d.getDate() + 1);
+      dueDate = d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      title = title.replace(/\+jutro/gi, '').trim();
+    } else if (/\+tydzień|\+tydzien/i.test(title)) {
+      const d = new Date(today); d.setDate(d.getDate() + 7);
+      dueDate = d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      title = title.replace(/\+tydzień|\+tydzien/gi, '').trim();
+    }
+
+    if (/!high/i.test(title)) {
+      priority = 'high';
+      title = title.replace(/!high/gi, '').trim();
+    }
+
+    title = title.replace(/\s{2,}/g, ' ').trim();
+    if (!title) {
+      await safeSendTelegram(chatId, '❌ Podaj treść zadania.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      return;
+    }
+
+    const { error } = await supabase.from('todo_items').insert({
+      user_id: vanguardUserId,
+      title,
+      status: 'open',
+      priority,
+      due_date: dueDate,
+      tags: ['telegram'],
+    });
+    if (error) throw error;
+
+    const duePart = dueDate ? ` · termin ${dueDate}` : '';
+    const prioPart = priority === 'high' ? ' · 🔴 high' : '';
+    await safeSendTelegram(chatId, `✅ Todo: "${title}"${duePart}${prioPart}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+  } catch (err) {
+    console.error('[commands] /todo failed:', err);
+    await safeSendTelegram(chatId, '❌ Błąd zapisu todo: ' + (err as Error).message, telegramToken);
+  }
+}
+
+export async function handleKeepCommand(
+  text: string,
+  chatId: number,
+  telegramToken: string,
+  supabase: any,
+  vanguardUserId: string,
+  fromVoice = false,
+): Promise<void> {
+  try {
+    const content = text.trim();
+    if (!content) {
+      await safeSendTelegram(chatId, '❌ Pusta notatka.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      return;
+    }
+
+    // First line (max 80 chars) as title, rest as content
+    const firstLine = content.split('\n')[0].slice(0, 80);
+    const tags = fromVoice ? ['telegram', 'voice'] : ['telegram'];
+
+    const { error } = await supabase.from('vanguard_notes').insert({
+      user_id: vanguardUserId,
+      title: firstLine,
+      content,
+      tags,
+    });
+    if (error) throw error;
+
+    const label = fromVoice ? '🎤 Głosówka zapisana w Keep' : '📒 Notatka zapisana w Keep';
+    await safeSendTelegram(chatId, `${label}\n"${firstLine}"`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+  } catch (err) {
+    console.error('[commands] /keep failed:', err);
+    await safeSendTelegram(chatId, '❌ Błąd zapisu notatki: ' + (err as Error).message, telegramToken);
+  }
 }
 
 export async function handlePostCommand(
