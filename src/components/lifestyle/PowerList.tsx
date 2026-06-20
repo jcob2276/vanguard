@@ -99,27 +99,19 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const pickerRef = useRef<HTMLDivElement>(null);
 
   // AI assistant states
+  const [aiStep, setAiStep] = useState<'idle' | 'questions' | 'wins'>('idle');
+  const [aiQuestions, setAiQuestions] = useState<string>('');
+  const [aiAnswersInput, setAiAnswersInput] = useState<string>('');
   const [aiSuggestions, setAiSuggestions] = useState<Array<{ category: string; task: string; reason?: string }>>([]);
   const [aiLoading, setAiLoading] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([]);
 
-  async function suggestWins() {
+  async function generateQuestions() {
     setAiLoading(true);
     try {
       const stateVector = await gatherUserContext(session);
-      const query = `Zasugeruj mi 5 zwycięstw na dziś na podstawie mojego kontekstu życiowego, kalendarza i zadań.
-Proszę przypisać zadania do kategorii: cialo, duch, konto oraz ogolne.
-Odpowiedz wyłącznie w postaci tablicy JSON w polu "answer", bez żadnych dodatkowych zdań na początku ani na końcu.
-Format pola "answer" musi być poprawnym JSON-em o strukturze:
-[
-  {"category": "cialo", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
-  {"category": "duch", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
-  {"category": "konto", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
-  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
-  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"}
-]
-Pamiętaj: zadania muszą być fizycznymi ruchami, nie planami czy rozbudową aplikacji (chyba że to konieczne). Szczególnie kładź nacisk na przełamywanie unikania w biznesie/kontaktach.`;
+      const query = `Zanalizuj mój kontekst życiowy, kalendarza i zadania. Zadaj mi 3-4 krótkie, bezpośrednie i bardzo trafne pytania, które naprowadzą mnie na zdefiniowanie 5 zwycięstw na dziś (Ciało, Duch, Konto + 2 ogólne).
+Pytania muszą celować w moje najważniejsze wyzwania i to, co mogę dziś pchnąć do przodu (np. nawiązując do konkretnych zadań z todo lub kalendarza).
+Zwróć TYLKO wypunktowaną listę 3-4 pytań w polu "answer", bez żadnego wstępu, powitań czy komentarzy.`;
 
       const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
         body: {
@@ -133,56 +125,46 @@ Pamiętaj: zadania muszą być fizycznymi ruchami, nie planami czy rozbudową ap
 
       if (error) throw error;
       const reply = data?.text ?? data?.answer ?? '';
-      let parsed: any[] = [];
-      try {
-        parsed = JSON.parse(reply);
-      } catch {
-        const match = reply.match(/\[\s*\{[\s\S]*\}\s*\]/);
-        if (match) {
-          try {
-            parsed = JSON.parse(match[0]);
-          } catch (e) {
-            console.warn('JSON parse match failed', e);
-          }
-        }
-      }
-
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setAiSuggestions(parsed);
-        setChatHistory([{ role: 'assistant', text: 'Oto moje sugestie na dziś oparte o Twój aktualny stan. Kliknij "Użyj", aby je wpisać, lub napisz poniżej, jeśli chcesz coś zmienić.' }]);
-      } else {
-        alert('Nie udało się sformatować sugestii. Odpowiedź AI:\n' + reply);
-      }
+      setAiQuestions(reply);
+      setAiStep('questions');
     } catch (e: any) {
-      console.error('suggestWins failed', e);
+      console.error('generateQuestions failed', e);
       alert('Błąd pomocy AI: ' + e.message);
     } finally {
       setAiLoading(false);
     }
   }
 
-  async function askAIChat() {
-    const query = chatInput.trim();
-    if (!query || aiLoading) return;
-    setChatInput('');
-    setChatHistory(prev => [...prev, { role: 'user', text: query }]);
+  async function generateWins() {
+    if (!aiAnswersInput.trim()) {
+      alert('Wpisz chociaż krótkie odpowiedzi lub wskazówki!');
+      return;
+    }
     setAiLoading(true);
     try {
       const stateVector = await gatherUserContext(session);
-      const conversationHistory = chatHistory.map(h => ({
-        role: h.role === 'user' ? 'user' : 'assistant',
-        content: h.text,
-      }));
-      
-      const prompt = `${query}
-Odpowiedz w postaci poprawnej tablicy JSON w polu "answer", aby zaktualizować listę 5 sugerowanych zwycięstw na podstawie naszej rozmowy.
-Format pola "answer" musi być dokładnie taki sam jak poprzednio: tablica 5 obiektów z polami "category", "task" oraz "reason".
-Nie dodawaj żadnych innych tekstów poza tablicą JSON w polu "answer".`;
+      const prompt = `Oto moje odpowiedzi na Twoje pytania pomocnicze:
+"${aiAnswersInput}"
+
+Na ich podstawie oraz mojego kontekstu, zasugeruj mi 5 zwycięstw na dziś (Ciało, Duch, Konto i 2 ogólne).
+Odpowiedz wyłącznie w postaci tablicy JSON w polu "answer", bez żadnych dodatkowych zdań na początku ani na końcu.
+Format pola "answer" musi być poprawnym JSON-em o strukturze:
+[
+  {"category": "cialo", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "duch", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "konto", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"}
+]
+Zadania muszą być konkretnymi ruchami fizycznymi na dziś.`;
 
       const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
         body: {
           state_vector: stateVector,
-          history: conversationHistory.slice(-6),
+          history: [
+            { role: 'assistant', content: aiQuestions },
+            { role: 'user', content: aiAnswersInput }
+          ],
           current_query: prompt,
           user_id: userId,
           mode: 'chat',
@@ -207,13 +189,13 @@ Nie dodawaj żadnych innych tekstów poza tablicą JSON w polu "answer".`;
 
       if (Array.isArray(parsed) && parsed.length > 0) {
         setAiSuggestions(parsed);
-        setChatHistory(prev => [...prev, { role: 'assistant', text: 'Zaktualizowałem sugestie zgodnie z Twoją prośbą.' }]);
+        setAiStep('wins');
       } else {
-        setChatHistory(prev => [...prev, { role: 'assistant', text: reply }]);
+        alert('Nie udało się sformatować sugestii. Odpowiedź AI:\n' + reply);
       }
     } catch (e: any) {
-      console.error('askAIChat failed', e);
-      setChatHistory(prev => [...prev, { role: 'assistant', text: `Błąd: ${e.message}` }]);
+      console.error('generateWins failed', e);
+      alert('Błąd generowania zwycięstw: ' + e.message);
     } finally {
       setAiLoading(false);
     }
@@ -421,87 +403,98 @@ Nie dodawaj żadnych innych tekstów poza tablicą JSON w polu "answer".`;
           </div>
 
           {/* AI Helper Section */}
-          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 space-y-3">
+          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3.5 space-y-3.5">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-primary">
                 <Sparkles size={12} className="animate-pulse" /> Asystent AI
               </span>
-              <button
-                type="button"
-                onClick={suggestWins}
-                disabled={aiLoading}
-                className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {aiLoading ? 'Generowanie...' : '✨ Zasugeruj zwycięstwa'}
-              </button>
+              {aiStep === 'idle' && (
+                <button
+                  type="button"
+                  onClick={generateQuestions}
+                  disabled={aiLoading}
+                  className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {aiLoading ? 'Analizowanie...' : '❓ Zadaj mi pytania'}
+                </button>
+              )}
+              {aiStep !== 'idle' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiStep('idle');
+                    setAiQuestions('');
+                    setAiAnswersInput('');
+                    setAiSuggestions([]);
+                  }}
+                  className="text-[9px] font-bold text-text-muted hover:text-text-primary cursor-pointer border-none bg-transparent"
+                >
+                  Zacznij od nowa
+                </button>
+              )}
             </div>
 
-            {/* Suggestions display */}
-            {aiSuggestions.length > 0 && (
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {aiSuggestions.map((suggestion, idx) => (
-                  <div key={idx} className="rounded-lg border border-border-custom bg-surface p-2.5 text-left transition-all hover:border-primary/20">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <span className="inline-block rounded bg-primary/10 px-1 py-0.5 text-[7px] font-black uppercase tracking-wider text-primary mb-1">
-                          {suggestion.category}
-                        </span>
-                        <p className="text-[11px] font-semibold text-text-primary leading-tight">
-                          {suggestion.task}
-                        </p>
-                        {suggestion.reason && (
-                          <p className="mt-0.5 text-[9px] font-medium text-text-muted leading-snug">
-                            {suggestion.reason}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => applySuggestion(suggestion.task, suggestion.category)}
-                        className="shrink-0 rounded bg-primary px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 cursor-pointer"
-                      >
-                        Użyj
-                      </button>
-                    </div>
+            {/* Step 1: Display Questions + Answers Textarea */}
+            {aiStep === 'questions' && (
+              <div className="space-y-3 animate-in fade-in duration-300">
+                <div className="rounded-lg border border-border-custom bg-surface p-3 text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania pomocnicze:</p>
+                  <div className="text-[11px] font-semibold text-text-primary leading-relaxed whitespace-pre-line">
+                    {aiQuestions}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Conversation / Chat box with AI */}
-            {aiSuggestions.length > 0 && (
-              <div className="border-t border-border-custom/50 pt-2.5 space-y-2">
-                {chatHistory.length > 0 && (
-                  <div className="max-h-[140px] overflow-y-auto space-y-1.5 pr-1">
-                    {chatHistory.map((msg, idx) => (
-                      <div key={idx} className={`text-[10px] p-2 rounded-lg leading-relaxed ${
-                        msg.role === 'user' ? 'bg-primary/5 text-primary text-right ml-8' : 'bg-surface border border-border-custom text-text-primary mr-8'
-                      }`}>
-                        <p className="font-semibold text-[8px] uppercase tracking-wider text-text-muted mb-0.5">
-                          {msg.role === 'user' ? 'Ty' : 'Asystent'}
-                        </p>
-                        {msg.text}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-1.5">
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && askAIChat()}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted font-display">Twoje odpowiedzi / notatki:</p>
+                  <textarea
+                    value={aiAnswersInput}
+                    onChange={(e) => setAiAnswersInput(e.target.value)}
                     disabled={aiLoading}
-                    placeholder="Poproś o inne zadania, np. 'daj coś lżejszego na dziś'"
-                    className="min-w-0 flex-1 rounded-lg border border-border-custom bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none focus:border-primary/40 focus:bg-surface-solid"
+                    placeholder="Wpisz krótkie odpowiedzi (np. 'siłownia wieczorem, duch: przeczytać książkę, konto: wysłać oferty')"
+                    className="w-full min-h-[70px] rounded-lg border border-border-custom bg-transparent p-2.5 text-[11px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none focus:border-primary/40 focus:bg-surface-solid resize-none"
                   />
                   <button
                     type="button"
-                    onClick={askAIChat}
-                    disabled={aiLoading || !chatInput.trim()}
-                    className="rounded-lg bg-primary px-2.5 text-[9px] font-bold text-white hover:bg-primary-hover active:scale-95 disabled:opacity-50 cursor-pointer"
+                    onClick={generateWins}
+                    disabled={aiLoading || !aiAnswersInput.trim()}
+                    className="w-full rounded-lg bg-primary py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary-hover active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    Wyślij
+                    {aiLoading ? 'Generowanie...' : '✨ Wygeneruj 5 zwycięstw'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Display Win Suggestions with Użyj button */}
+            {aiStep === 'wins' && (
+              <div className="space-y-3.5 animate-in fade-in duration-300">
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted font-display">Zaproponowane zwycięstwa:</p>
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {aiSuggestions.map((suggestion, idx) => (
+                    <div key={idx} className="rounded-lg border border-border-custom bg-surface p-2.5 text-left transition-all hover:border-primary/20">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <span className="inline-block rounded bg-primary/10 px-1 py-0.5 text-[7px] font-black uppercase tracking-wider text-primary mb-1">
+                            {suggestion.category}
+                          </span>
+                          <p className="text-[11px] font-semibold text-text-primary leading-tight">
+                            {suggestion.task}
+                          </p>
+                          {suggestion.reason && (
+                            <p className="mt-0.5 text-[9px] font-medium text-text-muted leading-snug">
+                              {suggestion.reason}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => applySuggestion(suggestion.task, suggestion.category)}
+                          className="shrink-0 rounded bg-primary px-2.5 py-1.5 text-[8px] font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 cursor-pointer"
+                        >
+                          Użyj
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
