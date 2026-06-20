@@ -249,7 +249,10 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       updateTodoItem(linkedTodoId, {
         status: newValue ? 'done' : 'open',
         completed_at: newValue ? new Date().toISOString() : null,
-      }).catch(() => {});
+      }).catch((e: Error) => {
+        console.error('[PowerList] todo sync failed for', linkedTodoId, e.message);
+        alert('Błąd synchronizacji z Todo — odśwież stronę.');
+      });
     }
   }
 

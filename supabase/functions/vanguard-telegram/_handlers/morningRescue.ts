@@ -114,7 +114,7 @@ ${cleanText.substring(0, 700)}`
           minimum_version: tensionMinVersion,
           status: 'planned',
         }
-      : base.tension_action,
+      : null,
     top3: [artifactName, tensionAction].filter(Boolean),
     energy_state: extracted?.energy_state ?? null,
     plan_prompt_version: '2026-05-28',

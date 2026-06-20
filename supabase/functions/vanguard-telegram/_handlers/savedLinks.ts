@@ -223,7 +223,7 @@ export async function handleSavedLinkDirect(
         if (titleMatch?.[1]) pageTitle = titleMatch[1].trim();
 
         const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([\s\S]*?)["']/i) ||
-                          html.match(/<meta[^>]+content=["']([\s\S]*?)["']/i);
+                          html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["']/i);
         if (descMatch?.[1]) pageDescription = descMatch[1].trim();
 
         if (!pageTitle) {

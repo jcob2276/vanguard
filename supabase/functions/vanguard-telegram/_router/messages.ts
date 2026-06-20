@@ -338,6 +338,7 @@ export async function handleIncomingMessage(
       }
 
       // --- Stream recording ---
+      let streamSaveFailed = false;
       if (mode !== 'knowledge') {
         let streamEmbedding = null;
         let emotionData: { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null = null;
@@ -402,8 +403,10 @@ export async function handleIncomingMessage(
           }
         }).select('id').single();
 
-        if (streamInsertError) { console.error("[telegram] stream insert failed:", streamInsertError); }
-        else if (streamInserted?.id) { streamRecordId = streamInserted.id; }
+        if (streamInsertError) {
+          console.error("[telegram] stream insert failed:", streamInsertError);
+          streamSaveFailed = true;
+        } else if (streamInserted?.id) { streamRecordId = streamInserted.id; }
 
         if (emotionData) {
           console.log(`[telegram] emotion: ${emotionData.state} (v=${emotionData.valence?.toFixed(2)}, a=${emotionData.arousal?.toFixed(2)}) voice=${isVoice}`);
@@ -501,7 +504,7 @@ export async function handleIncomingMessage(
               : '✅ Reconciliation zapisane.'
             : planningEnded
               ? '⏳ Zaraz generuję plan na jutro...'
-              : '💭 Zapisano w Strumieniu.';
+              : streamSaveFailed ? '❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie.' : '💭 Zapisano w Strumieniu.';
       } else {
         await sendChatAction(telegramToken, chatId, "typing");
 

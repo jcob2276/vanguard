@@ -301,14 +301,23 @@ export default function DesktopDashboard({ session }: { session: any }) {
       if (!r.ok) throw new Error(fn);
     };
     try {
-      await Promise.all([
+      const phase1 = await Promise.allSettled([
         call('sync-yazio', { userId, sync_history: true, days: 7 }),
         call('sync-oura', { userId }),
         call('sync-calendar', { userId })
       ]);
-      await Promise.all([call('sync-oura-enhanced', { userId, days: 2 }), call('sync-oura-timeseries', { userId, days: 2 })]);
-      await call('sync-strava', {});
-      await call('compute-daily-strain', { userId, days: 2 });
+      phase1.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`[sync] phase1[${i}] failed:`, r.reason);
+      });
+      const phase2 = await Promise.allSettled([
+        call('sync-oura-enhanced', { userId, days: 2 }),
+        call('sync-oura-timeseries', { userId, days: 2 })
+      ]);
+      phase2.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`[sync] phase2[${i}] failed:`, r.reason);
+      });
+      await call('sync-strava', {}).catch(e => console.error('[sync] strava failed:', e));
+      await call('compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
       refresh();
     } catch (e) { console.error('[sync]', e); }
     finally { setSyncing(false); }

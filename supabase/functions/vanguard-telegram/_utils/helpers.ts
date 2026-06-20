@@ -24,7 +24,7 @@ export function inferVaultCategory(text: string): string {
 
 export function extractDayScore(text: string): number | null {
   const normalized = text.toLowerCase();
-  const explicit = normalized.match(/(?:ocena dnia|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?)\D*([1-5])(?:\s*\/\s*5)?/i);
+  const explicit = normalized.match(/(?:ocena(?:\s+dnia)?|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?):?\s*([1-5])(?:\s*\/\s*5)?/i);
   if (explicit?.[1]) return Number(explicit[1]);
 
   const numberedAnswer = normalized.match(/(?:^|\n|\s)4[).\:-]\s*([1-5])(?:\s*\/\s*5)?/i);

@@ -474,17 +474,16 @@ Tylko JSON, bez komentarzy.`,
             .gte('occurred_at', cutoff72h)
             .order('occurred_at', { ascending: false });
 
-          if (feErr) throw feErr;
-
-          if (frictionRecent && frictionRecent.length > 0) {
+          if (feErr) {
+            console.warn('[oracle] friction fetch failed (non-fatal):', feErr.message);
+          } else if (frictionRecent && frictionRecent.length > 0) {
             semanticContext += "\n\n[FRICTION EVENTS (ostatnie 72h) — atomy tarcia]:\n" +
               frictionRecent.map((f: any) =>
                 `[${f.occurred_at}] ${f.friction_type} | odchylenie: ${f.deviation || '—'} | intencja: ${f.declared_intention || '—'} | koszt: ${f.immediate_cost || '—'} [${f.confidence_source}, conf=${f.confidence}]`
               ).join('\n');
           }
-        } catch (fe) {
-          console.error('[oracle] friction fetch error:', fe);
-          throw fe;
+        } catch (fe: any) {
+          console.warn('[oracle] friction fetch error (non-fatal):', fe?.message ?? fe);
         }
 
         if (rankedGraphData.length > 0) {

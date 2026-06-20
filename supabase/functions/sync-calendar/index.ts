@@ -113,7 +113,10 @@ serve(async (req) => {
     const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}&singleEvents=true&orderBy=startTime`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
-    if (!calRes.ok) console.error('[sync-calendar] Calendar API error:', calRes.status);
+    if (!calRes.ok) {
+      const errBody = await calRes.text().catch(() => '');
+      throw new Error(`[sync-calendar] Calendar API error ${calRes.status}: ${errBody.substring(0, 200)}`);
+    }
     const calData = await calRes.json()
     const calendarEvents = (calData.items || []).map((e: any) => ({
       user_id: userId,

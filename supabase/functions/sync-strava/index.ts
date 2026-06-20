@@ -67,13 +67,14 @@ async function getAccessToken(): Promise<string> {
     throw new Error('[sync-strava] Token refresh failed: ' + JSON.stringify(data));
   }
 
-  await supabase.from('strava_tokens').upsert({
+  const { error: tokenSaveErr } = await supabase.from('strava_tokens').upsert({
     user_id:       VANGUARD_USER_ID,
     access_token:  data.access_token,
     refresh_token: data.refresh_token,
     expires_at:    data.expires_at,
     updated_at:    new Date().toISOString()
   });
+  if (tokenSaveErr) throw new Error('[sync-strava] Failed to save refreshed token: ' + tokenSaveErr.message);
 
   console.log('[sync-strava] Token refreshed, expires:', new Date(data.expires_at * 1000).toISOString());
   return data.access_token;
@@ -445,9 +446,18 @@ serve(async (req) => {
 
     // Fetch detail for all activities (sequential to respect rate limit)
     const detailMap: Record<number, any> = {};
+    const incompleteIds: number[] = [];
     for (const a of activities) {
       const detail = await fetchActivityDetail(accessToken, a.id);
-      if (detail) detailMap[a.id] = detail;
+      if (detail) {
+        detailMap[a.id] = detail;
+      } else {
+        incompleteIds.push(a.id);
+        console.warn(`[sync-strava] Detail fetch failed for activity ${a.id} — will store summary-only, marked incomplete`);
+      }
+    }
+    if (incompleteIds.length) {
+      console.warn(`[sync-strava] ${incompleteIds.length} activities stored without splits/HR — will retry on next sync`);
     }
 
     // Partition: primary activities vs Oura auto-sync duplicates
@@ -459,6 +469,7 @@ serve(async (req) => {
 
     const rows = [];
     for (const a of activities) {
+      if (incompleteIds.includes(a.id)) continue; // skip — will be retried on next sync (3-day window)
       const detail    = detailMap[a.id] || a;
       const isDup     = isOuraDuplicate(a);
       const ouraDetail = isDup ? null : ouraPairs.get(a.id) ?? null;
