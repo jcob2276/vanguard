@@ -137,7 +137,9 @@ export async function handleIncomingMessage(
       }
 
       // --- URL / Saved Link detection ---
-      if (text && /https?:\/\/[^\s]+/.test(text)) {
+      // Skip if message starts with a command prefix — avoid hijacking Oracle/mode messages that contain a URL
+      const hasCommandPrefix = /^(\?|!!|##|@|poprawka:)/i.test(text.trim());
+      if (!hasCommandPrefix && text && /https?:\/\/[^\s]+/.test(text)) {
         try {
           const { handleSavedLink } = await import("../_handlers/savedLinks.ts");
           const handled = await handleSavedLink(
@@ -161,7 +163,6 @@ export async function handleIncomingMessage(
       let cleanText = text;
 
       const commandSource = isVoice ? text : originalText;
-      const hasCommandPrefix = /^(\?|!!|##|@)/.test(commandSource.trim());
       const explicitVoiceCommand = isVoice && hasCommandPrefix;
 
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }

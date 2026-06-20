@@ -124,17 +124,20 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const formTitleRef = useRef('');
+  useEffect(() => { formTitleRef.current = form.title; }, [form.title]);
+
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (quickCaptureRef.current && !quickCaptureRef.current.contains(e.target as Node)) {
-        if (form.title.trim() === '') {
+        if (formTitleRef.current.trim() === '') {
           setIsExpanded(false);
         }
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [form.title]);
+  }, []);
 
   // ── Drag tracking ──
   const getSectionAtPoint = useCallback((x: number, y: number) => {

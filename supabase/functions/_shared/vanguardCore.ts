@@ -57,7 +57,8 @@ export function computeSignals(
         // Time Penalty Logic — use Warsaw hour, not UTC
         const completedAt = todayWin[`completed_at_${i}`];
         if (completedAt) {
-          const hour = parseInt(new Date(completedAt).toLocaleString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
+          const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }).formatToParts(new Date(completedAt));
+          const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
           if (hour >= 21) timePenalty += 0.1;
           if (hour >= 23) timePenalty += 0.15;
         }
@@ -158,7 +159,7 @@ export class VanguardCore {
     const stArr    = extract('screen_time_min');
     const execArr  = extract('execution_score');
 
-    const sampleSize = sleepArr.length;
+    const sampleSize = Math.max(sleepArr.length, execArr.length, hrvArr.length);
 
     if (sampleSize < 5) {
       return {
@@ -254,13 +255,15 @@ export class VanguardCore {
     const biologicalScore = (zSleep + zHrv) / 2;
     const exec = currentSignals.execution_ratio ?? 0;
 
-    let state = VANGUARD_STATES.MOMENTUM;
+    let state: string;
 
-    if (biologicalScore < -2.0 && exec < 0.4)  state = VANGUARD_STATES.CHAOS;
+    if (biologicalScore < -2.0 && exec < 0.4)       state = VANGUARD_STATES.CHAOS;
     else if (biologicalScore < -1.0 && exec < 0.2)  state = VANGUARD_STATES.RECOVERY;
-    else if (exec === 1.0 && biologicalScore >= 0)  state = VANGUARD_STATES.LOCKED_IN;
-    else if (exec >= 0.8)                           state = VANGUARD_STATES.MOMENTUM;
+    else if (exec === 1.0 && biologicalScore >= 0)   state = VANGUARD_STATES.LOCKED_IN;
+    else if (exec >= 0.8)                            state = VANGUARD_STATES.MOMENTUM;
     else if (biologicalScore >= -0.5 && exec < 0.4) state = VANGUARD_STATES.AVOIDANCE;
+    else if (exec >= 0.4 && biologicalScore >= -0.5) state = VANGUARD_STATES.MOMENTUM;
+    else                                             state = VANGUARD_STATES.RECOVERY;
 
     return { state, score: stabilityScore };
   }

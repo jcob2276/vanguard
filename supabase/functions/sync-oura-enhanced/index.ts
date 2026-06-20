@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         fetchOura(`${OURA_BASE}/daily_resilience?${range}`, headers),
         fetchOura(`${OURA_BASE}/daily_spo2?${range}`, headers),
         fetchOura(`${OURA_BASE}/daily_cardiovascular_age?${range}`, headers),
-        fetchOura(`${OURA_BASE}/vO2_max?${range}`, headers),
+        fetchOura(`${OURA_BASE}/vo2_max?${range}`, headers),
       ])
 
       const byDay: Record<string, any> = {}
