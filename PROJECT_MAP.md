@@ -17,7 +17,7 @@ Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase e
 | `supabase/functions/` | **Production code.** Deno edge functions; one folder = one deployed function. `_shared/` = kernel helpers (always use these). Do not restructure. |
 | `supabase/migrations/` | Applied SQL migrations — filenames immutable. Do not rename/reorder. |
 | `src/` | Legacy React frontend (workout, dashboard widgets, sync UI). See `src/README.md`. |
-| `src/components/` | Grouped by domain: `core/` (Auth, Dashboard, DataHub, Stats, Fundament, DataStateNotice), `biometrics/` (DailyStrainCard, MuscleHeatmap, BrainHealth, WorkoutLogger), `lifestyle/` (legacy component names for Plan/Direction/Goals), `career/` (Career, Notes), `todo/` (Tasks), `integrations/` (StravaWidget), `identity/` (IdentityVault, Photos). |
+| `src/components/` | Grouped by domain: `core/` (Auth, Dashboard, DataHub, Stats, Fundament, DataStateNotice), `biometrics/` (DailyStrainCard, MuscleHeatmap, BrainHealth, WorkoutLogger), `lifestyle/` (legacy component names for Plan/Direction/Goals), `notes/` (Notes), `todo/` (Tasks), `integrations/` (StravaWidget), `identity/` (IdentityVault, Photos). |
 | `docs/PRODUCT_LANGUAGE.md` | Canonical product vocabulary for UI/docs/agents: Plan, Move, Artifact, Evidence, Reflection, Note, Task, Goal, Project, Pattern. |
 | `docs/` | All documentation. `docs/direction/` = North Star + ETAP plans (PL). `docs/runbooks/` = incident fixes. `docs/README.md` = full index. |
 | `examples/` | Canonical code patterns referenced by `CLAUDE.md` — copy these when writing new code. |
