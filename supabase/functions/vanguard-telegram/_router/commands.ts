@@ -9,7 +9,6 @@
 
 import { sendChatAction } from "../../_shared/telegram.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { getRecentStrongBehavioralPatterns, getRecentEarlyWarnings } from "../../_shared/vanguardPatterns.ts";
 
 export const DEFAULT_REPLY_KEYBOARD = {
   keyboard: [
@@ -163,17 +162,6 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
-  if (lowerText === '🔵 post' || lowerText === '/post') {
-    await safeSendTelegram(chatId, "🔵 **Zapis postu**\nPodaj opis lub datę i opis (np. `18h` lub `wczoraj 16h`):", telegramToken, {
-      reply_markup: {
-        force_reply: true,
-        selective: true,
-        input_field_placeholder: "np. 18h"
-      }
-    });
-    return true;
-  }
-
   if (lowerText === '❓ wyrocznia') {
     await safeSendTelegram(chatId, "❓ **Zadaj pytanie Wyroczni**\nNapisz swoje pytanie do Vanguard Oracle:", telegramToken, {
       reply_markup: {
@@ -185,87 +173,7 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
-  if (lowerText === '🧠 poprawka') {
-    await safeSendTelegram(chatId, "🧠 **Wpisz poprawkę do wiedzy**\nNapisz co chcesz poprawić/dodać (np. `styl: odpowiadaj krótko` lub `poprawka: lubię czarną kawę`):", telegramToken, {
-      reply_markup: {
-        force_reply: true,
-        selective: true,
-        input_field_placeholder: "Wpisz poprawkę..."
-      }
-    });
-    return true;
-  }
-
   return false;
-}
-
-export async function handleWzorceCommand(
-  chatId: number,
-  telegramToken: string,
-  supabase: any,
-  vanguardUserId: string,
-): Promise<void> {
-  try {
-    const patterns = await getRecentStrongBehavioralPatterns(supabase, vanguardUserId, 6, true);
-
-    if (patterns.length === 0) {
-      await safeSendTelegram(chatId, "Nie mam jeszcze zapisanych powtarzalnych wzorców dla Ciebie.", telegramToken);
-      return;
-    }
-
-    // Rozdzielamy na zwykłe wzorce i early warnings dla lepszej historii
-    const regularPatterns = patterns.filter(p => p.pattern_type !== 'early_warning');
-    const earlyWarnings = await getRecentEarlyWarnings(supabase, vanguardUserId, 6);
-
-    let response = "📈 Twoje aktualne wzorce behawioralne:\n\n";
-
-    if (regularPatterns.length > 0) {
-      regularPatterns.forEach((p, i) => {
-        const statusEmoji = p.status === 'user_confirmed' ? '✅' :
-                           p.status === 'user_rejected' ? '❌' :
-                           p.status === 'snoozed' ? '⏸️' : '🔍';
-
-        let typeLabel = p.pattern_type;
-        if (p.pattern_type === 'recurring_blocker') typeLabel = 'Bloker';
-        else if (p.pattern_type === 'plan_adherence_gap') typeLabel = 'Plan vs rzeczywistość';
-        else if (p.pattern_type === 'morning_protocol_impact') typeLabel = 'Poranny protokół';
-        else if (p.pattern_type === 'sleep_friction_link') typeLabel = 'Sen → tarcie';
-        else if (p.pattern_type === 'narrative_biometric_mismatch') typeLabel = 'Rozbieżność narracji z biometrią';
-
-        response += `${i+1}. ${statusEmoji} ${typeLabel}\n`;
-        response += `   ${p.evidence_text}\n`;
-        response += `   N=${p.occurrence_count} | pewność ${Math.round(p.confidence*100)}% | status: ${p.status}\n\n`;
-      });
-    } else {
-      response += "Brak aktywnych powtarzalnych wzorców.\n\n";
-    }
-
-    if (earlyWarnings.length > 0) {
-      response += "⚠️ Ostatnie wczesne ostrzeżenia (historia):\n\n";
-      earlyWarnings.forEach((w, i) => {
-        const date = w.last_seen ? w.last_seen : '—';
-        const shown = w.last_shown ? ` (pokazane ${w.last_shown})` : '';
-        const regime = w.metadata?.regime || 'nieznany';
-        let regimeLabel = regime;
-        if (regime === 'morning_drift') regimeLabel = 'Poranny dryf';
-        else if (regime === 'repeated_adherence_failures') regimeLabel = 'Rozjazdy plan vs wykonanie';
-        else if (regime === 'fragmentation_sleep') regimeLabel = 'Wysoka fragmentacja + niski sen';
-        else if (regime === 'weekend_spillover') regimeLabel = 'Przeniesienie unikania z weekendu';
-
-
-        response += `${i+1}. [${date}] ${regimeLabel}${shown}\n`;
-        response += `   ${w.evidence_text}\n`;
-        response += `   pewność ${Math.round(w.confidence*100)}% | status: ${w.status}\n\n`;
-      });
-    }
-
-    response += "Możesz reagować na wzorce w bridge'u wieczornym (przyciski 👍 / 👎 / ⏸).";
-
-    await safeSendTelegram(chatId, response, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-  } catch (err) {
-    console.error('[commands] wzorce command failed:', err);
-    await safeSendTelegram(chatId, "Coś poszło nie tak przy pobieraniu wzorców.", telegramToken);
-  }
 }
 
 export async function handlePostCommand(

@@ -15,7 +15,6 @@ import {
   handlePytanieCommand,
   handleDietaCommand,
   handleInteractivePromptCommand,
-  handleWzorceCommand,
   handlePostCommand,
   handleLenieCommand,
 } from "./commands.ts";
@@ -184,11 +183,6 @@ export async function handleIncomingMessage(
 
       // --- Interactive input prompts ---
       if (await handleInteractivePromptCommand(lowerText, chatId, telegramToken)) {
-        return;
-      }
-
-      if (['wzorce', 'wzorzec', 'pokaż wzorce', 'moje wzorce', 'patterns', '/wzorce', '📈 wzorce'].includes(lowerText)) {
-        await handleWzorceCommand(chatId, telegramToken, supabase, vanguardUserId);
         return;
       }
 
