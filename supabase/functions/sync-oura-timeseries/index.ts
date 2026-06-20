@@ -100,6 +100,21 @@ async function upsertChunked(
   return n
 }
 
+// One table's constraint violation/timeout shouldn't block the other 4 timeseries tables
+// for the same user — catch per-table instead of letting upsertChunked's throw bubble up
+// and abort everything still queued for this (and every subsequent) user.
+async function safeUpsertChunked(
+  supabase: any, table: string, rows: any[], conflict: string, ignoreDuplicates = true
+): Promise<{ count: number; error?: string }> {
+  try {
+    const count = await upsertChunked(supabase, table, rows, conflict, ignoreDuplicates)
+    return { count }
+  } catch (err: any) {
+    console.error(`[ts] ${table} failed, continuing with remaining tables:`, err.message)
+    return { count: 0, error: err.message }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -129,9 +144,18 @@ Deno.serve(async (req) => {
     const results: any[] = []
 
     for (const u of (users || [])) {
-      const headers = { 'Authorization': `Bearer ${u.oura_token}` }
       const uid = u.user_id
+      try {
+      const headers = { 'Authorization': `Bearer ${u.oura_token}` }
       const counts: Record<string, number> = {}
+      const errors: Record<string, string> = {}
+
+      const record = async (key: string, table: string, rows: any[], conflict: string, ignoreDuplicates = true) => {
+        if (!rows.length) { counts[key] = 0; return }
+        const { count, error } = await safeUpsertChunked(supabase, table, rows, conflict, ignoreDuplicates)
+        counts[key] = count
+        if (error) errors[key] = error
+      }
 
       // ── 1. heartrate (high-res, paginowane, w oknach 7-dniowych) ──────────
       const hr = await fetchHeartrateWindowed(
@@ -143,7 +167,7 @@ Deno.serve(async (req) => {
       const hrRows = hr
         .filter((it: any) => it.timestamp && it.bpm != null)
         .map((it: any) => ({ user_id: uid, ts: it.timestamp, bpm: it.bpm, source: it.source || null }))
-      counts.heartrate = hrRows.length ? await upsertChunked(supabase, 'oura_heartrate', hrRows, 'user_id,ts,source') : 0
+      await record('heartrate', 'oura_heartrate', hrRows, 'user_id,ts,source')
 
       // ── 2-4. sleep → hr / hrv / phase timelines ───────────────────────────
       const sleepPeriods = await fetchAllPages(`${OURA_BASE}/sleep?${dateRange}`, headers)
@@ -164,9 +188,9 @@ Deno.serve(async (req) => {
             sleepPhaseRows.push({ user_id: uid, sleep_id: sleepId, day, ts: p.ts, phase: p.phase, phase_code: p.phase_code }))
         }
       }
-      counts.sleep_hr = sleepHrRows.length ? await upsertChunked(supabase, 'oura_sleep_hr_timeline', sleepHrRows, 'user_id,sleep_id,ts') : 0
-      counts.sleep_hrv = sleepHrvRows.length ? await upsertChunked(supabase, 'oura_sleep_hrv_timeline', sleepHrvRows, 'user_id,sleep_id,ts') : 0
-      counts.sleep_phase = sleepPhaseRows.length ? await upsertChunked(supabase, 'oura_sleep_phase_timeline', sleepPhaseRows, 'user_id,sleep_id,ts') : 0
+      await record('sleep_hr', 'oura_sleep_hr_timeline', sleepHrRows, 'user_id,sleep_id,ts')
+      await record('sleep_hrv', 'oura_sleep_hrv_timeline', sleepHrvRows, 'user_id,sleep_id,ts')
+      await record('sleep_phase', 'oura_sleep_phase_timeline', sleepPhaseRows, 'user_id,sleep_id,ts')
 
       // ── 5. daily_activity (removed as unused MET timeline) ───────────────
 
@@ -185,7 +209,7 @@ Deno.serve(async (req) => {
         label: w.label || null,
         source: w.source || null,
       }))
-      counts.workouts = workoutRows.length ? await upsertChunked(supabase, 'oura_workouts', workoutRows, 'user_id,oura_id', false) : 0
+      await record('workouts', 'oura_workouts', workoutRows, 'user_id,oura_id', false)
 
       // ── 7. sessions ────────────────────────────────────────────────────────
       const sessions = await fetchAllPages(`${OURA_BASE}/session?${dateRange}`, headers)
@@ -202,21 +226,28 @@ Deno.serve(async (req) => {
         motion_count: s.motion_count ?? null,
         raw: s,
       }))
-      counts.sessions = sessionRows.length ? await upsertChunked(supabase, 'oura_sessions', sessionRows, 'user_id,oura_id', false) : 0
+      await record('sessions', 'oura_sessions', sessionRows, 'user_id,oura_id', false)
 
       // ── 8. Prune high-res timeseries older than 14 days to prevent bloat ───
+      // allSettled, not all — prune is best-effort housekeeping and must not throw
+      // (a rejected promise here would abort reporting for this and all later users).
       const cutoff = new Date(now.getTime() - 14 * 24 * 3600 * 1000).toISOString()
-      const pruneResults = await Promise.all([
+      const pruneResults = await Promise.allSettled([
         supabase.from('oura_heartrate').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_hr_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_hrv_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_phase_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
       ])
-      pruneResults.forEach(({ error }, i) => {
-        if (error) console.warn(`[ts] Prune table ${i} failed for user ${uid}:`, error.message)
+      pruneResults.forEach((r, i) => {
+        if (r.status === 'rejected') console.warn(`[ts] Prune table ${i} rejected for user ${uid}:`, r.reason)
+        else if (r.value?.error) console.warn(`[ts] Prune table ${i} failed for user ${uid}:`, r.value.error.message)
       })
 
-      results.push({ user_id: uid, counts })
+      results.push({ user_id: uid, counts, ...(Object.keys(errors).length ? { errors } : {}) })
+      } catch (err: any) {
+        console.error(`[ts] user ${uid} failed`, err)
+        results.push({ user_id: uid, error: err.message || String(err) })
+      }
     }
 
     return new Response(JSON.stringify({ success: true, range: { startDate, endDate }, results }), {

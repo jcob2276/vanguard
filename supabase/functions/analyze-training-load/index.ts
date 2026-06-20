@@ -753,7 +753,7 @@ Odpowiedz WYŁĄCZNIE surowym obiektem JSON (bez markdown, bez żadnego tekstu p
     // ── DeepSeek API call ─────────────────────────────────────────────────────
     const result = await deepseekChat({
       apiKey,
-      model: 'deepseek-chat',
+      model: 'deepseek-v4-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },

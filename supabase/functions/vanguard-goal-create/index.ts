@@ -61,7 +61,7 @@ WAŻNE: Checkpointy muszą być w kolejności rosnącej dat. Żaden checkpoint n
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       maxTokens: 800,
       temperature: 0.4,
       responseFormat: { type: "json_object" },

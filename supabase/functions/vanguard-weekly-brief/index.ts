@@ -157,7 +157,7 @@ ${thisReview?.what_didnt_work || "(nie wypełniono)"}`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       maxTokens: 700,
       temperature: 0.25,
       responseFormat: { type: "json_object" },

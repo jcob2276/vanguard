@@ -36,30 +36,47 @@ Deno.serve(async () => {
     return new Response(JSON.stringify({ sent: 0 }));
   }
 
+  // Fetch all subscriptions for the involved users in one query instead of N queries
+  // (one per due item) — avoids an N+1 round trip when many items are due at once.
+  const userIds = [...new Set(dueItems.map(item => item.user_id))];
+  const { data: allSubs, error: subsErr } = await supabase
+    .from("push_subscriptions")
+    .select("user_id, endpoint, keys_p256dh, keys_auth")
+    .in("user_id", userIds);
+  if (subsErr) console.error("[push-reminder] subscriptions fetch error:", subsErr);
+
+  const subsByUser = new Map<string, NonNullable<typeof allSubs>>();
+  for (const sub of allSubs || []) {
+    if (!subsByUser.has(sub.user_id)) subsByUser.set(sub.user_id, []);
+    subsByUser.get(sub.user_id)!.push(sub);
+  }
+
   let sent = 0;
   for (const item of dueItems) {
-    const { data: subs } = await supabase
-      .from("push_subscriptions")
-      .select("endpoint, keys_p256dh, keys_auth")
-      .eq("user_id", item.user_id);
+    const subs = subsByUser.get(item.user_id);
 
-    if (subs && subs.length > 0) {
-      const payload = JSON.stringify({
-        title: "⏰ Przypomnienie",
-        body: item.title,
-        url: "/",
-      });
-
-      await Promise.allSettled(
-        subs.map(sub =>
-          webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
-            payload,
-          ).catch((e: Error) => console.warn("[push-reminder] send failed:", sub.endpoint, e.message))
-        )
-      );
-      sent++;
+    if (!subs || subs.length === 0) {
+      // No push subscription to deliver to — leave reminder_sent=false so it's retried
+      // next run instead of being marked "sent" when nothing was actually delivered.
+      console.warn(`[push-reminder] no push subscriptions for user ${item.user_id}, skipping item ${item.id}`);
+      continue;
     }
+
+    const payload = JSON.stringify({
+      title: "⏰ Przypomnienie",
+      body: item.title,
+      url: "/",
+    });
+
+    await Promise.allSettled(
+      subs.map(sub =>
+        webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
+          payload,
+        ).catch((e: Error) => console.warn("[push-reminder] send failed:", sub.endpoint, e.message))
+      )
+    );
+    sent++;
 
     const { error: markErr } = await supabase
       .from("todo_items")

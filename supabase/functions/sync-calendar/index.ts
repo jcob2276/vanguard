@@ -26,6 +26,9 @@ serve(async (req) => {
       })
 
       const tokens = await tokenResponse.json()
+      if (!tokenResponse.ok || tokens.error) {
+        throw new Error(`Google OAuth error: ${tokens.error_description || tokens.error || tokenResponse.status}`)
+      }
     // OAuth token upsert (nie rzucamy błędem — to opcjonalna operacja)
       if (tokens.refresh_token) {
         await safeExecute(
@@ -127,22 +130,18 @@ serve(async (req) => {
       category: 'google_sync'
     }))
 
-    // First delete events in the sync window to handle modifications/deletions from Google Calendar
+    // Atomic delete+upsert via RPC (handles modifications/deletions from Google Calendar
+    // without the race window a plain client-side delete-then-upsert would leave open
+    // between two overlapping sync calls).
     await safeExecute(
-      supabase
-        .from('vanguard_calendar')
-        .delete()
-        .eq('user_id', userId)
-        .eq('category', 'google_sync')
-        .gte('start_time', startOfWeekStr)
-        .lte('start_time', endOfNextWeekStr)
+      supabase.rpc('replace_calendar_window', {
+        p_user_id: userId,
+        p_category: 'google_sync',
+        p_start: startOfWeekStr,
+        p_end: endOfNextWeekStr,
+        p_events: calendarEvents,
+      })
     )
-
-    if (calendarEvents.length > 0) {
-      await safeExecute(
-        supabase.from('vanguard_calendar').upsert(calendarEvents, { onConflict: 'event_id' })
-      )
-    }
 
     return new Response(JSON.stringify({ 
       success: true, 

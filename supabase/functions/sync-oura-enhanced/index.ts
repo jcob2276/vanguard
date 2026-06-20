@@ -69,10 +69,14 @@ Deno.serve(async (req) => {
         fetchOura(`${OURA_BASE}/vo2_max?${range}`, headers),
       ])
 
+      // `raw` previously stored the full per-endpoint Oura JSON response (9 endpoints,
+      // ~15-25KB/day/user) in a JSONB column that's never read anywhere downstream —
+      // pure unbounded storage growth. Stopped writing it; only the derived fields below
+      // (which Analyst/Oracle/strain actually query) are persisted.
       const byDay: Record<string, any> = {}
       const ensure = (d: string) => {
         if (!d) return null
-        if (!byDay[d]) byDay[d] = { raw: {} }
+        if (!byDay[d]) byDay[d] = {}
         return byDay[d]
       }
 
@@ -82,14 +86,12 @@ Deno.serve(async (req) => {
         r.temperature_deviation = it.temperature_deviation ?? null
         r.temperature_trend_deviation = it.temperature_trend_deviation ?? null
         r.readiness_contributors = it.contributors ?? null
-        r.raw.readiness = it
       })
 
       dailySleep.data?.forEach((it: any) => {
         const r = ensure(it.day); if (!r) return
         r.sleep_score = it.score ?? null
         r.sleep_contributors = it.contributors ?? null
-        r.raw.daily_sleep = it
       })
 
       // sleep: wybierz główny sen doby (najdłuższy total_sleep_duration), pomijając drzemki
@@ -132,7 +134,6 @@ Deno.serve(async (req) => {
         r.sleep_lowest_heart_rate = it.lowest_heart_rate ?? null
         r.sleep_average_hrv = it.average_hrv ?? null
         r.sleep_average_breath = it.average_breath ?? null
-        r.raw.sleep = it
       })
 
       activity.data?.forEach((it: any) => {
@@ -152,7 +153,6 @@ Deno.serve(async (req) => {
         r.average_met_minutes = it.average_met_minutes ?? null
         r.inactivity_alerts = it.inactivity_alerts ?? null
         r.activity_contributors = it.contributors ?? null
-        r.raw.activity = it
       })
 
       stress.data?.forEach((it: any) => {
@@ -160,14 +160,12 @@ Deno.serve(async (req) => {
         r.stress_high_minutes = it.stress_high ? it.stress_high / 60 : null
         r.recovery_high_minutes = it.recovery_high ? it.recovery_high / 60 : null
         r.stress_day_summary = it.day_summary ?? null
-        r.raw.stress = it
       })
 
       resilience.data?.forEach((it: any) => {
         const r = ensure(it.day); if (!r) return
         r.resilience_level = it.level ?? null
         r.resilience_contributors = it.contributors ?? null
-        r.raw.resilience = it
       })
 
       spo2.data?.forEach((it: any) => {
@@ -176,20 +174,17 @@ Deno.serve(async (req) => {
           ? (it.spo2_percentage.average ?? null)
           : (it.spo2_percentage ?? null)
         r.breathing_disturbance_index = it.breathing_disturbance_index ?? null
-        r.raw.spo2 = it
       })
 
       cardio.data?.forEach((it: any) => {
         const r = ensure(it.day); if (!r) return
         r.vascular_age = it.vascular_age ?? null
-        r.raw.cardiovascular_age = it
       })
 
       vo2.data?.forEach((it: any) => {
         const d = it.day || (it.timestamp ? it.timestamp.split('T')[0] : null)
         const r = ensure(d); if (!r) return
         r.vo2_max = it.vo2_max ?? null
-        r.raw.vo2_max = it
       })
 
       const rows = Object.entries(byDay).map(([date, v]: [string, any]) => ({

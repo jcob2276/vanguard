@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       maxTokens: 600,
       temperature: 0.3,
       responseFormat: { type: "json_object" },
