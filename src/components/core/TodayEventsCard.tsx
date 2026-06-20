@@ -44,7 +44,7 @@ export default function TodayEventsCard({ session }: { session: any }) {
           const active = isActive(e);
           const past = isPast(e);
           return (
-            <div key={i} className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all ${
+            <div key={`${e.start_time}-${i}`} className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all ${
               active ? 'bg-primary/[0.07] border border-primary/20' : past ? 'opacity-40' : 'bg-surface-solid/30'
             }`}>
               <div className={`shrink-0 text-[10px] font-black tabular-nums ${active ? 'text-primary' : 'text-text-muted'}`}>

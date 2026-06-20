@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+import { createServiceClient } from "../_shared/supabase.ts"
 import { resolveUserScope } from "../_shared/supabase.ts"
 
 const OURA_BASE = 'https://api.ouraring.com/v2/usercollection'
@@ -9,12 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function serviceClient() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL") || "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
-  )
-}
+const serviceClient = createServiceClient
 
 // Robust fetch — Oura zwraca 404/426 dla endpointów, których dany ring/plan nie obsługuje.
 // W takim wypadku po prostu pomijamy (pusta lista), zamiast wywalać cały sync.
@@ -32,7 +27,7 @@ async function fetchOura(url: string, headers: Record<string, string>): Promise<
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {

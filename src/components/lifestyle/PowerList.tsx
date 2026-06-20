@@ -234,12 +234,12 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         const taskText = todayWin[`task_${index + 1}`];
         const category = todayWin[`category_${index + 1}`] ?? 'general';
         if (taskText) {
-          supabase.from('vanguard_stream').insert({
+          void supabase.from('vanguard_stream').insert({
             user_id: userId,
             source: 'powerlist',
             content: `Powerlist ✓ [${category}]: ${taskText}`,
             metadata: { category, index: index + 1, todo_id: todayWin[todoIdField] ?? null },
-          } as any).then(() => {}, () => {});
+          });
         }
       }
     }

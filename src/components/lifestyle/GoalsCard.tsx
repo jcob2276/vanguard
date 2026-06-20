@@ -29,19 +29,18 @@ export default function GoalsCard({ session }: { session: Session }) {
   useEffect(() => {
     supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle()
       .then(({ data }) => {
-        if (data) { setGoals(data); setBhag((data as any).bhag_pillar ?? null); }
+        if (data) { setGoals(data); setBhag(data.bhag_pillar ?? null); }
       });
   }, [session.user.id]);
 
   async function toggleBhag(pillarId: string) {
     const next = bhag === pillarId ? null : pillarId;
     setBhag(next);
-    await supabase.from('life_goals').update({ bhag_pillar: next } as any).eq('user_id', session.user.id);
+    await supabase.from('life_goals').update({ bhag_pillar: next }).eq('user_id', session.user.id);
   }
 
   if (!goals) return null;
-  const g = goals as any;
-  if (!PILLARS.some(p => g[p.goalKey])) return null;
+  if (!PILLARS.some(p => goals[p.goalKey])) return null;
 
   return (
     <div className="space-y-2.5">
@@ -49,10 +48,10 @@ export default function GoalsCard({ session }: { session: Session }) {
 
       <div className="space-y-2.5">
         {PILLARS.map(({ id, goalKey, dateKey, label, icon: Icon }) => {
-          const celText = g[goalKey];
+          const celText = goals[goalKey];
           if (!celText) return null;
           const theme = THEME[id];
-          const days = g[dateKey] ? differenceInDays(parseISO(g[dateKey]), parseISO(getTodayWarsaw())) : null;
+          const days = goals[dateKey] ? differenceInDays(parseISO(goals[dateKey]), parseISO(getTodayWarsaw())) : null;
           const urgent = days !== null && days <= 30;
 
           return (
