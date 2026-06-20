@@ -106,6 +106,10 @@ export default function Direction({ session }: { session: Session }) {
 
   const [chainProjects, setChainProjects] = useState<any[]>([]);
   const [chainDreams, setChainDreams] = useState<any[]>([]);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitPositive, setNewHabitPositive] = useState(true);
+  const [addingHabit, setAddingHabit] = useState(false);
+  const [showHabitForm, setShowHabitForm] = useState(false);
 
   const isSunday = new Date().getDay() === 0;
   const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -743,6 +747,57 @@ export default function Direction({ session }: { session: Session }) {
             </div>
 
             {/* 2b. Habit streaks per nawyk */}
+            {habits.length < 3 && (
+              <div className="rounded-[24px] border border-border-custom/50 border-dashed p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Nawyki</p>
+                  {habits.length > 0 && <span className="text-[9px] text-text-muted">{habits.length}/3 nawyków</span>}
+                </div>
+                {!showHabitForm ? (
+                  <button
+                    onClick={() => setShowHabitForm(true)}
+                    className="w-full rounded-xl border border-border-custom/60 px-4 py-2.5 text-[12px] font-semibold text-text-muted hover:text-text-primary hover:border-primary/30 transition-all cursor-pointer text-left"
+                  >
+                    + Dodaj nawyk do śledzenia
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      autoFocus
+                      value={newHabitName}
+                      onChange={e => setNewHabitName(e.target.value)}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter' && newHabitName.trim()) {
+                          setAddingHabit(true);
+                          await supabase.from('habits').insert({ user_id: session.user.id, name: newHabitName.trim(), is_positive: newHabitPositive });
+                          const { data } = await supabase.from('habits').select('*').eq('user_id', session.user.id).order('created_at', { ascending: true });
+                          if (data) setHabits(data);
+                          setNewHabitName('');
+                          setShowHabitForm(false);
+                          setAddingHabit(false);
+                        }
+                        if (e.key === 'Escape') setShowHabitForm(false);
+                      }}
+                      placeholder="Nazwa nawyku (Enter = dodaj)"
+                      className="w-full rounded-xl border border-border-custom bg-transparent px-3 py-2 text-[12px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none focus:border-primary/40"
+                    />
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => setNewHabitPositive(true)}
+                        className={`rounded-lg px-3 py-1 text-[10px] font-bold transition-all cursor-pointer ${newHabitPositive ? 'bg-emerald-500/20 text-emerald-500' : 'bg-border-custom/30 text-text-muted'}`}
+                      >Pozytywny</button>
+                      <button
+                        onClick={() => setNewHabitPositive(false)}
+                        className={`rounded-lg px-3 py-1 text-[10px] font-bold transition-all cursor-pointer ${!newHabitPositive ? 'bg-rose-500/20 text-rose-500' : 'bg-border-custom/30 text-text-muted'}`}
+                      >Do unikania</button>
+                      <button onClick={() => setShowHabitForm(false)} className="ml-auto text-[10px] text-text-muted hover:text-text-primary cursor-pointer">Anuluj</button>
+                    </div>
+                    {addingHabit && <p className="text-[10px] text-text-muted">Zapisuję...</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {habits.length >= 3 && (
               <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-3">
                 <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Nawyki — 28 dni</p>

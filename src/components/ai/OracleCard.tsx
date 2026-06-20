@@ -34,6 +34,7 @@ export default function OracleCard({ session }: { session: any }) {
   const [loading, setLoading] = useState(false);
   const [currentMode, setCurrentMode] = useState<string>('default');
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -49,6 +50,10 @@ export default function OracleCard({ session }: { session: any }) {
         if (m) setCurrentMode(m);
       });
   }, [userId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
   const history = messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'assistant',
@@ -156,6 +161,7 @@ export default function OracleCard({ session }: { session: any }) {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
