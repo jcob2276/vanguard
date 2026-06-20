@@ -63,6 +63,14 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [showAddForm, setShowAddForm] = useState(false);
   const [addUrl, setAddUrl] = useState('');
   const [addLoading, setAddLoading] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [bouncingIds, setBouncingIds] = useState<Set<string>>(new Set());
+
+  const haptic = (pattern: number | number[]) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  };
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -150,6 +158,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   }, [fetchLinks, saveSharedLink]);
 
   const toggleReadStatus = async (id: string, current: 'unread' | 'read') => {
+    haptic(current === 'unread' ? [8, 20, 8] : [5]);
+    setBouncingIds(prev => new Set([...prev, id]));
+    setTimeout(() => setBouncingIds(prev => { const n = new Set(prev); n.delete(id); return n; }), 400);
     const next = current === 'unread' ? 'read' : 'unread';
     setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
     const { error } = await (supabase as any)
@@ -172,10 +183,14 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   };
 
   const deleteLink = async (id: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć ten link?')) return;
-    setLinks(prev => prev.filter(l => l.id !== id));
-    const { error } = await (supabase as any).from('vanguard_links').delete().eq('id', id);
-    if (error) fetchLinks();
+    if (!confirm('Usuń ten link?')) return;
+    haptic([12, 50, 18]);
+    setDeletingIds(prev => new Set([...prev, id]));
+    setTimeout(async () => {
+      setLinks(prev => prev.filter(l => l.id !== id));
+      setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+      await (supabase as any).from('vanguard_links').delete().eq('id', id);
+    }, 260);
   };
 
   const filteredLinks = links.filter(link => {
@@ -188,6 +203,24 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-text-primary">
+      <style>{`
+        @keyframes pop-check {
+          0%   { transform: scale(1); }
+          30%  { transform: scale(0.88); }
+          65%  { transform: scale(1.12); }
+          85%  { transform: scale(0.97); }
+          100% { transform: scale(1); }
+        }
+        @keyframes pop-delete {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(0.80); }
+          70%  { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        .animate-pop-check { animation: pop-check 0.38s cubic-bezier(.36,.07,.19,.97) both; }
+        .animate-pop-delete { animation: pop-delete 0.25s cubic-bezier(.36,.07,.19,.97) both; }
+        .btn-press { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+      `}</style>
 
       {/* Sidebar */}
       <aside className="keep-sidebar">
@@ -283,8 +316,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               {STATUS_TABS.map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setStatusFilter(tab.id)}
-                  className={`flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all ${
+                  onClick={() => { haptic([4]); setStatusFilter(tab.id); }}
+                  className={`btn-press flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all duration-150 active:scale-[0.93] ${
                     statusFilter === tab.id
                       ? 'bg-background text-text-primary shadow-sm'
                       : 'text-text-muted hover:text-text-secondary'
@@ -320,11 +353,17 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 {filteredLinks.map(link => {
                   const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
                   const isExpanded = expandedLinkId === link.id;
+                  const isDeleting = deletingIds.has(link.id);
 
                   return (
                     <div
                       key={link.id}
-                      className={`rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] active:scale-[0.99] ${
+                      className={`transition-all duration-[250ms] ease-in-out ${
+                        isDeleting ? 'opacity-0 scale-[0.93] -translate-y-2 pointer-events-none' : 'opacity-100 scale-100'
+                      }`}
+                    >
+                    <div
+                      className={`rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] ${
                         link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                       }`}
                     >
@@ -369,7 +408,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-colors"
+                          onClick={() => haptic([6])}
+                          className="btn-press shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-all duration-75 active:scale-[0.78] active:text-text-primary"
                         >
                           <ExternalLink size={14} />
                         </a>
@@ -429,8 +469,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                       {/* Footer */}
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-custom/30">
                         <button
-                          onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}
-                          className="flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
+                          onClick={() => { haptic([3]); setExpandedLinkId(p => p === link.id ? null : link.id); }}
+                          className="btn-press flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-all duration-75 active:scale-[0.88]"
                         >
                           {isExpanded
                             ? <><ChevronUp size={13} /> Zwiń</>
@@ -443,7 +483,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => toggleReadStatus(link.id, link.status)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+                            className={`btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-75 active:scale-[0.88] ${
+                              bouncingIds.has(link.id) ? 'animate-pop-check' : ''
+                            } ${
                               link.status === 'unread'
                                 ? 'bg-primary/10 text-primary hover:bg-primary/15'
                                 : 'bg-surface-solid/60 text-text-muted hover:text-text-secondary'
@@ -457,12 +499,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                           </button>
                           <button
                             onClick={() => deleteLink(link.id)}
-                            className="rounded-full p-1.5 text-text-muted/50 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            className="btn-press rounded-full p-1.5 text-text-muted/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-75 active:scale-[0.75]"
                           >
                             <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
+                    </div>
                     </div>
                   );
                 })}
@@ -474,15 +517,15 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
-        <button onClick={() => onNavigateTo?.('keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => { haptic([4]); onNavigateTo?.('keep'); }} className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted transition-transform duration-75 active:scale-[0.88]">
           <StickyNote size={22} />
           <span className="text-[11px] font-semibold">Notatki</span>
         </button>
-        <button onClick={() => onNavigateTo?.('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+        <button onClick={() => { haptic([4]); onNavigateTo?.('todo'); }} className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted transition-transform duration-75 active:scale-[0.88]">
           <ListTodo size={22} />
           <span className="text-[11px] font-semibold">Zadania</span>
         </button>
-        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
+        <button className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary transition-transform duration-75 active:scale-[0.88]">
           <BookOpen size={22} />
           <span className="text-[11px] font-semibold">Pocket</span>
         </button>
