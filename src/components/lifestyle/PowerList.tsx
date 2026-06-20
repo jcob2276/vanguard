@@ -2,10 +2,11 @@ import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
-import { Check, Link2, Search, Shield, Target, Upload, Wallet, X, Zap } from 'lucide-react';
+import { Check, Link2, Search, Shield, Target, Upload, Wallet, X, Zap, Sparkles } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
 import type { TablesUpdate } from '../../lib/database.types';
+import { gatherUserContext } from '../../lib/aiContext';
 
 const SPHERE_SLOTS = [
   { category: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', placeholder: 'Priorytet Ciało — co dziś?' },
@@ -96,6 +97,145 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // AI assistant states
+  const [aiSuggestions, setAiSuggestions] = useState<Array<{ category: string; task: string; reason?: string }>>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([]);
+
+  async function suggestWins() {
+    setAiLoading(true);
+    try {
+      const stateVector = await gatherUserContext(session);
+      const query = `Zasugeruj mi 5 zwycięstw na dziś na podstawie mojego kontekstu życiowego, kalendarza i zadań.
+Proszę przypisać zadania do kategorii: cialo, duch, konto oraz ogolne.
+Odpowiedz wyłącznie w postaci tablicy JSON w polu "answer", bez żadnych dodatkowych zdań na początku ani na końcu.
+Format pola "answer" musi być poprawnym JSON-em o strukturze:
+[
+  {"category": "cialo", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "duch", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "konto", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"},
+  {"category": "ogolne", "task": "fizyczna akcja na dziś", "reason": "krótkie uzasadnienie"}
+]
+Pamiętaj: zadania muszą być fizycznymi ruchami, nie planami czy rozbudową aplikacji (chyba że to konieczne). Szczególnie kładź nacisk na przełamywanie unikania w biznesie/kontaktach.`;
+
+      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+        body: {
+          state_vector: stateVector,
+          history: [],
+          current_query: query,
+          user_id: userId,
+          mode: 'chat',
+        },
+      });
+
+      if (error) throw error;
+      const reply = data?.text ?? data?.answer ?? '';
+      let parsed: any[] = [];
+      try {
+        parsed = JSON.parse(reply);
+      } catch {
+        const match = reply.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (match) {
+          try {
+            parsed = JSON.parse(match[0]);
+          } catch (e) {
+            console.warn('JSON parse match failed', e);
+          }
+        }
+      }
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setAiSuggestions(parsed);
+        setChatHistory([{ role: 'assistant', text: 'Oto moje sugestie na dziś oparte o Twój aktualny stan. Kliknij "Użyj", aby je wpisać, lub napisz poniżej, jeśli chcesz coś zmienić.' }]);
+      } else {
+        alert('Nie udało się sformatować sugestii. Odpowiedź AI:\n' + reply);
+      }
+    } catch (e: any) {
+      console.error('suggestWins failed', e);
+      alert('Błąd pomocy AI: ' + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function askAIChat() {
+    const query = chatInput.trim();
+    if (!query || aiLoading) return;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', text: query }]);
+    setAiLoading(true);
+    try {
+      const stateVector = await gatherUserContext(session);
+      const conversationHistory = chatHistory.map(h => ({
+        role: h.role === 'user' ? 'user' : 'assistant',
+        content: h.text,
+      }));
+      
+      const prompt = `${query}
+Odpowiedz w postaci poprawnej tablicy JSON w polu "answer", aby zaktualizować listę 5 sugerowanych zwycięstw na podstawie naszej rozmowy.
+Format pola "answer" musi być dokładnie taki sam jak poprzednio: tablica 5 obiektów z polami "category", "task" oraz "reason".
+Nie dodawaj żadnych innych tekstów poza tablicą JSON w polu "answer".`;
+
+      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+        body: {
+          state_vector: stateVector,
+          history: conversationHistory.slice(-6),
+          current_query: prompt,
+          user_id: userId,
+          mode: 'chat',
+        },
+      });
+
+      if (error) throw error;
+      const reply = data?.text ?? data?.answer ?? '';
+      let parsed: any[] = [];
+      try {
+        parsed = JSON.parse(reply);
+      } catch {
+        const match = reply.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (match) {
+          try {
+            parsed = JSON.parse(match[0]);
+          } catch (e) {
+            console.warn('JSON parse match failed', e);
+          }
+        }
+      }
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setAiSuggestions(parsed);
+        setChatHistory(prev => [...prev, { role: 'assistant', text: 'Zaktualizowałem sugestie zgodnie z Twoją prośbą.' }]);
+      } else {
+        setChatHistory(prev => [...prev, { role: 'assistant', text: reply }]);
+      }
+    } catch (e: any) {
+      console.error('askAIChat failed', e);
+      setChatHistory(prev => [...prev, { role: 'assistant', text: `Błąd: ${e.message}` }]);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const applySuggestion = (task: string, category: string) => {
+    let slotIdx: number;
+    if (category === 'cialo') {
+      slotIdx = 0;
+    } else if (category === 'duch') {
+      slotIdx = 1;
+    } else if (category === 'konto') {
+      slotIdx = 2;
+    } else if (!newTaskForm[3].task) {
+      slotIdx = 3;
+    } else if (!newTaskForm[4].task) {
+      slotIdx = 4;
+    } else {
+      slotIdx = 3;
+    }
+    updateSlot(slotIdx, { task });
+  };
 
   // Resolve projects for today's linked todo items
   useEffect(() => {
@@ -278,6 +418,93 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
               </span>
               .
             </p>
+          </div>
+
+          {/* AI Helper Section */}
+          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-primary">
+                <Sparkles size={12} className="animate-pulse" /> Asystent AI
+              </span>
+              <button
+                type="button"
+                onClick={suggestWins}
+                disabled={aiLoading}
+                className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {aiLoading ? 'Generowanie...' : '✨ Zasugeruj zwycięstwa'}
+              </button>
+            </div>
+
+            {/* Suggestions display */}
+            {aiSuggestions.length > 0 && (
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {aiSuggestions.map((suggestion, idx) => (
+                  <div key={idx} className="rounded-lg border border-border-custom bg-surface p-2.5 text-left transition-all hover:border-primary/20">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="inline-block rounded bg-primary/10 px-1 py-0.5 text-[7px] font-black uppercase tracking-wider text-primary mb-1">
+                          {suggestion.category}
+                        </span>
+                        <p className="text-[11px] font-semibold text-text-primary leading-tight">
+                          {suggestion.task}
+                        </p>
+                        {suggestion.reason && (
+                          <p className="mt-0.5 text-[9px] font-medium text-text-muted leading-snug">
+                            {suggestion.reason}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applySuggestion(suggestion.task, suggestion.category)}
+                        className="shrink-0 rounded bg-primary px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 cursor-pointer"
+                      >
+                        Użyj
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Conversation / Chat box with AI */}
+            {aiSuggestions.length > 0 && (
+              <div className="border-t border-border-custom/50 pt-2.5 space-y-2">
+                {chatHistory.length > 0 && (
+                  <div className="max-h-[140px] overflow-y-auto space-y-1.5 pr-1">
+                    {chatHistory.map((msg, idx) => (
+                      <div key={idx} className={`text-[10px] p-2 rounded-lg leading-relaxed ${
+                        msg.role === 'user' ? 'bg-primary/5 text-primary text-right ml-8' : 'bg-surface border border-border-custom text-text-primary mr-8'
+                      }`}>
+                        <p className="font-semibold text-[8px] uppercase tracking-wider text-text-muted mb-0.5">
+                          {msg.role === 'user' ? 'Ty' : 'Asystent'}
+                        </p>
+                        {msg.text}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-1.5">
+                  <input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && askAIChat()}
+                    disabled={aiLoading}
+                    placeholder="Poproś o inne zadania, np. 'daj coś lżejszego na dziś'"
+                    className="min-w-0 flex-1 rounded-lg border border-border-custom bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none focus:border-primary/40 focus:bg-surface-solid"
+                  />
+                  <button
+                    type="button"
+                    onClick={askAIChat}
+                    disabled={aiLoading || !chatInput.trim()}
+                    className="rounded-lg bg-primary px-2.5 text-[9px] font-bold text-white hover:bg-primary-hover active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    Wyślij
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2.5" ref={pickerRef}>

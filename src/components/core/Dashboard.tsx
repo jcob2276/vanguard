@@ -241,6 +241,8 @@ export default function Dashboard({ session }: { session: any }) {
     refresh,
   } = useDashboardData();
 
+  const showLock = !todayWin;
+
   useEffect(() => {
     localStorage.setItem('vanguard_view', view);
   }, [view]);
@@ -452,7 +454,7 @@ export default function Dashboard({ session }: { session: any }) {
 
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
             <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
@@ -468,42 +470,53 @@ export default function Dashboard({ session }: { session: any }) {
             >
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
             </button>
-            <button
-              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Zadania"
-            >
-              <CheckSquare size={15} />
-            </button>
-            <Link
-              to="/keep"
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Notatki"
-            >
-              <Paintbrush size={15} />
-            </Link>
-            <button
-              onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('links'); }}
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Zapisane linki"
-            >
-              <Bookmark size={15} />
-            </button>
-            <Link
-              to="/dashboard"
-              className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
-              title="Desktop dashboard"
-            >
-              <LayoutDashboard size={15} />
-            </Link>
+            {!showLock && (
+              <>
+                <button
+                  onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
+                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  title="Zadania"
+                >
+                  <CheckSquare size={15} />
+                </button>
+                <Link
+                  to="/keep"
+                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  title="Notatki"
+                >
+                  <Paintbrush size={15} />
+                </Link>
+                <button
+                  onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('links'); }}
+                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  title="Zapisane linki"
+                >
+                  <Bookmark size={15} />
+                </button>
+                <Link
+                  to="/dashboard"
+                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  title="Desktop dashboard"
+                >
+                  <LayoutDashboard size={15} />
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
         <main className="flex-1 overflow-hidden vt-tab-main">
-          {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
-          <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
-            <div className="space-y-7">
+          {showLock ? (
+            <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
               <DayCounter />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+            </div>
+          ) : (
+            <>
+              {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
+              <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+                <div className="space-y-7">
+                  <DayCounter />
 
               {/* Weekly Review nudge */}
               {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
@@ -598,45 +611,49 @@ export default function Dashboard({ session }: { session: any }) {
               />
             </Suspense>
           </div>
+          </>
+          )}
         </main>
       </div>
 
-      <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
-        {/* Sliding background indicator pill */}
-        <div 
-          className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"
-          style={{
-            width: 'calc(25% - 3px)',
-            left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
-            transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}
-        />
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => navigateTo(item.id)}
-            disabled={transitioning}
-            className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
-              view === item.id
-                ? 'text-primary font-black'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <div className="relative">
-              <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-              {item.id === 'projekty' && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
-                <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
-              )}
-              {item.id === 'dzis' && urgentTodoCount > 0 && (
-                <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-                  {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-          </button>
-        ))}
-      </nav>
+      {!showLock && (
+        <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+          {/* Sliding background indicator pill */}
+          <div 
+            className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"
+            style={{
+              width: 'calc(25% - 3px)',
+              left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
+              transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          />
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => navigateTo(item.id)}
+              disabled={transitioning}
+              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
+                view === item.id
+                  ? 'text-primary font-black'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <div className="relative">
+                <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+                {item.id === 'projekty' && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+                  <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
+                )}
+                {item.id === 'dzis' && urgentTodoCount > 0 && (
+                  <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                    {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
     </div>
   );
