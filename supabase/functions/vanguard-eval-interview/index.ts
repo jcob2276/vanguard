@@ -165,13 +165,7 @@ serve(async (req) => {
     let useGeneratedQuestion = false;
 
     if (failErr || !failingResults || failingResults.length === 0) {
-      if (!manual) {
-        return new Response(
-          JSON.stringify({ skipped: true, reason: "No failing questions in target categories" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      // Manual trigger: fall back to any failing question across all categories
+      // Fall back to any failing question across all categories
       const { data: allFailing } = await supabase
         .from("vanguard_eval_results")
         .select("question_id, question, category, score, judge_notes")
