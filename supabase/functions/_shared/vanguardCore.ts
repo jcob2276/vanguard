@@ -143,12 +143,14 @@ export class VanguardCore {
     const todayStr = getWarsawDateString(new Date());
     const ninetyDaysAgo = getWarsawDateMinusDays(todayStr, 90);
 
-    const { data: history } = await this.db
+    const { data: history, error: historyErr } = await this.db
       .from('vanguard_daily_aggregates')
       .select('sleep_hours, hrv_avg, fragmentation_index, dopamine_load_index, screen_time_min, execution_score')
       .eq('user_id', this.userId)
       .gte('date', ninetyDaysAgo)
       .order('date', { ascending: false });
+
+    if (historyErr) console.error('[vanguardCore] getPersonalBaseline history query failed, falling back to calibrating defaults:', historyErr.message);
 
     const extract = (key: string) => (history || []).map((d: any) => d[key]).filter((v: any) => v != null);
 
@@ -396,6 +398,10 @@ STATUS: AKTYWNY BASELINE`;
     ];
 
     const [fundamentRes, journalRes, aggregateRes, knowledgeRes] = await Promise.all(promises);
+
+    for (const [name, res] of Object.entries({ fundamentRes, journalRes, aggregateRes, knowledgeRes })) {
+      if ((res as any).error) console.error(`[vanguardCore] evaluateIdentityVault query failed: ${name}:`, (res as any).error.message);
+    }
 
     return {
       philosophy: fundamentRes.data?.philosophy || "Brak",

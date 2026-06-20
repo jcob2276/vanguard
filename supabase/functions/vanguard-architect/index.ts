@@ -504,7 +504,7 @@ serve(async (req) => {
   try {
     const supabase = createServiceClient()
 
-    const { type = "knowledge", offset = 0, limit = 5, record_id = null } = await req.json()
+    const { type = "knowledge", offset = 0, limit = 5, record_id = null } = await req.json().catch(() => ({}))
     const userId = getVanguardUserId()
     const table = type === "knowledge" ? "vanguard_knowledge" : "vanguard_stream"
 
@@ -546,7 +546,7 @@ serve(async (req) => {
     if (activeLinksErr) {
       console.error("[architect] Failed to fetch active links:", activeLinksErr)
     }
-    const activeLinks: any[] = activeLinksRaw || []
+    let activeLinks: any[] = activeLinksRaw || []
 
     for (const record of records) {
       if (!record.content) continue
@@ -694,8 +694,9 @@ Przyklady:
                 console.error(`[architect] Failed to deprecate link ${match.id}:`, depErr)
               } else {
                 totalDeprecated++
-                match.status = "deprecated"
-                match.temporal_status = "historical"
+                // Remove from local cache (not just mark status) — otherwise a later record
+                // in the same batch can still find() this link as a valid merge/supersede target.
+                activeLinks = activeLinks.filter((l) => l.id !== match.id)
                 console.log(`[architect] Mem0 superseded conflicting link: ${match.source_entity} --(${match.relation})--> ${match.target_entity}`)
               }
             }

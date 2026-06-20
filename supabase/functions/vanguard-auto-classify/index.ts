@@ -31,7 +31,8 @@ serve(async (req) => {
     }
 
     // Idempotency gate: skip if already classified (webhook retry / double-trigger protection)
-    if (record.classification && record.importance_score) {
+    // != null (not truthy) — importance_score: 0 is a valid score and must not look "unclassified"
+    if (record.classification != null && record.importance_score != null) {
       console.log(`[auto-classify] already classified, skipping: ${record.id}`)
       return new Response(JSON.stringify({ message: 'already classified' }), { status: 200 })
     }
@@ -181,10 +182,22 @@ Przykłady:
   }
 
   // === Parse klasyfikacja ===
-  const classification = JSON.parse(classifyRes.content || '{}');
+  let classification: any;
+  try {
+    classification = JSON.parse(classifyRes.content || '{}');
+  } catch (err) {
+    console.error(`[auto-classify] classify JSON parse failed, using fallback. Raw: ${(classifyRes.content || '').slice(0, 200)}`);
+    classification = { importance_score: 5, category: 'Chaos', tags: [], fingerprint_text: null, is_closure: false, closed_topic_description: null, expiration_date: null };
+  }
 
   // === Parse friction ===
-  const friction = JSON.parse(frictionRes.content || '{"is_relevant":false}');
+  let friction: any;
+  try {
+    friction = JSON.parse(frictionRes.content || '{"is_relevant":false}');
+  } catch (err) {
+    console.error(`[auto-classify] friction JSON parse failed, using fallback. Raw: ${(frictionRes.content || '').slice(0, 200)}`);
+    friction = { is_relevant: false, event_kind: null, friction_type: null };
+  }
 
     console.log(`[auto-classify] category=${classification.category}, is_relevant=${friction.is_relevant}, kind=${friction.event_kind}, type=${friction.friction_type}`)
 

@@ -144,7 +144,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
 
     const [streamRes, frictionRes] = await Promise.all([
@@ -152,7 +151,7 @@ Deno.serve(async (req) => {
         .from("vanguard_stream")
         .select("id, content, created_at, metadata")
         .eq("user_id", VANGUARD_USER_ID)
-        .gte("created_at", since24h)
+        .gte("created_at", dayStart)
         .order("created_at", { ascending: true })
         .limit(80),
       supabase

@@ -325,7 +325,7 @@ async function compileForUser(supabase: any, userId: string, opts: { mode: strin
   ]);
 
   for (const [name, res] of Object.entries({ streamRes, frictionRes, recRes, aggregateRes, existingRes, patternsRes })) {
-    if ((res as any).error) throw new Error(`${name}: ${(res as any).error.message}`);
+    if ((res as any).error) console.warn(`[wiki-compiler] source query failed, continuing without it: ${name}: ${(res as any).error.message}`);
   }
 
   const sourceBundle = [
@@ -586,46 +586,50 @@ Priorytet:
 
   for (const draft of pages.slice(0, 8)) {
     const slug = slugify(draft.slug || draft.title);
-    const refs = safeArray<SourceRef>(draft.source_refs).slice(0, 12);
-    const payload = {
-      user_id: userId,
-      slug,
-      title: trimText(draft.title || slug, 120),
-      page_type: draft.page_type || "concept",
-      status: draft.status || "hypothesis",
-      confidence: clamp(Number(draft.confidence ?? 0.55)),
-      summary: trimText(draft.summary || "", 600),
-      content_md: String(draft.content_md || draft.summary || ""),
-      tags: Array.isArray(draft.tags) ? draft.tags.slice(0, 12).map(String) : [],
-      source_refs: refs,
-      metadata: draft.metadata || {},
-      first_seen_at: refs[0]?.date || null,
-      last_seen_at: refs[0]?.date || null,
-      last_compiled_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from("vanguard_wiki_pages")
-      .upsert(payload, { onConflict: "user_id,slug" })
-      .select("id, slug")
-      .single();
-    if (error) throw error;
-    pagesUpserted++;
-    pageIdBySlug[data.slug] = data.id;
-
-    for (const ref of refs) {
-      if (!ref.table || !ref.id) continue;
-      const { error: sourceErr } = await supabase.from("vanguard_wiki_sources").upsert({
+    try {
+      const refs = safeArray<SourceRef>(draft.source_refs).slice(0, 12);
+      const payload = {
         user_id: userId,
-        page_id: data.id,
-        source_table: ref.table,
-        source_id: String(ref.id),
-        source_date: ref.date || null,
-        quote: ref.quote ? trimText(ref.quote, 500) : null,
-        relevance: 0.75,
-      }, { onConflict: "page_id,source_table,source_id" });
-      if (sourceErr) console.error(`[wiki-compiler] Failed to upsert source for page ${data.slug}:`, sourceErr);
+        slug,
+        title: trimText(draft.title || slug, 120),
+        page_type: draft.page_type || "concept",
+        status: draft.status || "hypothesis",
+        confidence: clamp(Number(draft.confidence ?? 0.55)),
+        summary: trimText(draft.summary || "", 600),
+        content_md: String(draft.content_md || draft.summary || ""),
+        tags: Array.isArray(draft.tags) ? draft.tags.slice(0, 12).map(String) : [],
+        source_refs: refs,
+        metadata: draft.metadata || {},
+        first_seen_at: refs[0]?.date || null,
+        last_seen_at: refs[0]?.date || null,
+        last_compiled_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("vanguard_wiki_pages")
+        .upsert(payload, { onConflict: "user_id,slug" })
+        .select("id, slug")
+        .single();
+      if (error) throw error;
+      pagesUpserted++;
+      pageIdBySlug[data.slug] = data.id;
+
+      for (const ref of refs) {
+        if (!ref.table || !ref.id) continue;
+        const { error: sourceErr } = await supabase.from("vanguard_wiki_sources").upsert({
+          user_id: userId,
+          page_id: data.id,
+          source_table: ref.table,
+          source_id: String(ref.id),
+          source_date: ref.date || null,
+          quote: ref.quote ? trimText(ref.quote, 500) : null,
+          relevance: 0.75,
+        }, { onConflict: "page_id,source_table,source_id" });
+        if (sourceErr) console.error(`[wiki-compiler] Failed to upsert source for page ${data.slug}:`, sourceErr);
+      }
+    } catch (err: any) {
+      console.error(`[wiki-compiler] Failed to upsert page "${slug}", skipping:`, err?.message || err);
     }
   }
 
