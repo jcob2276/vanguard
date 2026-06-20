@@ -30,7 +30,7 @@ export function weekStartDate() {
   const d = new Date(ds + 'T12:00:00');
   const dow = d.getDay();
   d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-  return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  return formatWarsawDate(d);
 }
 
 export function sessionVol(s: any) {
@@ -158,7 +158,7 @@ export function computeNutritionImpact(oura: any[], nutrition: any[]) {
   const nextDay = (d: string) => {
     const dt = new Date(d + 'T12:00:00');
     dt.setDate(dt.getDate() + 1);
-    return dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    return formatWarsawDate(dt);
   };
   const high: number[] = [], low: number[] = [];
   for (const o of oura) {
@@ -289,7 +289,7 @@ export function getSprintInfo() {
   const sprintEnd = new Date(anchor.getTime() + (startOffset + 83) * 86400000);
   const prevStart = sprintNumber > 1 ? new Date(anchor.getTime() + (startOffset - SPRINT_DAYS) * 86400000) : null;
   const prevEnd = prevStart ? new Date(anchor.getTime() + (startOffset - 1) * 86400000) : null;
-  const fmt = (dt: Date) => dt.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const fmt = (dt: Date) => formatWarsawDate(dt);
   return {
     personalYear,
     sprintNumber,
@@ -328,8 +328,8 @@ export function computeWeekStreak(sessions: any[]) {
   let streak = 0;
   const cursor = new Date(ws + 'T12:00:00');
   for (let i = 0; i < 52; i++) {
-    const wStart = cursor.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-    const wEnd = new Date(cursor.getTime() + 6 * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const wStart = formatWarsawDate(cursor);
+    const wEnd = formatWarsawDate(new Date(cursor.getTime() + 6 * 86400000));
     const hasTrain = sessions.some((s: any) => s.date >= wStart && s.date <= wEnd && sessionVol(s) > 0);
     if (!hasTrain) break;
     streak++;

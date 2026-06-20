@@ -1,19 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, Flame, Moon, X, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { formatWarsawDate } from '../../lib/date';
+
+function parseSafeDate(dateStr: string): Date {
+  const clean = dateStr.replace(/[^\d-/]/g, '');
+  const separators = clean.includes('-') ? '-' : '/';
+  const parts = clean.split(separators);
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d, 12, 0, 0);
+  }
+  return new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+}
 
 function last7Days() {
   const days: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
+    days.push(formatWarsawDate(d));
   }
   return days;
 }
 
 function dayLabel(dateStr: string) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'short' }).slice(0, 2).toUpperCase();
+  const d = parseSafeDate(dateStr);
+  if (isNaN(d.getTime())) return '--';
+  return d.toLocaleDateString('pl-PL', { weekday: 'short' }).slice(0, 2).toUpperCase();
 }
 
 const LIMITER_PL: Record<string, string> = {
@@ -340,7 +356,12 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">
-                  {new Date(selected.date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {(() => {
+                    const d = parseSafeDate(selected.date);
+                    return isNaN(d.getTime())
+                      ? selected.date
+                      : d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+                  })()}
                 </p>
                 {selected.strain_score != null && (
                   <p className="text-[22px] font-black text-text-primary leading-tight mt-0.5">

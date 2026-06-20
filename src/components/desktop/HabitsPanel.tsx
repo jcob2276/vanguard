@@ -1,6 +1,6 @@
 import { Plus, X, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { subDays } from 'date-fns';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 
 interface NewHabit {
   name: string;
@@ -79,7 +79,7 @@ export default function HabitsPanel({
               </div>
               <div className="flex h-2 gap-0.5 overflow-hidden">
                 {Array.from({ length: 30 }).map((_, i) => {
-                  const d = subDays(new Date(), 29 - i).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+                  const d = formatWarsawDate(subDays(new Date(), 29 - i));
                   const has = habitLogs.some(l => l.habit_id === habit.id && l.date === d);
                   const ok = habit.is_positive ? has : !has;
                   return <div key={d} className={`flex-1 rounded-sm ${d === today && !has ? 'border border-border-custom' : ok ? 'bg-emerald-500' : 'bg-rose-500'}`} />;

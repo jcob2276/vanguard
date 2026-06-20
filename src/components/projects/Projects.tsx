@@ -34,7 +34,6 @@ import {
 } from './projectUtils';
 
 import GoalCreateModal from './GoalCreateModal';
-import KpiUpdateModal from './KpiUpdateModal';
 import RetroModal from './RetroModal';
 import ProjectCard from './ProjectCard';
 
@@ -62,18 +61,13 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
 
   const [lifeGoals, setLifeGoals] = useState<any>(null);
   const [kpis, setKpis] = useState<any[]>([]);
-  const [snapshots, setSnapshots] = useState<any[]>([]);
   const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
   const [kpiInputVal, setKpiInputVal] = useState('');
-  const [kpiUpdateOpen, setKpiUpdateOpen] = useState(false);
-  const [kpiUpdateIdx, setKpiUpdateIdx] = useState(0);
-  const [kpiUpdateVal, setKpiUpdateVal] = useState('');
-  const [kpiUpdateValues, setKpiUpdateValues] = useState<Record<string, number>>({});
   const [goalCreateOpen, setGoalCreateOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }, { data: snapData }] = await Promise.all([
+      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
@@ -81,7 +75,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
         supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
-        (supabase as any).from('goal_kpi_snapshots').select('kpi_id, value, recorded_at').eq('user_id', userId).order('recorded_at', { ascending: false }).limit(100),
       ]);
       setProjects(p ?? []);
       setSections(s ?? []);
@@ -90,7 +83,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       setDreams(d ?? []);
       setLifeGoals(lg ?? null);
       setKpis(kpiData ?? []);
-      setSnapshots(snapData ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -157,12 +149,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     });
     return grouped;
   }, [kpis]);
-
-  const lastSnapshotByKpi = useMemo(() => {
-    const map: Record<string, any> = {};
-    snapshots.forEach(s => { if (!map[s.kpi_id]) map[s.kpi_id] = s; });
-    return map;
-  }, [snapshots]);
 
 
   // ── Handlers ──
@@ -336,31 +322,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     });
   };
 
-  const handleKpiUpdateNext = () => {
-    const kpi = activeKpis[kpiUpdateIdx];
-    const num = parseFloat(kpiUpdateVal);
-    const newValues = isNaN(num) ? kpiUpdateValues : { ...kpiUpdateValues, [kpi.id]: num };
-
-    if (kpiUpdateIdx < activeKpis.length - 1) {
-      setKpiUpdateValues(newValues);
-      setKpiUpdateIdx(i => i + 1);
-      setKpiUpdateVal('');
-    } else {
-      run(async () => {
-        for (const [kpiId, val] of Object.entries(newValues)) {
-          const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: val } as any).eq('id', kpiId);
-          if (updErr) throw new Error(updErr.message);
-          const { error: snapErr } = await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: val });
-          if (snapErr) throw new Error(snapErr.message);
-        }
-        setKpiUpdateOpen(false);
-        setKpiUpdateIdx(0);
-        setKpiUpdateVal('');
-        setKpiUpdateValues({});
-      });
-    }
-  };
-
   const filtered = useMemo(() =>
     projects
       .filter(p => p.status === statusFilter)
@@ -390,11 +351,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     [projects],
   );
 
-  const activeKpis = useMemo(() =>
-    kpis.filter(k => k.project_id && activeProjects.some(p => p.id === k.project_id)),
-    [kpis, activeProjects],
-  );
-
   const directionalGoalCount = useMemo(
     () => PILLARS.filter(pillar => Boolean((lifeGoals as any)?.[`goal_${pillar}`])).length,
     [lifeGoals],
@@ -420,14 +376,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
           <p className="text-[12px] text-text-muted">{activeProjects.length} aktywnych · {directionalGoalCount} kierunki</p>
         </div>
         <div className="flex items-center gap-2">
-          {activeKpis.length > 0 && (
-            <button
-              onClick={() => { setKpiUpdateOpen(true); setKpiUpdateIdx(0); setKpiUpdateVal(''); setKpiUpdateValues({}); }}
-              className="flex items-center gap-1.5 rounded-full border border-border-custom bg-surface/50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
-            >
-              <TrendingUp size={11} /> KPI
-            </button>
-          )}
           {onNavigateTo && !(reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
             <button
               onClick={() => onNavigateTo('weekly-review')}
@@ -613,24 +561,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
           onClose={() => setGoalCreateOpen(false)}
           onConfirm={handleGoalCreateConfirm}
           onError={(err) => setError(err)}
-        />
-      )}
-
-      {/* ── KPI Update modal ── */}
-      {kpiUpdateOpen && activeKpis.length > 0 && (
-        <KpiUpdateModal
-          activeKpis={activeKpis}
-          kpiUpdateIdx={kpiUpdateIdx}
-          kpiUpdateVal={kpiUpdateVal}
-          setKpiUpdateVal={setKpiUpdateVal}
-          lastSnapshotByKpi={lastSnapshotByKpi}
-          onClose={() => {
-            setKpiUpdateOpen(false);
-            setKpiUpdateIdx(0);
-            setKpiUpdateValues({});
-          }}
-          onNext={handleKpiUpdateNext}
-          busy={busy}
         />
       )}
 

@@ -97,7 +97,7 @@ export default function Direction({ session }: { session: Session }) {
 
   const planCalEvents = allCalEvents.filter((e) => {
     if (!e.start_time) return false;
-    const eDay = new Date(e.start_time).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const eDay = formatWarsawDate(e.start_time);
     return eDay >= format(planWeekStart, 'yyyy-MM-dd') && eDay <= format(planWeekEnd, 'yyyy-MM-dd');
   });
 
