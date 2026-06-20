@@ -223,6 +223,13 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
         const graphSeeds = buildGraphSeeds(current_query, intentForGraph, entitiesInQuery);
         const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
 
+        // BM25 fulltext on original query — no LLM/embedding needed, fire immediately
+        const fulltextOriginalPromise = supabase.rpc('search_entity_links_fulltext', {
+          query_text: current_query.substring(0, 500),
+          match_user_id: user_id,
+          match_count: 10
+        });
+
         // QUERY EXPANSION — single LLM call, 3 techniques combined (NirDiamant/RAG_Techniques #7 #8 + step-back):
         // 1. HyDE: hypothetical fact → fact-to-fact vector matching (bridges question↔fact space)
         // 2. Step-back: broader background query → retrieves foundational context
@@ -281,12 +288,8 @@ Tylko JSON, bez komentarzy.`,
             match_user_id: user_id,
             match_count: 6
           }) : Promise.resolve({ data: [], error: null } as any),
-          // BM25 fulltext — original query (Graphiti RRF pattern)
-          supabase.rpc('search_entity_links_fulltext', {
-            query_text: current_query.substring(0, 500),
-            match_user_id: user_id,
-            match_count: 10
-          }),
+          // BM25 fulltext — original query (already running in parallel since line above)
+          fulltextOriginalPromise,
           // Step-back fulltext — broader background context (NirDiamant step-back prompting)
           stepbackQuery ? supabase.rpc('search_entity_links_fulltext', {
             query_text: stepbackQuery,

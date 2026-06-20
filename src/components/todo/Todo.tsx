@@ -671,18 +671,9 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               {activeFilterSection ? (
                 // Active Section View
                 (() => {
-                  const sec = sections.find(s => s.id === activeFilterSection);
+                  const sec = sectionsWithItems.find(s => s.id === activeFilterSection);
                   if (!sec) return null;
-                  const secItems = items.filter(i => i.status === 'open' && i.section_id === sec.id);
-                  const sortedItems = [...secItems].sort((a, b) => {
-                    const pA = PRIORITY_ORDER.indexOf(a.priority);
-                    const pB = PRIORITY_ORDER.indexOf(b.priority);
-                    if (pA !== pB) return pB - pA;
-                    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
-                    if (a.due_date) return -1;
-                    if (b.due_date) return 1;
-                    return 0;
-                  });
+                  const sortedItems = sec.items;
 
                   return (
                     <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }}>
