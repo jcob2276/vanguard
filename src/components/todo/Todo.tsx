@@ -1138,8 +1138,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   }), [activeFilterTag, activeFilterSection]);
 
   const { todayItems, inboxItems, sectionsWithItems } = useMemo(() => {
-    const todayList = openItems.filter((i: any) => (i.due_date && i.due_date <= today) || i.ai_bucket === 'today');
-    const todaySet = new Set(todayList.map(i => i.id));
+    const todayList = openItems
+      .filter((i: any) => (i.due_date && i.due_date <= today) || i.ai_bucket === 'today')
+      .sort((a: any, b: any) => {
+        const pA = PRIORITY_ORDER.indexOf(a.priority);
+        const pB = PRIORITY_ORDER.indexOf(b.priority);
+        if (pA !== pB) return pB - pA;
+        if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+        if (a.due_date) return -1;
+        if (b.due_date) return 1;
+        return 0;
+      });
+    const todaySet = new Set(todayList.map((i: any) => i.id));
     const remainingItems = openItems.filter((i: any) => !todaySet.has(i.id));
     const inbox = applyFilter(remainingItems.filter((i: any) => i.section_id === null));
     const sectionsMap: Record<string, any[]> = {};
