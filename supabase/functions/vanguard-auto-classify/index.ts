@@ -323,7 +323,11 @@ Przykłady:
               deviation: friction.deviation || null,
               immediate_cost: friction.immediate_cost || null,
               emotional_state: friction.emotional_state || null,
-              people_involved: friction.people_involved?.length > 0 ? friction.people_involved : null,
+              people_involved: Array.isArray(friction.people_involved) && friction.people_involved.length > 0
+                ? friction.people_involved
+                : typeof friction.people_involved === 'string' && friction.people_involved.length > 0
+                  ? [friction.people_involved]
+                  : null,
               location_context: friction.location_context || null,
               confidence_source: 'inferred',
               confidence: null,

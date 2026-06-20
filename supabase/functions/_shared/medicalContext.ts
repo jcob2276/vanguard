@@ -66,9 +66,9 @@ export async function fetchMedicalContext(
       .limit(20),
   ]);
 
-  if (labRes.error) console.error("[medicalContext] medical_lab_results query error:", labRes.error);
-  if (bodyCompRes.error) console.error("[medicalContext] body_composition_measurements query error:", bodyCompRes.error);
-  if (docRes.error) console.error("[medicalContext] medical_documents query error:", docRes.error);
+  if (labRes.error) throw new Error(`[medicalContext] medical_lab_results: ${labRes.error.message}`);
+  if (bodyCompRes.error) throw new Error(`[medicalContext] body_composition_measurements: ${bodyCompRes.error.message}`);
+  if (docRes.error) throw new Error(`[medicalContext] medical_documents: ${docRes.error.message}`);
 
   const latestByMarker = new Map<string, any>();
   for (const row of labRes.data || []) {

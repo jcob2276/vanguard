@@ -65,7 +65,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   async function deleteHabit(id: string) {
     if (!confirm('Usunąć nawyk?')) return;
-    await supabase.from('habits').delete().eq('id', id);
+    const { error } = await supabase.from('habits').delete().eq('id', id);
+    if (error) { alert('Błąd usuwania nawyku.'); return; }
     setHabits(prev => prev.filter(h => h.id !== id));
   }
 
@@ -258,20 +259,21 @@ export default function DesktopDashboard({ session }: { session: any }) {
       const valStr = JSON.stringify(hexagonScores);
       
       // Save to preferences
-      await supabase
+      const { error: prefErr } = await supabase
         .from('vanguard_preferences')
         .upsert({ user_id: userId, key: 'morning_hexagon_scores', value: valStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' });
+      if (prefErr) throw prefErr;
 
       // Log change to stream
       const streamText = `[Heksagon] Zaktualizowano ocenę sfer życia: Zdrowie & Ciało: ${hexagonScores.zdrowie}/10, Finanse: ${hexagonScores.finanse}/10, Kariera & Praca: ${hexagonScores.kariera}/10, Relacje: ${hexagonScores.relacje}/10, Rozwój: ${hexagonScores.rozwoj}/10, Duchowość & Czas dla siebie: ${hexagonScores.duchowosc}/10.`;
-      
-      await supabase.from('vanguard_stream').insert({
+      const { error: streamErr } = await supabase.from('vanguard_stream').insert({
         user_id: userId,
         content: streamText,
         source: 'hexagon',
         category: 'productivity',
         classification: 'hexagon_update'
       });
+      if (streamErr) throw streamErr;
 
       alert('Zapisano oceny sfer życia w bazie! 🎯');
       refresh();
