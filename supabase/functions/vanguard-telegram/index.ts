@@ -21,6 +21,15 @@ serve(async (req) => {
     const payload = await req.json();
     const ctx = createTelegramContext();
 
+    // Manual link save from the web app (Pocket "+" button)
+    if (payload.type === "save_link" && payload.url) {
+      const { handleSavedLinkDirect } = await import("./_handlers/savedLinks.ts");
+      const result = await handleSavedLinkDirect(payload.url, ctx.vanguardUserId, ctx);
+      return new Response(JSON.stringify({ ok: true, link: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (payload.callback_query) {
       await handleCallbackQuery(payload.callback_query, ctx).catch((err) => {
         console.error("[telegram] callback error:", err);

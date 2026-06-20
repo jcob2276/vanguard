@@ -8,10 +8,14 @@ import {
   ChevronUp,
   ExternalLink,
   Inbox,
+  Link2,
   ListTodo,
+  Loader2,
   PenLine,
+  Plus,
   StickyNote,
   Trash2,
+  X,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
@@ -56,6 +60,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
   const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addUrl, setAddUrl] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
 
   const goTo = (view: string) => {
     localStorage.setItem('vanguard_view', view);
@@ -87,7 +94,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ type: 'share_target', url: actualUrl, userId: session.user.id }),
+        body: JSON.stringify({ type: 'save_link', url: actualUrl }),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -102,7 +109,33 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     } finally {
       fetchLinks();
     }
-  }, [session.access_token, session.user.id, fetchLinks]);
+  }, [session.access_token, fetchLinks]);
+
+  const handleAddLink = async () => {
+    const raw = addUrl.trim();
+    const urlMatch = raw.match(/https?:\/\/[^\s]+/);
+    if (!urlMatch) return;
+    setAddLoading(true);
+    try {
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: 'save_link', url: urlMatch[0] }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+      setAddUrl('');
+      setShowAddForm(false);
+      await fetchLinks();
+    } catch (err) {
+      alert(`Błąd: ${(err as Error).message}`);
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -206,10 +239,41 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               {unreadCount > 0 ? `${unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
             </p>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Bookmark size={15} />
-          </div>
+          <button
+            onClick={() => { setShowAddForm(p => !p); setAddUrl(''); }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            {showAddForm ? <X size={15} /> : <Plus size={15} />}
+          </button>
         </header>
+
+        {/* Inline add-link form */}
+        {showAddForm && (
+          <div className="border-b border-border-custom/60 px-5 py-3 bg-surface/60 backdrop-blur-sm">
+            <div className="max-w-[640px] mx-auto flex items-center gap-2">
+              <Link2 size={14} className="shrink-0 text-text-muted" />
+              <input
+                autoFocus
+                type="url"
+                value={addUrl}
+                onChange={e => setAddUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddLink(); if (e.key === 'Escape') setShowAddForm(false); }}
+                placeholder="Wklej URL i naciśnij Enter..."
+                className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
+              />
+              {addLoading
+                ? <Loader2 size={15} className="shrink-0 text-primary animate-spin" />
+                : <button
+                    onClick={handleAddLink}
+                    disabled={!addUrl.trim()}
+                    className="shrink-0 text-[12px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  >
+                    Zapisz
+                  </button>
+              }
+            </div>
+          </div>
+        )}
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[640px] mx-auto px-5 py-5 pb-24 space-y-4">
