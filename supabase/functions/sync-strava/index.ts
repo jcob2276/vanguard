@@ -84,9 +84,10 @@ async function getAccessToken(): Promise<string> {
 // Strava API helpers
 // ---------------------------------------------------------------------------
 
-async function fetchActivities(accessToken: string, after: number): Promise<any[]> {
+async function fetchActivities(accessToken: string, after: number): Promise<{ activities: any[]; rateLimited: boolean }> {
   const activities: any[] = [];
   let page = 1;
+  let rateLimited = false;
 
   while (true) {
     const url = `https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`;
@@ -96,6 +97,9 @@ async function fetchActivities(accessToken: string, after: number): Promise<any[
 
     if (!res.ok) {
       console.error('[sync-strava] Strava API error:', res.status, await res.text().catch(() => ''));
+      // 429 mid-pagination means later pages are missing — caller must surface this
+      // instead of reporting a clean partial sync as ok:true.
+      rateLimited = res.status === 429;
       break;
     }
 
@@ -108,7 +112,7 @@ async function fetchActivities(accessToken: string, after: number): Promise<any[
     page++;
   }
 
-  return activities;
+  return { activities, rateLimited };
 }
 
 async function fetchActivityDetail(accessToken: string, activityId: number): Promise<any | null> {
@@ -435,12 +439,12 @@ serve(async (req) => {
     console.log(`[sync-strava] Syncing after ${new Date(after * 1000).toISOString()}`);
 
     const accessToken = await getAccessToken();
-    const activities  = await fetchActivities(accessToken, after);
+    const { activities, rateLimited } = await fetchActivities(accessToken, after);
 
     if (activities.length === 0) {
       console.log('[sync-strava] No new activities');
-      return new Response(JSON.stringify({ ok: true, synced: 0 }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      return new Response(JSON.stringify({ ok: !rateLimited, synced: 0, rate_limited: rateLimited }), {
+        status: rateLimited ? 503 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -621,13 +625,14 @@ serve(async (req) => {
     // Telegram activity reports removed — data is available in the app widget instead.
 
     return new Response(JSON.stringify({
-      ok:              true,
+      ok:              !rateLimited,
       synced:          rows.length,
       primary:         primaryActivities.length,
       oura_duplicates: ouraActivities.length,
       paired:          ouraPairs.size,
+      rate_limited:    rateLimited,
     }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: rateLimited ? 503 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (err) {

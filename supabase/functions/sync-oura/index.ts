@@ -80,20 +80,27 @@ serve(async (req) => {
     })
 
     // 3. Process Sleep Stages & Durations (from sleep) - OFTEN MORE ACCURATE
+    // /sleep can return multiple episodes per day (nap + night) — accumulate durations
+    // instead of overwriting, otherwise the last episode processed wins and the rest
+    // of that day's sleep silently vanishes.
     sleepStagesData.data?.forEach((item: any) => {
       const day = item.day || item.date;
-      summaries[day] = { 
-        ...summaries[day], 
-        total_sleep_hours: item.total_sleep_duration / 3600,
-        deep_sleep_hours: item.deep_sleep_duration / 3600,
-        rem_sleep_hours: item.rem_sleep_duration / 3600,
-        sleep_efficiency: item.efficiency,
-        latency_minutes: item.latency / 60,
-        bedtime_timestamp: item.bedtime_start,
+      const prev = summaries[day] || {};
+      const isLongestEpisode = (item.total_sleep_duration || 0) >= (prev._longestSleepDuration || 0);
+      summaries[day] = {
+        ...prev,
+        total_sleep_hours: (prev.total_sleep_hours || 0) + item.total_sleep_duration / 3600,
+        deep_sleep_hours: (prev.deep_sleep_hours || 0) + item.deep_sleep_duration / 3600,
+        rem_sleep_hours: (prev.rem_sleep_hours || 0) + item.rem_sleep_duration / 3600,
+        // Efficiency/latency/bedtime aren't additive — keep them from the longest episode (main sleep).
+        sleep_efficiency: isLongestEpisode ? item.efficiency : prev.sleep_efficiency,
+        latency_minutes: isLongestEpisode ? (item.latency != null ? Math.round(item.latency / 60) : null) : prev.latency_minutes,
+        bedtime_timestamp: isLongestEpisode ? item.bedtime_start : prev.bedtime_timestamp,
+        _longestSleepDuration: isLongestEpisode ? item.total_sleep_duration : prev._longestSleepDuration,
         // Fallback check: if summary was missing HRV, take it from detailed sleep
-        hrv_avg: summaries[day]?.hrv_avg ?? item.average_hrv,
-        rhr_avg: summaries[day]?.rhr_avg ?? item.average_heart_rate,
-        date: day 
+        hrv_avg: prev.hrv_avg ?? item.average_hrv,
+        rhr_avg: prev.rhr_avg ?? item.average_heart_rate,
+        date: day
       }
     })
 

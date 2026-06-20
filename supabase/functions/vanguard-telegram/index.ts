@@ -37,7 +37,11 @@ serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
-    const message = payload.message || payload.edited_message;
+    // Edits aren't new events — handling them like new messages double-logs the same
+    // note in vanguard_stream (original + edited version), corrupting behavioral analysis.
+    if (payload.edited_message) return new Response("OK", { status: 200 });
+
+    const message = payload.message;
     if (!message) return new Response("OK", { status: 200 });
     if (!message.text && !message.voice) return new Response("OK", { status: 200 });
     if (message.chat.id !== ctx.authorizedChatId) {

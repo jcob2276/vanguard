@@ -57,6 +57,12 @@ serve(async (req) => {
 
   try {
     const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false } = await req.json();
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "Missing user_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.log(`[oracle] start | user: ${user_id} | query: "${current_query?.substring(0, 50)}..."`);
     const supabase = createServiceClient();
 
@@ -712,8 +718,6 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
     }
 
     console.log(`[oracle] deepseek start`, Date.now() - t0);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // keep the whole Edge call below platform limits
 
     let structuredResponse;
     try {
@@ -724,9 +728,8 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
         temperature: thinking ? null : 0.7,
         maxTokens: null,
         responseFormat: !thinking ? { type: "json_object" } : undefined,
-        timeoutMs: 25000,
+        timeoutMs: 25000, // deepseekChat owns its own AbortController/timeout — keep the whole Edge call below platform limits
       });
-      clearTimeout(timeoutId);
       console.log(`[oracle] deepseek done`, Date.now() - t0);
       try {
         structuredResponse = JSON.parse(stripJsonFence(rawOutput));
@@ -749,7 +752,6 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
         };
       }
     } catch (e) {
-      clearTimeout(timeoutId);
       console.error("DeepSeek response failed:", e);
       throw e;
     }

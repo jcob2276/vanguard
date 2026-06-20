@@ -17,8 +17,9 @@ serve(async (req) => {
     if (!settings?.yazio_username) throw new Error('Missing credentials')
 
     const yazio = new Yazio({ credentials: { username: settings.yazio_username, password: settings.yazio_password } })
-    await yazio.user.get(); 
+    await yazio.user.get();
     const yazioToken = (yazio as any)._token || (yazio as any).credentials?.password;
+    if (!yazioToken) throw new Error('[sync-yazio] Cannot extract Yazio auth token from library — check internal API shape')
 
     const daysToSync = days || (sync_history ? 30 : 1)
     const results = []
@@ -163,21 +164,16 @@ serve(async (req) => {
               .upsert({ user_id: userId, date: dateStr, calories: totalCals, protein: totalProt, carbs: totalCarbs || null, fat: totalFat || null, fiber: totalFiber || null, sugar: totalSugar || null, insulin_load: totalILRounded }, { onConflict: 'user_id,date' })
           );
 
+          // Atomic delete+insert via RPC — a plain client-side delete-then-insert leaves a
+          // window where a concurrent sync (manual trigger racing the cron) can read zero
+          // entries for this date and persist a bogus 0-calorie day.
           await safeExecute(
-            supabase
-              .from('daily_food_entries')
-              .delete()
-              .eq('user_id', userId)
-              .eq('date', dateStr)
+            supabase.rpc('replace_daily_food_entries', {
+              p_user_id: userId,
+              p_date: dateStr,
+              p_entries: foodEntries,
+            })
           );
-
-          if (foodEntries.length > 0) {
-            await safeExecute(
-              supabase
-                .from('daily_food_entries')
-                .insert(foodEntries)
-            );
-          }
 
           const { count, data: insertedSample, error: verifyError } = await supabase
             .from('daily_food_entries')
