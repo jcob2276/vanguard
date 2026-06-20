@@ -1,22 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Edit3,
   Plus,
-  Save,
-  Trash2,
   TrendingUp,
   FolderKanban,
-  CalendarDays,
-  Flag,
-  Check,
-  Repeat2,
-  X,
 } from 'lucide-react';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import {
   listProjects,
   createProject,
@@ -37,12 +26,9 @@ import DataStateNotice from '../core/DataStateNotice';
 // Subcomponents and utilities
 import {
   COLORS,
-  colorOf,
   PILLAR_META,
-  GOAL_QUESTIONS,
   STATUS_TABS,
   STATUS_NEXT,
-  STATUS_LABEL,
   PILLARS,
   PillarId
 } from './projectUtils';

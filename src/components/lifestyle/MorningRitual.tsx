@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { Flame, ChevronLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../hooks/useHaptics';
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
 import {
   DEFAULT_DECLARATIONS,
   calculateStreak,

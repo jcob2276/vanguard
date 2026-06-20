@@ -5,7 +5,7 @@
  *            generowanie JSON planu i zapis do DB.
  */
 
-import { safeSendTelegram, getWarsawDateStr } from '../_utils/helpers.ts';
+import { safeSendTelegram } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
 import { logAuditEvent } from '../../_shared/audit.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';

@@ -1,7 +1,7 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Flame, BatteryCharging, Gauge, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
+import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 

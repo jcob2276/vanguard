@@ -1,15 +1,10 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { format } from 'date-fns';
 import {
   ChevronLeft,
-  ChevronRight,
-  Filter,
   History,
   ListTodo,
   Sparkles,
-  Trash2,
-  Zap,
   StickyNote,
   BookOpen,
 } from 'lucide-react';
@@ -31,14 +26,9 @@ import { supabase } from '../../lib/supabase';
 
 // Subcomponents and helpers
 import {
-  RECURRENCE_LABELS,
-  RECURRENCE_CYCLE,
   nextOccurrenceDate,
-  splitEmoji,
-  relativeDate,
   parseSubtasks,
   serializeSubtasks,
-  PRIORITY,
   PRIORITY_ORDER
 } from './todoUtils';
 

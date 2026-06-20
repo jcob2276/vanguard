@@ -14,7 +14,6 @@ import {
   answerCallbackQuery,
   clearInlineKeyboard,
 } from "../../_shared/telegram.ts";
-import { safeSendTelegram } from "../_utils/helpers.ts";
 import type { TelegramRouterContext } from "../_router/config.ts";
 import { updatePatternFeedback } from "../../_shared/vanguardPatterns.ts";
 

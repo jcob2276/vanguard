@@ -1,5 +1,5 @@
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
-import { format, parseISO, startOfWeek, differenceInDays } from 'date-fns';
+import { format, startOfWeek } from 'date-fns';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const RACE_DATE = new Date('2026-10-04T09:00:00+02:00');

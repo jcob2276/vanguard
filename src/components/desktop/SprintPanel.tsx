@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { parseISO, differenceInDays } from 'date-fns';
-import { Target, Zap, Briefcase } from 'lucide-react';
-import { SPRINT_SEASON, sprintMetrics, daysBefore } from './desktopUtils';
+import { SPRINT_SEASON } from './desktopUtils';
 
 export interface SprintPanelProps {
   sprint: any;
