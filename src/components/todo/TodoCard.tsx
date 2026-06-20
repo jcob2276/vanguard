@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Check, Repeat2, Link2, Pencil, X, Sparkles, Trash2, GripVertical } from 'lucide-react';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Sparkles, Trash2, GripVertical } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   GOAL_ICON,
@@ -42,6 +42,8 @@ export interface TodoCardProps {
   dreamTitle?: string | null;
   session: any;
   onAddSubtasksBatch: (texts: string[]) => void;
+  onSetReminder: (isoDatetime: string) => void;
+  onCancelReminder: () => void;
 }
 
 export default function TodoCard({
@@ -73,7 +75,9 @@ export default function TodoCard({
   onSetRecurrence,
   dreamTitle,
   session,
-  onAddSubtasksBatch
+  onAddSubtasksBatch,
+  onSetReminder,
+  onCancelReminder,
 }: TodoCardProps) {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
@@ -96,6 +100,7 @@ export default function TodoCard({
     }
   }, [expanded]);
 
+  const [reminderInput, setReminderInput] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantResult, setAssistantResult] = useState<{
     type: 'decompose' | 'first_move' | 'evaluate';
@@ -486,6 +491,55 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Reminder */}
+                {!isDone && (
+                  <div>
+                    <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Przypomnienie</p>
+                    {item.reminder_at && !item.reminder_sent ? (
+                      <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Bell size={11} className="text-primary" />
+                          <span className="text-[12px] font-semibold text-primary">
+                            {new Date(item.reminder_at).toLocaleString('pl-PL', {
+                              timeZone: 'Europe/Warsaw',
+                              month: 'short', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <button
+                          onClick={onCancelReminder}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-rose-400 transition-colors"
+                        >
+                          <BellOff size={10} /> Anuluj
+                        </button>
+                      </div>
+                    ) : item.reminder_sent ? (
+                      <p className="text-[11px] text-text-muted/50">✓ Wysłano</p>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="datetime-local"
+                          value={reminderInput}
+                          onChange={e => setReminderInput(e.target.value)}
+                          className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:dark]"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!reminderInput) return;
+                            onSetReminder(new Date(reminderInput).toISOString());
+                            setReminderInput('');
+                          }}
+                          disabled={!reminderInput}
+                          className="shrink-0 flex items-center gap-1 rounded-xl bg-primary/10 px-3 py-1.5 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors"
+                        >
+                          <Bell size={10} /> Ustaw
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

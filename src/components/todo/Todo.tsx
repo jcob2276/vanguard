@@ -1,6 +1,7 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Bell,
   ChevronLeft,
   History,
   ListTodo,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 import {
   archiveTodoSection,
   createTodoItem,
@@ -41,6 +43,8 @@ import TodoQuickCapture from './TodoQuickCapture';
 
 export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session?.user?.id;
+  const push = usePushNotifications(userId);
+  const [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null);
   const [sections, setSections] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -114,6 +118,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   useEffect(() => {
     (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
   }, [fetchAll]);
+
+  useEffect(() => {
+    push.isSubscribed().then(setPushSubscribed);
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -473,6 +481,19 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setItems(prev => prev.map(i => i.id === item.id ? { ...i, recurrence: item.recurrence } : i));
         });
       }}
+      onSetReminder={(isoDatetime: string) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, reminder_at: isoDatetime, reminder_sent: false } : i));
+        updateTodoItem(item.id, { reminder_at: isoDatetime, reminder_sent: false } as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, reminder_at: item.reminder_at, reminder_sent: item.reminder_sent } : i));
+        });
+      }}
+      onCancelReminder={() => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, reminder_at: null, reminder_sent: false } : i));
+        updateTodoItem(item.id, { reminder_at: null, reminder_sent: false } as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+        });
+      }}
       session={session}
       onAddSubtasksBatch={(texts: string[]) => addSubtasksBatch(item, texts)}
     />
@@ -571,6 +592,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <div className="min-w-0 flex-1">
             <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Zadania</h1>
           </div>
+          {push.isSupported && pushSubscribed === false && (
+            <button
+              onClick={async () => {
+                const ok = await push.subscribe();
+                if (ok) setPushSubscribed(true);
+              }}
+              title="Włącz powiadomienia push"
+              className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-colors"
+            >
+              <Bell size={12} /> Powiadomienia
+            </button>
+          )}
           <button
             onClick={() => setShowDone((v) => !v)}
             className={`rounded-full p-2 transition-colors ${showDone ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-surface'}`}
