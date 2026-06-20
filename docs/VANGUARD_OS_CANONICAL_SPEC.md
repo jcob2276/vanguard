@@ -1,6 +1,7 @@
-﻿# Vanguard OS - kanoniczna specyfikacja produktu i architektury
+﻿# Vanguard OS - specyfikacja produktu i architektury (2026-05-15, CZESCIOWO NIEAKTUALNA)
 
-Status dokumentu: 2026-05-15
+> **Stan na 2026-05-15.** Sekcje o aktualnym stanie systemu (8-10, 18-19: stack, tabele, edge functions, co dziala/nie dziala) sa nieaktualne — biezacy stan jest w [`AGENTS.md`](../AGENTS.md), [`VANGUARD_STATE.md`](VANGUARD_STATE.md) i [`supabase/functions/README.md`](../supabase/functions/README.md). Sekcje o filozofii/wizji/ontologii (1-7, 11-17, 20-24) sa wciaz wartosciowe jako kontekst, ale nie sa "canonical" dla runtime.
+
 Cel: ten plik ma byc jednym zrodlem kontekstu dla GPT/Claude/Codex/devow. Ma tlumaczyc, co budujemy, jak dziala obecny system, co jest juz wdrozone, czego brakuje i w jakim kierunku produkt ma isc.
 
 ---

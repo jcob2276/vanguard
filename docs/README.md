@@ -34,10 +34,11 @@ Lean operational docs + links to existing deep context.
 
 ## Deep context (verify against current state)
 
+- [VANGUARD_STATE.md](./VANGUARD_STATE.md) — current state: every tab/component/table that exists (most up to date)
 - [PRODUCT_PRINCIPLES.md](./PRODUCT_PRINCIPLES.md) — full epistemic guardrails
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — architecture in docs/
 - [TECHNICAL.md](./TECHNICAL.md) — technical reference (may be stale)
-- [VANGUARD_OS_CANONICAL_SPEC.md](./VANGUARD_OS_CANONICAL_SPEC.md) — canonical spec
+- [VANGUARD_OS_CANONICAL_SPEC.md](./VANGUARD_OS_CANONICAL_SPEC.md) — product philosophy/vision (2026-05-15, runtime sections stale — see banner in file)
 - [GRAPH_TEMPORAL_STATUS.md](./GRAPH_TEMPORAL_STATUS.md) — graph temporal-status dev invariant
 
 ## Cursor rules
