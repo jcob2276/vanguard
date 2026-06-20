@@ -1251,14 +1251,51 @@ export type Database = {
           },
         ]
       }
+      goal_kpi_snapshots: {
+        Row: {
+          id: string
+          kpi_id: string
+          note: string | null
+          recorded_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          kpi_id: string
+          note?: string | null
+          recorded_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          id?: string
+          kpi_id?: string
+          note?: string | null
+          recorded_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_kpi_snapshots_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "goal_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_kpis: {
         Row: {
           created_at: string | null
+          current_value: number | null
           goal_id: string | null
           higher_is_better: boolean
           id: string
           name: string
           pillar: string
+          project_id: string | null
           sort_order: number
           target: number | null
           unit: string
@@ -1266,11 +1303,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          current_value?: number | null
           goal_id?: string | null
           higher_is_better?: boolean
           id?: string
           name: string
           pillar: string
+          project_id?: string | null
           sort_order?: number
           target?: number | null
           unit?: string
@@ -1278,11 +1317,13 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          current_value?: number | null
           goal_id?: string | null
           higher_is_better?: boolean
           id?: string
           name?: string
           pillar?: string
+          project_id?: string | null
           sort_order?: number
           target?: number | null
           unit?: string
@@ -1294,6 +1335,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_kpis_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1631,6 +1679,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           value?: number
+        }
+        Relationships: []
+      }
+      morning_briefs: {
+        Row: {
+          content: string
+          date: string
+          generated_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          date: string
+          generated_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          date?: string
+          generated_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
