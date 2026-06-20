@@ -173,15 +173,7 @@ serve(async (req) => {
       counts.sleep_hrv = sleepHrvRows.length ? await upsertChunked(supabase, 'oura_sleep_hrv_timeline', sleepHrvRows, 'user_id,sleep_id,ts') : 0
       counts.sleep_phase = sleepPhaseRows.length ? await upsertChunked(supabase, 'oura_sleep_phase_timeline', sleepPhaseRows, 'user_id,sleep_id,ts') : 0
 
-      // ── 5. daily_activity → MET co 1 min ──────────────────────────────────
-      const activity = await fetchAllPages(`${OURA_BASE}/daily_activity?${dateRange}`, headers)
-      const metRows: any[] = []
-      for (const a of activity) {
-        const day = a.day || null
-        expandSeries(a.met).forEach(p =>
-          metRows.push({ user_id: uid, day, ts: p.ts, met: p.value }))
-      }
-      counts.met = metRows.length ? await upsertChunked(supabase, 'oura_activity_met_timeline', metRows, 'user_id,ts') : 0
+      // ── 5. daily_activity (removed as unused MET timeline) ───────────────
 
       // ── 6. workouts ───────────────────────────────────────────────────────
       const workouts = await fetchAllPages(`${OURA_BASE}/workout?${dateRange}`, headers)
@@ -216,6 +208,15 @@ serve(async (req) => {
         raw: s,
       }))
       counts.sessions = sessionRows.length ? await upsertChunked(supabase, 'oura_sessions', sessionRows, 'user_id,oura_id', false) : 0
+
+      // ── 8. Prune high-res timeseries older than 14 days to prevent bloat ───
+      const cutoff = new Date(now.getTime() - 14 * 24 * 3600 * 1000).toISOString()
+      await Promise.all([
+        supabase.from('oura_heartrate').delete().eq('user_id', uid).lt('ts', cutoff),
+        supabase.from('oura_sleep_hr_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
+        supabase.from('oura_sleep_hrv_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
+        supabase.from('oura_sleep_phase_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
+      ]).catch((e: any) => console.warn(`[ts] Prune failed for user ${uid}:`, e.message))
 
       results.push({ user_id: uid, counts })
     }
