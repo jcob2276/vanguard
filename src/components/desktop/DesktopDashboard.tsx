@@ -1,6 +1,5 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import SmartAlerts from './SmartAlerts';
 import WeeklyDigest from './WeeklyDigest';
@@ -10,11 +9,10 @@ import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { format, parseISO, subDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import {
-  RefreshCw, Dumbbell, Smartphone, Moon, Sun, CheckSquare, Square, Trash2, Plus, X,
-  Fingerprint, Check, Star, Sparkles, ImageIcon, ArrowRight, Type
+  RefreshCw, Dumbbell, Smartphone, Moon, Sun, Fingerprint,
 } from 'lucide-react';
 import { createProject } from '../../lib/projects';
 
@@ -25,6 +23,11 @@ import MarathonPanel from './MarathonPanel';
 import IntelligencePanel from './IntelligencePanel';
 import LeniePanelMini from './LeniePanelMini';
 import SprintPanel from './SprintPanel';
+import HexagonPanel from './HexagonPanel';
+import HabitsPanel from './HabitsPanel';
+import DreamsPanel from './DreamsPanel';
+import VisionBoardPanel from './VisionBoardPanel';
+import DreamEditModal from './DreamEditModal';
 
 // Shared helpers and constants
 import {
@@ -516,548 +519,76 @@ export default function DesktopDashboard({ session }: { session: any }) {
         {/* Marathon */}
         <MarathonPanel strava={strava} grid={grid} tick={tick} />
 
+
         {/* Heksagon Życia */}
-        <Panel title="Heksagon Życia — Koło sfer życia (Morita)">
-          <div className="grid grid-cols-[1fr_380px] gap-8 items-center p-2">
-            {/* Left: SVG Hexagon Radar Chart */}
-            <div className="flex justify-center items-center">
-              <svg width={300} height={300} className="overflow-visible">
-                {/* Conic Grid lines */}
-                {[2, 4, 6, 8, 10].map(k => {
-                  const points = [0, 1, 2, 3, 4, 5].map(index => {
-                    const angle = index * (2 * Math.PI / 6) - (Math.PI / 2);
-                    const radius = 110;
-                    const cx = 150;
-                    const cy = 150;
-                    const val = k / 10;
-                    return `${cx + radius * val * Math.cos(angle)},${cy + radius * val * Math.sin(angle)}`;
-                  }).join(' ');
-                  return (
-                    <polygon
-                      key={k}
-                      points={points}
-                      fill="none"
-                      stroke={grid}
-                      strokeWidth="1"
-                      strokeDasharray={k === 10 ? "none" : "2,3"}
-                    />
-                  );
-                })}
-
-                {/* Axis lines */}
-                {[0, 1, 2, 3, 4, 5].map(index => {
-                  const angle = index * (2 * Math.PI / 6) - (Math.PI / 2);
-                  const radius = 110;
-                  const cx = 150;
-                  const cy = 150;
-                  const x = cx + radius * Math.cos(angle);
-                  const y = cy + radius * Math.sin(angle);
-                  return (
-                    <line
-                      key={index}
-                      x1={cx}
-                      y1={cy}
-                      x2={x}
-                      y2={y}
-                      stroke={grid}
-                      strokeWidth="1"
-                    />
-                  );
-                })}
-
-                {/* Value Polygon */}
-                <polygon
-                  points={[0, 1, 2, 3, 4, 5].map(index => {
-                    const keys = ['zdrowie', 'finanse', 'kariera', 'relacje', 'rozwoj', 'duchowosc'];
-                    const score = hexagonScores[keys[index] as keyof typeof hexagonScores] || 5;
-                    const angle = index * (2 * Math.PI / 6) - (Math.PI / 2);
-                    const radius = 110;
-                    const cx = 150;
-                    const cy = 150;
-                    const val = score / 10;
-                    return `${cx + radius * val * Math.cos(angle)},${cy + radius * val * Math.sin(angle)}`;
-                  }).join(' ')}
-                  fill="rgba(79, 70, 229, 0.2)"
-                  stroke="rgba(79, 70, 229, 0.85)"
-                  strokeWidth="2"
-                />
-
-                {/* Value dots */}
-                {[0, 1, 2, 3, 4, 5].map(index => {
-                  const keys = ['zdrowie', 'finanse', 'kariera', 'relacje', 'rozwoj', 'duchowosc'];
-                  const score = hexagonScores[keys[index] as keyof typeof hexagonScores] || 5;
-                  const angle = index * (2 * Math.PI / 6) - (Math.PI / 2);
-                  const radius = 110;
-                  const cx = 150;
-                  const cy = 150;
-                  const val = score / 10;
-                  const x = cx + radius * val * Math.cos(angle);
-                  const y = cy + radius * val * Math.sin(angle);
-                  return (
-                    <circle
-                      key={index}
-                      cx={x}
-                      cy={y}
-                      r="4"
-                      fill="rgb(79, 70, 229)"
-                      stroke={theme === 'dark' ? '#000' : '#fff'}
-                      strokeWidth="1.5"
-                    />
-                  );
-                })}
-
-                {/* Labels */}
-                {[
-                  { label: 'Zdrowie & Ciało', xOffset: 0, yOffset: -15, align: 'middle' },
-                  { label: 'Finanse & Konto', xOffset: 12, yOffset: 5, align: 'start' },
-                  { label: 'Kariera & Praca', xOffset: 12, yOffset: 5, align: 'start' },
-                  { label: 'Relacje', xOffset: 0, yOffset: 15, align: 'middle' },
-                  { label: 'Rozwój Osobisty', xOffset: -12, yOffset: 5, align: 'end' },
-                  { label: 'Duchowość & Ja', xOffset: -12, yOffset: 5, align: 'end' },
-                ].map((lbl, index) => {
-                  const angle = index * (2 * Math.PI / 6) - (Math.PI / 2);
-                  const radius = 110;
-                  const cx = 150;
-                  const cy = 150;
-                  const x = cx + (radius + 10) * Math.cos(angle) + lbl.xOffset;
-                  const y = cy + (radius + 10) * Math.sin(angle) + lbl.yOffset;
-                  return (
-                    <text
-                      key={index}
-                      x={x}
-                      y={y}
-                      textAnchor={lbl.align as 'start' | 'middle' | 'end'}
-                      className="text-[9px] font-black uppercase tracking-wider fill-text-primary"
-                    >
-                      {lbl.label}
-                    </text>
-                  );
-                })}
-              </svg>
-            </div>
-
-            {/* Right: Sliders */}
-            <div className="space-y-3.5">
-              {[
-                { key: 'zdrowie', label: 'Zdrowie & Ciało', desc: 'Stan organizmu, energia, nawyki zdrowotne', color: 'accent-emerald-500' },
-                { key: 'finanse', label: 'Finanse & Konto', desc: 'Zarabianie, oszczędności, inwestycje', color: 'accent-amber-500' },
-                { key: 'kariera', label: 'Kariera & Praca', desc: 'Cele zawodowe, skuteczność, głęboka praca', color: 'accent-indigo-500' },
-                { key: 'relacje', label: 'Relacje', desc: 'Jakość kontaktu z bliskimi, brak samotności', color: 'accent-pink-500' },
-                { key: 'rozwoj', label: 'Rozwój Osobisty', desc: 'Nowe umiejętności, 1% lepszy każdego dnia', color: 'accent-sky-500' },
-                { key: 'duchowosc', label: 'Duchowość & Czas dla siebie', desc: 'Spokój wewnętrzny, medytacja, obecność', color: 'accent-violet-500' },
-              ].map(item => (
-                <div key={item.key} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-text-primary">{item.label}</span>
-                    <span className="font-black text-primary font-display">{hexagonScores[item.key as keyof typeof hexagonScores] || 5}/10</span>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={hexagonScores[item.key as keyof typeof hexagonScores] || 5}
-                      onChange={e => {
-                        const val = parseInt(e.target.value);
-                        setHexagonScores(prev => ({ ...prev, [item.key]: val }));
-                      }}
-                      className={`w-full h-1 bg-border-custom rounded-lg appearance-none cursor-pointer ${item.color}`}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <div className="pt-2">
-                <button
-                  onClick={saveHexagonScores}
-                  disabled={savingHexagon}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {savingHexagon ? 'Zapisywanie...' : 'Zapisz oceny sfer życia 🎯'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </Panel>
+        <HexagonPanel
+          hexagonScores={hexagonScores}
+          setHexagonScores={setHexagonScores}
+          saveHexagonScores={saveHexagonScores}
+          savingHexagon={savingHexagon}
+          theme={theme}
+          grid={grid}
+        />
 
         {/* Lenie + Nawyki side by side */}
         <div className="grid grid-cols-2 gap-4">
           <LeniePanelMini logs={lenieLogs} userId={userId} accessToken={accessToken} />
-          <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Nawyki</p>
-              <button onClick={() => setIsAddingHabit(p => !p)} className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary border border-primary/20 bg-primary/5 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-all cursor-pointer">
-                <Plus size={10} /> Dodaj
-              </button>
-            </div>
-            {isAddingHabit && (
-              <div className="space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
-                  <button onClick={() => setIsAddingHabit(false)} className="text-text-muted hover:text-text-primary"><X size={13} /></button>
-                </div>
-                <div className="grid grid-cols-[44px_1fr] gap-2">
-                  <input value={newHabit.icon} onChange={e => setNewHabit(p => ({ ...p, icon: e.target.value }))} className="rounded-lg border border-border-custom bg-surface p-2 text-center text-[13px] font-black text-text-primary outline-none focus:border-primary/50" placeholder="✅" />
-                  <input value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} className="rounded-lg border border-border-custom bg-surface px-3 py-2 text-[11px] font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50" placeholder="Nazwa" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400' : 'border-border-custom text-text-muted'}`}>Wzmacniać</button>
-                  <button onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-rose-500/35 bg-rose-500/10 text-rose-400' : 'border-border-custom text-text-muted'}`}>Unikać</button>
-                </div>
-                <button onClick={addHabit} className="w-full rounded-lg bg-primary py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">Dodaj</button>
-              </div>
-            )}
-            <div className="space-y-2">
-              {habits.map(habit => {
-                const today = getTodayWarsaw();
-                const doneToday = habitLogs.some(l => l.habit_id === habit.id && l.date === today);
-                return (
-                  <div key={habit.id} className="rounded-[14px] border border-border-custom bg-surface p-3">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[14px] shrink-0">{habit.icon || '✅'}</span>
-                        <div className="min-w-0">
-                          <p className="truncate text-[10px] font-black uppercase text-text-primary">{habit.name}</p>
-                          <p className="text-[7px] font-bold uppercase tracking-widest text-text-muted">{habit.is_positive ? 'wzmacniać' : 'unikać'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => toggleHabit(habit.id)} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-rose-500 bg-rose-500 text-white') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
-                          {doneToday ? <CheckSquare size={14} /> : <Square size={14} />}
-                        </button>
-                        <button onClick={() => deleteHabit(habit.id)} className="p-1.5 text-text-muted/40 hover:text-rose-500 rounded-lg cursor-pointer"><Trash2 size={11} /></button>
-                      </div>
-                    </div>
-                    <div className="flex h-2 gap-0.5 overflow-hidden">
-                      {Array.from({ length: 30 }).map((_, i) => {
-                        const d = subDays(new Date(), 29 - i).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-                        const has = habitLogs.some(l => l.habit_id === habit.id && l.date === d);
-                        const ok = habit.is_positive ? has : !has;
-                        return <div key={d} className={`flex-1 rounded-sm ${d === today && !has ? 'border border-border-custom' : ok ? 'bg-emerald-500' : 'bg-rose-500'}`} />;
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-              {habits.length === 0 && <p className="text-[9px] text-text-muted/50 text-center py-3">Brak nawyków — dodaj pierwszy</p>}
-            </div>
-          </div>
+          <HabitsPanel
+            habits={habits}
+            habitLogs={habitLogs}
+            isAddingHabit={isAddingHabit}
+            setIsAddingHabit={setIsAddingHabit}
+            newHabit={newHabit}
+            setNewHabit={setNewHabit}
+            addHabit={addHabit}
+            deleteHabit={deleteHabit}
+            toggleHabit={toggleHabit}
+          />
         </div>
 
         {/* Lista 200 Marzeń */}
-        <Panel title="">
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Lista Marzeń</p>
-                <p className="mt-0.5 font-display text-[15px] font-black tracking-tight text-text-primary leading-none">
-                  200 Marzeń
-                  <span className="ml-2 text-[11px] font-bold text-text-muted">
-                    {doneDreams > 0 ? `${doneDreams} zrealizowanych` : `${dreams.length} zapisanych`}
-                  </span>
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddingDream(p => !p)}
-                className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
-              >
-                <Plus size={11} /> Dodaj marzenie
-              </button>
-            </div>
+        <DreamsPanel
+          dreams={dreams}
+          doneDreams={doneDreams}
+          top5Dreams={top5Dreams}
+          filteredDreams={filteredDreams}
+          dreamFilter={dreamFilter}
+          setDreamFilter={setDreamFilter}
+          isAddingDream={isAddingDream}
+          setIsAddingDream={setIsAddingDream}
+          newDreamTitle={newDreamTitle}
+          setNewDreamTitle={setNewDreamTitle}
+          newDreamCategory={newDreamCategory}
+          setNewDreamCategory={setNewDreamCategory}
+          newDreamLifeGoal={newDreamLifeGoal}
+          setNewDreamLifeGoal={setNewDreamLifeGoal}
+          addDream={addDream}
+          openDreamModal={openDreamModal}
+          toggleDream={toggleDream}
+          deleteDream={deleteDream}
+          dreamToProject={dreamToProject}
+          projectByDreamId={projectByDreamId}
+          DREAM_CATEGORIES={DREAM_CATEGORIES}
+          DREAM_CAT_LABEL={DREAM_CAT_LABEL}
+          DREAM_CAT_COLOR={DREAM_CAT_COLOR}
+        />
 
-            {/* Add form */}
-            {isAddingDream && (
-              <div className="rounded-xl border border-primary/15 bg-primary/[0.03] p-3.5 space-y-2.5">
-                <div className="flex gap-2">
-                  <input
-                    autoFocus
-                    value={newDreamTitle}
-                    onChange={e => setNewDreamTitle(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addDream()}
-                    placeholder="Wpisz marzenie..."
-                    className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
-                  />
-                  <select
-                    value={newDreamCategory}
-                    onChange={e => setNewDreamCategory(e.target.value)}
-                    className="rounded-xl border border-border-custom bg-surface px-3 py-2 text-[11px] font-bold text-text-secondary outline-none focus:border-primary cursor-pointer"
-                  >
-                    {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
-                      <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
-                    ))}
-                  </select>
-                  <button onClick={addDream} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">
-                    Dodaj
-                  </button>
-                  <button onClick={() => setIsAddingDream(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer">
-                    <X size={13} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cel:</span>
-                  {([['cialo', 'Ciało', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'], ['duch', 'Duch', 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500'], ['konto', 'Konto', 'border-amber-500/40 bg-amber-500/10 text-amber-600']] as [string, string, string][]).map(([val, label, active]) => (
-                    <button key={val} onClick={() => setNewDreamLifeGoal(newDreamLifeGoal === val ? null : val)}
-                      className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${newDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top 5 Marzeń */}
-            {top5Dreams.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 flex items-center gap-1.5">
-                  <Star size={9} fill="currentColor" /> Top 5 Marzeń
-                </p>
-                <div className="space-y-1.5">
-                  {top5Dreams.map(dream => (
-                    <div key={dream.id} className="flex items-center gap-2.5 rounded-[14px] border border-amber-500/20 bg-amber-500/[0.04] px-3.5 py-2.5">
-                      <Star size={10} className="shrink-0 text-amber-500" fill="currentColor" />
-                      <button onClick={() => openDreamModal(dream)} className="flex-1 text-left text-[11px] font-bold text-text-primary hover:text-primary truncate cursor-pointer">
-                        {dream.title}
-                      </button>
-                      {dream.description && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary/40" title="Ma wizję" />}
-                      <span className={`text-[7px] font-black uppercase tracking-widest shrink-0 ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>{dream.category}</span>
-                      {projectByDreamId[dream.id] ? (
-                        <span className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/[0.04] px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary/70">
-                          <ArrowRight size={9} /> {projectByDreamId[dream.id].name}
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => dreamToProject(dream)}
-                          className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                        >
-                          <ArrowRight size={9} /> Projekt
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-border-custom" />
-              </div>
-            )}
-
-            {/* Category filter */}
-            <div className="flex gap-1.5 flex-wrap">
-              {DREAM_CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setDreamFilter(cat)}
-                  className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                    dreamFilter === cat
-                      ? 'border-primary/30 bg-primary/10 text-primary'
-                      : 'border-border-custom text-text-muted hover:border-text-secondary hover:text-text-secondary'
-                  }`}
-                >
-                  {DREAM_CAT_LABEL[cat]}
-                  {cat !== 'all' && dreams.filter(d => d.category === cat).length > 0 && (
-                    <span className="ml-1 opacity-60">{dreams.filter(d => d.category === cat).length}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Dreams list */}
-            {filteredDreams.length === 0 ? (
-              <p className="py-6 text-center text-[11px] text-text-muted/50">
-                {dreams.length === 0 ? 'Zacznij od zapisania pierwszego marzenia' : 'Brak marzeń w tej kategorii'}
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-1.5 max-h-[480px] overflow-y-auto pr-1">
-                {filteredDreams.map(dream => (
-                  <div
-                    key={dream.id}
-                    onClick={() => openDreamModal(dream)}
-                    className={`group flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5 transition-all cursor-pointer ${
-                      dream.is_done
-                        ? 'border-emerald-500/15 bg-emerald-500/[0.04] opacity-60'
-                        : dream.is_top5
-                        ? 'border-amber-500/15 bg-amber-500/[0.02] hover:border-amber-500/30'
-                        : 'border-border-custom bg-surface hover:border-primary/20'
-                    }`}
-                  >
-                    <button
-                      onClick={e => { e.stopPropagation(); toggleDream(dream); }}
-                      className={`shrink-0 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 transition-all cursor-pointer ${
-                        dream.is_done
-                          ? 'border-emerald-500 bg-emerald-500 text-white'
-                          : 'border-border-custom hover:border-primary'
-                      }`}
-                    >
-                      {dream.is_done && <Check size={9} strokeWidth={3} />}
-                    </button>
-                    <p className={`flex-1 text-[11px] font-semibold leading-snug min-w-0 truncate ${dream.is_done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
-                      {dream.title}
-                    </p>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {dream.is_top5 && !dream.is_done && <Star size={8} className="text-amber-500" fill="currentColor" />}
-                      {dream.description && <span className="w-1 h-1 rounded-full bg-primary/40" />}
-                      {projectByDreamId[dream.id] && (
-                        <span className="text-[7px] font-black uppercase tracking-widest text-primary/60 border border-primary/20 rounded px-1 py-0.5">
-                          proj
-                        </span>
-                      )}
-                      <span className={`text-[7px] font-black uppercase tracking-widest ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>
-                        {dream.category}
-                      </span>
-                      <button
-                        onClick={e => { e.stopPropagation(); deleteDream(dream.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Progress bar */}
-            {dreams.length > 0 && (
-              <div className="space-y-1.5 pt-1 border-t border-border-custom">
-                <div className="flex justify-between text-[8px] font-bold text-text-muted uppercase tracking-widest">
-                  <span>{doneDreams} zrealizowanych</span>
-                  <span>{dreams.length} / 200</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-border-custom overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
-                    style={{ width: `${Math.min((dreams.length / 200) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </Panel>
 
         {/* Vision Board */}
-        <Panel title="">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Wizualizacja</p>
-                <p className="mt-0.5 font-display text-[15px] font-black tracking-tight text-text-primary leading-none">
-                  Vision Board
-                  <span className="ml-2 text-[11px] font-bold text-text-muted">{visionItems.length} elementów</span>
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddingVision(p => !p)}
-                className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
-              >
-                <Plus size={11} /> Dodaj
-              </button>
-            </div>
-
-            {/* Add form */}
-            {isAddingVision && (
-              <div className="rounded-xl border border-primary/15 bg-primary/[0.03] p-3.5 space-y-2.5">
-                {/* Type selector */}
-                <div className="flex gap-1.5">
-                  {[
-                    { v: 'affirmation', label: 'Afirmacja', icon: <Sparkles size={10} /> },
-                    { v: 'image',       label: 'Obraz (URL)', icon: <ImageIcon size={10} /> },
-                    { v: 'word',        label: 'Słowo',    icon: <Type size={10} /> },
-                  ].map(({ v, label, icon }) => (
-                    <button
-                      key={v}
-                      onClick={() => setNewVisionType(v)}
-                      className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                        newVisionType === v ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom text-text-muted hover:text-text-secondary'
-                      }`}
-                    >
-                      {icon} {label}
-                    </button>
-                  ))}
-                </div>
-                {/* Color selector */}
-                <div className="flex gap-1.5 items-center">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">Kolor:</span>
-                  {Object.keys(VB_COLORS).map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setNewVisionColor(c)}
-                      className={`w-5 h-5 rounded-full border-2 transition-all cursor-pointer ${VB_COLORS[c].bg} ${newVisionColor === c ? 'border-primary scale-125' : 'border-transparent hover:scale-110'}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    autoFocus
-                    value={newVisionContent}
-                    onChange={e => setNewVisionContent(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addVisionItem()}
-                    placeholder={newVisionType === 'image' ? 'URL obrazka...' : newVisionType === 'word' ? 'Jedno słowo...' : 'Afirmacja: Jestem...'}
-                    className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
-                  />
-                  <button onClick={addVisionItem} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">
-                    Dodaj
-                  </button>
-                  <button onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer">
-                    <X size={13} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Board grid */}
-            {visionItems.length === 0 ? (
-              <div className="py-8 text-center space-y-2">
-                <Sparkles size={20} className="mx-auto text-text-muted/30" />
-                <p className="text-[11px] text-text-muted/50">Dodaj afirmacje, obrazy i słowa które cię inspirują</p>
-              </div>
-            ) : (
-              <div className="columns-2 gap-2 space-y-0">
-                {visionItems.map(item => {
-                  const c = VB_COLORS[item.color] || VB_COLORS.indigo;
-                  return (
-                    <div key={item.id} className="group relative break-inside-avoid mb-2">
-                      {item.type === 'image' ? (
-                        <div className="relative overflow-hidden rounded-[14px] border border-border-custom bg-surface">
-                          <img
-                            src={item.content}
-                            alt=""
-                            className="w-full object-cover"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <button
-                            onClick={() => deleteVisionItem(item.id)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-all cursor-pointer"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ) : item.type === 'word' ? (
-                        <div className={`relative flex items-center justify-center rounded-[14px] border ${c.border} ${c.bg} px-4 py-5`}>
-                          <p className={`font-display text-[22px] font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
-                          <button
-                            onClick={() => deleteVisionItem(item.id)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className={`relative rounded-[14px] border ${c.border} ${c.bg} px-3.5 py-4`}>
-                          <p className={`text-[12px] font-bold leading-snug ${c.text}`}>{item.content}</p>
-                          <button
-                            onClick={() => deleteVisionItem(item.id)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </Panel>
+        <VisionBoardPanel
+          visionItems={visionItems}
+          isAddingVision={isAddingVision}
+          setIsAddingVision={setIsAddingVision}
+          newVisionType={newVisionType}
+          setNewVisionType={setNewVisionType}
+          newVisionColor={newVisionColor}
+          setNewVisionColor={setNewVisionColor}
+          newVisionContent={newVisionContent}
+          setNewVisionContent={setNewVisionContent}
+          addVisionItem={addVisionItem}
+          deleteVisionItem={deleteVisionItem}
+          VB_COLORS={VB_COLORS}
+        />
 
         {/* Intelligence — conclusions, not data */}
         <IntelligencePanel
@@ -1068,104 +599,25 @@ export default function DesktopDashboard({ session }: { session: any }) {
       </main>
     </div>
 
-    {/* Dream edit modal */}
-    {editingDream && createPortal(
-      <div
-        className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
-        onClick={() => setEditingDream(null)}
-      >
-        <div
-          className="w-full max-w-lg rounded-[24px] border border-border-custom bg-surface p-6 shadow-2xl space-y-4"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-primary" />
-              <h2 className="font-display text-[15px] font-black text-text-primary">Pogłęb wizję</h2>
-            </div>
-            <button onClick={() => setEditingDream(null)} className="text-text-muted hover:text-text-primary cursor-pointer transition-colors">
-              <X size={16} />
-            </button>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
-            <input
-              value={editDreamTitle}
-              onChange={e => setEditDreamTitle(e.target.value)}
-              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary"
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <div className="space-y-1.5 flex-1">
-              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
-              <select
-                value={editDreamCat}
-                onChange={e => setEditDreamCat(e.target.value)}
-                className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary cursor-pointer"
-              >
-                {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
-                  <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
-              <div className="flex gap-1.5">
-                {([['cialo', 'Ciało', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'], ['duch', 'Duch', 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500'], ['konto', 'Konto', 'border-amber-500/40 bg-amber-500/10 text-amber-600']] as [string, string, string][]).map(([val, label, active]) => (
-                  <button key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
-                    className={`rounded-xl border px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
-              Wizja — jak się czujesz gdy to osiągasz?
-            </label>
-            <textarea
-              value={editDreamDesc}
-              onChange={e => setEditDreamDesc(e.target.value)}
-              placeholder="Opisz jak to wygląda, jak się czujesz, co widzisz, słyszysz, czujesz w tym momencie..."
-              rows={5}
-              className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary resize-none placeholder:text-text-muted/40"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={saveDreamEdit}
-              disabled={savingDream || !editDreamTitle.trim()}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40"
-            >
-              <Check size={11} strokeWidth={2.5} /> Zapisz wizję
-            </button>
-            <button
-              onClick={() => { toggleTop5(editingDream); setEditingDream((prev: any) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
-              className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                editingDream.is_top5
-                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
-                  : 'border-border-custom text-text-muted hover:border-amber-500/30 hover:text-amber-500'
-              }`}
-            >
-              <Star size={11} fill={editingDream.is_top5 ? 'currentColor' : 'none'} />
-              Top 5
-            </button>
-            <button
-              onClick={() => { deleteDream(editingDream.id); }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/20 text-rose-400/50 hover:text-rose-500 hover:border-rose-500/30 transition-all cursor-pointer"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    )}
+    <DreamEditModal
+      editingDream={editingDream}
+      setEditingDream={setEditingDream}
+      editDreamTitle={editDreamTitle}
+      setEditDreamTitle={setEditDreamTitle}
+      editDreamCat={editDreamCat}
+      setEditDreamCat={setEditDreamCat}
+      editDreamLifeGoal={editDreamLifeGoal}
+      setEditDreamLifeGoal={setEditDreamLifeGoal}
+      editDreamDesc={editDreamDesc}
+      setEditDreamDesc={setEditDreamDesc}
+      saveDreamEdit={saveDreamEdit}
+      savingDream={savingDream}
+      toggleTop5={toggleTop5}
+      deleteDream={deleteDream}
+      DREAM_CATEGORIES={DREAM_CATEGORIES}
+      DREAM_CAT_LABEL={DREAM_CAT_LABEL}
+    />
     </>
   );
 }
