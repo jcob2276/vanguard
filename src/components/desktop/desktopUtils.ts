@@ -1,6 +1,5 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import { format, parseISO, startOfWeek, differenceInDays } from 'date-fns';
-import { Target, Zap, Briefcase } from 'lucide-react';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const RACE_DATE = new Date('2026-10-04T09:00:00+02:00');
@@ -13,16 +12,6 @@ export const C = {
   violet: '#a78bfa'
 };
 
-export const LIMITER_PL = {
-  sleep: 'sen',
-  calories: 'kalorie',
-  carbs: 'węgle',
-  cardio_load: 'cardio',
-  strength_load: 'siłownia',
-  mental_load: 'głowa',
-  recovery_ok: 'OK'
-};
-
 export const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
 
 export const isLogWellness = (l: any) =>
@@ -31,7 +20,7 @@ export const isLogWellness = (l: any) =>
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 export const daysBefore = (n: number) =>
-  new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  formatWarsawDate(new Date(getTodayWarsaw() + 'T12:00:00').getTime() - n * 86400000);
 
 export const avg = (arr: number[]) =>
   arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
@@ -49,16 +38,6 @@ export function sessionVol(s: any) {
     if (isLogWellness(l)) return sum;
     return sum + (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
   }, 0);
-}
-
-export function sessionMuscles(s: any) {
-  const seen = new Set();
-  (s.exercise_logs || []).forEach((l: any) =>
-    (l.muscle_tags || []).forEach((t: any) => {
-      if (t !== 'wellness') seen.add(t);
-    })
-  );
-  return [...seen].slice(0, 3).join(', ') || '—';
 }
 
 export function weeklyVolume(sessions: any[]) {
@@ -90,20 +69,6 @@ export function weeklyRunKm(strava: any[]) {
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-12)
     .map(([k, v]) => ({ week: format(dates[k], 'dd.MM'), km: Math.round(v / 100) / 10 }));
-}
-
-export function cockpitDecision(status: any, limiter: any, strain: any, provisional: any) {
-  const fuelLimiter = limiter === 'calories' || limiter === 'carbs';
-  if (status === 'green') return 'Możesz cisnąć — wszystko na zielono';
-  if (status === 'red') {
-    if (limiter === 'sleep') return 'Zadedykuj czas na sen i odpoczynek';
-    if (fuelLimiter && !provisional) return 'Uzupełnij energię — niski bilans';
-    return 'Ładowanie baterii / Regeneracja';
-  }
-  if (limiter === 'sleep') return 'Umiarkowanie — sen poniżej normy';
-  if (fuelLimiter && !provisional) return 'Umiarkowanie — dobierz kalorie';
-  if (limiter === 'cardio_load' || limiter === 'strength_load') return 'Umiarkowanie — wczoraj duży koszt';
-  return (strain || 0) < 8 ? 'Lekki dzień — jest zapas' : 'Umiarkowanie — monitoruj';
 }
 
 export function computeDigest(sessions: any[], oura: any[], strava: any[]) {
@@ -372,48 +337,6 @@ export function computeWeekStreak(sessions: any[]) {
   }
   return streak;
 }
-
-// ── Projects & Goals config ──────────────────────────────────────────────────
-export const STATUS_CFG: Record<string, { dot: string; badge: string; label: string }> = {
-  doing: { dot: 'bg-sky-500', badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20', label: 'W toku' },
-  done: { dot: 'bg-emerald-500', badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Done' },
-  blocked: { dot: 'bg-rose-500', badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20', label: 'Blokada' },
-  todo: { dot: 'bg-text-muted', badge: 'bg-surface border-border-custom text-text-muted', label: 'Plan' }
-};
-
-export const SENSE_CFG: Record<string, { label: string; cls: string }> = {
-  sense: { label: 'Sens', cls: 'text-emerald-500 border-emerald-500/30 bg-emerald-500/[0.06]' },
-  unsure: { label: 'Niepewny', cls: 'text-amber-500 border-amber-500/30 bg-amber-500/[0.06]' },
-  cut: { label: 'Odcięty', cls: 'text-rose-500 border-rose-500/30 bg-rose-500/[0.06]' },
-  completed: { label: 'Gotowe', cls: 'text-text-muted border-border-custom bg-surface' }
-};
-
-export const LIFE_PILLARS = [
-  {
-    key: 'goal_cialo',
-    dateKey: 'date_cialo',
-    label: 'Ciało',
-    color: 'text-emerald-500',
-    borderBg: 'bg-emerald-500/[0.05] border-emerald-500/20',
-    Icon: Target
-  },
-  {
-    key: 'goal_duch',
-    dateKey: 'date_duch',
-    label: 'Duch',
-    color: 'text-indigo-400',
-    borderBg: 'bg-indigo-500/[0.05] border-indigo-500/20',
-    Icon: Zap
-  },
-  {
-    key: 'goal_konto',
-    dateKey: 'date_konto',
-    label: 'Konto',
-    color: 'text-amber-400',
-    borderBg: 'bg-amber-500/[0.05] border-amber-500/20',
-    Icon: Briefcase
-  }
-];
 
 // ── Intelligence Panel config ─────────────────────────────────────────────────
 export const INTEL_CFG: Record<

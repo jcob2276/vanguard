@@ -14,7 +14,6 @@ type FootprintPayload = {
 
 /**
  * AI CONTEXT 3.1 - Unified & Complete Bridge
- * Fixed in turn 81: Now provides 1:1 identical STATE_VECTOR as AIInsight.
  */
 export async function gatherUserContext(session: any) {
   if (!session?.user?.id) return "Brak sesji użytkownika.";
@@ -128,7 +127,6 @@ export async function gatherUserContext(session: any) {
     };
     // ────────────────────────────────────────────────────────────────────────
 
-    // 1:1 Identical Vector with AIInsight.tsx
     const stateVector = {
       state: vanguardState,
       stability_score: stabilityScore,
