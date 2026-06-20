@@ -43,6 +43,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-midday-check` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 | `vanguard-daily-reconciliation` | **active** | pg_cron (~21:30 Warsaw; confirm `cron.job`) + manual `/koniec` | **false** | `daily_reconciliations`, `vanguard_stream`, `friction_events` | 219 | 2026-06-12 |
 | `vanguard-auto-classify` | **active** | DB trigger / cron on new stream rows | **false** | `vanguard_stream`, `friction_events` | 332 | 2026-06-11 |
+| `vanguard-push-reminder` | **manual** | pg_cron every minute | **false** | `todo_items`, `push_subscriptions` | 70 | 2026-06-20 |
 
 ### Vanguard Core Evidence and Graph
 
@@ -60,6 +61,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 387 | 2026-06-11 |
 | `vanguard-briefing` | **manual** | HTTP POST `{ userId }`; long LLM briefing to Telegram | true | `user_fundament`, `vanguard_stream`, `friction_events`, aggregates | 235 | 2026-06-11 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
+| `vanguard-weekly-brief` | **active** | Frontend Weekly Review trigger | true | `weekly_kpi_reviews`, `goal_kpis`, `kpi_entries`, `projects`, `daily_wins` | 191 | 2026-06-20 |
 | `vanguard-friction-qa` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 
 > **Noon note:** the useful 12:00 Telegram flow is `vanguard-eval-interview` ("Wywiad"), not the legacy `vanguard-midday-check`.
@@ -75,6 +77,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-backfill` | **manual** | HTTP embeddings/history backfill | true | `vanguard_stream`, `vanguard_knowledge` | 71 | 2026-06-11 |
 | `vanguard-debug-retrieval` | **manual** | HTTP debug RAG retrieval | true | `vanguard_knowledge`, `vanguard_entity_links` | 38 | 2026-06-11 |
 | `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
+| `vanguard-goal-create` | **active** | Frontend Goal suggestion trigger | true | none (calls DeepSeek only) | 85 | 2026-06-20 |
 
 ## `vanguard-telegram` Handler Map
 
