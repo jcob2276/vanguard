@@ -121,6 +121,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
   useEffect(() => {
     push.isSubscribed().then(setPushSubscribed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

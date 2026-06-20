@@ -38,7 +38,7 @@ const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
-const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
+
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
@@ -176,13 +176,7 @@ export default function Dashboard({ session }: { session: Session }) {
     );
   }
 
-  if (view === 'morning-ritual') {
-    return (
-      <Suspense fallback={<ViewFallback />}>
-        <MorningRitual session={session} onBack={() => { setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis'); refresh(); }} />
-      </Suspense>
-    );
-  }
+
 
   if (view === 'weekly-review') {
     return (
