@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 
@@ -228,15 +229,40 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
   const byCategory: Record<string, { passed: number; total: number; avg_score: number; total_score: number }> = {};
 
   try {
-    const { data: recentBiometrics } = await supabase
-      .from('vanguard_daily_aggregates')
-      .select('date, final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index, readiness_score, sleep_score, activity_score')
-      .eq('user_id', user_id)
-      .order('date', { ascending: false })
-      .limit(7);
+    const todayWarsawDate = getWarsawDateString();
+    const [{ data: recentBiometrics }, { data: todayWin }, { data: planRows }] = await Promise.all([
+      supabase
+        .from('vanguard_daily_aggregates')
+        .select('date, final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index, readiness_score, sleep_score, activity_score')
+        .eq('user_id', user_id)
+        .order('date', { ascending: false })
+        .limit(7),
+      supabase
+        .from('daily_wins')
+        .select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result')
+        .eq('user_id', user_id)
+        .eq('date', todayWarsawDate)
+        .maybeSingle(),
+      supabase
+        .from('daily_reconciliations')
+        .select('planning_summary, answered_at')
+        .eq('user_id', user_id)
+        .not('planning_summary', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
 
+    const todayPlan = (planRows || []).find((r: any) =>
+      r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+    )?.planning_summary || null;
+
+    // Mirrors the live Oracle call's state_vector shape (see _router/messages.ts) so
+    // eval conditions stay representative of production — a thinner vector here
+    // previously understated category `relation_reasoning` scores.
     const stateVector = {
       biometrics: recentBiometrics || [],
+      discipline: { today_wins: todayWin || 'Nie ustawiono celów' },
+      ...(todayPlan ? { today_plan: todayPlan } : {}),
       eval_context: {
         source: 'vanguard_eval_runner',
         biometrics_days: recentBiometrics?.length || 0

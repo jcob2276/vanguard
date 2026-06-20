@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Activity, Flame, Moon, X, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -52,7 +52,7 @@ type DayDetail = {
 
 export default function WeeklyAnalytics({ session }: { session: any }) {
   const userId = session?.user?.id;
-  const days = last7Days();
+  const days = useMemo(() => last7Days(), []);
   const todayStr = days[6];
 
   const [strain, setStrain] = useState<Record<string, number>>({});
@@ -124,7 +124,7 @@ export default function WeeklyAnalytics({ session }: { session: any }) {
       if (targetRow?.target_kcal) setKcalTarget(Number(targetRow.target_kcal));
       setLoading(false);
     });
-  }, [userId]);
+  }, [userId, days]);
 
   const maxStrain = Math.max(10, ...Object.values(strain));
   const maxSleep = 10;

@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../lib/date';
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -41,7 +42,7 @@ export const useStore = create<VanguardStore>((set, get) => ({
     const { session } = get();
     if (!session) return;
     
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getTodayWarsaw();
     const { data } = await supabase
       .from('daily_wins')
       .select('*')

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { differenceInDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 import {
   AlertCircle,
   Archive,
@@ -30,9 +32,7 @@ import {
 
 function relativeDate(iso: string): string {
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
+  const diffDays = differenceInDays(new Date(getTodayWarsaw() + 'T00:00:00'), new Date(formatWarsawDate(d) + 'T00:00:00'));
   if (diffDays === 0) return 'dziś';
   if (diffDays === 1) return 'wczoraj';
   if (diffDays < 7) return `${diffDays} dni temu`;
@@ -445,7 +445,7 @@ function RichEditor({
         const text = node.textContent || '';
         const offset = selection.anchorOffset;
         const textBefore = text.slice(0, offset);
-        if (/^(?:\- \[ \]|\- \[\]|\[\]|\* \[ \])\s*$/.test(textBefore)) {
+        if (/^(?:- \[ \]|- \[\]|\[\]|\* \[ \])\s*$/.test(textBefore)) {
           e.preventDefault();
           const range = selection.getRangeAt(0);
           range.setStart(node, 0);
@@ -1069,8 +1069,11 @@ function NoteCard({
             if (target.classList.contains('keep-todo-checkbox')) {
               e.stopPropagation();
               e.preventDefault();
+              // Clone from the live DOM (not the `note.content` prop closure) so a
+              // second rapid toggle can't overwrite an in-flight first toggle with
+              // stale content before React re-renders with the updated note.
               const container = document.createElement('div');
-              container.innerHTML = note.content;
+              container.innerHTML = e.currentTarget.innerHTML;
               const checkboxes = Array.from(e.currentTarget.querySelectorAll('.keep-todo-checkbox'));
               const index = checkboxes.indexOf(target);
               if (index !== -1) {
@@ -1329,15 +1332,18 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   };
 
   const handleUpdate = async (id: string, patch: Partial<Note>) => {
+    const updatedAt = new Date().toISOString();
     try {
       const { error: err } = await (supabase as any)
         .from('vanguard_notes')
-        .update({ ...patch, updated_at: new Date().toISOString() })
+        .update({ ...patch, updated_at: updatedAt })
         .eq('id', id);
       if (err && !(err.code === 'PGRST205')) throw err;
-      setNotes(prev =>
-        sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: new Date().toISOString() } : n)))
-      );
+      setNotes(prev => {
+        const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
+        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
     } catch (e: any) {
       setError(e.message);
     }
@@ -1348,7 +1354,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     try {
       const { error: err } = await (supabase as any).from('vanguard_notes').delete().eq('id', id);
       if (err && !(err.code === 'PGRST205')) throw err;
-      setNotes(prev => prev.filter(n => n.id !== id));
+      setNotes(prev => {
+        const updated = prev.filter(n => n.id !== id);
+        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1364,7 +1374,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         .update({ is_pinned: next })
         .eq('id', note.id);
       if (err && !(err.code === 'PGRST205')) throw err;
-      setNotes(prev => sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n))));
+      setNotes(prev => {
+        const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
+        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
     } catch (e: any) {
       setError(e.message);
     }

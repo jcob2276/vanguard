@@ -1,3 +1,5 @@
+import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
+
 export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }: { supabase: any; supabaseUrl: string; userId: string; days?: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   const response = await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
@@ -16,8 +18,8 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
   const body = analyzePeriod === 1
     ? { userId, date: analyzeDate }
     : (() => {
-        const to = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const from = new Date(Date.now() - (analyzePeriod - 1) * 864e5).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const to = getTodayWarsaw();
+        const from = formatWarsawDate(Date.now() - (analyzePeriod - 1) * 864e5);
         return { userId, dateFrom: from, dateTo: to };
       })();
 

@@ -283,7 +283,7 @@ Zwróć WYŁĄCZNIE JSON:
     }
 
     return new Response(
-      JSON.stringify({ success: true, date: today, signals, verdict, verdictError, notified }),
+      JSON.stringify({ success: !upErr, date: today, signals, verdict, verdictError, notified, persistError: upErr?.message ?? null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {

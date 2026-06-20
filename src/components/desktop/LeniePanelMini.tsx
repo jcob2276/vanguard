@@ -1,0 +1,64 @@
+import React from 'react';
+import { computeLenieInsight, daysBefore } from './desktopUtils';
+
+export type LenieLog = {
+  date: string;
+  final_stimulus?: string | null;
+  context_note?: string | null;
+};
+
+export interface LeniePanelMiniProps {
+  logs?: LenieLog[];
+  userId?: string | null;
+  accessToken?: string | null;
+}
+
+export default function LeniePanelMini({ logs, userId = null, accessToken = null }: LeniePanelMiniProps) {
+  const totalMonth = (logs || []).filter(l => l.date >= daysBefore(30)).length;
+  const totalWeek = (logs || []).filter(l => l.date >= daysBefore(7)).length;
+  const lastDate = (logs || [])[0]?.date ?? null;
+  const daysFree = lastDate ? Math.floor((Date.now() - new Date(lastDate + 'T12:00:00').getTime()) / 86400000) : null;
+  const freeColor =
+    daysFree === null
+      ? 'text-text-muted'
+      : daysFree === 0
+      ? 'text-rose-500'
+      : daysFree <= 2
+      ? 'text-amber-400'
+      : 'text-emerald-500';
+
+  const insight = computeLenieInsight(logs || []);
+
+  if (!logs?.length) return null;
+
+  return (
+    <div className="rounded-[20px] border border-rose-500/15 bg-rose-500/[0.025] px-6 py-4 flex items-center gap-8">
+      <p className="text-[8px] font-black uppercase tracking-[0.25em] text-rose-500/50 shrink-0">Lenie</p>
+
+      <div className="flex items-center gap-6 shrink-0">
+        {[
+          { label: 'Ten tydzień', val: totalWeek, color: totalWeek > 0 ? 'text-rose-500' : 'text-emerald-500' },
+          { label: '30 dni', val: totalMonth, color: 'text-text-secondary' },
+          {
+            label: 'Czyste dni',
+            val: daysFree === 0 ? 'dziś' : daysFree !== null ? `${daysFree}d` : '—',
+            color: freeColor
+          }
+        ].map(({ label, val, color }) => (
+          <div key={label} className="text-center">
+            <p className="text-[7px] font-black uppercase tracking-wider text-text-muted mb-0.5">{label}</p>
+            <p className={`font-display text-[18px] font-black leading-none ${color}`}>{val}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex-1 min-w-0 border-l border-border-custom/40 pl-6">
+        {insight ? (
+          <p className="text-[11px] text-text-secondary leading-relaxed">{insight}</p>
+        ) : (
+          <p className="text-[10px] text-text-muted italic">Za mało danych do analizy.</p>
+        )}
+      </div>
+    </div>
+  );
+}

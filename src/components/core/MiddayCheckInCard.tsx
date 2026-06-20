@@ -1,10 +1,12 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Sun, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { unwrap } from '../../lib/supabaseUtils';
 
 export default function MiddayCheckInCard({ session }: { session: any }) {
   const userId = session?.user?.id;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getTodayWarsaw();
   const hour = new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false });
   const hourNum = parseInt(hour, 10);
 
@@ -35,19 +37,23 @@ export default function MiddayCheckInCard({ session }: { session: any }) {
     if (!text || saving) return;
     setSaving(true);
     try {
-      await (supabase as any).from('daily_reconciliations').upsert(
-        {
-          user_id: userId,
-          date: today,
-          status: 'answered',
-          mode: 'checkin',
-          midday_status: text,
-          midday_blocker: blocker.trim() || null,
-        },
-        { onConflict: 'user_id,date', ignoreDuplicates: false }
+      unwrap(
+        await (supabase as any).from('daily_reconciliations').upsert(
+          {
+            user_id: userId,
+            date: today,
+            status: 'answered',
+            mode: 'checkin',
+            midday_status: text,
+            midday_blocker: blocker.trim() || null,
+          },
+          { onConflict: 'user_id,date', ignoreDuplicates: false }
+        )
       );
       setSaved(true);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to save midday check-in:', err);
+    }
     setSaving(false);
   };
 

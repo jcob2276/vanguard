@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Bookmark,
   BookOpen,
@@ -62,7 +62,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     window.location.href = '/';
   };
 
-  const fetchLinks = async () => {
+  const fetchLinks = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await (supabase as any)
@@ -77,9 +77,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     } finally {
       setLoading(false);
     }
-  };
+  }, [session.user.id]);
 
-  const saveSharedLink = async (actualUrl: string) => {
+  const saveSharedLink = useCallback(async (actualUrl: string) => {
     setLoading(true);
     setSharingStatus('Zapisywanie udostępnionego linku...');
     try {
@@ -102,7 +102,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     } finally {
       fetchLinks();
     }
-  };
+  }, [session.access_token, session.user.id, fetchLinks]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -114,7 +114,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     } else {
       fetchLinks();
     }
-  }, [session.user.id]);
+  }, [fetchLinks, saveSharedLink]);
 
   const toggleReadStatus = async (id: string, current: 'unread' | 'read') => {
     const next = current === 'unread' ? 'read' : 'unread';

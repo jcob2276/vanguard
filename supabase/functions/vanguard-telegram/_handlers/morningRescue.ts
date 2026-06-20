@@ -26,15 +26,10 @@ export async function handleMorningRescue(
   const now = new Date().toISOString();
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
-  // Zaznacz, że użytkownik odpowiedział (zapobiega podwójnemu przetwarzaniu)
-  await supabase
-    .from('daily_reconciliations')
-    .update({
-      morning_clicked_at: now,
-      status: 'answered',
-      answered_at: now,
-    })
-    .eq('id', rescueId);
+  // Status flips to 'answered' only once a valid plan is actually saved (below) —
+  // flipping it here unconditionally would strand the reconciliation: a failed
+  // validation no longer matches the `status='sent'` pendingReconciliation lookup,
+  // so the user's retry voice note would never route back into this rescue handler.
 
   // Ekstrakcja przez LLM — bogatszy prompt ratunkowy (A2)
   let extracted: {
@@ -148,10 +143,15 @@ ${cleanText.substring(0, 700)}`
     return;
   }
 
-  // Zapisujemy plan (teraz z większą pewnością)
+  // Zapisujemy plan (teraz z większą pewnością) + zaznaczamy odpowiedź dopiero przy sukcesie
   const { error: updateErr } = await supabase
     .from('daily_reconciliations')
-    .update({ planning_summary: candidatePlan })
+    .update({
+      planning_summary: candidatePlan,
+      morning_clicked_at: now,
+      status: 'answered',
+      answered_at: now,
+    })
     .eq('id', rescueId);
 
   if (updateErr) {

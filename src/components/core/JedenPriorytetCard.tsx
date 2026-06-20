@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronRight, Flame, Search, Target } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -109,7 +110,7 @@ function TaskPicker({ items, search, onSearch, onSelect, onClose, suggestedId }:
 
 export default function JedenPriorytetCard({ session, todayWin, onUpdate, onOpenRitual, streak }: Props) {
   const userId = session.user.id;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getTodayWarsaw();
   const haptics = useHaptics();
 
   const suggestion = useDailyPush(userId);

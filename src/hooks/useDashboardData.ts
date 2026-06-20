@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../lib/date';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
@@ -42,7 +43,7 @@ export function useDashboardData() {
       let totalCal = 0;
       let todayData = null;
 
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const today = getTodayWarsaw();
       const todayDate = new Date(today + 'T12:00:00');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
       const monday = mondayDate.toLocaleDateString('en-CA');
@@ -105,19 +106,16 @@ export function useDashboardData() {
   };
 
   const syncYazio = async () => {
-    console.log('[syncYazio] kliknięto');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       console.error('[syncYazio] brak sesji — zaloguj się ponownie');
       alert('Brak sesji — odśwież stronę i zaloguj się ponownie.');
       return;
     }
-    console.log('[syncYazio] sesja ok, wywołuję funkcję...');
 
     setSyncing(true);
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-yazio`;
-      console.log('[syncYazio] POST →', url);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -128,7 +126,6 @@ export function useDashboardData() {
       });
 
       const res = await response.json().catch(() => ({}));
-      console.log('[syncYazio] odpowiedź:', res);
       if (!response.ok) throw new Error(res.error || `HTTP ${response.status}`);
       if (res.success) {
         const dates = (res.results || []).map((r: any) => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');

@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -13,7 +14,7 @@ const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export default function DailySnapshotCard({ session }: { session: any }) {
   const userId = session?.user?.id;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getTodayWarsaw();
   const hourNum = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
 
   const [snap, setSnap] = useState<any>(null);

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { getTodayWarsaw } from '../../lib/date';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
 import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X } from 'lucide-react';
@@ -22,10 +23,10 @@ type Saved = {
 };
 
 function saveTimer(s: Saved) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable/full */ }
 }
 function clearTimer() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable */ }
 }
 function loadTimer(): Saved | null {
   try {
@@ -107,40 +108,23 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     });
   }, [timerMode, timerActive, timeLeft, blockDuration, blockSubject, overrideSubject]);
 
-  const fetchTodayBlocks = async () => {
+  const fetchTodayBlocks = useCallback(async () => {
     if (!userId) return;
     try {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const today = getTodayWarsaw();
       const { data } = await supabase
         .from('vanguard_stream').select('id')
         .eq('user_id', userId).eq('source', 'block_timer').eq('category', 'productivity')
         .gte('created_at', today + 'T00:00:00.000Z');
       if (data) setCompletedCount(data.length);
-    } catch {}
-  };
-
-  useEffect(() => { fetchTodayBlocks(); }, [userId]);
-
-  useEffect(() => {
-    if (timerActive) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setTimerActive(false);
-            if (timerRef.current) clearInterval(timerRef.current);
-            handleTimerComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+    } catch (err) {
+      console.error('Failed to fetch today blocks:', err);
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerActive, timerMode]);
+  }, [userId]);
 
-  const playGong = () => {
+  useEffect(() => { fetchTodayBlocks(); }, [fetchTodayBlocks]);
+
+  const playGong = useCallback(() => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       [[120, 0.5, 3], [240, 0.2, 2.5]].forEach(([freq, vol, dur]) => {
@@ -153,10 +137,10 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
         osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + dur);
       });
-    } catch {}
-  };
+    } catch { /* AudioContext unavailable/blocked */ }
+  }, []);
 
-  const handleTimerComplete = async () => {
+  const handleTimerComplete = useCallback(async () => {
     playGong();
     haptics.success();
     const mode = modeRef.current;
@@ -178,13 +162,34 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
         setTimerMode('break');
         setTimeLeft(breakDuration);
         setTimerActive(true);
-      } catch {} finally { setIsSubmitting(false); }
+      } catch (err) {
+        console.error('Failed to record completed work block:', err);
+      } finally { setIsSubmitting(false); }
     } else {
       clearTimer();
       setTimerMode('idle');
       setTimeLeft(durationRef.current);
     }
-  };
+  }, [playGong, haptics, userId, breakDuration, fetchTodayBlocks]);
+
+  useEffect(() => {
+    if (timerActive) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setTimerActive(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+            handleTimerComplete();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerActive, timerMode, handleTimerComplete]);
 
   const startTimer = () => {
     if (timerMode === 'idle') { setTimerMode('work'); setTimeLeft(blockDuration); }

@@ -90,11 +90,15 @@ serve(async (req) => {
       day: '2-digit'
     });
     
-    // Find Monday of the current week in Warsaw time context
-    const currentDay = now.getDay();
+    // Find Monday of the current week in Warsaw time context.
+    // `now.getDay()` would reflect the server runtime's timezone (typically UTC),
+    // which can disagree with Warsaw's weekday near the UTC midnight boundary —
+    // anchor the weekday lookup to the Warsaw calendar date instead.
+    const warsawTodayStr = formatter.format(now);
+    const currentDay = new Date(warsawTodayStr + 'T12:00:00').getDay();
     const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + daysToMonday);
+    const monday = new Date(warsawTodayStr + 'T12:00:00');
+    monday.setDate(monday.getDate() + daysToMonday);
     const warsawMondayStr = formatter.format(monday);
     
     // Find Sunday of the next week (+13 days from Monday)

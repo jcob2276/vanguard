@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { getTodayWarsaw } from '../../lib/date';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
@@ -7,22 +8,19 @@ export default function Photos({ session }: { session: any }) {
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [photoDate, setPhotoDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }));
+  const [photoDate, setPhotoDate] = useState(getTodayWarsaw());
   
   // Selection logic for comparison
   const [baseId, setBaseId] = useState<string | null>(null);
   const [targetId, setTargetId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPhotos();
-  }, []);
-
-  async function fetchPhotos() {
+  const fetchPhotos = useCallback(async () => {
     const { data } = await supabase
       .from('progress_photos')
       .select('*')
+      .eq('user_id', session.user.id)
       .order('date', { ascending: true });
-    
+
     if (data && data.length > 0) {
       setPhotos(data);
       // Domyślnie ustawiamy pierwsze i ostatnie
@@ -30,7 +28,11 @@ export default function Photos({ session }: { session: any }) {
       setTargetId(data[data.length - 1].id);
     }
     setLoading(false);
-  }
+  }, [session.user.id]);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, [fetchPhotos]);
 
   const basePhoto = photos.find(p => p.id === baseId);
   const targetPhoto = photos.find(p => p.id === targetId);
@@ -71,7 +73,7 @@ export default function Photos({ session }: { session: any }) {
     if (!confirm('Usunąć?')) return;
     const fileName = `${session.user.id}/${url.split('/').pop()}`;
     await supabase.storage.from('progress-photos').remove([fileName]);
-    await supabase.from('progress_photos').delete().eq('id', id);
+    await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
     fetchPhotos();
   }
 

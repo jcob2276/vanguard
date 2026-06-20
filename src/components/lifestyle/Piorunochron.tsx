@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
@@ -73,7 +74,7 @@ export default function Piorunochron({ session, isOpen, onClose, onActionAdded }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, haptics]);
 
   if (!isOpen) return null;
 
@@ -93,7 +94,7 @@ export default function Piorunochron({ session, isOpen, onClose, onActionAdded }
     setIsSubmitting(true);
 
     try {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const today = getTodayWarsaw();
       const streamText = `[Piorunochron] Wykryta emocja: ${selectedEmotion?.toUpperCase()} | Uwolnienie zakończone sukcesem | Zadeklarowana akcja behawioralna: "${actionText.trim()}"`;
 
       // 1. Log to vanguard_stream

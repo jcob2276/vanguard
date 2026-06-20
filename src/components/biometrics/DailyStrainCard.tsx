@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Flame, BatteryCharging, Gauge, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
@@ -60,7 +61,7 @@ export default function DailyStrainCard({ session }: { session: any }) {
       setRow(data);
     }
     if (ouraSummaries?.length) {
-      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const todayStr = getTodayWarsaw();
       setOura(ouraSummaries.find(s => s.date === todayStr) || ouraSummaries[0]);
     }
   }, [session.user.id]);

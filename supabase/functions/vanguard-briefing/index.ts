@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { sendMessageParsed } from "../_shared/telegram.ts"
-import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
+import { createServiceClient, safeExecute, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
 import { fetchBriefingStreamLayers, formatBriefingStreamText } from "../_shared/streamContext.ts"
 import { getStreamCutoffs } from "../_shared/time.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
@@ -11,8 +11,10 @@ serve(async (req) => {
   try {
     const supabase = createServiceClient()
 
-    const { userId } = await req.json()
-    if (!userId) throw new Error("Missing userId")
+    const { userId: requestedUserId } = await req.json()
+    if (!requestedUserId) throw new Error("Missing userId")
+    const { userId } = await resolveUserScope(req, requestedUserId)
+    if (!userId) throw new Error("Could not resolve userId")
 
     console.log(`[briefing] start for user: ${userId}`)
 

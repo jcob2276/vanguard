@@ -49,15 +49,6 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
 
 ---
 
-## [BACKLOG-02] StayFree sync stale — brak automatycznego ingestion
-
-**Kontekst:** StayFree ma dane starsze o 10 dni (ostatni rekord 2026-05-07).  
-`dopamine_load_index` / `screen_time_min` w `vanguard_daily_aggregates` mogą być NULL.
-
-**Do zrobienia (po Sprint 1):** zautomatyzować ingestion, podpiąć pod friction pipeline.
-
----
-
 ## [BACKLOG-03] Oura timing — sleep_data_status: pending
 
 **Kontekst:** Briefing przed sync Oura może używać wczorajszego snu.
@@ -68,8 +59,6 @@ Oba zostały oznaczone `review_status = 'to_fix'` i nie psują precision frictio
   > Sen z ostatniej nocy (Oura): pending — dane jeszcze nie zsynchronizowane
 
 Interaktywny kontekst (Oracle via Telegram) już wcześniej miał podobny flag (`sleep_data_status` w state_vector).
-
-Automatyczny StayFree nie jest priorytetem (użytkownik wrzuca ręcznie).
 
 ---
 

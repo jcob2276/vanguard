@@ -1,75 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Shield, Zap, Wallet, Plus, X, Check, ChevronLeft, TrendingUp, TrendingDown, Minus, Settings, Trash2, Sparkles, AlertTriangle, Target } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Plus, Check, ChevronLeft, Settings, Sparkles } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-
-const PILLARS = [
-  { id: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  { id: 'duch',  label: 'Duch',  icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/8',  border: 'border-indigo-500/20',  chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'   },
-  { id: 'konto', label: 'Konto', icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/8',   border: 'border-amber-500/20',   chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'       },
-];
-
-const PILLAR_BRIEF_KEYS: Record<string, string> = { cialo: 'cialo', duch: 'duch', konto: 'konto' };
-
-function getWeekStart(): string {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' }));
-  const day = now.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  const mon = new Date(now);
-  mon.setDate(now.getDate() + diff);
-  return mon.toLocaleDateString('en-CA');
-}
-
-function getPrevWeekStart(ws: string): string {
-  const d = new Date(ws + 'T00:00:00');
-  d.setDate(d.getDate() - 7);
-  return d.toLocaleDateString('en-CA');
-}
-
-function getPastWeekStarts(current: string, n: number): string[] {
-  const result: string[] = [];
-  const d = new Date(current + 'T00:00:00');
-  for (let i = 0; i < n; i++) {
-    result.unshift(d.toLocaleDateString('en-CA'));
-    d.setDate(d.getDate() - 7);
-  }
-  return result;
-}
-
-function formatWeek(ws: string): string {
-  const d = new Date(ws + 'T00:00:00');
-  const sun = new Date(d); sun.setDate(d.getDate() + 6);
-  const fmt = (x: Date) => x.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
-  return `${fmt(d)} – ${fmt(sun)}`;
-}
-
-type Kpi = { id: string; pillar: string; name: string; unit: string; higher_is_better: boolean; sort_order: number; target: number | null };
-
-function Sparkline({ data, higherIsBetter }: { data: number[]; higherIsBetter: boolean }) {
-  if (data.length < 2) return null;
-  const w = 56, h = 22, pad = 2;
-  const min = Math.min(...data), max = Math.max(...data);
-  const range = max - min || 1;
-  const xs = data.map((_, i) => pad + (i / (data.length - 1)) * (w - pad * 2));
-  const ys = data.map(v => h - pad - ((v - min) / range) * (h - pad * 2));
-  const points = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
-  const lastDelta = data[data.length - 1] - data[data.length - 2];
-  const neutral = Math.abs(lastDelta) < 0.01;
-  const good = neutral ? null : (higherIsBetter ? lastDelta > 0 : lastDelta < 0);
-  const color = good === null ? 'stroke-[var(--color-text-muted)]/30' : good ? 'stroke-emerald-500' : 'stroke-rose-400';
-  const dotColor = good === null ? 'fill-[var(--color-text-muted)]/30' : good ? 'fill-emerald-500' : 'fill-rose-400';
-  return (
-    <svg width={w} height={h} className="shrink-0 opacity-80">
-      <polyline points={points} fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={color} />
-      <circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r="2.5" className={dotColor} />
-    </svg>
-  );
-}
+import {
+  PILLARS,
+  getWeekStart,
+  getPrevWeekStart,
+  getPastWeekStarts,
+  formatWeek,
+  type Kpi,
+} from './weeklyReviewUtils';
+import KpiEntryCard from './KpiEntryCard';
+import WeeklyBriefView from './WeeklyBriefView';
 
 export default function WeeklyReview({ session, onBack }: { session: Session; onBack: () => void }) {
   const uid = session.user.id;
-  const weekStart = getWeekStart();
-  const prevWeek  = getPrevWeekStart(weekStart);
+  const weekStart = useMemo(() => getWeekStart(), []);
+  const prevWeek  = useMemo(() => getPrevWeekStart(weekStart), [weekStart]);
 
   const [kpis, setKpis]           = useState<Kpi[]>([]);
   const [thisWeek, setThisWeek]   = useState<Record<string, string>>({});
@@ -92,54 +39,58 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
 
   const db = supabase as any;
 
-  useEffect(() => { loadAll(); }, [uid]);
-
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
-    const histWeeks = getPastWeekStarts(weekStart, 8);
-    const [{ data: k }, { data: thisEntries }, { data: prevEntries }, { data: rev }, { data: histEntries }] = await Promise.all([
-      db.from('goal_kpis').select('*').eq('user_id', uid).order('sort_order').order('created_at'),
-      db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', weekStart),
-      db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', prevWeek),
-      db.from('weekly_kpi_reviews').select('what_worked, what_didnt_work, ai_brief').eq('user_id', uid).eq('week_start', weekStart).maybeSingle(),
-      db.from('kpi_entries').select('kpi_id, week_start, value').eq('user_id', uid).in('week_start', histWeeks),
-    ]);
+      const histWeeks = getPastWeekStarts(weekStart, 8);
+      const [{ data: k }, { data: thisEntries }, { data: prevEntries }, { data: rev }, { data: histEntries }] = await Promise.all([
+        db.from('goal_kpis').select('*').eq('user_id', uid).order('sort_order').order('created_at'),
+        db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', weekStart),
+        db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', prevWeek),
+        db.from('weekly_kpi_reviews').select('what_worked, what_didnt_work, ai_brief').eq('user_id', uid).eq('week_start', weekStart).maybeSingle(),
+        db.from('kpi_entries').select('kpi_id, week_start, value').eq('user_id', uid).in('week_start', histWeeks),
+      ]);
 
-    setKpis(k ?? []);
+      setKpis(k ?? []);
 
-    const thisMap: Record<string, string> = {};
-    for (const e of thisEntries ?? []) thisMap[e.kpi_id] = e.value != null ? String(e.value) : '';
-    // Pre-fill from current_value if no entry yet this week
-    for (const kpi of (k ?? []) as any[]) {
-      if (!(kpi.id in thisMap) && kpi.current_value != null) {
-        thisMap[kpi.id] = String(kpi.current_value);
+      const thisMap: Record<string, string> = {};
+      for (const e of thisEntries ?? []) thisMap[e.kpi_id] = e.value != null ? String(e.value) : '';
+      // Pre-fill from current_value if no entry yet this week
+      for (const kpi of (k ?? []) as any[]) {
+        if (!(kpi.id in thisMap) && kpi.current_value != null) {
+          thisMap[kpi.id] = String(kpi.current_value);
+        }
       }
-    }
-    setThisWeek(thisMap);
+      setThisWeek(thisMap);
 
-    const prevMap: Record<string, number | null> = {};
-    for (const e of prevEntries ?? []) prevMap[e.kpi_id] = e.value;
-    setLastWeek(prevMap);
+      const prevMap: Record<string, number | null> = {};
+      for (const e of prevEntries ?? []) prevMap[e.kpi_id] = e.value;
+      setLastWeek(prevMap);
 
-    // Build sparkline history: kpi_id → sorted array of values
-    const raw: Record<string, { week: string; value: number }[]> = {};
-    for (const e of histEntries ?? []) {
-      if (e.value === null) continue;
-      if (!raw[e.kpi_id]) raw[e.kpi_id] = [];
-      raw[e.kpi_id].push({ week: e.week_start, value: e.value });
-    }
-    const histValues: Record<string, number[]> = {};
-    for (const id in raw) {
-      histValues[id] = raw[id].sort((a, b) => a.week.localeCompare(b.week)).map(x => x.value);
-    }
-    setHistory(histValues);
+      // Build sparkline history: kpi_id → sorted array of values
+      const raw: Record<string, { week: string; value: number }[]> = {};
+      for (const e of histEntries ?? []) {
+        if (e.value === null) continue;
+        if (!raw[e.kpi_id]) raw[e.kpi_id] = [];
+        raw[e.kpi_id].push({ week: e.week_start, value: e.value });
+      }
+      const histValues: Record<string, number[]> = {};
+      for (const id in raw) {
+        histValues[id] = raw[id].sort((a, b) => a.week.localeCompare(b.week)).map(x => x.value);
+      }
+      setHistory(histValues);
 
-    if (rev) {
-      setReview({ what_worked: rev.what_worked ?? '', what_didnt_work: rev.what_didnt_work ?? '' });
-      if (rev.ai_brief) setBrief(rev.ai_brief);
+      if (rev) {
+        setReview({ what_worked: rev.what_worked ?? '', what_didnt_work: rev.what_didnt_work ?? '' });
+        if (rev.ai_brief) setBrief(rev.ai_brief);
+      }
+    } catch (e) {
+      console.error('loadAll failed', e);
     }
-    } catch (e) { console.error('loadAll failed', e); }
-  }
+  }, [db, uid, weekStart, prevWeek]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   // C) Auto-save individual KPI on blur
   async function autoSaveKpi(kpiId: string, value: string) {
@@ -154,7 +105,10 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
   async function addKpi(pillar: string) {
     if (!newKpi.name.trim()) return;
     const { data, error } = await db.from('goal_kpis').insert({
-      user_id: uid, pillar, name: newKpi.name.trim(), unit: newKpi.unit.trim(),
+      user_id: uid,
+      pillar,
+      name: newKpi.name.trim(),
+      unit: newKpi.unit.trim(),
       higher_is_better: newKpi.higher_is_better,
       sort_order: kpis.filter(k => k.pillar === pillar).length,
       target: newKpi.target !== '' ? parseFloat(newKpi.target) : null,
@@ -171,8 +125,12 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
 
   async function addKpiDirect(s: { pillar: string; name: string; unit: string; higher_is_better: boolean }) {
     const { data, error } = await db.from('goal_kpis').insert({
-      user_id: uid, pillar: s.pillar, name: s.name, unit: s.unit,
-      higher_is_better: s.higher_is_better, sort_order: kpis.filter(k => k.pillar === s.pillar).length,
+      user_id: uid,
+      pillar: s.pillar,
+      name: s.name,
+      unit: s.unit,
+      higher_is_better: s.higher_is_better,
+      sort_order: kpis.filter(k => k.pillar === s.pillar).length,
     }).select().single();
     if (!error && data) {
       setKpis(prev => [...prev, data as Kpi]);
@@ -194,7 +152,9 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
       if (data.suggestions) setSuggestions(data.suggestions);
     } catch (e: any) {
       setSuggestError(e.message);
-    } finally { setSuggestingKpis(false); }
+    } finally {
+      setSuggestingKpis(false);
+    }
   }
 
   async function save() {
@@ -208,12 +168,15 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
         await db.from('kpi_entries').upsert(upserts, { onConflict: 'kpi_id,week_start' });
       }
       await db.from('weekly_kpi_reviews').upsert({
-        user_id: uid, week_start: weekStart,
+        user_id: uid,
+        week_start: weekStart,
         what_worked: review.what_worked || null,
         what_didnt_work: review.what_didnt_work || null,
       }, { onConflict: 'user_id,week_start' });
       setSaved(true);
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function generateBrief() {
@@ -230,7 +193,9 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
       if (data.brief) setBrief(data.brief);
     } catch (e: any) {
       setGenError(e.message);
-    } finally { setGenerating(false); }
+    } finally {
+      setGenerating(false);
+    }
   }
 
   // D) Header score: ile KPIs idzie w dobrą stronę
@@ -250,11 +215,6 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
   }, [kpis, thisWeek, lastWeek]);
 
   const noKpis = kpis.length === 0;
-
-  const ratingStars = (n: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < n ? 'text-amber-400' : 'text-text-muted/20'}>★</span>
-    ));
 
   return (
     <div className="min-h-screen bg-background">
@@ -329,101 +289,28 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
 
               <div className="space-y-2">
                 {pillarKpis.map(kpi => {
-                  const prev      = lastWeek[kpi.id] ?? null;
-                  const curStr    = thisWeek[kpi.id] ?? '';
-                  const cur       = curStr !== '' ? parseFloat(curStr) : null;
-                  const delta     = cur !== null && prev !== null ? cur - prev : null;
-                  const pct       = delta !== null && prev !== null && prev !== 0 ? (delta / Math.abs(prev) * 100) : null;
-                  const better    = delta === null ? null : (kpi.higher_is_better ? delta > 0 : delta < 0);
-                  const neutral   = delta !== null && Math.abs(delta) < 0.01;
-                  const hist      = history[kpi.id] ?? [];
-                  const targetPct = kpi.target && kpi.target > 0 && cur !== null
-                    ? Math.min(Math.round((cur / kpi.target) * 100), 999)
-                    : null;
-                  const isSaved   = autoSaved.has(kpi.id);
+                  const prev   = lastWeek[kpi.id] ?? null;
+                  const curStr = thisWeek[kpi.id] ?? '';
+                  const hist   = history[kpi.id] ?? [];
+                  const isSaved = autoSaved.has(kpi.id);
 
                   return (
-                    <div key={kpi.id} className={`rounded-[20px] border ${pillar.border} ${pillar.bg} px-4 py-3 space-y-2`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-bold text-text-primary flex-1">{kpi.name}</span>
-                        {kpi.unit && <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">{kpi.unit}</span>}
-                        {/* A) Sparkline */}
-                        {!setupMode && hist.length >= 2 && (
-                          <Sparkline data={hist} higherIsBetter={kpi.higher_is_better} />
-                        )}
-                        {setupMode && (
-                          <button onClick={() => deleteKpi(kpi.id)} className="p-1 rounded text-text-muted/30 hover:text-rose-500 transition-colors cursor-pointer">
-                            <Trash2 size={11} />
-                          </button>
-                        )}
-                      </div>
-
-                      {!setupMode && (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <div className="text-center">
-                              <p className="text-[8px] font-bold uppercase tracking-widest text-text-muted/60 mb-0.5">poprz.</p>
-                              <p className="text-[14px] font-black text-text-muted/50">{prev !== null ? prev : '—'}</p>
-                            </div>
-                            <div className="text-text-muted/30 text-lg">→</div>
-                            <div className="flex-1">
-                              <p className="text-[8px] font-bold uppercase tracking-widest text-text-muted/60 mb-0.5">ten tydzień</p>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  inputMode="decimal"
-                                  value={curStr}
-                                  onChange={e => {
-                                    setThisWeek(prev => ({ ...prev, [kpi.id]: e.target.value }));
-                                    setAutoSaved(s => { const n = new Set(s); n.delete(kpi.id); return n; });
-                                  }}
-                                  onBlur={e => autoSaveKpi(kpi.id, e.target.value)}
-                                  placeholder="wpisz..."
-                                  className="w-full bg-transparent text-[18px] font-black text-text-primary outline-none placeholder:text-text-muted/25 placeholder:text-[14px] placeholder:font-medium"
-                                />
-                                {/* C) Auto-saved tick */}
-                                {isSaved && (
-                                  <span className="shrink-0 text-[10px] font-black text-emerald-500/60">✓</span>
-                                )}
-                              </div>
-                            </div>
-                            {delta !== null && !neutral && (
-                              <div className={`flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-black ${
-                                better ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'
-                              }`}>
-                                {better ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                                {delta > 0 ? '+' : ''}{pct !== null ? `${pct.toFixed(0)}%` : delta.toFixed(1)}
-                              </div>
-                            )}
-                            {neutral && delta !== null && (
-                              <div className="flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-black text-text-muted bg-surface">
-                                <Minus size={11} /> bez zmian
-                              </div>
-                            )}
-                          </div>
-
-                          {/* B) Target progress */}
-                          {kpi.target != null && (
-                            <div className="space-y-1 pt-0.5">
-                              <div className="h-[3px] w-full rounded-full bg-border-custom/30 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${targetPct !== null && targetPct >= 100 ? 'bg-emerald-500' : 'bg-primary/50'}`}
-                                  style={{ width: `${Math.min(targetPct ?? 0, 100)}%` }}
-                                />
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[8px] text-text-muted/50">cel: {kpi.target}{kpi.unit ? ` ${kpi.unit}` : ''}</span>
-                                {targetPct !== null && (
-                                  <span className={`text-[8px] font-black ${targetPct >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-muted/60'}`}>
-                                    {targetPct}%
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                    <KpiEntryCard
+                      key={kpi.id}
+                      kpi={kpi}
+                      pillarMeta={pillar}
+                      prev={prev}
+                      curStr={curStr}
+                      onCurStrChange={val => {
+                        setThisWeek(prevMap => ({ ...prevMap, [kpi.id]: val }));
+                        setAutoSaved(s => { const n = new Set(s); n.delete(kpi.id); return n; });
+                      }}
+                      onBlur={val => autoSaveKpi(kpi.id, val)}
+                      isSaved={isSaved}
+                      hist={hist}
+                      setupMode={setupMode}
+                      onDeleteKpi={deleteKpi}
+                    />
                   );
                 })}
 
@@ -549,64 +436,11 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
 
         {/* AI Brief */}
         {brief && !setupMode && (
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2">
-              <Sparkles size={13} className="text-primary" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">Analiza Antigravity</p>
-            </div>
-            <div className="rounded-[24px] border border-primary/15 bg-primary/[0.03] p-4 space-y-4">
-              <div className="space-y-3">
-                {PILLARS.map(p => {
-                  const text = brief[PILLAR_BRIEF_KEYS[p.id]];
-                  if (!text) return null;
-                  const Icon = p.icon;
-                  return (
-                    <div key={p.id} className="flex gap-2.5">
-                      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg ${p.bg} border ${p.border}`}>
-                        <Icon size={10} className={p.text} />
-                      </span>
-                      <p className="text-[12.5px] text-text-primary leading-relaxed">{text}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              {brief.blocker && (
-                <div className="rounded-[16px] border border-rose-500/20 bg-rose-500/6 px-3.5 py-3 flex gap-2.5">
-                  <AlertTriangle size={13} className="shrink-0 mt-0.5 text-rose-500" />
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500 mb-0.5">Bloker</p>
-                    <p className="text-[12.5px] text-text-primary leading-relaxed">{brief.blocker}</p>
-                  </div>
-                </div>
-              )}
-              {brief.recommendation && (
-                <div className="rounded-[16px] border border-primary/20 bg-primary/6 px-3.5 py-3 flex gap-2.5">
-                  <Target size={13} className="shrink-0 mt-0.5 text-primary" />
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-primary mb-0.5">Na przyszły tydzień</p>
-                    <p className="text-[12.5px] font-semibold text-text-primary leading-relaxed">{brief.recommendation}</p>
-                  </div>
-                </div>
-              )}
-              {brief.week_rating && (
-                <div className="flex items-center gap-2 pt-1 border-t border-border-custom/40">
-                  <div className="flex text-[16px] leading-none">{ratingStars(brief.week_rating)}</div>
-                  <span className="text-[11px] font-bold text-text-muted">{brief.week_rating}/5</span>
-                  {brief.week_rating_reason && (
-                    <span className="text-[11px] text-text-muted ml-1">— {brief.week_rating_reason}</span>
-                  )}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={generateBrief}
-              disabled={generating}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-text-muted hover:text-primary transition-colors cursor-pointer disabled:opacity-40"
-            >
-              <Sparkles size={10} />
-              {generating ? 'Regeneruję...' : 'Regeneruj analizę'}
-            </button>
-          </div>
+          <WeeklyBriefView
+            brief={brief}
+            generating={generating}
+            onGenerateBrief={generateBrief}
+          />
         )}
       </div>
 

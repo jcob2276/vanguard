@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { formatWarsawDate } from '../lib/date';
 
 export type GoalKey = 'cialo' | 'duch' | 'konto';
 
@@ -34,7 +35,7 @@ export function useDailyPush(userId: string | undefined): DailyPushSuggestion | 
 
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-        const weekStartStr = weekStart.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const weekStartStr = formatWarsawDate(weekStart);
 
         const [dreamsRes, projectsRes, sectionsRes, openItemsRes, doneItemsRes, weeklyRes] =
           await Promise.all([

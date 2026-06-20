@@ -25,7 +25,6 @@ AI nie ma tutaj wymyślać porad, motywować ani odgrywać roli mądrego przyjac
 ## 3. Strumienie Danych (Automatyczne)
 - **Oura Ring:** HRV, sen, temperatura, readiness score.
 - **ActivityWatch (Desktop):** Każda aplikacja, okno i czas spędzony przed komputerem.
-- **StayFree (Mobile):** Czas w aplikacjach na telefonie, korelacje dopaminowe.
 - **Yazio (Nutrition):** Kalorie, makroskładniki (szczególnie białko).
 - **Google Calendar:** Auto-sync planu dnia co 2 godziny.
 - **Manual Logs:** Treningi (serie, ciężar, RPE), waga, tkanka tłuszczowa, Plan dnia.

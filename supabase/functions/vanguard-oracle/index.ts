@@ -214,10 +214,11 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
     if (current_query) {
       try {
         const intentForGraph = classifyIntentSafe(current_query);
-        const { data: mentioned } = await supabase.rpc('find_mentioned_entities', {
+        const { data: mentioned, error: mentionedErr } = await supabase.rpc('find_mentioned_entities', {
           query_text: current_query.substring(0, 1000),
           user_id_param: user_id
         });
+        if (mentionedErr) console.warn('[oracle] find_mentioned_entities failed (non-fatal):', mentionedErr);
         const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
         const graphSeeds = buildGraphSeeds(current_query, intentForGraph, entitiesInQuery);
         const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
@@ -637,11 +638,11 @@ ZASADA: Gdy Jakub opisuje działania wyraźnie niezgodne z Top 3 — odnotuj, be
 
 ${recentPlanQuality ? `
 [JAKOŚĆ OSTATNIEGO PLANU — WAŻNE]:
-plan_quality: ${recentPlanQuality.plan_quality || 'unknown'}
+plan_quality: ${recentPlanQuality.quality || 'unknown'}
 mode: ${recentPlanQuality.mode || 'unknown'}
-failure_reason: ${recentPlanQuality.plan_failure_reason || 'none'}
-was_fallback: ${recentPlanQuality.plan_fallback}
-parse_error: ${recentPlanQuality.parse_error}
+failure_reason: ${recentPlanQuality.failureReason || 'none'}
+was_fallback: ${recentPlanQuality.isFallback}
+parse_error: ${recentPlanQuality.parseError}
 Jeśli plan_quality jest 'minimum' lub 'rescue' albo jest failure_reason — traktuj ten plan jako słaby sygnał. Nie buduj na nim silnych założeń. Pytaj o korektę.
 ` : ''}
 

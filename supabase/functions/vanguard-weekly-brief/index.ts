@@ -165,11 +165,15 @@ ${thisReview?.what_didnt_work || "(nie wypełniono)"}`;
     const brief = parseJsonFromContent(content);
     if (!brief) throw new Error(`Invalid AI JSON: ${content.slice(0, 300)}`);
 
-    await db.from("weekly_kpi_reviews").upsert({
+    const { error: upsertErr } = await db.from("weekly_kpi_reviews").upsert({
       user_id: userId,
       week_start: weekStart,
       ai_brief: brief,
     }, { onConflict: "user_id,week_start" });
+    if (upsertErr) {
+      console.error("[weekly-brief] Failed to save brief:", upsertErr);
+      throw new Error(`DB error (weekly_kpi_reviews): ${upsertErr.message}`);
+    }
 
     return new Response(JSON.stringify({ brief, weekStart }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

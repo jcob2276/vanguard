@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { Sunrise, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -17,7 +18,7 @@ const CACHE_HOURS = 8;
 
 export default function MorningBriefCard({ session }: { session: any }) {
   const userId = session?.user?.id;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getTodayWarsaw();
 
   const [brief, setBrief] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);

@@ -201,12 +201,13 @@ Przykłady:
 
       if (closureEmbedding) {
         const CLOSURE_THRESHOLD = 0.65
-        const { data: matches } = await supabase.rpc('match_vanguard_content', {
+        const { data: matches, error: matchErr } = await supabase.rpc('match_vanguard_content', {
           query_embedding: closureEmbedding,
           match_threshold: CLOSURE_THRESHOLD,
           match_count: 5,
           user_id_param: record.user_id
         })
+        if (matchErr) console.error('[auto-classify] match_vanguard_content failed:', matchErr)
         const idsToClose = (matches || [])
           .filter((m: any) => m.table_name === 'vanguard_stream' && m.id !== record.id)
           .map((m: any) => m.id)

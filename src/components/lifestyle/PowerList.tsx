@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
@@ -79,7 +80,7 @@ function TodoPicker({ items, onSelect, onClose }: TodoPickerProps) {
 
 export default function PowerList({ session, todayWin, onUpdate }: { session: any; todayWin: any; onUpdate?: (data: any) => void }) {
   const userId = session.user.id;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getTodayWarsaw();
   const haptics = useHaptics();
 
   const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
@@ -98,13 +99,12 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
 
   // Resolve projects for today's linked todo items
   useEffect(() => {
-    if (!todayWin) return;
     const ids = [
-      todayWin.task_1_todo_id,
-      todayWin.task_2_todo_id,
-      todayWin.task_3_todo_id,
-      todayWin.task_4_todo_id,
-      todayWin.task_5_todo_id,
+      todayWin?.task_1_todo_id,
+      todayWin?.task_2_todo_id,
+      todayWin?.task_3_todo_id,
+      todayWin?.task_4_todo_id,
+      todayWin?.task_5_todo_id,
     ].filter((id): id is string => !!id);
     if (ids.length === 0) return;
     (async () => {
@@ -123,9 +123,9 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
           if (project) result[item.id] = { name: project.name, color: project.color };
         }
         setProjectMap(result);
-      } catch {}
+      } catch { /* project lookup is decorative, ignore */ }
     })();
-  }, [todayWin?.id, userId]);
+  }, [todayWin?.task_1_todo_id, todayWin?.task_2_todo_id, todayWin?.task_3_todo_id, todayWin?.task_4_todo_id, todayWin?.task_5_todo_id, userId]);
 
   useEffect(() => {
     if (todayWin) return;
@@ -192,7 +192,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
       .single();
 
     if (!error) {
-      newValue ? haptics.success() : haptics.light();
+      if (newValue) haptics.success(); else haptics.light();
       if (onUpdate) onUpdate(data);
 
       if (newValue) {

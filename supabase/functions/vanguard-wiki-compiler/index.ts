@@ -616,7 +616,7 @@ Priorytet:
 
     for (const ref of refs) {
       if (!ref.table || !ref.id) continue;
-      await supabase.from("vanguard_wiki_sources").upsert({
+      const { error: sourceErr } = await supabase.from("vanguard_wiki_sources").upsert({
         user_id: userId,
         page_id: data.id,
         source_table: ref.table,
@@ -625,6 +625,7 @@ Priorytet:
         quote: ref.quote ? trimText(ref.quote, 500) : null,
         relevance: 0.75,
       }, { onConflict: "page_id,source_table,source_id" });
+      if (sourceErr) console.error(`[wiki-compiler] Failed to upsert source for page ${data.slug}:`, sourceErr);
     }
   }
 

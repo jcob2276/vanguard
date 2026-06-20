@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -38,7 +39,7 @@ export default function OracleCard({ session }: { session: any }) {
 
   useEffect(() => {
     if (!userId) return;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getTodayWarsaw();
     supabase
       .from('daily_reconciliations')
       .select('planning_summary')

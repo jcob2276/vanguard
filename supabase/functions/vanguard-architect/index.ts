@@ -718,7 +718,7 @@ Przyklady:
               .update({
                 weight: newWeight,
                 evidence_count: newCount,
-                last_seen: new Date().toISOString().split("T")[0]
+                last_seen: getWarsawDateString()
               })
               .eq("id", existingToMerge.id)
 

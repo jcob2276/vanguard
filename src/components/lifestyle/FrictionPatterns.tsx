@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, TrendingDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { formatWarsawDate } from '../../lib/date';
 
 const FRICTION_PL: Record<string, string> = {
   procrastination: 'Prokrastynacja',
@@ -21,7 +22,7 @@ function getWeekStart(date: Date): string {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toLocaleDateString('en-CA');
+  return formatWarsawDate(d);
 }
 
 function formatWeekShort(ws: string): string {

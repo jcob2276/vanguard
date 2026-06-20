@@ -3,6 +3,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { Shield, Zap, Wallet, Crown } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { getTodayWarsaw } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 
 type LifeGoalRow = Tables<'life_goals'>;
@@ -51,7 +52,7 @@ export default function GoalsCard({ session }: { session: Session }) {
           const celText = g[goalKey];
           if (!celText) return null;
           const theme = THEME[id];
-          const days = g[dateKey] ? differenceInDays(parseISO(g[dateKey]), new Date()) : null;
+          const days = g[dateKey] ? differenceInDays(parseISO(g[dateKey]), parseISO(getTodayWarsaw())) : null;
           const urgent = days !== null && days <= 30;
 
           return (

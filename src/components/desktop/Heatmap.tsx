@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { format, parseISO } from 'date-fns';
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 
 export interface ExerciseLog {
   exercise_name: string;
@@ -48,8 +49,8 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     rect: DOMRect;
   } | null>(null);
 
-  const today = new Date();
-  const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const todayStr = getTodayWarsaw();
+  const today = new Date(todayStr + 'T12:00:00');
 
   const dateMap: Record<string, { vol: number; wellness: boolean; name: string; exercises: string[]; rpe: number | null }> = {};
   for (const s of sessions) {
@@ -81,7 +82,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   while (weeks.length < 13) {
     const week = [];
     for (let d = 0; d < 7; d++) {
-      const ds = cur.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+      const ds = formatWarsawDate(cur);
       week.push({ date: ds, future: ds > todayStr, data: dateMap[ds] || null });
       cur.setDate(cur.getDate() + 1);
     }

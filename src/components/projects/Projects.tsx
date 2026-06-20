@@ -2,22 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
-  CalendarDays,
-  Check,
   ChevronDown,
   ChevronUp,
   Edit3,
-  Flag,
-  FolderKanban,
   Plus,
-  Repeat2,
   Save,
-  Shield,
   Trash2,
   TrendingUp,
-  Wallet,
+  FolderKanban,
+  CalendarDays,
+  Flag,
+  Check,
+  Repeat2,
   X,
-  Zap,
 } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
 import {
@@ -34,45 +31,25 @@ import {
 } from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import { supabase } from '../../lib/supabase';
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 import DataStateNotice from '../core/DataStateNotice';
 
-const COLORS = [
-  { id: 'indigo',  dot: 'bg-indigo-500',  bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400'  },
-  { id: 'violet',  dot: 'bg-violet-500',  bar: 'bg-violet-500',  text: 'text-violet-600 dark:text-violet-400'  },
-  { id: 'sky',     dot: 'bg-sky-500',     bar: 'bg-sky-500',     text: 'text-sky-600 dark:text-sky-400'        },
-  { id: 'emerald', dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400'},
-  { id: 'amber',   dot: 'bg-amber-500',   bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400'    },
-  { id: 'rose',    dot: 'bg-rose-500',    bar: 'bg-rose-500',    text: 'text-rose-600 dark:text-rose-400'      },
-];
+// Subcomponents and utilities
+import {
+  COLORS,
+  colorOf,
+  PILLAR_META,
+  GOAL_QUESTIONS,
+  STATUS_TABS,
+  STATUS_NEXT,
+  STATUS_LABEL,
+  PILLARS,
+  PillarId
+} from './projectUtils';
 
-const colorOf = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
-
-const PILLAR_META = {
-  cialo: { label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', dot: 'bg-emerald-500', color: 'emerald' },
-  duch:  { label: 'Duch',  icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30',  dot: 'bg-indigo-500',  color: 'indigo' },
-  konto: { label: 'Konto', icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   dot: 'bg-amber-500',   color: 'amber'  },
-} as const;
-
-const GOAL_QUESTIONS = [
-  { key: 'goal',           q: 'Jaki jest Twój cel?',               hint: 'Konkretny wynik + data. Np. "50k PLN na koncie do 01.10.2026"' },
-  { key: 'why',            q: 'Po co Ci to?',                      hint: 'Dlaczego to ważne? Co się zmieni kiedy osiągniesz?' },
-  { key: 'milestones',     q: 'Co musi się stać po drodze?',       hint: 'Wymień 3–4 etapy które musisz przejść' },
-  { key: 'blockers',       q: 'Dlaczego może się nie udać?',       hint: 'Jakie są ryzyka? Co już próbowałeś i nie wyszło?' },
-  { key: 'weekly_actions', q: 'Co robisz co tydzień żeby to osiągnąć?', hint: 'Konkretne powtarzalne działania — to będą Twoje KPI' },
-] as const;
-
-
-const STATUS_TABS = [
-  { id: 'active', label: 'Aktywne' },
-  { id: 'paused', label: 'Pauza' },
-  { id: 'done',   label: 'Gotowe' },
-] as const;
-
-const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
-const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
-
-const PILLARS = ['cialo', 'duch', 'konto'] as const;
-type PillarId = typeof PILLARS[number];
+import GoalCreateModal from './GoalCreateModal';
+import KpiUpdateModal from './KpiUpdateModal';
+import RetroModal from './RetroModal';
 
 export default function Projects({ session, onNavigateTo, reviewOverdueDays = null }: { session: any; onNavigateTo?: (view: string) => void; reviewOverdueDays?: number | null }) {
   const userId = session.user.id;
@@ -106,10 +83,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const [kpiUpdateVal, setKpiUpdateVal] = useState('');
   const [kpiUpdateValues, setKpiUpdateValues] = useState<Record<string, number>>({});
   const [goalCreateOpen, setGoalCreateOpen] = useState(false);
-  const [goalCreateStep, setGoalCreateStep] = useState<'pillar' | number | 'loading' | 'preview'>('pillar');
-  const [goalCreatePillar, setGoalCreatePillar] = useState<PillarId | ''>('');
-  const [goalCreateAnswers, setGoalCreateAnswers] = useState({ goal: '', why: '', milestones: '', blockers: '', weekly_actions: '' });
-  const [goalCreatePreview, setGoalCreatePreview] = useState<any>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -162,11 +135,12 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         ? Math.max(...sectionItems.map(i => new Date(i.updated_at ?? i.created_at).getTime()))
         : null;
       const lastActivity = lastTs ? new Date(lastTs) : null;
-      const daysSince    = lastActivity ? differenceInDays(new Date(), lastActivity) : null;
+      const todayWarsawDate = new Date(getTodayWarsaw() + 'T00:00:00');
+      const daysSince    = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T00:00:00')) : null;
       const slipping     = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
 
       const daysLeft = p.deadline
-        ? differenceInDays(new Date(p.deadline + 'T00:00:00'), new Date())
+        ? differenceInDays(new Date(p.deadline + 'T00:00:00'), todayWarsawDate)
         : null;
 
       return [p.id, { section, openItems, doneItems, total, progress, lastActivity, daysSince, slipping, daysLeft }];
@@ -333,68 +307,45 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingKpiId(null); return; }
     run(async () => {
-      await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
-      await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
+      const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
+      if (updErr) throw new Error(updErr.message);
+      const { error: snapErr } = await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
+      if (snapErr) throw new Error(snapErr.message);
       setEditingKpiId(null);
     });
   };
 
-  const handleGoalCreateNext = (currentVal: string) => {
-    const step = goalCreateStep as number;
-    const key = GOAL_QUESTIONS[step].key;
-    setGoalCreateAnswers(a => ({ ...a, [key]: currentVal }));
-    if (step < GOAL_QUESTIONS.length - 1) {
-      setGoalCreateStep(step + 1);
-    } else {
-      handleGoalCreateSubmit({ ...goalCreateAnswers, [key]: currentVal });
-    }
-  };
-
-  const handleGoalCreateSubmit = async (answers: typeof goalCreateAnswers) => {
-    setGoalCreateStep('loading');
-    try {
-      const { data, error } = await supabase.functions.invoke('vanguard-goal-create', {
-        body: { answers, pillar: goalCreatePillar, userName: 'Jakub' },
-      });
-      if (error) throw error;
-      setGoalCreatePreview(data);
-      setGoalCreateStep('preview');
-    } catch (err: any) {
-      setError('AI: ' + err.message);
-      setGoalCreateStep(GOAL_QUESTIONS.length - 1);
-    }
-  };
-
-  const handleGoalCreateConfirm = () => {
-    if (!goalCreatePreview || !goalCreatePillar) return;
-    const pm = PILLAR_META[goalCreatePillar];
+  const handleGoalCreateConfirm = (preview: any, pillar: PillarId) => {
+    const pm = PILLAR_META[pillar];
     run(async () => {
-      const dream = dreams.find(d => d.life_goal === goalCreatePillar);
+      const dream = dreams.find(d => d.life_goal === pillar);
       const project = await createProject(userId, {
-        name: goalCreatePreview.project_name,
-        goal: goalCreatePreview.affirmation,
+        name: preview.project_name,
+        goal: preview.affirmation,
         color: pm.color,
         dream_id: dream?.id,
       }) as any;
-      const section = await createTodoSection(userId, goalCreatePreview.project_name) as any;
+      const section = await createTodoSection(userId, preview.project_name) as any;
       if (section?.id && project?.id) await linkSectionToProject(section.id, project.id);
-      for (let i = 0; i < (goalCreatePreview.kpis ?? []).length; i++) {
-        const kpi = goalCreatePreview.kpis[i];
-        await supabase.from('goal_kpis').insert({
-          user_id: userId, project_id: project.id, pillar: goalCreatePillar,
-          name: kpi.name, unit: kpi.unit ?? '', target: kpi.target ?? null,
+      for (let i = 0; i < (preview.kpis ?? []).length; i++) {
+        const kpi = preview.kpis[i];
+        const { error: kpiErr } = await supabase.from('goal_kpis').insert({
+          user_id: userId, project_id: project.id, pillar: pillar,
+          name: kpi.name || kpi.label || kpi.description || kpi.indicator || '',
+          unit: kpi.unit ?? '', target: kpi.target ?? null,
           higher_is_better: true, sort_order: i,
         } as any);
+        if (kpiErr) throw new Error(kpiErr.message);
       }
-      for (let i = 0; i < (goalCreatePreview.checkpoints ?? []).length; i++) {
-        const cp = goalCreatePreview.checkpoints[i];
-        await createProjectCheckpoint(userId, { project_id: project.id, title: cp.title, due_date: cp.due_date || null });
+      for (let i = 0; i < (preview.checkpoints ?? []).length; i++) {
+        const cp = preview.checkpoints[i];
+        await createProjectCheckpoint(userId, {
+          project_id: project.id,
+          title: cp.title || cp.name || cp.description || cp.milestone || '',
+          due_date: cp.due_date || null
+        });
       }
       setGoalCreateOpen(false);
-      setGoalCreateStep('pillar');
-      setGoalCreateAnswers({ goal: '', why: '', milestones: '', blockers: '', weekly_actions: '' });
-      setGoalCreatePreview(null);
-      setGoalCreatePillar('');
     });
   };
 
@@ -410,8 +361,10 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     } else {
       run(async () => {
         for (const [kpiId, val] of Object.entries(newValues)) {
-          await supabase.from('goal_kpis').update({ current_value: val } as any).eq('id', kpiId);
-          await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: val });
+          const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: val } as any).eq('id', kpiId);
+          if (updErr) throw new Error(updErr.message);
+          const { error: snapErr } = await (supabase as any).from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: val });
+          if (snapErr) throw new Error(snapErr.message);
         }
         setKpiUpdateOpen(false);
         setKpiUpdateIdx(0);
@@ -497,7 +450,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
             </button>
           )}
           <button
-            onClick={() => { setGoalCreateOpen(true); setGoalCreateStep('pillar'); }}
+            onClick={() => { setGoalCreateOpen(true); }}
             className="flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[12px] font-semibold text-white shadow-md shadow-primary/20"
           >
             <Plus size={14} /> Nowy cel
@@ -1047,296 +1000,44 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
       )}
 
       {/* ── AI Goal Create modal ── */}
-      {goalCreateOpen && (() => {
-        const isPillar = goalCreateStep === 'pillar';
-        const isLoading = goalCreateStep === 'loading';
-        const isPreview = goalCreateStep === 'preview';
-        const qIdx = typeof goalCreateStep === 'number' ? goalCreateStep : 0;
-        const q = GOAL_QUESTIONS[qIdx];
-        const pm = goalCreatePillar ? PILLAR_META[goalCreatePillar] : null;
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden">
-
-              {/* Header strip */}
-              <div className={`px-5 py-3 flex items-center justify-between ${pm ? pm.bg : 'bg-surface-solid/50'}`}>
-                <div className="flex items-center gap-2">
-                  {pm && <pm.icon size={13} className={pm.text} />}
-                  <span className={`text-[10px] font-black uppercase tracking-widest ${pm ? pm.text : 'text-text-muted'}`}>
-                    {pm ? pm.label : 'Nowy cel'}
-                  </span>
-                </div>
-                <button onClick={() => setGoalCreateOpen(false)} className="text-text-muted hover:text-text-primary">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-5">
-
-                {/* PILLAR SELECTION */}
-                {isPillar && (
-                  <div className="space-y-3">
-                    <p className="text-[18px] font-black text-text-primary leading-tight">Pod który filar?</p>
-                    <div className="space-y-2">
-                      {PILLARS.map(p => {
-                        const meta = PILLAR_META[p];
-                        const lg = (lifeGoals as any)?.[`goal_${p}`];
-                        return (
-                          <button
-                            key={p}
-                            onClick={() => { setGoalCreatePillar(p); setGoalCreateStep(0); }}
-                            className={`w-full text-left rounded-[16px] border p-3.5 transition-all hover:scale-[1.01] ${meta.border} ${meta.bg}`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <meta.icon size={13} className={meta.text} />
-                              <span className={`text-[10px] font-black uppercase tracking-widest ${meta.text}`}>{meta.label}</span>
-                            </div>
-                            {lg && <p className="text-[12px] text-text-secondary leading-snug line-clamp-1">{lg}</p>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* QUESTIONS */}
-                {typeof goalCreateStep === 'number' && (() => {
-                  const currentKey = q.key as keyof typeof goalCreateAnswers;
-                  const val = goalCreateAnswers[currentKey];
-                  return (
-                    <div className="space-y-4">
-                      {/* Progress dots */}
-                      <div className="flex gap-1.5">
-                        {GOAL_QUESTIONS.map((_, i) => (
-                          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= qIdx ? (pm?.dot ?? 'bg-primary') : 'bg-border-custom/50'}`} />
-                        ))}
-                      </div>
-                      <p className="text-[19px] font-black text-text-primary leading-snug">{q.q}</p>
-                      <textarea
-                        autoFocus
-                        rows={3}
-                        value={val}
-                        onChange={e => setGoalCreateAnswers(a => ({ ...a, [currentKey]: e.target.value }))}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && !e.shiftKey && val.trim()) {
-                            e.preventDefault();
-                            handleGoalCreateNext(val);
-                          }
-                        }}
-                        placeholder={q.hint}
-                        className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-4 py-3 text-[14px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/35 leading-relaxed"
-                      />
-                      <p className="text-[10px] text-text-muted/60">Enter = dalej · Shift+Enter = nowa linia</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setGoalCreateStep(qIdx > 0 ? qIdx - 1 : 'pillar')}
-                          className="rounded-xl border border-border-custom px-4 py-3 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors"
-                        >
-                          ← Wstecz
-                        </button>
-                        <button
-                          onClick={() => { if (val.trim()) handleGoalCreateNext(val); }}
-                          disabled={!val.trim()}
-                          className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white disabled:opacity-30 transition-opacity"
-                        >
-                          {qIdx < GOAL_QUESTIONS.length - 1 ? 'Dalej →' : 'Generuj cel ✦'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* LOADING */}
-                {isLoading && (
-                  <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                    <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    <p className="text-[14px] font-semibold text-text-secondary">AI analizuje Twój cel...</p>
-                    <p className="text-[11px] text-text-muted">Generuje projekt, KPI i kamienie milowe</p>
-                  </div>
-                )}
-
-                {/* PREVIEW */}
-                {isPreview && goalCreatePreview && pm && (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Projekt</p>
-                      <p className="text-[18px] font-black text-text-primary">{goalCreatePreview.project_name}</p>
-                      {goalCreatePreview.affirmation && (
-                        <p className="text-[12px] text-text-secondary mt-1 leading-snug italic">"{goalCreatePreview.affirmation}"</p>
-                      )}
-                    </div>
-                    {(goalCreatePreview.kpis ?? []).length > 0 && (
-                      <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">KPI (leading indicators)</p>
-                        <div className="space-y-1.5">
-                          {goalCreatePreview.kpis.map((kpi: any, i: number) => (
-                            <div key={i} className={`flex items-center gap-2 rounded-[10px] px-3 py-2 ${pm.bg}`}>
-                              <div className={`h-1.5 w-1.5 rounded-full ${pm.dot}`} />
-                              <span className="text-[12px] font-semibold text-text-primary flex-1">{kpi.name || kpi.label || kpi.description || kpi.indicator || ''}</span>
-                              {kpi.target != null && (
-                                <span className={`text-[11px] font-bold ${pm.text}`}>/ {kpi.target} {kpi.unit}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {(goalCreatePreview.checkpoints ?? []).length > 0 && (
-                      <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Kamienie milowe</p>
-                        <div className="space-y-1.5">
-                          {goalCreatePreview.checkpoints.map((cp: any, i: number) => (
-                            <div key={i} className="flex items-start gap-2.5">
-                              <div className="h-3.5 w-3.5 shrink-0 rounded-full border border-border-custom mt-0.5" />
-                              <span className="text-[12px] text-text-secondary flex-1 min-w-0">{cp.title || cp.name || cp.description || cp.milestone || ''}</span>
-                              {cp.due_date && <span className="text-[10px] text-text-muted shrink-0">{(() => { const [, m, d] = cp.due_date.split('-'); return `${d}.${m}`; })()}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => setGoalCreateStep(GOAL_QUESTIONS.length - 1)}
-                        className="rounded-xl border border-border-custom px-4 py-3 text-[12px] font-bold text-text-muted hover:text-text-primary"
-                      >
-                        Zmień
-                      </button>
-                      <button
-                        onClick={handleGoalCreateConfirm}
-                        disabled={busy}
-                        className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white disabled:opacity-50"
-                      >
-                        Utwórz projekt ✦
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {goalCreateOpen && (
+        <GoalCreateModal
+          lifeGoals={lifeGoals}
+          dreams={dreams}
+          busy={busy}
+          onClose={() => setGoalCreateOpen(false)}
+          onConfirm={handleGoalCreateConfirm}
+          onError={(err) => setError(err)}
+        />
+      )}
 
       {/* ── KPI Update modal ── */}
-      {kpiUpdateOpen && activeKpis.length > 0 && (() => {
-        const kpi = activeKpis[kpiUpdateIdx];
-        const last = lastSnapshotByKpi[kpi.id];
-        return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">
-                  KPI {kpiUpdateIdx + 1} / {activeKpis.length}
-                </p>
-                <h3 className="text-[17px] font-black text-text-primary leading-tight">{kpi.name}</h3>
-                <div className="flex items-center gap-3 mt-1">
-                  {kpi.target != null && (
-                    <span className="text-[12px] text-text-muted">cel: {kpi.target} {kpi.unit}</span>
-                  )}
-                  {last != null && (
-                    <span className="text-[12px] text-text-muted">poprzednio: {last.value}</span>
-                  )}
-                </div>
-              </div>
-              <input
-                autoFocus
-                type="number"
-                value={kpiUpdateVal}
-                onChange={e => setKpiUpdateVal(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleKpiUpdateNext(); }}
-                placeholder={kpi.unit || 'wartość'}
-                className="w-full rounded-[14px] border border-border-custom bg-surface-solid/40 px-4 py-4 text-[28px] font-black text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30 text-center tracking-tight"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setKpiUpdateOpen(false); setKpiUpdateIdx(0); setKpiUpdateValues({}); }}
-                  className="rounded-xl border border-border-custom py-3 px-4 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={handleKpiUpdateNext}
-                  disabled={busy}
-                  className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {kpiUpdateIdx < activeKpis.length - 1 ? 'Dalej →' : 'Zapisz wszystko'}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {kpiUpdateOpen && activeKpis.length > 0 && (
+        <KpiUpdateModal
+          activeKpis={activeKpis}
+          kpiUpdateIdx={kpiUpdateIdx}
+          kpiUpdateVal={kpiUpdateVal}
+          setKpiUpdateVal={setKpiUpdateVal}
+          lastSnapshotByKpi={lastSnapshotByKpi}
+          onClose={() => {
+            setKpiUpdateOpen(false);
+            setKpiUpdateIdx(0);
+            setKpiUpdateValues({});
+          }}
+          onNext={handleKpiUpdateNext}
+          busy={busy}
+        />
+      )}
 
       {/* ── Retrospektywa modal ── */}
       {retroProject && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Projekt ukończony</p>
-              <h3 className="text-[17px] font-black text-text-primary leading-tight">{retroProject.name}</h3>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co poszło dobrze?</label>
-                <textarea
-                  value={retroForm.good}
-                  onChange={e => setRetroForm(f => ({ ...f, good: e.target.value }))}
-                  rows={2}
-                  placeholder="Najlepszy moment, decyzja, wynik..."
-                  className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co zrobić inaczej?</label>
-                <textarea
-                  value={retroForm.improve}
-                  onChange={e => setRetroForm(f => ({ ...f, improve: e.target.value }))}
-                  rows={2}
-                  placeholder="Błąd, bloker, coś czego uniknąć..."
-                  className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1.5">Ocena projektu</label>
-                <div className="flex gap-2">
-                  {[1,2,3,4,5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setRetroForm(f => ({ ...f, rating: f.rating === n ? 0 : n }))}
-                      className={`flex-1 rounded-xl py-2 text-[13px] font-black transition-all cursor-pointer ${
-                        retroForm.rating >= n
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'bg-surface-solid text-text-muted hover:bg-primary/10'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => handleRetroSubmit(true)}
-                className="flex-1 rounded-xl border border-border-custom py-3 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-              >
-                Pomiń
-              </button>
-              <button
-                onClick={() => handleRetroSubmit(false)}
-                disabled={busy}
-                className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
-              >
-                Zapisz i zamknij
-              </button>
-            </div>
-          </div>
-        </div>
+        <RetroModal
+          retroProject={retroProject}
+          retroForm={retroForm}
+          setRetroForm={setRetroForm}
+          onSubmit={handleRetroSubmit}
+          busy={busy}
+        />
       )}
     </div>
   );

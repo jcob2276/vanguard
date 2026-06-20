@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, Check, ChevronRight, Flag, Shield, Wallet, Zap } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
@@ -31,7 +32,7 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
 
   useEffect(() => {
     if (!userId) return;
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const todayStr = getTodayWarsaw();
     const in14 = new Date();
     in14.setDate(in14.getDate() + 14);
     const in14Str = in14.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -63,7 +64,7 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
     });
   }, [userId]);
 
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const todayStr = getTodayWarsaw();
 
   const markDone = async (id: string) => {
     await supabase.from('project_checkpoints').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', id);

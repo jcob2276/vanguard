@@ -4,6 +4,7 @@ import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supaba
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 
 const VANGUARD_USER_ID = getVanguardUserId()
@@ -18,8 +19,8 @@ serve(async (req) => {
 
     const now = new Date()
     const cut7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const weekStart = cut7d.toISOString().split('T')[0]
-    const weekEnd = now.toISOString().split('T')[0]
+    const weekStart = getWarsawDateString(cut7d)
+    const weekEnd = getWarsawDateString(now)
 
     console.log(`[weekly-synthesis] start | ${weekStart} – ${weekEnd}`)
 

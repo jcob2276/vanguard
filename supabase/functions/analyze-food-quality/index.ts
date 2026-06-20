@@ -325,8 +325,8 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
         .select('name, sport_type, distance, moving_time, hr_avg, workout_type')
         .eq('user_id', userId)
         .eq('is_oura', false)
-        .gte('start_date', targetDate + 'T00:00:00')
-        .lte('start_date', targetDate + 'T23:59:59'),
+        .gte('start_date', targetDate + 'T00:00:00' + warsawOffsetStr())
+        .lte('start_date', targetDate + 'T23:59:59' + warsawOffsetStr()),
     ])
 
     const todayEntries = todayEntriesR.data

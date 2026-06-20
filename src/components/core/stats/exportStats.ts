@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { formatWarsawDate } from '../../../lib/date';
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -97,7 +98,7 @@ export async function exportStatsMarkdown({
       a.strava_id,
       (a.raw_data?.description || a.raw_data?.athlete_comment || '').trim()
     ]).filter(([, comment]) => comment));
-    const toWarsawDate = (value) => new Date(value).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const toWarsawDate = formatWarsawDate;
     const toWarsawTime = (value) => new Date(value).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
 
     const userPOI = [
@@ -196,7 +197,7 @@ export async function exportStatsMarkdown({
       const dayOuraDerived = (ouraDerived || []).find(o => o.day === dateStr);
       const dayPhotos = photos?.filter(p => p.date === dateStr);
       const dayStrava = (stravaData || []).filter(a => {
-        const d = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const d = toWarsawDate(a.start_date);
         return d === dateStr;
       });
       const dayAw = includeActivityWatch ? (awSummary || []).find(a => a.date === dateStr) : null;
@@ -491,7 +492,7 @@ export async function exportStatsMarkdown({
           }
 
           // HRV context from Oura: pre-run (day of run) + post-run (day after)
-          const runDate = new Date(a.start_date).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+          const runDate = toWarsawDate(a.start_date);
           const [ry, rm, rd] = runDate.split('-').map(Number);
           const nextDateObj = new Date(ry, rm - 1, rd + 1);
           const nextDate = `${nextDateObj.getFullYear()}-${String(nextDateObj.getMonth()+1).padStart(2,'0')}-${String(nextDateObj.getDate()).padStart(2,'0')}`;

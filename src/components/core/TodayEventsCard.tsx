@@ -1,3 +1,4 @@
+import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -10,7 +11,7 @@ export default function TodayEventsCard({ session }: { session: any }) {
 
   useEffect(() => {
     if (!userId) return;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getTodayWarsaw();
     const from = `${today}T00:00:00`;
     const to = `${today}T23:59:59`;
     supabase

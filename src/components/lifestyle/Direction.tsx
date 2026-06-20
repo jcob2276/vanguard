@@ -1,3 +1,4 @@
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -35,8 +36,8 @@ type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'prior
 type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
 type TodoSectionRow = Pick<Tables<'todo_sections'>, 'id' | 'name' | 'project_id'>;
 
-const todayDate = () => format(new Date(), 'yyyy-MM-dd');
-const todayWarsaw = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+const todayWarsaw = () => getTodayWarsaw();
+const APP_LAUNCH_DATE = '2026-05-03';
 
 const GOAL_DEFS = [
   { key: 'goal_cialo', dateKey: 'date_cialo', Icon: Shield, color: 'text-emerald-500' },
@@ -111,11 +112,12 @@ export default function Direction({ session }: { session: Session }) {
   const [addingHabit, setAddingHabit] = useState(false);
   const [showHabitForm, setShowHabitForm] = useState(false);
 
-  const isSunday = new Date().getDay() === 0;
-  const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const nowWarsaw = new Date(todayWarsaw() + 'T12:00:00');
+  const isSunday = nowWarsaw.getDay() === 0;
+  const currentWeekStart = format(startOfWeek(nowWarsaw, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
   // Sunday → plan next week; otherwise → current week
-  const planRef = isSunday ? addDays(new Date(), 7) : new Date();
+  const planRef = isSunday ? addDays(nowWarsaw, 7) : nowWarsaw;
   const planWeekStart = startOfWeek(planRef, { weekStartsOn: 1 });
   const planWeekEnd = endOfWeek(planRef, { weekStartsOn: 1 });
   const planWeekLabel = `${format(planWeekStart, 'd MMM', { locale: pl })} – ${format(planWeekEnd, 'd MMM', { locale: pl })}`;
@@ -140,9 +142,9 @@ export default function Direction({ session }: { session: Session }) {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const today = todayDate();
+    const today = todayWarsaw();
     const userId = session.user.id;
-    const now = new Date();
+    const now = new Date(today + 'T12:00:00');
 
     // Fetch 2 weeks of calendar (this week + next) so both planning and radar views work
     const calFrom = subDays(startOfWeek(now, { weekStartsOn: 1 }), 1).toISOString();
@@ -165,7 +167,7 @@ export default function Direction({ session }: { session: Session }) {
         supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
         supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-        supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', subDays(now, 45).toISOString().split('T')[0]),
+        supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', formatWarsawDate(subDays(now, 45))),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
         supabase.from('todo_items').select('id, title, status, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('created_at', { ascending: false }),
@@ -211,6 +213,8 @@ export default function Direction({ session }: { session: Session }) {
         if (!error) {
           const { data: updated } = await supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60);
           setHistory(updated || []);
+        } else {
+          console.error('Failed to mark past unfinished days as P:', error);
         }
       }
     } catch (err) {
@@ -264,7 +268,7 @@ export default function Direction({ session }: { session: Session }) {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
     let streak = 0;
     const sorted = [...history].sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
-    const today = todayDate();
+    const today = todayWarsaw();
     const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
     if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
       for (const day of sorted) {
@@ -283,7 +287,7 @@ export default function Direction({ session }: { session: Session }) {
       let missing = 0;
       for (let day = 0; day < expectedPastDays; day++) {
         const checkDate = format(subDays(now, expectedPastDays - day), 'yyyy-MM-dd');
-        if (!weekDays.some((e) => e.date === checkDate) && checkDate >= '2026-05-03') missing++;
+        if (!weekDays.some((e) => e.date === checkDate) && checkDate >= APP_LAUNCH_DATE) missing++;
       }
       const pCount = explicitP + missing;
       weeks.push({ isWeekWin: pCount <= 2 && (expectedPastDays > 0 || weekDays.length > 0), pCount, start });
@@ -318,7 +322,11 @@ export default function Direction({ session }: { session: Session }) {
   }, [weekTodos, selectedSectionId, searchQuery]);
 
 
-  async function togglePowerListTask(dayWin: DailyWinRow, index: number) {
+  async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
+    // Re-fetch the row fresh to avoid acting on a stale render-time snapshot
+    // when two checkboxes are toggled in quick succession (race on `allDone`).
+    const { data: fresh } = await supabase.from('daily_wins').select('*').eq('id', dayWinStale.id).single();
+    const dayWin = fresh ?? dayWinStale;
     const dayWinAny = dayWin as any;
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
@@ -735,11 +743,11 @@ export default function Direction({ session }: { session: Session }) {
                   const date = format(dateObj, 'yyyy-MM-dd');
                   const dayData = history.find((d) => d.date === date);
                   const isFuture = dateObj > new Date();
-                  const isMissingLoss = date < todayDate() && !dayData && date >= '2026-05-03';
+                  const isMissingLoss = date < todayWarsaw() && !dayData && date >= APP_LAUNCH_DATE;
                   const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
                   return (
                     <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-lg ${color}`}>
-                      {date === todayDate() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
+                      {date === todayWarsaw() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
                     </div>
                   );
                 })}

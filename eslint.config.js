@@ -36,6 +36,7 @@ export default defineConfig([
       'no-unused-vars': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
       'react-hooks/immutability': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/static-components': 'off',
