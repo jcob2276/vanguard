@@ -7,27 +7,20 @@ import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { runAntiAnalysisGuard } from "../_handlers/antiAnalysis.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
-import { getRecentStrongBehavioralPatterns, getRecentEarlyWarnings } from "../../_shared/vanguardPatterns.ts";
 import { deepseekChat } from "../../_shared/deepseek.ts";
+import {
+  DEFAULT_REPLY_KEYBOARD,
+  handleStartMenuCommand,
+  handleKoniecCommand,
+  handlePytanieCommand,
+  handleDietaCommand,
+  handleInteractivePromptCommand,
+  handleWzorceCommand,
+  handlePostCommand,
+  handleLenieCommand,
+} from "./commands.ts";
 
-
-export const DEFAULT_REPLY_KEYBOARD = {
-  keyboard: [
-    [
-      { text: "🛋️ Lenie" },
-      { text: "❓ Wyrocznia" }
-    ],
-    [
-      { text: "💬 Pytanie" },
-      { text: "🔚 Koniec" }
-    ],
-    [
-      { text: "🍽️ Dieta" }
-    ]
-  ],
-  resize_keyboard: true,
-  is_persistent: true
-};
+export { DEFAULT_REPLY_KEYBOARD };
 
 export async function handleIncomingMessage(
   message: {
@@ -138,7 +131,8 @@ export async function handleIncomingMessage(
             telegramToken,
             deepseekApiKey,
             vanguardUserId,
-            supabase
+            supabase,
+            messageId
           );
           if (handled) return;
         } catch (err) {
@@ -166,300 +160,47 @@ export async function handleIncomingMessage(
 
       // --- /start and /menu commands ---
       if (lowerText === '/start' || lowerText === '/menu') {
-        await safeSendTelegram(chatId, "Witaj w Vanguard! Wybierz opcję z menu poniżej lub pisz bezpośrednio do strumienia.", telegramToken, {
-          reply_markup: DEFAULT_REPLY_KEYBOARD
-        });
+        await handleStartMenuCommand(chatId, telegramToken);
         return;
       }
 
       // --- /koniec command (early reflection) ---
       if (lowerText === '/koniec' || lowerText === '🔚 koniec') {
-        try {
-          await sendChatAction(telegramToken, chatId, "typing");
-          const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-daily-reconciliation?manual=true`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-              'apikey': supabaseServiceRoleKey
-            },
-            body: JSON.stringify({ source: 'telegram_command', command: '/koniec' })
-          });
-
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body?.error || `HTTP ${res.status}`);
-          }
-
-          if (body?.skipped && body?.reason === 'already_used_today') {
-            await safeSendTelegram(chatId, 'Wieczorna refleksja byla juz dzisiaj odpalona. Cron 21:30 tez ja pominie.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-          }
-        } catch (err) {
-          console.error('[messages] /koniec reflection trigger failed:', err);
-          await safeSendTelegram(chatId, 'Nie udalo sie odpalic wieczornej refleksji: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        }
+        await handleKoniecCommand(chatId, telegramToken, supabaseUrl, supabaseServiceRoleKey);
         return;
       }
 
       // --- /pytanie / 💬 Pytanie command (manual interview trigger) ---
       if (lowerText === '/pytanie' || lowerText === '💬 pytanie') {
-        try {
-          await sendChatAction(telegramToken, chatId, "typing");
-          const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-eval-interview`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-              'apikey': supabaseServiceRoleKey
-            },
-            body: JSON.stringify({ manual: true })
-          });
-
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body?.error || `HTTP ${res.status}`);
-          }
-
-          if (body?.skipped) {
-            await safeSendTelegram(chatId, `⚠️ Wywiad pominięty: ${body.reason}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-          }
-        } catch (err) {
-          console.error('[messages] /pytanie trigger failed:', err);
-          await safeSendTelegram(chatId, 'Nie udalo sie odpalic wywiadu: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        }
+        await handlePytanieCommand(chatId, telegramToken, supabaseUrl, supabaseServiceRoleKey);
         return;
       }
 
       // --- /dieta / 🍽️ Dieta command (manual nutrition target trigger) ---
       if (lowerText === '/dieta' || lowerText === '🍽️ dieta' || lowerText === 'dieta') {
-        try {
-          await sendChatAction(telegramToken, chatId, "typing");
-          // Refresh today's Yazio first so "zjedzone / zostało" reflects what you ate so far.
-          await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-              'apikey': supabaseServiceRoleKey
-            },
-            body: JSON.stringify({ userId: vanguardUserId, days: 1 })
-          }).catch((e) => console.error('[messages] /dieta yazio presync failed:', e));
-
-          const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-              'apikey': supabaseServiceRoleKey
-            },
-            body: JSON.stringify({ userId: vanguardUserId, notify: true })
-          });
-
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body?.error || `HTTP ${res.status}`);
-          }
-          // vanguard-nutrition-coach sends its own "🍽️ Cel na dziś" push when notify:true.
-          if (!body?.notified) {
-            await safeSendTelegram(chatId, '⚠️ Policzone, ale push się nie wysłał. Spróbuj jeszcze raz.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-          }
-        } catch (err) {
-          console.error('[messages] /dieta trigger failed:', err);
-          await safeSendTelegram(chatId, 'Nie udało się policzyć diety: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        }
+        await handleDietaCommand(chatId, telegramToken, supabaseUrl, supabaseServiceRoleKey, vanguardUserId);
         return;
       }
 
       // --- Interactive input prompts ---
-      if (lowerText === '🛋️ lenie' || lowerText === '/lenie') {
-        await safeSendTelegram(chatId, "🛋️ **Zapis Lenie**\nPodaj bodziec i kontekst (np. `scrollowanie | zmęczenie`):", telegramToken, {
-          reply_markup: {
-            force_reply: true,
-            selective: true,
-            input_field_placeholder: "bodziec | kontekst"
-          }
-        });
-        return;
-      }
-
-      if (lowerText === '🔵 post' || lowerText === '/post') {
-        await safeSendTelegram(chatId, "🔵 **Zapis postu**\nPodaj opis lub datę i opis (np. `18h` lub `wczoraj 16h`):", telegramToken, {
-          reply_markup: {
-            force_reply: true,
-            selective: true,
-            input_field_placeholder: "np. 18h"
-          }
-        });
-        return;
-      }
-
-      if (lowerText === '❓ wyrocznia') {
-        await safeSendTelegram(chatId, "❓ **Zadaj pytanie Wyroczni**\nNapisz swoje pytanie do Vanguard Oracle:", telegramToken, {
-          reply_markup: {
-            force_reply: true,
-            selective: true,
-            input_field_placeholder: "Twoje pytanie..."
-          }
-        });
-        return;
-      }
-
-      if (lowerText === '🧠 poprawka') {
-        await safeSendTelegram(chatId, "🧠 **Wpisz poprawkę do wiedzy**\nNapisz co chcesz poprawić/dodać (np. `styl: odpowiadaj krótko` lub `poprawka: lubię czarną kawę`):", telegramToken, {
-          reply_markup: {
-            force_reply: true,
-            selective: true,
-            input_field_placeholder: "Wpisz poprawkę..."
-          }
-        });
+      if (await handleInteractivePromptCommand(lowerText, chatId, telegramToken)) {
         return;
       }
 
       if (['wzorce', 'wzorzec', 'pokaż wzorce', 'moje wzorce', 'patterns', '/wzorce', '📈 wzorce'].includes(lowerText)) {
-        try {
-          const patterns = await getRecentStrongBehavioralPatterns(supabase, vanguardUserId, 6, true);
-
-          if (patterns.length === 0) {
-            await safeSendTelegram(chatId, "Nie mam jeszcze zapisanych powtarzalnych wzorców dla Ciebie.", telegramToken);
-            return;
-          }
-
-          // Rozdzielamy na zwykłe wzorce i early warnings dla lepszej historii
-          const regularPatterns = patterns.filter(p => p.pattern_type !== 'early_warning');
-          const earlyWarnings = await getRecentEarlyWarnings(supabase, vanguardUserId, 6);
-
-          let response = "📈 Twoje aktualne wzorce behawioralne:\n\n";
-
-          if (regularPatterns.length > 0) {
-            regularPatterns.forEach((p, i) => {
-              const statusEmoji = p.status === 'user_confirmed' ? '✅' :
-                                 p.status === 'user_rejected' ? '❌' :
-                                 p.status === 'snoozed' ? '⏸️' : '🔍';
-
-              let typeLabel = p.pattern_type;
-              if (p.pattern_type === 'recurring_blocker') typeLabel = 'Bloker';
-              else if (p.pattern_type === 'plan_adherence_gap') typeLabel = 'Plan vs rzeczywistość';
-              else if (p.pattern_type === 'morning_protocol_impact') typeLabel = 'Poranny protokół';
-              else if (p.pattern_type === 'sleep_friction_link') typeLabel = 'Sen → tarcie';
-              else if (p.pattern_type === 'narrative_biometric_mismatch') typeLabel = 'Rozbieżność narracji z biometrią';
-
-              response += `${i+1}. ${statusEmoji} ${typeLabel}\n`;
-              response += `   ${p.evidence_text}\n`;
-              response += `   N=${p.occurrence_count} | pewność ${Math.round(p.confidence*100)}% | status: ${p.status}\n\n`;
-            });
-          } else {
-            response += "Brak aktywnych powtarzalnych wzorców.\n\n";
-          }
-
-          if (earlyWarnings.length > 0) {
-            response += "⚠️ Ostatnie wczesne ostrzeżenia (historia):\n\n";
-            earlyWarnings.forEach((w, i) => {
-              const date = w.last_seen ? w.last_seen : '—';
-              const shown = w.last_shown ? ` (pokazane ${w.last_shown})` : '';
-              const regime = w.metadata?.regime || 'nieznany';
-              let regimeLabel = regime;
-              if (regime === 'morning_drift') regimeLabel = 'Poranny dryf';
-              else if (regime === 'repeated_adherence_failures') regimeLabel = 'Rozjazdy plan vs wykonanie';
-              else if (regime === 'fragmentation_sleep') regimeLabel = 'Wysoka fragmentacja + niski sen';
-              else if (regime === 'weekend_spillover') regimeLabel = 'Przeniesienie unikania z weekendu';
-
-
-              response += `${i+1}. [${date}] ${regimeLabel}${shown}\n`;
-              response += `   ${w.evidence_text}\n`;
-              response += `   pewność ${Math.round(w.confidence*100)}% | status: ${w.status}\n\n`;
-            });
-          }
-
-          response += "Możesz reagować na wzorce w bridge'u wieczornym (przyciski 👍 / 👎 / ⏸).";
-
-          await safeSendTelegram(chatId, response, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        } catch (err) {
-          console.error('[messages] wzorce command failed:', err);
-          await safeSendTelegram(chatId, "Coś poszło nie tak przy pobieraniu wzorców.", telegramToken);
-        }
+        await handleWzorceCommand(chatId, telegramToken, supabase, vanguardUserId);
         return;
       }
 
       // --- /post command (fasting marker) ---
       if (lowerText.startsWith('/post')) {
-        try {
-          let dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-          let note = text.slice('/post'.length).trim() || null;
-
-          if (note) {
-            const firstWord = note.split(/\s+/)[0].toLowerCase();
-            if (firstWord === 'wczoraj') {
-              const dYesterday = new Date(dateStr);
-              dYesterday.setDate(dYesterday.getDate() - 1);
-              dateStr = dYesterday.toISOString().split('T')[0];
-              note = note.slice('wczoraj'.length).trim() || null;
-            } else if (firstWord === 'dzis' || firstWord === 'dziś') {
-              note = note.slice(firstWord.length).trim() || null;
-            } else if (/^\d{4}-\d{2}-\d{2}$/.test(firstWord)) {
-              dateStr = firstWord;
-              note = note.slice(10).trim() || null;
-            }
-          }
-
-          const { error } = await supabase.from('fasting_logs').upsert(
-            { user_id: vanguardUserId, date: dateStr, note, created_at: new Date().toISOString() },
-            { onConflict: 'user_id,date' }
-          );
-          if (error) throw error;
-          await safeSendTelegram(chatId, `🔵 Post zapisany (${dateStr})${note ? `\nOpis: ${note}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        } catch (err) {
-          console.error('[messages] /post failed:', err);
-          await safeSendTelegram(chatId, '❌ Błąd zapisu postu: ' + (err as Error).message, telegramToken);
-        }
+        await handlePostCommand(text, chatId, telegramToken, supabase, vanguardUserId);
         return;
       }
 
       // --- /lenie command ---
       if (lowerText.startsWith('/lenie')) {
-        try {
-          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-          const rest = text.slice('/lenie'.length).trim();
-          // Format: "bodziec | kontekst" or just "opis"
-          const [finalStimulus, contextNote] = rest.includes('|')
-            ? rest.split('|').map(s => s.trim())
-            : [rest, null];
-
-          // Find or create Lenie habit
-          let { data: habit } = await supabase
-            .from('habits')
-            .select('id')
-            .eq('user_id', vanguardUserId)
-            .ilike('name', '%lenie%')
-            .maybeSingle();
-
-          if (!habit) {
-            const { data: newHabit, error: hErr } = await supabase
-              .from('habits')
-              .insert({ user_id: vanguardUserId, name: 'Lenie', icon: 'L', is_positive: false })
-              .select('id').single();
-            if (hErr) throw hErr;
-            habit = newHabit;
-          }
-
-          // Upsert log for today
-          const { error: logErr } = await supabase.from('habit_logs').upsert({
-            user_id: vanguardUserId,
-            habit_id: habit.id,
-            date: today,
-            completed: true,
-            final_stimulus: finalStimulus || null,
-            context_note: contextNote || null,
-            logged_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,habit_id,date' });
-
-          if (logErr) throw logErr;
-
-          const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
-          await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-        } catch (err) {
-          console.error('[messages] /lenie failed:', err);
-          await safeSendTelegram(chatId, '❌ Błąd zapisu lenie: ' + (err as Error).message, telegramToken);
-        }
+        await handleLenieCommand(text, chatId, telegramToken, supabase, vanguardUserId);
         return;
       }
 
