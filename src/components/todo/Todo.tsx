@@ -968,6 +968,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [batchClassifying, setBatchClassifying] = useState(false);
   const quickCaptureRef = useRef<HTMLDivElement>(null);
 
   // Drag state
@@ -1137,7 +1138,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   }), [activeFilterTag, activeFilterSection]);
 
   const { todayItems, inboxItems, sectionsWithItems } = useMemo(() => {
-    const todayList = openItems.filter((i: any) => i.due_date === today || i.ai_bucket === 'today');
+    const todayList = openItems.filter((i: any) => (i.due_date && i.due_date <= today) || i.ai_bucket === 'today');
     const todaySet = new Set(todayList.map(i => i.id));
     const remainingItems = openItems.filter((i: any) => !todaySet.has(i.id));
     const inbox = applyFilter(remainingItems.filter((i: any) => i.section_id === null));
@@ -1184,6 +1185,22 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, due_date: item.due_date || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
     }).then(() => setTimeout(fetchAll, 200)).catch(() => {});
   }, [userId, session.access_token, fetchAll]);
+
+  const batchClassify = useCallback(async () => {
+    const unclassified = items.filter((i: any) => i.status === 'open' && !i.ai_bucket && !i.due_date);
+    if (!unclassified.length || batchClassifying) return;
+    setBatchClassifying(true);
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    await Promise.allSettled(unclassified.map((item: any) =>
+      fetch(`${base}/functions/v1/vanguard-todo-classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
+      })
+    ));
+    await fetchAll();
+    setBatchClassifying(false);
+  }, [items, batchClassifying, userId, session.access_token, fetchAll]);
 
   const addItem = () => {
     const title = parsedInput.title || form.title.trim();
@@ -1676,6 +1693,24 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 </div>
               )}
             </div>
+
+            {/* Batch classify chip */}
+            {(() => {
+              const unclassifiedCount = items.filter((i: any) => i.status === 'open' && !i.ai_bucket && !i.due_date).length;
+              if (!unclassifiedCount) return null;
+              return (
+                <button
+                  onClick={batchClassify}
+                  disabled={batchClassifying}
+                  className="flex w-full items-center gap-2 rounded-2xl border border-primary/10 bg-primary/[0.03] px-4 py-2.5 text-left transition-all hover:bg-primary/[0.07] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles size={12} className={`shrink-0 text-primary ${batchClassifying ? 'animate-pulse' : ''}`} />
+                  <span className="text-[11px] font-bold text-text-primary">
+                    {batchClassifying ? 'Klasyfikuję...' : `Klasyfikuj z AI (${unclassifiedCount} zadań bez bucketu)`}
+                  </span>
+                </button>
+              );
+            })()}
 
             {/* Main List */}
             <div className="space-y-4">

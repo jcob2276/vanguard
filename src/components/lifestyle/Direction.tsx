@@ -742,6 +742,56 @@ export default function Direction({ session }: { session: Session }) {
               </div>
             </div>
 
+            {/* 2b. Habit streaks per nawyk */}
+            {habits.length >= 3 && (
+              <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Nawyki — 28 dni</p>
+                {habits.map(habit => {
+                  const loggedDates = new Set(
+                    habitLogs
+                      .filter(l => l.habit_id === habit.id && l.completed)
+                      .map(l => l.date)
+                  );
+                  const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
+                  const streak28 = Array.from({ length: 28 }).filter((_, i) => {
+                    const d = format(subDays(gridStart, -i), 'yyyy-MM-dd');
+                    return loggedDates.has(d);
+                  }).length;
+                  return (
+                    <div key={habit.id}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-bold text-text-primary">
+                          {habit.icon ? `${habit.icon} ` : ''}{habit.name}
+                        </span>
+                        <span className="text-[10px] font-black text-primary">{streak28}/28</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {Array.from({ length: 28 }).map((_, i) => {
+                          const dateObj = subDays(gridStart, -i);
+                          const date = format(dateObj, 'yyyy-MM-dd');
+                          const done = loggedDates.has(date);
+                          const isFuture = dateObj > new Date();
+                          return (
+                            <div
+                              key={date}
+                              title={date}
+                              className={`h-3 rounded-sm transition-all ${
+                                isFuture
+                                  ? 'bg-transparent border border-border-custom/30'
+                                  : done
+                                  ? (habit.is_positive ? 'bg-emerald-500' : 'bg-rose-400')
+                                  : 'bg-border-custom/40'
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* 3. Lekcja z poprzedniego tygodnia */}
             {prevWeekReview?.bottleneck && (
               <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm flex gap-3 items-start animate-in fade-in-50 duration-300">

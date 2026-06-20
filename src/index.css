@@ -662,6 +662,17 @@
   color: #6366f1;
   font-weight: 600;
 }
+.keep-sidebar-item .keep-sidebar-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
 
 /* ── Main area ───────────────────────────────────────────────────────────── */
 .keep-main {

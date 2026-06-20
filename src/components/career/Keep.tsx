@@ -26,6 +26,19 @@ import {
   X,
 } from 'lucide-react';
 
+// ─── Relative date helper ────────────────────────────────────────────────────
+
+function relativeDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return 'dziś';
+  if (diffDays === 1) return 'wczoraj';
+  if (diffDays < 7) return `${diffDays} dni temu`;
+  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+}
+
 // ─── Sanitize ────────────────────────────────────────────────────────────────
 
 function sanitizeHtml(html: string): string {
@@ -1085,9 +1098,7 @@ function NoteCard({
       )}
       <div className="keep-card-footer" style={{ borderTopColor: 'rgba(255,255,255,0.08)' }}>
         <span className="keep-card-date" style={{ color: c.textSub, opacity: 0.6 }}>
-          {new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
-            day: 'numeric', month: 'short',
-          })}
+          {relativeDate(note.updated_at || note.created_at)}
         </span>
          <div className="keep-card-actions">
           <button
@@ -1395,6 +1406,18 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     }
   }, [autoNewNote, handleNewNote]);
 
+  // Ctrl+N shortcut — new note
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !editingId) {
+        e.preventDefault();
+        handleNewNote();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editingId, handleNewNote]);
+
   // ─── Drag & Drop reorder ─────────────────────────────────────────────────────
 
   const handleReorder = (dragId: string, overId: string) => {
@@ -1495,6 +1518,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           >
             <CheckSquare size={15} />
             <span>Notatki</span>
+            {notes.filter(n => !n.is_archived).length > 0 && (
+              <span className="keep-sidebar-count">{notes.filter(n => !n.is_archived).length}</span>
+            )}
           </button>
           <button
             className={`keep-sidebar-item ${sidebarTab === 'archive' && !activeTag ? 'active' : ''}`}
@@ -1502,6 +1528,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           >
             <Archive size={15} />
             <span>Archiwum</span>
+            {notes.filter(n => n.is_archived).length > 0 && (
+              <span className="keep-sidebar-count">{notes.filter(n => n.is_archived).length}</span>
+            )}
           </button>
 
           <div className="keep-sidebar-separator" />

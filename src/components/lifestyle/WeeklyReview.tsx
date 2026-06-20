@@ -109,6 +109,12 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
 
     const thisMap: Record<string, string> = {};
     for (const e of thisEntries ?? []) thisMap[e.kpi_id] = e.value != null ? String(e.value) : '';
+    // Pre-fill from current_value if no entry yet this week
+    for (const kpi of (k ?? []) as any[]) {
+      if (!(kpi.id in thisMap) && kpi.current_value != null) {
+        thisMap[kpi.id] = String(kpi.current_value);
+      }
+    }
     setThisWeek(thisMap);
 
     const prevMap: Record<string, number | null> = {};

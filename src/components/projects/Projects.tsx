@@ -677,37 +677,83 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] text-text-muted">{s.doneItems.length}/{s.total} zadań</span>
-                      <span className={`text-[11px] font-semibold ${col.text}`}>{s.progress}%</span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-border-custom/50">
-                      <div
-                        className={`h-full rounded-full transition-all ${col.bar}`}
-                        style={{ width: `${s.progress}%` }}
-                      />
-                    </div>
+                  {/* Progress bars */}
+                  <div className="mt-3 space-y-2">
+                    {s.total > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-text-muted">{s.doneItems.length}/{s.total} zadań</span>
+                          <span className={`text-[10px] font-semibold ${col.text}`}>{s.progress}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-border-custom/50">
+                          <div className={`h-full rounded-full transition-all ${col.bar}`} style={{ width: `${s.progress}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    {projectCheckpoints.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-text-muted">{doneCheckpoints}/{projectCheckpoints.length} checkpointów</span>
+                          <span className={`text-[10px] font-semibold ${col.text}`}>
+                            {Math.round((doneCheckpoints / projectCheckpoints.length) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-1 w-full rounded-full bg-border-custom/50">
+                          <div
+                            className={`h-full rounded-full transition-all ${col.bar} opacity-60`}
+                            style={{ width: `${Math.round((doneCheckpoints / projectCheckpoints.length) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* KPI mini-display */}
+                  {/* KPI inline edit */}
                   {(kpisByProject[project.id] ?? []).length > 0 && (
-                    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                    <div className="mt-3 space-y-2" onClick={e => e.stopPropagation()}>
                       {(kpisByProject[project.id] ?? []).map(kpi => {
                         const pct = kpi.target != null && kpi.current_value != null
-                          ? Math.min(100, Math.round((kpi.current_value / kpi.target) * 100)) : null;
+                          ? Math.min(100, Math.round((Number(kpi.current_value) / Number(kpi.target)) * 100)) : null;
+                        const isEditing = editingKpiId === kpi.id;
                         return (
-                          <div key={kpi.id} className="flex items-center gap-1.5 min-w-0">
-                            <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${col.dot}`} />
-                            <span className="text-[10px] text-text-muted truncate">{kpi.name}</span>
-                            <span className={`text-[10px] font-bold ${col.text}`}>
-                              {kpi.current_value != null ? kpi.current_value : '—'}
-                              {kpi.unit ? ` ${kpi.unit}` : ''}
-                              {kpi.target != null && <span className="font-normal text-text-muted/60"> / {kpi.target}</span>}
-                            </span>
+                          <div key={kpi.id} className="space-y-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${col.dot}`} />
+                              <span className="text-[10px] text-text-muted truncate flex-1">{kpi.name}</span>
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  defaultValue={kpi.current_value ?? ''}
+                                  onBlur={e => handleUpdateKpiValue(kpi.id, e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') handleUpdateKpiValue(kpi.id, (e.target as HTMLInputElement).value);
+                                    if (e.key === 'Escape') setEditingKpiId(null);
+                                  }}
+                                  className="w-16 rounded-lg border border-primary/40 bg-background/80 px-2 py-0.5 text-[11px] font-bold text-primary outline-none text-center"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => setEditingKpiId(kpi.id)}
+                                  className={`text-[11px] font-black ${col.text} hover:underline cursor-pointer`}
+                                  title="Kliknij żeby edytować"
+                                >
+                                  {kpi.current_value != null ? kpi.current_value : '—'}
+                                  {kpi.unit ? ` ${kpi.unit}` : ''}
+                                  {kpi.target != null && <span className="font-normal text-text-muted/60"> / {kpi.target}</span>}
+                                </button>
+                              )}
+                              {pct !== null && !isEditing && (
+                                <span className="text-[9px] font-bold text-text-muted/60 shrink-0">{pct}%</span>
+                              )}
+                            </div>
                             {pct !== null && (
-                              <span className="text-[9px] text-text-muted/50">{pct}%</span>
+                              <div className="ml-3 h-1 w-full rounded-full bg-border-custom overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${col.bar}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
                             )}
                           </div>
                         );
