@@ -50,6 +50,7 @@ const OracleCard = lazy(() => import('../ai/OracleCard'));
 const FrictionPatterns = lazy(() => import('../lifestyle/FrictionPatterns'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
 const MiddayCheckInCard = lazy(() => import('./MiddayCheckInCard'));
+const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -930,6 +931,9 @@ export default function Dashboard({ session }: { session: any }) {
               </Suspense>
               <Suspense fallback={null}>
                 <MiddayCheckInCard session={session} />
+              </Suspense>
+              <Suspense fallback={null}>
+                <TodayEventsCard session={session} />
               </Suspense>
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <Suspense fallback={<ViewFallback />}>
