@@ -61,7 +61,7 @@ export async function handleIncomingMessage(
     } else if (promptText.includes("Wpisz poprawkę do wiedzy")) {
       text = `poprawka: ${text}`;
     } else if (promptText.includes("Nowe zadanie")) {
-      await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+      await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey);
       return;
     } else if (promptText.includes("Vanguard Keep")) {
       await handleKeepCommand(text, chatId, telegramToken, supabase, vanguardUserId, false);
@@ -216,7 +216,7 @@ export async function handleIncomingMessage(
 
       // --- /todo command ---
       if (lowerText.startsWith('/todo')) {
-        await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+        await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey);
         return;
       }
 
