@@ -44,6 +44,10 @@ temp_fn_*
 .claude/
 dev-server.log
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Private local artifacts
 aw-*-export*.json
 *.goosebundle
