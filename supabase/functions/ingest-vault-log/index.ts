@@ -201,11 +201,22 @@ serve(async (req) => {
 
     let triadCount = 0
     if (deepseekKey) {
-      const { data: ontologyRows } = await supabase
+      const { data: ontologyRows, error: ontologyErr } = await supabase
         .from("vanguard_relation_ontology")
         .select("relation")
 
-      const allowedRelations = (ontologyRows || []).map((row: any) => row.relation).filter(Boolean)
+      const ontologyList = (ontologyRows || []).map((row: any) => row.relation).filter(Boolean)
+      if (ontologyErr) console.warn('[VAULT INGEST] ontology fetch failed, using hardcoded fallback:', ontologyErr.message)
+      const allowedRelations = ontologyList.length > 0 ? ontologyList : [
+        "jest", "posiada", "studiuje", "pracuje_w", "mieszka_w", "ma_relacje_z",
+        "zna_osobe", "chce", "dazy_do", "unika", "boi_sie", "prowadzi_do",
+        "spowodowane_przez", "poprzedza", "nastepuje_po", "uzywa", "tworzy",
+        "cwiczy", "uczy_sie", "deklaruje", "czuje", "doswiadcza", "wynosi",
+        "dotyczy", "zawiera", "wspiera", "blokuje", "planuje", "wymaga",
+        "pamieta", "osiaga", "reaguje_na", "wywoluje", "wzmacnia", "oslabia",
+        "pracuje_nad", "ma_wspomnienie_z", "wskazuje_na", "ma_wskaznik",
+        "ma_egzamin", "analizuje",
+      ]
       const triads = await extractTriadsWithOntology(textSample, category, deepseekKey, allowedRelations)
       console.log(`[VAULT INGEST] ${triads.length} triads extracted`)
 

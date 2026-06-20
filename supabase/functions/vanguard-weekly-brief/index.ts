@@ -4,11 +4,12 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 const toWarsaw = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
 
 function getWeekStart(): string {
-  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Warsaw" }));
-  const day = now.getDay();
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const today = new Date(todayStr + "T12:00:00");
+  const day = today.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  const mon = new Date(now);
-  mon.setDate(now.getDate() + diff);
+  const mon = new Date(today);
+  mon.setDate(today.getDate() + diff);
   return mon.toLocaleDateString("en-CA");
 }
 

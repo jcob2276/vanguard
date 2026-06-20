@@ -276,7 +276,7 @@ ${recoveryText || 'Brak danych Oura.'}`
     const hypotheses = result.pattern_candidates || []
     for (const h of hypotheses) {
       if ((h.hypothesis_confidence || 0) < 0.3) continue // zbyt słabe — pomiń
-      await supabase.from('vanguard_curiosity_queue').insert({
+      const { error: qErr } = await supabase.from('vanguard_curiosity_queue').insert({
         user_id,
         hypothesis: `[FRICTION PATTERN] ${h.friction_type} x${h.evidence_count}: ${h.common_context}`,
         provocation: result.provocation || result.micro_test?.test || '',
@@ -284,6 +284,7 @@ ${recoveryText || 'Brak danych Oura.'}`
         category: 'friction_pattern',
         status: 'pending'
       })
+      if (qErr) console.warn('[analyst] curiosity_queue insert failed (non-fatal):', qErr.message)
     }
 
     // pattern_candidate → repeated_pattern_candidates: disabled until Sprint 1 QA gate (BACKLOG).
@@ -294,7 +295,11 @@ ${recoveryText || 'Brak danych Oura.'}`
     // i wysyła Telegram push.
     // Throttle: max 1 push na 48h (check na source='analyst_alert' w stream).
     // =========================================================================
-    await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [])
+    if (biometrics.error) {
+      console.error('[analyst] skipping proactive alert — biometrics query failed:', biometrics.error.message);
+    } else {
+      await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [])
+    }
 
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
     return new Response(JSON.stringify({ success: true, result }), {

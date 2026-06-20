@@ -387,14 +387,7 @@ Zasady:
       : "łączenie wątków";
     const telegramMsg = `🎙️ Wywiad — ${categoryLabel}\n\n${interviewPrompt}\n\nOdpowiedz głosem lub tekstem — informacja trafi do Twojej pamięci.`;
 
-    if (chatId && telegramToken) {
-      const sendResult = await sendMessageParsed(telegramToken, chatId, telegramMsg);
-      if (!sendResult.ok) {
-        throw new Error(`Telegram send failed: ${sendResult.description}`);
-      }
-    }
-
-    // Record the sent interview prompt in stream for tracking
+    // Insert to stream BEFORE sending Telegram — if insert fails, abort (prevents spam on retry)
     const { error: streamErr } = await supabase.from("vanguard_stream").insert({
       user_id: userId,
       source: "eval_interview",
@@ -409,7 +402,14 @@ Zasady:
     });
 
     if (streamErr) {
-      console.error("[eval-interview] stream insert error:", streamErr);
+      throw new Error(`[eval-interview] stream insert failed — aborting Telegram send: ${streamErr.message}`);
+    }
+
+    if (chatId && telegramToken) {
+      const sendResult = await sendMessageParsed(telegramToken, chatId, telegramMsg);
+      if (!sendResult.ok) {
+        throw new Error(`Telegram send failed: ${sendResult.description}`);
+      }
     }
 
     console.log(

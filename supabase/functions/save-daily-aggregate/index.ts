@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const supabase = createServiceClient()
 
-    const body = await req.json()
+    const body = await req.json().catch(() => ({}))
     const userId: string = body.userId
     if (!userId) throw new Error('Missing userId')
 

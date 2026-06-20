@@ -16,19 +16,21 @@ Deno.serve(async (req) => {
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
 
-    const [
-      { data: lifeGoals },
-      { data: projects },
-      { data: existingKpis },
-      { data: stravaCheck },
-      { data: nutritionCheck },
-    ] = await Promise.all([
+    const [lifeGoalsRes, projectsRes, existingKpisRes, stravaCheckRes, nutritionCheckRes] = await Promise.all([
       db.from("life_goals").select("goal_cialo, goal_duch, goal_konto, bhag_pillar").eq("user_id", userId).maybeSingle(),
       db.from("projects").select("name, goal").eq("user_id", userId).eq("status", "active"),
       db.from("goal_kpis").select("name, pillar").eq("user_id", userId),
       db.from("strava_activities").select("id").eq("user_id", userId).gte("created_at", thirtyDaysAgo).limit(1),
       db.from("daily_nutrition").select("date").eq("user_id", userId).limit(1),
     ]);
+    if (lifeGoalsRes.error) console.warn("[kpi-suggest] life_goals query failed:", lifeGoalsRes.error.message);
+    if (projectsRes.error) console.warn("[kpi-suggest] projects query failed:", projectsRes.error.message);
+    if (existingKpisRes.error) console.warn("[kpi-suggest] goal_kpis query failed:", existingKpisRes.error.message);
+    const lifeGoals = lifeGoalsRes.data;
+    const projects = projectsRes.data;
+    const existingKpis = existingKpisRes.data;
+    const stravaCheck = stravaCheckRes.data;
+    const nutritionCheck = nutritionCheckRes.data;
 
     const g = lifeGoals as any;
     const hasStrava = (stravaCheck ?? []).length > 0;
