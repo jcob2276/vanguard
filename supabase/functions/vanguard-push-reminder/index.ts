@@ -7,13 +7,15 @@ import { createServiceClient } from "../_shared/supabase.ts";
 // @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
 
-const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
-webpush.setVapidDetails(CONTACT_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
-
 Deno.serve(async () => {
+  const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY");
+  const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY");
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return new Response(JSON.stringify({ error: "VAPID keys not configured" }), { status: 500 });
+  }
+  webpush.setVapidDetails(CONTACT_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
   const supabase = createServiceClient();
 
   const now = new Date().toISOString();
@@ -59,10 +61,11 @@ Deno.serve(async () => {
       sent++;
     }
 
-    await supabase
+    const { error: markErr } = await supabase
       .from("todo_items")
       .update({ reminder_sent: true })
       .eq("id", item.id);
+    if (markErr) console.error("[push-reminder] mark sent failed:", item.id, markErr.message);
   }
 
   return new Response(JSON.stringify({ sent }));

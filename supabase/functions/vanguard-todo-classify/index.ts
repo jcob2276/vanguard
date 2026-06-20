@@ -81,11 +81,12 @@ Deno.serve(async (req) => {
     if (!due_date && classification.due_date) patch.due_date = classification.due_date;
     if (!priority && classification.priority) patch.priority = classification.priority;
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from("todo_items")
       .update(patch)
       .eq("id", itemId)
       .eq("user_id", userId);
+    if (updateErr) throw new Error(updateErr.message);
 
     return new Response(JSON.stringify({ ok: true, ...patch }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

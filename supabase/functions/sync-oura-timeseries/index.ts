@@ -206,12 +206,15 @@ Deno.serve(async (req) => {
 
       // ── 8. Prune high-res timeseries older than 14 days to prevent bloat ───
       const cutoff = new Date(now.getTime() - 14 * 24 * 3600 * 1000).toISOString()
-      await Promise.all([
+      const pruneResults = await Promise.all([
         supabase.from('oura_heartrate').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_hr_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_hrv_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
         supabase.from('oura_sleep_phase_timeline').delete().eq('user_id', uid).lt('ts', cutoff),
-      ]).catch((e: any) => console.warn(`[ts] Prune failed for user ${uid}:`, e.message))
+      ])
+      pruneResults.forEach(({ error }, i) => {
+        if (error) console.warn(`[ts] Prune table ${i} failed for user ${uid}:`, error.message)
+      })
 
       results.push({ user_id: uid, counts })
     }

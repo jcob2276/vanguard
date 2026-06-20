@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Plus,
@@ -67,7 +67,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, { data: d }, { data: lg }, { data: kpiData }] = await Promise.all([
+      const [p, s, i, c, dreamsRes, lgRes, kpiRes] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
@@ -76,13 +76,16 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
       ]);
+      if (dreamsRes.error) throw new Error(dreamsRes.error.message);
+      if (lgRes.error) throw new Error(lgRes.error.message);
+      if (kpiRes.error) throw new Error(kpiRes.error.message);
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
       setCheckpoints(c ?? []);
-      setDreams(d ?? []);
-      setLifeGoals(lg ?? null);
-      setKpis(kpiData ?? []);
+      setDreams(dreamsRes.data ?? []);
+      setLifeGoals(lgRes.data ?? null);
+      setKpis(kpiRes.data ?? []);
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -276,15 +279,19 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     run(() => setTodoStatus(item, next));
   };
 
+  const savingKpiRef = useRef<string | null>(null);
   const handleUpdateKpiValue = (kpiId: string, raw: string) => {
+    if (savingKpiRef.current === kpiId) return;
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingKpiId(null); return; }
+    savingKpiRef.current = kpiId;
     run(async () => {
       const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
       if (updErr) throw new Error(updErr.message);
       const { error: snapErr } = await supabase.from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
       if (snapErr) throw new Error(snapErr.message);
       setEditingKpiId(null);
+      savingKpiRef.current = null;
     });
   };
 
