@@ -53,12 +53,8 @@ export async function handleIncomingMessage(
     const promptText = replyTo.text;
     if (promptText.includes("Zapis Lenie")) {
       text = `/lenie ${text}`;
-    } else if (promptText.includes("Zapis postu")) {
-      text = `/post ${text}`;
     } else if (promptText.includes("Zadaj pytanie Wyroczni")) {
       text = `? ${text}`;
-    } else if (promptText.includes("Wpisz poprawkę do wiedzy")) {
-      text = `poprawka: ${text}`;
     }
   }
 
@@ -121,25 +117,6 @@ export async function handleIncomingMessage(
         });
       }
 
-      // --- URL / Saved Link detection ---
-      if (text && /https?:\/\/[^\s]+/.test(text)) {
-        try {
-          const { handleSavedLink } = await import("../_handlers/savedLinks.ts");
-          const handled = await handleSavedLink(
-            chatId,
-            text,
-            telegramToken,
-            deepseekApiKey,
-            vanguardUserId,
-            supabase,
-            messageId
-          );
-          if (handled) return;
-        } catch (err) {
-          console.error('[messages] Saved link handler failed:', err);
-        }
-      }
-
       // --- Mode routing ---
       let shouldRespond = false;
       let mode = 'stream';
@@ -152,7 +129,6 @@ export async function handleIncomingMessage(
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }
       else if (text.startsWith('!!')) { shouldRespond = true; mode = 'deep';      cleanText = text.substring(2).trim(); }
       else if (text.startsWith('##')) { shouldRespond = false; mode = 'knowledge'; cleanText = text.substring(2).trim(); }
-      else if (text.startsWith('@'))  { shouldRespond = true; mode = 'report';    cleanText = text.substring(1).trim(); }
       else if (text.toLowerCase().startsWith('poprawka:')) { shouldRespond = false; mode = 'knowledge'; cleanText = text; }
 
       // Etap 1: Proste żądanie wzorców (po kolei)
@@ -536,7 +512,7 @@ export async function handleIncomingMessage(
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceRoleKey}`, 'apikey': supabaseServiceRoleKey },
             body: JSON.stringify({
               current_query: cleanText, user_id: vanguardUserId, state_vector: stateVector,
-              mode: mode === 'planning' ? 'planning' : mode === 'report' ? 'mirror' : 'chat',
+              mode: mode === 'planning' ? 'planning' : 'chat',
               thinking: mode === 'deep', history: oracleHistory
             }),
             signal: controller.signal

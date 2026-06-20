@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -36,7 +37,7 @@ const Direction = lazy(() => import('../lifestyle/Direction'));
 const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
-const Keep = lazy(() => import('../career/Keep'));
+const Keep = lazy(() => import('../notes/Keep'));
 const MorningRitual = lazy(() => import('../lifestyle/MorningRitual'));
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
@@ -66,7 +67,7 @@ function ViewFallback() {
   );
 }
 
-export default function Dashboard({ session }: { session: any }) {
+export default function Dashboard({ session }: { session: Session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => {

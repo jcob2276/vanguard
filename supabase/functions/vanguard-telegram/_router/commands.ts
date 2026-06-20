@@ -163,34 +163,12 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
-  if (lowerText === '🔵 post' || lowerText === '/post') {
-    await safeSendTelegram(chatId, "🔵 **Zapis postu**\nPodaj opis lub datę i opis (np. `18h` lub `wczoraj 16h`):", telegramToken, {
-      reply_markup: {
-        force_reply: true,
-        selective: true,
-        input_field_placeholder: "np. 18h"
-      }
-    });
-    return true;
-  }
-
   if (lowerText === '❓ wyrocznia') {
     await safeSendTelegram(chatId, "❓ **Zadaj pytanie Wyroczni**\nNapisz swoje pytanie do Vanguard Oracle:", telegramToken, {
       reply_markup: {
         force_reply: true,
         selective: true,
         input_field_placeholder: "Twoje pytanie..."
-      }
-    });
-    return true;
-  }
-
-  if (lowerText === '🧠 poprawka') {
-    await safeSendTelegram(chatId, "🧠 **Wpisz poprawkę do wiedzy**\nNapisz co chcesz poprawić/dodać (np. `styl: odpowiadaj krótko` lub `poprawka: lubię czarną kawę`):", telegramToken, {
-      reply_markup: {
-        force_reply: true,
-        selective: true,
-        input_field_placeholder: "Wpisz poprawkę..."
       }
     });
     return true;

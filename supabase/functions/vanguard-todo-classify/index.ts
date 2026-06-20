@@ -1,4 +1,5 @@
 import { corsHeaders, createServiceClient, resolveUserScope } from "../_shared/supabase.ts";
+import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 
 const SYSTEM = `Jestes asystentem organizacji zadan dla Jakuba (23 lata, Rzeszow, Polska).
 Dostajesz JEDNO zadanie i zwracasz klasyfikacje w JSON.
@@ -21,42 +22,6 @@ Zasady priority (tylko gdy uzytkownik NIE podal priorytetu):
 - "low"    = kiedys, nice to have
 
 Odpowiedz WYLACZNIE poprawnym JSON z polami: ai_bucket, due_date, priority.`;
-
-async function deepseekChat(
-  apiKey: string,
-  messages: { role: string; content: string }[],
-): Promise<string> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-  try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "deepseek-v4-flash",
-        messages,
-        max_tokens: 120,
-        temperature: 0,
-        response_format: { type: "json_object" },
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`DeepSeek ${res.status}: ${await res.text().catch(() => "")}`);
-    const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-    return data?.choices?.[0]?.message?.content || "{}";
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-function parseJson(content: string): Record<string, unknown> {
-  const m = content.match(/\{[\s\S]*\}/);
-  if (!m) return {};
-  try { return JSON.parse(m[0]); } catch { return {}; }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -93,12 +58,18 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    const content = await deepseekChat(apiKey, [
-      { role: "system", content: SYSTEM },
-      { role: "user", content: userMsg },
-    ]);
+    const result = await deepseekChat({
+      apiKey,
+      messages: [
+        { role: "system", content: SYSTEM },
+        { role: "user", content: userMsg },
+      ],
+      maxTokens: 120,
+      temperature: 0,
+      responseFormat: { type: "json_object" },
+    });
 
-    const classification = parseJson(content);
+    const classification = parseJsonFromContent(result.content) || {};
     const ai_bucket = (classification.ai_bucket as string) || "later";
 
     const supabase = createServiceClient();
