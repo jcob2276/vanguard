@@ -16,7 +16,6 @@ import {
   Paintbrush,
   Fingerprint,
   Bookmark,
-  Flame,
   Zap,
   Check,
 } from 'lucide-react';
@@ -52,9 +51,7 @@ const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const OracleCard = lazy(() => import('../ai/OracleCard'));
-const FrictionPatterns = lazy(() => import('../lifestyle/FrictionPatterns'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
-const MiddayCheckInCard = lazy(() => import('./MiddayCheckInCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
@@ -188,7 +185,6 @@ export default function Dashboard({ session }: { session: any }) {
 
   const streakCount = calculateStreak();
 
-  const [powerListStreak, setPowerListStreak] = useState(0);
   const [reviewOverdueDays, setReviewOverdueDays] = useState<number | null>(null);
   const [urgentTodoCount, setUrgentTodoCount] = useState(0);
   const [nudgeKey, setNudgeKey] = useState(0);
@@ -197,26 +193,11 @@ export default function Dashboard({ session }: { session: any }) {
     if (!userId) return;
     const fetchNudgeData = async () => {
       try {
-        const fromDate = new Date();
-        fromDate.setDate(fromDate.getDate() - 31);
-        const fromStr = fromDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const [{ data: wins }, { data: reviews }, { count: urgentCount }] = await Promise.all([
-          supabase.from('daily_wins').select('plan_date, task_1').eq('user_id', userId).gte('plan_date', fromStr).order('plan_date', { ascending: false }),
+        const [{ data: reviews }, { count: urgentCount }] = await Promise.all([
           (supabase as any).from('weekly_kpi_reviews').select('week_start').eq('user_id', userId).order('week_start', { ascending: false }).limit(1),
           supabase.from('todo_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open').or(`priority.eq.urgent,and(due_date.lte.${todayStr},due_date.not.is.null)`),
         ]);
-        if (wins) {
-          const filled = new Set((wins as any[]).filter(w => w.task_1).map(w => w.plan_date as string));
-          let count = 0;
-          const d = new Date();
-          for (let i = 0; i < 32; i++) {
-            if (!filled.has(d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }))) break;
-            count++;
-            d.setDate(d.getDate() - 1);
-          }
-          setPowerListStreak(count);
-        }
         if (reviews) {
           if ((reviews as any[]).length > 0) {
             const last = new Date((reviews as any[])[0].week_start + 'T00:00:00');
@@ -524,17 +505,9 @@ export default function Dashboard({ session }: { session: any }) {
             <div className="space-y-7">
               <DayCounter />
 
-              {/* Streak + Weekly Review nudge */}
-              <div className="flex flex-wrap items-center gap-2 -mt-3">
-                <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition-all ${
-                  powerListStreak > 0
-                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-500'
-                    : 'border-border-custom bg-surface text-text-muted/40'
-                }`}>
-                  <Flame size={11} className={powerListStreak > 0 ? 'fill-amber-500' : ''} />
-                  {powerListStreak === 0 ? 'Zacznij passę' : `${powerListStreak} ${powerListStreak === 1 ? 'dzień' : 'dni'} z rzędu`}
-                </div>
-                {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+              {/* Weekly Review nudge */}
+              {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
+                <div className="flex flex-wrap items-center gap-2 -mt-3">
                   <button
                     onClick={() => navigateTo('projekty')}
                     className="flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[11px] font-black text-rose-500 cursor-pointer hover:bg-rose-500/20 transition-all"
@@ -542,8 +515,8 @@ export default function Dashboard({ session }: { session: any }) {
                     <AlertCircle size={11} />
                     {reviewOverdueDays >= 100 ? 'Zacznij Weekly Review →' : `${reviewOverdueDays}d bez review →`}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* <JedenPriorytetCard
                 session={session}
@@ -559,9 +532,7 @@ export default function Dashboard({ session }: { session: any }) {
               <Suspense fallback={<ViewFallback />}>
                 <DailySnapshotCard session={session} />
               </Suspense>
-              <Suspense fallback={null}>
-                <MiddayCheckInCard session={session} />
-              </Suspense>
+
               <Suspense fallback={null}>
                 <TodayEventsCard session={session} />
               </Suspense>
@@ -609,7 +580,6 @@ export default function Dashboard({ session }: { session: any }) {
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
-                <FrictionPatterns session={session} />
                 <Photos session={session} />
                 <MuscleHeatmap session={session} />
               </div>
