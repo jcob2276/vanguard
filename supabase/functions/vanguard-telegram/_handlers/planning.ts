@@ -13,6 +13,26 @@ import { deepseekChat } from '../../_shared/deepseek.ts';
 
 
 /**
+ * Mutuje plan JSON do "minimum version" — zamienia artifact/action na ich minimum_version
+ * odpowiedniki. Wspólna logika dla tekstu "minimum" (messages.ts) i callbacku
+ * planning_show_minimum (ten plik) — trzymana w jednym miejscu, żeby zmiana pól planu
+ * (np. nowy first_move_morning) nie wymagała aktualizacji dwóch kopii.
+ */
+export function applyMinimumVersionToPlan(parsed: any): any {
+  if (parsed.production_artifact) {
+    parsed.production_artifact.artifact = parsed.production_artifact.minimum_version || parsed.production_artifact.artifact;
+  }
+  if (parsed.tension_action) {
+    parsed.tension_action.action = parsed.tension_action.minimum_version || parsed.tension_action.action;
+  }
+  if (parsed.top3 && parsed.top3.length > 0) {
+    parsed.top3[0] = parsed.production_artifact?.artifact || parsed.top3[0];
+  }
+  parsed.one_clear_move = parsed.production_artifact?.artifact || parsed.one_clear_move;
+  return parsed;
+}
+
+/**
  * Waliduje czy plan JSON zawiera minimalne wymagane pola.
  * Używane w guardrails przed zapisem planu.
  */
@@ -231,7 +251,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
         if (!validation.valid) {
           console.warn('[planning] plan validation failed:', validation.missing);
 
-          logAuditEvent({
+          await logAuditEvent({
             eventType: 'planning_validation_failed',
             severity: 'warning',
             message: `Plan odrzucony przez walidację: brakuje ${validation.missing.join(', ')}`,
@@ -245,15 +265,21 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
             ? 'Brakuje artefaktu na jutro. Co ma istnieć w świecie po pierwszym bloku?'
             : 'Brakuje jednego ruchu napięciowego na jutro. Co odkładasz, bo jest niewygodne?';
 
+          // closureHistory already ends with the user's real closing message (whatever
+          // they actually typed) — don't fabricate an extra 'koniec' turn on top of it,
+          // or the LLM sees a duplicated/invented user utterance next time history is sent back.
           const revertHistory = [
             ...closureHistory,
-            { role: 'user', content: 'koniec' },
             { role: 'assistant', content: message }
           ];
 
-          await supabase.from('daily_reconciliations')
+          const { error: revertErr } = await supabase.from('daily_reconciliations')
             .update({ planning_status: 'active', planning_history: revertHistory })
             .eq('id', closureId);
+          // Don't throw on failure — the user must still get the clarifying question below
+          // regardless of whether the history write persisted. Logged loudly since a failed
+          // write means the next turn won't have this clarifying question in its context.
+          if (revertErr) console.error('[planning] Revert failed (history not persisted):', revertErr);
 
           telegramText = message;
         } else {
@@ -277,7 +303,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
             .eq('id', closureId);
           if (completeErr) console.error('[planning] failed to save atomic plan summary:', completeErr);
 
-          logAuditEvent({
+          await logAuditEvent({
             eventType: 'planning_saved_successfully',
             severity: 'info',
             message: 'Plan na jutro zapisany z pełną jakością',
@@ -321,7 +347,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
           })
           .eq('id', closureId);
 
-        logAuditEvent({
+        await logAuditEvent({
           eventType: 'planning_saved_minimum',
           severity: 'warning',
           message: 'Plan wieczorny — błąd parsowania JSON, użyto minimum viable',
@@ -347,7 +373,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
         plan_completeness: 'low',
       };
 
-      logAuditEvent({
+      await logAuditEvent({
         eventType: 'planning_parse_error',
         severity: 'warning',
         message: 'Nie udało się sparsować planu z LLM – użyto minimum viable plan',
@@ -383,7 +409,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
         })
         .eq('id', closureId);
 
-      logAuditEvent({
+      await logAuditEvent({
         eventType: 'planning_saved_minimum',
         severity: 'error',
         message: 'Plan wieczorny — błąd LLM, użyto minimum viable',
@@ -459,19 +485,7 @@ export async function handlePlanningCallback(
     const lastAssistantMsg = [...activeSession.history].reverse().find(h => h.role === 'assistant');
     if (lastAssistantMsg) {
       try {
-        const parsed = JSON.parse(lastAssistantMsg.content);
-        
-        // Mutate parsed to reflect minimum versions
-        if (parsed.production_artifact) {
-          parsed.production_artifact.artifact = parsed.production_artifact.minimum_version || parsed.production_artifact.artifact;
-        }
-        if (parsed.tension_action) {
-          parsed.tension_action.action = parsed.tension_action.minimum_version || parsed.tension_action.action;
-        }
-        if (parsed.top3 && parsed.top3.length > 0) {
-          parsed.top3[0] = parsed.production_artifact?.artifact || parsed.top3[0];
-        }
-        parsed.one_clear_move = parsed.production_artifact?.artifact || parsed.one_clear_move;
+        const parsed = applyMinimumVersionToPlan(JSON.parse(lastAssistantMsg.content));
 
         // Save mutated JSON back to history
         const updatedHistory = activeSession.history.map(h => {

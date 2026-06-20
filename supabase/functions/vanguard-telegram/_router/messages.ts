@@ -2,12 +2,13 @@ import { sendChatAction, transcribeAudio } from "../../_shared/telegram.ts";
 import type { TelegramRouterContext } from "./config.ts";
 import { getEmbedding } from "../../_shared/openai.ts";
 import { inferVaultCategory, safeSendTelegram } from "../_utils/helpers.ts";
-import { PLANNING_END_PHRASES, getActivePlanningSession, closePlanningSession } from "../_handlers/planning.ts";
+import { PLANNING_END_PHRASES, getActivePlanningSession, closePlanningSession, applyMinimumVersionToPlan } from "../_handlers/planning.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { runAntiAnalysisGuard } from "../_handlers/antiAnalysis.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
-import { deepseekChat } from "../../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { getWarsawDayBoundaries } from "../../_shared/time.ts";
 import {
   DEFAULT_REPLY_KEYBOARD,
   handleStartMenuCommand,
@@ -82,11 +83,15 @@ export async function handleIncomingMessage(
       } | null = null;
       let activePlanningSession: { id: string; history: any[] } | null = null;
       let planningEnded = false;
+      // Reused by the mode-routing check below so a voice message doesn't hit
+      // getActivePlanningSession twice for the same request.
+      let activePlanningFromVoiceCheck: Awaited<ReturnType<typeof getActivePlanningSession>> = null;
 
       // --- Voice transcription ---
       if (isVoice) {
         // Check if we are handling a pending reconciliation response or active planning to prevent sending '🎤 Słucham...' again.
         const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
+        activePlanningFromVoiceCheck = activePlanning;
 
         pendingReconciliation = null;
         if (!activePlanning) {
@@ -228,8 +233,11 @@ export async function handleIncomingMessage(
       }
 
       if (!hasCommandPrefix && mode === 'stream') {
-        // Check active planning session
-        const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
+        // Check active planning session — reuse the voice-check fetch above when this is a
+        // voice message, instead of querying daily_reconciliations a second time.
+        const activePlanning = isVoice
+          ? activePlanningFromVoiceCheck
+          : await getActivePlanningSession(supabase, vanguardUserId);
         if (activePlanning) {
           const cleanLower = cleanText.trim().toLowerCase();
           const isEnd = PLANNING_END_PHRASES.test(cleanLower) || cleanLower === 'tak';
@@ -239,21 +247,12 @@ export async function handleIncomingMessage(
             let finalHistory = activePlanning.history;
 
             if (isMin) {
-              // Perform the same minimum mutation as planning_show_minimum callback
+              // Same minimum mutation as the planning_show_minimum callback — see
+              // applyMinimumVersionToPlan in planning.ts (single source of truth).
               const lastAssistantMsg = [...activePlanning.history].reverse().find(h => h.role === 'assistant');
               if (lastAssistantMsg) {
                 try {
-                  const parsed = JSON.parse(lastAssistantMsg.content);
-                  if (parsed.production_artifact) {
-                    parsed.production_artifact.artifact = parsed.production_artifact.minimum_version || parsed.production_artifact.artifact;
-                  }
-                  if (parsed.tension_action) {
-                    parsed.tension_action.action = parsed.tension_action.minimum_version || parsed.tension_action.action;
-                  }
-                  if (parsed.top3 && parsed.top3.length > 0) {
-                    parsed.top3[0] = parsed.production_artifact?.artifact || parsed.top3[0];
-                  }
-                  parsed.one_clear_move = parsed.production_artifact?.artifact || parsed.one_clear_move;
+                  const parsed = applyMinimumVersionToPlan(JSON.parse(lastAssistantMsg.content));
 
                   finalHistory = activePlanning.history.map(h => {
                     if (h === lastAssistantMsg) return { role: 'assistant', content: JSON.stringify(parsed) };
@@ -373,10 +372,12 @@ export async function handleIncomingMessage(
           }
 
           if (emotionRes && 'content' in emotionRes) {
-            try {
-              emotionData = JSON.parse(emotionRes.content || '{}');
-            } catch (err) {
-              console.error('[telegram] Failed to parse emotion text content to JSON:', err, emotionRes.content);
+            // DeepSeek occasionally wraps JSON in markdown fences despite responseFormat:
+            // json_object — parseJsonFromContent strips those before parsing, raw JSON.parse
+            // would throw and silently drop emotion data for the whole stream entry.
+            emotionData = parseJsonFromContent(emotionRes.content || '{}') as { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null;
+            if (!emotionData) {
+              console.error('[telegram] Failed to parse emotion text content to JSON:', emotionRes.content);
             }
           }
 
@@ -519,7 +520,12 @@ export async function handleIncomingMessage(
 
         // Extended state vector
         const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        // Warsaw-aware "7 days ago" — anchoring on noon UTC keeps this inside the same Warsaw
+        // calendar day regardless of DST, instead of a flat 7*86400000ms offset that can drift
+        // an hour across a DST transition and miss notes written on that day.
+        const sevenDaysAgoDate = new Date(new Date(`${todayWarsawDate}T12:00:00Z`).getTime() - 7 * 86400000)
+          .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const sevenDaysAgo = getWarsawDayBoundaries(sevenDaysAgoDate).start;
         const [aggregateRes, workoutRes, winRes, planRows, ouraRes, notesRes] = await Promise.all([
           supabase.from('vanguard_daily_aggregates').select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('workout_sessions').select('created_at, workout_day').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -529,8 +535,11 @@ export async function handleIncomingMessage(
           supabase.from('vanguard_notes').select('title, content, created_at').eq('user_id', vanguardUserId).eq('is_archived', false).gte('created_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(5)
         ]);
 
+        if (planRows.error) console.error('[telegram] planning_summary query failed:', planRows.error.message);
         const todayPlan = (planRows.data || []).find((r: any) =>
-          r.planning_summary?.target_date === todayWarsawDate && !r.planning_summary?.parse_error
+          r.planning_summary?.target_date === todayWarsawDate
+          && !r.planning_summary?.parse_error
+          && !r.planning_summary?.plan_fallback
         )?.planning_summary || null;
 
         const stateVector = {
