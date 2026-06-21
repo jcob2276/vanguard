@@ -97,16 +97,16 @@ export default function DailyStrainCard({ session }: { session: Session }) {
         }
         return response;
       };
-      // 1. źródła surowe (równolegle)
+      // 1. źródła surowe (równolegle) - tolerujemy błędy pojedynczych synchronizatorów
       await Promise.all([
-        call('sync-yazio', { userId: session.user.id }),
-        call('sync-strava', {}),
-        call('sync-oura', { userId: session.user.id }),
+        call('sync-yazio', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-yazio failed:', err)),
+        call('sync-strava', {}).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
+        call('sync-oura', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
       // 2. warstwy pochodne Oura (strefy HR zasilają cardio load)
       await Promise.all([
-        call('sync-oura-enhanced', { userId: session.user.id, days: 2 }),
-        call('sync-oura-timeseries', { userId: session.user.id, days: 2 }),
+        call('sync-oura-enhanced', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-enhanced failed:', err)),
+        call('sync-oura-timeseries', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-timeseries failed:', err)),
       ]);
       // 3. przelicz Daily Strain
       await call('compute-daily-strain', { userId: session.user.id, days: 2 });

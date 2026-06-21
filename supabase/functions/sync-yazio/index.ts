@@ -10,15 +10,22 @@ Deno.serve(async (req) => {
     const { userId, sync_history, days } = await req.json().catch(() => ({ userId: null, sync_history: false, days: null }))
     if (!userId) throw new Error('Missing userId')
 
-    const settings = await safeExecute(
-      supabase.from('user_settings').select('yazio_username, yazio_password').eq('user_id', userId).single()
-    )
-    if (!settings?.yazio_username) throw new Error('Missing credentials')
+    let yazioToken: string | undefined
+    let yazio: any
+    try {
+      const settings = await safeExecute(
+        supabase.from('user_settings').select('yazio_username, yazio_password').eq('user_id', userId).single()
+      )
+      if (!settings?.yazio_username) throw new Error('Missing credentials')
 
-    const yazio = new Yazio({ credentials: { username: settings.yazio_username, password: settings.yazio_password } })
-    await yazio.user.get();
-    const yazioToken = (yazio as any)._token || (yazio as any).credentials?.password;
-    if (!yazioToken) throw new Error('[sync-yazio] Cannot extract Yazio auth token from library — check internal API shape')
+      yazio = new Yazio({ credentials: { username: settings.yazio_username, password: settings.yazio_password } })
+      await yazio.user.get();
+      yazioToken = (yazio as any)._token || (yazio as any).credentials?.password;
+      if (!yazioToken) throw new Error('[sync-yazio] Cannot extract Yazio auth token from library — check internal API shape')
+    } catch (e: any) {
+      console.warn(`[sync-yazio] Auth failed, skipping: ${e.message}`)
+      return new Response(JSON.stringify({ success: false, skipped: true, error: e.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const daysToSync = days || (sync_history ? 30 : 1)
     const results = []
