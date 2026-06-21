@@ -1,6 +1,5 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import {
   fetchOracleStreamSlices,
@@ -49,7 +48,7 @@ function classifyIntentSafe(query = '') {
   return 'open_reflection';
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const t0 = Date.now();
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })

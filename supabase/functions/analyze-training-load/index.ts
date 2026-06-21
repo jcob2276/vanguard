@@ -1,5 +1,5 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
-import { deepseekChat } from '../_shared/deepseek.ts'
+import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -786,13 +786,8 @@ Odpowiedz WYŁĄCZNIE surowym obiektem JSON (bez markdown, bez żadnego tekstu p
       timeoutMs: 90000,
     })
 
-    const stripped = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
-    const jsonMatch = stripped.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error(`No JSON in response. Raw: ${result.content.slice(0, 300)}`)
-
-    let parsed: any
-    try { parsed = JSON.parse(jsonMatch[0]) }
-    catch { throw new Error(`JSON parse error. Raw: ${result.content.slice(0, 300)}`) }
+    const parsed: any = parseJsonFromContent(result.content)
+    if (!parsed) throw new Error(`No JSON in response. Raw: ${result.content.slice(0, 300)}`)
 
     // Attach computed stats for frontend comparison bars
     parsed.stats = {

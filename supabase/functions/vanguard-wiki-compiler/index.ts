@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
@@ -698,7 +697,7 @@ Priorytet:
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabase = createServiceClient();

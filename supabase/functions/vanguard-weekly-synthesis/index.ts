@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { sendMessageParsed } from "../_shared/telegram.ts"
 import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
@@ -9,7 +8,7 @@ import { getWarsawDateString } from "../_shared/time.ts"
 
 const VANGUARD_USER_ID = getVanguardUserId()
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }

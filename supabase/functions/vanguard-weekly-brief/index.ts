@@ -56,13 +56,20 @@ Deno.serve(async (req) => {
     ]);
 
     // Streak
+    // Walk Warsaw calendar-date strings directly (anchor once via toWarsaw, then step in
+    // pure UTC-date-string space) instead of stepping a real Date by -1 day and re-projecting
+    // through toWarsaw each time — a fixed 24h step over Warsaw's 23h/25h DST-transition days
+    // skips or double-counts one date for about an hour twice a year, verified by exhaustive
+    // scan (e.g. "now" at 2026-03-29T22:00Z silently jumps straight from 03-30 to 03-28).
     const filled = new Set((wins ?? []).filter((w: any) => w.task_1).map((w: any) => w.plan_date as string));
     let streak = 0;
-    const sd = new Date();
+    let sdStr = toWarsaw(new Date());
     for (let i = 0; i < 31; i++) {
-      if (!filled.has(toWarsaw(sd))) break;
+      if (!filled.has(sdStr)) break;
       streak++;
-      sd.setDate(sd.getDate() - 1);
+      const d = new Date(sdStr + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() - 1);
+      sdStr = d.toISOString().split('T')[0];
     }
 
     // KPI trends
