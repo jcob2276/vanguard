@@ -22,13 +22,17 @@ import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 
 type DailyWinRow = Tables<'daily_wins'>;
-type HabitRow = Tables<'habits'>;
-type HabitLogRow = Tables<'habit_logs'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
+type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
+type Phase2Recap = {
+  narrative_check: string;
+  deepening_questions?: string[];
+  block5_material?: { cialo: string; duch: string; konto: string };
+};
+type PillarScores = { cialo: number | null; duch: number | null; konto: number | null };
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
 type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
 type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
-type TodoSectionRow = Pick<Tables<'todo_sections'>, 'id' | 'name' | 'project_id'>;
 
 const todayWarsaw = () => getTodayWarsaw();
 const APP_LAUNCH_DATE = '2026-05-03';
@@ -50,31 +54,41 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
 export default function Direction({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<DailyWinRow[]>([]);
-  const [habits, setHabits] = useState<HabitRow[]>([]);
-  const [habitLogs, setHabitLogs] = useState<HabitLogRow[]>([]);
 
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<CalendarRow[]>([]);
-  const [weekTodos, setWeekTodos] = useState<TodoItemRow[]>([]);
   const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
   const [weekGoals, setWeekGoals] = useState<LifeGoalRow | null>(null);
 
-  const [todoSections, setTodoSections] = useState<TodoSectionRow[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [proudOf, setProudOf] = useState('');
-  const [bottleneck, setBottleneck] = useState('');
+  const [doDifferently, setDoDifferently] = useState('');
+  const [sabotage, setSabotage] = useState('');
+  const [obligation, setObligation] = useState('');
+  const [weekHighlight, setWeekHighlight] = useState('');
+  const [weekRegret, setWeekRegret] = useState('');
+  const [newBelief, setNewBelief] = useState('');
+  const [weekIntention, setWeekIntention] = useState('');
+  const [weekCommitment, setWeekCommitment] = useState('');
+  const [weekGoalCialo, setWeekGoalCialo] = useState('');
+  const [weekGoalDuch, setWeekGoalDuch] = useState('');
+  const [weekGoalKonto, setWeekGoalKonto] = useState('');
+  const [pillarScores, setPillarScores] = useState<PillarScores>({ cialo: null, duch: null, konto: null });
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
   const [focusGoalMappings, setFocusGoalMappings] = useState<Record<string, string>>({});
+  const [weekDoneTasks, setWeekDoneTasks] = useState<{ title: string; status: string }[]>([]);
+  const [weekOura, setWeekOura] = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
+  const [weekRuns, setWeekRuns] = useState<{ distance: number | null }[]>([]);
+  const [weekNutrition, setWeekNutrition] = useState<{ calories: number | null }[]>([]);
+  const [nutritionTarget, setNutritionTarget] = useState<number | null>(null);
 
-  const [weekSentiment, setWeekSentiment] = useState('');
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
-  const [quickTaskInput, setQuickTaskInput] = useState('');
-  const [addingTask, setAddingTask] = useState(false);
-  const [savingPlan, setSavingPlan] = useState(false);
+  const [phase1, setPhase1] = useState<Phase1Recap | null>(null);
+  const [phase1Loading, setPhase1Loading] = useState(false);
+  const [phase2, setPhase2] = useState<Phase2Recap | null>(null);
+  const [phase2Loading, setPhase2Loading] = useState(false);
 
-  const [chainProjects, setChainProjects] = useState<any[]>([]);
-  const [chainDreams, setChainDreams] = useState<any[]>([]);
+  const [savingReflection, setSavingReflection] = useState(false);
+  const [deepeningAnswers, setDeepeningAnswers] = useState<Record<string, string>>({});
+  const [completing, setCompleting] = useState(false);
 
 
   const todayNoon = new Date(todayWarsaw() + 'T12:00:00');
@@ -87,12 +101,7 @@ export default function Direction({ session }: { session: Session }) {
   const planWeekEnd = endOfWeek(planRef, { weekStartsOn: 1 });
   const planWeekLabel = `${format(planWeekStart, 'd MMM', { locale: pl })} – ${format(planWeekEnd, 'd MMM', { locale: pl })}`;
 
-  const planSaved = !!(
-    currentReview?.focus_task_ids?.length ||
-    currentReview?.week_sentiment ||
-    currentReview?.week_focus ||
-    currentReview?.proud_of
-  );
+  const planSaved = !!currentReview?.review_completed_at;
   const showPlanningMode = isSunday && !planSaved;
 
   const planCalEvents = allCalEvents.filter((e) => {
@@ -107,62 +116,79 @@ export default function Direction({ session }: { session: Session }) {
     const userId = session.user.id;
     const now = new Date(today + 'T12:00:00');
 
-    // Fetch 2 weeks of calendar (this week + next) so both planning and radar views work
     const calFrom = subDays(startOfWeek(now, { weekStartsOn: 1 }), 1).toISOString();
     const calTo = addDays(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 1).toISOString();
     const prevWeekStart = format(subDays(startOfWeek(now, { weekStartsOn: 1 }), 7), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
     try {
       const [
         ,
         { data: historyData },
-        { data: habitsData },
-        { data: logsData },
         { data: reviewData },
         { data: calData },
-        { data: todosData },
         { data: goalsData },
-        { data: sectionsData },
         { data: prevReviewData },
+        { data: ouraData },
+        { data: runsData },
+        { data: nutritionData },
+        { data: nutritionTargetData },
+        { data: doneTasksData },
       ] = await Promise.all([
         supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
-        supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-        supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', formatWarsawDate(subDays(now, 45))),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
-        supabase.from('todo_items').select('id, title, status, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('created_at', { ascending: false }),
         supabase.from('life_goals').select('goal_cialo, date_cialo, goal_duch, date_duch, goal_konto, date_konto').eq('user_id', userId).maybeSingle(),
-        supabase.from('todo_sections').select('id, name, project_id').eq('user_id', userId).eq('is_archived', false).order('sort_order', { ascending: true }),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
+        supabase.from('oura_daily_summary').select('total_sleep_hours, readiness_score').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
+        supabase.from('strava_activities').select('distance').eq('user_id', userId).gte('start_date', currentWeekStart).lte('start_date', weekEnd + 'T23:59:59'),
+        supabase.from('daily_nutrition').select('calories').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
+        supabase.from('nutrition_targets').select('target_kcal').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('todo_items').select('title, status').eq('user_id', userId).in('status', ['done', 'dropped']).gte('updated_at', currentWeekStart + 'T00:00:00').lte('updated_at', weekEnd + 'T23:59:59'),
       ]);
 
       setHistory(historyData || []);
-      setHabits(habitsData || []);
-      setHabitLogs(logsData || []);
       setAllCalEvents(calData || []);
-      setWeekTodos(todosData || []);
       setWeekGoals(goalsData || null);
-      setTodoSections(sectionsData || []);
       setPrevWeekReview(prevReviewData || null);
+      setWeekOura(ouraData || []);
+      setWeekRuns(runsData || []);
+      setWeekNutrition(nutritionData || []);
+      setNutritionTarget((nutritionTargetData as any)?.target_kcal ?? null);
+      setWeekDoneTasks((doneTasksData || []).map((t: any) => ({ title: t.title, status: t.status })));
 
       if (reviewData) {
         setCurrentReview(reviewData);
-        if (reviewData.week_sentiment) setWeekSentiment(reviewData.week_sentiment);
         if (reviewData.proud_of) setProudOf(reviewData.proud_of);
-        if (reviewData.bottleneck) setBottleneck(reviewData.bottleneck);
+        if (reviewData.do_differently) setDoDifferently(reviewData.do_differently);
+        if (reviewData.sabotage) setSabotage(reviewData.sabotage);
+        if (reviewData.obligation) setObligation(reviewData.obligation);
+        if ((reviewData as any).week_highlight) setWeekHighlight((reviewData as any).week_highlight);
+        if ((reviewData as any).week_regret) setWeekRegret((reviewData as any).week_regret);
+        if ((reviewData as any).new_belief) setNewBelief((reviewData as any).new_belief);
+        if ((reviewData as any).week_intention) setWeekIntention((reviewData as any).week_intention);
+        if ((reviewData as any).week_commitment) setWeekCommitment((reviewData as any).week_commitment);
+        if ((reviewData as any).week_goal_cialo) setWeekGoalCialo((reviewData as any).week_goal_cialo);
+        if ((reviewData as any).week_goal_duch) setWeekGoalDuch((reviewData as any).week_goal_duch);
+        if ((reviewData as any).week_goal_konto) setWeekGoalKonto((reviewData as any).week_goal_konto);
+        if (reviewData.pillar_scores && typeof reviewData.pillar_scores === 'object' && !Array.isArray(reviewData.pillar_scores)) {
+          setPillarScores((prev) => ({ ...prev, ...(reviewData.pillar_scores as Partial<PillarScores>) }));
+        }
+        const recap = reviewData.ai_recap as { phase1?: Phase1Recap; phase2?: Phase2Recap } | null;
+        if (recap?.phase1) setPhase1(recap.phase1);
+        // Only restore phase2 from DB if it's the new format (has deepening_questions)
+        if (recap?.phase2 && Array.isArray(recap.phase2.deepening_questions)) setPhase2(recap.phase2);
         if (reviewData.focus_goal_mappings && typeof reviewData.focus_goal_mappings === 'object' && !Array.isArray(reviewData.focus_goal_mappings)) {
           setFocusGoalMappings(reviewData.focus_goal_mappings as Record<string, string>);
         }
+        if (reviewData.deepening_answers && typeof reviewData.deepening_answers === 'object' && !Array.isArray(reviewData.deepening_answers)) {
+          setDeepeningAnswers(reviewData.deepening_answers as Record<string, string>);
+        }
       }
 
-      // Load the specific tasks user committed to (maintain their selection order)
       if (reviewData?.focus_task_ids && reviewData.focus_task_ids.length > 0) {
-        const { data: ft } = await supabase
-          .from('todo_items')
-          .select('*')
-          .in('id', reviewData.focus_task_ids)
-          .eq('user_id', userId);
+        const { data: ft } = await supabase.from('todo_items').select('*').in('id', reviewData.focus_task_ids).eq('user_id', userId);
         setFocusTasks(
           reviewData.focus_task_ids.map((id) => (ft || []).find((t) => t.id === id)).filter(Boolean) as any[]
         );
@@ -190,35 +216,28 @@ export default function Direction({ session }: { session: Session }) {
     return () => clearTimeout(t);
   }, [session?.user?.id, fetchData]);
 
-  useEffect(() => {
-    const uid = session?.user?.id;
-    if (!uid) return;
-    Promise.all([
-      supabase.from('projects').select('id, dream_id').eq('user_id', uid),
-      supabase.from('dreams').select('id, life_goal').eq('user_id', uid),
-    ]).then(([{ data: p }, { data: d }]) => {
-      setChainProjects(p ?? []);
-      setChainDreams(d ?? []);
-    }).catch(() => {});
-  }, [session?.user?.id]);
+  const callWeekRecap = useCallback(async (phase: 'before' | 'after') => {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-week-recap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ weekStart: currentWeekStart, phase }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Błąd generowania przeglądu tygodnia');
+    return data;
+  }, [session, currentWeekStart]);
 
-  const sectionGoalMap = useMemo(() => {
-    const dreamGoal = Object.fromEntries(
-      chainDreams.filter((d: any) => d.life_goal).map((d: any) => [d.id, `goal_${d.life_goal}` as string])
-    );
-    const projectDream = Object.fromEntries(
-      chainProjects.filter((p: any) => p.dream_id).map((p: any) => [p.id, p.dream_id as string])
-    );
-    const result: Record<string, string> = {};
-    for (const sec of todoSections as any[]) {
-      if (!sec.project_id) continue;
-      const dreamId = projectDream[sec.project_id];
-      if (!dreamId) continue;
-      const goal = dreamGoal[dreamId];
-      if (goal) result[sec.id] = goal;
-    }
-    return result;
-  }, [chainProjects, chainDreams, todoSections]);
+  // Warstwa 1 jest automatyczna — odpala się raz, gdy wchodzimy w niedzielny rytuał
+  // i jeszcze nie ma wygenerowanego wzorca dla tego tygodnia.
+  useEffect(() => {
+    if (!showPlanningMode || loading || phase1 || phase1Loading) return;
+    setPhase1Loading(true);
+    callWeekRecap('before')
+      .then((data) => setPhase1(data.phase1))
+      .catch((err) => console.error('Layer 1 (before) failed:', err))
+      .finally(() => setPhase1Loading(false));
+  }, [showPlanningMode, loading, phase1, phase1Loading, callWeekRecap]);
 
   const stats = useMemo(() => {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
@@ -250,33 +269,6 @@ export default function Direction({ session }: { session: Session }) {
     }
     return { streak, weeklyP: weeks[0]?.pCount || 0, monthlyWin: weeks.filter((w) => w.isWeekWin).length >= 3, weeks };
   }, [history]);
-
-  const pastWeekStats = useMemo(() => {
-    const today = nowWarsaw();
-    const last7Days = history.filter((d) => {
-      const diff = Math.round((today.getTime() - new Date(d.date || '').getTime()) / 86400000);
-      return diff >= 0 && diff < 7;
-    });
-    const wins = last7Days.filter((d) => d.result === 'Z').length;
-
-    const last7DaysStrings = Array.from({ length: 7 }).map((_, i) =>
-      format(subDays(nowWarsaw(), i), 'yyyy-MM-dd')
-    );
-    const totalLogs = habitLogs.filter((log) => log.date && last7DaysStrings.includes(log.date)).length;
-    const totalPossible = habits.length * 7;
-    const habitPercent = totalPossible > 0 ? Math.round((totalLogs / totalPossible) * 100) : 0;
-
-    return { wins, habitPercent };
-  }, [history, habitLogs, habits]);
-
-  const filteredTasks = useMemo(() => {
-    return weekTodos.filter((t) => {
-      const matchesSection = selectedSectionId === 'all' || t.section_id === selectedSectionId;
-      const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesSection && matchesSearch;
-    });
-  }, [weekTodos, selectedSectionId, searchQuery]);
-
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
     // Re-fetch the row fresh to avoid acting on a stale render-time snapshot
@@ -319,64 +311,95 @@ export default function Direction({ session }: { session: Session }) {
     }
   }
 
-  function toggleTaskSelection(id: string) {
-    const isSelected = selectedTaskIds.has(id);
-    setSelectedTaskIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else if (next.size < 3) next.add(id);
-      return next;
-    });
-    if (!isSelected) {
-      const todo = weekTodos.find(t => t.id === id);
-      const autoGoal = todo?.section_id ? sectionGoalMap[todo.section_id] : null;
-      if (autoGoal) {
-        setFocusGoalMappings(prev => ({ ...prev, [id]: prev[id] ?? autoGoal }));
-      }
-    }
-  }
+  const reflectionSaved = phase2Loading || (phase2 !== null && Array.isArray(phase2.deepening_questions));
 
-  async function addQuickTask() {
-    const title = quickTaskInput.trim();
-    if (!title || addingTask) return;
-    setAddingTask(true);
-    const { data, error } = await supabase
-      .from('todo_items')
-      .insert({ user_id: session.user.id, title, status: 'open', priority: 'normal', ai_bucket: 'soon' })
-      .select('id, title, status, priority, ai_bucket, due_date, section_id')
-      .single();
-    if (!error && data) { setWeekTodos((prev) => [data, ...prev]); setQuickTaskInput(''); }
-    setAddingTask(false);
-  }
+  const prevWeekScores = useMemo(() => {
+    const ps = prevWeekReview?.pillar_scores;
+    if (!ps || typeof ps !== 'object' || Array.isArray(ps)) return null;
+    return ps as { cialo?: number; duch?: number; konto?: number };
+  }, [prevWeekReview]);
 
-  async function saveWeeklyPlan() {
-    if (savingPlan) return;
-    setSavingPlan(true);
-    const ids = [...selectedTaskIds];
-    const focusText = weekTodos.filter((t) => ids.includes(t.id)).map((t) => t.title).join(' · ') || null;
+  const weekFacts = useMemo(() => {
+    const done = weekDoneTasks.filter((t) => t.status === 'done').map((t) => t.title);
+    const dropped = weekDoneTasks.filter((t) => t.status === 'dropped').map((t) => t.title);
+    const sleepArr = weekOura.map((o) => o.total_sleep_hours).filter((v): v is number => v != null);
+    const readArr = weekOura.map((o) => o.readiness_score).filter((v): v is number => v != null);
+    const kcalArr = weekNutrition.map((n) => n.calories).filter((v): v is number => v != null);
+    const totalKm = weekRuns.reduce((s, r) => s + (r.distance || 0), 0) / 1000;
+    return {
+      doneCount: done.length,
+      totalCount: done.length + dropped.length,
+      doneTasks: done.slice(0, 10),
+      droppedTasks: dropped.slice(0, 5),
+      sleepHrs: sleepArr.length ? sleepArr.reduce((a, b) => a + b, 0) / sleepArr.length : null,
+      readiness: readArr.length ? readArr.reduce((a, b) => a + b, 0) / readArr.length : null,
+      totalKm: totalKm > 0 ? totalKm : null,
+      avgKcal: kcalArr.length ? kcalArr.reduce((a, b) => a + b, 0) / kcalArr.length : null,
+      targetKcal: nutritionTarget,
+    };
+  }, [weekDoneTasks, weekOura, weekRuns, weekNutrition, nutritionTarget]);
 
+  async function saveReflection() {
+    if (savingReflection) return;
+    setSavingReflection(true);
     const { data } = await supabase
       .from('weekly_reviews')
       .upsert(
-        { user_id: session.user.id, week_start: currentWeekStart, week_sentiment: weekSentiment || null, focus_task_ids: ids, week_focus: focusText, proud_of: proudOf || null, bottleneck: bottleneck || null, focus_goal_mappings: focusGoalMappings },
+        {
+          user_id: session.user.id,
+          week_start: currentWeekStart,
+          proud_of: proudOf || null,
+          do_differently: doDifferently || null,
+          sabotage: sabotage || null,
+          obligation: obligation || null,
+          week_highlight: weekHighlight || null,
+          week_regret: weekRegret || null,
+          new_belief: newBelief || null,
+          pillar_scores: pillarScores,
+        } as any,
         { onConflict: 'user_id,week_start' }
       )
       .select()
       .maybeSingle();
+    if (data) setCurrentReview(data);
+    setSavingReflection(false);
 
-    if (ids.length > 0) {
-      await supabase
-        .from('todo_items')
-        .update({ ai_bucket: 'today', ai_classified_at: nowWarsaw().toISOString() }).throwOnError()
-        .in('id', ids)
-        .eq('user_id', session.user.id);
+    setPhase2Loading(true);
+    try {
+      const recap = await callWeekRecap('after');
+      if (recap.phase2 && Array.isArray(recap.phase2.deepening_questions)) {
+        setPhase2(recap.phase2);
+      }
+    } catch (err) {
+      console.error('Phase after failed:', err);
+    } finally {
+      setPhase2Loading(false);
     }
+  }
 
-    if (data) {
-      setCurrentReview(data);
-      setFocusTasks(weekTodos.filter((t) => ids.includes(t.id)));
-    }
-    setSavingPlan(false);
+  async function completeReview() {
+    if (completing) return;
+    setCompleting(true);
+    const { data } = await supabase
+      .from('weekly_reviews')
+      .upsert(
+        {
+          user_id: session.user.id,
+          week_start: currentWeekStart,
+          deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
+          week_intention: weekIntention || null,
+          week_commitment: weekCommitment || null,
+          week_goal_cialo: weekGoalCialo || null,
+          week_goal_duch: weekGoalDuch || null,
+          week_goal_konto: weekGoalKonto || null,
+          review_completed_at: new Date().toISOString(),
+        } as any,
+        { onConflict: 'user_id,week_start' }
+      )
+      .select()
+      .maybeSingle();
+    if (data) setCurrentReview(data);
+    setCompleting(false);
   }
 
   if (loading) {
@@ -396,33 +419,47 @@ export default function Direction({ session }: { session: Session }) {
 
         {showPlanningMode ? (
           <DirectionPlanningMode
-            pastWeekStats={pastWeekStats}
-            weekSentiment={weekSentiment}
-            setWeekSentiment={setWeekSentiment}
+            session={session}
+            weekStart={currentWeekStart}
+            weekFacts={weekFacts}
+            phase1={phase1}
+            phase1Loading={phase1Loading}
+            phase2={phase2}
+            phase2Loading={phase2Loading}
+            prevWeekScores={prevWeekScores}
+            pillarScores={pillarScores}
+            setPillarScores={setPillarScores}
+            obligation={obligation}
+            setObligation={setObligation}
+            doDifferently={doDifferently}
+            setDoDifferently={setDoDifferently}
             proudOf={proudOf}
             setProudOf={setProudOf}
-            bottleneck={bottleneck}
-            setBottleneck={setBottleneck}
-            planWeekStart={planWeekStart}
-            planCalEvents={planCalEvents}
-            selectedSectionId={selectedSectionId}
-            setSelectedSectionId={setSelectedSectionId}
-            todoSections={todoSections}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filteredTasks={filteredTasks}
-            quickTaskInput={quickTaskInput}
-            setQuickTaskInput={setQuickTaskInput}
-            addQuickTask={addQuickTask}
-            addingTask={addingTask}
-            selectedTaskIds={selectedTaskIds}
-            toggleTaskSelection={toggleTaskSelection}
-            weekTodos={weekTodos}
-            sectionGoalMap={sectionGoalMap}
-            focusGoalMappings={focusGoalMappings}
-            setFocusGoalMappings={setFocusGoalMappings}
-            saveWeeklyPlan={saveWeeklyPlan}
-            savingPlan={savingPlan}
+            sabotage={sabotage}
+            setSabotage={setSabotage}
+            weekHighlight={weekHighlight}
+            setWeekHighlight={setWeekHighlight}
+            weekRegret={weekRegret}
+            setWeekRegret={setWeekRegret}
+            newBelief={newBelief}
+            setNewBelief={setNewBelief}
+            deepeningAnswers={deepeningAnswers}
+            setDeepeningAnswers={setDeepeningAnswers}
+            weekIntention={weekIntention}
+            setWeekIntention={setWeekIntention}
+            weekCommitment={weekCommitment}
+            setWeekCommitment={setWeekCommitment}
+            weekGoalCialo={weekGoalCialo}
+            setWeekGoalCialo={setWeekGoalCialo}
+            weekGoalDuch={weekGoalDuch}
+            setWeekGoalDuch={setWeekGoalDuch}
+            weekGoalKonto={weekGoalKonto}
+            setWeekGoalKonto={setWeekGoalKonto}
+            saveReflection={saveReflection}
+            savingReflection={savingReflection}
+            onComplete={completeReview}
+            completing={completing}
+            reflectionSaved={reflectionSaved}
           />
         ) : (
           <DirectionRadarMode

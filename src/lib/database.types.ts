@@ -880,6 +880,7 @@ export type Database = {
           created_at: string | null
           daily_rpe: number | null
           date: string | null
+          day_note: string | null
           done_1: boolean | null
           done_2: boolean | null
           done_3: boolean | null
@@ -920,6 +921,7 @@ export type Database = {
           created_at?: string | null
           daily_rpe?: number | null
           date?: string | null
+          day_note?: string | null
           done_1?: boolean | null
           done_2?: boolean | null
           done_3?: boolean | null
@@ -960,6 +962,7 @@ export type Database = {
           created_at?: string | null
           daily_rpe?: number | null
           date?: string | null
+          day_note?: string | null
           done_1?: boolean | null
           done_2?: boolean | null
           done_3?: boolean | null
@@ -4256,50 +4259,89 @@ export type Database = {
       }
       weekly_reviews: {
         Row: {
+          ai_recap: Json | null
           bottleneck: string | null
           created_at: string | null
+          deepening_answers: Json | null
           do_differently: string | null
           embedding: string | null
           focus_goal_mappings: Json | null
           focus_task_ids: string[] | null
           id: string
           importance_score: number | null
+          new_belief: string | null
+          obligation: string | null
+          pillar_scores: Json | null
           proud_of: string | null
+          review_completed_at: string | null
           sabotage: string | null
           user_id: string | null
+          week_commitment: string | null
           week_focus: string | null
+          week_goal_cialo: string | null
+          week_goal_duch: string | null
+          week_goal_konto: string | null
+          week_highlight: string | null
+          week_intention: string | null
+          week_regret: string | null
           week_sentiment: string | null
           week_start: string
         }
         Insert: {
+          ai_recap?: Json | null
           bottleneck?: string | null
           created_at?: string | null
+          deepening_answers?: Json | null
           do_differently?: string | null
           embedding?: string | null
           focus_goal_mappings?: Json | null
           focus_task_ids?: string[] | null
           id?: string
           importance_score?: number | null
+          new_belief?: string | null
+          obligation?: string | null
+          pillar_scores?: Json | null
           proud_of?: string | null
+          review_completed_at?: string | null
           sabotage?: string | null
           user_id?: string | null
+          week_commitment?: string | null
           week_focus?: string | null
+          week_goal_cialo?: string | null
+          week_goal_duch?: string | null
+          week_goal_konto?: string | null
+          week_highlight?: string | null
+          week_intention?: string | null
+          week_regret?: string | null
           week_sentiment?: string | null
           week_start: string
         }
         Update: {
+          ai_recap?: Json | null
           bottleneck?: string | null
           created_at?: string | null
+          deepening_answers?: Json | null
           do_differently?: string | null
           embedding?: string | null
           focus_goal_mappings?: Json | null
           focus_task_ids?: string[] | null
           id?: string
           importance_score?: number | null
+          new_belief?: string | null
+          obligation?: string | null
+          pillar_scores?: Json | null
           proud_of?: string | null
+          review_completed_at?: string | null
           sabotage?: string | null
           user_id?: string | null
+          week_commitment?: string | null
           week_focus?: string | null
+          week_goal_cialo?: string | null
+          week_goal_duch?: string | null
+          week_goal_konto?: string | null
+          week_highlight?: string | null
+          week_intention?: string | null
+          week_regret?: string | null
           week_sentiment?: string | null
           week_start?: string
         }

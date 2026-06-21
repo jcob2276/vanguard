@@ -374,12 +374,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     const { description, subtasks } = parseSubtasks(item.notes);
     run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.filter((_, i) => i !== idx)) }));
   };
-  const addSubtasksBatch = (item: any, texts: string[]) => {
-    if (!texts.length) return;
-    const { description, subtasks } = parseSubtasks(item.notes);
-    const newItems = texts.map(t => ({ checked: false, text: t.trim() }));
-    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, [...subtasks, ...newItems]) }));
-  };
   const saveEditTitle = (item: any) => {
     const title = editingTitle.trim();
     if (title && title !== item.title) run(() => updateTodoItem(item.id, { title }));
@@ -480,6 +474,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setItems(prev => prev.map(i => i.id === item.id ? { ...i, due_date: item.due_date, ai_bucket: item.ai_bucket, ai_classified_at: item.ai_classified_at } : i));
         });
       } : undefined}
+      onSetDueDate={(date: string | null) => {
+        // Always drops ai_bucket — manually picking/clearing a date overrides any stale
+        // AI classification. The "Na dziś" list matches on due_date<=today OR
+        // ai_bucket==='today', so a leftover 'today' bucket would keep the item stuck
+        // in Today even after setting a far-future date or clearing it entirely.
+        const patch = { due_date: date, ai_bucket: null };
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, ...patch } : i));
+        updateTodoItem(item.id, patch as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, due_date: item.due_date, ai_bucket: item.ai_bucket } : i));
+        });
+      }}
       onSetRecurrence={(r: string | null) => {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, recurrence: r || null } : i));
         updateTodoItem(item.id, { recurrence: r || undefined }).catch((err) => {
@@ -500,8 +506,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setError(err instanceof Error ? err.message : String(err));
         });
       }}
-      session={session}
-      onAddSubtasksBatch={(texts: string[]) => addSubtasksBatch(item, texts)}
     />
   );
 

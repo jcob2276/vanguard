@@ -178,7 +178,7 @@ export default function Dashboard({ session }: { session: Session }) {
       <Suspense fallback={<ViewFallback />}>
         <Todo
           session={session}
-          onBack={goBack}
+          onBack={() => { refreshNudge(); goBack(); }}
           onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
         />
       </Suspense>

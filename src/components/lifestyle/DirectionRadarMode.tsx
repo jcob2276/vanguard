@@ -267,7 +267,29 @@ export default function DirectionRadarMode({
         </div>
       )}
 
-      {/* 5. Sentyment + Cele */}
+      {/* 5. Cele tygodnia (z przeglądu niedzielnego) */}
+      {currentReview && ((currentReview as any).week_goal_cialo || (currentReview as any).week_goal_duch || (currentReview as any).week_goal_konto) && (
+        <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-3">
+          <p className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele tego tygodnia</p>
+          {(currentReview as any).week_intention && (
+            <p className="text-[11px] font-semibold text-text-secondary italic">„{(currentReview as any).week_intention}"</p>
+          )}
+          <div className="space-y-2">
+            {[
+              { key: 'week_goal_cialo', label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+              { key: 'week_goal_duch',  label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
+              { key: 'week_goal_konto', label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
+            ].filter(g => (currentReview as any)[g.key]).map(g => (
+              <div key={g.key} className="flex items-start gap-2">
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
+                <span className="text-[12px] font-semibold text-text-primary leading-snug">{(currentReview as any)[g.key]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Sentyment + Cele kierunkowe */}
       <div className="space-y-3">
         {currentReview?.week_sentiment && (
           <div className="rounded-[24px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">

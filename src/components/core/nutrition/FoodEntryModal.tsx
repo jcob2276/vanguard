@@ -45,12 +45,13 @@ interface RecentEntry {
 
 function parseGrams(amount: string | null): number {
   if (!amount) return 100;
-  const m = amount.match(/(\d+(?:\.\d+)?)/);
-  return m ? Math.round(parseFloat(m[1])) : 100;
+  const m = amount.match(/(\d+(?:[.,]\d+)?)/);
+  if (!m) return 100;
+  return Math.round(parseFloat(m[1].replace(',', '.')));
 }
 
 function derivePer100(entry: RecentEntry) {
-  const g = parseGrams(entry.amount) || 100;
+  const g = Math.max(1, parseGrams(entry.amount));
   return {
     calories: (entry.calories ?? 0) * 100 / g,
     protein: (entry.protein ?? 0) * 100 / g,
@@ -330,14 +331,24 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     }
   }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved]);
 
-  // ── Repeat recent entry ───────────────────────────────────────────────────────
+  // ── Repeat recent entry — uses current mealType, not the source entry's meal ──
   const quickRepeatEntry = useCallback(async (entry: RecentEntry) => {
     if (!userId || quickAddingId) return;
     setQuickAddingId(entry.id);
     setError(null);
     try {
-      const { error: rpcError } = await supabase.rpc('repeat_food_entry', {
-        p_user_id: userId, p_source_entry_id: entry.id, p_date: getTodayWarsaw(),
+      const grams = Math.max(1, parseGrams(entry.amount));
+      const per100 = derivePer100(entry);
+      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: grams,
+        p_entry: {
+          name: entry.name, brand: entry.brand, barcode: null,
+          calories: Math.round(per100.calories),
+          protein: Math.round(per100.protein * 10) / 10,
+          carbs: per100.carbs != null ? Math.round(per100.carbs * 10) / 10 : null,
+          fat: per100.fat != null ? Math.round(per100.fat * 10) / 10 : null,
+          fiber: null, sugar: null, meal_type: mealType,
+        },
       });
       if (rpcError) throw rpcError;
       flashSaved();
@@ -348,7 +359,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setQuickAddingId(null);
     }
-  }, [userId, quickAddingId, onSaved, loadLists, flashSaved]);
+  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved]);
 
   // ── Manual entry ──────────────────────────────────────────────────────────────
   const saveManual = useCallback(async () => {
@@ -568,7 +579,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
               </div>
               <div>
                 <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Gramatura</label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <input
                     type="number" inputMode="numeric" autoFocus
                     value={editGrams}
@@ -576,6 +587,19 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                     className="w-24 rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary text-center outline-none focus:border-primary/40"
                   />
                   <span className="text-[12px] text-text-muted">gram</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[50, 100, 150, 200, 250].map((g) => (
+                    <button key={g} onClick={() => setEditGrams(String(g))}
+                      className={`flex-1 rounded-lg py-1 text-[10px] font-black transition-all cursor-pointer ${
+                        editGrams === String(g)
+                          ? 'bg-primary text-white'
+                          : 'border border-border-custom text-text-muted hover:border-primary/40 hover:text-primary'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="flex gap-1.5 flex-wrap">
@@ -772,10 +796,25 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                 <p className="text-[15px] font-black text-text-primary leading-tight">{selected.name}</p>
                 {selected.brand && <p className="text-[11px] text-text-muted">{selected.brand}</p>}
               </div>
-              <div className="flex items-center gap-2">
-                <input type="number" inputMode="numeric" autoFocus value={grams} onChange={(e) => setGrams(e.target.value)}
-                  className="w-20 rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary text-center outline-none focus:border-primary/40" />
-                <span className="text-[12px] text-text-muted">gram</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input type="number" inputMode="numeric" autoFocus value={grams} onChange={(e) => setGrams(e.target.value)}
+                    className="w-20 rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary text-center outline-none focus:border-primary/40" />
+                  <span className="text-[12px] text-text-muted">gram</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[50, 100, 150, 200, 250].map((g) => (
+                    <button key={g} onClick={() => setGrams(String(g))}
+                      className={`flex-1 rounded-lg py-1 text-[10px] font-black transition-all cursor-pointer ${
+                        grams === String(g)
+                          ? 'bg-primary text-white'
+                          : 'border border-border-custom text-text-muted hover:border-primary/40 hover:text-primary'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {MEAL_TYPES.map((m) => (

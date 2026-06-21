@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Sparkles, Trash2, GripVertical } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical } from 'lucide-react';
 import {
   GOAL_ICON,
   GOAL_COLOR,
@@ -38,10 +37,9 @@ export interface TodoCardProps {
   isDragging: boolean;
   onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
   onMoveToToday?: () => void;
+  onSetDueDate: (date: string | null) => void;
   onSetRecurrence: (r: string | null) => void;
   dreamTitle?: string | null;
-  session: any;
-  onAddSubtasksBatch: (texts: string[]) => void;
   onSetReminder: (isoDatetime: string) => void;
   onCancelReminder: () => void;
 }
@@ -72,10 +70,9 @@ export default function TodoCard({
   isDragging,
   onShowContextMenu,
   onMoveToToday,
+  onSetDueDate,
   onSetRecurrence,
   dreamTitle,
-  session,
-  onAddSubtasksBatch,
   onSetReminder,
   onCancelReminder,
 }: TodoCardProps) {
@@ -101,76 +98,6 @@ export default function TodoCard({
   }, [expanded]);
 
   const [reminderInput, setReminderInput] = useState('');
-  const [assistantLoading, setAssistantLoading] = useState(false);
-  const [assistantResult, setAssistantResult] = useState<{
-    type: 'decompose' | 'first_move' | 'evaluate';
-    text: string;
-    subtasks?: string[];
-  } | null>(null);
-  const [assistantError, setAssistantError] = useState<string | null>(null);
-
-  const runAssistant = async (type: 'decompose' | 'first_move' | 'evaluate') => {
-    if (!session?.user?.id) return;
-    setAssistantLoading(true);
-    setAssistantError(null);
-    setAssistantResult(null);
-
-    let queryText = '';
-    if (type === 'decompose') {
-      queryText = `Rozbij to zadanie na 3-5 konkretnych, mierzalnych podzadań (fizycznych kroków).
-Zadanie: "${item.title}"
-Sekcja: "${sectionName || 'Brak'}"
-Powiązane marzenie: "${dreamTitle || 'Brak'}"
-
-Odpowiedź sformatuj dokładnie tak: najpierw napisz krótki komentarz (max 2 zdania) oceniający czy zadanie nie jest unikiem (avoidance) i jak je sprawnie zacząć, a pod spodem wypisz zaproponowane podzadania w formacie listy markdown (np. - [ ] Zrób X).`;
-    } else if (type === 'first_move') {
-      queryText = `Zidentyfikuj najbliższe, fizyczne działanie trwające maksymalnie 2 minuty, które pozwoli mi przełamać opór i natychmiast wystartować z pracą nad zadaniem. Wyeliminuj wszelkie bariery wejścia.
-Zadanie: "${item.title}"
-Sekcja: "${sectionName || 'Brak'}"
-Powiązane marzenie: "${dreamTitle || 'Brak'}"
-
-Pisz niezwykle krótko, bez owijania w bawełnę, tonem bezpośrednim (maksymalnie 2-3 zdania).`;
-    } else if (type === 'evaluate') {
-      queryText = `Dokonaj bezlitosnej oceny wartości tego zadania.
-Zadanie: "${item.title}"
-Sekcja: "${sectionName || 'Brak'}"
-Powiązane marzenie: "${dreamTitle || 'Brak'}"
-
-Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy ucieczka w bezpieczną zajętość (busywork/avoidance), aby uniknąć napięcia (outreachu, sprzedaży, realnego kontaktu z ludźmi)? Wskaż to wprost, surowym, konkretnym tonem (maksymalnie 3 zdania).`;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
-        body: {
-          user_id: session.user.id,
-          current_query: queryText,
-          mode: 'chat',
-          state_vector: {}
-        }
-      });
-
-      if (error) throw error;
-      const answer = data?.answer || data?.text || 'Brak odpowiedzi.';
-
-      let parsedSubtasks: string[] = [];
-      if (type === 'decompose') {
-        const lines = answer.split('\n');
-        const subtaskLines = lines.filter((l: string) => l.trim().startsWith('- [ ]'));
-        parsedSubtasks = subtaskLines.map((l: string) => l.replace(/^-\s*\[\s*\]\s*/, '').trim()).filter(Boolean);
-      }
-
-      setAssistantResult({
-        type,
-        text: answer,
-        subtasks: parsedSubtasks.length > 0 ? parsedSubtasks : undefined
-      });
-    } catch (err: any) {
-      console.error('[assistant] error:', err);
-      setAssistantError(err.message || 'Wystąpił błąd podczas analizy.');
-    } finally {
-      setAssistantLoading(false);
-    }
-  };
 
   const { description, subtasks } = useMemo(() => parseSubtasks(item.notes), [item.notes]);
   const doneCount = subtasks.filter(s => s.checked).length;
@@ -472,6 +399,27 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
                   </div>
                 </div>
 
+                {/* Due date */}
+                <div>
+                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Termin</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={item.due_date || ''}
+                      onChange={e => onSetDueDate(e.target.value || null)}
+                      className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                    {item.due_date && (
+                      <button
+                        onClick={() => onSetDueDate(null)}
+                        className="shrink-0 flex items-center gap-1 rounded-xl border border-border-custom/50 px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-rose-400 transition-colors"
+                      >
+                        <X size={10} /> Usuń
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Recurrence */}
                 {onSetRecurrence && (
                   <div>
@@ -525,7 +473,7 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
                           type="datetime-local"
                           value={reminderInput}
                           onChange={e => setReminderInput(e.target.value)}
-                          className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:dark]"
+                          className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
                         />
                         <button
                           onClick={() => {
@@ -625,88 +573,6 @@ Czy realizacja tego zadania to realny postęp w moich celach i marzeniach, czy u
                       </button>
                     </div>
                   </div>
-                </div>
-
-                {/* AI Assistant */}
-                <div className="rounded-2xl border border-border-custom bg-surface-solid/25 p-3.5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles size={11} className="text-primary" />
-                      <span className="text-[9px] font-black uppercase tracking-wider text-text-primary">AI Asystent</span>
-                    </div>
-                    {assistantResult && (
-                      <button
-                        onClick={() => setAssistantResult(null)}
-                        className="text-[9px] font-bold text-text-muted hover:text-text-primary transition-colors hover:underline"
-                      >
-                        Wyczyść
-                      </button>
-                    )}
-                  </div>
-
-                  {!assistantResult && !assistantLoading && (
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => runAssistant('decompose')}
-                        className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 bg-surface-solid/35 p-2 text-center transition-all hover:bg-surface-solid/70 hover:border-primary/20 active:scale-[0.97] cursor-pointer"
-                      >
-                        <span className="text-[13px]">🧱</span>
-                        <span className="text-[8.5px] font-bold text-text-primary leading-tight">Rozbij na kroki</span>
-                      </button>
-                      <button
-                        onClick={() => runAssistant('first_move')}
-                        className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 bg-surface-solid/35 p-2 text-center transition-all hover:bg-surface-solid/70 hover:border-primary/20 active:scale-[0.97] cursor-pointer"
-                      >
-                        <span className="text-[13px]">🏃</span>
-                        <span className="text-[8.5px] font-bold text-text-primary leading-tight">Pierwszy ruch</span>
-                      </button>
-                      <button
-                        onClick={() => runAssistant('evaluate')}
-                        className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 bg-surface-solid/35 p-2 text-center transition-all hover:bg-surface-solid/70 hover:border-primary/20 active:scale-[0.97] cursor-pointer"
-                      >
-                        <span className="text-[13px]">⚖️</span>
-                        <span className="text-[8.5px] font-bold text-text-primary leading-tight">Oceń unik</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {assistantLoading && (
-                    <div className="flex flex-col items-center justify-center py-3 gap-2 animate-pulse">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span className="text-[10px] font-medium text-text-muted">Analizowanie zadania...</span>
-                    </div>
-                  )}
-
-                  {assistantError && (
-                    <div className="rounded-xl bg-rose-500/5 border border-rose-500/10 p-2.5 text-[10px] font-medium text-rose-400">
-                      {assistantError}
-                    </div>
-                  )}
-
-                  {assistantResult && (
-                    <div className="space-y-2.5 animate-fadeIn">
-                      <div className="rounded-xl bg-surface-solid/40 p-2.5 text-[10.5px] font-medium text-text-primary leading-relaxed whitespace-pre-wrap">
-                        {assistantResult.text}
-                      </div>
-
-                      {assistantResult.type === 'decompose' &&
-                        assistantResult.subtasks &&
-                        assistantResult.subtasks.length > 0 && (
-                          <button
-                            onClick={() => {
-                              if (assistantResult.subtasks) {
-                                onAddSubtasksBatch(assistantResult.subtasks);
-                                setAssistantResult(null);
-                              }
-                            }}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-[10px] font-black text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-950/20 cursor-pointer"
-                          >
-                            <Check size={11} strokeWidth={3} />
-                            Dodaj te podzadania ({assistantResult.subtasks.length})
-                          </button>
-                        )}
-                    </div>
-                  )}
                 </div>
 
                 <button

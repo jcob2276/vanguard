@@ -131,7 +131,7 @@ export default function NutritionCard({
         const suggestions = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
           ? (verdict as Record<string, unknown>).food_suggestions
           : undefined;
-        if (Array.isArray(suggestions)) setAiSuggestions((suggestions as string[]).slice(0, 3));
+        if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
       } catch (e) {
         console.error('nutrition_targets fetch failed', e);
       }
@@ -664,7 +664,10 @@ export default function NutritionCard({
                           onClick={() => { setEditEntry(e); setShowEntryModal(true); }}
                           className="flex-1 min-w-0 text-left cursor-pointer"
                         >
-                          <p className="text-[12px] font-black text-text-primary truncate">{e.name}</p>
+                          <div className="flex items-baseline gap-1.5">
+                            <p className="text-[12px] font-black text-text-primary truncate">{e.name}</p>
+                            {e.amount && <span className="text-[9px] text-text-muted shrink-0">{e.amount}</span>}
+                          </div>
                           <div className="flex flex-wrap gap-1.5 mt-1">
                             {e.protein != null && e.protein > 0.05 && (
                               <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-black text-primary">
