@@ -44,6 +44,8 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'warn',
       // allow ts-ignore only when it carries a reason comment
       '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-ignore': 'allow-with-description' }],
+      // empty catch blocks are intentional (localStorage fallbacks etc.)
+      'no-empty': ['warn', { allowEmptyCatch: true }],
       // non-standard react-hooks/* rules from the plugin's extended preset — keep off
       'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
