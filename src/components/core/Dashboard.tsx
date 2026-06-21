@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
@@ -26,6 +26,7 @@ import PowerList from '../lifestyle/PowerList';
 import CommandButton from './CommandButton';
 import DayCounter from './DayCounter';
 import NutritionCard from './NutritionCard';
+import FoodEntryModal from './nutrition/FoodEntryModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Stats = lazy(() => import('./Stats'));
@@ -84,6 +85,9 @@ export default function Dashboard({ session }: { session: Session }) {
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
+  const logoLongPressTimer = useRef<number | null>(null);
+  const logoLongPressFired = useRef(false);
 
   // Theme support
   const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -99,6 +103,22 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const haptics = useHaptics();
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  const handleLogoPressStart = useCallback(() => {
+    logoLongPressFired.current = false;
+    logoLongPressTimer.current = window.setTimeout(() => {
+      logoLongPressFired.current = true;
+      haptics.medium();
+      setShowQuickFoodEntry(true);
+    }, 550);
+  }, [haptics]);
+
+  const handleLogoPressEnd = useCallback(() => {
+    if (logoLongPressTimer.current) {
+      clearTimeout(logoLongPressTimer.current);
+      logoLongPressTimer.current = null;
+    }
+  }, []);
 
   const { reviewOverdueDays, urgentTodoCount, refresh: refreshNudge } = useNudgeData(userId);
 
@@ -228,7 +248,16 @@ export default function Dashboard({ session }: { session: Session }) {
       <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
-            <h1 className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary">Vanguard</h1>
+            <h1
+              className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary select-none cursor-pointer"
+              title="Przytrzymaj, żeby szybko dodać posiłek"
+              onPointerDown={handleLogoPressStart}
+              onPointerUp={handleLogoPressEnd}
+              onPointerLeave={handleLogoPressEnd}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              Vanguard
+            </h1>
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
               {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
             </p>
@@ -423,6 +452,13 @@ export default function Dashboard({ session }: { session: Session }) {
         </nav>
       )}
 
+      {showQuickFoodEntry && (
+        <FoodEntryModal
+          session={session}
+          onClose={() => setShowQuickFoodEntry(false)}
+          onSaved={refresh}
+        />
+      )}
     </div>
   );
 }
