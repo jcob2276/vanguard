@@ -71,8 +71,11 @@ if (missingEnv.length) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const db    = createClient(BASE, SERVICE_KEY)
 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-const ago   = (days) => new Date(Date.now() - days * 864e5)
-  .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+const ago   = (days) => {
+  const d = new Date(today + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().split('T')[0]
+}
 
 /** POST an edge function with service-role bearer. Throws on non-2xx. */
 async function callFn(fnName, body = {}) {

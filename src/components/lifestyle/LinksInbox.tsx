@@ -103,6 +103,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ type: 'save_link', url: actualUrl }),
+        signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -130,6 +131,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ type: 'save_link', url: urlMatch[0] }),
+        signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));

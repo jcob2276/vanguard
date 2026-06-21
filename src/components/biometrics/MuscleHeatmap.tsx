@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { formatWarsawDate } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 import { MUSCLE_TAGS, stimulusForExercise, tagsForExercise } from '../../data/exercises';
 
 // ─── SVG body region definitions ──────────────────────────────────────────────
@@ -155,7 +155,7 @@ export default function MuscleHeatmap({ session }: { session: any }) {
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    const dateLimit = formatWarsawDate(Date.now() - period * 24 * 3600 * 1000);
+    const dateLimit = (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - period); return d.toISOString().split('T')[0] })();
 
     const fetchLogs = async () => {
       try {

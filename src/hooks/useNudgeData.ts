@@ -18,8 +18,10 @@ export function useNudgeData(userId: string | undefined) {
         ]);
         if (reviews) {
           if ((reviews as any[]).length > 0) {
-            const last = new Date((reviews as any[])[0].week_start + 'T00:00:00');
-            setReviewOverdueDays(Math.floor((Date.now() - last.getTime()) / 86400000));
+            const lastDay = (reviews as any[])[0].week_start as string;
+            const d1 = new Date(today + 'T12:00:00Z');
+            const d2 = new Date(lastDay + 'T12:00:00Z');
+            setReviewOverdueDays(Math.round((d1.getTime() - d2.getTime()) / 86400000));
           } else {
             setReviewOverdueDays(999);
           }

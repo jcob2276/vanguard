@@ -122,7 +122,8 @@ export function useDashboardData() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ userId: session.user.id, days: 2 })
+        body: JSON.stringify({ userId: session.user.id, days: 2 }),
+        signal: AbortSignal.timeout(15000),
       });
 
       const res = await response.json().catch(() => ({}));
@@ -163,7 +164,8 @@ export function useDashboardData() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`
           },
-          body: JSON.stringify({ userId: session.user.id })
+          body: JSON.stringify({ userId: session.user.id }),
+          signal: AbortSignal.timeout(15000),
         });
       }
     } catch (_e) {

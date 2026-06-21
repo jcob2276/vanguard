@@ -16,6 +16,7 @@ import {
   Bookmark,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useNudgeData } from '../../hooks/useNudgeData';
@@ -282,6 +283,7 @@ export default function Dashboard({ session }: { session: Session }) {
           ) : (
             <>
               {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
+              <ErrorBoundary>
               <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
                 <div className="space-y-7">
                   <DayCounter />
@@ -332,6 +334,8 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
           </div>
 
+          </ErrorBoundary>
+          <ErrorBoundary>
           <div className={`p-5 pb-8 ${view === 'tydzien' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
@@ -347,6 +351,8 @@ export default function Dashboard({ session }: { session: Session }) {
             </Suspense>
           </div>
 
+          </ErrorBoundary>
+          <ErrorBoundary>
           <div className={`p-5 pb-8 ${view === 'historia' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
@@ -356,7 +362,8 @@ export default function Dashboard({ session }: { session: Session }) {
               </div>
             </Suspense>
           </div>
-
+          </ErrorBoundary>
+          <ErrorBoundary>
           <div className={`p-5 pb-8 ${view === 'projekty' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <Projects
@@ -369,6 +376,7 @@ export default function Dashboard({ session }: { session: Session }) {
               />
             </Suspense>
           </div>
+          </ErrorBoundary>
           </>
           )}
         </main>

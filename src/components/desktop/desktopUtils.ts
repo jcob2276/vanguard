@@ -276,8 +276,8 @@ export function getSprintInfo() {
   const ds = getTodayWarsaw();
   const d = new Date(ds + 'T12:00:00');
   const yr = d.getFullYear();
-  let anchor = new Date(`${yr}-03-01T00:00:00`);
-  if (d < anchor) anchor = new Date(`${yr - 1}-03-01T00:00:00`);
+  let anchor = new Date(`${yr}-03-01T12:00:00Z`);
+  if (d.getTime() < anchor.getTime()) anchor = new Date(`${yr - 1}-03-01T12:00:00Z`);
   const personalYear = anchor.getFullYear();
   const daysSince = Math.floor((d.getTime() - anchor.getTime()) / 86400000);
   const weeksSince = Math.floor(daysSince / 7);

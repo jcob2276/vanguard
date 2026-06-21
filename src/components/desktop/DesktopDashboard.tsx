@@ -297,6 +297,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(b),
+        signal: AbortSignal.timeout(15000),
       });
       if (!r.ok) throw new Error(fn);
     };

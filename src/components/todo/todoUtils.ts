@@ -71,7 +71,7 @@ export function relativeDate(dateStr: string | null | undefined, today: string) 
   if (!dateStr) return null;
   if (dateStr === today) return { text: 'Dziś', color: 'text-emerald-500' };
   const diff = Math.round(
-    (new Date(dateStr + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / 86400000
+    (new Date(dateStr + 'T12:00:00Z').getTime() - new Date(today + 'T12:00:00Z').getTime()) / 86400000
   );
   if (diff < 0) return { text: `${Math.abs(diff)}d po terminie`, color: 'text-rose-500 font-black' };
   if (diff === 1) return { text: 'Jutro', color: 'text-sky-500' };

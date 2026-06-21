@@ -146,6 +146,7 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId: uid }),
+        signal: AbortSignal.timeout(15000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -187,6 +188,7 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId: uid, weekStart }),
+        signal: AbortSignal.timeout(30000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Błąd generowania');

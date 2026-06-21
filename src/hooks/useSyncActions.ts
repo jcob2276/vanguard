@@ -21,6 +21,7 @@ export function useSyncActions({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
       const p = await res.json().catch(() => ({}));
@@ -48,6 +49,7 @@ export function useSyncActions({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ userId, code, redirectUri: window.location.origin }),
+        signal: AbortSignal.timeout(15000),
       });
       const res = await response.json();
       if (res?.success) {

@@ -8,7 +8,8 @@ export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 2
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authSession.access_token}`
     },
-    body: JSON.stringify({ userId, sync_history: true, days })
+    body: JSON.stringify({ userId, sync_history: true, days }),
+    signal: AbortSignal.timeout(15000),
   });
   return response.json();
 }
@@ -19,7 +20,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
     ? { userId, date: analyzeDate }
     : (() => {
         const to = getTodayWarsaw();
-        const from = formatWarsawDate(Date.now() - (analyzePeriod - 1) * 864e5);
+        const from = (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - (analyzePeriod - 1)); return d.toISOString().split('T')[0] })();
         return { userId, dateFrom: from, dateTo: to };
       })();
 
@@ -29,7 +30,8 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authSession.access_token}`
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
   });
   return response.json();
 }
@@ -42,7 +44,8 @@ export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId }: { s
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authSession.access_token}`
     },
-    body: JSON.stringify({ userId })
+    body: JSON.stringify({ userId }),
+    signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));

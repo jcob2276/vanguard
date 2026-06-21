@@ -87,6 +87,7 @@ export default function DailyStrainCard({ session }: { session: any }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(15000),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
