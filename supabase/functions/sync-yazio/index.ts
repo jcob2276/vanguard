@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
       }
       const dateStr = targetDate.toISOString().split('T')[0]
 
+      if (dateStr >= '2026-06-21') {
+        console.log(`[Yazio] Skipping sync for ${dateStr} (managed directly in Vanguard database)`);
+        results.push({ date: dateStr, skipped: true, reason: 'Vanguard native database migration' });
+        continue;
+      }
+
       try {
         let foodEntries: any[] = [];
         let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0, totalFiber = 0, totalSugar = 0, totalIL = 0;

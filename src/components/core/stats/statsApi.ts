@@ -1,7 +1,10 @@
 import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
+import { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../../../lib/database.types';
 
-export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }: { supabase: any; supabaseUrl: string; userId: string; days?: number }) {
+export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; days?: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
+  if (!authSession) throw new Error('No active session found');
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
       method: 'POST',
@@ -20,8 +23,9 @@ export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 2
   }
 }
 
-export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: any; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
+export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
+  if (!authSession) throw new Error('No active session found');
   const body = analyzePeriod === 1
     ? { userId, date: analyzeDate }
     : (() => {
@@ -48,8 +52,9 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
   }
 }
 
-export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from, to }: { supabase: any; supabaseUrl: string; userId: string; from: string; to: string }) {
+export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from, to }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; from: string; to: string }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
+  if (!authSession) throw new Error('No active session found');
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/analyze-training-load`, {
       method: 'POST',

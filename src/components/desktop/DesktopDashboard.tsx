@@ -44,6 +44,7 @@ import {
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Fundament = lazy(() => import('../core/Fundament'));
+const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
 
 export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
@@ -470,12 +471,19 @@ export default function DesktopDashboard({ session }: { session: any }) {
           currentWeight={currentWeight}
           weight30ago={weight30ago}
         />
-        <WeeklyDigest digest={digest} movesDoneThisWeek={movesDoneThisWeek} streak={streak} />
-
-        {/* Heatmap */}
-        <Panel title="Konsekwencja treningowa — 13 tygodni">
-          <Heatmap sessions={sessions} strava={strava} />
-        </Panel>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 space-y-5">
+            <WeeklyDigest digest={digest} movesDoneThisWeek={movesDoneThisWeek} streak={streak} />
+            <Panel title="Konsekwencja treningowa — 13 tygodni">
+              <Heatmap sessions={sessions} strava={strava} />
+            </Panel>
+          </div>
+          <div className="lg:col-span-1">
+            <Suspense fallback={<div className="h-40 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
+              <WeeklyAnalytics session={session} />
+            </Suspense>
+          </div>
+        </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-3 gap-5">

@@ -220,7 +220,7 @@ export async function handleIncomingMessage(
       }
 
       // --- /posilek command (natural-language meal logging) ---
-      if (lowerText.startsWith('/posilek')) {
+      if (lowerText.startsWith('/posilek') || lowerText.startsWith('/posiłek')) {
         await handlePosilekCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey);
         return;
       }
@@ -238,8 +238,9 @@ export async function handleIncomingMessage(
       }
 
       // --- /keep command ---
-      if (lowerText.startsWith('/keep')) {
-        await handleKeepCommand(text.slice(5).trim(), chatId, telegramToken, supabase, vanguardUserId, false);
+      if (lowerText.startsWith('/keep') || lowerText.startsWith('/notatka')) {
+        const sliceLen = lowerText.startsWith('/keep') ? 5 : 8;
+        await handleKeepCommand(text.slice(sliceLen).trim(), chatId, telegramToken, supabase, vanguardUserId, false);
         return;
       }
 

@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
+import type { Session } from '@supabase/supabase-js';
+import type { Tables } from '../../lib/database.types';
 
 const LIMITER_PL = {
   sleep: 'sen', calories: 'kalorie', carbs: 'węgle',
@@ -36,9 +38,9 @@ function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: Lu
   );
 }
 
-export default function DailyStrainCard({ session }: { session: any }) {
-  const [row, setRow] = useState<any | null>(null);
-  const [oura, setOura] = useState<any | null>(null);
+export default function DailyStrainCard({ session }: { session: Session }) {
+  const [row, setRow] = useState<Tables<'daily_strain'> | null>(null);
+  const [oura, setOura] = useState<Tables<'oura_daily_summary'> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,7 +51,7 @@ export default function DailyStrainCard({ session }: { session: any }) {
         .select('*').eq('user_id', session.user.id)
         .order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('oura_daily_summary')
-        .select('date, hrv_avg, rhr_avg, total_sleep_hours, temp_deviation, steps, readiness_score')
+        .select('*')
         .eq('user_id', session.user.id)
         .order('date', { ascending: false }).limit(2),
     ]);
@@ -153,8 +155,10 @@ export default function DailyStrainCard({ session }: { session: any }) {
     );
   }
 
-  const strainTone = row.strain_score >= 15 ? 'text-orange-500 dark:text-orange-400' : row.strain_score >= 8 ? 'text-text-primary' : 'text-text-secondary';
-  const recovTone = row.recovery_score >= 75 ? 'text-emerald-600 dark:text-emerald-400' : row.recovery_score >= 55 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
+  const strainScore = row.strain_score ?? 0;
+  const recoveryScore = row.recovery_score ?? 0;
+  const strainTone = strainScore >= 15 ? 'text-orange-500 dark:text-orange-400' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
+  const recovTone = recoveryScore >= 75 ? 'text-emerald-600 dark:text-emerald-400' : recoveryScore >= 55 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
   const missingSignals = [
     row.strain_score == null ? 'strain niepoliczony' : null,
     row.recovery_score == null ? 'recovery bez danych Oura' : null,
@@ -191,7 +195,7 @@ export default function DailyStrainCard({ session }: { session: any }) {
               { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: 'text-dayB' },
               { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: 'text-primary' },
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
-              { icon: Footprints, label: 'Kroki', value: oura.steps > 0 ? oura.steps.toLocaleString() : '--', color: 'text-dayC' },
+              { icon: Footprints, label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="flex flex-col items-center gap-1 bg-surface-solid border border-border-custom rounded-xl py-2 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
                 <Icon size={12} className={color} />

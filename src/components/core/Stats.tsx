@@ -5,7 +5,7 @@ import { format, subDays } from 'date-fns';
 
 import { useStore } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
-import { calculateProjection, generateNarrative } from './stats/statsCalculations';
+import { calculateProjection } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
 import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
@@ -91,7 +91,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [editForm, setEditForm] = useState<EditFormState>({ date: '', workout_day: '', logs: [] });
   const [trends, setTrends] = useState<TrendsState>({});
   const [projections, setProjections] = useState<ProjectionState | null>(null);
-  const [narrative, setNarrative] = useState('');
+
   const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
   const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
 
@@ -139,7 +139,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         });
       }
 
-      setNarrative(generateNarrative(body, ouraRaw, sessions) ?? '');
+
     } catch (err) {
       console.error('Fetch Stats Error:', err);
     } finally {
@@ -328,22 +328,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
 
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
-  const isSunday = new Date().getDay() === 0;
   const latestBody = bodyData?.[bodyData.length - 1] || null;
 
   return (
     <div className="space-y-6 pb-4">
-      {/* Raport Psychologiczny - Tylko w Niedzielę */}
-      {narrative && isSunday && (
-        <section className="animate-in fade-in zoom-in duration-700">
-          <div className="rounded-[24px] border border-primary/10 bg-primary/[0.03] p-5 shadow-sm">
-            <h3 className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary font-display">
-              <Zap size={12} className="text-primary" fill="currentColor" /> Analiza Behawioralna
-            </h3>
-            <p className="text-[13.5px] font-medium leading-relaxed text-text-primary">"{narrative}"</p>
-          </div>
-        </section>
-      )}
 
       <BodyMetricsSection
         trends={trends}

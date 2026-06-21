@@ -29,6 +29,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Telegram setMyCommands configuration trigger
+    if (payload.setup_commands) {
+      const res = await fetch(`https://api.telegram.org/bot${ctx.telegramToken}/setMyCommands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commands: [
+            { command: "start", description: "Pokaż menu główne i klawiaturę" },
+            { command: "posilek", description: "Zaloguj posiłek (np. /posilek 2 jajka)" },
+            { command: "todo", description: "Dodaj zadanie (np. /todo Zrób pranie +jutro)" },
+            { command: "keep", description: "Zapisz notatkę (np. /keep Zakupy)" },
+            { command: "lenie", description: "Zapisz lenie (np. /lenie scrollowanie | zmęczenie)" },
+            { command: "dieta", description: "Pokaż podsumowanie diety" },
+            { command: "pytanie", description: "Uruchom wywiad" },
+            { command: "koniec", description: "Zakończ dzień (wieczorna refleksja)" }
+          ]
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      return new Response(JSON.stringify({ ok: res.ok, result: data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (payload.callback_query) {
       await handleCallbackQuery(payload.callback_query, ctx).catch((err) => {
         console.error("[telegram] callback error:", err);

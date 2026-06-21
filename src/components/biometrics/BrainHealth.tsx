@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
+import type { Session } from '@supabase/supabase-js';
 
 interface BrainHealthRow {
   table_name: string;
@@ -9,7 +10,7 @@ interface BrainHealthRow {
   coverage_percent: number;
 }
 
-export default function BrainHealth({ session }: { session: any }) {
+export default function BrainHealth({ session }: { session: Session }) {
   const [report, setReport] = useState<BrainHealthRow[]>([]);
   const [loading, setLoading] = useState(true);
 

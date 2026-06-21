@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<WSTAW_SWOJ_TOKEN_TUTAJ>"
+      }
+    },
+    "claude-context": {
+      "command": "npx",
+      "args": ["-y", "claude-context-mcp"],
+      "env": {}
+    }
+  }
+}

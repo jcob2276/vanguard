@@ -195,7 +195,7 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
-  if (lowerText === '🍴 posiłek' || lowerText === '/posilek') {
+  if (lowerText === '🍴 posiłek' || lowerText === '/posilek' || lowerText === '/posiłek') {
     await safeSendTelegram(chatId, "🍴 **Co zjadłeś?**\nOpisz posiłek (np. `makaron z serkiem tłustym piątnica`):", telegramToken, {
       reply_markup: {
         force_reply: true,
@@ -206,7 +206,7 @@ export async function handleInteractivePromptCommand(
     return true;
   }
 
-  if (lowerText === '📒 keep' || lowerText === '/keep') {
+  if (lowerText === '📒 keep' || lowerText === '/keep' || lowerText === '/notatka') {
     await safeSendTelegram(chatId, "📒 **Vanguard Keep**\nWpisz notatkę lub nagraj głosówkę:", telegramToken, {
       reply_markup: {
         force_reply: true,
@@ -256,7 +256,7 @@ export async function handleTodoCommand(
       try {
         const res = await deepseekChat({
           apiKey: deepseekApiKey,
-          model: 'deepseek-v4-flash',
+          model: 'deepseek-chat',
           temperature: 0,
           maxTokens: 120,
           responseFormat: { type: 'json_object' },
@@ -422,7 +422,7 @@ interface ParsedMealItem {
 async function parseMealItems(rawText: string, deepseekApiKey: string): Promise<ParsedMealItem[]> {
   const res = await deepseekChat({
     apiKey: deepseekApiKey,
-    model: 'deepseek-v4-flash',
+    model: 'deepseek-chat',
     temperature: 0.1,
     maxTokens: 600,
     responseFormat: { type: 'json_object' },

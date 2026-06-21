@@ -88,7 +88,7 @@ export function DataExportSection({
         {[
           { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłownia/Strava)' },
           { state: includeBody, setter: setIncludeBody, label: 'Pomiary Ciała' },
-          { state: includeYazio, setter: setIncludeYazio, label: 'Dieta (Yazio)' },
+          { state: includeYazio, setter: setIncludeYazio, label: 'Dieta (Vanguard)' },
           { state: includeJournal, setter: setIncludeJournal, label: 'Notatnik (Telegram)' },
           { state: includeOura, setter: setIncludeOura, label: 'Oura Ring' },
           { state: includeHabits, setter: setIncludeHabits, label: 'Nawyki' },
@@ -117,18 +117,11 @@ export function DataExportSection({
         ))}
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-border-custom">
-        <button
-          onClick={syncHistory}
-          disabled={isSyncing}
-          className="text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-primary transition-colors cursor-pointer"
-        >
-          {isSyncing ? 'Syncing...' : 'Sync Yazio'}
-        </button>
+      <div className="flex items-center justify-end pt-2 border-t border-border-custom">
         <button
           onClick={exportData}
           disabled={isExporting}
-          className="ml-4 flex-1 rounded-xl bg-primary hover:bg-primary-hover px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.99] font-display text-center cursor-pointer"
+          className="w-full rounded-xl bg-primary hover:bg-primary-hover px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.99] font-display text-center cursor-pointer"
         >
           {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
         </button>

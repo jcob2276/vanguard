@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "typecheck": "node scripts/ops/check-edge-functions.mjs",
     "typecheck:ui": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:update-types": "npx supabase gen types typescript --project-id pdvqkgfsqziqlhptatgf > src/lib/database.types.ts",
     "audit:registry": "node scripts/analysis/audit-registry.mjs",
     "smoke:ui": "node scripts/ops/smoke-ui.mjs",
@@ -29,6 +31,7 @@
     "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.2.4",
+    "web-push": "^3.6.7",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
@@ -47,6 +50,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0",
     "vite": "^8.0.10",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.9"
   }
 }

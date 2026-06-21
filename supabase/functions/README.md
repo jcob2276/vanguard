@@ -78,6 +78,8 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-debug-retrieval` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
 | `vanguard-goal-create` | **active** | Frontend Goal suggestion trigger | true | none (calls DeepSeek only) | 85 | 2026-06-20 |
+| `parse-food-nl` | **active** | Frontend NL meal parser | true | none (calls DeepSeek only) | 149 | 2026-06-21 |
+
 
 ## `vanguard-telegram` Handler Map
 

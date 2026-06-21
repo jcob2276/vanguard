@@ -43,7 +43,6 @@ const Keep = lazy(() => import('../notes/Keep'));
 
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
-const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const OracleCard = lazy(() => import('../ai/OracleCard'));
@@ -340,6 +339,12 @@ export default function Dashboard({ session }: { session: Session }) {
               <Suspense fallback={null}>
                 <TodayEventsCard session={session} />
               </Suspense>
+              <button
+                onClick={() => setShowQuickFoodEntry(true)}
+                className="w-full rounded-2xl border border-primary/25 bg-primary/[0.06] py-3 text-[12px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                🍽️ Zaloguj posiłek
+              </button>
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
@@ -370,7 +375,6 @@ export default function Dashboard({ session }: { session: Session }) {
           <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
-                <WeeklyAnalytics session={session} />
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
                   syncYazio={syncYazio}

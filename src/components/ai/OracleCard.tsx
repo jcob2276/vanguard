@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
+import type { Session } from '@supabase/supabase-js';
 
 type Msg = { role: 'user' | 'oracle'; text: string };
 
@@ -27,7 +28,7 @@ const PROMPTS_BY_MODE: Record<string, string[]> = {
   ],
 };
 
-export default function OracleCard({ session }: { session: any }) {
+export default function OracleCard({ session }: { session: Session }) {
   const userId = session?.user?.id;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
