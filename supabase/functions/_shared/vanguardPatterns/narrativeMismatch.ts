@@ -13,7 +13,9 @@ export async function detectNarrativeBiometricMismatch(
   options: { lookbackDays?: number } = {}
 ): Promise<PatternInsight[]> {
   const lookback = options.lookbackDays ?? 14;
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
+  // Warsaw-calendar cutoff, not the UTC date of (now - N days) — `date` columns here hold
+  // Warsaw calendar dates, and near midnight the UTC date can lag a full day behind Warsaw's.
+  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   // 1. Pobierz daily_reconciliations z ostatnich N dni
   const recs = await safeExecute(

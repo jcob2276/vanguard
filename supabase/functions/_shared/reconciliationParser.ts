@@ -17,7 +17,7 @@
  *   unparsed_notes   text|null — remainder that didn't fit any field
  */
 
-import { deepseekChat } from "./deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "./deepseek.ts";
 
 export interface P2ParsedResponse {
   day_score: number | null;
@@ -88,14 +88,16 @@ ${userResponse.substring(0, 1000)}`;
       maxTokens: 500,
     });
 
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    // Brace-depth scan (parseJsonFromContent), not a greedy /\{[\s\S]*\}/ match — the greedy
+    // regex spans from the first "{" to the LAST "}" in the whole response, so trailing prose
+    // with its own "}" produced an unparseable blob (silently falling back) instead of the
+    // valid object that was actually there.
+    const parsed = parseJsonFromContent(raw);
 
-    if (!jsonMatch) {
+    if (!parsed) {
       console.warn('[p2-parser] No JSON in DeepSeek response, using fallback');
       return fallbackP2(userResponse);
     }
-
-    const parsed = JSON.parse(jsonMatch[0]);
 
     return {
       day_score:            normalizeScore(parsed.day_score),

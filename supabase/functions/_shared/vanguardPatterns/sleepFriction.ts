@@ -18,7 +18,8 @@ export async function detectSleepFrictionLink(
 ): Promise<PatternInsight[]> {
   const lookback = options.lookbackDays ?? 30;
 
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
+  // Warsaw-calendar cutoff, not the UTC date of (now - N days) — see narrativeMismatch.ts.
+  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   // Pobierz aggregates z sleep_hours
   const aggregates = await safeExecute(

@@ -6,6 +6,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDayBoundaries } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectRecurringBlockers(
@@ -21,7 +22,9 @@ export async function detectRecurringBlockers(
   const corrWindow = options.correlationWindowDays ?? 5;
   const minOcc = options.minOccurrences ?? 3;
 
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString();
+  // Warsaw-calendar cutoff, not the UTC date of (now - N days) — `date` is a Warsaw
+  // calendar column, and near midnight the UTC date can lag a full day behind Warsaw's.
+  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   // 1. Pobierz p2_parsed z ostatnich dni (z blockerami)
   const reconciliations = await safeExecute(
@@ -30,7 +33,7 @@ export async function detectRecurringBlockers(
       .select('date, p2_parsed')
       .eq('user_id', userId)
       .not('p2_parsed', 'is', null)
-      .gte('date', cutoff.split('T')[0])
+      .gte('date', cutoff)
       .order('date', { ascending: false })
   );
 
@@ -232,17 +235,26 @@ export async function detectRecurringBlockers(
     let lastCorrelatedDate: string | null = null;
 
     for (const blockerDate of dates) {
-      const start = new Date(blockerDate);
-      const end = new Date(start);
-      end.setDate(end.getDate() + corrWindow);
+      // blockerDate is a Warsaw calendar date — new Date(blockerDate) parses it as UTC
+      // midnight, which is 1-2h *after* true Warsaw midnight. Comparing that bare instant
+      // against occurred_at (a real timestamptz) systematically excluded friction in the
+      // first 1-2h of the Warsaw day from "correlated", and let the window leak 1-2h into
+      // the day after it should have ended. getWarsawDayBoundaries gives the real instant.
+      const { start } = getWarsawDayBoundaries(blockerDate);
+      const endDateStr = (() => {
+        const d = new Date(blockerDate + 'T12:00:00Z');
+        d.setUTCDate(d.getUTCDate() + corrWindow);
+        return d.toISOString().split('T')[0];
+      })();
+      const { start: end } = getWarsawDayBoundaries(endDateStr);
 
       const frictions = await safeExecute(
         supabase
           .from('friction_events')
           .select('friction_type, occurred_at, event_kind')
           .eq('user_id', userId)
-          .gte('occurred_at', start.toISOString())
-          .lt('occurred_at', end.toISOString())
+          .gte('occurred_at', start)
+          .lt('occurred_at', end)
           .in('event_kind', ['friction_event'])
       );
 

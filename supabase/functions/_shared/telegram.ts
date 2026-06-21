@@ -142,8 +142,15 @@ export async function transcribeAudio(fileId: string, telegramToken: string, ope
     throw new Error("Invalid file URL - potential SSRF");
   }
 
-  const audioRes = await fetch(fileUrl);
-  const audioBlob = await audioRes.blob();
+  const downloadController = new AbortController();
+  const downloadTimeoutId = setTimeout(() => downloadController.abort(), 30000);
+  let audioBlob: Blob;
+  try {
+    const audioRes = await fetch(fileUrl, { signal: downloadController.signal });
+    audioBlob = await audioRes.blob();
+  } finally {
+    clearTimeout(downloadTimeoutId);
+  }
 
   const formData = new FormData();
   formData.append("file", audioBlob, "voice.ogg");

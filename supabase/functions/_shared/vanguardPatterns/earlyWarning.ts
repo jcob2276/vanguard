@@ -22,11 +22,12 @@ export async function detectEarlyWarningSignals(
   const cooldownDays = options.cooldownDays ?? DEFAULT_EARLY_WARNING_COOLDOWN_DAYS;
 
   // Bierzemy ostatnie 5-7 dni danych
-  const cutoff = new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString().split('T')[0];
+  // Warsaw-calendar cutoff — `date` columns hold Warsaw calendar dates, and near midnight
+  // the UTC date of (now - N days) can lag a full day behind Warsaw's.
+  const cutoff = new Date(Date.now() - 8 * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   const cooldownCutoff = new Date(Date.now() - cooldownDays * 24 * 3600 * 1000)
-    .toISOString()
-    .split('T')[0];
+    .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   // 1. Sprawdź ostatnie reconciliation pod kątem porannego dryfu (S2 sygnały)
   const recentRecs = await safeExecute(

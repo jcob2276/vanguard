@@ -17,7 +17,8 @@ export async function detectMorningProtocolImpact(
 ): Promise<PatternInsight[]> {
   const lookback = options.lookbackDays ?? 25;
 
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toISOString().split('T')[0];
+  // Warsaw-calendar cutoff, not the UTC date of (now - N days) — see narrativeMismatch.ts.
+  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 
   // Pobierz reconciliations z first_90_protected + operational_facts (phone_first)
   const recs = await safeExecute(
