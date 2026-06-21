@@ -148,9 +148,13 @@ function extractDayScore(text: string): number | null {
   const normalized = text.toLowerCase();
   const explicit = normalized.match(/(?:ocena dnia|dzie[nń]\s+na|oceniam(?:\s+dzie[nń])?)\D*([1-5])(?:\s*\/\s*5)?/i);
   if (explicit?.[1]) return Number(explicit[1]);
-  // Anchored to end-of-line — "4) 3" alone on a line is the answer to question 4, but
-  // "4. 3 rzeczy poszly dobrze" (an unrelated numbered list item) must NOT match.
-  const numberedAnswer = normalized.match(/(?:^|\n)4[).\:-]\s*(?:ocena|score|dzie[nń])?\s*([1-5])(?:\s*\/\s*5)?\s*$/im);
+  // End-anchored so "4) 3" only matches when the digit is the END of that line/phrase —
+  // "4. 3 rzeczy poszly dobrze" (an unrelated numbered list item) must NOT match. Keeps the
+  // original start-of-line/whitespace prefix so "Pytanie 4: 5/5" / "Odpowiedz na 4: 5"
+  // (a realistic phrasing, "4" not at line start) still matches — the end anchor alone
+  // is what kills the false positive, an additional start-of-line requirement is not needed
+  // and breaks that realistic case.
+  const numberedAnswer = normalized.match(/(?:^|\n|\s)4[).\:-]\s*(?:ocena|score|dzie[nń])?\s*([1-5])(?:\s*\/\s*5)?\s*$/im);
   if (numberedAnswer?.[1]) return Number(numberedAnswer[1]);
   return null;
 }
