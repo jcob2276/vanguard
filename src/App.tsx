@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
 import Dashboard from './components/core/Dashboard';
+import NotFoundPage from './components/core/NotFoundPage';
 import { useNotifications } from './hooks/useNotifications';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
 
@@ -53,7 +54,7 @@ function AppRoutes() {
           <DesktopDashboard session={session} />
         </Suspense>
       } />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
