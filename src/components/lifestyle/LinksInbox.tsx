@@ -73,7 +73,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   };
 
   const goTo = (view: string) => {
-    localStorage.setItem('vanguard_view', view);
+    try { localStorage.setItem('vanguard_view', view); } catch (e) {}
     window.location.href = '/';
   };
 
@@ -228,9 +228,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       {/* Sidebar */}
       <aside className="keep-sidebar">
         <p className="keep-sidebar-section-label">Workspace</p>
-        <a href="/keep" className="keep-sidebar-item">
+        <button className="keep-sidebar-item" onClick={() => onNavigateTo?.('keep')}>
           <StickyNote size={15} /><span>Notatki</span>
-        </a>
+        </button>
         <button className="keep-sidebar-item" onClick={() => goTo('todo')}>
           <ListTodo size={15} /><span>Zadania</span>
         </button>

@@ -213,8 +213,8 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
-  --color-primary: #4f46e5; /* Premium Indigo */
-  --color-primary-hover: #4338ca;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-dayA: #4f46e5;
   --color-dayB: #f43f5e;
   --color-dayC: #10b981;

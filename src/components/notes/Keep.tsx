@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   AlertCircle,
@@ -23,6 +24,7 @@ import { Note } from './keepUtils';
 
 export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session.user.id;
+  const navigate = useNavigate();
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1'
     || localStorage.getItem('vanguard_keep_new') === '1';
   const [notes, setNotes] = useState<Note[]>([]);
@@ -40,8 +42,8 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     if (onNavigateTo) {
       onNavigateTo(dest);
     } else {
-      localStorage.setItem('vanguard_view', dest);
-      window.location.href = '/';
+      try { localStorage.setItem('vanguard_view', dest); } catch (e) {}
+      navigate('/');
     }
   };
 
@@ -82,7 +84,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       if (err) {
         if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
           const local = localStorage.getItem('vanguard_local_keep_notes');
-          setNotes(local ? JSON.parse(local) : []);
+          try {
+            setNotes(local ? JSON.parse(local) : []);
+          } catch (e) {
+            setNotes([]);
+          }
           return;
         }
         throw err;
@@ -302,7 +308,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       {/* ── Topbar ── */}
       <header className="keep-header">
         <div className="keep-header-left">
-          <button onClick={() => onBack ? onBack() : (window.location.href = '/')} className="keep-back-btn" title="Wróć">
+          <button onClick={() => onBack ? onBack() : navigate('/')} className="keep-back-btn" title="Wróć">
             <ArrowLeft size={16} />
           </button>
           <div className="keep-logo">
