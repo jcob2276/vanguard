@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
         .select("id, content, created_at, metadata")
         .eq("user_id", VANGUARD_USER_ID)
         .gte("created_at", dayStart)
+        .lt("created_at", dayEnd)
         .order("created_at", { ascending: true })
         .limit(80),
       supabase
@@ -210,7 +211,10 @@ Deno.serve(async (req) => {
 
     if (upsertErr) throw upsertErr;
 
-    logAuditEvent({
+    // Awaited — this is the canary audit event proving the reflection actually fired;
+    // letting it run unawaited risked the Edge Runtime tearing down the isolate right
+    // after the Response below before the insert flushed.
+    await logAuditEvent({
       eventType: "evening_reflection_created",
       severity: "info",
       message: "Utworzono wieczorna sesje refleksji",

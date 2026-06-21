@@ -58,11 +58,37 @@ export async function deepseekChat(
 }
 
 export function parseJsonFromContent(content: string): Record<string, unknown> | null {
-  const match = content.match(/\{[\s\S]*\}/);
-  if (!match) return null;
-  try {
-    return JSON.parse(match[0]) as Record<string, unknown>;
-  } catch {
-    return null;
+  // Brace-depth scan (string-aware) instead of a greedy /\{[\s\S]*\}/ match — the greedy
+  // regex spans from the first "{" to the LAST "}" in the whole string, so trailing prose
+  // with its own "}", or two separate JSON objects in one response, produced one unparseable
+  // blob instead of the first valid object. This returns just the first balanced top-level
+  // object, correctly skipping over braces inside string values.
+  const start = content.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < content.length; i++) {
+    const ch = content[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(content.slice(start, i + 1)) as Record<string, unknown>;
+        } catch {
+          return null;
+        }
+      }
+    }
   }
+  return null;
 }

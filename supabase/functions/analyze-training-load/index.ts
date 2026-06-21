@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { deepseekChat } from '../_shared/deepseek.ts'
 
@@ -156,7 +155,7 @@ function loadHint(name: string, intensity: number | null, allTimeE1rm: Record<st
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -178,8 +177,18 @@ serve(async (req) => {
     const weekProgress = todayDow / 7
     const earlyWeek = todayDow <= 2
     const midWeek = todayDow >= 3 && todayDow <= 4
-    const w0Start = warsaw(new Date(now.getTime() - 6 * 864e5))   // ten tydzień (7 dni)
-    const w4Start = warsaw(new Date(now.getTime() - 27 * 864e5))  // 4 tygodnie wstecz
+    // Step back from `today` in pure UTC-date-string space rather than subtracting N*864e5
+    // (24h) from the real "now" instant and re-projecting to Warsaw — that round-trip is off
+    // by a full calendar day for the ~6 days following each DST transition (verified by
+    // scanning both 2026 transitions), silently widening/narrowing the acute load window to
+    // 5 or 7 days instead of 6 and skewing ACWR.
+    const addWarsawDays = (dateStr: string, days: number) => {
+      const d = new Date(dateStr + 'T12:00:00Z')
+      d.setUTCDate(d.getUTCDate() + days)
+      return d.toISOString().split('T')[0]
+    }
+    const w0Start = addWarsawDays(today, -6)   // ten tydzień (7 dni)
+    const w4Start = addWarsawDays(today, -27)  // 4 tygodnie wstecz
 
     // ── Parallel data fetch ───────────────────────────────────────────────────
     const [strainR, workoutsR, stravaR, ouraR, planR] = await Promise.all([
@@ -205,9 +214,19 @@ serve(async (req) => {
         .select('planned_date,workout_type,workout_name,target_distance_km,target_duration_min,target_pace_min_km,target_hr_max,week_number,goal,description')
         .eq('user_id', userId)
         .gte('planned_date', w0Start)
-        .lte('planned_date', warsaw(new Date(now.getTime() + 7 * 864e5)))
+        .lte('planned_date', addWarsawDays(today, 7))
         .order('planned_date'),
     ])
+
+    // A failed query silently became "0 activities" with no signal that the data was
+    // unavailable rather than genuinely empty — risking the LLM confidently recommending
+    // "start from zero" off a DB error instead of real training history.
+    const queryErrors: string[] = []
+    if (strainR.error) { console.error('[training] strain query failed:', strainR.error.message); queryErrors.push('strain') }
+    if (workoutsR.error) { console.error('[training] workouts query failed:', workoutsR.error.message); queryErrors.push('workouts') }
+    if (stravaR.error) { console.error('[training] strava query failed:', stravaR.error.message); queryErrors.push('strava') }
+    if (ouraR.error) { console.error('[training] oura query failed:', ouraR.error.message); queryErrors.push('oura') }
+    if (planR.error) { console.error('[training] plan query failed:', planR.error.message); queryErrors.push('training_plan') }
 
     const strainAll = strainR.data || []
     const workoutsAll = workoutsR.data || []
@@ -659,7 +678,11 @@ W polu "strength_prescription" zawsze podajesz KONKRETNĄ następną sesję sił
 
 Mówisz po polsku. Jesteś bezpośredni. Nie motywujesz — analizujesz.`
 
-    const userMsg = `PROFIL SPORTOWCA (szacunki z ostatnich 28 dni):
+    const dataQualityNote = queryErrors.length
+      ? `\n⚠️ DATA_QUALITY: zapytania do [${queryErrors.join(', ')}] nie powiodły się — traktuj odpowiadające im sekcje jako NIEZNANE, nie jako "brak aktywności". Nie rekomenduj "zacznij od zera" na tej podstawie.\n`
+      : ''
+
+    const userMsg = `${dataQualityNote}PROFIL SPORTOWCA (szacunki z ostatnich 28 dni):
 HRmax (maks HR widziany w danych): ${hrMax ?? '— (brak danych HR)'}
 Z2 ceiling (76% HRmax): ${z2Ceiling ?? '—'} BPM | Próg tlenowy (~88% HRmax): ${thresholdHr ?? '—'} BPM
 
