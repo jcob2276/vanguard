@@ -171,7 +171,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
 
   async function deleteSession(id: any) {
     if (confirm('Usunąć trening?')) {
-      await supabase.from('workout_sessions').delete().eq('id', id);
+      const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
+      if (error) { alert(error.message); return; }
       fetchStats();
     }
   }
@@ -281,7 +282,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   }
   async function deleteLog(id: any) {
     if (confirm('Usunąć tę serię?')) {
-      await supabase.from('exercise_logs').delete().eq('id', id);
+      const { error } = await supabase.from('exercise_logs').delete().eq('id', id);
+      if (error) { alert(error.message); return; }
       setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
     }
   }

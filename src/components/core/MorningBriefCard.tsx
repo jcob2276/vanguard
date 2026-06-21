@@ -78,7 +78,8 @@ export default function MorningBriefCard({ session }: { session: any }) {
 
   const forceRefresh = async () => {
     setBrief(null);
-    await supabase.from('morning_briefs').delete().eq('user_id', userId).eq('date', today);
+    const { error: delErr } = await supabase.from('morning_briefs').delete().eq('user_id', userId).eq('date', today);
+    if (delErr) console.warn('[MorningBriefCard] delete failed:', delErr.message);
     await generate();
   };
 

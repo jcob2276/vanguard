@@ -27,9 +27,10 @@ export default function DailySnapshotCard({ session }: { session: any }) {
 
   useEffect(() => {
     if (!userId) return;
-    const todayMs = new Date(today + 'T12:00:00').getTime();
-    const yesterday = formatWarsawDate(todayMs - 86400000);
-    const ago14 = formatWarsawDate(todayMs - 14 * 86400000);
+    const yd = new Date(today + 'T12:00:00Z'); yd.setUTCDate(yd.getUTCDate() - 1);
+    const yesterday = formatWarsawDate(yd);
+    const d14 = new Date(today + 'T12:00:00Z'); d14.setUTCDate(d14.getUTCDate() - 14);
+    const ago14 = formatWarsawDate(d14);
 
     Promise.all([
       supabase
@@ -52,7 +53,10 @@ export default function DailySnapshotCard({ session }: { session: any }) {
         .eq('user_id', userId)
         .gte('date', ago14)
         .order('date', { ascending: false }),
-    ]).then(([{ data: rec }, { data: strain }, { data: history }]) => {
+    ]).then(([recRes, strainRes, historyRes]) => {
+      const rec = recRes.data;
+      const strain = strainRes.data;
+      const history = historyRes.data;
       if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, any>), day_score: rec.day_score, date: rec.date });
       if (rec?.day_score != null) setDayScore(rec.day_score);
       if (strain) setStrainState({ daily_status: strain.daily_status, main_limiter: strain.main_limiter });
@@ -67,7 +71,7 @@ export default function DailySnapshotCard({ session }: { session: any }) {
       }
       setRescueStreak(streak);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [userId, today]);
 
   const saveScore = async (score: number) => {

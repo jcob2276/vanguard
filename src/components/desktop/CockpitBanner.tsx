@@ -57,7 +57,8 @@ export default function CockpitBanner({ strain, oura }: CockpitBannerProps) {
   const msg = strain ? cockpitDecision(status, strain.main_limiter, strain.strain_score, strain.fueling_provisional) : '—';
   const limiter = strain?.main_limiter && strain.main_limiter !== 'recovery_ok' ? LIMITER_PL[strain.main_limiter] : null;
   const readColor = !latest?.readiness_score ? 'text-text-muted' : latest.readiness_score >= 70 ? 'text-emerald-500' : latest.readiness_score >= 50 ? 'text-amber-500' : 'text-rose-500';
-  const ouraAge = latest?.date ? Math.floor((Date.now() - new Date(latest.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const ouraAge = latest?.date ? Math.round((new Date(todayStr + 'T12:00:00Z').getTime() - new Date(latest.date + 'T12:00:00Z').getTime()) / 86400000) : null;
 
   return (
     <div className={`rounded-[24px] border ${cfg.bg} px-8 py-6 flex items-center justify-between gap-8`}>

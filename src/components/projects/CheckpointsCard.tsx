@@ -67,7 +67,8 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
   const todayStr = getTodayWarsaw();
 
   const markDone = async (id: string) => {
-    await supabase.from('project_checkpoints').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('project_checkpoints').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', id);
+    if (error) { console.warn('[CheckpointsCard] markDone failed:', error.message); return; }
     setItems(prev => prev.filter(i => i.id !== id));
   };
 

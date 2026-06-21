@@ -129,6 +129,7 @@ export default function StravaWidget({ session }: { session: any }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
+        signal: AbortSignal.timeout(30000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);

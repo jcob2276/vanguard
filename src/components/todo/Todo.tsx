@@ -304,6 +304,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, due_date: item.due_date || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
+      signal: AbortSignal.timeout(15000),
     }).then(() => setTimeout(fetchAll, 200)).catch(() => {});
   }, [userId, session.access_token, fetchAll]);
 
@@ -317,6 +318,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
+        signal: AbortSignal.timeout(15000),
       })
     ));
     await fetchAll();

@@ -19,8 +19,11 @@ export const isLogWellness = (l: any) =>
   WELLNESS_NAMES.some(w => (l.exercise_name || '').toLowerCase().startsWith(w));
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
-export const daysBefore = (n: number) =>
-  formatWarsawDate(new Date(getTodayWarsaw() + 'T12:00:00').getTime() - n * 86400000);
+export const daysBefore = (n: number) => {
+  const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().split('T')[0];
+};
 
 export const avg = (arr: number[]) =>
   arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
@@ -101,7 +104,7 @@ export function computeAlerts(oura: any[], sessions: any[], nutrition: any[]) {
   if (lat?.hrv_avg && avg7HRV && (avg7HRV - lat.hrv_avg) / avg7HRV > 0.12)
     alerts.push({ type: 'warn', msg: `HRV o ${Math.round(avg7HRV - lat.hrv_avg)}ms poniżej 7-dniowej średniej` });
   const lastS = [...sessions].filter((s: any) => sessionVol(s) > 0).reverse()[0];
-  const daysSince = lastS ? Math.floor((Date.now() - new Date(lastS.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
   if (daysSince !== null && daysSince >= 3)
     alerts.push({ type: 'warn', msg: `${daysSince} dni bez treningu siłowego` });
   const lowSleep = oura.slice(-3).filter((o: any) => o.total_sleep_hours > 0 && o.total_sleep_hours < 7).length;
@@ -285,10 +288,10 @@ export function getSprintInfo() {
   const weekInSprint = (weeksSince % 12) + 1;
   const dayInSprint = daysSince % SPRINT_DAYS;
   const startOffset = (sprintNumber - 1) * SPRINT_DAYS;
-  const sprintStart = new Date(anchor.getTime() + startOffset * 86400000);
-  const sprintEnd = new Date(anchor.getTime() + (startOffset + 83) * 86400000);
-  const prevStart = sprintNumber > 1 ? new Date(anchor.getTime() + (startOffset - SPRINT_DAYS) * 86400000) : null;
-  const prevEnd = prevStart ? new Date(anchor.getTime() + (startOffset - 1) * 86400000) : null;
+  const sprintStart = (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset); return d; })();
+  const sprintEnd = (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset + 83); return d; })();
+  const prevStart = sprintNumber > 1 ? (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset - SPRINT_DAYS); return d; })() : null;
+  const prevEnd = prevStart ? (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset - 1); return d; })() : null;
   const fmt = (dt: Date) => formatWarsawDate(dt);
   return {
     personalYear,
@@ -329,7 +332,7 @@ export function computeWeekStreak(sessions: any[]) {
   const cursor = new Date(ws + 'T12:00:00');
   for (let i = 0; i < 52; i++) {
     const wStart = formatWarsawDate(cursor);
-    const wEnd = formatWarsawDate(new Date(cursor.getTime() + 6 * 86400000));
+    const wEnd = (() => { const d = new Date(cursor); d.setUTCDate(d.getUTCDate() + 6); return formatWarsawDate(d); })();
     const hasTrain = sessions.some((s: any) => s.date >= wStart && s.date <= wEnd && sessionVol(s) > 0);
     if (!hasTrain) break;
     streak++;

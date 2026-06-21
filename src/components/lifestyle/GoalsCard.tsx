@@ -36,7 +36,8 @@ export default function GoalsCard({ session }: { session: Session }) {
   async function toggleBhag(pillarId: string) {
     const next = bhag === pillarId ? null : pillarId;
     setBhag(next);
-    await supabase.from('life_goals').update({ bhag_pillar: next }).eq('user_id', session.user.id);
+    const { error } = await supabase.from('life_goals').update({ bhag_pillar: next }).eq('user_id', session.user.id);
+    if (error) { setBhag(bhag); console.warn('[GoalsCard] toggleBhag failed:', error.message); }
   }
 
   if (!goals) return null;

@@ -119,8 +119,10 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
   }
 
   async function deleteKpi(id: string) {
+    const snapshot = kpis;
     setKpis(prev => prev.filter(k => k.id !== id));
-    await db.from('goal_kpis').delete().eq('id', id).eq('user_id', uid);
+    const { error } = await db.from('goal_kpis').delete().eq('id', id).eq('user_id', uid);
+    if (error) { setKpis(snapshot); alert(error.message); }
   }
 
   async function addKpiDirect(s: { pillar: string; name: string; unit: string; higher_is_better: boolean }) {

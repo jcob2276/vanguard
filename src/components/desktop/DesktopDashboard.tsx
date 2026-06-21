@@ -130,7 +130,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
   }
 
   async function deleteDream(id: string) {
-    await supabase.from('dreams').delete().eq('id', id);
+    const { error } = await supabase.from('dreams').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
     setDreams(prev => prev.filter(d => d.id !== id));
     if (editingDream?.id === id) setEditingDream(null);
   }
@@ -166,7 +167,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
     try {
       const project = (await createProject(userId!, { name: dream.title, goal: dream.description || undefined })) as any;
       if (project) {
-        await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
+        const { error: linkErr } = await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
+        if (linkErr) console.warn('[dreamToProject] link failed:', linkErr.message);
         alert(`Projekt "${dream.title}" utworzony!`);
       }
     } catch (e: any) {
@@ -183,7 +185,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
   }
 
   async function deleteVisionItem(id: string) {
-    await supabase.from('vision_board_items').delete().eq('id', id);
+    const { error } = await supabase.from('vision_board_items').delete().eq('id', id);
+    if (error) { alert(error.message); return; }
     setVisionItems(prev => prev.filter(v => v.id !== id));
   }
 
@@ -356,7 +359,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const oura14    = oura.slice(-14);
   const latest    = oura[oura.length - 1] ?? null;
   const lastS     = [...sessions].reverse()[0] ?? null;
-  const daysSince = lastS ? Math.floor((Date.now() - new Date(lastS.date + 'T12:00:00').getTime()) / 86400000) : null;
+  const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
   const digest    = computeDigest(sessions, oura, strava);
   const alerts    = computeAlerts(oura, sessions, nutrition);
   const streak    = computeWeekStreak(sessions);
@@ -380,13 +383,14 @@ export default function DesktopDashboard({ session }: { session: any }) {
   };
 
   const saveSprintGoal = useCallback(async (text: string) => {
-    await supabase.from('sprint_goals').upsert({
+    const { error } = await supabase.from('sprint_goals').upsert({
       user_id: userId,
       personal_year: sprint.personalYear,
       sprint_number: sprint.sprintNumber,
       goal_text: text,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,personal_year,sprint_number' });
+    if (error) { console.warn('[saveSprintGoal]', error.message); return; }
     refresh();
   }, [userId, sprint.personalYear, sprint.sprintNumber, refresh]);
 

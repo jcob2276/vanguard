@@ -58,11 +58,12 @@ export default function Photos({ session }: { session: any }) {
       const fileName = `${session.user.id}/${Date.now()}.${file.name.split('.').pop()}`;
       await supabase.storage.from('progress-photos').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
-      await supabase.from('progress_photos').insert({ 
-         user_id: session.user.id, 
-         image_url: publicUrl, 
-         date: photoDate 
+      const { error: insertErr } = await supabase.from('progress_photos').insert({
+         user_id: session.user.id,
+         image_url: publicUrl,
+         date: photoDate
       });
+      if (insertErr) throw insertErr;
       fetchPhotos();
     } catch (error) {
       alert('Błąd: ' + (error instanceof Error ? error.message : String(error)));
@@ -73,7 +74,8 @@ export default function Photos({ session }: { session: any }) {
     if (!confirm('Usunąć?')) return;
     const fileName = `${session.user.id}/${url.split('/').pop()}`;
     await supabase.storage.from('progress-photos').remove([fileName]);
-    await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
+    const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
+    if (delErr) { alert(delErr.message); return; }
     fetchPhotos();
   }
 

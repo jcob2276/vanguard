@@ -191,7 +191,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTimeout(async () => {
       setLinks(prev => prev.filter(l => l.id !== id));
       setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      await supabase.from('vanguard_links').delete().eq('id', id);
+      const { error } = await supabase.from('vanguard_links').delete().eq('id', id);
+      if (error) console.warn('[LinksInbox] delete failed:', error.message);
     }, 260);
   };
 

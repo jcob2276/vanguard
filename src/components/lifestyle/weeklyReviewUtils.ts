@@ -49,14 +49,14 @@ export function getWeekStart(): string {
 }
 
 export function getPrevWeekStart(ws: string): string {
-  const d = new Date(ws + 'T00:00:00');
+  const d = new Date(ws + 'T12:00:00Z');
   d.setDate(d.getDate() - 7);
   return formatWarsawDate(d);
 }
 
 export function getPastWeekStarts(current: string, n: number): string[] {
   const result: string[] = [];
-  const d = new Date(current + 'T00:00:00');
+  const d = new Date(current + 'T12:00:00Z');
   for (let i = 0; i < n; i++) {
     result.unshift(formatWarsawDate(d));
     d.setDate(d.getDate() - 7);
@@ -65,7 +65,7 @@ export function getPastWeekStarts(current: string, n: number): string[] {
 }
 
 export function formatWeek(ws: string): string {
-  const d = new Date(ws + 'T00:00:00');
+  const d = new Date(ws + 'T12:00:00Z');
   const sun = new Date(d);
   sun.setDate(d.getDate() + 6);
   const fmt = (x: Date) => x.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });

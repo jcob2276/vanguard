@@ -44,7 +44,7 @@ export function useDashboardData() {
       let todayData = null;
 
       const today = getTodayWarsaw();
-      const todayDate = new Date(today + 'T12:00:00');
+      const todayDate = new Date(today + 'T12:00:00Z');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
       const monday = formatWarsawDate(mondayDate);
 
@@ -63,6 +63,13 @@ export function useDashboardData() {
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(30),
         supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle()
       ]);
+
+      if (nutritionRes.error) console.warn('[dashboard] nutrition:', nutritionRes.error.message);
+      if (tDataRes.error) console.warn('[dashboard] daily_wins:', tDataRes.error.message);
+      if (protDataRes.error) console.warn('[dashboard] protein:', protDataRes.error.message);
+      if (workoutTodayRes.error) console.warn('[dashboard] workout:', workoutTodayRes.error.message);
+      if (ouraDataRes.error) console.warn('[dashboard] oura:', ouraDataRes.error.message);
+      if (lastWorkoutRes.error) console.warn('[dashboard] lastWorkout:', lastWorkoutRes.error.message);
 
       const nutrition = nutritionRes.data;
       const tData = tDataRes.data;

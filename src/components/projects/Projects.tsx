@@ -117,12 +117,12 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         ? Math.max(...sectionItems.map(i => new Date(i.updated_at ?? i.created_at).getTime()))
         : null;
       const lastActivity = lastTs ? new Date(lastTs) : null;
-      const todayWarsawDate = new Date(getTodayWarsaw() + 'T00:00:00');
-      const daysSince    = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T00:00:00')) : null;
+      const todayWarsawDate = new Date(getTodayWarsaw() + 'T12:00:00Z');
+      const daysSince    = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T12:00:00Z')) : null;
       const slipping     = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
 
       const daysLeft = p.deadline
-        ? differenceInDays(new Date(p.deadline + 'T00:00:00'), todayWarsawDate)
+        ? differenceInDays(new Date(p.deadline + 'T12:00:00Z'), todayWarsawDate)
         : null;
 
       return [p.id, { section, openItems, doneItems, total, progress, lastActivity, daysSince, slipping, daysLeft }];
