@@ -202,30 +202,39 @@ ${streamLines || 'brak'}`
       synthesisText = '⚠️ Nie udało się wygenerować pełnej syntezy. Przechodzimy bezpośrednio do planowania.';
     }
 
-    // Propose Sunday plan (Bridge to tomorrow). These are generic placeholders, not a real
-    // recommendation — overwritten below if the adversary returns one. If it doesn't,
-    // isGenericFallback stays true and the draft is tagged plan_fallback so it's never
-    // mistaken for a real plan (e.g. by Oracle's "today_plan" lookup) if the user blindly
-    // confirms it.
-    let tomorrowArtifact = "Wykonanie pierwszego kroku wdrożeniowego";
-    let tomorrowMinimum = "15 minut bez telefonu na start działania";
-    let tomorrowStart = "08:45";
-    let tomorrowTension = "Zmierzenie się z najtrudniejszym zadaniem tygodnia";
-    let tomorrowTensionMin = "Rozpoczęcie zadania";
-    let isGenericFallback = true;
+    // Try running Reality Adversary to get concrete recommendation.
+    // If it fails or returns nothing, we ask the user directly instead of injecting
+    // generic placeholders into planning_history (which Oracle would later read as a real plan).
+    let tomorrowArtifact: string | null = null;
+    let tomorrowMinimum: string | null = null;
+    const tomorrowStart = "08:45";
+    let tomorrowTension: string | null = null;
+    let tomorrowTensionMin: string | null = null;
 
-    // Try running Reality Adversary to get optimized recommendation
     try {
       const adversaryOutput = await runRealityAdversary(null, streamRes.data || [], deepseekApiKey);
       if (adversaryOutput?.recommended_tension_action?.action) {
         tomorrowArtifact = adversaryOutput.recommended_tension_action.action;
-        tomorrowMinimum = adversaryOutput.recommended_tension_action.minimum_version || "zdefiniuj minimum";
+        tomorrowMinimum = adversaryOutput.recommended_tension_action.minimum_version || null;
         tomorrowTension = adversaryOutput.recommended_tension_action.action;
-        tomorrowTensionMin = adversaryOutput.recommended_tension_action.minimum_version || "zdefiniuj minimum";
-        isGenericFallback = false;
+        tomorrowTensionMin = adversaryOutput.recommended_tension_action.minimum_version || null;
       }
     } catch (advErr) {
       console.warn('[saturday] adversary run failed:', advErr);
+    }
+
+    // If adversary returned nothing, skip the draft entirely — ask the user for their first move.
+    // This prevents generic placeholder strings from being written into planning_history,
+    // which Oracle reads as context the next morning.
+    if (!tomorrowArtifact) {
+      const questionText =
+        `${synthesisText}\n\n` +
+        `─────\n` +
+        `✅ Saturday Check-In zakończony.\n\n` +
+        `Jaki jest twój pierwszy ruch na jutro? Nagraj lub odpisz.`;
+      await safeSendTelegram(chatId, questionText, telegramToken);
+      console.log('[saturday] adversary returned nothing — skipping generic draft, asking user directly:', reconciliationId);
+      return;
     }
 
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
@@ -238,10 +247,6 @@ ${streamLines || 'brak'}`
     const planningDraft = {
       target_date: tomorrowWarsawDateStr,
       date: tomorrowWarsawDateStr,
-      // Honest signal for the LLM that regenerates the final plan from this history at
-      // closePlanningSession time, and for any downstream consumer that checks plan_fallback
-      // before treating planning_summary as a real plan (see messages.ts state vector lookup).
-      plan_fallback: isGenericFallback,
       day_mode: "work",
       top3: [tomorrowArtifact, "Uporządkowanie zadań", "Ruch napięciowy"],
       one_clear_move: tomorrowArtifact,
@@ -255,7 +260,7 @@ ${streamLines || 'brak'}`
       counterplan: "telefon off do 9:30",
       urgent_items: [],
       not_doing: [],
-      minimum_viable_day: tomorrowMinimum,
+      minimum_viable_day: tomorrowMinimum || tomorrowArtifact,
       confidence: "high",
       open_loops: [],
       energy_state: "średnia",
@@ -273,7 +278,7 @@ ${streamLines || 'brak'}`
         artifact: tomorrowArtifact,
         definition_of_done: "Fizycznie istniejący rezultat",
         external_reality: "sent",
-        minimum_version: tomorrowMinimum,
+        minimum_version: tomorrowMinimum || tomorrowArtifact,
         deadline: "10:30",
         status: "planned"
       },
@@ -301,21 +306,17 @@ ${streamLines || 'brak'}`
     }).eq('id', reconciliationId);
     if (updateErrPlanning) console.error('[saturday] failed to activate planning session:', updateErrPlanning);
 
-    const fallbackNotice = isGenericFallback
-      ? `\n\n⚠️ Adversary nie zwrócił konkretnej rekomendacji — poniżej są GENERYCZNE domyślne wartości, nie analiza Twojego tygodnia. Użyj "🔧 Zmień" żeby wpisać coś realne, zamiast potwierdzać domyślne.\n`
-      : '';
-
     const bridgeText =
       `${synthesisText}\n\n` +
       `─────\n` +
-      `✅ Saturday Check-In zakończony.${fallbackNotice}\n\n` +
+      `✅ Saturday Check-In zakończony.\n\n` +
       `Jutro nie zaczynamy od planowania.\n` +
       `Jutro nie definiujemy całego dnia.\n` +
       `Definiujemy pierwszy ruch, który stabilizuje resztę.\n\n` +
       `Pierwszy artefakt:\n` +
       `→ ${tomorrowArtifact}\n\n` +
       `Minimum:\n` +
-      `→ ${tomorrowMinimum}\n\n` +
+      `→ ${tomorrowMinimum || tomorrowArtifact}\n\n` +
       `Start:\n` +
       `→ ${tomorrowStart}\n\n` +
       `Po tym wracasz do reszty dnia normalnie.\n\n` +
