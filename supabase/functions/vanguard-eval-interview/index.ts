@@ -14,7 +14,6 @@
  * - Skips if a previous interview question is still unanswered (< 20h old)
  * - Never repeats the same eval question within 14 days
  */
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
@@ -75,7 +74,7 @@ function buildDeterministicMemoryQuestion(memoryContext: any): string {
   return "Opowiedz mi, które miejsce w pamięci Vanguard najbardziej wymaga doprecyzowania: fakt, relacja, decyzja, wzorzec albo wynik działania.";
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {

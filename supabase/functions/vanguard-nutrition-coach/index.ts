@@ -15,6 +15,7 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { fetchMedicalContext } from "../_shared/medicalContext.ts";
+import { getWarsawDayBoundaries } from "../_shared/time.ts";
 
 const KCAL_PER_KG = 7700;            // ~kcal per kg body mass
 const OURA_CORRECTION = 0.88;        // wearables over-read active burn ~10-15%
@@ -87,7 +88,10 @@ Deno.serve(async (req) => {
       supabase.from("strava_activities_clean")
         .select("start_date, sport_type, distance")
         .eq("user_id", userId).eq("is_oura", false)
-        .gte("start_date", d30 + "T00:00:00").ilike("sport_type", "%run%"),
+        // d30 + "T00:00:00" has no offset, so Postgres reads it as UTC midnight, not Warsaw
+        // midnight — 1-2h later than intended, which excluded a run from the literal first
+        // hour(s) of the 30-days-ago Warsaw date from this lookback.
+        .gte("start_date", getWarsawDayBoundaries(d30).start).ilike("sport_type", "%run%"),
       supabase.from("workout_sessions")
         .select("date, workout_day")
         .eq("user_id", userId).gte("date", d30),

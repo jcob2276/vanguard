@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
@@ -17,10 +16,33 @@ const allowedRelations = [
   "uczestniczyl_w",
 ]
 
+// Brace-depth scan (string-aware), not a greedy /\{[\s\S]*\}/ match — the greedy regex
+// spans from the first "{" to the LAST "}" in the whole response, so trailing prose with
+// its own "}" produced an unparseable blob, throwing and losing both the LLM triads AND
+// the deterministicTriads fallback for that record (the catch below fires before
+// deterministicTriads ever runs).
 function extractJsonObject(text: string) {
   const cleaned = text.replace(/```json|```/g, "").trim()
-  const match = cleaned.match(/\{[\s\S]*\}/)
-  return JSON.parse(match ? match[0] : cleaned)
+  const start = cleaned.indexOf('{')
+  if (start === -1) return JSON.parse(cleaned)
+
+  let depth = 0, inString = false, escaped = false
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\') escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === '{') depth++
+    else if (ch === '}') {
+      depth--
+      if (depth === 0) return JSON.parse(cleaned.slice(start, i + 1))
+    }
+  }
+  return JSON.parse(cleaned)
 }
 
 function normalizeText(text: string) {
@@ -498,7 +520,7 @@ async function deprecateSupersededLinks(
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {

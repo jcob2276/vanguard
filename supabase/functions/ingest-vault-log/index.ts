@@ -1,5 +1,4 @@
 import { getEmbedding } from "../_shared/openai.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
 
@@ -112,7 +111,7 @@ Zasady:
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {

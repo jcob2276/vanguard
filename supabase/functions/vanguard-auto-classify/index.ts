@@ -1,14 +1,13 @@
 import { getEmbedding } from "../_shared/openai.ts";
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { logCriticalError } from '../_shared/errorLogging.ts'
-import { deepseekChat } from "../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -182,22 +181,20 @@ Przykłady:
   }
 
   // === Parse klasyfikacja ===
-  let classification: any;
-  try {
-    classification = JSON.parse(classifyRes.content || '{}');
-  } catch (err) {
+  // parseJsonFromContent (brace-depth scan) instead of raw JSON.parse — DeepSeek sometimes
+  // wraps JSON in markdown fences despite responseFormat:json_object, which raw JSON.parse
+  // can't handle; that silently dropped every such message into the generic "Chaos" fallback
+  // below instead of its real classification.
+  const classification: any = parseJsonFromContent(classifyRes.content || '{}') ?? (() => {
     console.error(`[auto-classify] classify JSON parse failed, using fallback. Raw: ${(classifyRes.content || '').slice(0, 200)}`);
-    classification = { importance_score: 5, category: 'Chaos', tags: [], fingerprint_text: null, is_closure: false, closed_topic_description: null, expiration_date: null };
-  }
+    return { importance_score: 5, category: 'Chaos', tags: [], fingerprint_text: null, is_closure: false, closed_topic_description: null, expiration_date: null };
+  })();
 
   // === Parse friction ===
-  let friction: any;
-  try {
-    friction = JSON.parse(frictionRes.content || '{"is_relevant":false}');
-  } catch (err) {
+  const friction: any = parseJsonFromContent(frictionRes.content || '{"is_relevant":false}') ?? (() => {
     console.error(`[auto-classify] friction JSON parse failed, using fallback. Raw: ${(frictionRes.content || '').slice(0, 200)}`);
-    friction = { is_relevant: false, event_kind: null, friction_type: null };
-  }
+    return { is_relevant: false, event_kind: null, friction_type: null };
+  })();
 
     console.log(`[auto-classify] category=${classification.category}, is_relevant=${friction.is_relevant}, kind=${friction.event_kind}, type=${friction.friction_type}`)
 
