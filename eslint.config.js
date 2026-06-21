@@ -33,15 +33,23 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     rules: {
+      // base rule off — TS version below handles it with better type-awareness
       'no-unused-vars': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
+      // warn (not error) so --max-warnings threshold controls CI gate
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // allow ts-ignore only when it carries a reason comment
+      '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-ignore': 'allow-with-description' }],
+      // non-standard react-hooks/* rules from the plugin's extended preset — keep off
       'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/static-components': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ])

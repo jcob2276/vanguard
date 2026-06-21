@@ -33,6 +33,9 @@ jobs:
       - name: Typecheck edge functions
         run: npm run typecheck
 
+      - name: Typecheck UI
+        run: npm run typecheck:ui
+
       - name: Lint
         run: npm run lint
 

@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/oura-api/:path*", "destination": "https://api.ouraring.com/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
