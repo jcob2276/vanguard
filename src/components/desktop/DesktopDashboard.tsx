@@ -24,6 +24,7 @@ import IntelligencePanel from './IntelligencePanel';
 import LeniePanelMini from './LeniePanelMini';
 import SprintPanel from './SprintPanel';
 import HexagonPanel from './HexagonPanel';
+import FitnessScorePanel from './FitnessScorePanel';
 import HabitsPanel from './HabitsPanel';
 import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
@@ -478,10 +479,22 @@ export default function DesktopDashboard({ session }: { session: any }) {
               <Heatmap sessions={sessions} strava={strava} />
             </Panel>
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-5">
             <Suspense fallback={<div className="h-40 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
               <WeeklyAnalytics session={session} />
             </Suspense>
+            <FitnessScorePanel
+              oura={oura}
+              nutrition={nutrition}
+              sessions={sessions}
+              strava={strava}
+              habits={habits}
+              habitLogs={habitLogs}
+              moves={moves}
+              volData={volData}
+              theme={theme}
+              grid={grid}
+            />
           </div>
         </div>
 
