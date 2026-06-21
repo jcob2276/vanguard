@@ -35,6 +35,9 @@ interface RecentEntry {
   name: string;
   brand: string | null;
   calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
   amount: string | null;
   date: string;
 }
@@ -90,6 +93,11 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
   const [error, setError] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanLookingUp, setScanLookingUp] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<RecentEntry | null>(null);
+  const [editKcal, setEditKcal] = useState('');
+  const [editProtein, setEditProtein] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editDeleting, setEditDeleting] = useState(false);
 
   const todayStr = getTodayWarsaw();
   const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
@@ -107,9 +115,10 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
         .limit(20),
       supabase
         .from('daily_food_entries')
-        .select('id, name, brand, calories, amount, date')
+        .select('id, name, brand, calories, protein, carbs, fat, amount, date')
         .eq('user_id', userId)
-        .order('logged_at', { ascending: false })
+        .order('logged_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(15),
     ]);
     if (favRes.error) console.error('[FoodEntryModal] favorites fetch failed', favRes.error);
@@ -291,15 +300,67 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
     }
   }, [userId, quickAddingId, onSaved, loadLists]);
 
+  const openEditEntry = useCallback((entry: RecentEntry) => {
+    setEditingEntry(entry);
+    setEditKcal(entry.calories != null ? String(entry.calories) : '');
+    setEditProtein(entry.protein != null ? String(entry.protein) : '');
+    setError(null);
+  }, []);
+
+  const saveEntryEdit = useCallback(async () => {
+    if (!editingEntry || !userId || editSaving) return;
+    setEditSaving(true);
+    setError(null);
+    try {
+      const kcal = editKcal.trim() === '' ? null : Number(editKcal);
+      const protein = editProtein.trim() === '' ? null : Number(editProtein);
+      const { error: rpcError } = await supabase.rpc('update_food_entry', {
+        p_user_id: userId,
+        p_entry_id: editingEntry.id,
+        p_entry: { calories: kcal, protein },
+      });
+      if (rpcError) throw rpcError;
+      setEditingEntry(null);
+      onSaved?.();
+      loadLists();
+    } catch (err) {
+      console.error('[FoodEntryModal] edit save failed', err);
+      setError(err instanceof Error ? err.message : 'Aktualizacja nie powiodła się');
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editingEntry, userId, editKcal, editProtein, editSaving, onSaved, loadLists]);
+
+  const deleteEntry = useCallback(async () => {
+    if (!editingEntry || !userId || editDeleting) return;
+    setEditDeleting(true);
+    setError(null);
+    try {
+      const { error: rpcError } = await supabase.rpc('remove_food_entry', {
+        p_user_id: userId,
+        p_entry_id: editingEntry.id,
+      });
+      if (rpcError) throw rpcError;
+      setEditingEntry(null);
+      onSaved?.();
+      loadLists();
+    } catch (err) {
+      console.error('[FoodEntryModal] delete failed', err);
+      setError(err instanceof Error ? err.message : 'Usunięcie nie powiodło się');
+    } finally {
+      setEditDeleting(false);
+    }
+  }, [editingEntry, userId, editDeleting, onSaved, loadLists]);
+
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-t-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[88vh] flex flex-col">
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-border-custom shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[15px] font-black text-text-primary">
-              {selected ? 'Ile zjadłeś?' : 'Dodaj posiłek'}
+              {editingEntry ? 'Edytuj wpis' : selected ? 'Ile zjadłeś?' : 'Dodaj posiłek'}
             </span>
-            {!selected && (
+            {!selected && !editingEntry && (
               <div className="relative">
                 <select
                   value={mealType}
@@ -320,7 +381,67 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
-          {!selected ? (
+          {editingEntry ? (
+            <div className="space-y-4">
+              <button
+                onClick={() => setEditingEntry(null)}
+                className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer"
+              >
+                ← Wstecz
+              </button>
+
+              <div>
+                <p className="text-[15px] font-black text-text-primary leading-tight">{editingEntry.name}</p>
+                {(editingEntry.brand || editingEntry.amount) && (
+                  <p className="text-[11px] text-text-muted">
+                    {[editingEntry.brand, editingEntry.amount].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Kcal</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={editKcal}
+                    onChange={(e) => setEditKcal(e.target.value)}
+                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary outline-none focus:border-primary/40"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Białko (g)</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={editProtein}
+                    onChange={(e) => setEditProtein(e.target.value)}
+                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary outline-none focus:border-primary/40"
+                  />
+                </div>
+              </div>
+
+              {error && <p className="text-[11px] text-rose-500">{error}</p>}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={deleteEntry}
+                  disabled={editDeleting || editSaving}
+                  className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12px] font-black uppercase tracking-wider text-rose-500 disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  {editDeleting ? <Loader2 size={14} className="animate-spin" /> : 'Usuń'}
+                </button>
+                <button
+                  onClick={saveEntryEdit}
+                  disabled={editSaving || editDeleting}
+                  className="flex-1 rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  {editSaving ? 'Zapisuję...' : 'Zapisz zmiany'}
+                </button>
+              </div>
+            </div>
+          ) : !selected ? (
             <>
               <div className="flex items-center gap-2 mb-4 rounded-full border border-border-custom bg-surface-solid/40 pl-1 pr-1.5">
                 <div className="relative flex-1">
@@ -439,7 +560,7 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
                                 subtitle={[e.brand, e.amount].filter(Boolean).join(' · ')}
                                 calories={e.calories}
                                 loading={quickAddingId === e.id}
-                                onTap={() => quickRepeatEntry(e)}
+                                onTap={() => openEditEntry(e)}
                                 onQuickAdd={() => quickRepeatEntry(e)}
                                 quickAddIcon={<RotateCcw size={12} />}
                               />
