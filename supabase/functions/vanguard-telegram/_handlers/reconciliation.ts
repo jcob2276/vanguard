@@ -9,7 +9,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { parseReconciliationResponse, type P2ParsedResponse } from "../../_shared/reconciliationParser.ts";
-import { deepseekChat } from "../../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 export async function handleReconciliation(
   reconciliationId: string,
@@ -48,9 +48,9 @@ export async function handleReconciliation(
       }],
     });
 
-    const jsonMatch = rawExtract.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      eveningExtraction = JSON.parse(jsonMatch[0]);
+    const extracted = parseJsonFromContent(rawExtract);
+    if (extracted) {
+      eveningExtraction = extracted;
       eveningExtractionVersion = "reflection-v1";
     }
   } catch (extractErr) {

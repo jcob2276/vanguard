@@ -12,7 +12,7 @@ import { safeSendTelegram } from '../_utils/helpers.ts';
 import { createMinimumViablePlan, validatePlanJson } from './planning.ts';
 import { logAuditEvent } from '../../_shared/audit.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
-import { deepseekChat } from '../../_shared/deepseek.ts';
+import { deepseekChat, parseJsonFromContent } from '../../_shared/deepseek.ts';
 
 
 export async function handleMorningRescue(
@@ -76,8 +76,12 @@ ${cleanText.substring(0, 700)}`
       }]
     });
 
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) extracted = JSON.parse(jsonMatch[0]);
+    extracted = parseJsonFromContent(raw) as {
+      production_artifact?: { artifact?: string; minimum_version?: string };
+      tension_action?: { action?: string; minimum_version?: string };
+      one_clear_move?: string;
+      energy_state?: string;
+    } | null;
 
   } catch (err) {
     await logCriticalError({

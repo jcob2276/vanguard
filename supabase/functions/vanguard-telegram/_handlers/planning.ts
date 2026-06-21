@@ -9,7 +9,7 @@ import { safeSendTelegram } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
 import { logAuditEvent } from '../../_shared/audit.ts';
 import { logCriticalError } from '../../_shared/errorLogging.ts';
-import { deepseekChat } from '../../_shared/deepseek.ts';
+import { deepseekChat, parseJsonFromContent } from '../../_shared/deepseek.ts';
 
 
 /**
@@ -239,10 +239,7 @@ BARDZO WAŻNE ANTY-DRIFT ZASADY:
         });
         rawPlan = raw.trim();
         if (rawPlan) {
-          try {
-            const jsonMatch = rawPlan.match(/\{[\s\S]*\}/);
-            if (jsonMatch) planJson = JSON.parse(jsonMatch[0]);
-          } catch (_) {}
+          planJson = parseJsonFromContent(rawPlan);
         }
       } catch (err) {
         planGenerationErrorStatus = 500;
