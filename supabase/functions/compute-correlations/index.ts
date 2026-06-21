@@ -170,8 +170,8 @@ Deno.serve(async (req) => {
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
-    const start90 = new Date(now.getTime() - 90 * 864e5)
-      .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const start90 = (() => { const d = new Date(todayWarsaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 90); return d.toISOString().split('T')[0] })()
 
     // ── Fetch all source series ────────────────────────────────────────────
     const [strainR, ouraR, nutrR, aggregatesR, frictionR] = await Promise.all([
@@ -192,6 +192,12 @@ Deno.serve(async (req) => {
         .eq('user_id', userId)
         .gte('occurred_at', start90 + 'T00:00:00Z'),
     ])
+
+    if (strainR.error) console.warn('[correlations] strain query error:', strainR.error.message)
+    if (ouraR.error) console.warn('[correlations] oura query error:', ouraR.error.message)
+    if (nutrR.error) console.warn('[correlations] nutrition query error:', nutrR.error.message)
+    if (aggregatesR.error) console.warn('[correlations] aggregates query error:', aggregatesR.error.message)
+    if (frictionR.error) console.warn('[correlations] friction query error:', frictionR.error.message)
 
     // ── Build metric series ────────────────────────────────────────────────
     type Series = { day: string; value: number }[]
@@ -233,8 +239,9 @@ Deno.serve(async (req) => {
     
     // Initialize all 90 days with 0 to prevent selection bias
     for (let i = 0; i < 90; i++) {
-      const d = new Date(now.getTime() - i * 864e5)
-      const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+      const d = new Date(todayWarsaw + 'T12:00:00Z')
+      d.setUTCDate(d.getUTCDate() - i)
+      const dateStr = d.toISOString().split('T')[0]
       dailyFriction[dateStr] = { total: 0, avoidance: 0, procrastination: 0 }
     }
 

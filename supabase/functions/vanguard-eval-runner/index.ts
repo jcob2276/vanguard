@@ -44,7 +44,8 @@ PRÓG ZALICZENIA: score >= 0.7`;
       model: 'gpt-4o-mini',
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }]
-    })
+    }),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!res.ok) {
@@ -458,7 +459,7 @@ Deno.serve(async (req) => {
     const suite = body.suite || 'vanguard_v1';
     const user_id = body.user_id || getVanguardUserId();
     const oracle_version = body.oracle_version || 'v1';
-    const model = body.model || 'deepseek-chat';
+    const model = body.model || 'deepseek-v4-flash';
     const batch_size = body.batch_size ? Number(body.batch_size) : 8;
     const offset = body.offset ? Number(body.offset) : 0;
 

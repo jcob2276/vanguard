@@ -17,8 +17,9 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient()
 
     const now = new Date()
-    const cut7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const weekStart = getWarsawDateString(cut7d)
+    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const weekStart = (() => { const d = new Date(todayWarsaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().split('T')[0] })()
+    const cut7d = new Date(weekStart + 'T00:00:00Z')
     const weekEnd = getWarsawDateString(now)
 
     console.log(`[weekly-synthesis] start | ${weekStart} – ${weekEnd}`)

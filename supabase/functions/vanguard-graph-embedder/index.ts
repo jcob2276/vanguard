@@ -3,11 +3,11 @@ import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
-const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
+const getOpenAIKey = () => Deno.env.get('OPENAI_API_KEY') ?? '';
+const getDeepSeekKey = () => Deno.env.get('DEEPSEEK_API_KEY') ?? '';
 
 async function embedBatch(texts: string[]): Promise<number[][]> {
-  const embeddings = await getEmbedding(texts, OPENAI_API_KEY);
+  const embeddings = await getEmbedding(texts, getOpenAIKey());
   if (!embeddings) throw new Error("Failed to generate embeddings batch");
   return embeddings as number[][];
 }
@@ -53,7 +53,7 @@ function buildFactText(link: {
 async function generateHypeQuestions(factText: string): Promise<string> {
   try {
     const result = await deepseekChat({
-      apiKey: DEEPSEEK_API_KEY,
+      apiKey: getDeepSeekKey(),
       model: "deepseek-v4-flash",
       maxTokens: 80,
       temperature: 0.2,
@@ -105,7 +105,7 @@ async function runBackfillBatch(
 
   // HyPE mode: enrich each fact_text with generated hypothetical questions
   let enrichedTexts = factTexts;
-  if (hype_mode && DEEPSEEK_API_KEY) {
+  if (hype_mode && getDeepSeekKey()) {
     enrichedTexts = await Promise.all(
       factTexts.map(async (ft) => {
         const questions = await generateHypeQuestions(ft);
@@ -133,7 +133,8 @@ async function runBackfillBatch(
   if (!force_reembed) countQuery.is('embedding', null);
   else countQuery.is('fact_text', null);
 
-  const { count: remaining } = await countQuery;
+  const { count: remaining, error: countErr } = await countQuery;
+  if (countErr) throw countErr;
 
   console.log(`[embedder] Batch done: ${links.length} updated (hype=${hype_mode}), ~${remaining ?? '?'} remaining`);
   return { processed: links.length, updated: links.length, remaining: remaining ?? null };

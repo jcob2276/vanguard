@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     if (!apiKey) throw new Error("DEEPSEEK_API_KEY not set");
 
     const fourWeeksBack = nWeeksBack(weekStart, 4);
-    const thirtyDaysAgo = toWarsaw(new Date(Date.now() - 30 * 86400000));
+    const thirtyDaysAgo = (() => { const d = new Date(toWarsaw(new Date()) + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 30); return d.toISOString().split('T')[0] })();
     const thirtyDaysAgoISO = new Date(Date.now() - 30 * 86400000).toISOString();
 
     const [
