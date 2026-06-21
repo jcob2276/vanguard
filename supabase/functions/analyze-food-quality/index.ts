@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
-import { deepseekChat } from '../_shared/deepseek.ts'
+import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 
 const ACTIVITY_KW = /saun|rower|spacer|stretch|masaż|foam|mobility/i
 
@@ -66,7 +65,7 @@ Analizujesz dietę maratończyka trenującego równolegle siłowo. Priorytety ż
 
 Mówisz po polsku. Jesteś bezpośredni. Nie komplementujesz — diagnozujesz. Konkretne liczby zawsze.`
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -218,13 +217,12 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
 
       console.log('[analyze-food-quality] range raw:', result.content.slice(0, 300))
 
-      let parsed: any = null
-      const stripped = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
-      const jsonCandidate = stripped.match(/\{[\s\S]*\}/)?.[0] ?? stripped
-
-      try {
-        parsed = JSON.parse(jsonCandidate)
-      } catch (e) {
+      // parseJsonFromContent does its own brace-depth scan (handles fences and trailing
+      // prose) — the previous greedy /\{[\s\S]*\}/ match span from the first "{" to the
+      // LAST "}" in the whole response, so trailing prose with its own "}" produced an
+      // unparseable blob and threw, even when a valid object was actually there.
+      let parsed: any = parseJsonFromContent(result.content)
+      if (!parsed) {
         const preview = result.content.slice(0, 300).replace(/\n/g, '↵')
         console.error('[analyze-food-quality] parse fail. raw preview:', preview)
         throw new Error(`Parse error — raw[0..300]: ${preview}`)
@@ -454,12 +452,9 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
       timeoutMs: 60000,
     })
 
-    let parsed: any = null
-    try {
-      const match = result.content.match(/\{[\s\S]*\}/)
-      if (match) parsed = JSON.parse(match[0])
-    } catch (e) {
-      console.error('[analyze-food-quality] JSON parse error:', e, 'Raw:', result.content.slice(0, 500))
+    const parsed: any = parseJsonFromContent(result.content)
+    if (!parsed) {
+      console.error('[analyze-food-quality] JSON parse error. Raw:', result.content.slice(0, 500))
       throw new Error('Nie udało się sparsować odpowiedzi AI')
     }
     if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error('Nieprawidłowa struktura odpowiedzi AI')

@@ -109,9 +109,11 @@ serve(async (req) => {
     sundayNext.setDate(monday.getDate() + 13);
     const warsawSundayNextStr = formatter.format(sundayNext);
 
-    const offset = getWarsawOffset(now);
-    const startOfWeekStr = new Date(`${warsawMondayStr}T00:00:00${offset}`).toISOString()
-    const endOfNextWeekStr = new Date(`${warsawSundayNextStr}T23:59:59.999${offset}`).toISOString()
+    // Each boundary uses its OWN date's offset, not `now`'s — this window spans up to ~19
+    // days from today, and a DST transition inside that range means Monday and the next
+    // Sunday can legitimately sit on different UTC offsets.
+    const startOfWeekStr = new Date(`${warsawMondayStr}T00:00:00${getWarsawOffset(monday)}`).toISOString()
+    const endOfNextWeekStr = new Date(`${warsawSundayNextStr}T23:59:59.999${getWarsawOffset(sundayNext)}`).toISOString()
 
     const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}&singleEvents=true&orderBy=startTime`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
