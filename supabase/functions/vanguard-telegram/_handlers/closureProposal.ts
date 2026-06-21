@@ -73,11 +73,14 @@ export async function handleClosureCallback(
       return;
     }
 
-    // Approve the proposal
-    await supabase
+    // Approve the proposal — checked: the stream records are already closed above, so a
+    // silently-failed status update here would leave this proposal stuck "pending" forever
+    // while telling the user (and logging) that it succeeded.
+    const { error: approveErr } = await supabase
       .from("vanguard_stream_closure_proposals")
       .update({ status: "approved", resolved_at: now })
       .eq("id", proposalId);
+    if (approveErr) console.error("[closureProposal] proposal status update (approved) failed:", approveErr);
 
     await answerCallbackQuery(telegramToken, callbackId, { text: "✅ Wątek zamknięty" });
     await clearInlineKeyboard(telegramToken, chatId, messageId);
@@ -90,10 +93,11 @@ export async function handleClosureCallback(
     console.log(`[closureProposal] approved proposal=${proposalId}, closed ${proposal.target_record_ids.length} records`);
   } else {
     // Reject — leave stream records untouched
-    await supabase
+    const { error: rejectErr } = await supabase
       .from("vanguard_stream_closure_proposals")
       .update({ status: "rejected", resolved_at: now })
       .eq("id", proposalId);
+    if (rejectErr) console.error("[closureProposal] proposal status update (rejected) failed:", rejectErr);
 
     await answerCallbackQuery(telegramToken, callbackId, { text: "❌ Odrzucone — wątek otwarty" });
     await clearInlineKeyboard(telegramToken, chatId, messageId);

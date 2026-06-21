@@ -4,14 +4,13 @@
  * Domain logic → _handlers/*
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { corsHeaders } from "../_shared/supabase.ts";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Support OPTIONS for CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });

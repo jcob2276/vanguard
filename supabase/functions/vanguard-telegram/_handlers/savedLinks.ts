@@ -136,12 +136,15 @@ export async function handleSavedLink(
       console.log(`[savedLinks] Idempotency: message ${messageId} already processed — skipping retry`);
       return true;
     }
-    await supabase.from('vanguard_stream').insert({
+    // A silently-failed anchor write defeats the whole point of this block — a Telegram
+    // retry of this same message would find no `existing` row and re-process the link.
+    const { error: anchorErr } = await supabase.from('vanguard_stream').insert({
       user_id: vanguardUserId,
       source: 'telegram',
       content: url,
       metadata: { telegram_chat_id: chatId, telegram_message_id: messageId.toString(), mode: 'url_saved' }
     });
+    if (anchorErr) console.error('[savedLinks] idempotency anchor insert failed:', anchorErr);
   }
 
   // 1. Send processing indicator

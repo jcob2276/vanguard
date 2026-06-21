@@ -114,7 +114,7 @@ export async function updatePatternFeedback(
   userId: string,
   patternId: string,
   action: 'confirm' | 'reject' | 'snooze' | 'exception' | 'deception'
-): Promise<void> {
+): Promise<boolean> {
   let newStatus: string;
   let confidenceDelta = 0;
   let extraMetadata: Record<string, any> = {};
@@ -144,19 +144,28 @@ export async function updatePatternFeedback(
       break;
   }
 
+  // Supabase query errors land in `error`, not a thrown exception — a try/catch around
+  // the calls alone never sees an RLS rejection or bad patternId, so the caller (Telegram's
+  // patternFeedback handler) would tell the user "saved" on a silently-failed update. Check
+  // `error` explicitly and return success/failure so the caller can react.
   try {
-    const { data: current } = await supabase
+    const { data: current, error: selectErr } = await supabase
       .from('vanguard_behavioral_patterns')
       .select('confidence, occurrence_count, metadata')
       .eq('id', patternId)
       .eq('user_id', userId)
       .single();
 
+    if (selectErr) {
+      console.warn('[vanguardPatterns] updatePatternFeedback select failed:', selectErr.message);
+      return false;
+    }
+
     const newConfidence = Math.max(0.1, Math.min(0.98,
       (current?.confidence ?? 0.6) + confidenceDelta
     ));
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from('vanguard_behavioral_patterns')
       .update({
         status: newStatus,
@@ -170,8 +179,14 @@ export async function updatePatternFeedback(
       .eq('id', patternId)
       .eq('user_id', userId);
 
+    if (updateErr) {
+      console.warn('[vanguardPatterns] updatePatternFeedback update failed:', updateErr.message);
+      return false;
+    }
+    return true;
   } catch (e) {
     console.warn('[vanguardPatterns] updatePatternFeedback failed:', e);
+    return false;
   }
 }
 

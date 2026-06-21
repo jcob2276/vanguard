@@ -68,10 +68,8 @@ export async function handlePatternFeedbackCallback(
       break;
   }
 
-  try {
-    await updatePatternFeedback(supabase, vanguardUserId, patternId, action);
-  } catch (err) {
-    console.error("[patternFeedback] update failed:", err);
+  const saved = await updatePatternFeedback(supabase, vanguardUserId, patternId, action);
+  if (!saved) {
     await answerCallbackQuery(telegramToken, callbackId, {
       text: "Coś poszło nie tak przy zapisie.",
     });

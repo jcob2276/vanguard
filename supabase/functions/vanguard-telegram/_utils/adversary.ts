@@ -3,7 +3,7 @@
  * Wykrywa rozjazd między intencją a wykonaniem i rekomenduje tension action.
  */
 
-import { deepseekChat } from "../../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 export const ADVERSARY_FALLBACK = 'W ostatnich 72h widać rozjazd między planem a wykonaniem. Wybierz jeden mały ruch, który zamknie najbliższą otwartą pętlę.';
 
@@ -107,13 +107,12 @@ Wygeneruj JSON:
       ]
     });
 
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const parsed = parseJsonFromContent(raw);
+    if (!parsed) {
       console.warn('[adversary] no JSON in response');
       return null;
     }
-    const parsed = JSON.parse(jsonMatch[0]);
-    const sanitized = sanitizeAdversaryOutput(parsed);
+    const sanitized = sanitizeAdversaryOutput(parsed as AdversaryResult);
     console.log('[adversary] output:', JSON.stringify(sanitized).substring(0, 200));
     return sanitized;
   } catch (err) {
