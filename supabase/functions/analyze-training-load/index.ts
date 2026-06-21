@@ -535,7 +535,8 @@ Deno.serve(async (req) => {
     const recentHardRuns = stravaByWeek[0].filter((r: any) =>
       /run/i.test(r.sport_type || '') && thresholdHr != null && Number(r.hr_avg) > thresholdHr
     ).length
-    const hasUpcomingRunPlan = planContext.some((p: any) => p.planned_date > today && p.planned_date <= warsaw(new Date(now.getTime() + 3 * 864e5)))
+    const threeDaysFromNow = (() => { const d = new Date(today + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 3); return d.toISOString().split('T')[0] })()
+    const hasUpcomingRunPlan = planContext.some((p: any) => p.planned_date > today && p.planned_date <= threeDaysFromNow)
     const highReadiness = w0.recovAvg != null && w0.recovAvg >= 75
     const lowStrain = w0.strainAvg != null && w0.strainAvg < (baseStrain ?? 12) * 0.85
     const strengthWindow = highReadiness && lowStrain && (strengthGapDays == null || strengthGapDays >= 4)

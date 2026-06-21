@@ -66,7 +66,7 @@ export async function sendChatAction(
 }
 
 export function escapeMd(text: string): string {
-  return text.replace(/[_*[\]`]/g, (c) => "\\" + c);
+  return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, (c) => "\\" + c);
 }
 
 export async function answerCallbackQuery(

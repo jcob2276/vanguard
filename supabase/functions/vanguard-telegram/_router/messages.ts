@@ -486,7 +486,7 @@ export async function handleIncomingMessage(
               severity: 'info',
               message: isGeneralPoprawka ? 'User correction routed via ingest-vault-log' : 'Long vault note routed via proper path',
               metadata: { category, length: rawContent.length, source: 'telegram' }
-            });
+            }).catch((e: unknown) => console.warn('[telegram] audit log failed:', e));
           } else {
             // Very short non-correction vault notes still go to stream (existing behavior)
             deferredVaultIngest = { text: rawContent, category };

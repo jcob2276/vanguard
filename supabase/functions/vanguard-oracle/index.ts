@@ -432,7 +432,7 @@ Tylko JSON, bez komentarzy.`,
               query_preview: current_query?.substring(0, 180) || null,
               intent: intentForGraph,
             },
-          });
+          }).catch((e: unknown) => console.warn('[oracle] audit log failed:', e));
         }
 
         // --- DETERMINISTIC SOURCES ---
