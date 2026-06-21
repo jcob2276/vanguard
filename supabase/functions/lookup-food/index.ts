@@ -1,6 +1,5 @@
 import { corsHeaders } from '../_shared/supabase.ts'
 
-const USDA_API_KEY = Deno.env.get('USDA_API_KEY') || 'DEMO_KEY'
 const OFF_USER_AGENT = 'Vanguard-OS/1.0 (personal nutrition tracker; contact: newsletter.jakub@gmail.com)'
 
 interface FoodResult {
@@ -132,29 +131,6 @@ async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   return products.map((p: any) => offProductToResult(p, p.code || null)).filter(Boolean) as FoodResult[]
 }
 
-async function searchUsda(query: string): Promise<FoodResult[]> {
-  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query)}&pageSize=10`
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) return []
-  const json = await res.json()
-  const foods = json.foods || []
-  return foods.map((f: any): FoodResult | null => {
-    const nutrients = f.foodNutrients || []
-    const get = (name: string) => nutrients.find((n: any) => n.nutrientName === name)?.value ?? null
-    return {
-      barcode: f.gtinUpc || null,
-      name: f.description,
-      brand: f.brandOwner || null,
-      calories: get('Energy'),
-      protein: get('Protein'),
-      carbs: get('Carbohydrate, by difference'),
-      fat: get('Total lipid (fat)'),
-      fiber: get('Fiber, total dietary'),
-      sugar: get('Sugars, total including NLEA'),
-    }
-  }).filter(Boolean) as FoodResult[]
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -171,9 +147,6 @@ Deno.serve(async (req) => {
       const generic = searchGeneric(q)
       const off = await searchOpenFoodFacts(q)
       results = [...generic, ...off]
-      if (results.length === 0) {
-        results = await searchUsda(q)
-      }
     } else {
       return new Response(JSON.stringify({ error: 'Provide barcode or q' }), {
         status: 400,
