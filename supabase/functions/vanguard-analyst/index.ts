@@ -428,7 +428,7 @@ async function checkProactiveAlert(
         recent_readiness: recent3Readiness,
         alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : 'overreach_risk',
       },
-    })
+    }).throwOnError()
 
     console.log(`[analyst] proactive alert sent: ${alertReason.substring(0, 80)}`)
   } catch (alertErr) {

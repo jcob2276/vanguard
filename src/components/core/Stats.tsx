@@ -13,7 +13,7 @@ import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection } from './stats/BodyMetricsSection';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
 
 type BodyMetricRow = Tables<'body_metrics'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
@@ -69,8 +69,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [recentSessions, setRecentSessions] = useState<WorkoutSessionRow[]>([]);
   const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
   const [dateRange, setDateRange] = useState({
-    from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
-    to: format(new Date(), 'yyyy-MM-dd')
+    from: format(subDays(nowWarsaw(), 7), 'yyyy-MM-dd'),
+    to: format(nowWarsaw(), 'yyyy-MM-dd')
   });
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingOura, setIsExportingOura] = useState(false);
@@ -228,7 +228,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       const res = await requestTrainingLoad({
         supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        userId: session.user.id
+        userId: session.user.id,
+        from: dateRange.from,
+        to: dateRange.to
       });
       if (res.success) setTrainingAnalysis(res);
       else throw new Error(res.error || 'Nieznany błąd');

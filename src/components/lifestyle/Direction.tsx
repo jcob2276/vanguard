@@ -1,4 +1,4 @@
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, nowWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -77,12 +77,12 @@ export default function Direction({ session }: { session: Session }) {
   const [chainDreams, setChainDreams] = useState<any[]>([]);
 
 
-  const nowWarsaw = new Date(todayWarsaw() + 'T12:00:00');
-  const isSunday = nowWarsaw.getDay() === 0;
-  const currentWeekStart = format(startOfWeek(nowWarsaw, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const todayNoon = new Date(todayWarsaw() + 'T12:00:00');
+  const isSunday = todayNoon.getDay() === 0;
+  const currentWeekStart = format(startOfWeek(todayNoon, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
   // Sunday → plan next week; otherwise → current week
-  const planRef = isSunday ? addDays(nowWarsaw, 7) : nowWarsaw;
+  const planRef = isSunday ? addDays(todayNoon, 7) : todayNoon;
   const planWeekStart = startOfWeek(planRef, { weekStartsOn: 1 });
   const planWeekEnd = endOfWeek(planRef, { weekStartsOn: 1 });
   const planWeekLabel = `${format(planWeekStart, 'd MMM', { locale: pl })} – ${format(planWeekEnd, 'd MMM', { locale: pl })}`;
@@ -186,7 +186,8 @@ export default function Direction({ session }: { session: Session }) {
   }, [session, currentWeekStart]);
 
   useEffect(() => {
-    setTimeout(() => { if (session?.user?.id) fetchData(); }, 0);
+    const t = setTimeout(() => { if (session?.user?.id) fetchData(); }, 0);
+    return () => clearTimeout(t);
   }, [session?.user?.id, fetchData]);
 
   useEffect(() => {
@@ -224,7 +225,7 @@ export default function Direction({ session }: { session: Session }) {
     let streak = 0;
     const sorted = [...history].sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
     const today = todayWarsaw();
-    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const yesterday = format(subDays(nowWarsaw(), 1), 'yyyy-MM-dd');
     if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
       for (const day of sorted) {
         if (day.result === 'Z') streak++;
@@ -233,10 +234,10 @@ export default function Direction({ session }: { session: Session }) {
     }
     const weeks = [];
     for (let i = 0; i < 4; i++) {
-      const start = startOfWeek(subDays(new Date(), i * 7), { weekStartsOn: 1 });
+      const start = startOfWeek(subDays(nowWarsaw(), i * 7), { weekStartsOn: 1 });
       const end = endOfWeek(start, { weekStartsOn: 1 });
       const weekDays = history.filter((d) => d.date && parseISO(d.date) >= start && parseISO(d.date) <= end);
-      const now = startOfDay(new Date());
+      const now = startOfDay(nowWarsaw());
       const expectedPastDays = isWithinInterval(now, { start, end }) ? differenceInDays(now, start) : 7;
       const explicitP = weekDays.filter((d) => d.result === 'P').length;
       let missing = 0;
@@ -251,7 +252,7 @@ export default function Direction({ session }: { session: Session }) {
   }, [history]);
 
   const pastWeekStats = useMemo(() => {
-    const today = new Date();
+    const today = nowWarsaw();
     const last7Days = history.filter((d) => {
       const diff = Math.round((today.getTime() - new Date(d.date || '').getTime()) / 86400000);
       return diff >= 0 && diff < 7;
@@ -259,7 +260,7 @@ export default function Direction({ session }: { session: Session }) {
     const wins = last7Days.filter((d) => d.result === 'Z').length;
 
     const last7DaysStrings = Array.from({ length: 7 }).map((_, i) =>
-      format(subDays(new Date(), i), 'yyyy-MM-dd')
+      format(subDays(nowWarsaw(), i), 'yyyy-MM-dd')
     );
     const totalLogs = habitLogs.filter((log) => log.date && last7DaysStrings.includes(log.date)).length;
     const totalPossible = habits.length * 7;
@@ -286,7 +287,7 @@ export default function Direction({ session }: { session: Session }) {
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
     const newValue = !dayWinAny[field];
-    const timestamp = newValue ? new Date().toISOString() : null;
+    const timestamp = newValue ? nowWarsaw().toISOString() : null;
 
     const allDone = [1, 2, 3, 4, 5].every(i => {
       if (!dayWinAny[`task_${i}`]) return true;
@@ -302,7 +303,7 @@ export default function Direction({ session }: { session: Session }) {
     if (allDone) updates.result = 'Z';
     else {
       if (dayWin.result === 'Z') updates.result = null;
-      const isPastDeadline = new Date().getHours() >= 23;
+      const isPastDeadline = nowWarsaw().getHours() >= 23;
       if (isPastDeadline && !allDone) updates.result = 'P';
     }
 
@@ -366,7 +367,7 @@ export default function Direction({ session }: { session: Session }) {
     if (ids.length > 0) {
       await supabase
         .from('todo_items')
-        .update({ ai_bucket: 'today', ai_classified_at: new Date().toISOString() })
+        .update({ ai_bucket: 'today', ai_classified_at: nowWarsaw().toISOString() }).throwOnError()
         .in('id', ids)
         .eq('user_id', session.user.id);
     }

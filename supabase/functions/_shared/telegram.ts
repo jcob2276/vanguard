@@ -44,7 +44,7 @@ export async function sendMessage(
   }
   if (options.replyMarkup) body.reply_markup = options.replyMarkup;
 
-  return fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  return fetch(`https://api.telegram.org/bot${token}/sendMessage`, { signal: AbortSignal.timeout(15000),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -56,7 +56,7 @@ export async function sendChatAction(
   chatId: number,
   action: string,
 ): Promise<void> {
-  await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+  await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, { signal: AbortSignal.timeout(15000),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, action }),
@@ -74,7 +74,7 @@ export async function answerCallbackQuery(
   callbackQueryId: string,
   options: { text?: string; showAlert?: boolean } = {},
 ): Promise<void> {
-  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, { signal: AbortSignal.timeout(15000),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -93,7 +93,7 @@ export async function editMessageReplyMarkup(
   messageId: number,
   replyMarkup: unknown = { inline_keyboard: [] },
 ): Promise<void> {
-  await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, {
+  await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, { signal: AbortSignal.timeout(15000),
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

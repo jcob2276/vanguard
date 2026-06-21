@@ -25,6 +25,8 @@ export function useNotifications() {
               requireInteraction: true
             });
             try { localStorage.setItem('last_reminder_date', today); } catch (e) { console.warn('Storage warn:', e); }
+          } else {
+            try { localStorage.removeItem('last_reminder_date'); } catch (e) {}
           }
         }
       }

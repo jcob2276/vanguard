@@ -681,7 +681,7 @@ Priorytet:
     review_created: reviewCreated,
     status: "success",
     metadata: { requested_limit: opts.limit, llm_response: parsed },
-  });
+  }).throwOnError();
 
   return {
     success: true,

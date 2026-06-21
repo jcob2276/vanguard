@@ -74,7 +74,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
   const goTo = (view: string) => {
     try { localStorage.setItem('vanguard_view', view); } catch (e) {}
-    window.location.href = '/';
+    if (onNavigateTo) onNavigateTo(view);
   };
 
   const fetchLinks = useCallback(async () => {
@@ -177,7 +177,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     if (!link || draft === (link.notes ?? '')) return;
     await supabase
       .from('vanguard_links')
-      .update({ notes: draft, updated_at: new Date().toISOString() })
+      .update({ notes: draft, updated_at: new Date().toISOString() }).throwOnError()
       .eq('id', id);
     setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
     setSavedNoteId(id);

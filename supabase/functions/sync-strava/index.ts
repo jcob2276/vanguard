@@ -50,7 +50,7 @@ async function getAccessToken(): Promise<string> {
   const refreshToken = tokenRow?.refresh_token;
   if (!refreshToken) throw new Error('[sync-strava] No refresh token found in DB');
 
-  const res = await fetch('https://www.strava.com/oauth/token', {
+  const res = await fetch('https://www.strava.com/oauth/token', { signal: AbortSignal.timeout(15000),
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -90,7 +90,7 @@ async function fetchActivities(accessToken: string, after: number): Promise<{ ac
 
   while (true) {
     const url = `https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`;
-    const res = await fetch(url, {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000),
       headers: { Authorization: `Bearer ${accessToken}` }
     });
 
@@ -117,8 +117,7 @@ async function fetchActivities(accessToken: string, after: number): Promise<{ ac
 async function fetchActivityDetail(accessToken: string, activityId: number): Promise<any | null> {
   try {
     const res = await fetch(
-      `https://www.strava.com/api/v3/activities/${activityId}?include_all_efforts=true`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      `https://www.strava.com/api/v3/activities/${activityId}?include_all_efforts=true`, { signal: AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${accessToken}` } }
     );
     if (!res.ok) {
       console.warn(`[sync-strava] detail fetch failed for ${activityId}: ${res.status}`);
@@ -134,8 +133,7 @@ async function fetchActivityDetail(accessToken: string, activityId: number): Pro
 async function fetchHRStream(accessToken: string, activityId: number): Promise<number[] | null> {
   try {
     const res = await fetch(
-      `https://www.strava.com/api/v3/activities/${activityId}/streams?keys=heartrate&key_by_type=true`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      `https://www.strava.com/api/v3/activities/${activityId}/streams?keys=heartrate&key_by_type=true`, { signal: AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${accessToken}` } }
     );
     if (!res.ok) return null;
     const data = await res.json();

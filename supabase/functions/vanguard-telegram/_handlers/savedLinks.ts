@@ -5,7 +5,7 @@ const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 async function fetchYouTubeOembed(url: string): Promise<{ title: string; thumbnailUrl: string; channelName: string }> {
   try {
-    const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, { signal: AbortSignal.timeout(15000) });
     if (oembedRes.ok) {
       const oembed = await oembedRes.json();
       return { title: oembed.title || "", thumbnailUrl: oembed.thumbnail_url || "", channelName: oembed.author_name || "" };

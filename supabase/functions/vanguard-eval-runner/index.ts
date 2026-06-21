@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
 
       const { data: runData, error: runErr } = await supabase
         .from('vanguard_eval_runs')
-        .insert({ user_id, suite, model, oracle_version, status: 'running', started_at: new Date().toISOString() })
+        .insert({ user_id, suite, model, oracle_version, status: 'running', started_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).toISOString() })
         .select('id')
         .single();
       if (runErr) throw new Error(`Failed to create run: ${runErr.message}`);

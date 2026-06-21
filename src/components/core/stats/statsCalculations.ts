@@ -1,3 +1,5 @@
+import { nowWarsaw } from '../../../lib/date';
+
 export function calculateProjection(data: any[] | null | undefined, field: string, daysIntoFuture = 42) {
   if (!data || data.length < 3) return null;
 
@@ -44,7 +46,7 @@ export function calculateProjection(data: any[] | null | undefined, field: strin
 export function generateNarrative(body: any[] | undefined | null, oura: any[] | undefined | null, sessions: any[] | undefined | null) {
   if (!sessions || sessions.length === 0) return null;
 
-  const now = new Date();
+  const now = nowWarsaw();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 

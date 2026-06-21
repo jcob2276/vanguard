@@ -37,12 +37,13 @@ export default function ContextMenu({
     const closeKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    setTimeout(() => {
+    const t = setTimeout(() => {
       document.addEventListener('mousedown', close);
       document.addEventListener('touchstart', close);
       document.addEventListener('keydown', closeKey);
     }, 10);
     return () => {
+      clearTimeout(t);
       document.removeEventListener('mousedown', close);
       document.removeEventListener('touchstart', close);
       document.removeEventListener('keydown', closeKey);

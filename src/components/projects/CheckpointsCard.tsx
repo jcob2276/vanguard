@@ -1,4 +1,4 @@
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate , nowWarsaw } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, Check, ChevronRight, Flag, Shield, Wallet, Zap } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
@@ -33,7 +33,7 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
   useEffect(() => {
     if (!userId) return;
     const todayStr = getTodayWarsaw();
-    const in14 = new Date();
+    const in14 = nowWarsaw();
     in14.setDate(in14.getDate() + 14);
     const in14Str = formatWarsawDate(in14);
 
@@ -61,13 +61,16 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
 
       setItems(enriched);
       setLoading(false);
+    }).catch(err => {
+      console.error('[CheckpointsCard] Data fetch error:', err);
+      setLoading(false);
     });
   }, [userId]);
 
   const todayStr = getTodayWarsaw();
 
   const markDone = async (id: string) => {
-    const { error } = await supabase.from('project_checkpoints').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('project_checkpoints').update({ status: 'done', completed_at: nowWarsaw().toISOString() }).eq('id', id);
     if (error) { console.warn('[CheckpointsCard] markDone failed:', error.message); return; }
     setItems(prev => prev.filter(i => i.id !== id));
   };

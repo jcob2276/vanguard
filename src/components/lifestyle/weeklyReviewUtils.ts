@@ -1,5 +1,5 @@
 import { Shield, Zap, Wallet } from 'lucide-react';
-import { formatWarsawDate } from '../../lib/date';
+import { formatWarsawDate , nowWarsaw } from '../../lib/date';
 
 export const PILLARS = [
   {
@@ -40,7 +40,7 @@ export const PILLAR_BRIEF_KEYS: Record<string, string> = {
 };
 
 export function getWeekStart(): string {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' }));
+  const now = nowWarsaw();
   const day = now.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   const mon = new Date(now);

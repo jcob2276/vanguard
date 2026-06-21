@@ -1,7 +1,7 @@
 import { Calendar, Check, Shield, Target, Wallet, Zap } from 'lucide-react';
 import { addDays, differenceInDays, format, parseISO, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate , nowWarsaw } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
@@ -75,11 +75,11 @@ export default function DirectionRadarMode({
       <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
         <div className="grid grid-cols-7 gap-2">
           {Array.from({ length: 28 }).map((_, index) => {
-            const gridStart = startOfWeek(subDays(new Date(), 21), { weekStartsOn: 1 });
+            const gridStart = startOfWeek(subDays(nowWarsaw(), 21), { weekStartsOn: 1 });
             const dateObj = subDays(gridStart, -index);
             const date = format(dateObj, 'yyyy-MM-dd');
             const dayData = history.find((d) => d.date === date);
-            const isFuture = dateObj > new Date();
+            const isFuture = dateObj > nowWarsaw();
             const isMissingLoss = date < todayWarsaw() && !dayData && date >= APP_LAUNCH_DATE;
             const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
             return (
@@ -288,7 +288,7 @@ export default function DirectionRadarMode({
             <div className="space-y-2.5">
               {GOAL_DEFS.filter((g) => (weekGoals as any)[g.key]).map(({ key, dateKey, Icon, color }) => {
                 const weekGoalsAny = weekGoals as any;
-                const days = weekGoalsAny[dateKey] ? differenceInDays(parseISO(weekGoalsAny[dateKey]), new Date()) : null;
+                const days = weekGoalsAny[dateKey] ? differenceInDays(parseISO(weekGoalsAny[dateKey]), nowWarsaw()) : null;
                 return (
                   <div key={key} className="flex items-center gap-2.5">
                     <Icon size={13} className={`${color} shrink-0`} />

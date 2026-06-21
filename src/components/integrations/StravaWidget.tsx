@@ -114,9 +114,10 @@ export default function StravaWidget({ session }: { session: any }) {
   }, [session]);
 
   useEffect(() => {
-    setTimeout(() => {
+    const t = setTimeout(() => {
       fetchActivities();
     }, 0);
+    return () => clearTimeout(t);
   }, [fetchActivities]);
 
   async function handleSync() {

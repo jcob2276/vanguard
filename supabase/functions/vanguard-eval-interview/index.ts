@@ -305,7 +305,7 @@ Zwróć tylko treść pytania, bez komentarza.`,
         source: "eval_interview",
         content: `[PYTANIE POGŁĘBIAJĄCE]: ${generatedPrompt}`,
         metadata: { generated: true, sent_at: now.toISOString() },
-      });
+      }).throwOnError();
 
       console.log("[eval-interview] sent generated deepening question");
       return new Response(

@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
     // 2. Fetch Data
     console.log(`[OURA DEBUG] Fetching for range: ${startDate} to ${tomorrow}`);
     const [readinessRes, sleepRes, sleepStagesRes, activityRes] = await Promise.all([
-      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
-      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
-      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${tomorrow}`, { headers }),
-      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { headers })
+      fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${startDate}&end_date=${tomorrow}`, { signal: AbortSignal.timeout(15000), headers }),
+      fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${startDate}&end_date=${tomorrow}`, { signal: AbortSignal.timeout(15000), headers }),
+      fetch(`${OURA_BASE_URL}/sleep?start_date=${startDate}&end_date=${tomorrow}`, { signal: AbortSignal.timeout(15000), headers }),
+      fetch(`${OURA_BASE_URL}/daily_activity?start_date=${startDate}&end_date=${tomorrow}`, { signal: AbortSignal.timeout(15000), headers })
     ])
 
     if (!readinessRes.ok) throw new Error(`Oura readiness API error: ${readinessRes.status}`);

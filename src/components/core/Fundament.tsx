@@ -78,9 +78,10 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
   }
 
   useEffect(() => {
-    setTimeout(() => {
+    const t = setTimeout(() => {
       fetchIdentity();
     }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   async function saveIdentity() {

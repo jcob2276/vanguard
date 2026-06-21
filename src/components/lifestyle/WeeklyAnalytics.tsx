@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, Flame, Moon, X, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { formatWarsawDate } from '../../lib/date';
+import { formatWarsawDate , nowWarsaw } from '../../lib/date';
 
 function parseSafeDate(dateStr: string): Date {
   const clean = dateStr.replace(/[^\d-/]/g, '');
@@ -19,7 +19,7 @@ function parseSafeDate(dateStr: string): Date {
 function last7Days() {
   const days: string[] = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = nowWarsaw();
     d.setDate(d.getDate() - i);
     days.push(formatWarsawDate(d));
   }

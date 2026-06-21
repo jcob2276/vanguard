@@ -278,6 +278,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       };
 
       const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
+      if (error) throw error;
       if (error) {
         console.error('[startNewDay]', error);
         haptics.error();

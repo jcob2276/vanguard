@@ -117,6 +117,14 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, [view, haptics]);
 
+  const goBack = useCallback(() => {
+    const prev = localStorage.getItem('vanguard_previous_view');
+    if (prev) {
+      try { localStorage.removeItem('vanguard_previous_view'); } catch (e) {}
+    }
+    setView(normalizeView(prev) || 'dzis');
+  }, []);
+
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, syncYazio, loading, refresh } = useDashboardData();
   const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
@@ -130,7 +138,7 @@ export default function Dashboard({ session }: { session: Session }) {
   if (view === 'fundament') {
     return (
       <Suspense fallback={<ViewFallback />}>
-        <Fundament session={session} onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
+        <Fundament session={session} onBack={goBack} onSyncCalendar={startGoogleAuth} isSyncing={isSyncing} />
       </Suspense>
     );
   }
@@ -140,8 +148,8 @@ export default function Dashboard({ session }: { session: Session }) {
       <Suspense fallback={<ViewFallback />}>
         <Keep
           session={session}
-          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
-          onNavigateTo={(dest) => setView(dest)}
+          onBack={goBack}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
         />
       </Suspense>
     );
@@ -152,8 +160,8 @@ export default function Dashboard({ session }: { session: Session }) {
       <Suspense fallback={<ViewFallback />}>
         <Todo
           session={session}
-          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
-          onNavigateTo={(dest) => setView(dest)}
+          onBack={goBack}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
         />
       </Suspense>
     );
@@ -164,8 +172,8 @@ export default function Dashboard({ session }: { session: Session }) {
       <Suspense fallback={<ViewFallback />}>
         <LinksInbox
           session={session}
-          onBack={() => setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis')}
-          onNavigateTo={(dest) => setView(dest)}
+          onBack={goBack}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
         />
       </Suspense>
     );

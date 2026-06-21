@@ -150,7 +150,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     if (mode === 'work') {
       setIsSubmitting(true);
       try {
-        await supabase.from('vanguard_stream').insert({
+        const { error } = await supabase.from('vanguard_stream').insert({
           user_id: userId,
           content: `[Blok Pracy] Ukończono ${Math.round(dur / 60)}-minutowy blok. Temat: "${subject.trim() || 'Głęboka praca'}"`,
           source: 'block_timer',
@@ -158,6 +158,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           classification: 'work_block_completion',
           metadata: { subject: subject.trim() || 'Głęboka praca', duration_minutes: Math.round(dur / 60) },
         });
+        if (error) throw error;
         await fetchTodayBlocks();
         setTimerMode('break');
         setTimeLeft(breakDuration);

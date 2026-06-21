@@ -339,7 +339,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         'https://www.googleapis.com/auth/calendar.readonly'
       ].join(' ')
     };
-    window.location.href = `${root}?${new URLSearchParams(options).toString()}`;
+    window.location.assign(`${root}?${new URLSearchParams(options).toString()}`);
   }
 
   // Keyboard shortcuts: s=sync, t=trening, d=dark toggle

@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
     // 1. OAUTH EXCHANGE
     if (code) {
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', { signal: AbortSignal.timeout(15000),
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     if (!tokenData) return new Response(JSON.stringify({ error: 'No token' }), { status: 400, headers: corsHeaders })
 
-    const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+    const refreshRes = await fetch('https://oauth2.googleapis.com/token', { signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     const startOfWeekStr = new Date(`${warsawMondayStr}T00:00:00${getWarsawOffset(monday)}`).toISOString()
     const endOfNextWeekStr = new Date(`${warsawSundayNextStr}T23:59:59.999${getWarsawOffset(sundayNext)}`).toISOString()
 
-    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}&singleEvents=true&orderBy=startTime`, {
+    const calRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfWeekStr}&timeMax=${endOfNextWeekStr}&singleEvents=true&orderBy=startTime`, { signal: AbortSignal.timeout(15000),
       headers: { 'Authorization': `Bearer ${access_token}` }
     })
     if (!calRes.ok) {

@@ -8,7 +8,7 @@ export async function getEmbedding(text: string | string[], apiKey: string): Pro
     return null;
   }
   try {
-    const res = await fetch("https://api.openai.com/v1/embeddings", {
+    const res = await fetch("https://api.openai.com/v1/embeddings", { signal: AbortSignal.timeout(15000),
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,

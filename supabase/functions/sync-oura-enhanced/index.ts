@@ -15,7 +15,7 @@ const serviceClient = createServiceClient
 // W takim wypadku po prostu pomijamy (pusta lista), zamiast wywalać cały sync.
 async function fetchOura(url: string, headers: Record<string, string>): Promise<any> {
   try {
-    const res = await fetch(url, { headers })
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers })
     if (!res.ok) {
       console.warn(`[oura-enh] ${url} -> ${res.status}`)
       return { data: [] }

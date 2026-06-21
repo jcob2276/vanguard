@@ -771,7 +771,7 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
           health_14d: healthSummary14d,
         },
         state_vector: state_vector || {},
-      });
+      }).throwOnError();
     } catch (e) {
       await logCriticalError({
         area: 'oracle',

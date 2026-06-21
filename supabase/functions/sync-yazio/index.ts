@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
               if (!brand) brand = cachedData.brand || null;
             } else if (!name || !nutrients["energy.energy"] || !brand) {
               try {
-                const pRes = await fetch(`https://yzapi.yazio.com/v15/products/${item.product_id}`, {
+                const pRes = await fetch(`https://yzapi.yazio.com/v15/products/${item.product_id}`, { signal: AbortSignal.timeout(15000),
                     headers: { "Authorization": `Bearer ${yazioToken}`, "User-Agent": "YAZIO/Android" }
                 });
                 if (pRes.ok) {

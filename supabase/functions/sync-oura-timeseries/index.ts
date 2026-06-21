@@ -23,7 +23,7 @@ async function fetchAllPages(baseUrl: string, headers: Record<string, string>, m
       ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}next_token=${encodeURIComponent(token)}`
       : baseUrl
     try {
-      const res: Response = await fetch(url, { headers })
+      const res: Response = await fetch(url, { signal: AbortSignal.timeout(15000), headers })
       if (!res.ok) { console.warn(`[ts] ${baseUrl} -> ${res.status}`); break }
       const j: any = await res.json()
       if (Array.isArray(j.data)) all = all.concat(j.data)

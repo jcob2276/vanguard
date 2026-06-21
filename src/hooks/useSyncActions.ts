@@ -75,7 +75,7 @@ export function useSyncActions({
       prompt: 'consent',
       scope: GOOGLE_CALENDAR_SCOPE,
     };
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(options).toString()}`;
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(options).toString()}`);
   }, []);
 
   useEffect(() => {

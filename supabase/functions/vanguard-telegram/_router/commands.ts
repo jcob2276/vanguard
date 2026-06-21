@@ -47,7 +47,7 @@ export async function handleKoniecCommand(
 ): Promise<void> {
   try {
     await sendChatAction(telegramToken, chatId, "typing");
-    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-daily-reconciliation?manual=true`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-daily-reconciliation?manual=true`, { signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export async function handlePytanieCommand(
 ): Promise<void> {
   try {
     await sendChatAction(telegramToken, chatId, "typing");
-    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-eval-interview`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-eval-interview`, { signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ export async function handleDietaCommand(
   try {
     await sendChatAction(telegramToken, chatId, "typing");
     // Refresh today's Yazio first so "zjedzone / zostało" reflects what you ate so far.
-    await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
+    await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, { signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export async function handleDietaCommand(
       body: JSON.stringify({ userId: vanguardUserId, days: 1 })
     }).catch((e) => console.error('[commands] /dieta yazio presync failed:', e));
 
-    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, { signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

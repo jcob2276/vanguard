@@ -1,9 +1,7 @@
 import { createServiceClient } from "./supabase.ts";
 
-let _auditClient: ReturnType<typeof createServiceClient> | null = null;
 function getAuditClient() {
-  if (!_auditClient) _auditClient = createServiceClient();
-  return _auditClient;
+  return createServiceClient();
 }
 
 /**
