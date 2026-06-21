@@ -1,7 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {

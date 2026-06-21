@@ -17,7 +17,6 @@
  * Trigger: HTTP (manual) or cron (optional)
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 
@@ -405,7 +404,7 @@ function buildActivityReport(
 // Main handler
 // ---------------------------------------------------------------------------
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {

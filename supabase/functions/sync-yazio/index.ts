@@ -1,9 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import * as YazioLib from "https://esm.sh/yazio"
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 const { Yazio } = YazioLib
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
