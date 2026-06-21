@@ -26,7 +26,8 @@ export const DEFAULT_REPLY_KEYBOARD = {
       { text: "📒 Keep" }
     ],
     [
-      { text: "🍽️ Dieta" }
+      { text: "🍽️ Dieta" },
+      { text: "🍴 Posiłek" }
     ]
   ],
   resize_keyboard: true,
@@ -190,6 +191,17 @@ export async function handleInteractivePromptCommand(
         selective: true,
         input_field_placeholder: "np. Zadzwoń do Marka +jutro !high"
       }
+    });
+    return true;
+  }
+
+  if (lowerText === '🍴 posiłek' || lowerText === '/posilek') {
+    await safeSendTelegram(chatId, "🍴 **Co zjadłeś?**\nOpisz posiłek (np. `makaron z serkiem tłustym piątnica`):", telegramToken, {
+      reply_markup: {
+        force_reply: true,
+        selective: true,
+        input_field_placeholder: "np. 2 jajka sadzone i kromka chleba",
+      },
     });
     return true;
   }
@@ -375,6 +387,173 @@ export async function handlePostCommand(
   } catch (err) {
     console.error('[commands] /post failed:', err);
     await safeSendTelegram(chatId, '❌ Błąd zapisu postu: ' + (err as Error).message, telegramToken);
+  }
+}
+
+function defaultMealTypeWarsaw(): string {
+  const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false }));
+  if (hour < 11) return 'breakfast';
+  if (hour < 16) return 'lunch';
+  if (hour < 21) return 'dinner';
+  return 'snack';
+}
+
+const MEAL_TYPE_LABELS: Record<string, string> = {
+  breakfast: 'Śniadanie',
+  lunch: 'Obiad',
+  dinner: 'Kolacja',
+  snack: 'Przekąska',
+};
+
+interface ParsedMealItem {
+  name: string;
+  grams: number;
+  calories_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+}
+
+/**
+ * Splits free-form Polish meal text into discrete items with an estimated
+ * realistic portion (grams) and a fallback per-100g macro guess — used only
+ * when the real food database (lookup-food) has nothing for that item.
+ */
+async function parseMealItems(rawText: string, deepseekApiKey: string): Promise<ParsedMealItem[]> {
+  const res = await deepseekChat({
+    apiKey: deepseekApiKey,
+    model: 'deepseek-v4-flash',
+    temperature: 0.1,
+    maxTokens: 600,
+    responseFormat: { type: 'json_object' },
+    messages: [{
+      role: 'user',
+      content: `Rozbij opis posiłku na osobne pozycje jedzenia. Dla każdej oszacuj typową, realistyczną porcję w gramach (tak jak zjadłby to przeciętny dorosły Polak) oraz wartości odżywcze NA 100g jako fallback (gdyby nie udało się znaleźć produktu w bazie).
+
+Tekst: "${rawText}"
+
+Odpowiedz TYLKO JSON (bez markdown), tablica "items":
+{"items":[{"name":"<krótka nazwa po polsku>","grams":<int>,"calories_100g":<int>,"protein_100g":<float>,"carbs_100g":<float>,"fat_100g":<float>}]}`,
+    }],
+  });
+
+  const parsed = parseJsonFromContent(res.content || '{}') as { items?: unknown[] } | null;
+  const items = Array.isArray(parsed?.items) ? parsed!.items : [];
+  return items
+    .map((raw): ParsedMealItem | null => {
+      const it = raw as Record<string, unknown>;
+      if (typeof it.name !== 'string' || !it.name.trim()) return null;
+      return {
+        name: it.name.trim(),
+        grams: Number(it.grams) > 0 ? Math.round(Number(it.grams)) : 100,
+        calories_100g: Number(it.calories_100g) || 0,
+        protein_100g: Number(it.protein_100g) || 0,
+        carbs_100g: Number(it.carbs_100g) || 0,
+        fat_100g: Number(it.fat_100g) || 0,
+      };
+    })
+    .filter((it): it is ParsedMealItem => it !== null);
+}
+
+/** Looks up one item against the same generic/OFF database the app's food search uses. */
+async function lookupFoodMacros(
+  name: string,
+  supabaseUrl: string,
+  supabaseServiceRoleKey: string,
+): Promise<{ calories: number | null; protein: number | null; carbs: number | null; fat: number | null } | null> {
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/lookup-food?q=${encodeURIComponent(name)}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { Authorization: `Bearer ${supabaseServiceRoleKey}`, apikey: supabaseServiceRoleKey },
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const top = body?.results?.[0];
+    if (!top) return null;
+    return { calories: top.calories, protein: top.protein, carbs: top.carbs, fat: top.fat };
+  } catch (err) {
+    console.warn('[posilek] lookup-food failed for', name, err);
+    return null;
+  }
+}
+
+export async function handlePosilekCommand(
+  text: string,
+  chatId: number,
+  telegramToken: string,
+  supabase: any,
+  vanguardUserId: string,
+  deepseekApiKey: string,
+  supabaseUrl: string,
+  supabaseServiceRoleKey: string,
+): Promise<void> {
+  try {
+    const raw = text.replace(/^\/posilek\s*/i, '').trim();
+    if (!raw) {
+      await safeSendTelegram(chatId, '❌ Napisz co zjadłeś, np. "/posilek makaron z serkiem tłustym piątnica".', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      return;
+    }
+
+    await sendChatAction(telegramToken, chatId, 'typing');
+
+    const items = await parseMealItems(raw, deepseekApiKey);
+    if (items.length === 0) {
+      await safeSendTelegram(chatId, '❌ Nie udało się rozpoznać posiłku, spróbuj opisać inaczej.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      return;
+    }
+
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const mealType = defaultMealTypeWarsaw();
+
+    const logged: { name: string; grams: number; calories: number }[] = [];
+    for (const item of items) {
+      const real = await lookupFoodMacros(item.name, supabaseUrl, supabaseServiceRoleKey);
+      const calories100 = real?.calories ?? item.calories_100g;
+      const protein100 = real?.protein ?? item.protein_100g;
+      const carbs100 = real?.carbs ?? item.carbs_100g;
+      const fat100 = real?.fat ?? item.fat_100g;
+      const scale = item.grams / 100;
+
+      const { error } = await supabase.rpc('add_food_entry', {
+        p_user_id: vanguardUserId,
+        p_date: today,
+        p_grams: item.grams,
+        p_entry: {
+          name: item.name,
+          brand: null,
+          barcode: null,
+          calories: calories100,
+          protein: protein100,
+          carbs: carbs100,
+          fat: fat100,
+          fiber: null,
+          sugar: null,
+          meal_type: mealType,
+        },
+      });
+      if (error) {
+        console.error('[posilek] add_food_entry failed for', item.name, error);
+        continue;
+      }
+      logged.push({ name: item.name, grams: item.grams, calories: Math.round(calories100 * scale) });
+    }
+
+    if (logged.length === 0) {
+      await safeSendTelegram(chatId, '❌ Nie udało się zapisać posiłku.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      return;
+    }
+
+    const total = logged.reduce((sum, l) => sum + l.calories, 0);
+    const lines = logged.map((l) => `• ${l.name} — ${l.grams}g — ${l.calories} kcal`).join('\n');
+    await safeSendTelegram(
+      chatId,
+      `🍽 Zapisano (${MEAL_TYPE_LABELS[mealType]}):\n${lines}\nRazem: ${total} kcal`,
+      telegramToken,
+      { reply_markup: DEFAULT_REPLY_KEYBOARD },
+    );
+  } catch (err) {
+    console.error('[commands] /posilek failed:', err);
+    await safeSendTelegram(chatId, '❌ Błąd zapisu posiłku: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   }
 }
 

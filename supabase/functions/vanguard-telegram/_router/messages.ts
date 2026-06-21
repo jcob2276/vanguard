@@ -20,6 +20,7 @@ import {
   handleLenieCommand,
   handleTodoCommand,
   handleKeepCommand,
+  handlePosilekCommand,
 } from "./commands.ts";
 
 export { DEFAULT_REPLY_KEYBOARD };
@@ -66,6 +67,9 @@ export async function handleIncomingMessage(
       return;
     } else if (promptText.includes("Vanguard Keep")) {
       await handleKeepCommand(text, chatId, telegramToken, supabase, vanguardUserId, false);
+      return;
+    } else if (promptText.includes("Co zjadłeś?")) {
+      await handlePosilekCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey);
       return;
     }
   }
@@ -212,6 +216,12 @@ export async function handleIncomingMessage(
       // --- /post command (fasting marker) ---
       if (lowerText.startsWith('/post')) {
         await handlePostCommand(text, chatId, telegramToken, supabase, vanguardUserId);
+        return;
+      }
+
+      // --- /posilek command (natural-language meal logging) ---
+      if (lowerText.startsWith('/posilek')) {
+        await handlePosilekCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey);
         return;
       }
 
