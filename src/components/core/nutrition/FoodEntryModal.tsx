@@ -67,6 +67,8 @@ interface NLItem {
   protein: number;
   carbs: number | null;
   fat: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
 }
 
 const MEAL_TYPES = [
@@ -446,7 +448,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
             protein: Math.round(item.protein * scale100 * 10) / 10,
             carbs: item.carbs != null ? Math.round(item.carbs * scale100 * 10) / 10 : null,
             fat: item.fat != null ? Math.round(item.fat * scale100 * 10) / 10 : null,
-            fiber: null, sugar: null, meal_type: mealType,
+            fiber: item.fiber != null ? Math.round(item.fiber * scale100 * 10) / 10 : null,
+            sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
+            meal_type: mealType,
           },
         });
         if (rpcError) throw rpcError;
