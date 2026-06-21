@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, Search, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
-import { getTodayWarsaw } from '../../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
 
-interface FoodResult {
+interface FoodBase {
   barcode: string | null;
   name: string;
   brand: string | null;
@@ -15,9 +16,19 @@ interface FoodResult {
   sugar: number | null;
 }
 
-interface Favorite extends FoodResult {
+interface Favorite extends FoodBase {
   id: string;
   use_count: number;
+  default_grams: number;
+}
+
+interface RecentEntry {
+  id: string;
+  name: string;
+  brand: string | null;
+  calories: number | null;
+  amount: string | null;
+  date: string;
 }
 
 const MEAL_TYPES = [
@@ -40,6 +51,13 @@ function scale(value: number | null, grams: number): number | null {
   return Math.round((value * grams) / 100 * 10) / 10;
 }
 
+function dayLabel(dateStr: string, todayStr: string, yesterdayStr: string): string {
+  if (dateStr === todayStr) return 'Dzisiaj';
+  if (dateStr === yesterdayStr) return 'Wczoraj';
+  const [, m, d] = dateStr.split('-');
+  return `${d}.${m}`;
+}
+
 export interface FoodEntryModalProps {
   session: any;
   onClose: () => void;
@@ -48,33 +66,53 @@ export interface FoodEntryModalProps {
 
 export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryModalProps) {
   const userId = session?.user?.id;
+  const [activeTab, setActiveTab] = useState<'favorites' | 'recent'>('favorites');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [loadingFavorites, setLoadingFavorites] = useState(true);
+  const [recent, setRecent] = useState<RecentEntry[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<FoodResult[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodBase[]>([]);
   const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<FoodResult | null>(null);
+  const [selected, setSelected] = useState<FoodBase | null>(null);
   const [grams, setGrams] = useState('100');
   const [mealType, setMealType] = useState(defaultMealType());
   const [saving, setSaving] = useState(false);
+  const [quickAddingId, setQuickAddingId] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scannerNotice, setScannerNotice] = useState(false);
 
-  useEffect(() => {
+  const todayStr = getTodayWarsaw();
+  const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
+
+  const loadLists = useCallback(async () => {
     if (!userId) return;
-    (async () => {
-      const { data, error: favError } = await supabase
+    setLoadingList(true);
+    const [favRes, recentRes] = await Promise.all([
+      supabase
         .from('food_favorites')
-        .select('id, barcode, name, brand, calories, protein, carbs, fat, fiber, sugar, use_count')
+        .select('id, barcode, name, brand, calories, protein, carbs, fat, fiber, sugar, use_count, default_grams')
         .eq('user_id', userId)
         .order('use_count', { ascending: false })
         .order('last_used', { ascending: false })
-        .limit(20);
-      if (favError) console.error('[FoodEntryModal] favorites fetch failed', favError);
-      setFavorites(data || []);
-      setLoadingFavorites(false);
-    })();
+        .limit(20),
+      supabase
+        .from('daily_food_entries')
+        .select('id, name, brand, calories, amount, date')
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .limit(15),
+    ]);
+    if (favRes.error) console.error('[FoodEntryModal] favorites fetch failed', favRes.error);
+    if (recentRes.error) console.error('[FoodEntryModal] recent fetch failed', recentRes.error);
+    setFavorites(favRes.data || []);
+    setRecent(recentRes.data || []);
+    setLoadingList(false);
   }, [userId]);
+
+  useEffect(() => {
+    loadLists();
+  }, [loadLists]);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -114,8 +152,6 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
       protein: scale(selected.protein, gramsNum),
       carbs: scale(selected.carbs, gramsNum),
       fat: scale(selected.fat, gramsNum),
-      fiber: scale(selected.fiber, gramsNum),
-      sugar: scale(selected.sugar, gramsNum),
     };
   }, [selected, grams]);
 
@@ -128,18 +164,18 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
       const { error: rpcError } = await supabase.rpc('add_food_entry', {
         p_user_id: userId,
         p_date: getTodayWarsaw(),
+        p_grams: gramsNum,
         p_entry: {
           name: selected.name,
           brand: selected.brand,
           barcode: selected.barcode,
-          calories: scale(selected.calories, gramsNum),
-          protein: scale(selected.protein, gramsNum),
-          carbs: scale(selected.carbs, gramsNum),
-          fat: scale(selected.fat, gramsNum),
-          fiber: scale(selected.fiber, gramsNum),
-          sugar: scale(selected.sugar, gramsNum),
+          calories: selected.calories,
+          protein: selected.protein,
+          carbs: selected.carbs,
+          fat: selected.fat,
+          fiber: selected.fiber,
+          sugar: selected.sugar,
           meal_type: mealType,
-          amount: `${gramsNum} g`,
         },
       });
       if (rpcError) throw rpcError;
@@ -149,43 +185,133 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
       setSelected(null);
       setQuery('');
       setGrams('100');
+      loadLists();
     } catch (err) {
       console.error('[FoodEntryModal] save failed', err);
       setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
     } finally {
       setSaving(false);
     }
-  }, [selected, userId, grams, mealType, saving, onSaved]);
+  }, [selected, userId, grams, mealType, saving, onSaved, loadLists]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[85vh] flex flex-col">
-        <div className="px-5 py-3.5 flex items-center justify-between border-b border-border-custom shrink-0">
-          <span className="text-[12px] font-black uppercase tracking-widest text-text-primary">
-            {selected ? 'Ile zjadłeś?' : 'Dodaj posiłek'}
-          </span>
+  const quickAddFavorite = useCallback(async (fav: Favorite) => {
+    if (!userId || quickAddingId) return;
+    setQuickAddingId(fav.id);
+    setError(null);
+    try {
+      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+        p_user_id: userId,
+        p_date: getTodayWarsaw(),
+        p_grams: fav.default_grams,
+        p_entry: {
+          name: fav.name,
+          brand: fav.brand,
+          barcode: fav.barcode,
+          calories: fav.calories,
+          protein: fav.protein,
+          carbs: fav.carbs,
+          fat: fav.fat,
+          fiber: fav.fiber,
+          sugar: fav.sugar,
+          meal_type: mealType,
+        },
+      });
+      if (rpcError) throw rpcError;
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+      onSaved?.();
+      loadLists();
+    } catch (err) {
+      console.error('[FoodEntryModal] quick add failed', err);
+      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } finally {
+      setQuickAddingId(null);
+    }
+  }, [userId, quickAddingId, mealType, onSaved, loadLists]);
+
+  const quickRepeatEntry = useCallback(async (entry: RecentEntry) => {
+    if (!userId || quickAddingId) return;
+    setQuickAddingId(entry.id);
+    setError(null);
+    try {
+      const { error: rpcError } = await supabase.rpc('repeat_food_entry', {
+        p_user_id: userId,
+        p_source_entry_id: entry.id,
+        p_date: getTodayWarsaw(),
+      });
+      if (rpcError) throw rpcError;
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+      onSaved?.();
+      loadLists();
+    } catch (err) {
+      console.error('[FoodEntryModal] repeat failed', err);
+      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } finally {
+      setQuickAddingId(null);
+    }
+  }, [userId, quickAddingId, onSaved, loadLists]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-t-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[88vh] flex flex-col">
+        <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-border-custom shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] font-black text-text-primary">
+              {selected ? 'Ile zjadłeś?' : 'Dodaj posiłek'}
+            </span>
+            {!selected && (
+              <div className="relative">
+                <select
+                  value={mealType}
+                  onChange={(e) => setMealType(e.target.value)}
+                  className="appearance-none rounded-full border border-border-custom bg-surface-solid/40 pl-3 pr-6 py-1 text-[10px] font-bold text-text-secondary cursor-pointer outline-none"
+                >
+                  {MEAL_TYPES.map((m) => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+              </div>
+            )}
+          </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary cursor-pointer">
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
           {!selected ? (
             <>
-              <div className="relative mb-4">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Szukaj produktu..."
-                  className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
-                />
-                {searching && (
-                  <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted animate-spin" />
+              <div className="flex items-center gap-2 mb-4 rounded-full border border-border-custom bg-surface-solid/40 pl-1 pr-1.5">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Szukaj produktu..."
+                    className="w-full bg-transparent pl-9 pr-2 py-2.5 text-[13px] text-text-primary outline-none placeholder:text-text-muted/40"
+                  />
+                </div>
+                {searching ? (
+                  <Loader2 size={15} className="text-text-muted animate-spin mr-1.5" />
+                ) : (
+                  <button
+                    onClick={() => setScannerNotice(true)}
+                    className="rounded-full p-2 text-text-muted hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                    title="Skanuj kod"
+                  >
+                    <ScanLine size={16} />
+                  </button>
                 )}
               </div>
 
+              {scannerNotice && (
+                <p className="mb-3 text-[11px] text-text-muted text-center">
+                  Skaner kodów wkrótce — na razie szukaj po nazwie ✦
+                </p>
+              )}
               {error && <p className="mb-3 text-[11px] text-rose-500">{error}</p>}
 
               {query.trim().length >= 2 ? (
@@ -194,44 +320,92 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
                     <p className="text-[12px] text-text-muted py-4 text-center">Brak wyników</p>
                   )}
                   {searchResults.map((r, i) => (
-                    <button
+                    <FoodRow
                       key={`${r.barcode || r.name}-${i}`}
-                      onClick={() => setSelected(r)}
-                      className="w-full text-left rounded-xl border border-border-custom bg-surface-solid/30 px-3.5 py-2.5 hover:bg-surface-solid/60 active:scale-[0.99] transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-bold text-text-primary truncate">{r.name}</span>
-                        <span className="text-[11px] font-black text-primary shrink-0 ml-2">{r.calories ?? '?'} kcal</span>
-                      </div>
-                      {r.brand && <span className="text-[10px] text-text-muted">{r.brand}</span>}
-                    </button>
+                      name={r.name}
+                      subtitle={r.brand}
+                      calories={r.calories}
+                      onTap={() => { setSelected(r); setGrams('100'); }}
+                      onQuickAdd={() => { setSelected(r); setGrams('100'); }}
+                      quickAddIcon={<Plus size={13} />}
+                    />
                   ))}
                 </div>
               ) : (
                 <>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Twoje częste</p>
-                  {loadingFavorites ? (
+                  <div className="flex gap-1.5 mb-3">
+                    <button
+                      onClick={() => setActiveTab('favorites')}
+                      className={`rounded-full px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        activeTab === 'favorites' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      Częste
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('recent')}
+                      className={`rounded-full px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        activeTab === 'recent' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      Ostatnie
+                    </button>
+                  </div>
+
+                  {loadingList ? (
                     <div className="flex justify-center py-6">
                       <Loader2 size={16} className="text-text-muted animate-spin" />
                     </div>
-                  ) : favorites.length === 0 ? (
-                    <p className="text-[12px] text-text-muted py-4 text-center">
-                      Brak ulubionych — zacznij od wyszukania produktu
-                    </p>
+                  ) : activeTab === 'favorites' ? (
+                    favorites.length === 0 ? (
+                      <p className="text-[12px] text-text-muted py-4 text-center">
+                        Brak częstych — zacznij od wyszukania produktu
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {favorites.map((f) => (
+                          <FoodRow
+                            key={f.id}
+                            name={f.name}
+                            subtitle={[f.brand, `${f.default_grams} g`].filter(Boolean).join(' · ')}
+                            calories={scale(f.calories, f.default_grams)}
+                            loading={quickAddingId === f.id}
+                            onTap={() => { setSelected(f); setGrams(String(f.default_grams)); }}
+                            onQuickAdd={() => quickAddFavorite(f)}
+                            quickAddIcon={<Plus size={13} />}
+                          />
+                        ))}
+                      </div>
+                    )
+                  ) : recent.length === 0 ? (
+                    <p className="text-[12px] text-text-muted py-4 text-center">Brak ostatnich wpisów</p>
                   ) : (
-                    <div className="space-y-1.5">
-                      {favorites.map((f) => (
-                        <button
-                          key={f.id}
-                          onClick={() => setSelected(f)}
-                          className="w-full text-left rounded-xl border border-border-custom bg-surface-solid/30 px-3.5 py-2.5 hover:bg-surface-solid/60 active:scale-[0.99] transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[13px] font-bold text-text-primary truncate">{f.name}</span>
-                            <span className="text-[11px] font-black text-primary shrink-0 ml-2">{f.calories ?? '?'} kcal</span>
+                    <div className="space-y-3">
+                      {Object.entries(
+                        recent.reduce<Record<string, RecentEntry[]>>((acc, r) => {
+                          (acc[r.date] ||= []).push(r);
+                          return acc;
+                        }, {})
+                      ).map(([date, entries]) => (
+                        <div key={date}>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1.5">
+                            {dayLabel(date, todayStr, yesterdayStr)}
+                          </p>
+                          <div className="space-y-1.5">
+                            {entries.map((e) => (
+                              <FoodRow
+                                key={e.id}
+                                name={e.name}
+                                subtitle={[e.brand, e.amount].filter(Boolean).join(' · ')}
+                                calories={e.calories}
+                                loading={quickAddingId === e.id}
+                                onTap={() => quickRepeatEntry(e)}
+                                onQuickAdd={() => quickRepeatEntry(e)}
+                                quickAddIcon={<RotateCcw size={12} />}
+                              />
+                            ))}
                           </div>
-                          {f.brand && <span className="text-[10px] text-text-muted">{f.brand}</span>}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -314,6 +488,42 @@ export default function FoodEntryModal({ session, onClose, onSaved }: FoodEntryM
           )}
         </div>
       </div>
+    </div>,
+    document.body
+  );
+}
+
+function FoodRow({
+  name,
+  subtitle,
+  calories,
+  loading,
+  onTap,
+  onQuickAdd,
+  quickAddIcon,
+}: {
+  name: string;
+  subtitle?: string | null;
+  calories: number | null;
+  loading?: boolean;
+  onTap: () => void;
+  onQuickAdd: () => void;
+  quickAddIcon: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-border-custom bg-surface-solid/30 px-3 py-2 hover:bg-surface-solid/60 transition-all">
+      <button onClick={onTap} className="flex-1 min-w-0 text-left cursor-pointer">
+        <p className="text-[13px] font-bold text-text-primary truncate">{name}</p>
+        {subtitle && <p className="text-[10px] text-text-muted truncate">{subtitle}</p>}
+      </button>
+      <span className="text-[11px] font-black text-primary shrink-0">{calories ?? '?'} kcal</span>
+      <button
+        onClick={onQuickAdd}
+        disabled={loading}
+        className="shrink-0 rounded-full bg-primary p-1.5 text-white active:scale-90 transition-all cursor-pointer disabled:opacity-50"
+      >
+        {loading ? <Loader2 size={13} className="animate-spin" /> : quickAddIcon}
+      </button>
     </div>
   );
 }

@@ -1153,6 +1153,7 @@ export type Database = {
           calories: number | null
           carbs: number | null
           created_at: string
+          default_grams: number
           fat: number | null
           fiber: number | null
           id: string
@@ -1169,6 +1170,7 @@ export type Database = {
           calories?: number | null
           carbs?: number | null
           created_at?: string
+          default_grams?: number
           fat?: number | null
           fiber?: number | null
           id?: string
@@ -1185,6 +1187,7 @@ export type Database = {
           calories?: number | null
           carbs?: number | null
           created_at?: string
+          default_grams?: number
           fat?: number | null
           fiber?: number | null
           id?: string
@@ -4698,7 +4701,12 @@ export type Database = {
         Returns: undefined
       }
       add_food_entry: {
-        Args: { p_date: string; p_entry: Json; p_user_id: string }
+        Args: {
+          p_date: string
+          p_entry: Json
+          p_grams: number
+          p_user_id: string
+        }
         Returns: string
       }
       canonicalize_vanguard_entity: {
@@ -4841,6 +4849,10 @@ export type Database = {
       remove_food_entry: {
         Args: { p_entry_id: string; p_user_id: string }
         Returns: undefined
+      }
+      repeat_food_entry: {
+        Args: { p_date: string; p_source_entry_id: string; p_user_id: string }
+        Returns: string
       }
       replace_calendar_window: {
         Args: {

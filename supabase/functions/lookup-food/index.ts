@@ -1,6 +1,7 @@
 import { corsHeaders } from '../_shared/supabase.ts'
 
 const USDA_API_KEY = Deno.env.get('USDA_API_KEY') || 'DEMO_KEY'
+const OFF_USER_AGENT = 'Vanguard-OS/1.0 (personal nutrition tracker; contact: newsletter.jakub@gmail.com)'
 
 interface FoodResult {
   barcode: string | null
@@ -30,11 +31,25 @@ function offProductToResult(product: any, barcode: string | null): FoodResult | 
   }
 }
 
+// OFF is volunteer-run and occasionally throws transient 5xx under load —
+// one retry after a short backoff smooths that over without masking real failures.
+async function fetchOffWithRetry(url: string): Promise<Response | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400))
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': OFF_USER_AGENT }, signal: AbortSignal.timeout(15000) })
+      if (res.ok) return res
+      console.warn(`[lookup-food] OFF attempt ${attempt + 1} -> ${res.status}`)
+    } catch (err) {
+      console.warn(`[lookup-food] OFF attempt ${attempt + 1} failed:`, err)
+    }
+  }
+  return null
+}
+
 async function lookupByBarcode(barcode: string): Promise<FoodResult[]> {
-  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`, {
-    signal: AbortSignal.timeout(15000),
-  })
-  if (!res.ok) return []
+  const res = await fetchOffWithRetry(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`)
+  if (!res) return []
   const json = await res.json()
   if (json.status !== 1) return []
   const result = offProductToResult(json.product, barcode)
@@ -43,8 +58,8 @@ async function lookupByBarcode(barcode: string): Promise<FoodResult[]> {
 
 async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) return []
+  const res = await fetchOffWithRetry(url)
+  if (!res) return []
   const json = await res.json()
   const products = json.products || []
   return products.map((p: any) => offProductToResult(p, p.code || null)).filter(Boolean) as FoodResult[]
