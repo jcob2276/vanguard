@@ -33,7 +33,6 @@ const Stats = lazy(() => import('./Stats'));
 const Fundament = lazy(() => import('./Fundament'));
 const DailyStrainCard = lazy(() => import('../biometrics/DailyStrainCard'));
 const StravaWidget = lazy(() => import('../integrations/StravaWidget'));
-const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 const Photos = lazy(() => import('../identity/Photos'));
 const Direction = lazy(() => import('../lifestyle/Direction'));
 const Projects = lazy(() => import('../projects/Projects'));
@@ -394,7 +393,6 @@ export default function Dashboard({ session }: { session: Session }) {
               <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
                 <Photos session={session} />
-                <MuscleHeatmap session={session} />
               </div>
             </Suspense>
           </div>
