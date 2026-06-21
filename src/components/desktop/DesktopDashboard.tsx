@@ -46,6 +46,7 @@ import {
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Fundament = lazy(() => import('../core/Fundament'));
 const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
+const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 
 export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
@@ -479,23 +480,29 @@ export default function DesktopDashboard({ session }: { session: any }) {
               <Heatmap sessions={sessions} strava={strava} />
             </Panel>
           </div>
-          <div className="lg:col-span-1 space-y-5">
+          <div className="lg:col-span-1">
             <Suspense fallback={<div className="h-40 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
               <WeeklyAnalytics session={session} />
             </Suspense>
-            <FitnessScorePanel
-              oura={oura}
-              nutrition={nutrition}
-              sessions={sessions}
-              strava={strava}
-              habits={habits}
-              habitLogs={habitLogs}
-              moves={moves}
-              volData={volData}
-              theme={theme}
-              grid={grid}
-            />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <FitnessScorePanel
+            oura={oura}
+            nutrition={nutrition}
+            sessions={sessions}
+            strava={strava}
+            habits={habits}
+            habitLogs={habitLogs}
+            moves={moves}
+            volData={volData}
+            theme={theme}
+            grid={grid}
+          />
+          <Suspense fallback={<div className="h-[450px] animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
+            <MuscleHeatmap session={session} />
+          </Suspense>
         </div>
 
         {/* Charts Row */}

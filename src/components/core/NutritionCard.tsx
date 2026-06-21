@@ -115,28 +115,19 @@ export default function NutritionCard({
     if (!userId) return;
     (async () => {
       try {
-        const [targetRes, verdictRes] = await Promise.all([
-          supabase
-            .from('nutrition_targets')
-            .select('target_kcal, protein_floor_g')
-            .eq('user_id', userId)
-            .order('date', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from('nutrition_targets')
-            .select('verdict')
-            .eq('user_id', userId)
-            .order('date', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        ]);
-        if (targetRes.data?.target_kcal) {
-          setKcalTarget(targetRes.data.target_kcal);
-          setWeeklyBudget(targetRes.data.target_kcal * 7);
+        const { data: targetRow } = await supabase
+          .from('nutrition_targets')
+          .select('target_kcal, protein_floor_g, verdict')
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (targetRow?.target_kcal) {
+          setKcalTarget(targetRow.target_kcal);
+          setWeeklyBudget(targetRow.target_kcal * 7);
         }
-        if (targetRes.data?.protein_floor_g) setProteinGoal(targetRes.data.protein_floor_g);
-        const verdict = verdictRes.data?.verdict;
+        if (targetRow?.protein_floor_g) setProteinGoal(targetRow.protein_floor_g);
+        const verdict = targetRow?.verdict;
         const suggestions = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
           ? (verdict as Record<string, unknown>).food_suggestions
           : undefined;

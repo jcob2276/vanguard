@@ -125,6 +125,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const [scanLookingUp, setScanLookingUp] = useState(false);
   const [editingEntry, setEditingEntry] = useState<RecentEntry | null>(initialEditEntry ?? null);
   const [editGrams, setEditGrams] = useState(initialEditEntry ? String(parseGrams(initialEditEntry.amount)) : '100');
+  const [editMealType, setEditMealType] = useState(initialEditEntry?.meal_type ?? defaultMealType());
   const [editPer100, setEditPer100] = useState<{ calories: number; protein: number; carbs: number | null; fat: number | null } | null>(
     initialEditEntry ? derivePer100(initialEditEntry) : null,
   );
@@ -418,17 +419,22 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     setError(null);
     try {
       const today = getTodayWarsaw();
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      // Sequential to avoid advisory lock contention on the same (user, date) key
+      // Sequential to avoid advisory lock contention on the same (user, date) key.
+      // add_food_entry expects p_entry as per-100g values and scales by p_grams/100 —
+      // but item.calories/protein/carbs/fat are already scaled to item.grams, so they
+      // must be converted back to per-100g here. Sending them as-is with p_grams:100
+      // (as before) reproduced the right logged total but poisoned food_favorites with
+      // the wrong per-100g density, corrupting any future re-add at a different grams.
       for (const item of toSave) {
+        const scale100 = item.grams > 0 ? 100 / item.grams : 1;
         const { error: rpcError } = await supabase.rpc('add_food_entry', {
-          p_user_id: userId, p_date: today, p_grams: 100,
+          p_user_id: userId, p_date: today, p_grams: item.grams,
           p_entry: {
             name: item.name, brand: null, barcode: null,
-            calories: item.calories,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
+            calories: Math.round(item.calories * scale100),
+            protein: Math.round(item.protein * scale100 * 10) / 10,
+            carbs: item.carbs != null ? Math.round(item.carbs * scale100 * 10) / 10 : null,
+            fat: item.fat != null ? Math.round(item.fat * scale100 * 10) / 10 : null,
             fiber: null, sugar: null, meal_type: mealType,
           },
         });
@@ -460,32 +466,30 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const openEditEntry = useCallback((entry: RecentEntry) => {
     setEditingEntry(entry);
     setEditGrams(String(parseGrams(entry.amount)));
+    setEditMealType(entry.meal_type ?? defaultMealType());
     setEditPer100(derivePer100(entry));
     setError(null);
   }, []);
 
+  // Updates the row in place via update_food_entry — keeps the same id and logged_at
+  // (so the entry doesn't jump to the bottom of today's/recent list), unlike the old
+  // remove+add approach which also pointlessly bumped the favorites cache.
   const saveEntryEdit = useCallback(async () => {
-    if (!editingEntry || !userId || editSaving || !editPer100) return;
+    if (!editingEntry || !userId || editSaving || !editPreview) return;
     setEditSaving(true);
     setError(null);
     try {
       const newGrams = parseInt(editGrams, 10) || 100;
-      const { error: delErr } = await supabase.rpc('remove_food_entry', {
-        p_user_id: userId, p_entry_id: editingEntry.id,
-      });
-      if (delErr) throw delErr;
-      const { error: addErr } = await supabase.rpc('add_food_entry', {
+      const { error: updErr } = await supabase.rpc('update_food_entry', {
         p_user_id: userId,
-        p_date: editingEntry.date,
-        p_grams: newGrams,
+        p_entry_id: editingEntry.id,
         p_entry: {
-          name: editingEntry.name, brand: editingEntry.brand, barcode: null,
-          calories: editPer100.calories, protein: editPer100.protein,
-          carbs: editPer100.carbs, fat: editPer100.fat,
-          fiber: null, sugar: null, meal_type: editingEntry.meal_type ?? null,
+          calories: editPreview.calories, protein: editPreview.protein,
+          carbs: editPreview.carbs, fat: editPreview.fat,
+          meal_type: editMealType, amount: `${newGrams} g`,
         },
       });
-      if (addErr) throw addErr;
+      if (updErr) throw updErr;
       setEditingEntry(null);
       onSaved?.();
       loadLists();
@@ -494,7 +498,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setEditSaving(false);
     }
-  }, [editingEntry, userId, editGrams, editPer100, editSaving, onSaved, loadLists]);
+  }, [editingEntry, userId, editGrams, editMealType, editPreview, editSaving, onSaved, loadLists]);
 
   const deleteEntry = useCallback(async () => {
     if (!editingEntry || !userId || editDeleting) return;
@@ -573,6 +577,14 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                   />
                   <span className="text-[12px] text-text-muted">gram</span>
                 </div>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {MEAL_TYPES.map((m) => (
+                  <button key={m.id} onClick={() => setEditMealType(m.id)}
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${editMealType === m.id ? 'bg-primary text-white' : 'border border-border-custom text-text-muted'}`}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
               {editPreview && (
                 <div className="rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3 grid grid-cols-4 gap-2 text-center">
