@@ -216,7 +216,8 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     if (allDone) updates.result = 'Z';
     else {
       if (todayWin.result === 'Z') updates.result = null;
-      if (new Date().getHours() >= 23 && !allDone) updates.result = 'P';
+      const warsawHour = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
+      if (warsawHour >= 23 && !allDone) updates.result = 'P';
     }
 
     const { data, error } = await supabase

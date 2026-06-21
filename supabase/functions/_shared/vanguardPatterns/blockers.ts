@@ -204,7 +204,7 @@ export async function detectRecurringBlockers(
   // (to jest podpięcie pickBestRepresentativePhrase do rzeczywistego grupowania)
   const improvedGroups = new Map<string, string[]>();
 
-  for (const [oldKey, dates] of blockerGroups) {
+  for (const [_oldKey, dates] of blockerGroups) {
     const phrasesInGroup = blockerOccurrences
       .filter(o => dates.includes(o.date))
       .map(o => o.blocker);

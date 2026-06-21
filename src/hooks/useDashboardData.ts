@@ -13,8 +13,6 @@ type DashboardData = {
   hasWorkoutToday: boolean;
   ouraToday: Tables<'oura_daily_summary'>[];
   readiness: number;
-  stability: number;
-  operationalState: string;
   loading: boolean;
   error?: string;
 };
@@ -27,8 +25,6 @@ export function useDashboardData() {
     hasWorkoutToday: false,
     ouraToday: [],
     readiness: 0,
-    stability: 0,
-    operationalState: '',
     loading: true
   });
 
@@ -91,7 +87,7 @@ export function useDashboardData() {
         lastWorkout?.date || null
       );
 
-      const { score: realStability, state: realState } = await core.determineState(signals);
+      await core.determineState(signals);
 
       if (!mountedRef.current) return;
       setData({
@@ -101,8 +97,6 @@ export function useDashboardData() {
         hasWorkoutToday: !!workoutToday,
         ouraToday: ouraData || [],
         readiness: ouraData?.[0]?.readiness_score || 0,
-        stability: realStability,
-        operationalState: realState,
         loading: false
       });
 

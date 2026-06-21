@@ -167,7 +167,8 @@ export async function handleIncomingMessage(
       let mode = 'stream';
       let cleanText = text;
 
-      const commandSource = isVoice ? text : originalText;
+      // commandSource is defined but unused, so we remove it or just prefix with _
+      const _commandSource = isVoice ? text : originalText;
       const explicitVoiceCommand = isVoice && hasCommandPrefix;
 
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }
@@ -258,7 +259,9 @@ export async function handleIncomingMessage(
                     if (h === lastAssistantMsg) return { role: 'assistant', content: JSON.stringify(parsed) };
                     return h;
                   });
-                } catch (_) {}
+                } catch (e) {
+                  console.warn('[messages] failed to apply minimum version', e);
+                }
               }
             }
 

@@ -58,7 +58,9 @@ export default function DailySnapshotCard({ session }: { session: any }) {
       const strain = strainRes.data;
       const history = historyRes.data;
       if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, any>), day_score: rec.day_score, date: rec.date });
-      if (rec?.day_score != null) setDayScore(rec.day_score);
+      if (rec?.day_score != null) {
+        setDayScore(rec.day_score);
+      }
       if (strain) setStrainState({ daily_status: strain.daily_status, main_limiter: strain.main_limiter });
       if (rec?.midday_status || rec?.midday_blocker) setMidday({ status: rec.midday_status, blocker: rec.midday_blocker });
 

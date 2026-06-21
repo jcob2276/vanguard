@@ -27,6 +27,13 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const navigate = useNavigate();
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1'
     || localStorage.getItem('vanguard_keep_new') === '1';
+
+  useEffect(() => {
+    if (localStorage.getItem('vanguard_keep_new') === '1') {
+      try { localStorage.removeItem('vanguard_keep_new'); } catch (e) {}
+    }
+  }, []);
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -238,6 +245,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     if (autoNewNote && !autoNewNoteHandled.current) {
       autoNewNoteHandled.current = true;
       window.history.replaceState({}, '', window.location.pathname);
+      try { localStorage.removeItem('vanguard_keep_new'); } catch {}
       handleNewNote();
     }
   }, [autoNewNote, handleNewNote]);

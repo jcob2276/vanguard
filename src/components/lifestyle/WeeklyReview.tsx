@@ -176,6 +176,7 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
         what_worked: review.what_worked || null,
         what_didnt_work: review.what_didnt_work || null,
       }, { onConflict: 'user_id,week_start' });
+      setAutoSaved(new Set());
       setSaved(true);
     } finally {
       setSaving(false);

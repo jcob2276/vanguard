@@ -83,7 +83,6 @@ export default function Dashboard({ session }: { session: Session }) {
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
-  const [slideDir, setSlideDir] = useState('right');
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
 
   // Theme support
@@ -95,7 +94,7 @@ export default function Dashboard({ session }: { session: Session }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('vanguard_theme', theme);
+    try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
   }, [theme]);
 
   const haptics = useHaptics();
@@ -103,26 +102,21 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const { reviewOverdueDays, urgentTodoCount, refresh: refreshNudge } = useNudgeData(userId);
 
-  const [transitioning, setTransitioning] = useState(false);
-
   const navigateTo = useCallback((newView: string) => {
     if (newView === view) return;
     haptics.light();
     const fromIdx = TAB_ORDER.indexOf(view);
-    const toIdx = TAB_ORDER.indexOf(newView);
-    const dir = toIdx >= fromIdx ? 'right' : 'left';
-    document.documentElement.dataset.slide = dir;
-    setSlideDir(dir);
+    const toIdx   = TAB_ORDER.indexOf(newView);
+    document.documentElement.dataset.slide = toIdx >= fromIdx ? 'right' : 'left';
     if (supportsVT) {
       (document as any).startViewTransition(() => {
         flushSync(() => setView(newView));
       });
     } else {
-      setTransitioning(true);
       setView(newView);
-      setTimeout(() => setTransitioning(false), 400);
     }
   }, [view, haptics]);
+
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, syncYazio, loading, refresh } = useDashboardData();
   const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
@@ -130,7 +124,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !todayWin;
 
   useEffect(() => {
-    localStorage.setItem('vanguard_view', view);
+    try { localStorage.setItem('vanguard_view', view); } catch (e) {}
   }, [view]);
 
   if (view === 'fundament') {
@@ -242,21 +236,21 @@ export default function Dashboard({ session }: { session: Session }) {
             {!showLock && (
               <>
                 <button
-                  onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('todo'); }}
+                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('todo'); }}
                   className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Zadania"
                 >
                   <CheckSquare size={15} />
                 </button>
-                <Link
-                  to="/keep"
+                <button
+                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
                   className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Notatki"
                 >
                   <Paintbrush size={15} />
-                </Link>
+                </button>
                 <button
-                  onClick={() => { localStorage.setItem('vanguard_previous_view', view); setView('links'); }}
+                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('links'); }}
                   className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Zapisane linki"
                 >
@@ -284,7 +278,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <>
               {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
               <ErrorBoundary>
-              <div className={`p-5 pb-8 ${view === 'dzis' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+              <div className={`p-5 pb-8 ${view === 'dzis' ? '' : 'hidden'}`}>
                 <div className="space-y-7">
                   <DayCounter />
 
@@ -320,7 +314,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 <MorningBriefCard session={session} />
               </Suspense>
               <Suspense fallback={<ViewFallback />}>
-                <CheckpointsCard session={session} onNavigateTo={(dest) => { localStorage.setItem('vanguard_previous_view', view); navigateTo(dest); }} />
+                <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
               </Suspense>
               <CommandButton
                 icon={Dumbbell}
@@ -336,7 +330,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
           </ErrorBoundary>
           <ErrorBoundary>
-          <div className={`p-5 pb-8 ${view === 'tydzien' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <WeeklyAnalytics session={session} />
@@ -353,7 +347,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
           </ErrorBoundary>
           <ErrorBoundary>
-          <div className={`p-5 pb-8 ${view === 'historia' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'historia' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
@@ -364,13 +358,13 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
           </ErrorBoundary>
           <ErrorBoundary>
-          <div className={`p-5 pb-8 ${view === 'projekty' ? (supportsVT ? '' : slideDir === 'right' ? 'animate-spring-right' : 'animate-spring-left') : 'hidden'}`}>
+          <div className={`p-5 pb-8 ${view === 'projekty' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <Projects
                 session={session}
                 reviewOverdueDays={reviewOverdueDays}
                 onNavigateTo={(dest) => {
-                  localStorage.setItem('vanguard_previous_view', view);
+                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
                   setView(dest);
                 }}
               />
@@ -397,7 +391,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <button
               key={item.id}
               onClick={() => navigateTo(item.id)}
-              disabled={transitioning}
+              disabled={false}
               className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
                 view === item.id
                   ? 'text-primary font-black'

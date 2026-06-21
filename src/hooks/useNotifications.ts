@@ -24,7 +24,7 @@ export function useNotifications() {
               tag: 'daily-reminder',
               requireInteraction: true
             });
-            try { localStorage.setItem('last_reminder_date', today); } catch (_e) { /* unavailable */ }
+            try { localStorage.setItem('last_reminder_date', today); } catch (e) { console.warn('Storage warn:', e); }
           }
         }
       }

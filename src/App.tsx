@@ -12,8 +12,8 @@ const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboar
 
 function KeepRedirect() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('new') === '1') localStorage.setItem('vanguard_keep_new', '1');
-  localStorage.setItem('vanguard_view', 'keep');
+  if (params.get('new') === '1') try { localStorage.setItem('vanguard_keep_new', '1'); } catch (e) {}
+  try { localStorage.setItem('vanguard_view', 'keep'); } catch (e) {}
   return <Navigate to="/" replace />;
 }
 

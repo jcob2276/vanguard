@@ -218,7 +218,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('vanguard_theme', theme);
+    try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
   }, [theme]);
 
   // Hexagon state

@@ -41,7 +41,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
 
   const [timerMode, setTimerMode] = useState<'idle' | 'work' | 'break'>('idle');
   const [blockDuration, setBlockDuration] = useState(90 * 60);
-  const [breakDuration] = useState(15 * 60);
+  const breakDuration = 15 * 60;
   const [timeLeft, setTimeLeft] = useState(90 * 60);
   const [timerActive, setTimerActive] = useState(false);
   const [blockSubject, setBlockSubject] = useState('');
