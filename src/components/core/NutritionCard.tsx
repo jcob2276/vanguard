@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
+import FoodEntryModal from './nutrition/FoodEntryModal';
 
 interface NutritionCardProps {
   weeklyCalories: number;
@@ -23,10 +24,7 @@ export default function NutritionCard({
   const [kcalTarget, setKcalTarget] = useState(1800);
   const [weeklyBudget, setWeeklyBudget] = useState(12600);
   const [rows, setRows] = useState<{ date: string; protein: number | null; calories: number | null; food_quality_analysis: string | null; insulin_load: number | null }[]>([]);
-  const [showManual, setShowManual] = useState(false);
-  const [manualKcal, setManualKcal] = useState('');
-  const [manualProtein, setManualProtein] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [showEntryModal, setShowEntryModal] = useState(false);
 
   const fetchRows = useCallback(async () => {
     if (!userId) return;
@@ -103,33 +101,6 @@ export default function NutritionCard({
   const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
   const todayMissingData = todayKcal === 0 && todayProtein === 0;
 
-  const saveManual = async () => {
-    if (!userId || saving) return;
-    const kcal = parseInt(manualKcal, 10);
-    const prot = parseInt(manualProtein, 10);
-    if (isNaN(kcal) && isNaN(prot)) return;
-    setSaving(true);
-    try {
-      await supabase.from('daily_nutrition').upsert(
-        {
-          user_id: userId,
-          date: todayRaw,
-          calories: isNaN(kcal) ? null : kcal,
-          protein: isNaN(prot) ? null : prot,
-        },
-        { onConflict: 'user_id,date' }
-      );
-      setManualKcal('');
-      setManualProtein('');
-      setShowManual(false);
-      await fetchRows();
-    } catch (e) {
-      console.error('manual nutrition save failed', e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const kcalBarColor = (v: number) => {
     if (!v) return 'bg-border-custom';
     const pct = v / kcalTarget;
@@ -148,14 +119,12 @@ export default function NutritionCard({
       <div className="mb-4 flex items-center justify-between">
         <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted">Żywienie</p>
         <div className="flex items-center gap-2">
-          {todayMissingData && (
-            <button
-              onClick={() => setShowManual((v) => !v)}
-              className="rounded-xl border border-primary/30 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black text-primary hover:bg-primary/10 active:scale-95 transition-all cursor-pointer"
-            >
-              + Dodaj ręcznie
-            </button>
-          )}
+          <button
+            onClick={() => setShowEntryModal(true)}
+            className="rounded-xl border border-primary/30 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black text-primary hover:bg-primary/10 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+          >
+            <Plus size={12} /> Dodaj posiłek
+          </button>
           <button
             onClick={syncYazio}
             disabled={isSyncing}
@@ -166,41 +135,6 @@ export default function NutritionCard({
           </button>
         </div>
       </div>
-
-      {showManual && (
-        <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/[0.03] p-3.5 space-y-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Dzisiejsze dane</p>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Kcal</label>
-              <input
-                type="number"
-                value={manualKcal}
-                onChange={(e) => setManualKcal(e.target.value)}
-                placeholder={`cel: ${kcalTarget}`}
-                className="w-full rounded-xl border border-border-custom bg-surface-solid/60 px-3 py-2 text-[12px] font-bold text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/40"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Białko (g)</label>
-              <input
-                type="number"
-                value={manualProtein}
-                onChange={(e) => setManualProtein(e.target.value)}
-                placeholder={`cel: ${proteinGoal}`}
-                className="w-full rounded-xl border border-border-custom bg-surface-solid/60 px-3 py-2 text-[12px] font-bold text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/40"
-              />
-            </div>
-          </div>
-          <button
-            onClick={saveManual}
-            disabled={saving}
-            className="w-full rounded-2xl bg-primary py-2 text-[11px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
-          >
-            {saving ? 'Zapisuję...' : 'Zapisz'}
-          </button>
-        </div>
-      )}
 
       <p className="font-display text-[26px] font-black tracking-tight text-text-primary leading-none">
         {weeklyCalories.toLocaleString('pl-PL')}
@@ -305,6 +239,14 @@ export default function NutritionCard({
           <p className="text-[9px] uppercase font-bold text-text-muted mb-1">Analiza jakości</p>
           <p className="text-[11px] leading-relaxed text-text-secondary">{todayAnalysis}</p>
         </div>
+      )}
+
+      {showEntryModal && (
+        <FoodEntryModal
+          session={session}
+          onClose={() => setShowEntryModal(false)}
+          onSaved={fetchRows}
+        />
       )}
     </section>
   );

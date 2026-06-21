@@ -1146,6 +1146,57 @@ export type Database = {
         }
         Relationships: []
       }
+      food_favorites: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          fat: number | null
+          fiber: number | null
+          id: string
+          last_used: string
+          name: string
+          protein: number | null
+          sugar: number | null
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          last_used?: string
+          name: string
+          protein?: number | null
+          sugar?: number | null
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          last_used?: string
+          name?: string
+          protein?: number | null
+          sugar?: number | null
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       friction_events: {
         Row: {
           actual_behavior: string | null
@@ -4314,14 +4365,18 @@ export type Database = {
           emotional_state: string | null
           event_kind: string | null
           extraction_quality: number | null
+          extraction_quality_score: number | null
           friction_type: string | null
           id: string | null
           immediate_cost: string | null
+          last_reviewed_at: string | null
           later_cost: string | null
           location_context: string | null
           occurred_at: string | null
+          parser_version: string | null
           people_involved: string[] | null
           raw_text: string | null
+          review_notes: string | null
           review_status: string | null
           status: string | null
           stream_record_id: string | null
@@ -4339,14 +4394,18 @@ export type Database = {
           emotional_state?: string | null
           event_kind?: string | null
           extraction_quality?: number | null
+          extraction_quality_score?: number | null
           friction_type?: string | null
           id?: string | null
           immediate_cost?: string | null
+          last_reviewed_at?: string | null
           later_cost?: string | null
           location_context?: string | null
           occurred_at?: string | null
+          parser_version?: string | null
           people_involved?: string[] | null
           raw_text?: string | null
+          review_notes?: string | null
           review_status?: string | null
           status?: string | null
           stream_record_id?: string | null
@@ -4364,14 +4423,18 @@ export type Database = {
           emotional_state?: string | null
           event_kind?: string | null
           extraction_quality?: number | null
+          extraction_quality_score?: number | null
           friction_type?: string | null
           id?: string | null
           immediate_cost?: string | null
+          last_reviewed_at?: string | null
           later_cost?: string | null
           location_context?: string | null
           occurred_at?: string | null
+          parser_version?: string | null
           people_involved?: string[] | null
           raw_text?: string | null
+          review_notes?: string | null
           review_status?: string | null
           status?: string | null
           stream_record_id?: string | null
@@ -4630,6 +4693,14 @@ export type Database = {
       }
     }
     Functions: {
+      _recompute_daily_nutrition: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: undefined
+      }
+      add_food_entry: {
+        Args: { p_date: string; p_entry: Json; p_user_id: string }
+        Returns: string
+      }
       canonicalize_vanguard_entity: {
         Args: { p_name: string; p_user_id: string }
         Returns: string
@@ -4767,6 +4838,24 @@ export type Database = {
         Args: { new_relation: string; old_relation: string }
         Returns: undefined
       }
+      remove_food_entry: {
+        Args: { p_entry_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      replace_calendar_window: {
+        Args: {
+          p_category: string
+          p_end: string
+          p_events: Json
+          p_start: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      replace_daily_food_entries: {
+        Args: { p_date: string; p_entries: Json; p_user_id: string }
+        Returns: undefined
+      }
       save_workout_atomic:
         | {
             Args: {
@@ -4833,6 +4922,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       trigger_daily_snapshots: {
         Args: { secret_key: string }
+        Returns: undefined
+      }
+      update_food_entry: {
+        Args: { p_entry: Json; p_entry_id: string; p_user_id: string }
         Returns: undefined
       }
       upsert_vanguard_entity_link: {
