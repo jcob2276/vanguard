@@ -1,5 +1,11 @@
 import { createServiceClient } from "./supabase.ts";
 
+let _auditClient: ReturnType<typeof createServiceClient> | null = null;
+function getAuditClient() {
+  if (!_auditClient) _auditClient = createServiceClient();
+  return _auditClient;
+}
+
 /**
  * Prosty helper do logowania zdarzeń audytowych.
  * Używany do observability – zbierania informacji o degradacjach, błędach i ważnych zdarzeniach.
@@ -15,7 +21,7 @@ export async function logAuditEvent(params: {
   relatedId?: string;
   metadata?: Record<string, any>;
 }) {
-  const supabase = createServiceClient();
+  const supabase = getAuditClient();
 
   try {
     const { error } = await supabase.from('audit_events').insert({
