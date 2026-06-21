@@ -110,4 +110,7 @@ export async function handleCallbackQuery(
   }
 
   console.warn("[telegram] unknown callback_data:", data);
+  // Telegram shows a spinning loader on the tapped button for up to 10s if the callback
+  // is never answered — always acknowledge it, even for an unrecognized action.
+  await answerCallbackQuery(telegramToken, callbackId, { text: "⚠️ Nieznana akcja" });
 }

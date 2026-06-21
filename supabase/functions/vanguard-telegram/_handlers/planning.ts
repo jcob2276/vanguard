@@ -36,14 +36,21 @@ export function applyMinimumVersionToPlan(parsed: any): any {
  * Waliduje czy plan JSON zawiera minimalne wymagane pola.
  * Używane w guardrails przed zapisem planu.
  */
-export function validatePlanJson(planJson: any): { valid: boolean; missing: string[]; completeness: 'low' | 'medium' | 'high' } {
+export function validatePlanJson(
+  planJson: any,
+  options: { requireTensionAction?: boolean } = {},
+): { valid: boolean; missing: string[]; completeness: 'low' | 'medium' | 'high' } {
+  const { requireTensionAction = true } = options;
   const missing: string[] = [];
 
   // Hard requirements (the absolute minimum the prompt and system expect)
   if (!planJson?.production_artifact?.artifact?.trim()) {
     missing.push('production_artifact.artifact');
   }
-  if (!planJson?.tension_action?.action?.trim()) {
+  // Morning rescue legitimately produces plans with tension_action: null — the user only
+  // described what they're producing today, not a separate friction move. Requiring it
+  // there meant a rescue plan with a perfectly good artifact always failed validation.
+  if (requireTensionAction && !planJson?.tension_action?.action?.trim()) {
     missing.push('tension_action.action');
   }
 

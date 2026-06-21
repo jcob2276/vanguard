@@ -121,19 +121,24 @@ ${cleanText.substring(0, 700)}`
     plan_quality: 'rescue',
   };
 
-  // === Walidacja — używamy tej samej co w normalnym planowaniu ===
-  const validation = validatePlanJson(candidatePlan);
+  // === Walidacja — używamy tej samej co w normalnym planowaniu, ale tension_action jest
+  // opcjonalny w rescue: użytkownik mówi tylko co dziś tworzy, niekoniecznie podaje
+  // odrębny ruch napięciowy ===
+  const validation = validatePlanJson(candidatePlan, { requireTensionAction: false });
 
   if (!validation.valid) {
     // Plan z ratowania jest za słaby — nie zapisujemy byle czego
-    await logAuditEvent({
+    // Fire-and-forget — this is a non-critical audit log; awaiting it makes the user wait
+    // out a DB write before seeing the "plan incomplete" message, in a flow where they're
+    // already mid-rescue and latency-sensitive.
+    logAuditEvent({
       eventType: 'rescue_plan_validation_failed',
       severity: 'warning',
       message: 'Rescue plan nie przeszedł walidacji',
       relatedTable: 'daily_reconciliations',
       relatedId: rescueId,
       metadata: { missing_fields: validation.missing, raw_text: cleanText.substring(0, 300) }
-    });
+    }).catch((e) => console.error('[morningRescue] audit log failed:', e));
 
     await safeSendTelegram(
       chatId,
@@ -160,14 +165,14 @@ ${cleanText.substring(0, 700)}`
     return;
   }
 
-  await logAuditEvent({
+  logAuditEvent({
     eventType: 'rescue_plan_saved',
     severity: 'info',
     message: 'Zapisano plan ratunkowy',
     relatedTable: 'daily_reconciliations',
     relatedId: rescueId,
     metadata: { plan_quality: 'rescue' }
-  });
+  }).catch((e) => console.error('[morningRescue] audit log failed:', e));
 
   const taLine = tensionAction ? `\n⚡ Ruch: ${tensionAction}` : '';
   await safeSendTelegram(

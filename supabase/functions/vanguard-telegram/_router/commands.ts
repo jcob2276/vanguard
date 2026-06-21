@@ -9,7 +9,7 @@
 
 import { sendChatAction } from "../../_shared/telegram.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { deepseekChat } from "../../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 export const DEFAULT_REPLY_KEYBOARD = {
   keyboard: [
@@ -64,6 +64,11 @@ export async function handleKoniecCommand(
 
     if (body?.skipped && body?.reason === 'already_used_today') {
       await safeSendTelegram(chatId, 'Wieczorna refleksja byla juz dzisiaj odpalona. Cron 21:30 tez ja pominie.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+    } else if (!body?.skipped) {
+      // Without this, a successful trigger gave zero feedback — user had no way to tell
+      // whether /koniec worked until the reflection question itself arrived (or didn't,
+      // prompting a duplicate /koniec retry).
+      await safeSendTelegram(chatId, '⏳ Wieczorna refleksja odpalona — zaraz dostaniesz pytanie.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
     }
   } catch (err) {
     console.error('[commands] /koniec reflection trigger failed:', err);
@@ -220,6 +225,15 @@ export async function handleTodoCommand(
 
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const dayName = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw', weekday: 'long' });
+    // Anchor on todayStr (already Warsaw-correct) and step in pure UTC-date-string space —
+    // new Date().setDate(new Date().getDate()+1) round-trips through the real "now" instant
+    // and back through a Warsaw timeZone conversion, which is off by one day for ~2 hours/year
+    // around the DST transitions (verified: 2026-03-28 22:00-23:00Z and 2026-10-24 22:00-23:00Z).
+    const tomorrowStr = (() => {
+      const d = new Date(todayStr + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().split('T')[0];
+    })();
 
     let title = raw;
     let dueDate: string | null = null;
@@ -239,7 +253,7 @@ export async function handleTodoCommand(
             content: `Dzisiaj: ${todayStr} (${dayName}). Sparsuj polskie zadanie i wyciągnij: czysty tytuł, datę i czas wykonania, priorytet.
 
 Zasady:
-- "jutro" → ${new Date(new Date().setDate(new Date().getDate() + 1)).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })}
+- "jutro" → ${tomorrowStr}
 - "pojutrze" → +2 dni
 - "w poniedziałek/wtorek/środę/czwartek/piątek/sobotę/niedzielę" → najbliższy taki dzień
 - "za tydzień" → +7 dni
@@ -259,7 +273,7 @@ Tekst: "${raw}"`
           }]
         });
 
-        const parsed = JSON.parse(res.content || '{}');
+        const parsed: any = parseJsonFromContent(res.content || '{}') || {};
         if (parsed.title) title = parsed.title;
         if (parsed.due_date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.due_date)) dueDate = parsed.due_date;
         if (parsed.due_time && /^\d{2}:\d{2}$/.test(parsed.due_time)) dueTime = parsed.due_time;
@@ -380,11 +394,15 @@ export async function handleLenieCommand(
       : [rest, null];
 
     // Find or create Lenie habit
+    // Exact match — ilike('%lenie%') previously also matched a positive habit named e.g.
+    // "Nielenie się", logging the negative Lenie entry against the wrong habit (or, with
+    // two name matches, silently falling through to maybeSingle()=null and creating a
+    // duplicate "Lenie" habit instead of reusing the existing one).
     let { data: habit } = await supabase
       .from('habits')
       .select('id')
       .eq('user_id', vanguardUserId)
-      .ilike('name', '%lenie%')
+      .eq('name', 'Lenie')
       .maybeSingle();
 
     if (!habit) {
