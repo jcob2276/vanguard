@@ -22,6 +22,6 @@ export function createTelegramContext(): TelegramRouterContext {
     vanguardUserId: getVanguardUserId(),
     authorizedChatId: parseInt(Deno.env.get("TELEGRAM_CHAT_ID") || "0"),
     supabaseUrl: Deno.env.get("SUPABASE_URL") ?? "",
-    supabaseServiceRoleKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    supabaseServiceRoleKey: Deno.env.get("SB_SECRET_KEY") ?? "",
   };
 }

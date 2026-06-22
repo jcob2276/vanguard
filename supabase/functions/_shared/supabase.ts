@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 
 export function createServiceClient(): SupabaseClient {
   const url = Deno.env.get("SUPABASE_URL") || "";
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const key = Deno.env.get("SB_SECRET_KEY") || "";
   return createClient(url, key);
 }
 
@@ -49,11 +49,8 @@ export async function resolveUserScope(
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : "";
   if (!token) throw new Error("Missing Authorization bearer token");
 
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  if (serviceRoleKey && token === serviceRoleKey) {
-    return { userId: requestedUserId, isServiceRole: true };
-  }
-  if (await isValidServiceRoleToken(token)) {
+  const secretKey = Deno.env.get("SB_SECRET_KEY") || "";
+  if (secretKey && token === secretKey) {
     return { userId: requestedUserId, isServiceRole: true };
   }
 

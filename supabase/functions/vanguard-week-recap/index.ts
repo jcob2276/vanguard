@@ -165,7 +165,7 @@ function factsToPrompt(f: Awaited<ReturnType<typeof gatherWeekFacts>>): string {
     .join("\n") || "(brak)";
 
   const readinessLine = f.readiness.length
-    ? f.readiness.map((r) => `${r.date}=${r.score}`).join(", ")
+    ? f.readiness.map((r: any) => `${r.date}=${r.score}`).join(", ")
     : "brak danych";
 
   const doneBlock = f.doneTasks.length
