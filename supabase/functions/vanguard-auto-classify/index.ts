@@ -2,10 +2,65 @@ import { getEmbedding } from "../_shared/openai.ts";
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { logCriticalError } from '../_shared/errorLogging.ts'
+import { logAuditEvent } from '../_shared/audit.ts'
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
+
+// Zamknięty słownik kategorii — model nie może wymyślać własnych wartości.
+// Hallucynacja poza tą listą zawsze spada do 'Chaos' (patrz normalizeClassification).
+const ALLOWED_CATEGORIES = ['Ciało', 'Konto', 'Duch', 'Chaos', 'Relacje'];
+
+// Zamknięty słownik event_kind i friction_type dla mikrotarć.
+const ALLOWED_EVENT_KINDS = ['friction_event', 'positive_micro_action', 'state_observation', 'micro_behavior_observation', 'reflection'];
+const ALLOWED_FRICTION_TYPES = [
+  'sleep_disruption', 'avoidance', 'procrastination', 'habit_break',
+  'training_drop', 'social_hesitation', 'communication_drift',
+  'emotional_spike', 'self_control_break', 'positive_micro_action', 'other'
+];
+
+// Normalizuje output LLM dla klasyfikacji: wymusza zamknięte słowniki i bezpieczne typy.
+function normalizeClassification(raw: any): any {
+  const category = ALLOWED_CATEGORIES.includes(raw?.category) ? raw.category : 'Chaos';
+  const tags = Array.isArray(raw?.tags)
+    ? [...new Set(raw.tags.map((t: any) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 5)
+    : [];
+
+  let importance_score = parseInt(raw?.importance_score);
+  if (isNaN(importance_score) || importance_score < 1 || importance_score > 10) {
+    importance_score = 5;
+  }
+
+  const temporality = (raw?.temporality === 'trwałe' || raw?.temporality === 'tymczasowe')
+    ? raw.temporality
+    : 'tymczasowe';
+
+  return {
+    ...raw,
+    category,
+    tags,
+    importance_score,
+    temporality,
+    is_closure: !!raw?.is_closure,
+    closed_topic_description: typeof raw?.closed_topic_description === 'string' ? raw.closed_topic_description : null,
+    expiration_date: typeof raw?.expiration_date === 'string' ? raw.expiration_date : null,
+  };
+}
+
+// Normalizuje output LLM dla mikrotarć.
+function normalizeFriction(raw: any): any {
+  const event_kind = ALLOWED_EVENT_KINDS.includes(raw?.event_kind) ? raw.event_kind : null;
+  const friction_type = ALLOWED_FRICTION_TYPES.includes(raw?.friction_type) ? raw.friction_type : 'other';
+  const is_relevant = typeof raw?.is_relevant === 'boolean' ? raw.is_relevant : (event_kind !== null);
+
+  return {
+    ...raw,
+    event_kind,
+    friction_type,
+    is_relevant
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -71,11 +126,25 @@ Deno.serve(async (req) => {
   "importance_score": (1-10),
   "category": ("Ciało" | "Konto" | "Duch" | "Chaos" | "Relacje"),
   "tags": [max 5 tagów],
+  "temporality": ("trwałe" | "tymczasowe"),
   "fingerprint_text": "2-zdaniowe podsumowanie stanu biometrycznego i tematu notatki",
   "is_closure": boolean,
   "closed_topic_description": "krótki opis zamykanego wątku jeśli is_closure=true, inaczej null",
-  "expiration_date": "ISO string jeśli w tekście jest termin, inaczej null"
-}`
+  "expiration_date": "ISO string jeśli w tekście jest termin LUB jeśli temporality=tymczasowe, inaczej null"
+}
+
+ZASADA TRWAŁOŚCI (temporality) — zapobiega długoterminowaniu szumu dnia:
+- Test 7 dni: czy ten fakt będzie istotny za 7 dni? NIE → "tymczasowe". TAK → "trwałe".
+- Test atrybut vs zdarzenie: zapisuj CO TO ZNACZY o użytkowniku, nie CO SIĘ WYDARZYŁO. Jednorazowe zdarzenie/transakcja/stan dnia → "tymczasowe". Wzorzec, nawyk, trwałe ograniczenie/preferencja → "trwałe".
+- Jeśli temporality="tymczasowe" i nie podałeś expiration_date w treści, USTAW expiration_date na +3 dni od teraz — tymczasowe wpisy MUSZĄ mieć datę wygaśnięcia, inaczej zaśmiecają długoterminowy kontekst.
+
+Przykłady:
+"Boli mnie dziś brzuch, stresuję się przed weselem" → temporality="tymczasowe" (stan przejściowy, konkretny dzień)
+"Mam refluks, muszę unikać kawy po 16" → temporality="trwałe" (stałe ograniczenie zdrowotne)
+"Zaspałem dziś bo siedziałem do 2 w nocy" → temporality="tymczasowe" (jednorazowe zdarzenie)
+"Zawsze zasypiam po północy, to mój wzorzec" → temporality="trwałe" (nawyk)
+"Kupiłem nowe buty do biegania za 600zł" → temporality="tymczasowe" (transakcja, szum)
+"Biegam tylko w Asicsach, inne mi obcierają" → temporality="trwałe" (trwała preferencja)`
             },
             {
               role: 'user',
@@ -185,16 +254,50 @@ Przykłady:
   // wraps JSON in markdown fences despite responseFormat:json_object, which raw JSON.parse
   // can't handle; that silently dropped every such message into the generic "Chaos" fallback
   // below instead of its real classification.
-  const classification: any = parseJsonFromContent(classifyRes.content || '{}') ?? (() => {
+  let classification: any = parseJsonFromContent(classifyRes.content || '{}');
+  if (!classification) {
     console.error(`[auto-classify] classify JSON parse failed, using fallback. Raw: ${(classifyRes.content || '').slice(0, 200)}`);
-    return { importance_score: 5, category: 'Chaos', tags: [], fingerprint_text: null, is_closure: false, closed_topic_description: null, expiration_date: null };
-  })();
+    // Skip z dowodem: zamiast cichego fallbacku, audit_events dostaje konkretny powód
+    // i fragment surowej odpowiedzi — żeby nie trzeba było grzebać w edge logs by zrozumieć dlaczego.
+    await logAuditEvent({
+      eventType: 'classify_parse_fallback',
+      severity: 'warning',
+      message: 'auto-classify: classify JSON parse failed, used Chaos fallback',
+      userId: record.user_id,
+      relatedTable: 'vanguard_stream',
+      relatedId: record.id,
+      metadata: { raw_response: (classifyRes.content || '').slice(0, 500) },
+    });
+    classification = { importance_score: 5, category: 'Chaos', tags: [], temporality: 'tymczasowe', fingerprint_text: null, is_closure: false, closed_topic_description: null, expiration_date: null };
+  }
+  classification = normalizeClassification(classification);
+
+  // Tymczasowe wpisy bez wyraźnej daty wygaśnięcia dostają domyślne +3 dni —
+  // zapobiega temu, żeby stan jednego dnia (np. "boli mnie brzuch") długoterminował się
+  // w vanguard_stream bez ograniczenia (patrz lessons.md: bug z nadpisywaniem valid_from).
+  if (classification.temporality === 'tymczasowe' && !classification.expiration_date) {
+    const fallbackExpiry = new Date();
+    fallbackExpiry.setDate(fallbackExpiry.getDate() + 3);
+    classification.expiration_date = fallbackExpiry.toISOString();
+  }
 
   // === Parse friction ===
-  const friction: any = parseJsonFromContent(frictionRes.content || '{"is_relevant":false}') ?? (() => {
+  let friction: any = parseJsonFromContent(frictionRes.content || '{"is_relevant":false}');
+  if (!friction) {
     console.error(`[auto-classify] friction JSON parse failed, using fallback. Raw: ${(frictionRes.content || '').slice(0, 200)}`);
-    return { is_relevant: false, event_kind: null, friction_type: null };
-  })();
+    await logAuditEvent({
+      eventType: 'friction_parse_fallback',
+      severity: 'warning',
+      message: 'auto-classify: friction JSON parse failed, used is_relevant=false fallback',
+      userId: record.user_id,
+      relatedTable: 'vanguard_stream',
+      relatedId: record.id,
+      metadata: { raw_response: (frictionRes.content || '').slice(0, 500) },
+    });
+    friction = { is_relevant: false, event_kind: null, friction_type: null };
+  } else {
+    friction = normalizeFriction(friction);
+  }
 
     console.log(`[auto-classify] category=${classification.category}, is_relevant=${friction.is_relevant}, kind=${friction.event_kind}, type=${friction.friction_type}`)
 
@@ -259,22 +362,6 @@ Przykłady:
         }
       }
     }
-
-    // === Update stream record ===
-    await safeExecute(
-      supabase
-        .from('vanguard_stream')
-        .update({
-          importance_score: classification.importance_score,
-          category: classification.category,
-          tags: classification.tags,
-          situation_fingerprint: embedding,
-          classification: classification.category?.toLowerCase(),
-          valid_from: new Date().toISOString(),
-          valid_until: classification.expiration_date || null
-        })
-        .eq('id', record.id)
-    )
 
     // === INSERT friction_event jeśli wykryto mikrotarcie, gest lub obserwację ===
     // Wstawiamy rekord zawsze gdy model zwrócił poprawne event_kind (nawet jeśli is_relevant=false).
@@ -349,6 +436,26 @@ Przykłady:
         console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type} | quality=${extractionQuality}% | status=${finalStatus}`)
       }
     }
+
+    // === Update stream record (mint-then-fill: zapisane na końcu) ===
+    // Idempotency gate na początku tej funkcji (classification != null) sprawdza dokładnie te pola —
+    // jeśli friction_events insert wyżej rzuci wyjątkiem, ten update nigdy się nie wykona, rekord
+    // zostaje "niesklasyfikowany" i retry/webhook-replay spróbuje całego pipeline'u od nowa,
+    // zamiast trwale gubić friction_event przy częściowym sukcesie.
+    await safeExecute(
+      supabase
+        .from('vanguard_stream')
+        .update({
+          importance_score: classification.importance_score,
+          category: classification.category,
+          tags: classification.tags,
+          situation_fingerprint: embedding,
+          classification: classification.category?.toLowerCase(),
+          valid_from: record.valid_from || record.created_at || new Date().toISOString(),
+          valid_until: classification.expiration_date || null
+        })
+        .eq('id', record.id)
+    )
 
     return new Response(JSON.stringify({
       success: true,
