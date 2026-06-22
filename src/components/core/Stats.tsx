@@ -189,10 +189,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         alert(`Zsynchronizowano ${res.synced_days} dni!`);
         fetchStats();
       } else {
-        alert('B????d synchronizacji: ' + res.error);
+        alert('Błąd synchronizacji: ' + res.error);
       }
     } catch (_err) {
-      alert('B????d po????czenia z funkcj??');
+      alert('Błąd połączenia z funkcją');
     } finally {
       setIsSyncing(false);
     }
@@ -212,7 +212,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       if (res.success) {
         setAnalyzeResult(res);
       } else {
-        alert('B????d analizy: ' + (res.error || 'Nieznany b????d'));
+        alert('Błąd analizy: ' + (res.error || 'Nieznany błąd'));
       }
     } catch (err) {
       alert('Błąd połączenia: ' + (err instanceof Error ? err.message : String(err)));
@@ -268,9 +268,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         if ((weight != null && Number.isNaN(weight)) || (reps != null && Number.isNaN(reps))) {
           throw new Error('Nieprawidłowa wartość w serii.');
         }
-        const { error: logError } = await supabase.from('exercise_logs').update({ 
-          weight, 
-          reps: reps ?? undefined
+        const { error: logError } = await supabase.from('exercise_logs').update({
+          weight,
+          reps
         }).eq('id', log.id);
         if (logError) throw logError;
       }
