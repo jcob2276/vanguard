@@ -268,6 +268,13 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         if ((weight != null && Number.isNaN(weight)) || (reps != null && Number.isNaN(reps))) {
           throw new Error('Nieprawidłowa wartość w serii.');
         }
+        // reps is NOT NULL in the DB — sending null would throw a constraint
+        // error, so reject explicitly here rather than silently keeping the
+        // old value (the previous `reps ?? undefined` made a cleared field
+        // look saved while quietly leaving the row untouched).
+        if (reps == null) {
+          throw new Error('Liczba powtórzeń jest wymagana — nie może być puste.');
+        }
         const { error: logError } = await supabase.from('exercise_logs').update({
           weight,
           reps

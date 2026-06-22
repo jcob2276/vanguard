@@ -107,10 +107,20 @@ export default function ProjectCard({
     <div
       className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
     >
-      {/* Card header */}
-      <button
-        className="w-full text-left p-4"
+      {/* Card header — div+role, not a real button element: contains nested
+          interactive controls (KPI edit, checkpoint actions) once expanded,
+          which is invalid inside a real button and breaks hydration/click semantics. */}
+      <div
+        role="button"
+        tabIndex={0}
+        className="w-full text-left p-4 cursor-pointer"
         onClick={() => setExpandedId(p => p === project.id ? null : project.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpandedId(p => p === project.id ? null : project.id);
+          }
+        }}
       >
         <div className="flex items-start gap-3">
           <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${col.dot}`} />
@@ -237,7 +247,7 @@ export default function ProjectCard({
             })}
           </div>
         )}
-      </button>
+      </div>
 
       {/* Expanded detail */}
       {isExpanded && (
