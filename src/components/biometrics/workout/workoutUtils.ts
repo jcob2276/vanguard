@@ -8,6 +8,7 @@ export interface WorkoutSet {
   reps: string;
   rir: string;
   msp: boolean;
+  done?: boolean;
 }
 
 export interface WorkoutExercise {
@@ -34,6 +35,7 @@ export const newSet = (): WorkoutSet => ({
   reps: '',
   rir: '',
   msp: false,
+  done: false,
 });
 
 export const newExercise = (): WorkoutExercise => ({
@@ -62,6 +64,19 @@ export function epley(
   const r = typeof reps === 'number' ? reps : parseInt(reps);
   if (!k || !r || r <= 0) return null;
   return r === 1 ? k : k * (1 + r / 30);
+}
+
+/** Ticks down to 0 from `endTime` (ms epoch). Returns remaining whole seconds, or 0 when idle/done. */
+export function useCountdown(endTime: number | null): number {
+  const [remaining, setRemaining] = useState(0);
+  useEffect(() => {
+    if (!endTime) { setRemaining(0); return; }
+    const tick = () => setRemaining(Math.max(0, Math.round((endTime - Date.now()) / 1000)));
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [endTime]);
+  return remaining;
 }
 
 export function useStopwatch(startTs: number | null): string | null {

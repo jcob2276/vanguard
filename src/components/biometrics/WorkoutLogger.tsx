@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
-import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus } from 'lucide-react';
+import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import {
   newExercise,
   newActivity,
   useStopwatch,
+  useCountdown,
   type WorkoutExercise,
   type WorkoutActivity,
 } from './workout/workoutUtils';
@@ -34,6 +35,42 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   const userId  = session?.user?.id;
   const haptics = useHaptics();
 
+  // Rest timer — auto-starts when a set is checked off as done in ExerciseCard
+  const [restDuration, setRestDuration] = useState(90);
+  const [restEndTime, setRestEndTime] = useState<number | null>(null);
+  const restRemaining = useCountdown(restEndTime);
+
+  const playRestGong = useCallback(() => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 1.2);
+    } catch { /* AudioContext unavailable/blocked */ }
+  }, []);
+
+  useEffect(() => {
+    if (restEndTime && restRemaining <= 0) {
+      playRestGong();
+      haptics.success();
+      setRestEndTime(null);
+    }
+  }, [restRemaining, restEndTime, playRestGong, haptics]);
+
+  const startRest = useCallback(() => {
+    setRestEndTime(Date.now() + restDuration * 1000);
+  }, [restDuration]);
+
+  const adjustRest = (deltaSec: number) => {
+    haptics.light();
+    setRestEndTime(prev => prev ? Math.max(Date.now(), prev + deltaSec * 1000) : null);
+  };
+
   const hasUnsavedData = Boolean(
     workoutName.trim() || notes.trim() || sessionRpe != null || timerStart != null ||
     exercises.some(e => e.name.trim()) || activities.some(a => a.name.trim())
@@ -44,12 +81,12 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
     onBack();
   };
 
-  const addExercise    = () => setExercises(p => [...p, newExercise()]);
-  const removeExercise = (id: number) => { if (exercises.length > 1) setExercises(p => p.filter(e => e.id !== id)); };
+  const addExercise    = () => { haptics.light(); setExercises(p => [...p, newExercise()]); };
+  const removeExercise = (id: number) => { if (exercises.length > 1) { haptics.light(); setExercises(p => p.filter(e => e.id !== id)); } };
   const updateExercise = (u: WorkoutExercise) => setExercises(p => p.map(e => e.id === u.id ? u : e));
 
-  const addActivity    = () => setActivities(p => [...p, newActivity()]);
-  const removeActivity = (id: number) => setActivities(p => p.filter(a => a.id !== id));
+  const addActivity    = () => { haptics.light(); setActivities(p => [...p, newActivity()]); };
+  const removeActivity = (id: number) => { haptics.light(); setActivities(p => p.filter(a => a.id !== id)); };
   const updateActivity = (u: WorkoutActivity) => setActivities(p => p.map(a => a.id === u.id ? u : a));
 
   async function save() {
@@ -135,6 +172,27 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
         )}
       </header>
 
+      {restEndTime && (
+        <div className="sticky top-[60px] z-20 mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.08] backdrop-blur-md px-4 py-2.5 shadow-md animate-fadeIn">
+          <button onClick={() => adjustRest(-15)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary active:scale-90 transition-all cursor-pointer">
+            <Minus size={13} />
+          </button>
+          <div className="flex-1 flex items-center justify-center gap-2">
+            <TimerReset size={14} className="text-primary shrink-0" />
+            <span className="font-display text-xl font-black tabular-nums text-primary leading-none">
+              {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+            </span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">odpoczynek</span>
+          </div>
+          <button onClick={() => adjustRest(15)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary active:scale-90 transition-all cursor-pointer">
+            <Plus size={13} />
+          </button>
+          <button onClick={() => { haptics.light(); setRestEndTime(null); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:text-text-primary active:scale-90 transition-all cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <main className="flex-1 p-5 space-y-8 max-w-md mx-auto w-full">
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
@@ -197,12 +255,28 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Dumbbell size={12} className="text-text-muted" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Dumbbell size={12} className="text-text-muted" />
+              <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TimerReset size={11} className="text-text-muted/60" />
+              {[60, 90, 120, 150].map(s => (
+                <button
+                  key={s}
+                  onClick={() => { haptics.light(); setRestDuration(s); }}
+                  className={`rounded-full px-2 py-1 text-[9px] font-black transition-all cursor-pointer ${
+                    restDuration === s ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  {s}s
+                </button>
+              ))}
+            </div>
           </div>
           {exercises.map(ex => (
-            <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} />
+            <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} onSetDone={startRest} />
           ))}
           <button onClick={addExercise}
             className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">

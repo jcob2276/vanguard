@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Plus, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Plus, Trophy, Check } from 'lucide-react';
 import {
   WorkoutExercise,
   useExerciseHistory,
@@ -11,12 +11,14 @@ import {
 } from './workoutUtils';
 import ExerciseNameInput from './ExerciseNameInput';
 import TagRow from './TagRow';
+import { useHaptics } from '../../../hooks/useHaptics';
 
 interface ExerciseCardProps {
   exercise: WorkoutExercise;
   onChange: (ex: WorkoutExercise) => void;
   onRemove: () => void;
   userId: string | undefined;
+  onSetDone?: () => void;
 }
 
 export default function ExerciseCard({
@@ -24,14 +26,17 @@ export default function ExerciseCard({
   onChange,
   onRemove,
   userId,
+  onSetDone,
 }: ExerciseCardProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const haptics = useHaptics();
   const sets = exercise.sets ?? [];
   const tags = exercise.tags ?? [];
   const isSaunaMode = tags.includes('wellness');
   const { lastSession, allTimeBest1RM } = useExerciseHistory(exercise.name ?? '', userId);
 
   function addSet() {
+    haptics.light();
     const last = sets[sets.length - 1];
     onChange({
       ...exercise,
@@ -44,11 +49,21 @@ export default function ExerciseCard({
 
   function removeSet(id: number) {
     if (sets.length <= 1) return;
+    haptics.light();
     onChange({ ...exercise, sets: sets.filter((s) => s.id !== id) });
   }
 
   function updateSet(id: number, field: string, value: any) {
     onChange({ ...exercise, sets: sets.map((s) => (s.id === id ? { ...s, [field]: value } : s)) });
+  }
+
+  function toggleSetDone(id: number) {
+    const set = sets.find((s) => s.id === id);
+    if (!set) return;
+    const nowDone = !set.done;
+    haptics.success();
+    updateSet(id, 'done', nowDone);
+    if (nowDone) onSetDone?.();
   }
 
   const current1RM = sets.reduce((best, s) => {
@@ -111,7 +126,7 @@ export default function ExerciseCard({
         <div className="px-4 pb-3 pt-2 space-y-2">
           {isSaunaMode ? (
             <>
-              <div className="grid grid-cols-[20px_1fr_1fr_24px] gap-2 px-0.5">
+              <div className="grid grid-cols-[20px_1fr_1fr_56px] gap-2 px-0.5">
                 <span />
                 <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
                   Min
@@ -123,6 +138,7 @@ export default function ExerciseCard({
               </div>
               {exercise.sets.map((set, idx) => {
                 const adjustWellness = (field: 'reps' | 'kg', step: number) => {
+                  haptics.light();
                   const cur = parseFloat(set[field]);
                   if (isNaN(cur)) {
                     updateSet(set.id, field, field === 'reps' ? '15' : '80');
@@ -132,7 +148,7 @@ export default function ExerciseCard({
                   }
                 };
                 return (
-                  <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_24px] gap-1.5 items-center">
+                  <div key={set.id} className={`grid grid-cols-[20px_1fr_1fr_56px] gap-1.5 items-center rounded-xl transition-colors ${set.done ? 'bg-emerald-500/[0.04]' : ''}`}>
                     <span className="text-[10px] font-black text-text-secondary text-center">{idx + 1}</span>
                     {/* Minuty */}
                     <div className="flex flex-col gap-1">
@@ -148,13 +164,13 @@ export default function ExerciseCard({
                       <div className="flex gap-1 justify-center">
                         <button
                           onClick={() => adjustWellness('reps', -5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           -5
                         </button>
                         <button
                           onClick={() => adjustWellness('reps', 5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           +5
                         </button>
@@ -174,31 +190,44 @@ export default function ExerciseCard({
                       <div className="flex gap-1 justify-center">
                         <button
                           onClick={() => adjustWellness('kg', -5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           -5
                         </button>
                         <button
                           onClick={() => adjustWellness('kg', 5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           +5
                         </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeSet(set.id)}
-                      className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => toggleSetDone(set.id)}
+                        title="Seria zrobiona — uruchamia odpoczynek"
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all active:scale-90 cursor-pointer ${
+                          set.done
+                            ? 'border-dayC bg-dayC text-white'
+                            : 'border-border-custom text-text-muted/60 hover:border-dayC/50 hover:text-dayC'
+                        }`}
+                      >
+                        <Check size={13} strokeWidth={3} />
+                      </button>
+                      <button
+                        onClick={() => removeSet(set.id)}
+                        className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </>
           ) : (
             <>
-              <div className="grid grid-cols-[28px_1fr_1fr_1fr_28px] gap-2 px-0.5">
+              <div className="grid grid-cols-[28px_1fr_1fr_1fr_60px] gap-2 px-0.5">
                 <span />
                 <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
                   KG
@@ -216,6 +245,7 @@ export default function ExerciseCard({
                 const isPR = set1RM && allTimeBest1RM && set1RM > allTimeBest1RM;
 
                 const adjustValue = (field: 'kg' | 'reps' | 'rir', step: number, isInt = false) => {
+                  haptics.light();
                   const currentVal = parseFloat(set[field]);
                   if (isNaN(currentVal)) {
                     if (field === 'kg') updateSet(set.id, field, '40');
@@ -230,9 +260,9 @@ export default function ExerciseCard({
                 };
 
                 return (
-                  <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_1fr_24px] gap-1.5 items-center">
+                  <div key={set.id} className={`grid grid-cols-[20px_1fr_1fr_1fr_60px] gap-1.5 items-center rounded-xl transition-colors ${set.done ? 'bg-emerald-500/[0.04]' : ''}`}>
                     <button
-                      onClick={() => updateSet(set.id, 'msp', !set.msp)}
+                      onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
                       title="Oznacz jako MSP (kluczowy set)"
                       className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors cursor-pointer ${
                         set.msp ? 'text-amber-500' : 'text-text-secondary hover:text-text-primary'
@@ -255,13 +285,13 @@ export default function ExerciseCard({
                       <div className="flex gap-1 justify-center">
                         <button
                           onClick={() => adjustValue('kg', -2.5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           -
                         </button>
                         <button
                           onClick={() => adjustValue('kg', 2.5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           +
                         </button>
@@ -289,13 +319,13 @@ export default function ExerciseCard({
                       <div className="flex gap-1 justify-center">
                         <button
                           onClick={() => adjustValue('reps', -1, true)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           -
                         </button>
                         <button
                           onClick={() => adjustValue('reps', 1, true)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           +
                         </button>
@@ -317,25 +347,38 @@ export default function ExerciseCard({
                       <div className="flex gap-1 justify-center">
                         <button
                           onClick={() => adjustValue('rir', -0.5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           -
                         </button>
                         <button
                           onClick={() => adjustValue('rir', 0.5)}
-                          className="text-[9px] font-bold bg-surface active:bg-surface-solid text-text-secondary border border-border-custom hover:text-text-primary w-7 h-5 rounded flex items-center justify-center transition-colors cursor-pointer"
+                          className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                         >
                           +
                         </button>
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => removeSet(set.id)}
-                      className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => toggleSetDone(set.id)}
+                        title="Seria zrobiona — uruchamia odpoczynek"
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all active:scale-90 cursor-pointer ${
+                          set.done
+                            ? 'border-dayC bg-dayC text-white'
+                            : 'border-border-custom text-text-muted/60 hover:border-dayC/50 hover:text-dayC'
+                        }`}
+                      >
+                        <Check size={13} strokeWidth={3} />
+                      </button>
+                      <button
+                        onClick={() => removeSet(set.id)}
+                        className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}

@@ -1,5 +1,6 @@
 import { Trash2, Clock } from 'lucide-react';
 import { WorkoutActivity } from './workoutUtils';
+import { useHaptics } from '../../../hooks/useHaptics';
 
 interface ActivityCardProps {
   activity: WorkoutActivity;
@@ -12,6 +13,7 @@ export default function ActivityCard({
   onChange,
   onRemove,
 }: ActivityCardProps) {
+  const haptics = useHaptics();
   return (
     <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 space-y-3 shadow-sm">
       <div className="flex items-center gap-2">
@@ -23,7 +25,7 @@ export default function ActivityCard({
           className="flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-muted/40 min-w-0"
         />
         <button
-          onClick={onRemove}
+          onClick={() => { haptics.light(); onRemove(); }}
           className="p-1 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
         >
           <Trash2 size={14} />
