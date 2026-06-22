@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, RefreshCw, X, Loader2, Sparkles, Zap, Flame, Droplet } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 
 interface NutritionCardProps {
@@ -83,17 +83,21 @@ export default function NutritionCard({
   const fetchRows = useCallback(async () => {
     if (!userId) return;
     try {
+      // Fetch by calendar date range, not row count — daily_nutrition only has
+      // a row for days with logged entries, so .limit(7) on sparse-logging
+      // weeks silently reaches back further than 7 calendar days.
+      const since = (() => { const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 6); return formatWarsawDate(d); })();
       const { data } = await supabase
         .from('daily_nutrition')
         .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
         .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(7);
-      if (data) setRows([...data].reverse());
+        .gte('date', since)
+        .order('date', { ascending: true });
+      if (data) setRows(data);
     } catch (e) {
       console.error('daily_nutrition fetch failed', e);
     }
-  }, [userId]);
+  }, [userId, todayRaw]);
 
   const fetchTodayEntries = useCallback(async () => {
     if (!userId) return;
@@ -162,15 +166,21 @@ export default function NutritionCard({
   const caloriesProgress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
 
   const chart = useMemo(() => {
-    const result = rows.map((r) => ({
-      key: r.date, label: r.date.slice(8),
-      protein: Number(r.protein || 0), calories: Number(r.calories || 0),
-      analysis: r.food_quality_analysis, insulin_load: r.insulin_load != null ? Number(r.insulin_load) : null,
-    }));
-    if (!result.some((r) => r.key === todayRaw)) {
-      result.push({ key: todayRaw, label: todayRaw.slice(8), protein: 0, calories: 0, analysis: null, insulin_load: null });
+    const byDate = new Map(rows.map((r) => [r.date, r]));
+    const days: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - i);
+      days.push(formatWarsawDate(d));
     }
-    return result.slice(-7);
+    return days.map((key) => {
+      const r = byDate.get(key);
+      return {
+        key, label: key.slice(8),
+        protein: Number(r?.protein || 0), calories: Number(r?.calories || 0),
+        analysis: r?.food_quality_analysis ?? null,
+        insulin_load: r?.insulin_load != null ? Number(r.insulin_load) : null,
+      };
+    });
   }, [rows, todayRaw]);
 
   const avgProtein7d = useMemo(() => {
@@ -210,10 +220,11 @@ export default function NutritionCard({
     [rows, todayRaw],
   );
 
-  const todayAnalysis =
-    chart.find((r) => r.key === todayRaw)?.analysis ??
-    chart.findLast((r) => r.analysis)?.analysis ??
-    null;
+  const todayAnalysisRow = chart.find((r) => r.key === todayRaw)?.analysis
+    ? chart.find((r) => r.key === todayRaw)
+    : chart.findLast((r) => r.analysis);
+  const todayAnalysis = todayAnalysisRow?.analysis ?? null;
+  const todayAnalysisIsStale = !!todayAnalysisRow && todayAnalysisRow.key !== todayRaw;
 
   const kcalBarColor = (v: number) => {
     if (!v) return 'bg-border-custom';
@@ -534,7 +545,9 @@ export default function NutritionCard({
       {/* Food quality analysis */}
       {todayAnalysis && (
         <div className="mt-3.5 rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3">
-          <p className="text-[9px] uppercase font-black tracking-wider text-text-muted mb-1">Analiza jakości jedzenia</p>
+          <p className="text-[9px] uppercase font-black tracking-wider text-text-muted mb-1">
+            Analiza jakości jedzenia{todayAnalysisIsStale ? ` (${todayAnalysisRow!.key})` : ''}
+          </p>
           <p className="text-[11.5px] leading-relaxed text-text-secondary">{todayAnalysis}</p>
         </div>
       )}

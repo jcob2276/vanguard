@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -12,8 +12,7 @@ export default function TodayEventsCard({ session }: { session: any }) {
   useEffect(() => {
     if (!userId) return;
     const today = getTodayWarsaw();
-    const from = `${today}T00:00:00`;
-    const to = `${today}T23:59:59`;
+    const { fromISO: from, toISO: to } = warsawDayBoundsISO(today);
     supabase
       .from('vanguard_calendar')
       .select('summary, start_time, end_time')
