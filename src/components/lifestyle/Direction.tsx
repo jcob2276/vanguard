@@ -1,4 +1,4 @@
-import { formatWarsawDate, getTodayWarsaw, nowWarsaw } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, nowWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -142,10 +142,10 @@ export default function Direction({ session }: { session: Session }) {
         supabase.from('life_goals').select('goal_cialo, date_cialo, goal_duch, date_duch, goal_konto, date_konto').eq('user_id', userId).maybeSingle(),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
         supabase.from('oura_daily_summary').select('total_sleep_hours, readiness_score').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
-        supabase.from('strava_activities').select('distance').eq('user_id', userId).gte('start_date', currentWeekStart).lte('start_date', weekEnd + 'T23:59:59'),
+        supabase.from('strava_activities').select('distance').eq('user_id', userId).gte('start_date', warsawDayBoundsISO(currentWeekStart).fromISO).lte('start_date', warsawDayBoundsISO(weekEnd).toISO),
         supabase.from('daily_nutrition').select('calories').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
         supabase.from('nutrition_targets').select('target_kcal').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('todo_items').select('title, status').eq('user_id', userId).in('status', ['done', 'dropped']).gte('updated_at', currentWeekStart + 'T00:00:00').lte('updated_at', weekEnd + 'T23:59:59'),
+        supabase.from('todo_items').select('title, status').eq('user_id', userId).in('status', ['done', 'dropped']).gte('updated_at', warsawDayBoundsISO(currentWeekStart).fromISO).lte('updated_at', warsawDayBoundsISO(weekEnd).toISO),
       ]);
 
       setHistory(historyData || []);
