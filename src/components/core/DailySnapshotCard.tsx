@@ -80,10 +80,14 @@ export default function DailySnapshotCard({ session }: { session: any }) {
     if (savingScore) return;
     setSavingScore(true);
     setDayScore(score);
-    await supabase.from('daily_reconciliations').upsert(
+    const { error } = await supabase.from('daily_reconciliations').upsert(
       { user_id: userId, date: today, status: 'answered', mode: 'checkin', day_score: score },
       { onConflict: 'user_id,date', ignoreDuplicates: false }
-    ).then(() => {}, () => {});
+    );
+    if (error) {
+      console.warn('[DailySnapshotCard] saveScore failed:', error.message);
+      setDayScore(null);
+    }
     setSavingScore(false);
   };
 
@@ -94,7 +98,7 @@ export default function DailySnapshotCard({ session }: { session: any }) {
   const showScorePicker = hourNum >= 17 && dayScore == null && !isYesterday;
 
   return (
-    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm space-y-4">
+    <section className="animate-fadeIn rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain size={13} className="text-primary" />

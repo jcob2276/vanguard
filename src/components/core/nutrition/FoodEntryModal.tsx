@@ -135,6 +135,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const [editSaving, setEditSaving] = useState(false);
   const [editDeleting, setEditDeleting] = useState(false);
 
+  const [todayTotals, setTodayTotals] = useState<{ calories: number; protein: number } | null>(null);
+  const [targets, setTargets] = useState<{ target_kcal: number | null; protein_floor_g: number | null } | null>(null);
+
   // Manual entry
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState('');
@@ -167,7 +170,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const loadLists = useCallback(async () => {
     if (!userId) return;
     setLoadingList(true);
-    const [favRes, recentRes] = await Promise.all([
+    const [favRes, recentRes, todayRes, targetRes] = await Promise.all([
       supabase
         .from('food_favorites')
         .select('id, barcode, name, brand, calories, protein, carbs, fat, fiber, sugar, use_count, default_grams')
@@ -182,11 +185,26 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         .order('logged_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(15),
+      supabase
+        .from('daily_nutrition')
+        .select('calories, protein')
+        .eq('user_id', userId)
+        .eq('date', getTodayWarsaw())
+        .maybeSingle(),
+      supabase
+        .from('nutrition_targets')
+        .select('target_kcal, protein_floor_g')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
     if (favRes.error) console.error('[FoodEntryModal] favorites fetch failed', favRes.error);
     if (recentRes.error) console.error('[FoodEntryModal] recent fetch failed', recentRes.error);
     setFavorites(favRes.data || []);
     setRecent(recentRes.data || []);
+    setTodayTotals(todayRes.data ? { calories: todayRes.data.calories ?? 0, protein: todayRes.data.protein ?? 0 } : { calories: 0, protein: 0 });
+    setTargets(targetRes.data ?? null);
     setLoadingList(false);
   }, [userId]);
 
@@ -570,6 +588,31 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
             <X size={18} />
           </button>
         </div>
+
+        {/* Running total — so you know how today's looking before adding more */}
+        {todayTotals && (
+          <div className="px-5 py-2.5 border-b border-border-custom/60 bg-surface-solid/20 shrink-0">
+            <div className="flex items-center justify-between text-[10px] font-bold text-text-muted mb-1.5">
+              <span>
+                <span className="text-text-primary">{todayTotals.calories}</span>
+                {targets?.target_kcal ? ` / ${targets.target_kcal}` : ''} kcal dziś
+              </span>
+              {targets?.protein_floor_g != null && (
+                <span>
+                  <span className="text-text-primary">{Math.round(todayTotals.protein)}</span> / {targets.protein_floor_g} g B
+                </span>
+              )}
+            </div>
+            {targets?.target_kcal ? (
+              <div className="h-1 rounded-full bg-border-custom overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${todayTotals.calories > targets.target_kcal ? 'bg-amber-500' : 'bg-primary'}`}
+                  style={{ width: `${Math.min(100, (todayTotals.calories / targets.target_kcal) * 100)}%` }}
+                />
+              </div>
+            ) : null}
+          </div>
+        )}
 
         <div className="p-4 overflow-y-auto flex-1">
 

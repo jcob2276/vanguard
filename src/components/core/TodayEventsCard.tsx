@@ -8,6 +8,7 @@ type Event = { summary: string; start_time: string; end_time: string };
 export default function TodayEventsCard({ session }: { session: any }) {
   const userId = session?.user?.id;
   const [events, setEvents] = useState<Event[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!userId) return;
@@ -23,17 +24,23 @@ export default function TodayEventsCard({ session }: { session: any }) {
       .then(({ data }) => { if (data?.length) setEvents(data as Event[]); });
   }, [userId]);
 
+  // Keep "teraz"/past styling fresh without depending on an unrelated re-render —
+  // otherwise an event silently never flips to "active" until something else re-renders the page.
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   if (!events.length) return null;
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 
-  const nowMs = Date.now();
   const isActive = (e: Event) => nowMs >= new Date(e.start_time).getTime() && nowMs <= new Date(e.end_time).getTime();
   const isPast = (e: Event) => nowMs > new Date(e.end_time).getTime();
 
   return (
-    <section className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-2.5">
+    <section className="animate-fadeIn rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-2.5">
       <div className="flex items-center gap-2">
         <CalendarDays size={12} className="text-text-muted" />
         <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
@@ -53,7 +60,10 @@ export default function TodayEventsCard({ session }: { session: any }) {
                 {e.summary}
               </div>
               {active && (
-                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">teraz</span>
+                <span className="shrink-0 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  teraz
+                </span>
               )}
             </div>
           );

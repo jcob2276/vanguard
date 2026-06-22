@@ -21,9 +21,12 @@ export default function DayCounter() {
   const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   return (
-    <div className="py-4.5 px-5 border-l-4 border-primary/50 bg-primary/[0.02] dark:bg-primary/[0.04] backdrop-blur-md rounded-r-[24px] my-2 shadow-sm">
+    <div className="animate-fadeIn py-4.5 px-5 border-l-4 border-primary/50 bg-primary/[0.02] dark:bg-primary/[0.04] backdrop-blur-md rounded-r-[24px] my-2 shadow-sm">
       <p className="font-display text-[14.5px] font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
-        "{quote}"
+        {quote}
+      </p>
+      <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-primary/40">
+        Dzień {lived.toLocaleString('pl-PL')}
       </p>
     </div>
   );

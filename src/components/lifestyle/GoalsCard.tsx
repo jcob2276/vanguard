@@ -44,7 +44,7 @@ export default function GoalsCard({ session }: { session: Session }) {
   if (!PILLARS.some(p => goals[p.goalKey])) return null;
 
   return (
-    <div className="space-y-2.5">
+    <div className="animate-fadeIn space-y-2.5">
       <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted font-display">Kierunek</p>
 
       <div className="space-y-2.5">
@@ -53,10 +53,11 @@ export default function GoalsCard({ session }: { session: Session }) {
           if (!celText) return null;
           const theme = THEME[id];
           const days = goals[dateKey] ? differenceInDays(parseISO(goals[dateKey]), parseISO(getTodayWarsaw())) : null;
-          const urgent = days !== null && days <= 30;
+          const overdue = days !== null && days < 0;
+          const urgent = days !== null && days >= 0 && days <= 30;
 
           return (
-            <div key={id} className={`rounded-[24px] border ${theme.card} px-4 py-3.5 shadow-sm`}>
+            <div key={id} className={`rounded-[24px] border ${theme.card} px-4 py-3.5 shadow-sm transition-transform`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className={`flex items-center justify-center w-6 h-6 rounded-lg ${theme.accent}`}>
                   <Icon size={12} className={theme.text} />
@@ -65,7 +66,7 @@ export default function GoalsCard({ session }: { session: Session }) {
                 <button
                   onClick={() => toggleBhag(id)}
                   title={bhag === id ? 'Usuń BHAG' : 'Ustaw jako BHAG #1'}
-                  className={`rounded-md p-0.5 transition-colors cursor-pointer ${bhag === id ? theme.text : 'text-text-muted/25 hover:text-text-muted/60'}`}
+                  className={`rounded-md p-0.5 transition-all active:scale-90 cursor-pointer ${bhag === id ? theme.text : 'text-text-muted/25 hover:text-text-muted/60'}`}
                 >
                   <Crown size={11} className={bhag === id ? 'fill-current' : ''} />
                 </button>
@@ -74,8 +75,14 @@ export default function GoalsCard({ session }: { session: Session }) {
                   <span className={`rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${theme.badge} border`}>#1</span>
                 )}
                 {days !== null && (
-                  <span className={`rounded-lg border px-2 py-0.5 text-[9px] font-bold ${urgent ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400' : theme.badge}`}>
-                    {days}d
+                  <span className={`rounded-lg border px-2 py-0.5 text-[9px] font-bold ${
+                    overdue
+                      ? 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                      : urgent
+                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                        : theme.badge
+                  }`}>
+                    {overdue ? `${Math.abs(days)}d po terminie` : `${days}d`}
                   </span>
                 )}
               </div>

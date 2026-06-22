@@ -469,6 +469,15 @@
   animation: ios-modal-slide-up 0.38s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
 }
 
+/* ── Generic fade-up entrance (used by modals/cards via `animate-fadeIn`) ── */
+@keyframes fade-in-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-fadeIn {
+  animation: fade-in-up 0.28s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    KEEP — Google Keep Clone Styles
    ═══════════════════════════════════════════════════════════════════════ */
