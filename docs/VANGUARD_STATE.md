@@ -6,7 +6,7 @@ Dokument opisuje wszystko co istnieje. Podstawa do projektowania nowych funkcji.
 
 ## Czym jest Vanguard
 
-Personalny cyfrowy układ nerwowy Jakuba. System który:
+Zintegrowany, osobisty kokpit samoobserwacji i logowania Jakuba. System który:
 - Zbiera wszystko co Jakub robi, je, ćwiczy, mówi, planuje
 - Klasyfikuje tarcia behawioralne (co mówię że zrobię vs co robię)
 - Prowadzi pętlę dobową przez Telegram (ranek → południe → wieczór)

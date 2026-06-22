@@ -300,15 +300,13 @@ GPT/Claude mogą być genialnym reasoning engine w jednej rozmowie — ale nie u
 
 To jest docelowa nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memory.**
 
-### Wersja 10/10 (aspiracyjna)
+### Wersja 10/10
 
 Pełna wersja tej wizji opisana jest tutaj:
 
 → [docs/VISION_10_10.md](./VISION_10_10.md)
 
-W skrócie: Vanguard przestaje być aplikacją i staje się czymś bliższym zewnętrznemu układowi nerwowemu + pamięci operacyjnej. System nie tylko zapisuje dane — rozumie trajektorię życia w czasie, wykrywa wzorce zanim użytkownik je nazwie i działa jako warstwa anty-self-deception.
-
-Ale to jest aspiracja na wiele lat. Największy błąd: udawać, że jesteśmy już blisko tej wersji.
+W skrócie: Vanguard staje się w pełni zintegrowanym kokpitem samoobserwacji i logowania. System nie próbuje przewidywać przyszłości ani być cyfrowym bliźniakiem, lecz zapewnia bezbłędną, zunifikowaną i wolną od szumu pamięć behawioralną (Evidence), która pozwala użytkownikowi wyeliminować samooszukiwanie.
 
 ---
 

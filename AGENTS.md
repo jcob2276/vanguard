@@ -22,7 +22,7 @@ Entry point for AI agents working in this repository.
 
 Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
-**Wizja długoterminowa (10/10):** [`docs/VISION_10_10.md`](docs/VISION_10_10.md) — zewnętrzny układ nerwowy + pamięć operacyjna, nie AI coach.
+**Wizja długoterminowa (10/10):** [`docs/VISION_10_10.md`](docs/VISION_10_10.md) — zunifikowany, prywatny kokpit samoobserwacji i logowania.
 
 ## What this repo is
 
