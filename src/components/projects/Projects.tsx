@@ -286,12 +286,15 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     if (isNaN(num)) { setEditingKpiId(null); return; }
     savingKpiRef.current = kpiId;
     run(async () => {
-      const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
-      if (updErr) throw new Error(updErr.message);
-      const { error: snapErr } = await supabase.from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
-      if (snapErr) throw new Error(snapErr.message);
-      setEditingKpiId(null);
-      savingKpiRef.current = null;
+      try {
+        const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
+        if (updErr) throw new Error(updErr.message);
+        const { error: snapErr } = await supabase.from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
+        if (snapErr) throw new Error(snapErr.message);
+        setEditingKpiId(null);
+      } finally {
+        savingKpiRef.current = null;
+      }
     });
   };
 
