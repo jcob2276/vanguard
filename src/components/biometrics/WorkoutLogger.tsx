@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
 import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus } from 'lucide-react';
+import { useHaptics } from '../../hooks/useHaptics';
 import {
   newExercise,
   newActivity,
@@ -31,6 +32,17 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
 
   const elapsed = useStopwatch(timerStart);
   const userId  = session?.user?.id;
+  const haptics = useHaptics();
+
+  const hasUnsavedData = Boolean(
+    workoutName.trim() || notes.trim() || sessionRpe != null || timerStart != null ||
+    exercises.some(e => e.name.trim()) || activities.some(a => a.name.trim())
+  );
+
+  const handleBack = () => {
+    if (hasUnsavedData && !confirm('Masz niezapisane dane treningu — wyjść bez zapisywania?')) return;
+    onBack();
+  };
 
   const addExercise    = () => setExercises(p => [...p, newExercise()]);
   const removeExercise = (id: number) => { if (exercises.length > 1) setExercises(p => p.filter(e => e.id !== id)); };
@@ -93,8 +105,10 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
         p_session_rpe: sessionRpe ?? undefined,
       });
       if (error) throw error;
+      haptics.success();
       onBack();
     } catch (err) {
+      haptics.error();
       alert(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
@@ -104,7 +118,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   return (
     <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-300">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border-custom p-4 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+        <button onClick={handleBack} className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
           <ChevronLeft size={20} />
         </button>
         <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary flex-1 font-display">Zaloguj Trening</h1>
