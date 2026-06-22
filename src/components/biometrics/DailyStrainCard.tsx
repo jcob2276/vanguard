@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
+import { useHaptics } from '../../hooks/useHaptics';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
 
@@ -39,6 +40,7 @@ function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: Lu
 }
 
 export default function DailyStrainCard({ session }: { session: Session }) {
+  const haptics = useHaptics();
   const [row, setRow] = useState<Tables<'daily_strain'> | null>(null);
   const [oura, setOura] = useState<Tables<'oura_daily_summary'> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ export default function DailyStrainCard({ session }: { session: Session }) {
   // Pełny refresh: sync źródeł → warstwy pochodne Oura → przelicz strain → odśwież
   async function refresh() {
     setRefreshing(true);
+    haptics.light();
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
       const token = s?.access_token;
@@ -112,9 +115,11 @@ export default function DailyStrainCard({ session }: { session: Session }) {
       await call('compute-daily-strain', { userId: session.user.id, days: 2 });
       // 4. odśwież kartę
       await fetchRow();
+      haptics.success();
     } catch (e: any) {
       console.error('DailyStrainCard refresh:', e);
       setError(e.message || 'Refresh failed');
+      haptics.error();
     } finally {
       setRefreshing(false);
     }
@@ -166,9 +171,10 @@ export default function DailyStrainCard({ session }: { session: Session }) {
 
   const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
   const limiterKey = (row.main_limiter || '') as keyof typeof LIMITER_PL;
+  const isStale = row.date !== getTodayWarsaw();
 
   return (
-    <section className={`relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
+    <section className={`animate-fadeIn relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
       <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
       <button onClick={refresh} disabled={refreshing}
         title="Sync + przelicz"
@@ -176,6 +182,11 @@ export default function DailyStrainCard({ session }: { session: Session }) {
         <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
       </button>
       <div className="relative space-y-2.5">
+        {isStale && (
+          <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+            Dane z {row.date} — odśwież po prawej
+          </p>
+        )}
         <div className="flex gap-2">
           <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
