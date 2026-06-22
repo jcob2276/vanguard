@@ -892,13 +892,14 @@
   border-radius: 16px;
   padding: 14px 16px 12px;
   cursor: pointer;
-  transition: box-shadow 0.18s ease, opacity 0.18s ease;
+  transition: transform 0.28s var(--spring), box-shadow 0.28s var(--spring), border-color 0.2s var(--ease-out), opacity 0.18s ease;
   break-inside: avoid;
   user-select: none;
   box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 2px 14px rgba(0,0,0,0.04);
 }
 .keep-card:hover {
-  box-shadow: 0 3px 12px rgba(0,0,0,0.11), 0 6px 24px rgba(0,0,0,0.06);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 .keep-card.editing {
   position: fixed !important;
@@ -1175,7 +1176,7 @@
   box-shadow: 0 1px 6px rgba(0,0,0,0.3), 0 2px 18px rgba(0,0,0,0.2);
 }
 .dark .keep-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 8px 28px rgba(0,0,0,0.28);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07), 0 0 14px rgba(99, 102, 241, 0.12);
 }
 
 .keep-pin-badge {
@@ -1460,6 +1461,7 @@
 .keep-rich-editor .keep-todo-checkbox.checked, .keep-card-content .keep-todo-checkbox.checked {
   background: var(--primary);
   border-color: var(--primary);
+  animation: checkmark-pop 0.25s var(--spring);
 }
 
 .keep-rich-editor .keep-todo-checkbox.checked::after, .keep-card-content .keep-todo-checkbox.checked::after {
@@ -1770,4 +1772,219 @@
   max-height: 120px;
   object-fit: cover;
   width: 100%;
+}
+
+/* ── Custom Pop & Bounce Animations ── */
+@keyframes checkmark-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+@keyframes todo-check-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+.todo-checkbox-pop {
+  animation: todo-check-pop 0.35s var(--spring) !important;
+}
+
+/* Premium springy click feedback */
+.btn-press {
+  transition: transform 0.12s var(--spring), opacity 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.92) translateY(1px);
+}
+
+/* ── Grid Transition & Expand Helpers ── */
+.grid-expand-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms var(--spring);
+}
+.grid-expand-wrapper.expanded {
+  grid-template-rows: 1fr;
+}
+.grid-expand-content {
+  overflow: hidden;
+}
+
+/* ── Note Quick Capture ── */
+.note-quick-capture {
+  max-width: 600px;
+  margin: 0 auto 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
+  overflow: hidden;
+}
+.note-quick-capture:focus-within {
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--primary);
+  border-color: var(--primary);
+}
+.dark .note-quick-capture:focus-within {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--primary), 0 0 12px rgba(99, 102, 241, 0.12);
+}
+.note-quick-capture-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: text;
+}
+.note-quick-capture-collapsed span {
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-size: 14px;
+  font-weight: 500;
+}
+.note-quick-capture-expanded {
+  padding: 16px 18px 12px;
+}
+.note-quick-input-title {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding: 0;
+}
+.note-quick-input-tags {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  padding: 0;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 6px;
+}
+.note-quick-editor-wrapper {
+  margin-bottom: 14px;
+  position: relative;
+  min-height: 48px;
+}
+.note-quick-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.note-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.note-quick-color-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+.note-quick-color-btn:hover {
+  transform: scale(1.2);
+}
+.note-quick-color-btn.active {
+  border-color: var(--text-primary);
+}
+.note-quick-save-btn {
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 12px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+.note-quick-save-btn:hover {
+  background: var(--primary-hover);
+}
+.note-quick-save-btn:active {
+  transform: scale(0.95);
+}
+.note-quick-close-btn {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+.note-quick-close-btn:hover {
+  background: var(--btn-secondary-hover);
+  color: var(--text-primary);
+}
+
+/* ── Todo Subtask Progress Bar ── */
+.todo-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.todo-progress-track {
+  width: 36px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+.todo-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary) 0%, #a855f7 100%);
+  transition: width 0.3s var(--spring);
+}
+
+/* ── Tag Suggestions in Note Editors ── */
+.tag-suggestions-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  opacity: 0.8;
+}
+.tag-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.tag-suggestion-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.tag-suggestion-pill:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.tag-suggestion-pill.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
 }

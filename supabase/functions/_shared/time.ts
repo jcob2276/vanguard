@@ -4,15 +4,22 @@ export function getWarsawDateString(now = new Date()): string {
 }
 
 function warsawDayStartUTCMs(dateStr: string): number {
-  const probe = new Date(`${dateStr}T12:00:00Z`);
-  const tzLabel = new Intl.DateTimeFormat("en-US", {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  
+  // W strefie Europe/Warsaw, midnight to najwcześniej 22:00 UTC poprzedniego dnia, a najpóźniej 23:00 UTC.
+  // Spróbujmy najpierw sprawdzić 22:00 UTC poprzedniego dnia (dla offsetu +2)
+  const t22 = Date.UTC(year, month - 1, day - 1, 22, 0, 0);
+  const formatted22 = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Warsaw",
-    timeZoneName: "shortOffset",
-  }).formatToParts(probe).find((p) => p.type === "timeZoneName")?.value || "GMT+2";
-  const m = tzLabel.match(/GMT([+-])(\d+)(?::(\d+))?/);
-  const sign = m?.[1] === "+" ? 1 : -1;
-  const offsetMs = sign * ((parseInt(m?.[2] || "2", 10) * 60 + parseInt(m?.[3] || "0", 10)) * 60000);
-  return new Date(`${dateStr}T00:00:00Z`).getTime() - offsetMs;
+    year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(t22).replace(/\//g, "-");
+  
+  if (formatted22 === dateStr) {
+    return t22;
+  }
+  
+  // W przeciwnym razie to musi być 23:00 UTC poprzedniego dnia (dla offsetu +1)
+  return Date.UTC(year, month - 1, day - 1, 23, 0, 0);
 }
 
 /** UTC ISO bounds for a Warsaw calendar day (for DB range queries). */

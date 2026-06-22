@@ -10,6 +10,7 @@ export default function EditNoteModal({
   onDelete,
   onTogglePin,
   busy,
+  allTags,
 }: {
   note: Note;
   onClose: () => void;
@@ -17,6 +18,7 @@ export default function EditNoteModal({
   onDelete: (id: string) => void;
   onTogglePin: (note: Note) => void;
   busy: boolean;
+  allTags?: string[];
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -149,6 +151,37 @@ export default function EditNoteModal({
               style={{ color: c.textSub }}
             />
           </div>
+          {allTags && allTags.length > 0 && (
+            <div className="mt-2.5 px-3">
+              <p className="tag-suggestions-label">Sugerowane tagi</p>
+              <div className="tag-suggestions-list">
+                {allTags.map(tag => {
+                  const currentTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+                  const isActive = currentTags.includes(tag.toLowerCase());
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        const tagsList = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+                        const isExist = tagsList.some(t => t.toLowerCase() === tag.toLowerCase());
+                        let nextTags: string[];
+                        if (isExist) {
+                          nextTags = tagsList.filter(t => t.toLowerCase() !== tag.toLowerCase());
+                        } else {
+                          nextTags = [...tagsList, tag];
+                        }
+                        setTagsInput(nextTags.join(', '));
+                      }}
+                      className={`tag-suggestion-pill ${isActive ? 'active' : ''}`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <RichEditor
             value={content}
             onChange={setContent}

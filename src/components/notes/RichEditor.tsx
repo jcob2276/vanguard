@@ -285,8 +285,9 @@ export default function RichEditor({
 
         if (todoItem) {
           e.preventDefault();
-          const textNode = todoItem.querySelector('.keep-todo-text');
+          const textNode = todoItem.querySelector('.keep-todo-text') as HTMLElement;
           const textVal = textNode?.textContent?.trim() || '';
+          
           // If the item is empty, pressing Enter turns it back into a standard paragraph
           if (textVal === '' || textVal === '\u00a0' || textNode?.innerHTML === '<br>') {
             const p = document.createElement('p');
@@ -301,27 +302,58 @@ export default function RichEditor({
             return;
           }
 
-          // Otherwise, create a new checklist item below
+          // Split the checklist item at the cursor
+          const range = selection.getRangeAt(0);
+          const afterRange = document.createRange();
+          afterRange.setStart(range.startContainer, range.startOffset);
+          afterRange.setEndAfter(textNode.lastChild || textNode);
+          
+          let frag: DocumentFragment;
+          try {
+            frag = afterRange.extractContents();
+          } catch (err) {
+            frag = document.createDocumentFragment();
+          }
+
+          // If the original text became empty, fill with &nbsp;
+          if (textNode.textContent?.trim() === '') {
+            textNode.innerHTML = '&nbsp;';
+          }
+
+          // Create new checklist item below
           const newTodo = document.createElement('div');
           newTodo.className = 'keep-todo-item';
-          newTodo.innerHTML = '<span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">&nbsp;</span>';
+          
+          const checkbox = document.createElement('span');
+          checkbox.className = 'keep-todo-checkbox';
+          checkbox.setAttribute('contenteditable', 'false');
+          newTodo.appendChild(checkbox);
+          
+          const newTextSpan = document.createElement('span');
+          newTextSpan.className = 'keep-todo-text';
+          
+          if (!frag || frag.textContent?.trim() === '') {
+            newTextSpan.innerHTML = '&nbsp;';
+          } else {
+            newTextSpan.appendChild(frag);
+          }
+          newTodo.appendChild(newTextSpan);
           
           todoItem.parentNode?.insertBefore(newTodo, todoItem.nextSibling);
           
-          const newTextSpan = newTodo.querySelector('.keep-todo-text') as HTMLElement;
-          if (newTextSpan) {
-            editorRef.current?.focus();
-            const r = document.createRange();
-            if (newTextSpan.firstChild) {
-              r.setStart(newTextSpan.firstChild, 0);
-              r.collapse(true);
-            } else {
-              r.selectNodeContents(newTextSpan);
-              r.collapse(true);
-            }
-            selection.removeAllRanges();
-            selection.addRange(r);
+          // Position cursor at start of new item
+          editorRef.current?.focus();
+          const r = document.createRange();
+          if (newTextSpan.firstChild) {
+            r.setStart(newTextSpan.firstChild, 0);
+            r.collapse(true);
+          } else {
+            r.selectNodeContents(newTextSpan);
+            r.collapse(true);
           }
+          selection.removeAllRanges();
+          selection.addRange(r);
+          
           handleInput();
           return;
         }

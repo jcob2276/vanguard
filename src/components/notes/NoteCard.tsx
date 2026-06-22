@@ -15,6 +15,7 @@ export default function NoteCard({
   onDragEnd,
   onDragOver,
   isDragOver,
+  onClickTag,
 }: {
   note: Note;
   onDelete: (id: string) => void;
@@ -28,6 +29,7 @@ export default function NoteCard({
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
   isDragOver: boolean;
+  onClickTag?: (tag: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const c = getColor(note.color);
@@ -101,7 +103,17 @@ export default function NoteCard({
       {note.tags.length > 0 && (
         <div className="keep-card-tags">
           {note.tags.map((t, i) => (
-            <span key={i} className="keep-tag" style={{ background: c.tagBg, color: c.tagText, borderColor: 'transparent' }}>{t}</span>
+            <span
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClickTag?.(t);
+              }}
+              className="keep-tag cursor-pointer hover:opacity-80 active:scale-95 transition-all"
+              style={{ background: c.tagBg, color: c.tagText, borderColor: 'transparent' }}
+            >
+              {t}
+            </span>
           ))}
         </div>
       )}

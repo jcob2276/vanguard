@@ -87,6 +87,17 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const toggleSectionCollapse = (id: string) => { setCollapsedSections(prev => ({ ...prev, [id]: !prev[id] })); };
 
+  // Auto-expand collapsed sections when dragging a card over them for 500ms
+  useEffect(() => {
+    if (draggingItem === null || !dragTarget) return;
+    if (collapsedSections[dragTarget]) {
+      const timer = setTimeout(() => {
+        setCollapsedSections(prev => ({ ...prev, [dragTarget]: false }));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [dragTarget, collapsedSections, draggingItem]);
+
   const today = getTodayWarsaw();
   const nextWeek = (() => {
     const d = new Date(today + 'T00:00:00');
@@ -662,12 +673,24 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 <button
                   onClick={batchClassify}
                   disabled={batchClassifying}
-                  className="flex w-full items-center gap-2 rounded-2xl border border-primary/10 bg-primary/[0.03] px-4 py-2.5 text-left transition-all hover:bg-primary/[0.07] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  className="relative overflow-hidden w-full flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 px-4 py-3 text-left transition-all hover:scale-[1.01] hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] active:scale-[0.99] disabled:opacity-50 cursor-pointer group"
                 >
-                  <Sparkles size={12} className={`shrink-0 text-primary ${batchClassifying ? 'animate-pulse' : ''}`} />
-                  <span className="text-[11px] font-bold text-text-primary">
-                    {batchClassifying ? 'Klasyfikuję...' : `Klasyfikuj z AI (${unclassifiedCount} zadań bez bucketu)`}
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">
+                      <Sparkles size={14} className={`${batchClassifying ? 'animate-spin' : 'animate-pulse group-hover:scale-110 transition-transform'}`} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[12px] font-bold text-text-primary">
+                        {batchClassifying ? 'Porządkowanie zadań...' : 'Szybka klasyfikacja z AI'}
+                      </span>
+                      <span className="text-[10px] text-text-muted">
+                        {batchClassifying ? 'Analizuję treść przez DeepSeek' : `${unclassifiedCount} zadań czeka na automatyczne przypisanie`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full uppercase tracking-wider scale-90 group-hover:scale-95 transition-transform">
+                    Start
+                  </div>
                 </button>
               );
             })()}
@@ -692,9 +715,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                       </div>
                       <div className="pt-1">
                         {sortedItems.length === 0 ? (
-                          <p className="px-3 py-5 text-center text-[11px] font-medium text-text-muted/50">
-                            Brak otwartych zadań w tej sekcji.
-                          </p>
+                          <div className="mx-1 my-2 rounded-xl border border-dashed border-border-custom/25 p-6 text-center text-text-muted/30 bg-surface-solid/10">
+                            <span className="block text-[14px] mb-1">📂</span>
+                            <span className="text-[11px] font-bold tracking-wide">Brak otwartych zadań w tej sekcji.</span>
+                          </div>
                         ) : (
                           sortedItems.map((i: any) => renderCard(i))
                         )}
@@ -706,8 +730,17 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 // Overview Dashboard (Grouped sections)
                 <>
                   {/* 1. Na dziś / Aktywne */}
-                  {(todayItems.length > 0 || dragTarget === 'today') && (
-                    <div ref={todayZoneRef}>
+                  {(todayItems.length > 0 || draggingItem !== null) && (
+                    <div
+                      ref={todayZoneRef}
+                      className={`rounded-2xl p-2 transition-all duration-200 ${
+                        draggingItem !== null
+                          ? dragTarget === 'today'
+                            ? 'border border-orange-500/40 bg-orange-500/10 scale-[1.01] shadow-[0_4px_25px_rgba(249,115,22,0.12)]'
+                            : 'border border-dashed border-orange-500/20 bg-orange-500/5'
+                          : 'border border-transparent bg-transparent'
+                      }`}
+                    >
                       <BucketHeader
                         icon="🔥"
                         title="Na dziś / Aktywne"
@@ -719,9 +752,14 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                       {!collapsedSections['today'] && (
                         <div className="pt-1">
                           {todayItems.length === 0 ? (
-                            <p className="px-3 py-5 text-center text-[11px] font-medium text-orange-500/50">
-                              ↓ Upuść tutaj — przeniesie na dziś
-                            </p>
+                            <div className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
+                              dragTarget === 'today'
+                                ? 'border-orange-500 bg-orange-500/5 text-orange-500 scale-[1.01] shadow-lg shadow-orange-500/5'
+                                : 'border-orange-500/25 text-orange-500/40 bg-surface-solid/10'
+                            }`}>
+                              <span className="block text-[14px] mb-1">🔥</span>
+                              <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby zaplanować na dziś</span>
+                            </div>
                           ) : (
                             todayItems.map((i: any) => renderCard(i, { inToday: true }))
                           )}
@@ -731,8 +769,17 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                   )}
 
                   {/* 2. Inbox / Skrzynka */}
-                  {(inboxItems.length > 0 || dragTarget === 'inbox') && (
-                    <div ref={inboxZoneRef}>
+                  {(inboxItems.length > 0 || draggingItem !== null) && (
+                    <div
+                      ref={inboxZoneRef}
+                      className={`rounded-2xl p-2 transition-all duration-200 ${
+                        draggingItem !== null
+                          ? dragTarget === 'inbox'
+                            ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[0_4px_25px_rgba(99,102,241,0.12)]'
+                            : 'border border-dashed border-primary/20 bg-primary/5'
+                          : 'border border-transparent bg-transparent'
+                      }`}
+                    >
                       <BucketHeader
                         icon="📥"
                         title="Skrzynka / Inbox"
@@ -744,9 +791,14 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                       {!collapsedSections['inbox'] && (
                         <div className="pt-1">
                           {inboxItems.length === 0 ? (
-                            <p className="px-3 py-3 text-center text-[11px] text-text-muted/40">
-                              ↓ Upuść tutaj
-                            </p>
+                            <div className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
+                              dragTarget === 'inbox'
+                                ? 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5'
+                                : 'border-border-custom/25 text-text-muted/30 bg-surface-solid/10'
+                            }`}>
+                              <span className="block text-[14px] mb-1">📥</span>
+                              <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby przenieść do skrzynki</span>
+                            </div>
                           ) : (
                             inboxItems.map((i: any) => renderCard(i))
                           )}
@@ -759,10 +811,20 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                   {sectionsWithItems.map((sec) => {
                     const isCollapsed = !!collapsedSections[sec.id];
                     const hasItems = sec.items.length > 0;
-                    if (!hasItems && dragTarget !== sec.id) return null;
+                    if (!hasItems && draggingItem === null) return null;
 
                     return (
-                      <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }}>
+                      <div
+                        key={sec.id}
+                        ref={el => { sectionRefs.current[sec.id] = el; }}
+                        className={`rounded-2xl p-2 transition-all duration-200 ${
+                          draggingItem !== null
+                            ? dragTarget === sec.id
+                              ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[0_4px_25px_rgba(99,102,241,0.12)]'
+                              : 'border border-dashed border-primary/20 bg-primary/5'
+                            : 'border border-transparent bg-transparent'
+                        }`}
+                      >
                         <BucketHeader
                           icon="📂"
                           title={sec.name}
@@ -774,9 +836,14 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                         {!isCollapsed && (
                           <div className="pt-1">
                             {sec.items.length === 0 ? (
-                              <p className="px-3 py-3 text-center text-[11px] text-text-muted/40">
-                                ↓ Upuść tutaj
-                              </p>
+                              <div className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
+                                dragTarget === sec.id
+                                  ? 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5'
+                                  : 'border-border-custom/25 text-text-muted/30 bg-surface-solid/10'
+                              }`}>
+                                <span className="block text-[14px] mb-1">📂</span>
+                                <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby przypisać do sekcji</span>
+                              </div>
                             ) : (
                               sec.items.map((i: any) => renderCard(i))
                             )}

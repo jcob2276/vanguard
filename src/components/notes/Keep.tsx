@@ -20,6 +20,7 @@ import {
 import EditNoteModal from './EditNoteModal';
 import NoteCard from './NoteCard';
 import MasonryGrid from './MasonryGrid';
+import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
 
 export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
@@ -78,6 +79,23 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
+  // Helper to determine network/schema issues for local storage fallback
+  const isNetworkOrTableError = useCallback((err: any) => {
+    if (!err) return false;
+    const msg = err.message?.toLowerCase() || '';
+    return (
+      err.code === 'PGRST205' ||
+      err.code === 'PGRST100' ||
+      msg.includes('vanguard_notes') ||
+      msg.includes('fetch') ||
+      msg.includes('network') ||
+      msg.includes('failed to fetch') ||
+      !navigator.onLine
+    );
+  }, []);
+
+  // ─── Fetch ──────────────────────────────────────────────────────────────────
+
   const fetchNotes = useCallback(async () => {
     setError(null);
     try {
@@ -89,7 +107,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         .order('created_at', { ascending: false });
 
       if (err) {
-        if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
+        if (isNetworkOrTableError(err)) {
           const local = localStorage.getItem('vanguard_local_keep_notes');
           try {
             setNotes(local ? JSON.parse(local) : []);
@@ -102,9 +120,19 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       }
       setNotes(data || []);
     } catch (e: any) {
-      setError(e.message);
+      const local = localStorage.getItem('vanguard_local_keep_notes');
+      try {
+        setNotes(local ? JSON.parse(local) : []);
+      } catch (e2) {
+        setNotes([]);
+      }
+      if (!navigator.onLine) {
+        setError('Brak połączenia sieciowego. Załadowano notatki lokalne.');
+      } else {
+        setError(e.message || 'Błąd połączenia. Załadowano wersję lokalną.');
+      }
     }
-  }, [userId]);
+  }, [userId, isNetworkOrTableError]);
 
   useEffect(() => {
     (async () => {
@@ -134,7 +162,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         .select()
         .single();
       if (err) {
-        if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
+        if (isNetworkOrTableError(err)) {
           const local: Note = {
             id: Math.random().toString(36).slice(2),
             title: partial.title || '',
@@ -154,7 +182,20 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       }
       setNotes(prev => sortNotes([data, ...prev]));
     } catch (e: any) {
-      setError(e.message);
+      const local: Note = {
+        id: Math.random().toString(36).slice(2),
+        title: partial.title || '',
+        content: partial.content || '',
+        color: partial.color || 'default',
+        is_pinned: partial.is_pinned || false,
+        tags: partial.tags || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const updated = sortNotes([local, ...notes]);
+      localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      setNotes(updated);
+      setError('Brak połączenia. Zapisano notatkę lokalnie.');
     } finally {
       setBusy(false);
     }
@@ -167,14 +208,19 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         .from('vanguard_notes')
         .update({ ...patch, updated_at: updatedAt })
         .eq('id', id);
-      if (err && !(err.code === 'PGRST205')) throw err;
+      if (err && !isNetworkOrTableError(err)) throw err;
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
-        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
     } catch (e: any) {
-      setError(e.message);
+      setNotes(prev => {
+        const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
+        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
+      setError('Brak połączenia. Zaktualizowano lokalnie.');
     }
   };
 
@@ -182,14 +228,19 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     setBusy(true);
     try {
       const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
-      if (err && !(err.code === 'PGRST205')) throw err;
+      if (err && !isNetworkOrTableError(err)) throw err;
       setNotes(prev => {
         const updated = prev.filter(n => n.id !== id);
-        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
     } catch (e: any) {
-      setError(e.message);
+      setNotes(prev => {
+        const updated = prev.filter(n => n.id !== id);
+        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
+      setError('Brak połączenia. Usunięto lokalnie.');
     } finally {
       setBusy(false);
     }
@@ -202,14 +253,19 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         .from('vanguard_notes')
         .update({ is_pinned: next })
         .eq('id', note.id);
-      if (err && !(err.code === 'PGRST205')) throw err;
+      if (err && !isNetworkOrTableError(err)) throw err;
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
-        if (err?.code === 'PGRST205') localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
     } catch (e: any) {
-      setError(e.message);
+      setNotes(prev => {
+        const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
+        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        return updated;
+      });
+      setError('Brak połączenia. Zmieniono przypięcie lokalnie.');
     }
   };
 
@@ -222,7 +278,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     try {
       const { data, error: err } = await supabase.from('vanguard_notes').insert(empty).select().single();
       if (err) {
-        if (err.code === 'PGRST205' || err.message?.includes('vanguard_notes')) {
+        if (isNetworkOrTableError(err)) {
           const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
           setNotes(prev => [local, ...prev]);
           setEditingId(local.id);
@@ -233,11 +289,14 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       setNotes(prev => [data, ...prev]);
       setEditingId(data.id);
     } catch (e: any) {
-      setError(e.message);
+      const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setNotes(prev => [local, ...prev]);
+      setEditingId(local.id);
+      setError('Brak połączenia. Utworzono notatkę lokalnie.');
     } finally {
       setBusy(false);
     }
-  }, [userId]);
+  }, [userId, isNetworkOrTableError]);
 
   // Auto-open new note when navigated with ?new=1 (Telegram shortcut)
   const autoNewNoteHandled = useRef(false);
@@ -297,6 +356,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const pinned = sidebarTab === 'notes' ? filtered.filter(n => n.is_pinned) : [];
   const others = sidebarTab === 'notes' ? filtered.filter(n => !n.is_pinned) : filtered;
 
+  const handleTagClick = (tag: string) => {
+    setSidebarTab('notes');
+    setActiveTag(t => (t === tag ? null : tag));
+  };
+
   const sharedGridProps = {
     onDelete: handleDelete,
     onTogglePin: handleTogglePin,
@@ -306,6 +370,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     columns,
     editingId,
     onOpenCard: handleOpenCard,
+    onClickTag: handleTagClick,
   };
 
 
@@ -417,6 +482,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
             </div>
           )}
 
+          {sidebarTab === 'notes' && (
+            <NoteQuickCapture onSave={handleCreate} busy={busy} allTags={allTags} />
+          )}
 
           {loading ? (
             <div className="keep-loading">
@@ -462,6 +530,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           onDragEnd={() => {}}
                           onDragOver={e => e.preventDefault()}
                           isDragOver={false}
+                          onClickTag={handleTagClick}
                         />
                       ))}
                     </div>
@@ -494,6 +563,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           onDragEnd={() => {}}
                           onDragOver={e => e.preventDefault()}
                           isDragOver={false}
+                          onClickTag={handleTagClick}
                         />
                       ))}
 
@@ -529,6 +599,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
               onDelete={handleDelete}
               onTogglePin={handleTogglePin}
               busy={busy}
+              allTags={allTags}
             />
           ) : null;
         })()

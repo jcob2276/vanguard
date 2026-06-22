@@ -12,6 +12,7 @@ export default function MasonryGrid({
   columns,
   editingId,
   onOpenCard,
+  onClickTag,
 }: {
   notes: Note[];
   onDelete: (id: string) => void;
@@ -22,6 +23,7 @@ export default function MasonryGrid({
   columns: number;
   editingId: string | null;
   onOpenCard: (id: string) => void;
+  onClickTag?: (tag: string) => void;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export default function MasonryGrid({
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
               isDragOver={overId === note.id && dragId !== note.id}
+              onClickTag={onClickTag}
             />
           ))}
         </div>

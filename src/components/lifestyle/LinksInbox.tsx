@@ -51,6 +51,12 @@ const STATUS_TABS: { id: 'unread' | 'read' | 'all'; label: string }[] = [
 
 const CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
 
+function getYouTubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
 export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,6 +202,19 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     }, 260);
   };
 
+  const updateLinkCategory = async (id: string, newCategory: string) => {
+    try {
+      const { error } = await supabase
+        .from('vanguard_links')
+        .update({ category: newCategory, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
+    } catch (err) {
+      console.error('[LinksInbox] Failed to update category:', err);
+    }
+  };
+
   const filteredLinks = links.filter(link => {
     const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
     const matchesCategory = !categoryFilter || link.category === categoryFilter;
@@ -284,9 +303,11 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         </header>
 
         {/* Inline add-link form */}
-        {showAddForm && (
-          <div className="border-b border-border-custom/60 px-5 py-3 bg-surface/60 backdrop-blur-sm">
-            <div className="max-w-[640px] mx-auto flex items-center gap-2">
+        <div
+          className={`grid-expand-wrapper ${showAddForm ? 'expanded' : ''}`}
+        >
+          <div className="grid-expand-content border-b border-border-custom/60 bg-surface/60 backdrop-blur-sm">
+            <div className="max-w-[640px] mx-auto flex items-center gap-2 px-5 py-3.5">
               <Link2 size={14} className="shrink-0 text-text-muted" />
               <input
                 autoFocus
@@ -309,7 +330,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               }
             </div>
           </div>
-        )}
+        </div>
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[640px] mx-auto px-5 py-5 pb-24 space-y-4">
@@ -357,6 +378,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                   const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
                   const isExpanded = expandedLinkId === link.id;
                   const isDeleting = deletingIds.has(link.id);
+                  const youtubeId = getYouTubeId(link.url);
 
                   return (
                     <div
@@ -366,7 +388,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                       }`}
                     >
                     <div
-                      className={`rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.25),0_2px_18px_rgba(0,0,0,0.18)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] ${
+                      className={`pocket-card ${
                         link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                       }`}
                     >
@@ -386,8 +408,22 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                       <div className="flex items-start gap-3">
                         <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
                           <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                            <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${catStyle.pill}`}>
+                            <div className="flex items-center gap-1 select-none">
+                              <img
+                                src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
+                                alt=""
+                                className="w-3.5 h-3.5 rounded-sm object-contain"
+                                onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                              <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
+                            </div>
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCategoryFilter(p => p === link.category ? null : link.category);
+                              }}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
+                            >
                               {link.category}
                             </span>
                             {(link.notes || notesDrafts[link.id]) && (
@@ -418,54 +454,95 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         </a>
                       </div>
 
-                      {/* Expanded: AI Takeaways + Przemyślenia */}
-                      <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[600px] mt-4' : 'max-h-0'}`}>
-                        {link.takeaways && link.takeaways.length > 0 && (
-                          <div className="border-t border-border-custom/40 pt-3 space-y-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
-                            <ul className="space-y-2">
-                              {link.takeaways.map((t, i) => (
-                                <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-text-primary">
-                                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">{i + 1}</span>
-                                  {t}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Przemyślenia */}
-                        <div className="border-t border-border-custom/40 pt-3 mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                              <PenLine size={10} /> Przemyślenia
-                            </p>
-                            {savedNoteId === link.id && (
-                              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-500">
-                                <Check size={10} /> Zapisano
-                              </span>
+                      {/* Expanded: AI Takeaways + Przemyślenia + Kategoria */}
+                      <div
+                        className={`grid-expand-wrapper ${isExpanded ? 'expanded' : ''}`}
+                      >
+                        <div className="grid-expand-content">
+                          <div className="mt-4 border-t border-border-custom/40 pt-3 space-y-4">
+                            {youtubeId && (
+                              <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-inner border border-border-custom/50">
+                                <iframe
+                                  src={`https://www.youtube.com/embed/${youtubeId}`}
+                                  title={link.title}
+                                  className="h-full w-full border-0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
                             )}
+                            {link.takeaways && link.takeaways.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
+                                <ul className="space-y-2">
+                                  {link.takeaways.map((t, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-text-primary">
+                                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">{i + 1}</span>
+                                      {t}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Kategoria */}
+                            <div className="border-t border-border-custom/40 pt-3 space-y-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kategoria</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {CATEGORIES.map(cat => {
+                                  const isActive = link.category === cat;
+                                  const cStyle = CATEGORY_COLORS[cat] || CATEGORY_COLORS['Inne'];
+                                  return (
+                                    <button
+                                      key={cat}
+                                      onClick={() => updateLinkCategory(link.id, cat)}
+                                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border transition-all ${
+                                        isActive
+                                          ? `${cStyle.pill} border-current ring-1 ring-current`
+                                          : 'border-border-custom bg-surface-solid text-text-muted hover:text-text-primary'
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Przemyślenia */}
+                            <div className="border-t border-border-custom/40 pt-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                                  <PenLine size={10} /> Przemyślenia
+                                </p>
+                                {savedNoteId === link.id && (
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-500">
+                                    <Check size={10} /> Zapisano
+                                  </span>
+                                )}
+                              </div>
+                              <textarea
+                                value={notesDrafts[link.id] ?? (link.notes || '')}
+                                onChange={e => setNotesDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
+                                onBlur={() => saveNotes(link.id)}
+                                onFocus={e => {
+                                  if (notesDrafts[link.id] === undefined) {
+                                    setNotesDrafts(prev => ({ ...prev, [link.id]: link.notes || '' }));
+                                  }
+                                  e.currentTarget.style.height = 'auto';
+                                  e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                                }}
+                                onInput={e => {
+                                  const t = e.currentTarget;
+                                  t.style.height = 'auto';
+                                  t.style.height = t.scrollHeight + 'px';
+                                }}
+                                placeholder="Co myślisz o tym materiale? Zapisz refleksje, pytania, co chcesz wdrożyć…"
+                                rows={3}
+                                className="w-full resize-none bg-transparent text-[13px] leading-relaxed text-text-primary outline-none placeholder:text-text-muted/35"
+                              />
+                            </div>
                           </div>
-                          <textarea
-                            value={notesDrafts[link.id] ?? (link.notes || '')}
-                            onChange={e => setNotesDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
-                            onBlur={() => saveNotes(link.id)}
-                            onFocus={e => {
-                              if (notesDrafts[link.id] === undefined) {
-                                setNotesDrafts(prev => ({ ...prev, [link.id]: link.notes || '' }));
-                              }
-                              e.currentTarget.style.height = 'auto';
-                              e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-                            }}
-                            onInput={e => {
-                              const t = e.currentTarget;
-                              t.style.height = 'auto';
-                              t.style.height = t.scrollHeight + 'px';
-                            }}
-                            placeholder="Co myślisz o tym materiale? Zapisz refleksje, pytania, co chcesz wdrożyć…"
-                            rows={3}
-                            className="w-full resize-none bg-transparent text-[13px] leading-relaxed text-text-primary outline-none placeholder:text-text-muted/35"
-                          />
                         </div>
                       </div>
 

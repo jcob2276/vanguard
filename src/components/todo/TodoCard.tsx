@@ -88,14 +88,17 @@ export default function TodoCard({
   const gripLongPressTimer = useRef<any>(null);
   const prevSwipeRef = useRef(0);
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   useEffect(() => {
     if (expanded) {
       setExpandMounted(true);
+      setShowAdvanced(!!item.recurrence || !!item.reminder_at);
     } else {
       const t = setTimeout(() => setExpandMounted(false), 280);
       return () => clearTimeout(t);
     }
-  }, [expanded]);
+  }, [expanded, item.recurrence, item.reminder_at]);
 
   const [reminderInput, setReminderInput] = useState('');
 
@@ -105,6 +108,13 @@ export default function TodoCard({
   const isDone = item.status === 'done';
   const { icon, label } = splitEmoji(item.title);
   const dateInfo = relativeDate(item.due_date, today);
+  const tomorrowStr = useMemo(() => {
+    if (!today) return '';
+    const [y, m, d] = today.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().slice(0, 10);
+  }, [today]);
 
   // ── Touch swipe (card body) ──
   const onTouchStart = (e: React.TouchEvent) => {
@@ -134,8 +144,19 @@ export default function TodoCard({
     clearTimeout(longPressTimer.current);
     prevSwipeRef.current = 0;
     if (!isDragging) {
-      if (swipeOffset > 100) handleComplete();
-      else if (swipeOffset < -100) onDrop();
+      if (swipeOffset > 100) {
+        setSwipeOffset(500);
+        handleComplete();
+        return;
+      } else if (swipeOffset < -100) {
+        setSwipeOffset(-500);
+        setTimeout(() => {
+          onDrop();
+          setSwipeOffset(0);
+          setSwipeDir(null);
+        }, 150);
+        return;
+      }
     }
     setSwipeOffset(0);
     setSwipeDir(null);
@@ -144,6 +165,8 @@ export default function TodoCard({
   const handleComplete = () => {
     if (isDone) {
       onToggle();
+      setSwipeOffset(0);
+      setSwipeDir(null);
       return;
     }
     setCompleting(true);
@@ -152,6 +175,8 @@ export default function TodoCard({
       onToggle();
       setCompleting(false);
       setCompletingOut(false);
+      setSwipeOffset(0);
+      setSwipeDir(null);
     }, 420);
   };
 
@@ -242,7 +267,7 @@ export default function TodoCard({
                 handleComplete();
               }}
               disabled={busy}
-              className="shrink-0 mt-0.5"
+              className="shrink-0 mt-0.5 btn-press"
             >
               <span
                 className={`flex h-[20px] w-[20px] items-center justify-center text-[15px] leading-none transition-all ${
@@ -259,12 +284,12 @@ export default function TodoCard({
                 handleComplete();
               }}
               disabled={busy}
-              className="mt-0.5 shrink-0"
+              className="mt-0.5 shrink-0 btn-press"
             >
               <div
                 className={`h-[15px] w-[15px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-200 ${
                   completing || isDone
-                    ? `bg-emerald-500 border-transparent ${completing && !completingOut ? 'scale-[1.35]' : 'scale-100'}`
+                    ? `bg-emerald-500 border-transparent todo-checkbox-pop ${completing && !completingOut ? 'scale-[1.35]' : 'scale-100'}`
                     : `${p.ring} bg-transparent`
                 }`}
               >
@@ -274,14 +299,43 @@ export default function TodoCard({
           )}
 
           {/* Content */}
-          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onToggleExpand(item.id)}>
-            <p
-              className={`text-[14px] font-medium leading-snug transition-colors ${
-                isDone ? 'line-through text-text-muted/50' : 'text-text-primary'
-              }`}
-            >
-              {label}
-            </p>
+          <div
+            className="min-w-0 flex-1 cursor-pointer"
+            onClick={(e) => {
+              if (expanded) {
+                e.stopPropagation();
+                if (!isEditing) onEditStart(item.title);
+              } else {
+                onToggleExpand(item.id);
+              }
+            }}
+          >
+            {isEditing ? (
+              <input
+                autoFocus
+                value={editingTitle}
+                onChange={e => onEditChange(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Escape') onEditSave();
+                }}
+                onBlur={onEditSave}
+                onClick={e => e.stopPropagation()}
+                className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-1.5 text-[14px] font-semibold text-text-primary outline-none ring-2 ring-primary/15"
+              />
+            ) : (
+              <div className="group/title flex items-center gap-1.5">
+                <p
+                  className={`text-[14px] font-medium leading-snug transition-colors ${
+                    isDone ? 'line-through text-text-muted/50' : 'text-text-primary'
+                  }`}
+                >
+                  {label}
+                </p>
+                {expanded && (
+                  <Pencil size={10} className="text-text-muted opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" />
+                )}
+              </div>
+            )}
 
             {/* Metadata */}
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0">
@@ -291,7 +345,17 @@ export default function TodoCard({
                   <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
                 </span>
               )}
-              {subtasks.length > 0 && <span className="text-[10px] text-text-muted/40">{doneCount}/{subtasks.length}</span>}
+              {subtasks.length > 0 && (
+                <div className="todo-progress-container" title={`${doneCount}/${subtasks.length} podzadań`}>
+                  <div className="todo-progress-track">
+                    <div
+                      className="todo-progress-bar"
+                      style={{ width: `${(doneCount / subtasks.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-text-muted/45 font-medium">{doneCount}/{subtasks.length}</span>
+                </div>
+              )}
               {(item.tags || []).map((tag: string) => (
                 <span key={tag} className="text-[10px] text-text-muted/35">
                   #{tag}
@@ -325,7 +389,7 @@ export default function TodoCard({
                 e.stopPropagation();
                 onMoveToToday();
               }}
-              className="shrink-0 text-[11px] font-medium text-text-muted/30 hover:text-orange-500 transition-colors"
+              className="shrink-0 text-[11px] font-medium text-text-muted/30 hover:text-orange-500 transition-colors btn-press"
               title="Przesuń na dziś"
             >
               →
@@ -344,75 +408,48 @@ export default function TodoCard({
           <div style={{ overflow: 'hidden' }}>
             {expandMounted && (
               <div className="mt-3 space-y-3 border-t border-border-custom/10 pt-3" onClick={e => e.stopPropagation()}>
-                {/* Inline title edit */}
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Tytuł</p>
-                  {isEditing ? (
-                    <input
-                      autoFocus
-                      value={editingTitle}
-                      onChange={e => onEditChange(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === 'Escape') onEditSave();
-                      }}
-                      onBlur={onEditSave}
-                      className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-2 text-[13px] font-semibold text-text-primary outline-none ring-2 ring-primary/15"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => onEditStart(item.title)}
-                      className="group/ed flex w-full items-center justify-between gap-2 rounded-xl border border-transparent px-3 py-2 text-left hover:border-border-custom hover:bg-surface-solid transition-colors"
-                    >
-                      <span className="text-[13px] font-semibold text-text-primary">{item.title}</span>
-                      <Pencil size={11} className="shrink-0 text-text-muted opacity-0 group-hover/ed:opacity-100" />
-                    </button>
-                  )}
-                </div>
-
                 {description && (
                   <p className="rounded-xl border border-border-custom/40 bg-surface-solid/50 px-3 py-2.5 text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap">
                     {description}
                   </p>
                 )}
 
-                {/* Priority grid */}
+                {/* Termin (Due date) - Default Visible */}
                 <div>
-                  <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Priorytet</p>
-                  <div className="grid grid-cols-4 gap-1">
-                    {PRIORITY_ORDER.map(pid => {
-                      const pr = PRIORITY[pid];
-                      const active = item.priority === pid;
-                      return (
-                        <button
-                          key={pid}
-                          onClick={() => onSetPriority(pid)}
-                          className={`rounded-xl border py-2 text-[8px] font-black uppercase tracking-wide transition-all ${
-                            active
-                              ? `${pr.chip} border-transparent scale-[1.02]`
-                              : 'border-border-custom/50 text-text-muted hover:border-border-custom'
-                          }`}
-                        >
-                          {pr.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Due date */}
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Termin</p>
-                  <div className="flex items-center gap-2">
+                  <p className="mb-1 text-[11px] font-semibold text-text-muted">Termin</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSetDueDate(today)}
+                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-semibold border transition-all btn-press ${
+                        item.due_date === today
+                          ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20'
+                          : 'border-border-custom/50 text-text-muted hover:text-text-primary hover:bg-surface-solid/40'
+                      }`}
+                    >
+                      Dziś
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSetDueDate(tomorrowStr)}
+                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-semibold border transition-all btn-press ${
+                        item.due_date === tomorrowStr
+                          ? 'bg-sky-500/15 text-sky-500 border-sky-500/20'
+                          : 'border-border-custom/50 text-text-muted hover:text-text-primary hover:bg-surface-solid/40'
+                      }`}
+                    >
+                      Jutro
+                    </button>
                     <input
                       type="date"
                       value={item.due_date || ''}
                       onChange={e => onSetDueDate(e.target.value || null)}
-                      className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
+                      className="flex-1 min-w-[120px] rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
                     />
                     {item.due_date && (
                       <button
                         onClick={() => onSetDueDate(null)}
-                        className="shrink-0 flex items-center gap-1 rounded-xl border border-border-custom/50 px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-rose-400 transition-colors"
+                        className="shrink-0 flex items-center gap-1 rounded-xl border border-border-custom/50 px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-rose-400 transition-colors btn-press"
                       >
                         <X size={10} /> Usuń
                       </button>
@@ -420,100 +457,7 @@ export default function TodoCard({
                   </div>
                 </div>
 
-                {/* Recurrence */}
-                {onSetRecurrence && (
-                  <div>
-                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Powtarzanie</p>
-                    <div className="flex gap-1.5">
-                      {(['', 'daily', 'weekly', 'monthly'] as const).map(r => (
-                        <button
-                          key={r || 'none'}
-                          onClick={() => onSetRecurrence(r)}
-                          className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                            (item.recurrence || '') === r
-                              ? 'border-primary/20 bg-primary/10 text-primary'
-                              : 'border-border-custom/50 text-text-muted hover:text-text-primary'
-                          }`}
-                        >
-                          {r === '' ? 'Nie' : r === 'daily' ? '↺ Dzień' : r === 'weekly' ? '↺ Tydzień' : '↺ Miesiąc'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Reminder */}
-                {!isDone && (
-                  <div>
-                    <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Przypomnienie</p>
-                    {item.reminder_at && !item.reminder_sent ? (
-                      <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Bell size={11} className="text-primary" />
-                          <span className="text-[12px] font-semibold text-primary">
-                            {new Date(item.reminder_at).toLocaleString('pl-PL', {
-                              timeZone: 'Europe/Warsaw',
-                              month: 'short', day: 'numeric',
-                              hour: '2-digit', minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-                        <button
-                          onClick={onCancelReminder}
-                          className="flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-rose-400 transition-colors"
-                        >
-                          <BellOff size={10} /> Anuluj
-                        </button>
-                      </div>
-                    ) : item.reminder_sent ? (
-                      <p className="text-[11px] text-text-muted/50">✓ Wysłano</p>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="datetime-local"
-                          value={reminderInput}
-                          onChange={e => setReminderInput(e.target.value)}
-                          className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
-                        />
-                        <button
-                          onClick={() => {
-                            if (!reminderInput) return;
-                            onSetReminder(new Date(reminderInput).toISOString());
-                            setReminderInput('');
-                          }}
-                          disabled={!reminderInput}
-                          className="shrink-0 flex items-center gap-1 rounded-xl bg-primary/10 px-3 py-1.5 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors"
-                        >
-                          <Bell size={10} /> Ustaw
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Section picker */}
-                {sections.length > 0 && (
-                  <div>
-                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Sekcja</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {sections.map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => onMoveSection(s.id)}
-                          className={`rounded-full border px-2.5 py-1 text-[9px] font-black transition-colors ${
-                            item.section_id === s.id
-                              ? 'border-primary/20 bg-primary/10 text-primary'
-                              : 'border-border-custom bg-surface-solid text-text-muted hover:text-text-primary'
-                          }`}
-                        >
-                          {s.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Subtasks */}
+                {/* Subtasks (Podzadania) - Default Visible */}
                 <div>
                   <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Podzadania</p>
                   <div className="space-y-1">
@@ -522,10 +466,10 @@ export default function TodoCard({
                         key={idx}
                         className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
                       >
-                        <button onClick={() => onToggleSubtask(idx)} className="shrink-0">
+                        <button onClick={() => onToggleSubtask(idx)} className="shrink-0 btn-press">
                           <div
                             className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
-                              st.checked ? 'bg-emerald-500 border-emerald-500' : 'border-border-custom'
+                              st.checked ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
                             }`}
                           >
                             {st.checked && <Check size={8} className="text-white" strokeWidth={3} />}
@@ -540,7 +484,7 @@ export default function TodoCard({
                         </span>
                         <button
                           onClick={() => onDeleteSubtask(idx)}
-                          className="shrink-0 text-text-muted/30 hover:text-rose-400 transition-colors"
+                          className="shrink-0 text-text-muted/30 hover:text-rose-400 transition-colors btn-press"
                         >
                           <X size={11} />
                         </button>
@@ -567,7 +511,7 @@ export default function TodoCard({
                           }
                         }}
                         disabled={!newSubtask.trim()}
-                        className="rounded-xl bg-primary/90 px-3 py-2 text-[9px] font-black text-white disabled:opacity-30 hover:bg-primary transition-colors"
+                        className="rounded-xl bg-primary/90 px-3 py-2 text-[9px] font-black text-white disabled:opacity-30 hover:bg-primary transition-colors btn-press"
                       >
                         +
                       </button>
@@ -575,12 +519,149 @@ export default function TodoCard({
                   </div>
                 </div>
 
-                <button
-                  onClick={onDrop}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/15 bg-rose-500/5 py-2.5 text-[9px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-colors"
-                >
-                  <Trash2 size={10} /> Odpuść zadanie
-                </button>
+                {/* Collapsible advanced options toggle */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1.5 btn-press"
+                  >
+                    {showAdvanced ? '− Ukryj opcje zadania' : '＋ Pokaż opcje zadania (Priorytet, Sekcja, Powtarzanie...)'}
+                  </button>
+                </div>
+
+                {/* Advanced options wrapper */}
+                {showAdvanced && (
+                  <div className="space-y-3.5 border-t border-border-custom/10 pt-3 mt-1.5">
+                    {/* Priority and Section picker row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Priority grid */}
+                      <div>
+                        <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Priorytet</p>
+                        <div className="grid grid-cols-4 gap-1">
+                          {PRIORITY_ORDER.map(pid => {
+                            const pr = PRIORITY[pid];
+                            const active = item.priority === pid;
+                            return (
+                              <button
+                                key={pid}
+                                onClick={() => onSetPriority(pid)}
+                                className={`rounded-xl border py-2 text-[8px] font-black uppercase tracking-wide transition-all btn-press ${
+                                  active
+                                    ? `${pr.chip} border-transparent scale-[1.02]`
+                                    : 'border-border-custom/50 text-text-muted hover:border-border-custom'
+                                }`}
+                              >
+                                {pr.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Section picker */}
+                      {sections.length > 0 && (
+                        <div>
+                          <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Sekcja</p>
+                          <select
+                            value={item.section_id || ''}
+                            onChange={e => onMoveSection(e.target.value || null)}
+                            className="w-full rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
+                          >
+                            <option value="">📥 Skrzynka (brak sekcji)</option>
+                            {sections.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recurrence and Reminder row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Recurrence */}
+                      {onSetRecurrence && (
+                        <div>
+                          <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Powtarzanie</p>
+                          <div className="flex gap-1.5">
+                            {(['', 'daily', 'weekly', 'monthly'] as const).map(r => (
+                              <button
+                                key={r || 'none'}
+                                onClick={() => onSetRecurrence(r)}
+                                className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors btn-press ${
+                                  (item.recurrence || '') === r
+                                    ? 'border-primary/20 bg-primary/10 text-primary'
+                                    : 'border-border-custom/50 text-text-muted hover:text-text-primary'
+                                }`}
+                              >
+                                {r === '' ? 'Nie' : r === 'daily' ? '↺ Dzień' : r === 'weekly' ? '↺ Tydzień' : '↺ Miesiąc'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reminder */}
+                      {!isDone && (
+                        <div>
+                          <p className="mb-1.5 text-[8px] font-black uppercase tracking-widest text-text-muted">Przypomnienie</p>
+                          {item.reminder_at && !item.reminder_sent ? (
+                            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <Bell size={11} className="text-primary" />
+                                <span className="text-[12px] font-semibold text-primary">
+                                  {new Date(item.reminder_at).toLocaleString('pl-PL', {
+                                    timeZone: 'Europe/Warsaw',
+                                    month: 'short', day: 'numeric',
+                                    hour: '2-digit', minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                              <button
+                                onClick={onCancelReminder}
+                                className="flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-rose-400 transition-colors btn-press"
+                              >
+                                <BellOff size={10} /> Anuluj
+                              </button>
+                            </div>
+                          ) : item.reminder_sent ? (
+                            <p className="text-[11px] text-text-muted/50">✓ Wysłano</p>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="datetime-local"
+                                value={reminderInput}
+                                onChange={e => setReminderInput(e.target.value)}
+                                className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (!reminderInput) return;
+                                  onSetReminder(new Date(reminderInput).toISOString());
+                                  setReminderInput('');
+                                }}
+                                disabled={!reminderInput}
+                                className="shrink-0 flex items-center gap-1 rounded-xl bg-primary/10 px-3 py-1.5 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
+                              >
+                                <Bell size={10} /> Ustaw
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Odpuść zadanie (Trash button) */}
+                    <div className="pt-1.5">
+                      <button
+                        onClick={onDrop}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/15 bg-rose-500/5 py-2.5 text-[9px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                      >
+                        <Trash2 size={10} /> Odpuść zadanie
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

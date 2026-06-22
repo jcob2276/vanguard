@@ -21,7 +21,6 @@ const KCAL_PER_KG = 7700;            // ~kcal per kg body mass
 const OURA_CORRECTION = 0.88;        // wearables over-read active burn ~10-15%
 
 const toWarsaw = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
-const daysAgo = (n: number) => toWarsaw(new Date(Date.now() - n * 86400000));
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const num = (v: unknown): number | null => (v == null || isNaN(Number(v)) ? null : Number(v));
@@ -66,6 +65,12 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient();
     const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
     const today = body.date || toWarsaw(new Date());
+    const targetDate = new Date(today + "T12:00:00Z");
+    const daysAgo = (n: number) => {
+      const d = new Date(targetDate);
+      d.setUTCDate(d.getUTCDate() - n);
+      return d.toISOString().split("T")[0];
+    };
     const d30 = daysAgo(30);
     const d45 = daysAgo(45);
 
@@ -154,10 +159,18 @@ Deno.serve(async (req) => {
 
     // ── Maintenance triangulation ──────────────────────────────────────────────
     const ouraAdj = Math.round(avgTdeeOura * OURA_CORRECTION);
+
+    // Only use weight trend adjustments if we have a wide enough window (at least 14 days)
+    // to filter out daily water weight fluctuations which would otherwise scale up to crazy numbers.
+    const reliableWeightWindow = weightDaysSpan >= 14;
+    const dailyWeightSurplusDeficit = reliableWeightWindow
+      ? (weightChangeKg * KCAL_PER_KG / weightDaysSpan)
+      : 0;
+
     const maintFromLog = avgIntake
-      ? Math.round(avgIntake - (weightChangeKg * KCAL_PER_KG / Math.max(weightDaysSpan, 1)))
+      ? Math.round(avgIntake - dailyWeightSurplusDeficit)
       : ouraAdj;
-    const flat = Math.abs(weightTrendPerWeek) < 0.15;
+    const flat = reliableWeightWindow ? Math.abs(weightTrendPerWeek) < 0.15 : true;
     const underlogGap = Math.max(0, ouraAdj - avgIntake);
     // When weight is flat but Oura burn >> logged intake, the log is under-counting:
     // real maintenance ≈ Oura-adjusted burn (weight proves intake≈expenditure).
