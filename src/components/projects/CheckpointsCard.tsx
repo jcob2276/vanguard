@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, Check, ChevronRight, Flag, Shield, Wallet, Zap } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import { supabase } from '../../lib/supabase';
+import { useHaptics } from '../../hooks/useHaptics';
 
 const PILLAR_ICON = {
   cialo: Shield,
@@ -27,8 +28,10 @@ const DOT_COLOR = {
 
 export default function CheckpointsCard({ session, onNavigateTo }: { session: any; onNavigateTo?: (dest: string) => void }) {
   const userId = session?.user?.id;
+  const haptics = useHaptics();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -70,9 +73,15 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
   const todayStr = getTodayWarsaw();
 
   const markDone = async (id: string) => {
+    setCompletingId(id);
+    haptics.success();
     const { error } = await supabase.from('project_checkpoints').update({ status: 'done', completed_at: nowWarsaw().toISOString() }).eq('id', id);
-    if (error) { console.warn('[CheckpointsCard] markDone failed:', error.message); return; }
-    setItems(prev => prev.filter(i => i.id !== id));
+    if (error) {
+      console.warn('[CheckpointsCard] markDone failed:', error.message);
+      setCompletingId(null);
+      return;
+    }
+    setTimeout(() => setItems(prev => prev.filter(i => i.id !== id)), 280);
   };
 
   if (loading) return null;
@@ -82,7 +91,7 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
   const upcoming = items.filter(cp => cp.due_date >= todayStr);
 
   return (
-    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
+    <section className="animate-fadeIn rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Flag size={13} className="text-primary" />
@@ -106,8 +115,9 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
           const proj = cp.project;
           const PillarIcon = PILLAR_ICON[proj.pillar as keyof typeof PILLAR_ICON] ?? Flag;
           const dotClass = DOT_COLOR[proj.color as keyof typeof DOT_COLOR] ?? 'bg-primary';
+          const completing = completingId === cp.id;
           return (
-            <div key={cp.id} className="flex items-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.04] px-3.5 py-2.5">
+            <div key={cp.id} className={`flex items-center gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.04] px-3.5 py-2.5 transition-all duration-300 ${completing ? 'scale-95 opacity-0' : ''}`}>
               <div className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px] font-bold text-text-primary leading-tight">{cp.title}</p>
@@ -121,7 +131,8 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
               </div>
               <button
                 onClick={() => markDone(cp.id)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-custom bg-surface-solid hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-text-muted transition-all active:scale-95 cursor-pointer"
+                disabled={completing}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-custom bg-surface-solid hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-text-muted transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <Check size={12} strokeWidth={3} />
               </button>
@@ -135,8 +146,9 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
           const proj = cp.project;
           const PillarIcon = PILLAR_ICON[proj.pillar as keyof typeof PILLAR_ICON] ?? Flag;
           const dotClass = DOT_COLOR[proj.color as keyof typeof DOT_COLOR] ?? 'bg-primary';
+          const completing = completingId === cp.id;
           return (
-            <div key={cp.id} className="flex items-center gap-3 rounded-2xl border border-border-custom bg-surface-solid/40 px-3.5 py-2.5">
+            <div key={cp.id} className={`flex items-center gap-3 rounded-2xl border border-border-custom bg-surface-solid/40 px-3.5 py-2.5 transition-all duration-300 ${completing ? 'scale-95 opacity-0' : ''}`}>
               <div className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px] font-bold text-text-primary leading-tight">{cp.title}</p>
@@ -151,7 +163,8 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
               </div>
               <button
                 onClick={() => markDone(cp.id)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-custom bg-surface-solid hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-text-muted transition-all active:scale-95 cursor-pointer"
+                disabled={completing}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-custom bg-surface-solid hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-text-muted transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <Check size={12} strokeWidth={3} />
               </button>
