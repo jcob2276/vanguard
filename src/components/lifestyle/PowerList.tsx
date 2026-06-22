@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
@@ -88,6 +88,11 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const [weekGoals, setWeekGoals] = useState<{ cialo: string | null; duch: string | null; konto: string | null; intention: string | null } | null>(null);
   const [dayNote, setDayNote] = useState(todayWin?.day_note ?? '');
   const [savingNote, setSavingNote] = useState(false);
+
+  // Wczorajszy dzień — wymagana refleksja przed odblokowaniem dzisiejszych 5 zwycięstw
+  const [yesterdayWin, setYesterdayWin] = useState<any>(null);
+  const [yesterdayNote, setYesterdayNote] = useState('');
+  const yesterdayNoteRequired = !!yesterdayWin && !yesterdayWin.day_note;
 
   const [newTaskForm, setNewTaskForm] = useState<Array<{ task: string; todoId: string | null }>>([
     { task: '', todoId: null },
@@ -210,6 +215,22 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     })();
   }, [todayWin?.task_1_todo_id, todayWin?.task_2_todo_id, todayWin?.task_3_todo_id, todayWin?.task_4_todo_id, todayWin?.task_5_todo_id, userId]);
 
+  // Fetch yesterday's daily_wins to require a reflection before unlocking today
+  useEffect(() => {
+    if (todayWin) return;
+    const yesterday = getYesterdayWarsaw();
+    supabase
+      .from('daily_wins')
+      .select('id, date, day_note, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5')
+      .eq('user_id', userId)
+      .eq('date', yesterday)
+      .maybeSingle()
+      .then(({ data }) => {
+        setYesterdayWin(data ?? null);
+        setYesterdayNote((data as any)?.day_note ?? '');
+      }, () => setYesterdayWin(null));
+  }, [userId, todayWin]);
+
   useEffect(() => {
     if (todayWin) return;
     listTodoItems(userId)
@@ -307,6 +328,10 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
   async function startNewDay() {
     if (submitting) return;
+    if (yesterdayNoteRequired && !yesterdayNote.trim()) {
+      alert('Najpierw odpowiedz, dlaczego zrealizowałeś / nie zrealizowałeś zadania z wczoraj.');
+      return;
+    }
     if (!newTaskForm.some((t) => t.task.trim())) {
       alert('Wypełnij przynajmniej 1 zadanie!');
       return;
@@ -314,6 +339,10 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
     setSubmitting(true);
     try {
+      if (yesterdayWin?.id && yesterdayNote.trim() && yesterdayNote.trim() !== (yesterdayWin.day_note ?? '')) {
+        await supabase.from('daily_wins').update({ day_note: yesterdayNote.trim() }).eq('id', yesterdayWin.id);
+      }
+
       const entry = {
         user_id: userId,
         date: today,
@@ -355,6 +384,36 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
       {!todayWin ? (
         <div className="space-y-5 rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
+          {yesterdayWin && (
+            <div className="space-y-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3.5">
+              <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
+              </p>
+              <ul className="space-y-1">
+                {[1, 2, 3, 4, 5].map((i) => yesterdayWin[`task_${i}`] && (
+                  <li key={i} className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${yesterdayWin[`done_${i}`] ? 'bg-dayC' : 'bg-text-muted/30'}`} />
+                    <span className={yesterdayWin[`done_${i}`] ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
+                      {yesterdayWin[`task_${i}`]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-text-muted leading-relaxed">
+                Dlaczego zrealizowałeś / nie zrealizowałeś te zadania? {yesterdayNoteRequired && <span className="font-bold text-amber-600 dark:text-amber-400">(wymagane)</span>}
+              </p>
+              <textarea
+                value={yesterdayNote}
+                onChange={(e) => setYesterdayNote(e.target.value)}
+                placeholder="Napisz szczerze…"
+                rows={3}
+                className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
+                  text-text-primary placeholder-text-muted resize-y min-h-[64px]
+                  focus:outline-none focus:border-primary/50 transition-colors"
+              />
+            </div>
+          )}
+
           <div>
             <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
               Zdefiniuj 5 zwycięstw
@@ -477,7 +536,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
           <button
             onClick={startNewDay}
-            disabled={submitting}
+            disabled={submitting || (yesterdayNoteRequired && !yesterdayNote.trim())}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}

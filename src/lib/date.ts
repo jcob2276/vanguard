@@ -4,6 +4,13 @@ export function getTodayWarsaw(): string {
   return formatWarsawDate(new Date());
 }
 
+export function getYesterdayWarsaw(): string {
+  const today = getTodayWarsaw();
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
 export function nowWarsaw(): Date {
   const d = new Date();
   const formatter = new Intl.DateTimeFormat('en-US', {
