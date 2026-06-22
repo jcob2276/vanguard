@@ -88,6 +88,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const [weekGoals, setWeekGoals] = useState<{ cialo: string | null; duch: string | null; konto: string | null; intention: string | null } | null>(null);
   const [dayNote, setDayNote] = useState(todayWin?.day_note ?? '');
   const [savingNote, setSavingNote] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
 
   // Wczorajszy dzień — wymagana refleksja przed odblokowaniem dzisiejszych 5 zwycięstw
   const [yesterdayWin, setYesterdayWin] = useState<any>(null);
@@ -151,7 +152,11 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
       .eq('id', todayWin.id)
       .select()
       .single();
-    if (!error && data && onUpdate) onUpdate(data);
+    if (!error && data) {
+      if (onUpdate) onUpdate(data);
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 1500);
+    }
     setSavingNote(false);
   }
 
@@ -356,14 +361,12 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
       const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
       if (error) throw error;
-      if (error) {
-        console.error('[startNewDay]', error);
-        haptics.error();
-        alert('Błąd startu dnia');
-      } else {
-        haptics.success();
-        if (onUpdate) onUpdate(data);
-      }
+      haptics.success();
+      if (onUpdate) onUpdate(data);
+    } catch (err: any) {
+      console.error('[startNewDay]', err);
+      haptics.error();
+      alert('Błąd startu dnia: ' + (err?.message ?? 'nieznany błąd'));
     } finally {
       setSubmitting(false);
     }
@@ -375,11 +378,24 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         <h3 className="flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-wider text-text-muted">
           <Target size={13} className="text-primary" /> 5 zwycięstw
         </h3>
-        {todayWin?.result === 'Z' && (
+        {todayWin?.result === 'Z' ? (
           <div className="rounded-full border border-dayC/15 bg-dayC/10 px-2.5 py-0.5 font-display text-[9px] font-bold text-dayC">
             Dzień wygrany
           </div>
-        )}
+        ) : todayWin && (() => {
+          const total = [1, 2, 3, 4, 5].filter((i) => todayWin[`task_${i}`]).length;
+          const doneCount = [1, 2, 3, 4, 5].filter((i) => todayWin[`task_${i}`] && todayWin[`done_${i}`]).length;
+          return total > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-1">
+                {Array.from({ length: total }).map((_, i) => (
+                  <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${i < doneCount ? 'bg-dayC' : 'bg-border-custom'}`} />
+                ))}
+              </div>
+              <span className="font-display text-[9px] font-bold text-text-muted">{doneCount}/{total}</span>
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {!todayWin ? (
@@ -645,9 +661,11 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                 text-text-primary placeholder-text-muted resize-y min-h-[72px]
                 focus:outline-none focus:border-primary/50 transition-colors"
             />
-            {savingNote && (
+            {savingNote ? (
               <p className="text-[9px] text-text-muted">Zapisuję…</p>
-            )}
+            ) : noteSaved ? (
+              <p className="text-[9px] font-bold text-dayC">✓ Zapisano</p>
+            ) : null}
           </div>
         </div>
       )}
