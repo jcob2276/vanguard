@@ -1,4 +1,4 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
@@ -54,10 +54,12 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const modeRef   = useRef(timerMode);
   const subjectRef = useRef(blockSubject);
   const durationRef = useRef(blockDuration);
+  const timeLeftRef = useRef(timeLeft);
 
   useEffect(() => { modeRef.current = timerMode; }, [timerMode]);
   useEffect(() => { subjectRef.current = blockSubject; }, [blockSubject]);
   useEffect(() => { durationRef.current = blockDuration; }, [blockDuration]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
 
   const priorityTask = todayWin?.task_1 || null;
 
@@ -111,11 +113,11 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const fetchTodayBlocks = useCallback(async () => {
     if (!userId) return;
     try {
-      const today = getTodayWarsaw();
+      const { fromISO } = warsawDayBoundsISO(getTodayWarsaw());
       const { data } = await supabase
         .from('vanguard_stream').select('id')
         .eq('user_id', userId).eq('source', 'block_timer').eq('category', 'productivity')
-        .gte('created_at', today + 'T00:00:00.000Z');
+        .gte('created_at', fromISO);
       if (data) setCompletedCount(data.length);
     } catch (err) {
       console.error('Failed to fetch today blocks:', err);
@@ -146,17 +148,21 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     const mode = modeRef.current;
     const subject = subjectRef.current;
     const dur = durationRef.current;
+    // Use actual elapsed time, not the planned block length — "Pomiń" can fire
+    // long before timeLeft hits 0, and previously always logged the full
+    // planned duration even when skipped a few minutes in.
+    const elapsedMin = Math.max(1, Math.round((dur - timeLeftRef.current) / 60));
 
     if (mode === 'work') {
       setIsSubmitting(true);
       try {
         const { error } = await supabase.from('vanguard_stream').insert({
           user_id: userId,
-          content: `[Blok Pracy] Ukończono ${Math.round(dur / 60)}-minutowy blok. Temat: "${subject.trim() || 'Głęboka praca'}"`,
+          content: `[Blok Pracy] Ukończono ${elapsedMin}-minutowy blok. Temat: "${subject.trim() || 'Głęboka praca'}"`,
           source: 'block_timer',
           category: 'productivity',
           classification: 'work_block_completion',
-          metadata: { subject: subject.trim() || 'Głęboka praca', duration_minutes: Math.round(dur / 60) },
+          metadata: { subject: subject.trim() || 'Głęboka praca', duration_minutes: elapsedMin },
         });
         if (error) throw error;
         await fetchTodayBlocks();
