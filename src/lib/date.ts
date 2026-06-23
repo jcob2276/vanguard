@@ -11,6 +11,20 @@ export function getYesterdayWarsaw(): string {
   return d.toISOString().split('T')[0];
 }
 
+export function getTomorrowWarsaw(): string {
+  const today = getTodayWarsaw();
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+export function getDaysAgoWarsaw(days: number): string {
+  const today = getTodayWarsaw();
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
 /** Returns the Europe/Warsaw UTC offset suffix (e.g. "+02:00") for a given instant, DST-aware. */
 function warsawOffsetSuffix(instant: Date): string {
   const offsetStr = new Intl.DateTimeFormat('en-US', {

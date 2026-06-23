@@ -679,6 +679,68 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_plan: {
+        Row: {
+          avoided_task: string | null
+          created_at: string | null
+          energy_level: number | null
+          id: string
+          midday_checked: boolean | null
+          mit_confidence: number | null
+          mit_custom: string | null
+          mit_task_id: string | null
+          plan_date: string
+          re_entry_mode: boolean | null
+          shutdown_at: string | null
+          shutdown_note: string | null
+          supporting: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avoided_task?: string | null
+          created_at?: string | null
+          energy_level?: number | null
+          id?: string
+          midday_checked?: boolean | null
+          mit_confidence?: number | null
+          mit_custom?: string | null
+          mit_task_id?: string | null
+          plan_date: string
+          re_entry_mode?: boolean | null
+          shutdown_at?: string | null
+          shutdown_note?: string | null
+          supporting?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avoided_task?: string | null
+          created_at?: string | null
+          energy_level?: number | null
+          id?: string
+          midday_checked?: boolean | null
+          mit_confidence?: number | null
+          mit_custom?: string | null
+          mit_task_id?: string | null
+          plan_date?: string
+          re_entry_mode?: boolean | null
+          shutdown_at?: string | null
+          shutdown_note?: string | null
+          supporting?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_plan_mit_task_id_fkey"
+            columns: ["mit_task_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_reconciliations: {
         Row: {
           analysis_without_deployment: boolean | null
@@ -1145,6 +1207,33 @@ export type Database = {
           date?: string
           id?: string
           note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      focus_sessions: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number
+          enjoyment_score: number | null
+          id: string
+          task_subject: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds: number
+          enjoyment_score?: number | null
+          id?: string
+          task_subject: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number
+          enjoyment_score?: number | null
+          id?: string
+          task_subject?: string
           user_id?: string
         }
         Relationships: []

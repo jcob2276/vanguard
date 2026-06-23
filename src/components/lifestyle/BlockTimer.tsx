@@ -2,7 +2,7 @@ import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
-import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X } from 'lucide-react';
+import { Timer, Play, Pause, RotateCcw, Check, Zap, Coffee, CheckSquare, X, Flame } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -35,6 +35,16 @@ function loadTimer(): Saved | null {
   } catch { return null; }
 }
 
+const MIN_MINUTES_FOR_ENJOYMENT_RATING = 15;
+
+const ENJOYMENT_RATES = [
+  { score: 1, label: 'Bardzo słabo', color: 'bg-rose-500' },
+  { score: 2, label: 'Średnio',      color: 'bg-amber-500' },
+  { score: 3, label: 'Normalnie',    color: 'bg-yellow-400' },
+  { score: 4, label: 'Dobrze',       color: 'bg-emerald-400' },
+  { score: 5, label: 'Flow!',        color: 'bg-indigo-500' },
+];
+
 export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const haptics = useHaptics();
   const userId = session?.user?.id;
@@ -49,6 +59,10 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
   const [completedCount, setCompletedCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [restoredFromSave, setRestoredFromSave] = useState(false);
+
+  // V2 Enjoyment Tracking
+  const [showEnjoymentRating, setShowEnjoymentRating] = useState(false);
+  const [pendingWorkSession, setPendingWorkSession] = useState<{subject: string, elapsedMin: number} | null>(null);
 
   const timerRef  = useRef<NodeJS.Timeout | null>(null);
   const modeRef   = useRef(timerMode);
@@ -80,7 +94,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
         setTimeLeft(remaining);
         setTimerActive(true);
       } else {
-        // Expired while phone was off — treat as completed, reset quietly
+        // Expired while phone was off
         clearTimer();
       }
     } else if (saved.pausedTimeLeft !== null) {
@@ -99,7 +113,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
 
   // ── Persist state whenever it changes ──
   useEffect(() => {
-    if (timerMode === 'idle') { clearTimer(); return; }
+    if (timerMode === 'idle' || showEnjoymentRating) { clearTimer(); return; }
     saveTimer({
       mode: timerMode as 'work' | 'break',
       endTime: timerActive ? Date.now() + timeLeft * 1000 : null,
@@ -108,7 +122,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
       blockSubject,
       overrideSubject,
     });
-  }, [timerMode, timerActive, timeLeft, blockDuration, blockSubject, overrideSubject]);
+  }, [timerMode, timerActive, timeLeft, blockDuration, blockSubject, overrideSubject, showEnjoymentRating]);
 
   const fetchTodayBlocks = useCallback(async () => {
     if (!userId) return;
@@ -148,36 +162,66 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     const mode = modeRef.current;
     const subject = subjectRef.current;
     const dur = durationRef.current;
-    // Use actual elapsed time, not the planned block length — "Pomiń" can fire
-    // long before timeLeft hits 0, and previously always logged the full
-    // planned duration even when skipped a few minutes in.
+    
     const elapsedMin = Math.max(1, Math.round((dur - timeLeftRef.current) / 60));
 
     if (mode === 'work') {
-      setIsSubmitting(true);
-      try {
-        const { error } = await supabase.from('vanguard_stream').insert({
-          user_id: userId,
-          content: `[Blok Pracy] Ukończono ${elapsedMin}-minutowy blok. Temat: "${subject.trim() || 'Głęboka praca'}"`,
-          source: 'block_timer',
-          category: 'productivity',
-          classification: 'work_block_completion',
-          metadata: { subject: subject.trim() || 'Głęboka praca', duration_minutes: elapsedMin },
-        });
-        if (error) throw error;
-        await fetchTodayBlocks();
-        setTimerMode('break');
-        setTimeLeft(breakDuration);
-        setTimerActive(true);
-      } catch (err) {
-        console.error('Failed to record completed work block:', err);
-      } finally { setIsSubmitting(false); }
+      clearTimer();
+      setTimerActive(false);
+      // Only ask for an enjoyment rating on sessions long enough to matter —
+      // rating every short/skipped block would just train the user to dismiss it.
+      if (elapsedMin >= MIN_MINUTES_FOR_ENJOYMENT_RATING) {
+        setPendingWorkSession({ subject: subject.trim() || 'Głęboka praca', elapsedMin });
+        setShowEnjoymentRating(true);
+      } else {
+        logWorkSession(subject.trim() || 'Głęboka praca', elapsedMin, null);
+      }
     } else {
       clearTimer();
       setTimerMode('idle');
       setTimeLeft(durationRef.current);
     }
-  }, [playGong, haptics, userId, breakDuration, fetchTodayBlocks]);
+  }, [playGong, haptics]);
+
+  const logWorkSession = async (subject: string, elapsedMin: number, score: number | null) => {
+    if (!userId) return;
+    setIsSubmitting(true);
+    try {
+      const { error: err1 } = await supabase.from('vanguard_stream').insert({
+        user_id: userId,
+        content: `[Blok Pracy] Ukończono ${elapsedMin}-minutowy blok. Temat: "${subject}"`,
+        source: 'block_timer',
+        category: 'productivity',
+        classification: 'work_block_completion',
+        metadata: { subject, duration_minutes: elapsedMin },
+      });
+      if (err1) throw err1;
+
+      const { error: err2 } = await supabase.from('focus_sessions').insert({
+        user_id: userId,
+        task_subject: subject,
+        duration_seconds: elapsedMin * 60,
+        enjoyment_score: score,
+      });
+      if (err2) throw err2;
+
+      await fetchTodayBlocks();
+      setShowEnjoymentRating(false);
+      setPendingWorkSession(null);
+      setTimerMode('break');
+      setTimeLeft(breakDuration);
+      setTimerActive(true);
+    } catch (err) {
+      console.error('Failed to record completed work block:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitWorkSession = (score: number) => {
+    if (!pendingWorkSession) return;
+    logWorkSession(pendingWorkSession.subject, pendingWorkSession.elapsedMin, score);
+  };
 
   useEffect(() => {
     if (timerActive) {
@@ -211,6 +255,8 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
     setTimeLeft(blockDuration);
     setRestoredFromSave(false);
     if (!overrideSubject) setBlockSubject(priorityTask || '');
+    setShowEnjoymentRating(false);
+    setPendingWorkSession(null);
     haptics.light();
   };
 
@@ -243,8 +289,34 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
 
       <div className="my-4 border-t border-border-custom" />
 
-      {timerMode === 'idle' ? (
-        <div className="space-y-4">
+      {showEnjoymentRating ? (
+        <div className="animate-fadeIn space-y-4 py-2">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <Flame size={24} className="text-amber-500" />
+            <p className="font-display text-sm font-bold text-text-primary">Zakończono blok pracy!</p>
+            <p className="text-[11px] text-text-secondary">Jak oceniasz tę sesję pod kątem energii i flow?</p>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-3 py-2">
+            {ENJOYMENT_RATES.map((e) => (
+              <button
+                key={e.score}
+                onClick={() => submitWorkSession(e.score)}
+                disabled={isSubmitting}
+                className={`flex h-10 w-10 flex-col items-center justify-center rounded-full text-white shadow-md active:scale-95 transition-all disabled:opacity-40 hover:scale-105 ${e.color}`}
+                title={e.label}
+              >
+                <span className="text-[14px] font-black">{e.score}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between w-full px-4 mt-2">
+            <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted">Rozproszenie</span>
+            <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted">Głębokie Flow</span>
+          </div>
+        </div>
+      ) : timerMode === 'idle' ? (
+        <div className="space-y-4 animate-fadeIn">
           {usingPriority ? (
             <div className="space-y-1.5">
               <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Blok na priorytet dnia</p>
@@ -311,7 +383,7 @@ export default function BlockTimer({ session, todayWin }: BlockTimerProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-4 text-center">
+        <div className="space-y-4 text-center animate-fadeIn">
           <div className="flex justify-center">
             {timerMode === 'work' ? (
               <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">
