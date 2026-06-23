@@ -16,6 +16,47 @@ import {
   shouldShowTimeDivider,
 } from './ChatItems';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
+import { sweepPastEventsInState } from '../../types/schedule';
+import type { ScheduleViewData } from '../../types/schedule';
+
+const SCHEDULE_KEY = 'vanguard_schedule_view';
+
+function applyScheduleMutation(mutation: any) {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_KEY);
+    let state: ScheduleViewData = raw ? JSON.parse(raw) : null;
+    if (!state) return;
+    state = sweepPastEventsInState(state, new Date());
+
+    const { action } = mutation;
+    if (action === 'set_presentation') {
+      if (mutation.hero) state = { ...state, hero: mutation.hero };
+      if (mutation.editorial_intro) state = { ...state, editorialIntro: mutation.editorial_intro };
+      if (mutation.quote_blocks) state = { ...state, quoteBlocks: mutation.quote_blocks };
+    } else if (action === 'add_pending_item' && mutation.add_item) {
+      const item = mutation.add_item;
+      state = {
+        ...state,
+        timeline: state.timeline.map(day =>
+          day.dayDate === item.dayDate
+            ? { ...day, items: [...day.items, { id: item.id ?? crypto.randomUUID(), kind: item.kind ?? 'todo', title: item.title, startTime: item.startTime, pastAfter: item.pastAfter, done: false }] }
+            : day
+        ),
+      };
+    } else if (action === 'complete_pending_item' && mutation.complete_item_id) {
+      state = {
+        ...state,
+        timeline: state.timeline.map(day => ({
+          ...day,
+          items: day.items.map(it =>
+            it.id === mutation.complete_item_id ? { ...it, done: true } : it
+          ),
+        })),
+      };
+    }
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(state));
+  } catch {}
+}
 
 interface ClarificationRequest {
   id: string;
@@ -123,6 +164,9 @@ export default function OracleCard({ session }: { session: Session }) {
       const reply = data?.text ?? data?.response ?? '(brak odpowiedzi)';
       const cardTemplateId = data?.templateId as CardTemplateId | undefined;
       const cardData = data?.data;
+      if (data?.schedule_mutation) {
+        applyScheduleMutation(data.schedule_mutation);
+      }
       setItems(prev => [
         ...prev,
         { type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData },

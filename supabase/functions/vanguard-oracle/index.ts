@@ -698,6 +698,20 @@ Przykład użycia:
   ...
 }
 
+OPCJONALNE — AKTUALIZACJA SCHEDULE (schedule_mutation):
+Gdy użytkownik pyta o plan tygodnia lub prosi o dodanie/zmianę — dodaj pole "schedule_mutation":
+{
+  "schedule_mutation": {
+    "action": "set_presentation" | "add_pending_item" | "complete_pending_item",
+    "hero": { "cardId": "...", "title": "...", "description": "...", "startTime": "...", "priority": 1 },
+    "editorial_intro": "Krótki przegląd tygodnia",
+    "quote_blocks": [{ "title": "...", "content": "...", "priority": "normal" }],
+    "add_item": { "id": "...", "kind": "todo" | "event", "title": "...", "dayDate": "YYYY-MM-DD", "startTime": "...", "pastAfter": "ISO" },
+    "complete_item_id": "..."
+  }
+}
+Używaj tylko gdy action dotyczy konkretnej zmiany w planie/schedulu. Pomiń gdy nie ma mutacji.
+
 [TŁO TOŻSAMOŚCI — kontekst wewnętrzny, nie cytować]:
 ${fundamentRes.data?.identity || 'Brak danych'}
 ${fundamentRes.data?.philosophy || 'Brak danych'}
@@ -872,6 +886,11 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
         if (crErr) console.warn('[oracle] clarification_request insert failed (non-fatal):', crErr.message);
         else console.log('[oracle] clarification_request saved:', cr.dedupe_key);
       }
+    }
+
+    // Schedule mutation — pass-through to client via response (client handles localStorage)
+    if (structuredResponse.schedule_mutation) {
+      console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as any)?.action);
     }
 
     // Oracle responses are audited in vanguard_oracle_runs above. Chat turns must

@@ -41,6 +41,7 @@ const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
 
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
+const ScheduleView = lazy(() => import('../schedule/ScheduleView').then(m => ({ default: m.ScheduleView })));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
@@ -375,6 +376,7 @@ export default function Dashboard({ session }: { session: Session }) {
           <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
+                <ScheduleView session={session} />
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
                   syncYazio={syncYazio}
