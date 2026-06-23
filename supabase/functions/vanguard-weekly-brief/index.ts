@@ -1,5 +1,6 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 
 const toWarsaw = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
 
@@ -158,11 +159,24 @@ ${thisReview?.what_worked || "(nie wypełniono)"}
 CO NIE ZADZIAŁAŁO:
 ${thisReview?.what_didnt_work || "(nie wypełniono)"}`;
 
+    // Inject top behavioral patterns into weekly brief context
+    let patternsBlock = "";
+    try {
+      const patterns = await getRecentStrongBehavioralPatterns(db, userId, 3);
+      const strong = patterns.filter(p => p.confidence >= 0.60 && p.occurrence_count >= 6);
+      if (strong.length > 0) {
+        patternsBlock = "\n\nWZORCE BEHAWIORALNE (z danych Etap 1 — użyj w ocenie tygodnia):\n" +
+          strong.map(p => `- ${p.evidence_text} (N=${p.occurrence_count}, pewność=${Math.round(p.confidence * 100)}%)`).join("\n");
+      }
+    } catch (e) {
+      console.warn("[weekly-brief] pattern fetch failed (non-fatal):", e);
+    }
+
     const { content } = await deepseekChat({
       apiKey,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userPrompt + patternsBlock },
       ],
       model: "deepseek-v4-flash",
       maxTokens: 700,

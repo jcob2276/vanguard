@@ -5,6 +5,7 @@ import { getWarsawDayBoundaries } from "../_shared/time.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") || "0");
@@ -175,12 +176,26 @@ Deno.serve(async (req) => {
     });
     const frictionRows = frictionRes.data || [];
 
-    const messageText = await buildReflectionPrompt({
+    let messageText = await buildReflectionPrompt({
       voiceRows,
       streamRows,
       frictionRows,
       manual,
     });
+
+    // Pattern Bridge: append top visible patterns to evening reflection
+    try {
+      const patterns = await getRecentStrongBehavioralPatterns(supabase, VANGUARD_USER_ID, 2);
+      const strong = patterns.filter(p => p.confidence >= 0.65 && p.occurrence_count >= 7);
+      if (strong.length > 0) {
+        const bridge = strong.map(p =>
+          `📊 *${p.title || "Wzorzec"}* (N=${p.occurrence_count}, pewność ${Math.round(p.confidence * 100)}%)\n${p.evidence_text}`
+        ).join("\n\n");
+        messageText += `\n\n---\n\n*W Twoich danych ten schemat się powtarza:*\n\n${bridge}`;
+      }
+    } catch (e) {
+      console.warn("[reconciliation] pattern bridge fetch failed (non-fatal):", e);
+    }
 
     const messageId = await sendTelegram(messageText);
 
