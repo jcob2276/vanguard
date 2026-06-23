@@ -12,6 +12,7 @@ interface FoodResult {
   fat: number | null
   fiber: number | null
   sugar: number | null
+  defaultGrams: number | null
 }
 
 // OFF is a barcode/packaged-product database — it's structurally thin on plain
@@ -61,7 +62,7 @@ const GENERIC_FOODS: FoodResult[] = [
   { name: 'Fasola czerwona gotowana', calories: 127, protein: 8.7, carbs: 23, fat: 0.5, fiber: 6.4, sugar: 0.3 },
   { name: 'Tofu', calories: 76, protein: 8, carbs: 1.9, fat: 4.8, fiber: 0.3, sugar: 0.6 },
   { name: 'Miód', calories: 304, protein: 0.3, carbs: 82, fat: 0, fiber: 0.2, sugar: 82 },
-].map((f) => ({ ...f, barcode: null, brand: null }))
+].map((f) => ({ ...f, barcode: null, brand: null, defaultGrams: null }))
 
 function normalizePl(s: string): string {
   return s
@@ -79,6 +80,30 @@ function searchGeneric(query: string): FoodResult[] {
   })
 }
 
+// OFF's `serving_size`/`quantity` are free-text ("250 ml", "1 sztuka (30g)") —
+// pull out the leading number, which is all we need for a sane portion default.
+function parseLeadingGrams(value: unknown): number | null {
+  if (typeof value !== 'string') return null
+  const m = value.match(/(\d+(?:[.,]\d+)?)/)
+  if (!m) return null
+  const n = parseFloat(m[1].replace(',', '.'))
+  return n > 0 ? Math.round(n) : null
+}
+
+// Prefer the product's stated single serving (what you'd actually eat/drink at
+// once — a 250ml bottle, a 30g serving of cereal) over the whole-package
+// quantity, which is frequently far too large to be a sane logging default
+// (e.g. a 1kg bag of rice). Falls back to package quantity only when OFF has
+// no serving_size at all — better than always defaulting to 100g/ml.
+function extractDefaultGrams(product: any): number | null {
+  const fromServing = parseLeadingGrams(product?.serving_size)
+  if (fromServing) return fromServing
+  if (typeof product?.product_quantity === 'number' && product.product_quantity > 0) {
+    return Math.round(product.product_quantity)
+  }
+  return parseLeadingGrams(product?.quantity)
+}
+
 function offProductToResult(product: any, barcode: string | null): FoodResult | null {
   const n = product?.nutriments
   if (!product?.product_name || !n) return null
@@ -92,6 +117,7 @@ function offProductToResult(product: any, barcode: string | null): FoodResult | 
     fat: n['fat_100g'] ?? null,
     fiber: n['fiber_100g'] ?? null,
     sugar: n['sugars_100g'] ?? null,
+    defaultGrams: extractDefaultGrams(product),
   }
 }
 
@@ -111,13 +137,31 @@ async function fetchOffWithRetry(url: string): Promise<Response | null> {
   return null
 }
 
-async function lookupByBarcode(barcode: string): Promise<FoodResult[]> {
+async function lookupOneBarcode(barcode: string): Promise<FoodResult | null> {
   const res = await fetchOffWithRetry(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`)
-  if (!res) return []
+  if (!res) return null
   const json = await res.json()
-  if (json.status !== 1) return []
-  const result = offProductToResult(json.product, barcode)
-  return result ? [result] : []
+  if (json.status !== 1) return null
+  return offProductToResult(json.product, barcode)
+}
+
+// Camera scanners sometimes emit UPC-A (12 digits) for a barcode OFF only has
+// indexed as EAN-13 (13 digits, leading 0), or vice versa — a real and common
+// cause of "scanned but not found" even though the product exists. Try the
+// scanned code first, then the zero-padded/stripped variant before giving up.
+async function lookupByBarcode(barcode: string): Promise<FoodResult[]> {
+  const direct = await lookupOneBarcode(barcode)
+  if (direct) return [direct]
+
+  let altCode: string | null = null
+  if (barcode.length === 12) altCode = `0${barcode}`
+  else if (barcode.length === 13 && barcode.startsWith('0')) altCode = barcode.slice(1)
+
+  if (altCode) {
+    const alt = await lookupOneBarcode(altCode)
+    if (alt) return [alt]
+  }
+  return []
 }
 
 async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {

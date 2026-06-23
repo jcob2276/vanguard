@@ -22,6 +22,7 @@ interface FoodBase {
   fat: number | null;
   fiber: number | null;
   sugar: number | null;
+  defaultGrams?: number | null;
 }
 
 interface Favorite extends FoodBase {
@@ -110,6 +111,7 @@ type Screen = 'browse' | 'portion' | 'edit' | 'manual' | 'nl';
 
 export default function FoodEntryModal({ session, onClose, onSaved, initialEditEntry, initialMealType }: FoodEntryModalProps) {
   const userId = session?.user?.id;
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'favorites' | 'recent'>('favorites');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
@@ -246,8 +248,18 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const result = (json.results || [])[0];
-      if (result) { setScannerOpen(false); setSelected(result); setGrams('100'); }
-      else setError(`Nie znaleziono produktu dla kodu ${code}`);
+      if (result) {
+        setScannerOpen(false);
+        setSelected(result);
+        setGrams(String(result.defaultGrams ?? 100));
+      } else {
+        // OFF's barcode coverage has real gaps (regional SKUs, recently
+        // changed packaging) — don't leave the user stuck on the scanner.
+        // Drop them straight into name search, which usually finds it.
+        setScannerOpen(false);
+        setError(`Kod ${code} nie ma wpisu w bazie — spróbuj wpisać nazwę produktu`);
+        setTimeout(() => searchInputRef.current?.focus(), 50);
+      }
     } catch (err) {
       console.error('[FoodEntryModal] barcode lookup failed', err);
       setError('Wyszukiwanie po kodzie nie powiodło się');
@@ -300,7 +312,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     }
   }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved]);
 
-  // ── Quick-add from search results (1 tap, 100g default) ──────────────────────
+  // ── Quick-add from search results (1 tap, product's own serving size if known) ──
   const quickAddSearchResult = useCallback(async (food: FoodBase) => {
     if (!userId || quickAddingId) return;
     const key = `srch:${food.name}`;
@@ -308,7 +320,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     setError(null);
     try {
       const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: 100,
+        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: food.defaultGrams ?? 100,
         p_entry: {
           name: food.name, brand: food.brand, barcode: food.barcode,
           calories: food.calories, protein: food.protein, carbs: food.carbs,
@@ -897,6 +909,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                   <input
+                    ref={searchInputRef}
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -919,10 +932,10 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
               {scannerOpen ? (
                 <BarcodeScanner onDetected={lookupBarcode} onClose={() => setScannerOpen(false)} loading={scanLookingUp} />
               ) : query.trim().length >= 2 ? (
-                /* Search results — + button = immediate 100g add, text tap = portion selector */
+                /* Search results — + adds at the product's own serving size (or 100g if unknown), text tap = portion selector */
                 <div className="space-y-1.5">
                   <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
-                    Wyniki — ✚ dodaje 100g od razu, nazwa otwiera porcję
+                    Wyniki — ✚ dodaje w sugerowanej porcji, nazwa otwiera porcję
                   </p>
                   {searchResults.length === 0 && !searching && (
                     <div className="py-4 text-center space-y-3">
@@ -935,18 +948,22 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                       </button>
                     </div>
                   )}
-                  {searchResults.map((r, i) => (
-                    <FoodRow
-                      key={`${r.barcode || r.name}-${i}`}
-                      name={r.name}
-                      subtitle={r.brand ? `${r.brand} · 100g` : '100g'}
-                      calories={r.calories}
-                      loading={quickAddingId === `srch:${r.name}`}
-                      onTap={() => { setSelected(r); setGrams('100'); }}
-                      onQuickAdd={() => quickAddSearchResult(r)}
-                      quickAddIcon={<Plus size={13} />}
-                    />
-                  ))}
+                  {searchResults.map((r, i) => {
+                    const portionGrams = r.defaultGrams ?? 100;
+                    const portionKcal = r.calories != null ? Math.round(r.calories * portionGrams / 100) : null;
+                    return (
+                      <FoodRow
+                        key={`${r.barcode || r.name}-${i}`}
+                        name={r.name}
+                        subtitle={[r.brand, `${portionGrams}g/ml`].filter(Boolean).join(' · ')}
+                        calories={portionKcal}
+                        loading={quickAddingId === `srch:${r.name}`}
+                        onTap={() => { setSelected(r); setGrams(String(portionGrams)); }}
+                        onQuickAdd={() => quickAddSearchResult(r)}
+                        quickAddIcon={<Plus size={13} />}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <>
