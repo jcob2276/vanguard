@@ -32,7 +32,16 @@ export function PatternsView({ session }: PatternsViewProps) {
       .order('confidence', { ascending: false });
     if (data) {
       setPatterns(
-        [...data].sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9))
+        [...data].map(row => ({
+          id: row.id,
+          pattern_type: row.pattern_type,
+          title: row.title,
+          evidence_text: row.evidence_text ?? '',
+          confidence: Number(row.confidence ?? 0),
+          occurrence_count: row.occurrence_count ?? 0,
+          status: row.status ?? 'hypothesis',
+          last_seen: row.last_seen ?? null,
+        })).sort((a, b) => (STATUS_ORDER[a.status ?? 'hypothesis'] ?? 9) - (STATUS_ORDER[b.status ?? 'hypothesis'] ?? 9))
       );
     }
     setLoading(false);

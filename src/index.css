@@ -231,7 +231,13 @@
   --color-dayD: #f59e0b;
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-display: 'Outfit', system-ui, sans-serif;
+  --shadow-card: var(--shadow-card);
+  --shadow-card-accent: var(--shadow-card-accent);
+  --shadow-event: var(--shadow-event-card);
+  --shadow-float: var(--shadow-float);
+  --shadow-back-btn: var(--shadow-back-btn);
 }
+
 
 @layer base {
   * {
@@ -399,7 +405,20 @@
     margin-bottom: 0.375rem;
     display: block;
   }
+
+  /* ── Memex Typography Scale ── */
+  .font-data {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    line-height: 1.0 !important;
+    letter-spacing: -1px !important;
+  }
+  .font-body-memex {
+    font-size: 15px !important;
+    font-weight: 400 !important;
+  }
 }
+
 
 /* Custom Day Colors for dynamic classes */
 .border-l-dayA { border-left-color: #4f46e5; }

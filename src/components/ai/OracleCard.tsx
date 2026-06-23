@@ -1,6 +1,6 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Send, Sparkles, X } from 'lucide-react';
+import { Send, Sparkles, X, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
 import type { Session } from '@supabase/supabase-js';
@@ -22,6 +22,7 @@ import { sweepPastEventsInState } from '../../types/schedule';
 import type { ScheduleViewData } from '../../types/schedule';
 import { getAgentRunMode } from '../../types/agentRunMode';
 import { getOracleUserConf } from './AgentSystemPromptHelper';
+import exifr from 'exifr';
 
 const SCHEDULE_KEY = 'vanguard_schedule_view';
 
@@ -100,8 +101,11 @@ export default function OracleCard({ session }: { session: Session }) {
   const [currentMode, setCurrentMode] = useState<string>('default');
   const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
   const [btnPressed, setBtnPressed] = useState(false);
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [focused, setFocused] = useState(false);
   const idleTurnsRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -123,6 +127,20 @@ export default function OracleCard({ session }: { session: Session }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [items, loading]);
 
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (e.clipboardData) {
+        const files = Array.from(e.clipboardData.files);
+        const images = files.filter(f => f.type.startsWith('image/'));
+        if (images.length > 0) {
+          setPendingImages(prev => [...prev, ...images]);
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
+
   const fetchPendingClarification = useCallback(async () => {
     if (!userId) return;
     const { data } = await supabase
@@ -140,6 +158,64 @@ export default function OracleCard({ session }: { session: Session }) {
     fetchPendingClarification();
   }, [fetchPendingClarification]);
 
+  const handleAttachImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setPendingImages(prev => [...prev, ...files]);
+    }
+  };
+
+  const handlePendingAction = async (itemId: number, actionId: string, actionType: string, payload: any, approved: boolean) => {
+    try {
+      const status = approved ? 'approved' : 'denied';
+      const { error } = await supabase
+        .from('oracle_pending_actions')
+        .update({ status })
+        .eq('id', actionId);
+      if (error) throw error;
+      
+      if (approved) {
+        if (actionType === 'schedule_mutation' && payload.schedule_mutation) {
+          applyScheduleMutation(payload.schedule_mutation);
+        } else if (actionType === 'insight_cards_mutation' && payload.insight_cards_mutation) {
+          const mut = payload.insight_cards_mutation;
+          if ((mut.action === 'add' || mut.action === 'update') && Array.isArray(mut.cards)) {
+            for (const card of mut.cards) {
+              const row = {
+                user_id: session.user.id,
+                template_id: card.template_id,
+                title: card.title,
+                insight: card.insight ?? null,
+                widget_data: card.widget_data ?? {},
+                tags: card.tags ?? [],
+              };
+              if (card.id) {
+                await supabase.from('knowledge_insight_cards').upsert({ id: card.id, ...row });
+              } else {
+                await supabase.from('knowledge_insight_cards').insert(row);
+              }
+            }
+          } else if (mut.action === 'delete' && Array.isArray(mut.delete_ids)) {
+            await supabase.from('knowledge_insight_cards').delete().in('id', mut.delete_ids).eq('user_id', session.user.id);
+          }
+        }
+      }
+      
+      setItems(prev => prev.map((item, idx) => {
+        if (idx === itemId) {
+          return {
+            ...item,
+            text: approved ? '✓ Zmiana została zatwierdzona i wdrożona.' : '✗ Zmiana została odrzucona.',
+            status: approved ? 'approved' : 'denied'
+          } as any;
+        }
+        return item;
+      }));
+    } catch (e: any) {
+      alert(`Błąd akceptacji: ${e.message}`);
+    }
+  };
+
   const history = items
     .filter(i => i.type === 'user' || i.type === 'ai')
     .map(i => ({
@@ -148,18 +224,47 @@ export default function OracleCard({ session }: { session: Session }) {
     }));
 
   const ask = async () => {
-    const query = input.trim();
-    if (!query || loading) return;
+    let query = input.trim();
+    if ((!query && pendingImages.length === 0) || loading) return;
     setInput('');
     const ts = new Date();
-    setItems(prev => [...prev, { type: 'user', text: query, timestamp: ts }]);
+    
+    setItems(prev => [...prev, { type: 'user', text: query || "Wysłano zdjęcie", timestamp: ts }]);
     setLoading(true);
+
     try {
+      if (pendingImages.length > 0) {
+        const urls: string[] = [];
+        for (let i = 0; i < pendingImages.length; i++) {
+          const file = pendingImages[i];
+          let occurredDate = getTodayWarsaw();
+            const tags = await exifr.parse(file);
+            const dateObj = tags?.DateTimeOriginal || tags?.CreateDate || tags?.ModifyDate;
+            if (dateObj) {
+              const d = new Date(dateObj);
+              occurredDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+            }
+          
+          const fileName = `${session.user.id}/${Date.now()}_chat_${i}.${file.name.split('.').pop()}`;
+          await supabase.storage.from('progress-photos').upload(fileName, file);
+          const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
+          
+          await supabase.from('progress_photos').insert({
+            user_id: session.user.id,
+            image_url: publicUrl,
+            date: occurredDate
+          });
+          urls.push(publicUrl);
+        }
+        query += `\n[Załączone zdjęcia: ${urls.join(', ')}]`;
+        setPendingImages([]);
+      }
+
       const stateVector = await gatherUserContext(session);
       const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
         body: {
           state_vector: stateVector,
-          history: history.slice(-6),
+          history: history,
           current_query: query,
           user_id: session.user.id,
           mode: 'chat',
@@ -174,19 +279,47 @@ export default function OracleCard({ session }: { session: Session }) {
       if (data?.schedule_mutation) {
         applyScheduleMutation(data.schedule_mutation);
       }
-      // Track idle turns (no tool call in response) for skill reminder
+      
       const usedTool = !!(data?.tool_calls?.length || data?.templateId || data?.schedule_mutation || data?.insight_cards_mutation);
       if (usedTool) {
         idleTurnsRef.current = 0;
       } else {
         idleTurnsRef.current += 1;
       }
+      
       const newItems: ChatItem[] = [{ type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData }];
+      if (data?.pending_action) {
+        newItems.push({
+          type: 'action',
+          text: `[Wymaga zatwierdzenia] Zmiana: ${data.pending_action.action_type === 'insight_cards_mutation' ? 'Karty wiedzy' : 'Harmonogram'}`,
+          timestamp: new Date(),
+          pendingActionId: data.pending_action.id,
+          pendingActionPayload: data.pending_action.payload,
+          pendingActionType: data.pending_action.action_type,
+          status: 'pending',
+        } as any);
+      }
       if (idleTurnsRef.current >= 3) {
         newItems.push({ type: 'system_reminder', text: 'Możesz poprosić mnie o zapisanie danych, analizę trendów lub aktualizację planu.', timestamp: new Date() });
         idleTurnsRef.current = 0;
       }
-      setItems(prev => [...prev, ...newItems]);
+      
+      setItems(prev => {
+        const base = data?.compressed_history 
+          ? data.compressed_history.map((m: any) => {
+              if (m.content.startsWith('[SKOMPRESOWANA HISTORIA]')) {
+                return { type: 'system_reminder' as const, text: m.content, timestamp: new Date() };
+              }
+              return {
+                type: m.role === 'user' ? 'user' as const : 'ai' as const,
+                text: m.content,
+                timestamp: new Date()
+              };
+            })
+          : prev.filter(item => item.type !== 'thinking' && item.type !== 'tool');
+          
+        return [...base, ...newItems];
+      });
       fetchPendingClarification();
     } catch (e: any) {
       setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e.message ?? 'nieznany'}`, timestamp: new Date() }]);
@@ -198,132 +331,187 @@ export default function OracleCard({ session }: { session: Session }) {
 
   const handleOpen = () => {
     setBtnPressed(true);
-    setTimeout(() => setBtnPressed(false), 150);
-    setOpen(true);
-    setTimeout(() => inputRef.current?.focus(), 150);
+    setTimeout(() => {
+      setBtnPressed(false);
+      setOpen(true);
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }, 150);
   };
 
-  if (!open) {
-    return (
-      <button
-        onClick={handleOpen}
-        style={{ transform: btnPressed ? 'scale(0.9)' : 'scale(1)', transition: 'transform 150ms ease' }}
-        className="flex w-full items-center gap-3 rounded-[24px] border border-primary/10 bg-primary/[0.04] p-4 text-left hover:bg-primary/[0.08] cursor-pointer"
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Sparkles size={16} />
-        </div>
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Oracle</p>
-          <p className="text-[13px] font-black text-text-primary mt-0.5">Zapytaj o swój stan</p>
-        </div>
-      </button>
-    );
-  }
-
   return (
-    <section
-      className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden"
-      style={{ animation: 'oracle-slide-up 500ms cubic-bezier(0.16,1,0.3,1) both' }}
-    >
-      <style>{`
-        @keyframes oracle-slide-up {
-          from { opacity: 0; transform: translateY(24px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-custom">
-        <div className="flex items-center gap-2">
-          <Sparkles size={13} className="text-primary" />
-          <span className="text-[11px] font-black uppercase tracking-wider text-primary">Oracle</span>
-        </div>
+    <>
+      {!open ? (
         <button
-          onClick={() => { setOpen(false); setItems([]); }}
-          className="rounded-full p-1.5 text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
+          onClick={handleOpen}
+          style={{ transform: btnPressed ? 'scale(0.9)' : 'scale(1)', transition: 'transform 150ms ease' }}
+          className="flex w-full items-center gap-3 rounded-[24px] border border-primary/10 bg-primary/[0.04] p-4 text-left hover:bg-primary/[0.08] cursor-pointer"
         >
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-3">
-        {items.length === 0 && (
-          <div className="py-2 space-y-2">
-            <p className="text-[10px] text-text-muted text-center mb-3">
-              Oracle ma dostęp do Twoich danych z ostatnich 48h.
-            </p>
-            {(PROMPTS_BY_MODE[currentMode] ?? PROMPTS_BY_MODE.default).map(q => (
-              <button
-                key={q}
-                onClick={() => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50); }}
-                className="w-full text-left rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[11px] text-text-secondary hover:text-text-primary hover:border-primary/20 hover:bg-surface-solid transition-all cursor-pointer"
-              >
-                {q}
-              </button>
-            ))}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Sparkles size={16} />
           </div>
-        )}
-        {items.map((item, i) => {
-          const prev = items[i - 1];
-          const showDivider = prev && shouldShowTimeDivider(prev, item);
-          return (
-            <div key={i}>
-              {showDivider && <TimeDivider date={item.timestamp} />}
-              {item.type === 'user' && <UserMessageItem text={item.text} />}
-              {item.type === 'ai' && <AiMessageItem text={item.text} templateId={(item as any).templateId} cardData={(item as any).cardData} />}
-              {item.type === 'thinking' && <ThinkingItem item={item} />}
-              {item.type === 'tool' && <ToolCallItem item={item} />}
-              {item.type === 'error' && <ErrorItem text={item.text} />}
-              {item.type === 'action' && <SendActionMessage text={item.text} />}
-              {item.type === 'system_reminder' && <SystemReminderItem text={item.text} />}
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Oracle</p>
+            <p className="text-[13px] font-black text-text-primary mt-0.5">Zapytaj o swój stan</p>
+          </div>
+        </button>
+      ) : (
+        <section
+          className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden"
+          style={{
+            animation: 'oracle-slide-up 500ms cubic-bezier(0.33, 1, 0.68, 1) both',
+            transition: focused ? 'all 220ms ease-out' : 'all 0ms',
+          }}
+        >
+          <style>{`
+            @keyframes oracle-slide-up {
+              from { opacity: 0; transform: translateY(24px) scale(0.97); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-custom">
+            <div className="flex items-center gap-2">
+              <Sparkles size={13} className="text-primary" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-primary">Oracle</span>
             </div>
-          );
-        })}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm border border-border-custom bg-surface-solid px-4 py-2.5">
-              <div className="flex gap-1">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            <button
+              onClick={() => { setOpen(false); setItems([]); }}
+              className="rounded-full p-1.5 text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-3">
+            {items.length === 0 && (
+              <div className="py-2 space-y-2">
+                <p className="text-[10px] text-text-muted text-center mb-3">
+                  Oracle ma dostęp do Twoich danych z ostatnich 48h.
+                </p>
+                {(PROMPTS_BY_MODE[currentMode] ?? PROMPTS_BY_MODE.default).map(q => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50); }}
+                    className="w-full text-left rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[11px] text-text-secondary hover:text-text-primary hover:border-primary/20 hover:bg-surface-solid transition-all cursor-pointer"
+                  >
+                    {q}
+                  </button>
                 ))}
               </div>
-            </div>
+            )}
+            {items.map((item, i) => {
+              const prev = items[i - 1];
+              const showDivider = prev && shouldShowTimeDivider(prev, item);
+              return (
+                <div key={i}>
+                  {showDivider && <TimeDivider date={item.timestamp} />}
+                  {item.type === 'user' && <UserMessageItem text={item.text} />}
+                  {item.type === 'ai' && <AiMessageItem text={item.text} templateId={(item as any).templateId} cardData={(item as any).cardData} />}
+                  {item.type === 'thinking' && <ThinkingItem item={item} />}
+                  {item.type === 'tool' && <ToolCallItem item={item} />}
+                  {item.type === 'error' && <ErrorItem text={item.text} />}
+                  {item.type === 'action' && (
+                    <div className="space-y-2 my-2 p-3 rounded-xl border border-primary/25 bg-primary/5">
+                      <p className="text-[11px] font-bold text-primary">{item.text}</p>
+                      {(item as any).status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handlePendingAction(i, (item as any).pendingActionId, (item as any).pendingActionType, (item as any).pendingActionPayload, true)}
+                            className="rounded-lg bg-primary text-white px-3 py-1.5 text-[10px] font-bold hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
+                          >
+                            Zatwierdź
+                          </button>
+                          <button
+                            onClick={() => handlePendingAction(i, (item as any).pendingActionId, (item as any).pendingActionType, (item as any).pendingActionPayload, false)}
+                            className="rounded-lg bg-surface border border-border-custom text-text-secondary px-3 py-1.5 text-[10px] font-bold hover:bg-surface-solid active:scale-95 transition-all cursor-pointer"
+                          >
+                            Odrzuć
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {item.type === 'system_reminder' && <SystemReminderItem text={item.text} />}
+                </div>
+              );
+            })}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-sm border border-border-custom bg-surface-solid px-4 py-2.5">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Clarification */}
-      {pendingClarification && (
-        <div className="px-4 pt-3">
-          <ClarificationRequestCard
-            request={pendingClarification}
-            onAnswered={() => { setPendingClarification(null); fetchPendingClarification(); }}
-          />
-        </div>
+          {/* Clarification */}
+          {pendingClarification && (
+            <div className="px-4 pt-3">
+              <ClarificationRequestCard
+                request={pendingClarification}
+                onAnswered={() => { setPendingClarification(null); fetchPendingClarification(); }}
+              />
+            </div>
+          )}
+
+          {/* Pending Images Preview */}
+          {pendingImages.length > 0 && (
+            <div className="flex gap-2 px-4 py-2 border-t border-border-custom bg-surface-solid/20">
+              {pendingImages.map((file, idx) => (
+                <div key={idx} className="relative h-10 w-10 rounded-lg overflow-hidden border border-border-custom group">
+                  <img src={URL.createObjectURL(file)} className="h-full w-full object-cover" />
+                  <button
+                    onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white cursor-pointer"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="flex items-center gap-2 border-t border-border-custom px-4 py-3">
+            <label className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-solid border border-border-custom text-text-secondary hover:text-text-primary active:scale-95 transition-all cursor-pointer">
+              <Camera size={13} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleAttachImage}
+              />
+            </label>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="Jak wygląda mój sen w tym tygodniu?"
+              disabled={loading}
+              className="flex-1 bg-transparent text-[12px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
+            />
+            <button
+              onClick={ask}
+              disabled={(!input.trim() && pendingImages.length === 0) || loading}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white disabled:opacity-30 hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
+            >
+              <Send size={13} />
+            </button>
+          </div>
+        </section>
       )}
-
-      {/* Input */}
-      <div className="flex items-center gap-2 border-t border-border-custom px-4 py-3">
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } }}
-          placeholder="Jak wygląda mój sen w tym tygodniu?"
-          disabled={loading}
-          className="flex-1 bg-transparent text-[12px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
-        />
-        <button
-          onClick={ask}
-          disabled={!input.trim() || loading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white disabled:opacity-30 hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
-        >
-          <Send size={13} />
-        </button>
-      </div>
-    </section>
+    </>
   );
 }

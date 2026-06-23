@@ -15,7 +15,7 @@ export function CompositionCard({ slices, title }: CompositionProps) {
             <Pie data={slices} dataKey="value" cx="50%" cy="50%" innerRadius={22} outerRadius={36} strokeWidth={0}>
               {slices.map((s, i) => <Cell key={i} fill={s.color ?? COLORS[i % COLORS.length]} />)}
             </Pie>
-            <Tooltip contentStyle={{ fontSize: 10, borderRadius: 8 }} formatter={(v: number) => [v, '']} />
+            <Tooltip contentStyle={{ fontSize: 10, borderRadius: 8 }} formatter={(v: any) => [v, '']} />
           </PieChart>
         </ResponsiveContainer>
         <div className="space-y-1">

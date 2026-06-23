@@ -128,7 +128,7 @@ export function AiMessageItem({ text, templateId, cardData }: { text: string; te
       >
         {text}
       </div>
-      {templateId && cardData && (
+      {templateId && cardData !== undefined && (
         <AiCardRenderer templateId={templateId} cardData={cardData} />
       )}
     </div>

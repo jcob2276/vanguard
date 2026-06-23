@@ -74,17 +74,44 @@ export function ScheduleView({ session }: { session: Session }) {
 
   if (!scheduleData) return null;
 
-  const hasTimeline = scheduleData.timeline.some(d => d.items.length > 0);
+  let displayHero = scheduleData.hero;
+  let timeline = scheduleData.timeline;
+
+  if (!displayHero && timeline.length > 0) {
+    const firstDay = timeline[0];
+    const firstEventIdx = firstDay.items.findIndex(item => item.kind === 'event');
+    if (firstEventIdx !== -1) {
+      const eventItem = firstDay.items[firstEventIdx];
+      displayHero = {
+        cardId: eventItem.id,
+        title: eventItem.title,
+        description: 'Fokus dnia',
+        startTime: eventItem.startTime,
+        priority: 1
+      };
+      timeline = timeline.map((day, idx) => {
+        if (idx === 0) {
+          return {
+            ...day,
+            items: day.items.filter((_, i) => i !== firstEventIdx)
+          };
+        }
+        return day;
+      });
+    }
+  }
+
+  const hasTimeline = timeline.some(d => d.items.length > 0);
 
   return (
     <div className="space-y-5">
       {/* Hero event */}
-      {scheduleData.hero && (
+      {displayHero && (
         <HeroCard
-          title={scheduleData.hero.title}
-          description={scheduleData.hero.description}
-          startTime={scheduleData.hero.startTime}
-          priority={scheduleData.hero.priority}
+          title={displayHero.title}
+          description={displayHero.description}
+          startTime={displayHero.startTime}
+          priority={displayHero.priority}
         />
       )}
 
@@ -106,7 +133,7 @@ export function ScheduleView({ session }: { session: Session }) {
       {/* Timeline */}
       {hasTimeline ? (
         <div className="space-y-5">
-          {scheduleData.timeline.map(day => (
+          {timeline.map(day => (
             <TimelineDay
               key={day.dayDate}
               dayLabel={day.dayLabel}

@@ -1572,6 +1572,51 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_insight_cards: {
+        Row: {
+          created_at: string | null
+          id: string
+          insight: string | null
+          is_pinned: boolean | null
+          related_fact_ids: string[] | null
+          sort_order: number | null
+          tags: string[] | null
+          template_id: string
+          title: string
+          user_id: string
+          widget_data: Json | null
+          widget_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          insight?: string | null
+          is_pinned?: boolean | null
+          related_fact_ids?: string[] | null
+          sort_order?: number | null
+          tags?: string[] | null
+          template_id: string
+          title: string
+          user_id: string
+          widget_data?: Json | null
+          widget_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          insight?: string | null
+          is_pinned?: boolean | null
+          related_fact_ids?: string[] | null
+          sort_order?: number | null
+          tags?: string[] | null
+          template_id?: string
+          title?: string
+          user_id?: string
+          widget_data?: Json | null
+          widget_type?: string | null
+        }
+        Relationships: []
+      }
       kpi_entries: {
         Row: {
           created_at: string | null
@@ -1913,6 +1958,84 @@ export type Database = {
           user_id?: string
           verdict?: Json | null
           weight_trend_kg_per_week?: number | null
+        }
+        Relationships: []
+      }
+      oracle_clarification_requests: {
+        Row: {
+          answer: Json | null
+          answered_at: string | null
+          confidence: number | null
+          created_at: string | null
+          dedupe_key: string
+          evidence_fact_ids: string[] | null
+          id: string
+          options: Json | null
+          proposed_memory: string | null
+          question: string
+          response_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          answer?: Json | null
+          answered_at?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          dedupe_key: string
+          evidence_fact_ids?: string[] | null
+          id?: string
+          options?: Json | null
+          proposed_memory?: string | null
+          question: string
+          response_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          answer?: Json | null
+          answered_at?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          dedupe_key?: string
+          evidence_fact_ids?: string[] | null
+          id?: string
+          options?: Json | null
+          proposed_memory?: string | null
+          question?: string
+          response_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oracle_pending_actions: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3629,6 +3752,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vanguard_iron_rules: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          rule_key: string
+          rule_text: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          rule_key: string
+          rule_text: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          rule_key?: string
+          rule_text?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       vanguard_knowledge: {
         Row: {
           category: string | null
@@ -3808,6 +3961,38 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      vanguard_pattern_feedback: {
+        Row: {
+          created_at: string | null
+          feedback: string
+          id: string
+          pattern_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feedback: string
+          id?: string
+          pattern_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feedback?: string
+          id?: string
+          pattern_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vanguard_pattern_feedback_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "vanguard_behavioral_patterns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vanguard_preferences: {
         Row: {

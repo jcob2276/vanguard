@@ -3,6 +3,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import exifr from 'exifr';
 
 export default function Photos({ session }: { session: any }) {
   const [loading, setLoading] = useState(true);
@@ -55,13 +56,26 @@ export default function Photos({ session }: { session: any }) {
       setUploading(true);
       if (!e.target.files || e.target.files.length === 0) return;
       const file = e.target.files[0];
+      
+      let occurredDate = photoDate;
+      try {
+        const tags = await exifr.parse(file);
+        const dateObj = tags?.DateTimeOriginal || tags?.CreateDate || tags?.ModifyDate;
+        if (dateObj) {
+          occurredDate = format(new Date(dateObj), 'yyyy-MM-dd');
+          console.log('[EXIF] extracted date taken:', occurredDate);
+        }
+      } catch (exifErr) {
+        console.warn('[EXIF] failed to extract date taken, using fallback:', exifErr);
+      }
+
       const fileName = `${session.user.id}/${Date.now()}.${file.name.split('.').pop()}`;
       await supabase.storage.from('progress-photos').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
       const { error: insertErr } = await supabase.from('progress_photos').insert({
          user_id: session.user.id,
          image_url: publicUrl,
-         date: photoDate
+         date: occurredDate
       });
       if (insertErr) throw insertErr;
       fetchPhotos();

@@ -1,4 +1,4 @@
-import { Card } from '../ui/Card';
+import { Card, type CardVariant } from '../ui/Card';
 
 import { LinkCard } from './entities/link';
 import { PersonCard } from './entities/person';
@@ -30,6 +30,7 @@ import { RoutineCard } from './temporal/routine';
 import { TaskCard } from './temporal/task';
 
 import { ScheduleBriefingCard } from './system/schedule_briefing';
+import { HtmlCard } from './system/HtmlCard';
 
 export type CardTemplateId =
   | 'link' | 'person' | 'place' | 'spec_sheet' | 'transaction'
@@ -37,7 +38,37 @@ export type CardTemplateId =
   | 'canvas' | 'gallery' | 'snapshot' | 'video'
   | 'article' | 'compact' | 'conversation' | 'insight_summary' | 'quote' | 'snippet'
   | 'duration' | 'event' | 'procedure' | 'routine' | 'task'
-  | 'schedule_briefing';
+  | 'schedule_briefing' | 'html';
+
+const TEMPLATE_VARIANTS: Record<CardTemplateId, CardVariant> = {
+  insight_summary: 'immersive',
+  schedule_briefing: 'immersive',
+  html: 'canvas',
+  canvas: 'canvas',
+  transaction: 'receipt',
+  // Default fallbacks:
+  link: 'glass',
+  person: 'glass',
+  place: 'glass',
+  spec_sheet: 'glass',
+  metric: 'glass',
+  rating: 'glass',
+  mood: 'glass',
+  progress: 'glass',
+  gallery: 'glass',
+  snapshot: 'glass',
+  video: 'glass',
+  article: 'glass',
+  compact: 'glass',
+  conversation: 'glass',
+  quote: 'glass',
+  snippet: 'glass',
+  duration: 'glass',
+  event: 'glass',
+  procedure: 'glass',
+  routine: 'glass',
+  task: 'glass',
+};
 
 interface CardFactoryProps {
   templateId: CardTemplateId;
@@ -46,17 +77,20 @@ interface CardFactoryProps {
   tags?: string[];
   onTap?: () => void;
   className?: string;
+  variant?: CardVariant;
 }
 
-export function CardFactory({ templateId, data, onTap, className }: CardFactoryProps) {
+export function CardFactory({ templateId, data, onTap, className, variant }: CardFactoryProps) {
   const inner = renderInner(templateId, data);
   if (!inner) return null;
+  const cardVariant = variant ?? TEMPLATE_VARIANTS[templateId] ?? 'glass';
   return (
-    <Card variant="glass" onClick={onTap} className={className} padding="1rem">
+    <Card variant={cardVariant} onClick={onTap} className={className} padding="1rem">
       {inner}
     </Card>
   );
 }
+
 
 function renderInner(templateId: CardTemplateId, data: unknown) {
   const d = data as any;
@@ -86,6 +120,7 @@ function renderInner(templateId: CardTemplateId, data: unknown) {
     case 'routine':          return <RoutineCard data={d} />;
     case 'task':             return <TaskCard data={d} />;
     case 'schedule_briefing': return <ScheduleBriefingCard data={d} />;
+    case 'html':              return <HtmlCard data={d} />;
     default:                 return null;
   }
 }

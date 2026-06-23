@@ -13,7 +13,7 @@ export function BarChart({ data, title, color = '#5B6CFF', unit }: BarChartProps
           <YAxis tick={{ fontSize: 9, fill: 'var(--color-text-tertiary)' }} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{ background: 'var(--surface-solid)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 11 }}
-            formatter={(v: number) => [`${v}${unit ?? ''}`, '']}
+            formatter={(v: any) => [`${v}${unit ?? ''}`, '']}
           />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => <Cell key={i} fill={d.color ?? color} />)}

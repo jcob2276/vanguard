@@ -32,12 +32,12 @@ export function useUserStatsSnapshot(session: Session | null) {
         const [streamRes, todosRes] = await Promise.all([
           supabase
             .from('vanguard_stream')
-            .select('id, date_text')
+            .select('id, created_at')
             .eq('user_id', userId)
-            .order('date_text', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(1000),
           supabase
-            .from('todos')
+            .from('todo_items')
             .select('id, completed_at')
             .eq('user_id', userId)
             .not('completed_at', 'is', null),
@@ -49,7 +49,7 @@ export function useUserStatsSnapshot(session: Session | null) {
         // Aggregate by date
         const byDate: Record<string, DailyStatPoint> = {};
         for (const row of streamRows) {
-          const d = (row.date_text ?? '').substring(0, 10);
+          const d = (row.created_at ?? '').substring(0, 10);
           if (!d) continue;
           if (!byDate[d]) byDate[d] = { date: d, inputs: 0, cards: 0, completedTodos: 0 };
           byDate[d].inputs++;

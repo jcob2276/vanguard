@@ -26,8 +26,8 @@ export function InsightsDashboard({ session }: { session: Session }) {
       id: row.id,
       templateId: row.template_id,
       title: row.title,
-      insight: row.insight,
-      widgetData: row.widget_data ?? {},
+      insight: row.insight ?? undefined,
+      widgetData: (row.widget_data as Record<string, unknown>) ?? {},
       isPinned: row.is_pinned ?? false,
       sortOrder: row.sort_order ?? 0,
     })));

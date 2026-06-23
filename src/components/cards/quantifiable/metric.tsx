@@ -16,7 +16,7 @@ export function MetricCard({ data }: { data: MetricCardData }) {
     <div className="flex flex-col gap-1">
       <p className="text-[12px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>
       <div className="flex items-end gap-1.5">
-        <span className="text-[28px] font-[800] leading-none tracking-[-1px]" style={{ color }}>{data.value}</span>
+        <span className="font-data text-[24px]" style={{ color }}>{data.value}</span>
         {data.unit && <span className="text-[13px] font-medium mb-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{data.unit}</span>}
       </div>
       {trend && (

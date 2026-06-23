@@ -678,7 +678,8 @@ ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
     "dedupe_key": "unikalny_klucz_np_diet_preference_2026",
     "proposed_memory": "Opcjonalnie: co zapamiętać po odpowiedzi",
     "confidence": 0.5
-  }
+  },
+  "mint_fact_id": true | false
 }
 Pomiń "clarification_request" (nie dodawaj pola) gdy nie potrzebujesz pytać.
 
@@ -710,6 +711,7 @@ Dostępne templateId:
 - conversation — { messages: [{speaker,text,isUser?}], title? }
 - gallery — { images: [{url,caption?}] }
 - snapshot — { imageUrl, caption?, timestamp? }
+- html — { html_template: string, widget_data: object }
 
 Przykład użycia:
 {
@@ -840,14 +842,20 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
 ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_conf}` : ''}
 `;
 
-    const compressedHistory = await compressHistoryIfNeeded((history || []).slice(-10));
+    const compressedHistory = await compressHistoryIfNeeded(history || []);
+    const wasCompressed = compressedHistory.length > 0 &&
+      compressedHistory[0].role === 'system' &&
+      compressedHistory[0].content.startsWith('[SKOMPRESOWANA HISTORIA]');
     const messages = [
-      { role: "system", content: systemPrompt },
-      ...compressedHistory,
+      { role: "system" as const, content: systemPrompt },
+      ...compressedHistory.map(m => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: m.content
+      })),
     ];
 
     if (current_query) {
-      messages.push({ role: "user", content: current_query });
+      messages.push({ role: "user" as const, content: current_query });
     }
 
     console.log(`[oracle] deepseek start`, Date.now() - t0);
@@ -952,6 +960,42 @@ ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_con
       }
     }
 
+    // Mutating Gates & AgentRunMode Gating
+    let pendingAction = null;
+    if (agent_run_mode === 'confirm') {
+      if (structuredResponse.insight_cards_mutation || structuredResponse.schedule_mutation) {
+        try {
+          const { data: paData, error: paErr } = await supabase
+            .from('oracle_pending_actions')
+            .insert({
+              user_id,
+              action_type: structuredResponse.insight_cards_mutation ? 'insight_cards_mutation' : 'schedule_mutation',
+              payload: {
+                insight_cards_mutation: structuredResponse.insight_cards_mutation || null,
+                schedule_mutation: structuredResponse.schedule_mutation || null,
+              },
+              status: 'pending'
+            })
+            .select('id, action_type, payload')
+            .single();
+          if (paErr) throw paErr;
+          pendingAction = paData;
+          console.log('[oracle] created pending action:', pendingAction.id);
+        } catch (e: any) {
+          console.warn('[oracle] failed to create pending action:', e.message);
+        }
+        // Clear mutations so they are not executed automatically on frontend
+        delete structuredResponse.insight_cards_mutation;
+        delete structuredResponse.schedule_mutation;
+      }
+    } else if (agent_run_mode === 'readOnly') {
+      if (structuredResponse.insight_cards_mutation || structuredResponse.schedule_mutation) {
+        console.log('[oracle] readOnly mode: ignoring mutations');
+        delete structuredResponse.insight_cards_mutation;
+        delete structuredResponse.schedule_mutation;
+      }
+    }
+
     // Insight cards mutation — write to DB
     if (structuredResponse.insight_cards_mutation) {
       const mut = structuredResponse.insight_cards_mutation as any;
@@ -991,7 +1035,9 @@ ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_con
       ...structuredResponse,
       text,
       sources: retrievedSources,
-      intent_confirmed: structuredResponse.intent_confirmed || intent
+      intent_confirmed: structuredResponse.intent_confirmed || intent,
+      compressed_history: wasCompressed ? compressedHistory : undefined,
+      pending_action: pendingAction || undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
