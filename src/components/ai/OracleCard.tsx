@@ -13,12 +13,15 @@ import {
   AiMessageItem,
   UserMessageItem,
   ErrorItem,
+  SendActionMessage,
+  SystemReminderItem,
   shouldShowTimeDivider,
 } from './ChatItems';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { sweepPastEventsInState } from '../../types/schedule';
 import type { ScheduleViewData } from '../../types/schedule';
 import { getAgentRunMode } from '../../types/agentRunMode';
+import { getOracleUserConf } from './AgentSystemPromptHelper';
 
 const SCHEDULE_KEY = 'vanguard_schedule_view';
 
@@ -97,6 +100,7 @@ export default function OracleCard({ session }: { session: Session }) {
   const [currentMode, setCurrentMode] = useState<string>('default');
   const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
   const [btnPressed, setBtnPressed] = useState(false);
+  const idleTurnsRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +164,7 @@ export default function OracleCard({ session }: { session: Session }) {
           user_id: session.user.id,
           mode: 'chat',
           agent_run_mode: getAgentRunMode(),
+          user_conf: getOracleUserConf() || undefined,
         },
       });
       if (error) throw error;
@@ -169,10 +174,19 @@ export default function OracleCard({ session }: { session: Session }) {
       if (data?.schedule_mutation) {
         applyScheduleMutation(data.schedule_mutation);
       }
-      setItems(prev => [
-        ...prev,
-        { type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData },
-      ]);
+      // Track idle turns (no tool call in response) for skill reminder
+      const usedTool = !!(data?.tool_calls?.length || data?.templateId || data?.schedule_mutation || data?.insight_cards_mutation);
+      if (usedTool) {
+        idleTurnsRef.current = 0;
+      } else {
+        idleTurnsRef.current += 1;
+      }
+      const newItems: ChatItem[] = [{ type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData }];
+      if (idleTurnsRef.current >= 3) {
+        newItems.push({ type: 'system_reminder', text: 'Możesz poprosić mnie o zapisanie danych, analizę trendów lub aktualizację planu.', timestamp: new Date() });
+        idleTurnsRef.current = 0;
+      }
+      setItems(prev => [...prev, ...newItems]);
       fetchPendingClarification();
     } catch (e: any) {
       setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e.message ?? 'nieznany'}`, timestamp: new Date() }]);
@@ -262,6 +276,8 @@ export default function OracleCard({ session }: { session: Session }) {
               {item.type === 'thinking' && <ThinkingItem item={item} />}
               {item.type === 'tool' && <ToolCallItem item={item} />}
               {item.type === 'error' && <ErrorItem text={item.text} />}
+              {item.type === 'action' && <SendActionMessage text={item.text} />}
+              {item.type === 'system_reminder' && <SystemReminderItem text={item.text} />}
             </div>
           );
         })}

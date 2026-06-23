@@ -41,6 +41,8 @@ const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
 
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
+import { BrandTitle } from '../ui/BrandTitle';
+import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 const ScheduleView = lazy(() => import('../schedule/ScheduleView').then(m => ({ default: m.ScheduleView })));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
@@ -249,20 +251,26 @@ export default function Dashboard({ session }: { session: Session }) {
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
           <div>
             <h1
-              className="font-display text-sm font-black uppercase tracking-[0.25em] text-primary select-none cursor-pointer"
+              className="font-display text-sm text-primary select-none cursor-pointer"
               title="Przytrzymaj, żeby szybko dodać posiłek"
               onPointerDown={handleLogoPressStart}
               onPointerUp={handleLogoPressEnd}
               onPointerLeave={handleLogoPressEnd}
               onContextMenu={(e) => e.preventDefault()}
             >
-              Vanguard
+              <BrandTitle />
             </h1>
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
               {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {session?.user?.id && (
+              <PersonaAvatarButton
+                userId={session.user.id}
+                onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('fundament'); }}
+              />
+            )}
             <button
               onClick={toggleTheme}
               className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary hover:bg-surface-solid transition-all active:scale-95 cursor-pointer"

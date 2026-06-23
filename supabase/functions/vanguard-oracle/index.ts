@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false, agent_run_mode = 'auto' } = await req.json();
+    const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
         status: 400,
@@ -815,6 +815,7 @@ ${wikiContext}
 Graf to pamięć dowodów. Krawędź w grafie to nie fakt — to zapamiętana obserwacja z datą i statusem.
 
 ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
+${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_conf}` : ''}
 `;
 
     const compressedHistory = await compressHistoryIfNeeded((history || []).slice(-10));

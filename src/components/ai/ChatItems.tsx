@@ -15,7 +15,9 @@ export type ChatItem =
   | { type: 'thinking'; text: string; timestamp: Date; isFinished: boolean }
   | { type: 'tool'; name: string; args: string; result?: string; isError?: boolean; duration?: number; timestamp: Date; children?: ToolItem[] }
   | { type: 'artifact'; title: string; content: string; timestamp: Date }
-  | { type: 'error'; text: string; timestamp: Date };
+  | { type: 'error'; text: string; timestamp: Date }
+  | { type: 'action'; text: string; timestamp: Date }
+  | { type: 'system_reminder'; text: string; timestamp: Date };
 
 export function formatTimestamp(date: Date, referenceDate = new Date()): string {
   const diff = referenceDate.getTime() - date.getTime();
@@ -163,6 +165,32 @@ export function ErrorItem({ text }: { text: string }) {
         style={{ borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)', color: 'var(--color-danger)' }}>
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
         {text}
+      </div>
+    </div>
+  );
+}
+
+/** Stage direction — centered italic text between chat bubbles (#36) */
+export function SendActionMessage({ text }: { text: string }) {
+  return (
+    <div className="flex justify-center my-1">
+      <p className="text-[11px] italic px-3" style={{ color: 'var(--color-text-tertiary)' }}>
+        * {text} *
+      </p>
+    </div>
+  );
+}
+
+/** System reminder injected after N idle turns (#9) */
+export function SystemReminderItem({ text }: { text: string }) {
+  return (
+    <div className="flex justify-center my-2">
+      <div
+        className="flex items-center gap-1.5 rounded-full px-3 py-1"
+        style={{ background: 'rgba(91,108,255,0.07)', border: '1px solid rgba(91,108,255,0.15)' }}
+      >
+        <span className="text-[9px]">💡</span>
+        <p className="text-[10px] font-medium" style={{ color: '#5B6CFF' }}>{text}</p>
       </div>
     </div>
   );
