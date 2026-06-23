@@ -1203,6 +1203,57 @@ export type Database = {
         }
         Relationships: []
       }
+      food_library: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          default_grams: number
+          fat: number | null
+          fiber: number | null
+          id: string
+          name: string
+          protein: number | null
+          source: string
+          sugar: number | null
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          default_grams?: number
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          name: string
+          protein?: number | null
+          source?: string
+          sugar?: number | null
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          default_grams?: number
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          name?: string
+          protein?: number | null
+          source?: string
+          sugar?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       friction_events: {
         Row: {
           actual_behavior: string | null
@@ -4751,6 +4802,22 @@ export type Database = {
         }
         Returns: string
       }
+      cache_food_to_library: {
+        Args: {
+          p_barcode: string
+          p_brand: string
+          p_calories: number
+          p_carbs: number
+          p_default_grams: number
+          p_fat: number
+          p_fiber: number
+          p_name: string
+          p_protein: number
+          p_sugar: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       canonicalize_vanguard_entity: {
         Args: { p_name: string; p_user_id: string }
         Returns: string
@@ -4802,88 +4869,47 @@ export type Database = {
         }[]
       }
       get_desktop_dashboard_data: { Args: { p_user_id: string }; Returns: Json }
-      get_vanguard_graph_context:
-        | {
-            Args: {
-              max_depth?: number
-              p_as_of?: string
-              p_include_historical?: boolean
-              p_layer?: string
-              p_min_confidence?: number
-              start_entities: string[]
-              user_id_param?: string
-            }
-            Returns: {
-              confidence_score: number
-              depth: number
-              evidence_count: number
-              layer: string
-              path: string[]
-              relation: string
-              source_entity: string
-              status: string
-              target_entity: string
-            }[]
-          }
-        | {
-            Args: {
-              max_depth?: number
-              p_as_of?: string
-              p_include_historical?: boolean
-              p_layer?: string
-              p_min_confidence?: number
-              start_entities: string[]
-              user_id_param?: string
-            }
-            Returns: {
-              confidence_score: number
-              depth: number
-              evidence_count: number
-              fact_text: string
-              layer: string
-              path: string[]
-              relation: string
-              source_entity: string
-              status: string
-              target_entity: string
-            }[]
-          }
-      match_vanguard_content:
-        | {
-            Args: {
-              match_count: number
-              match_threshold: number
-              query_embedding: string
-              user_id_param: string
-            }
-            Returns: {
-              content: string
-              hybrid_score: number
-              id: string
-              importance_score: number
-              similarity: number
-              source_date: string
-              table_name: string
-            }[]
-          }
-        | {
-            Args: {
-              match_count: number
-              match_threshold: number
-              max_age_days?: number
-              query_embedding: string
-              user_id_param: string
-            }
-            Returns: {
-              content: string
-              hybrid_score: number
-              id: string
-              importance_score: number
-              similarity: number
-              source_date: string
-              table_name: string
-            }[]
-          }
+      get_vanguard_graph_context: {
+        Args: {
+          max_depth?: number
+          p_as_of?: string
+          p_include_historical?: boolean
+          p_layer?: string
+          p_min_confidence?: number
+          start_entities: string[]
+          user_id_param?: string
+        }
+        Returns: {
+          confidence_score: number
+          depth: number
+          evidence_count: number
+          fact_text: string
+          layer: string
+          path: string[]
+          relation: string
+          source_entity: string
+          status: string
+          target_entity: string
+        }[]
+      }
+      match_vanguard_content: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          max_age_days?: number
+          query_embedding: string
+          user_id_param: string
+        }
+        Returns: {
+          content: string
+          hybrid_score: number
+          id: string
+          importance_score: number
+          similarity: number
+          source_date: string
+          table_name: string
+        }[]
+      }
       normalize_relation: {
         Args: { new_relation: string; old_relation: string }
         Returns: undefined
@@ -4910,32 +4936,19 @@ export type Database = {
         Args: { p_date: string; p_entries: Json; p_user_id: string }
         Returns: undefined
       }
-      save_workout_atomic:
-        | {
-            Args: {
-              p_day_key: string
-              p_end_time: string
-              p_logs: Json
-              p_msp_passed: boolean
-              p_notes: string
-              p_start_time: string
-              p_user_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_day_key: string
-              p_end_time: string
-              p_logs: Json
-              p_msp_passed: boolean
-              p_notes: string
-              p_session_rpe?: number
-              p_start_time: string
-              p_user_id: string
-            }
-            Returns: string
-          }
+      save_workout_atomic: {
+        Args: {
+          p_day_key: string
+          p_end_time: string
+          p_logs: Json
+          p_msp_passed: boolean
+          p_notes: string
+          p_session_rpe?: number
+          p_start_time: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       search_entity_links: {
         Args: {
           match_count?: number

@@ -215,19 +215,40 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   useEffect(() => { loadLists(); }, [loadLists]);
 
   useEffect(() => {
-    if (query.trim().length < 2) { setSearchResults([]); return; }
+    if (query.trim().length < 2 || !userId) { setSearchResults([]); return; }
     const t = setTimeout(async () => {
       setSearching(true);
       setError(null);
       try {
+        // food_library is the personal product cache (seeded from past diet
+        // history) — check it first since it's instant and already has the
+        // user's own product/serving data, then layer on generic+OFF results
+        // for anything not seen before. Dedup by name so a product already
+        // resolved locally doesn't also show a noisier OFF duplicate.
+        const libraryPromise = supabase
+          .from('food_library')
+          .select('name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams')
+          .eq('user_id', userId)
+          .ilike('name', `%${query.trim()}%`)
+          .limit(10);
+
         const { data: { session: authSession } } = await supabase.auth.getSession();
-        const res = await fetch(
+        const offPromise = fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?q=${encodeURIComponent(query.trim())}`,
           { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(15000) }
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        setSearchResults(json.results || []);
+        ).then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); });
+
+        const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
+        if (libraryRes.error) console.error('[FoodEntryModal] food_library search failed', libraryRes.error);
+
+        const libraryResults: FoodBase[] = (libraryRes.data || []).map((r) => ({
+          name: r.name, brand: r.brand, barcode: r.barcode,
+          calories: r.calories, protein: r.protein, carbs: r.carbs, fat: r.fat,
+          fiber: r.fiber, sugar: r.sugar, defaultGrams: r.default_grams,
+        }));
+        const seen = new Set(libraryResults.map((r) => r.name.toLowerCase()));
+        const offResults: FoodBase[] = (offJson.results || []).filter((r: FoodBase) => !seen.has(r.name.toLowerCase()));
+        setSearchResults([...libraryResults, ...offResults]);
       } catch (err) {
         console.error('[FoodEntryModal] search failed', err);
         setError('Wyszukiwanie nie powiodło się');
@@ -236,7 +257,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, userId]);
 
   const lookupBarcode = useCallback(async (code: string) => {
     setScanLookingUp(true);
@@ -290,6 +311,20 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     setTimeout(() => setSavedFlash(false), 1200);
   }, [haptics]);
 
+  // Grows the personal product cache so the next search for the same item
+  // resolves instantly without depending on OFF. Fire-and-forget — never
+  // blocks or fails the actual food-log save.
+  const cacheToLibrary = useCallback((food: FoodBase, defaultGrams: number) => {
+    if (!userId) return;
+    supabase
+      .rpc('cache_food_to_library', {
+        p_user_id: userId, p_name: food.name, p_brand: food.brand, p_barcode: food.barcode,
+        p_calories: food.calories, p_protein: food.protein, p_carbs: food.carbs,
+        p_fat: food.fat, p_fiber: food.fiber, p_sugar: food.sugar, p_default_grams: defaultGrams,
+      } as any)
+      .then(({ error }) => { if (error) console.error('[FoodEntryModal] cacheToLibrary failed', error); });
+  }, [userId]);
+
   // ── Save from portion selector ────────────────────────────────────────────────
   const save = useCallback(async () => {
     if (!selected || !userId || saving) return;
@@ -306,6 +341,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (rpcError) throw rpcError;
+      cacheToLibrary(selected, gramsNum);
       flashSaved();
       onSaved?.();
       setSelected(null); setQuery(''); setGrams('100');
@@ -315,7 +351,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setSaving(false);
     }
-  }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved]);
+  }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved, cacheToLibrary]);
 
   // ── Quick-add from search results (1 tap, product's own serving size if known) ──
   const quickAddSearchResult = useCallback(async (food: FoodBase) => {
@@ -333,6 +369,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (rpcError) throw rpcError;
+      cacheToLibrary(food, food.defaultGrams ?? 100);
       flashSaved();
       onSaved?.();
       loadLists();
@@ -341,7 +378,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setQuickAddingId(null);
     }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved]);
+  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, cacheToLibrary]);
 
   // ── Quick-add favorite ────────────────────────────────────────────────────────
   const quickAddFavorite = useCallback(async (fav: Favorite) => {
@@ -416,6 +453,14 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (rpcError) throw rpcError;
+      cacheToLibrary({
+        name: manualName.trim(), brand: null, barcode: null,
+        calories: Number(manualKcal) || 0,
+        protein: manualProtein.trim() ? Number(manualProtein) : null,
+        carbs: manualCarbs.trim() ? Number(manualCarbs) : null,
+        fat: manualFat.trim() ? Number(manualFat) : null,
+        fiber: null, sugar: null,
+      }, 100);
       flashSaved();
       onSaved?.();
       setManualName(''); setManualKcal(''); setManualProtein(''); setManualCarbs(''); setManualFat('');
@@ -426,7 +471,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setSaving(false);
     }
-  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved]);
+  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved, cacheToLibrary]);
 
   // ── NL parse ──────────────────────────────────────────────────────────────────
   const parseNL = useCallback(async () => {
