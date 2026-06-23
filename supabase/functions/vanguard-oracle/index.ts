@@ -634,6 +634,9 @@ Sugeruj zapisanie faktu TYLKO gdy jest naprawdę trwały. Allowlist: Identity (s
 NIE sugeruj zapisania: transient context ("pytał o X"), jednorazowych akcji, known facts, tasków, logów czatu.
 Format atomowego faktu: 3. osoba, konkret. BAD: "Jakub zapytał dziś o dietę." GOOD: "Preferuje dietę wysokobiałkową (cel: maraton 4.10.26)."
 ${mode === 'mirror' ? `\nTRYB OBSERWACJI: Opisujesz co widzisz w danych. Nie pytasz. Kończysz obserwacją lub wnioskiem.\n` : ''}${mode === 'planning' ? `\nTRYB PLANOWANIA WIECZORNEGO:\nJesteś facylitatorem planowania — pomagasz Jakubowi zaplanować jutrzejszy dzień.\n\nZASADY:\n- Odwołaj się do reconciliation (co dziś poszło źle/dobrze) — krótko, bez oceniania\n- Jeśli wczorajszy plan był niskiej jakości (plan_quality=minimum/rescue lub ma failure_reason) — wyraźnie to odnotuj i pomóż skorygować zamiast budować na słabym planie\n- Przejrzyj jego aktywne intencje i listę zadań z [KONTEKST SYSTEMOWY]\n- Zadaj konkretne pytania: co MUSI jutro zostać zrobione? co może nie wyjść? jest coś pilnego?\n- Pomóż ustalić TOP 3 priorytety na jutro\n- Zidentyfikuj potencjalne przeszkody i dlaczego może się nie udać\n- Możesz zaproponować konkretne godziny w harmonogramie\n\nFORMAT: Bezpośredni, konkretny, po polsku. Max 220 słów na jedną odpowiedź. Kończ pytaniem lub konkretną propozycją do potwierdzenia.\nZAKAZ: Moralizowania, psychoanalizy, ogólnych rad bez zakorzenienia w danych.\n` : ''}
+NARZĘDZIE — PYTANIE STRUKTURALNE (opcjonalne):
+Gdy masz wątpliwość dotyczącą trwałego faktu o Jakubie (confidence < 0.7) i chcesz ją wyjaśnić JEDNYM pytaniem — dodaj pole "clarification_request" do JSON. Używaj rzadko, tylko gdy brakujący fakt naprawdę zmieni rekomendację. Nie pytaj o rzeczy tymczasowe ani jednorazowe zdarzenia.
+
 ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
 {
   "answer": "Twoja odpowiedź",
@@ -646,8 +649,17 @@ ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
       "source_hint": "data i źródło (np. Stream 2026-05-16)",
       "temporal_status": "current | historical | declared | hypothesis | stale | unknown"
     }
-  ]
+  ],
+  "clarification_request": {
+    "question": "Jasne, jedno pytanie o trwały fakt",
+    "response_type": "confirm | single_choice | multi_choice | short_text",
+    "options": [{"id": "opt1", "label": "Opcja A", "value": "a"}],
+    "dedupe_key": "unikalny_klucz_np_diet_preference_2026",
+    "proposed_memory": "Opcjonalnie: co zapamiętać po odpowiedzi",
+    "confidence": 0.5
+  }
 }
+Pomiń "clarification_request" (nie dodawaj pola) gdy nie potrzebujesz pytać.
 
 [TŁO TOŻSAMOŚCI — kontekst wewnętrzny, nie cytować]:
 ${fundamentRes.data?.identity || 'Brak danych'}
@@ -801,6 +813,28 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
         error: e,
         message: 'Failed to insert oracle run audit log',
       });
+    }
+
+    // Clarification request — jeśli Oracle zwróciło strukturalne pytanie, zapisz je
+    if (structuredResponse.clarification_request) {
+      const cr = structuredResponse.clarification_request as any;
+      if (cr.question && cr.response_type && cr.dedupe_key) {
+        const { error: crErr } = await supabase
+          .from('oracle_clarification_requests')
+          .upsert({
+            user_id,
+            question: cr.question,
+            response_type: cr.response_type,
+            options: cr.options || [],
+            dedupe_key: cr.dedupe_key,
+            evidence_fact_ids: cr.evidence_fact_ids || [],
+            proposed_memory: cr.proposed_memory || null,
+            confidence: cr.confidence ?? 0.5,
+            status: 'pending',
+          }, { onConflict: 'user_id,dedupe_key', ignoreDuplicates: true });
+        if (crErr) console.warn('[oracle] clarification_request insert failed (non-fatal):', crErr.message);
+        else console.log('[oracle] clarification_request saved:', cr.dedupe_key);
+      }
     }
 
     // Oracle responses are audited in vanguard_oracle_runs above. Chat turns must

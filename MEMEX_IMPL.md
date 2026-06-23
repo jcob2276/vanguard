@@ -44,7 +44,7 @@ Czytaj ten plik po szczegóły implementacyjne (interfejsy, CSS, logika).
 |---|---|---|---|---|
 | 1 | Prompty Oracle | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 | 2 | Design System | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
-| 3 | ClarificationRequest | ⬜ TODO | — | — |
+| 3 | ClarificationRequest | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 | 4 | Chat UI Upgrade | ⬜ TODO | — | — |
 | 5 | 22 Karty + 13 Widgetów | ⬜ TODO | — | — |
 | 6 | Magazine Bar / Schedule | ⬜ TODO | — | — |

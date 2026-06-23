@@ -1,11 +1,20 @@
 import { getTodayWarsaw } from '../../lib/date';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
 import type { Session } from '@supabase/supabase-js';
+import { ClarificationRequestCard } from './ClarificationRequestCard';
 
 type Msg = { role: 'user' | 'oracle'; text: string };
+
+interface ClarificationRequest {
+  id: string;
+  question: string;
+  response_type: 'confirm' | 'single_choice' | 'multi_choice' | 'short_text';
+  options: { id: string; label: string; value: string }[];
+  proposed_memory?: string;
+}
 
 const PROMPTS_BY_MODE: Record<string, string[]> = {
   rescue: [
@@ -35,6 +44,7 @@ export default function OracleCard({ session }: { session: Session }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentMode, setCurrentMode] = useState<string>('default');
+  const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +66,23 @@ export default function OracleCard({ session }: { session: Session }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const fetchPendingClarification = useCallback(async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from('oracle_clarification_requests')
+      .select('id, question, response_type, options, proposed_memory')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setPendingClarification(data as ClarificationRequest | null);
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPendingClarification();
+  }, [fetchPendingClarification]);
 
   const history = messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'assistant',
@@ -82,6 +109,7 @@ export default function OracleCard({ session }: { session: Session }) {
       if (error) throw error;
       const reply = data?.text ?? data?.response ?? '(brak odpowiedzi)';
       setMessages(prev => [...prev, { role: 'oracle', text: reply }]);
+      fetchPendingClarification();
     } catch (e: any) {
       setMessages(prev => [...prev, { role: 'oracle', text: `Błąd: ${e.message ?? 'nieznany'}` }]);
     } finally {
@@ -165,6 +193,16 @@ export default function OracleCard({ session }: { session: Session }) {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Clarification */}
+      {pendingClarification && (
+        <div className="px-4 pt-3">
+          <ClarificationRequestCard
+            request={pendingClarification}
+            onAnswered={() => { setPendingClarification(null); fetchPendingClarification(); }}
+          />
+        </div>
+      )}
 
       {/* Input */}
       <div className="flex items-center gap-2 border-t border-border-custom px-4 py-3">
