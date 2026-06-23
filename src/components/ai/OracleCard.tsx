@@ -15,6 +15,7 @@ import {
   ErrorItem,
   shouldShowTimeDivider,
 } from './ChatItems';
+import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 
 interface ClarificationRequest {
   id: string;
@@ -120,7 +121,12 @@ export default function OracleCard({ session }: { session: Session }) {
       });
       if (error) throw error;
       const reply = data?.text ?? data?.response ?? '(brak odpowiedzi)';
-      setItems(prev => [...prev, { type: 'ai', text: reply, timestamp: new Date() }]);
+      const cardTemplateId = data?.templateId as CardTemplateId | undefined;
+      const cardData = data?.data;
+      setItems(prev => [
+        ...prev,
+        { type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData },
+      ]);
       fetchPendingClarification();
     } catch (e: any) {
       setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e.message ?? 'nieznany'}`, timestamp: new Date() }]);
@@ -206,7 +212,7 @@ export default function OracleCard({ session }: { session: Session }) {
             <div key={i}>
               {showDivider && <TimeDivider date={item.timestamp} />}
               {item.type === 'user' && <UserMessageItem text={item.text} />}
-              {item.type === 'ai' && <AiMessageItem text={item.text} />}
+              {item.type === 'ai' && <AiMessageItem text={item.text} templateId={(item as any).templateId} cardData={(item as any).cardData} />}
               {item.type === 'thinking' && <ThinkingItem item={item} />}
               {item.type === 'tool' && <ToolCallItem item={item} />}
               {item.type === 'error' && <ErrorItem text={item.text} />}

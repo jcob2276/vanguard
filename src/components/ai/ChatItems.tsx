@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Brain, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
 export type ToolItem = {
@@ -11,7 +11,7 @@ export type ToolItem = {
 
 export type ChatItem =
   | { type: 'user'; text: string; timestamp: Date }
-  | { type: 'ai'; text: string; timestamp: Date; isStreaming?: boolean }
+  | { type: 'ai'; text: string; timestamp: Date; isStreaming?: boolean; templateId?: string; cardData?: unknown }
   | { type: 'thinking'; text: string; timestamp: Date; isFinished: boolean }
   | { type: 'tool'; name: string; args: string; result?: string; isError?: boolean; duration?: number; timestamp: Date; children?: ToolItem[] }
   | { type: 'artifact'; title: string; content: string; timestamp: Date }
@@ -117,17 +117,33 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
   );
 }
 
-export function AiMessageItem({ text }: { text: string }) {
+export function AiMessageItem({ text, templateId, cardData }: { text: string; templateId?: string; cardData?: unknown }) {
   return (
-    <div className="flex justify-start">
+    <div className="flex flex-col items-start gap-2">
       <div
         className="max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[12px] leading-relaxed border"
         style={{ background: 'var(--surface-solid)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
       >
         {text}
       </div>
+      {templateId && cardData && (
+        <AiCardRenderer templateId={templateId} cardData={cardData} />
+      )}
     </div>
   );
+}
+
+function AiCardRenderer({ templateId, cardData }: { templateId: string; cardData: unknown }) {
+  const [CardFactoryComp, setCardFactoryComp] = useState<React.ComponentType<{ templateId: string; data: unknown }> | null>(null);
+  useEffect(() => {
+    import('../cards/CardFactory').then(m => {
+      const Comp = ({ templateId, data }: { templateId: string; data: unknown }) =>
+        m.CardFactory({ templateId: templateId as any, data, title: undefined, tags: undefined });
+      setCardFactoryComp(() => Comp);
+    });
+  }, []);
+  if (!CardFactoryComp) return null;
+  return <CardFactoryComp templateId={templateId} data={cardData} />;
 }
 
 export function UserMessageItem({ text }: { text: string }) {

@@ -661,6 +661,43 @@ ZWRACAJ ODPOWIEDŹ W FORMACIE JSON:
 }
 Pomiń "clarification_request" (nie dodawaj pola) gdy nie potrzebujesz pytać.
 
+OPCJONALNE — KARTA WIZUALNA (templateId + data):
+Gdy odpowiedź można wzbogacić wizualnie — dodaj pola "templateId" i "data" do JSON.
+Używaj tylko gdy karta dodaje wartość (liczby, lista zadań, wydarzenie, cytat, wykres), nie dla prostych tekstowych odpowiedzi.
+
+Dostępne templateId:
+- metric — { label, value, unit?, trend?, trendValue? }
+- rating — { label, value, max? }
+- mood — { label?, value (1-5), note? }
+- progress — { label, value, max?, unit?, color? }
+- compact — { title, body?, badge?, timestamp? }
+- insight_summary — { title, body, confidence (high|medium|low), evidence?, action? }
+- quote — { text, author?, source? }
+- snippet — { code, language?, title? }
+- event — { title, date?, time?, location?, duration?, tags? }
+- task — { title, items: [{text,done?,priority?}] }
+- duration — { label, hours?, minutes?, description? }
+- procedure — { title, steps: [{step,text,done?}] }
+- routine — { title, items: [{time?,activity,duration?}], frequency? }
+- schedule_briefing — { date, events: [{time,title,duration?,color?}], summary? }
+- link — { title, url, domain? }
+- person — { name, role?, bio?, tags? }
+- place — { name, address?, description?, category? }
+- spec_sheet — { title?, rows: [{label,value}] }
+- transaction — { title, amount, currency?, direction (in|out), date?, category?, note? }
+- article — { title, body, author?, date?, readingTime? }
+- conversation — { messages: [{speaker,text,isUser?}], title? }
+- gallery — { images: [{url,caption?}] }
+- snapshot — { imageUrl, caption?, timestamp? }
+
+Przykład użycia:
+{
+  "answer": "Twój HRV dziś: 72ms, powyżej Twojej średniej tygodniowej.",
+  "templateId": "metric",
+  "data": { "label": "HRV", "value": 72, "unit": "ms", "trend": "up", "trendValue": 8 },
+  ...
+}
+
 [TŁO TOŻSAMOŚCI — kontekst wewnętrzny, nie cytować]:
 ${fundamentRes.data?.identity || 'Brak danych'}
 ${fundamentRes.data?.philosophy || 'Brak danych'}
