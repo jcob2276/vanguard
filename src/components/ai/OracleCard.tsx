@@ -5,8 +5,16 @@ import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
 import type { Session } from '@supabase/supabase-js';
 import { ClarificationRequestCard } from './ClarificationRequestCard';
-
-type Msg = { role: 'user' | 'oracle'; text: string };
+import {
+  ChatItem,
+  TimeDivider,
+  ThinkingItem,
+  ToolCallItem,
+  AiMessageItem,
+  UserMessageItem,
+  ErrorItem,
+  shouldShowTimeDivider,
+} from './ChatItems';
 
 interface ClarificationRequest {
   id: string;
@@ -40,11 +48,12 @@ const PROMPTS_BY_MODE: Record<string, string[]> = {
 export default function OracleCard({ session }: { session: Session }) {
   const userId = session?.user?.id;
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentMode, setCurrentMode] = useState<string>('default');
   const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
+  const [btnPressed, setBtnPressed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +74,7 @@ export default function OracleCard({ session }: { session: Session }) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [items, loading]);
 
   const fetchPendingClarification = useCallback(async () => {
     if (!userId) return;
@@ -84,16 +93,19 @@ export default function OracleCard({ session }: { session: Session }) {
     fetchPendingClarification();
   }, [fetchPendingClarification]);
 
-  const history = messages.map(m => ({
-    role: m.role === 'user' ? 'user' : 'assistant',
-    content: m.text,
-  }));
+  const history = items
+    .filter(i => i.type === 'user' || i.type === 'ai')
+    .map(i => ({
+      role: i.type === 'user' ? 'user' : 'assistant',
+      content: i.text,
+    }));
 
   const ask = async () => {
     const query = input.trim();
     if (!query || loading) return;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: query }]);
+    const ts = new Date();
+    setItems(prev => [...prev, { type: 'user', text: query, timestamp: ts }]);
     setLoading(true);
     try {
       const stateVector = await gatherUserContext(session);
@@ -108,21 +120,29 @@ export default function OracleCard({ session }: { session: Session }) {
       });
       if (error) throw error;
       const reply = data?.text ?? data?.response ?? '(brak odpowiedzi)';
-      setMessages(prev => [...prev, { role: 'oracle', text: reply }]);
+      setItems(prev => [...prev, { type: 'ai', text: reply, timestamp: new Date() }]);
       fetchPendingClarification();
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'oracle', text: `Błąd: ${e.message ?? 'nieznany'}` }]);
+      setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e.message ?? 'nieznany'}`, timestamp: new Date() }]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
+  const handleOpen = () => {
+    setBtnPressed(true);
+    setTimeout(() => setBtnPressed(false), 150);
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 150);
+  };
+
   if (!open) {
     return (
       <button
-        onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 150); }}
-        className="flex w-full items-center gap-3 rounded-[24px] border border-primary/10 bg-primary/[0.04] p-4 text-left transition-all hover:bg-primary/[0.08] active:scale-[0.98] cursor-pointer"
+        onClick={handleOpen}
+        style={{ transform: btnPressed ? 'scale(0.9)' : 'scale(1)', transition: 'transform 150ms ease' }}
+        className="flex w-full items-center gap-3 rounded-[24px] border border-primary/10 bg-primary/[0.04] p-4 text-left hover:bg-primary/[0.08] cursor-pointer"
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Sparkles size={16} />
@@ -136,7 +156,17 @@ export default function OracleCard({ session }: { session: Session }) {
   }
 
   return (
-    <section className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden">
+    <section
+      className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden"
+      style={{ animation: 'oracle-slide-up 500ms cubic-bezier(0.16,1,0.3,1) both' }}
+    >
+      <style>{`
+        @keyframes oracle-slide-up {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-custom">
         <div className="flex items-center gap-2">
@@ -144,7 +174,7 @@ export default function OracleCard({ session }: { session: Session }) {
           <span className="text-[11px] font-black uppercase tracking-wider text-primary">Oracle</span>
         </div>
         <button
-          onClick={() => { setOpen(false); setMessages([]); }}
+          onClick={() => { setOpen(false); setItems([]); }}
           className="rounded-full p-1.5 text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
         >
           <X size={14} />
@@ -153,7 +183,7 @@ export default function OracleCard({ session }: { session: Session }) {
 
       {/* Messages */}
       <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.length === 0 && (
+        {items.length === 0 && (
           <div className="py-2 space-y-2">
             <p className="text-[10px] text-text-muted text-center mb-3">
               Oracle ma dostęp do Twoich danych z ostatnich 48h.
@@ -169,17 +199,20 @@ export default function OracleCard({ session }: { session: Session }) {
             ))}
           </div>
         )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[12px] leading-relaxed ${
-              m.role === 'user'
-                ? 'bg-primary text-white rounded-br-sm'
-                : 'bg-surface-solid border border-border-custom text-text-primary rounded-bl-sm'
-            }`}>
-              {m.text}
+        {items.map((item, i) => {
+          const prev = items[i - 1];
+          const showDivider = prev && shouldShowTimeDivider(prev, item);
+          return (
+            <div key={i}>
+              {showDivider && <TimeDivider date={item.timestamp} />}
+              {item.type === 'user' && <UserMessageItem text={item.text} />}
+              {item.type === 'ai' && <AiMessageItem text={item.text} />}
+              {item.type === 'thinking' && <ThinkingItem item={item} />}
+              {item.type === 'tool' && <ToolCallItem item={item} />}
+              {item.type === 'error' && <ErrorItem text={item.text} />}
             </div>
-          </div>
-        ))}
+          );
+        })}
         {loading && (
           <div className="flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-border-custom bg-surface-solid px-4 py-2.5">
