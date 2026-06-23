@@ -46,10 +46,10 @@ Czytaj ten plik po szczegóły implementacyjne (interfejsy, CSS, logika).
 | 2 | Design System | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 | 3 | ClarificationRequest | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 | 4 | Chat UI Upgrade | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
-| 5 | 22 Karty + 13 Widgetów | ⬜ TODO | — | — |
-| 6 | Magazine Bar / Schedule | ⬜ TODO | — | — |
-| 7 | Stats & Insights | ⬜ TODO | — | — |
-| 8 | Advanced Agent Infra | ⬜ TODO | — | — |
+| 5 | 22 Karty + 13 Widgetów | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 6 | Magazine Bar / Schedule | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 7 | Stats & Insights | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 8 | Advanced Agent Infra | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 
 Statusy: ⬜ TODO → 🔄 IN PROGRESS → ✅ DONE → ⚠️ PARTIAL (opisz co zostało)
 
@@ -644,3 +644,8 @@ Gdy Oracle zwraca obraz (wykres, zdjęcie):
 > Jeśli coś odkryłeś co następny agent musi wiedzieć (zaskakujące zachowanie, coś co nie działało jak w planie, decyzja którą podjąłeś) — wpisz tutaj.
 
 - Faza 2: Canvas variant GlassCard używa SVG data-URI jako background-image — NIE canvas element (zbyt ciężki). Dashed divider przez `repeating-linear-gradient`, nie border (border-style:dashed ma za mało kontroli nad rozmiarem).
+- Faza 5: CardFactory lazy-importuje się w AiCardRenderer (dynamic import), żeby nie było circular dependency z OracleCard.
+- Faza 6: ScheduleViewData persystuje w localStorage (klucz: vanguard_schedule_view), sweep uruchamia się on mount. Oracle mutacje schedule_mutation są pass-through — client aplikuje je do localStorage.
+- Faza 7: knowledge_insight_cards tabela — Oracle zapisuje karty bezpośrednio przez Supabase client w edge function. InsightCard long-press threshold: 550ms.
+- Faza 8: compressHistoryIfNeeded uruchamia się zawsze (softRatio=0.80 relative to 131,072 max tokens); historia slice(-10) przed kompresją. PendingToolImageBuffer to moduł-singleton in-memory w isolate — działa tylko w ramach jednego Deno isolate (nie persystuje między cold starts).
+- AgentRunMode: getAgentRunMode() z localStorage, przekazywany jako agent_run_mode do Oracle; readOnly blokuje mutacje przez prompt.

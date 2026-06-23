@@ -18,6 +18,7 @@ import {
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { sweepPastEventsInState } from '../../types/schedule';
 import type { ScheduleViewData } from '../../types/schedule';
+import { getAgentRunMode } from '../../types/agentRunMode';
 
 const SCHEDULE_KEY = 'vanguard_schedule_view';
 
@@ -158,6 +159,7 @@ export default function OracleCard({ session }: { session: Session }) {
           current_query: query,
           user_id: session.user.id,
           mode: 'chat',
+          agent_run_mode: getAgentRunMode(),
         },
       });
       if (error) throw error;

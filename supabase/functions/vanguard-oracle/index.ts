@@ -11,6 +11,8 @@ import { getPlanQualitySignal } from "../_shared/planQuality.ts"
 import { logCriticalError } from "../_shared/errorLogging.ts"
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts"
 import { fetchMedicalContext, formatMedicalContextBlock } from "../_shared/medicalContext.ts"
+import { compressHistoryIfNeeded } from "../_shared/contextCompression.ts"
+import { mintRecordFactId } from "../_shared/mintRecordFactId.ts"
 
 function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false } = await req.json();
+    const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false, agent_run_mode = 'auto' } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
         status: 400,
@@ -601,6 +603,8 @@ Tylko JSON, bez komentarzy.`,
     const systemPrompt = `Jesteś Vanguard OS — systemem current-first do logowania mikrotarć i wykrywania wzorców behawioralnych.
 MÓWISZ TYLKO PO POLSKU.
 
+AGENT RUN MODE: ${agent_run_mode === 'readOnly' ? 'TYLKO ODCZYT — nie zapisuj żadnych danych, nie emituj mutacji (schedule_mutation, insight_cards_mutation, clarification_request).' : agent_run_mode === 'confirm' ? 'TRYB POTWIERDZENIA — przed każdą mutacją opisz co chcesz zrobić i poczekaj na OK użytkownika.' : 'AUTO — domyślny, działaj bez pytania.'}
+
 ROLA I ZASADY DZIAŁANIA (ORCHESTRATOR):
 - Jesteś Orchestratorem, nie jednorazowym chatbotem — pamiętasz kontekst, budujesz wzorzec.
 - "Smallest thing that fully serves intent" — nie rób więcej niż pytanie wymaga.
@@ -813,9 +817,10 @@ Graf to pamięć dowodów. Krawędź w grafie to nie fakt — to zapamiętana ob
 ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
 `;
 
+    const compressedHistory = await compressHistoryIfNeeded((history || []).slice(-10));
     const messages = [
       { role: "system", content: systemPrompt },
-      ...(history || []).slice(-10)
+      ...compressedHistory,
     ];
 
     if (current_query) {
@@ -911,6 +916,17 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
     // Schedule mutation — pass-through to client via response (client handles localStorage)
     if (structuredResponse.schedule_mutation) {
       console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as any)?.action);
+    }
+
+    // mintRecordFactId — gdy Oracle potrzebuje zarezerwować UUID dla koordynacji sub-tasków
+    if (structuredResponse.mint_fact_id) {
+      try {
+        const factId = await mintRecordFactId(user_id);
+        console.log('[oracle] minted fact_id:', factId);
+        structuredResponse._minted_fact_id = factId;
+      } catch (e: any) {
+        console.warn('[oracle] mintRecordFactId failed (non-fatal):', e.message);
+      }
     }
 
     // Insight cards mutation — write to DB
