@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Calendar, Check, Shield, Target, Wallet, Zap } from 'lucide-react';
 import { addDays, differenceInDays, format, parseISO, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -45,6 +46,14 @@ export default function DirectionRadarMode({
   currentReview,
   weekGoals,
 }: DirectionRadarModeProps) {
+  const todayCardRef = useRef<HTMLDivElement | null>(null);
+
+  // Mid-week, "today" is buried a few cards into the horizontal scroll —
+  // jump straight to it instead of making the user hunt for it every time.
+  useEffect(() => {
+    todayCardRef.current?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+  }, []);
+
   return (
     <div className="space-y-4">
 
@@ -123,6 +132,7 @@ export default function DirectionRadarMode({
             return (
               <div
                 key={i}
+                ref={isToday ? todayCardRef : undefined}
                 className={`min-w-[150px] max-w-[170px] shrink-0 flex flex-col rounded-[24px] border p-4 snap-align-start transition-all ${
                   isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
                 }`}
@@ -145,6 +155,7 @@ export default function DirectionRadarMode({
           return (
             <div
               key={i}
+              ref={isToday ? todayCardRef : undefined}
               className={`min-w-[260px] max-w-[280px] shrink-0 flex flex-col rounded-[24px] border bg-surface p-4 shadow-sm transition-all duration-300 snap-align-start ${
                 isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
               }`}

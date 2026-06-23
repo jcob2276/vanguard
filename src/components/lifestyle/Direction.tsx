@@ -20,6 +20,7 @@ import { supabase } from '../../lib/supabase';
 import type { Tables, TablesUpdate } from '../../lib/database.types';
 import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
+import { useHaptics } from '../../hooks/useHaptics';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
@@ -52,6 +53,7 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
 }
 
 export default function Direction({ session }: { session: Session }) {
+  const haptics = useHaptics();
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<DailyWinRow[]>([]);
 
@@ -271,6 +273,7 @@ export default function Direction({ session }: { session: Session }) {
   }, [history]);
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
+    haptics.light();
     // Re-fetch the row fresh to avoid acting on a stale render-time snapshot
     // when two checkboxes are toggled in quick succession (race on `allDone`).
     const { data: fresh } = await supabase.from('daily_wins').select('*').eq('id', dayWinStale.id).single();
@@ -308,6 +311,7 @@ export default function Direction({ session }: { session: Session }) {
 
     if (!error && data) {
       setHistory((prev) => prev.map((d) => d.id === data.id ? data : d));
+      if (allDone) haptics.success();
     }
   }
 
@@ -356,6 +360,10 @@ export default function Direction({ session }: { session: Session }) {
           week_regret: weekRegret || null,
           new_belief: newBelief || null,
           pillar_scores: pillarScores,
+          // Surfaced next week as "Lekcja z poprzedniego tygodnia" in the radar
+          // view — "where did I take the easy way out" is the most direct
+          // forward-looking lesson of the three reflection prompts.
+          bottleneck: doDifferently || null,
         } as any,
         { onConflict: 'user_id,week_start' }
       )
@@ -407,7 +415,7 @@ export default function Direction({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto">
+    <div className="flex-1 space-y-6 overflow-y-auto animate-fadeIn">
 
       {/* ── Tydzień ── */}
       <section className="space-y-3">

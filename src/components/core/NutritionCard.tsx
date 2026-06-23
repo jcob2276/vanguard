@@ -3,6 +3,7 @@ import { Plus, RefreshCw, X, Loader2, Sparkles, Zap, Flame, Droplet } from 'luci
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import FoodEntryModal from './nutrition/FoodEntryModal';
+import { useHaptics } from '../../hooks/useHaptics';
 
 interface NutritionCardProps {
   weeklyCalories: number;
@@ -59,6 +60,7 @@ export default function NutritionCard({
 }: NutritionCardProps) {
   const userId = session?.user?.id;
   const todayRaw = getTodayWarsaw();
+  const haptics = useHaptics();
 
   const [proteinGoal, setProteinGoal] = useState(150);
   const [kcalTarget, setKcalTarget] = useState(1800);
@@ -151,6 +153,7 @@ export default function NutritionCard({
 
   const deleteEntry = useCallback(async (id: string) => {
     if (!userId || deletingId) return;
+    haptics.light();
     setDeletingId(id);
     try {
       const { error } = await supabase.rpc('remove_food_entry', { p_user_id: userId, p_entry_id: id });
@@ -161,7 +164,7 @@ export default function NutritionCard({
     } finally {
       setDeletingId(null);
     }
-  }, [userId, deletingId, fetchRows, fetchTodayEntries]);
+  }, [userId, deletingId, fetchRows, fetchTodayEntries, haptics]);
 
   const caloriesProgress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
 
@@ -372,7 +375,7 @@ export default function NutritionCard({
         {/* Chart switcher tabs */}
         <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-solid/15 border border-border-custom/50 mb-3">
           <button
-            onClick={() => setActiveChartTab('calories')}
+            onClick={() => { haptics.light(); setActiveChartTab('calories'); }}
             className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeChartTab === 'calories'
                 ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
@@ -382,7 +385,7 @@ export default function NutritionCard({
             Kalorie (7d)
           </button>
           <button
-            onClick={() => setActiveChartTab('protein')}
+            onClick={() => { haptics.light(); setActiveChartTab('protein'); }}
             className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeChartTab === 'protein'
                 ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
@@ -556,8 +559,8 @@ export default function NutritionCard({
       <div className="my-4 border-t border-border-custom/50" />
 
       {/* Expandable / Collapsible toggle card banner */}
-      <div 
-        onClick={() => setIsExpanded(!isExpanded)}
+      <div
+        onClick={() => { haptics.light(); setIsExpanded(!isExpanded); }}
         className="flex flex-col p-3.5 rounded-2xl border border-border-custom bg-surface-solid/15 cursor-pointer group select-none hover:bg-surface-solid/25 active:scale-[0.99] transition-all mb-4"
       >
         <div className="flex items-center justify-between">

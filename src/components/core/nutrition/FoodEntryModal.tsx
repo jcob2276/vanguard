@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Keyboard, PenLine, Sparkles, Trash2, Check } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
+import { useHaptics } from '../../../hooks/useHaptics';
 
 declare global {
   interface Window {
@@ -111,6 +112,7 @@ type Screen = 'browse' | 'portion' | 'edit' | 'manual' | 'nl';
 
 export default function FoodEntryModal({ session, onClose, onSaved, initialEditEntry, initialMealType }: FoodEntryModalProps) {
   const userId = session?.user?.id;
+  const haptics = useHaptics();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'favorites' | 'recent'>('favorites');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -257,16 +259,18 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         // changed packaging) — don't leave the user stuck on the scanner.
         // Drop them straight into name search, which usually finds it.
         setScannerOpen(false);
+        haptics.error();
         setError(`Kod ${code} nie ma wpisu w bazie — spróbuj wpisać nazwę produktu`);
         setTimeout(() => searchInputRef.current?.focus(), 50);
       }
     } catch (err) {
       console.error('[FoodEntryModal] barcode lookup failed', err);
+      haptics.error();
       setError('Wyszukiwanie po kodzie nie powiodło się');
     } finally {
       setScanLookingUp(false);
     }
-  }, []);
+  }, [haptics]);
 
   const preview = useMemo(() => {
     const gramsNum = parseInt(grams, 10) || 0;
@@ -281,9 +285,10 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const flashSaved = useCallback(() => {
+    haptics.success();
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1200);
-  }, []);
+  }, [haptics]);
 
   // ── Save from portion selector ────────────────────────────────────────────────
   const save = useCallback(async () => {
@@ -547,6 +552,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
 
   const deleteEntry = useCallback(async () => {
     if (!editingEntry || !userId || editDeleting) return;
+    haptics.light();
     setEditDeleting(true);
     setError(null);
     try {
@@ -562,7 +568,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setEditDeleting(false);
     }
-  }, [editingEntry, userId, editDeleting, onSaved, loadLists]);
+  }, [editingEntry, userId, editDeleting, onSaved, loadLists, haptics]);
 
   const nlActiveCount = nlItems ? nlItems.filter((_, i) => !nlRemovedIdx.has(i)).length : 0;
 
