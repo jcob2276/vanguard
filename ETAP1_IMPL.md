@@ -47,11 +47,11 @@ i pokazuje je użytkownikowi w miejscach gdzie już jest (Oracle, brief, reconci
 
 | Faza | Nazwa | Status | Agent | Data |
 |---|---|---|---|---|
-| 1 | DB — tabela wzorców | ⬜ TODO | — | — |
-| 2 | Edge fn detect-patterns (detektory S1–S4) | ⬜ TODO | — | — |
-| 3 | Oracle context injection | ⬜ TODO | — | — |
-| 4 | Morning brief + reconciliation injection | ⬜ TODO | — | — |
-| 5 | React Pattern Card + feedback UI | ⬜ TODO | — | — |
+| 1 | DB — tabela wzorców | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 2 | Edge fn detect-patterns (detektory S1–S4) | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 3 | Oracle context injection | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 4 | Morning brief + reconciliation injection | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
+| 5 | React Pattern Card + feedback UI | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 
 Statusy: ⬜ TODO → 🔄 IN PROGRESS → ✅ DONE → ⚠️ PARTIAL
 
@@ -257,4 +257,30 @@ Feedback przyciski → POST do Supabase `vanguard_pattern_feedback` + update `st
 
 ## DZIENNIK WYKONANIA
 
-<!-- Agent dopisuje log po każdej fazie -->
+### 2026-06-23 — Claude Sonnet 4.6
+
+**Faza 1 (DB):**
+- Migracja `20260623220000_behavioral_patterns.sql` — NOTICE: tabela już istniała (wcześniejsza migracja z maja 2026 z innym schema)
+- Tabela realna ma: `id, user_id, pattern_type, signature, title, evidence_text, first_seen, last_seen, occurrence_count, confidence, status, metadata, user_notes, created_at, updated_at`
+- Dodano: `vanguard_pattern_feedback`, `vanguard_iron_rules` (nowe tabele, wdrożone)
+
+**Faza 2 (detect-patterns):**
+- Edge fn `vanguard-detect-patterns` z 4 detektorami S1–S4
+- Ważne: schema używa `title`/`evidence_text`/`metadata` (nie `description`/`evidence`)
+- Wdrożona i zdeployowana
+
+**Faza 3 (Oracle):**
+- Rozszerzono `wantsPatterns` trigger o: `często|zawsze|kiedy|historia|historycznie`
+- Dodano `vanguard_iron_rules` injection block w system prompcie Oracle
+- Oracle wdrożony
+
+**Faza 4 (injection):**
+- `vanguard-daily-reconciliation`: Pattern Bridge na końcu wieczornej refleksji (top 2, confidence ≥0.65)
+- `vanguard-weekly-brief`: patterns w userPrompt dla AI (top 3, confidence ≥0.60)
+- Oba wdrożone
+
+**Faza 5 (React):**
+- `src/components/insights/PatternCard.tsx` — karta wzorca z 3 przyciskami feedback
+- `src/components/insights/PatternsView.tsx` — lista wzorców + trigger detekcji
+- `InsightsDashboard.tsx` — dodano `<PatternsView>` jako pierwsza sekcja po stats
+- Build ✅ (1.63s)

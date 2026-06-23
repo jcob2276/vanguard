@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useUserStatsSnapshot } from '../../hooks/useUserStatsSnapshot';
 import { UserStatsOverviewCard } from './UserStatsOverviewCard';
 import { InsightCard, type InsightCardData } from './InsightCard';
+import { PatternsView } from './PatternsView';
 
 export function InsightsDashboard({ session }: { session: Session }) {
   const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(session);
@@ -58,6 +59,8 @@ export function InsightsDashboard({ session }: { session: Session }) {
   return (
     <div className="space-y-5">
       <UserStatsOverviewCard snapshot={snapshot} loading={statsLoading} />
+
+      <PatternsView session={session} />
 
       {cards.length > 0 && (
         <div className="space-y-3">
