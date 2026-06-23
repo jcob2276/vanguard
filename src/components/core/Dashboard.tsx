@@ -42,6 +42,7 @@ const Keep = lazy(() => import('../notes/Keep'));
 
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 const ScheduleView = lazy(() => import('../schedule/ScheduleView').then(m => ({ default: m.ScheduleView })));
+const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
@@ -393,6 +394,7 @@ export default function Dashboard({ session }: { session: Session }) {
           <div className={`p-5 pb-8 ${view === 'historia' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
+                <InsightsDashboard session={session} />
                 <Stats session={session} runningSlot={<StravaWidget session={session} />} />
                 <Photos session={session} />
               </div>

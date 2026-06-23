@@ -712,6 +712,26 @@ Gdy użytkownik pyta o plan tygodnia lub prosi o dodanie/zmianę — dodaj pole 
 }
 Używaj tylko gdy action dotyczy konkretnej zmiany w planie/schedulu. Pomiń gdy nie ma mutacji.
 
+OPCJONALNE — INSIGHT CARDS (insight_cards_mutation):
+Gdy chcesz zapisać/aktualizować insight cards lub usunąć je — dodaj pole "insight_cards_mutation":
+{
+  "insight_cards_mutation": {
+    "action": "add" | "update" | "delete",
+    "cards": [
+      {
+        "id": "opcjonalne_uuid_dla_update",
+        "template_id": "metric | progress | insight_summary | compact | ...",
+        "title": "Tytuł karty",
+        "insight": "Krótki komentarz",
+        "widget_data": { ... },
+        "tags": ["tag1"]
+      }
+    ],
+    "delete_ids": ["uuid1", "uuid2"]
+  }
+}
+Pomiń gdy brak zmian w insight cards.
+
 [TŁO TOŻSAMOŚCI — kontekst wewnętrzny, nie cytować]:
 ${fundamentRes.data?.identity || 'Brak danych'}
 ${fundamentRes.data?.philosophy || 'Brak danych'}
@@ -891,6 +911,36 @@ ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
     // Schedule mutation — pass-through to client via response (client handles localStorage)
     if (structuredResponse.schedule_mutation) {
       console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as any)?.action);
+    }
+
+    // Insight cards mutation — write to DB
+    if (structuredResponse.insight_cards_mutation) {
+      const mut = structuredResponse.insight_cards_mutation as any;
+      try {
+        if ((mut.action === 'add' || mut.action === 'update') && Array.isArray(mut.cards)) {
+          for (const card of mut.cards) {
+            const row = {
+              user_id,
+              template_id: card.template_id,
+              title: card.title,
+              insight: card.insight ?? null,
+              widget_data: card.widget_data ?? {},
+              tags: card.tags ?? [],
+            };
+            if (card.id) {
+              await supabase.from('knowledge_insight_cards').upsert({ id: card.id, ...row }, { onConflict: 'id' });
+            } else {
+              await supabase.from('knowledge_insight_cards').insert(row);
+            }
+          }
+        }
+        if (mut.action === 'delete' && Array.isArray(mut.delete_ids)) {
+          await supabase.from('knowledge_insight_cards').delete().in('id', mut.delete_ids).eq('user_id', user_id);
+        }
+        console.log('[oracle] insight_cards_mutation applied:', mut.action);
+      } catch (e: any) {
+        console.warn('[oracle] insight_cards_mutation failed (non-fatal):', e.message);
+      }
     }
 
     // Oracle responses are audited in vanguard_oracle_runs above. Chat turns must
