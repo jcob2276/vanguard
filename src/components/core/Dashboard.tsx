@@ -51,6 +51,7 @@ const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const OracleCard = lazy(() => import('../ai/OracleCard'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
+const DayPlanCard = lazy(() => import('./DayPlanCard'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -341,13 +342,20 @@ export default function Dashboard({ session }: { session: Session }) {
               )}
 
               <GoalsCard session={session} />
+
+              {/* DayPlanCard — MIT + supporting tasks + energy check-in + shutdown */}
               <Suspense fallback={<ViewFallback />}>
-                <DailySnapshotCard session={session} />
+                <DayPlanCard session={session} />
               </Suspense>
 
               <Suspense fallback={null}>
                 <TodayEventsCard session={session} />
               </Suspense>
+
+              <Suspense fallback={<ViewFallback />}>
+                <DailySnapshotCard session={session} />
+              </Suspense>
+
               <button
                 onClick={() => setShowQuickFoodEntry(true)}
                 className="w-full rounded-2xl border border-primary/25 bg-primary/[0.06] py-3 text-[12px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
