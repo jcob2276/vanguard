@@ -86,9 +86,6 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
 
   const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
   const [weekGoals, setWeekGoals] = useState<{ cialo: string | null; duch: string | null; konto: string | null; intention: string | null } | null>(null);
-  const [dayNote, setDayNote] = useState(todayWin?.day_note ?? '');
-  const [savingNote, setSavingNote] = useState(false);
-  const [noteSaved, setNoteSaved] = useState(false);
 
   // Wczorajszy dzień — wymagana refleksja przed odblokowaniem dzisiejszych 5 zwycięstw
   const [yesterdayWin, setYesterdayWin] = useState<any>(null);
@@ -110,11 +107,6 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   // AI assistant states
   const [aiQuestions, setAiQuestions] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
-
-  // Sync dayNote when todayWin loads/changes
-  useEffect(() => {
-    setDayNote(todayWin?.day_note ?? '');
-  }, [todayWin?.day_note]);
 
   // Fetch weekly goals from current week's review
   useEffect(() => {
@@ -142,23 +134,6 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
         }
       }, () => {});
   }, [userId, today, todayWin]);
-
-  async function saveNote(note: string) {
-    if (!todayWin?.id || savingNote) return;
-    setSavingNote(true);
-    const { data, error } = await supabase
-      .from('daily_wins')
-      .update({ day_note: note || null })
-      .eq('id', todayWin.id)
-      .select()
-      .single();
-    if (!error && data) {
-      if (onUpdate) onUpdate(data);
-      setNoteSaved(true);
-      setTimeout(() => setNoteSaved(false), 1500);
-    }
-    setSavingNote(false);
-  }
 
   async function generateQuestions() {
     setAiLoading(true);
@@ -644,29 +619,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
               </button>
             );
           })}
-
-          {/* Nota dnia */}
-          <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-2">
-            <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Nota dnia</p>
-            <p className="text-[10px] text-text-muted leading-relaxed">
-              Dlaczego zrobiłem / nie zrobiłem te zadania? Jaki mają wpływ na moje cele i życie?
-            </p>
-            <textarea
-              value={dayNote}
-              onChange={(e) => setDayNote(e.target.value)}
-              onBlur={(e) => saveNote(e.target.value)}
-              placeholder="Napisz szczerze…"
-              rows={3}
-              className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
-                text-text-primary placeholder-text-muted resize-y min-h-[72px]
-                focus:outline-none focus:border-primary/50 transition-colors"
-            />
-            {savingNote ? (
-              <p className="text-[9px] text-text-muted">Zapisuję…</p>
-            ) : noteSaved ? (
-              <p className="text-[9px] font-bold text-dayC">✓ Zapisano</p>
-            ) : null}
-          </div>
         </div>
       )}
     </section>
