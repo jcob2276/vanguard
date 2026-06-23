@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
-import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
+import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus, Flame } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import {
   newExercise,
@@ -88,6 +88,13 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   const addActivity    = () => { haptics.light(); setActivities(p => [...p, newActivity()]); };
   const removeActivity = (id: number) => { haptics.light(); setActivities(p => p.filter(a => a.id !== id)); };
   const updateActivity = (u: WorkoutActivity) => setActivities(p => p.map(a => a.id === u.id ? u : a));
+
+  // Sauna/lodowata kąpiel/zimny prysznic get serie × minuty (+ opcjonalnie stopnie) via the
+  // 'wellness' exercise tag — same Min/°C set UI as ExerciseCard, no need to rebuild it here.
+  const addWellnessQuick = (name: string) => {
+    haptics.light();
+    setExercises(p => [...p, { ...newExercise(), name, tags: ['wellness'] }]);
+  };
 
   async function save() {
     const validEx = exercises.filter(e => e.name.trim());
@@ -290,12 +297,29 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
             <Zap size={12} className="text-text-muted" />
             <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Inne aktywności</span>
           </div>
+
+          {/* Sauna/lodowata kąpiel get serie×min(+°C) — added as a wellness exercise above, not a plain activity */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => addWellnessQuick('Sauna')}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-orange-500/25 bg-orange-500/[0.06] py-2 text-[10px] font-black uppercase tracking-wider text-orange-500 hover:bg-orange-500/10 active:scale-95 transition-all cursor-pointer"
+            >
+              <Flame size={12} /> + Sauna
+            </button>
+            <button
+              onClick={() => addWellnessQuick('Lodowata kąpiel')}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] py-2 text-[10px] font-black uppercase tracking-wider text-sky-500 hover:bg-sky-500/10 active:scale-95 transition-all cursor-pointer"
+            >
+              + Lodowata
+            </button>
+          </div>
+
           {activities.map(a => (
             <ActivityCard key={a.id} activity={a} onChange={updateActivity} onRemove={() => removeActivity(a.id)} />
           ))}
           <button onClick={addActivity}
             className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-orange-500/50 hover:text-orange-400 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
-            <Plus size={13} /> Dodaj aktywność
+            <Plus size={13} /> Dodaj aktywność (rower, spacer...)
           </button>
         </div>
 

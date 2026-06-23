@@ -12,6 +12,7 @@ import {
 import ExerciseNameInput from './ExerciseNameInput';
 import TagRow from './TagRow';
 import { useHaptics } from '../../../hooks/useHaptics';
+import { getTodayWarsaw } from '../../../lib/date';
 
 interface ExerciseCardProps {
   exercise: WorkoutExercise;
@@ -33,7 +34,10 @@ export default function ExerciseCard({
   const sets = exercise.sets ?? [];
   const tags = exercise.tags ?? [];
   const isSaunaMode = tags.includes('wellness');
-  const { lastSession, allTimeBest1RM } = useExerciseHistory(exercise.name ?? '', userId);
+  const { lastSession, lastSessionDate, allTimeBest1RM } = useExerciseHistory(exercise.name ?? '', userId);
+  const daysAgo = lastSessionDate
+    ? Math.round((new Date(`${getTodayWarsaw()}T12:00:00Z`).getTime() - new Date(`${lastSessionDate}T12:00:00Z`).getTime()) / 86400000)
+    : null;
 
   function addSet() {
     haptics.light();
@@ -104,6 +108,11 @@ export default function ExerciseCard({
         <div className="px-4 py-1.5 border-t border-border-custom bg-text-primary/[0.01] flex items-center gap-1.5">
           <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">Ostatnio</span>
           <span className="text-[10px] font-bold text-text-secondary">{formatLastSession(lastSession)}</span>
+          {daysAgo != null && (
+            <span className="text-[8px] font-bold text-text-muted/50">
+              {daysAgo === 0 ? '(dziś)' : daysAgo === 1 ? '(1d temu)' : `(${daysAgo}d temu)`}
+            </span>
+          )}
           {(() => {
             const s = getSuggestion(lastSession);
             const lastW = Math.max(...lastSession.map((x) => Number(x.weight ?? 0)));

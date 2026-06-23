@@ -97,12 +97,14 @@ export function useStopwatch(startTs: number | null): string | null {
 
 export function useExerciseHistory(name: string, userId: string | undefined) {
   const [lastSession, setLastSession] = useState<ExerciseHistoryRow[] | null>(null);
+  const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [allTimeBest1RM, setAllTimeBest1RM] = useState<number | null>(null);
 
   useEffect(() => {
     const trimmed = name.trim();
     if (!userId || trimmed.length < 2) {
       setLastSession(null);
+      setLastSessionDate(null);
       setAllTimeBest1RM(null);
       return;
     }
@@ -116,6 +118,7 @@ export function useExerciseHistory(name: string, userId: string | undefined) {
 
       if (!data?.length) {
         setLastSession(null);
+        setLastSessionDate(null);
         setAllTimeBest1RM(null);
         return;
       }
@@ -133,6 +136,7 @@ export function useExerciseHistory(name: string, userId: string | undefined) {
       }
       const last = Object.values(bySession)[0].sort((a, b) => (a.set_number || 0) - (b.set_number || 0));
       setLastSession(last);
+      setLastSessionDate(last[0]?.workout_sessions?.date ?? null);
 
       const best = sorted.reduce((max: number, r: ExerciseHistoryRow) => {
         const e = epley(r.weight, r.reps);
@@ -143,7 +147,7 @@ export function useExerciseHistory(name: string, userId: string | undefined) {
     return () => clearTimeout(timeout);
   }, [name, userId]);
 
-  return { lastSession, allTimeBest1RM };
+  return { lastSession, lastSessionDate, allTimeBest1RM };
 }
 
 export function formatLastSession(sets: ExerciseHistoryRow[] | null | undefined): string | null {
