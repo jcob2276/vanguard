@@ -22,6 +22,16 @@
   --btn-secondary-bg: #f8fafc;
   --btn-secondary-hover: #f1f5f9;
 
+  /* ── Memex design tokens (additive — do not rename existing) ── */
+  --color-text-tertiary: #99A1AF;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #F43F5E;
+  --shadow-card-accent: 0 0 24px rgba(17,24,39,0.05);
+  --shadow-event-card: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-float: 0 6px 24px rgba(0,0,0,0.08);
+  --shadow-back-btn: 0 0 9px rgba(0,0,0,0.04);
+
   /* ── Pixel + iOS Design Tokens ── */
   --radius-sm: 10px;   /* tagi, chipy, badge */
   --radius-md: 16px;   /* przyciski, inputy */

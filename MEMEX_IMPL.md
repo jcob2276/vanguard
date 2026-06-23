@@ -43,7 +43,7 @@ Czytaj ten plik po szczegóły implementacyjne (interfejsy, CSS, logika).
 | Faza | Nazwa | Status | Agent | Data |
 |---|---|---|---|---|
 | 1 | Prompty Oracle | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
-| 2 | Design System | ⬜ TODO | — | — |
+| 2 | Design System | ✅ DONE | Claude Sonnet 4.6 | 2026-06-23 |
 | 3 | ClarificationRequest | ⬜ TODO | — | — |
 | 4 | Chat UI Upgrade | ⬜ TODO | — | — |
 | 5 | 22 Karty + 13 Widgetów | ⬜ TODO | — | — |
@@ -643,4 +643,4 @@ Gdy Oracle zwraca obraz (wykres, zdjęcie):
 
 > Jeśli coś odkryłeś co następny agent musi wiedzieć (zaskakujące zachowanie, coś co nie działało jak w planie, decyzja którą podjąłeś) — wpisz tutaj.
 
-*(na razie pusto)*
+- Faza 2: Canvas variant GlassCard używa SVG data-URI jako background-image — NIE canvas element (zbyt ciężki). Dashed divider przez `repeating-linear-gradient`, nie border (border-style:dashed ma za mało kontroli nad rozmiarem).
