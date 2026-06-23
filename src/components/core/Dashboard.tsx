@@ -358,13 +358,12 @@ export default function Dashboard({ session }: { session: Session }) {
               <Suspense fallback={<ViewFallback />}>
                 <BlockTimer session={session} todayWin={todayWin} />
               </Suspense>
-              {/* Oracle i Brief dnia tymczasowo wyłączone z frontendu (kod zostaje) */}
-              {/* <Suspense fallback={<ViewFallback />}>
+              <Suspense fallback={<ViewFallback />}>
                 <OracleCard session={session} />
               </Suspense>
               <Suspense fallback={<ViewFallback />}>
                 <MorningBriefCard session={session} />
-              </Suspense> */}
+              </Suspense>
               <Suspense fallback={<ViewFallback />}>
                 <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
               </Suspense>
