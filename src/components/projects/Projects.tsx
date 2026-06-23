@@ -4,6 +4,9 @@ import {
   Plus,
   TrendingUp,
   FolderKanban,
+  Zap,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import {
@@ -27,17 +30,30 @@ import DataStateNotice from '../core/DataStateNotice';
 import {
   COLORS,
   PILLAR_META,
-  STATUS_TABS,
   STATUS_NEXT,
   PILLARS,
-  PillarId
+  PillarId,
+  ProjectStats,
+  calculateHealthScore,
+  getHealthLevel,
+  HEALTH_COLORS,
 } from './projectUtils';
 
 import GoalCreateModal from './GoalCreateModal';
 import RetroModal from './RetroModal';
 import ProjectCard from './ProjectCard';
 
-export default function Projects({ session, onNavigateTo, reviewOverdueDays = null }: { session: any; onNavigateTo?: (view: string) => void; reviewOverdueDays?: number | null }) {
+type PillarFilter = PillarId | 'all';
+
+export default function Projects({
+  session,
+  onNavigateTo,
+  reviewOverdueDays = null,
+}: {
+  session: any;
+  onNavigateTo?: (view: string) => void;
+  reviewOverdueDays?: number | null;
+}) {
   const userId = session.user.id;
 
   const [projects, setProjects]   = useState<any[]>([]);
@@ -50,7 +66,9 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const [busy, setBusy]           = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showForm, setShowForm]   = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'paused' | 'done'>('active');
+  const [pillarFilter, setPillarFilter] = useState<PillarFilter>('all');
+  const [pausedOpen, setPausedOpen] = useState(false);
+  const [doneOpen, setDoneOpen]   = useState(false);
   const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
   const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -62,7 +80,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   const [lifeGoals, setLifeGoals] = useState<any>(null);
   const [kpis, setKpis] = useState<any[]>([]);
   const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
-  const [kpiInputVal, setKpiInputVal] = useState('');
   const [goalCreateOpen, setGoalCreateOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -101,7 +118,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
   };
 
   // ── Stats per project ──
-  const stats = useMemo(() => {
+  const stats = useMemo<Record<string, ProjectStats>>(() => {
     const sectionByProject: Record<string, any> = {};
     sections.forEach(s => { if (s.project_id) sectionByProject[s.project_id] = s; });
 
@@ -118,8 +135,8 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         : null;
       const lastActivity = lastTs ? new Date(lastTs) : null;
       const todayWarsawDate = new Date(getTodayWarsaw() + 'T12:00:00Z');
-      const daysSince    = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T12:00:00Z')) : null;
-      const slipping     = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
+      const daysSince = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T12:00:00Z')) : null;
+      const slipping  = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
 
       const daysLeft = p.deadline
         ? differenceInDays(new Date(p.deadline + 'T12:00:00Z'), todayWarsawDate)
@@ -152,7 +169,6 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     });
     return grouped;
   }, [kpis]);
-
 
   // ── Handlers ──
   const handleCreate = () => {
@@ -332,29 +348,55 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     });
   };
 
-  const filtered = useMemo(() =>
+  // ── Derived data ──
+  const projectPillar = useCallback((project: any): PillarId | null => {
+    const lifeGoal = project.dream_id ? dreamById[project.dream_id]?.life_goal : null;
+    return PILLARS.includes(lifeGoal) ? lifeGoal : null;
+  }, [dreamById]);
+
+  const matchesPillarFilter = useCallback((project: any): boolean => {
+    if (pillarFilter === 'all') return true;
+    return projectPillar(project) === pillarFilter;
+  }, [pillarFilter, projectPillar]);
+
+  const sortByHealthAsc = useCallback((a: any, b: any) => {
+    const sa = stats[a.id];
+    const sb = stats[b.id];
+    if (!sa || !sb) return 0;
+    const ha = calculateHealthScore(a, sa, kpisByProject[a.id] ?? []);
+    const hb = calculateHealthScore(b, sb, kpisByProject[b.id] ?? []);
+    return ha - hb; // ascending: sickest first
+  }, [stats, kpisByProject]);
+
+  const activeFiltered = useMemo(() =>
     projects
-      .filter(p => p.status === statusFilter)
-      .sort((a, b) => {
-        const sa = stats[a.id];
-        const sb = stats[b.id];
-        if (!sa || !sb) return 0;
-        // overdue first (most negative daysLeft)
-        const aOverdue = sa.daysLeft !== null && sa.daysLeft < 0;
-        const bOverdue = sb.daysLeft !== null && sb.daysLeft < 0;
-        if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-        if (aOverdue && bOverdue) return (sa.daysLeft ?? 0) - (sb.daysLeft ?? 0);
-        // then slipping
-        if (sa.slipping !== sb.slipping) return sa.slipping ? -1 : 1;
-        // then closest deadline
-        if (sa.daysLeft !== null && sb.daysLeft !== null) return sa.daysLeft - sb.daysLeft;
-        if (sa.daysLeft !== null) return -1;
-        if (sb.daysLeft !== null) return 1;
-        // fallback: alphabetical
-        return a.name.localeCompare(b.name);
-      }),
-    [projects, statusFilter, stats],
+      .filter(p => p.status === 'active' && matchesPillarFilter(p))
+      .sort(sortByHealthAsc),
+    [projects, matchesPillarFilter, sortByHealthAsc],
   );
+
+  const pausedFiltered = useMemo(() =>
+    projects.filter(p => p.status === 'paused' && matchesPillarFilter(p)),
+    [projects, matchesPillarFilter],
+  );
+
+  const doneFiltered = useMemo(() =>
+    projects.filter(p => p.status === 'done' && matchesPillarFilter(p)),
+    [projects, matchesPillarFilter],
+  );
+
+  // Focus project: lowest health active project
+  const focusProject = useMemo(() => {
+    if (activeFiltered.length === 0) return null;
+    let worst = activeFiltered[0];
+    let worstScore = calculateHealthScore(worst, stats[worst.id] ?? {} as any, kpisByProject[worst.id] ?? []);
+    for (const p of activeFiltered) {
+      const score = calculateHealthScore(p, stats[p.id] ?? {} as any, kpisByProject[p.id] ?? []);
+      if (score < worstScore) { worst = p; worstScore = score; }
+    }
+    // Only show Focus if health is below 60
+    return worstScore < 60 ? worst : null;
+  }, [activeFiltered, stats, kpisByProject]);
 
   const activeProjects = useMemo(
     () => projects.filter(p => p.status === 'active'),
@@ -366,10 +408,48 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     [lifeGoals],
   );
 
-  const projectPillar = useCallback((project: any): PillarId | null => {
-    const lifeGoal = project.dream_id ? dreamById[project.dream_id]?.life_goal : null;
-    return PILLARS.includes(lifeGoal) ? lifeGoal : null;
-  }, [dreamById]);
+  const renderProjectCard = (project: any) => {
+    const s = stats[project.id];
+    const isExpanded = expandedId === project.id;
+    const projectCheckpoints = checkpointsByProject[project.id] ?? [];
+    const doneCheckpoints = projectCheckpoints.filter(cp => cp.status === 'done').length;
+
+    return (
+      <ProjectCard
+        key={project.id}
+        project={project}
+        s={s}
+        isExpanded={isExpanded}
+        setExpandedId={setExpandedId}
+        projectPillar={projectPillar}
+        projectCheckpoints={projectCheckpoints}
+        doneCheckpoints={doneCheckpoints}
+        busy={busy}
+        kpisByProject={kpisByProject}
+        editingProjectId={editingProjectId}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        startEditProject={startEditProject}
+        setEditingProjectId={setEditingProjectId}
+        handleSaveProject={handleSaveProject}
+        newCheckpoint={newCheckpoint}
+        setNewCheckpoint={setNewCheckpoint}
+        handleAddCheckpoint={handleAddCheckpoint}
+        handleToggleCheckpoint={handleToggleCheckpoint}
+        deleteCheckpoint={deleteCheckpoint}
+        editingKpiId={editingKpiId}
+        setEditingKpiId={setEditingKpiId}
+        handleUpdateKpiValue={handleUpdateKpiValue}
+        handleToggleTask={handleToggleTask}
+        newTask={newTask}
+        setNewTask={setNewTask}
+        handleAddTask={handleAddTask}
+        handleStatusCycle={handleStatusCycle}
+        updateProjectStatus={updateProjectStatus}
+        handleDelete={handleDelete}
+      />
+    );
+  };
 
   if (loading) return (
     <DataStateNotice tone="loading" title="Ładowanie projektów" detail="" />
@@ -379,7 +459,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
     <div className="space-y-5">
       {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-      {/* Header row */}
+      {/* ── Header row ── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[20px] font-bold tracking-tight text-text-primary">Projekty</h2>
@@ -424,6 +504,38 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         </button>
       )}
 
+      {/* ── Pillar filter tabs ── */}
+      <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+        {/* All */}
+        <button
+          onClick={() => setPillarFilter('all')}
+          className={`flex-1 py-1.5 text-[11px] font-semibold rounded-[10px] transition-all ${
+            pillarFilter === 'all'
+              ? 'bg-background text-text-primary shadow-sm'
+              : 'text-text-muted hover:text-text-secondary'
+          }`}
+        >
+          Wszystko
+        </button>
+        {PILLARS.map(p => {
+          const meta = PILLAR_META[p];
+          return (
+            <button
+              key={p}
+              onClick={() => setPillarFilter(p)}
+              className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-semibold rounded-[10px] transition-all ${
+                pillarFilter === p
+                  ? `bg-background shadow-sm ${meta.text}`
+                  : 'text-text-muted hover:text-text-secondary'
+              }`}
+            >
+              <meta.icon size={10} />
+              {meta.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* New project form */}
       {showForm && (
         <div className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
@@ -438,7 +550,7 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
           <input
             value={form.goal}
             onChange={e => setForm(f => ({ ...f, goal: e.target.value }))}
-            placeholder="Cel (opcjonalnie)..."
+            placeholder="Cel / kim staję się realizując ten projekt..."
             className="w-full bg-transparent text-[13px] text-text-secondary outline-none placeholder:text-text-muted/35"
           />
           {dreams.filter(d => !d.is_done).length > 0 && (
@@ -490,75 +602,90 @@ export default function Projects({ session, onNavigateTo, reviewOverdueDays = nu
         </div>
       )}
 
-      {/* Status tabs */}
-      <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-        {STATUS_TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setStatusFilter(tab.id)}
-            className={`flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all ${
-              statusFilter === tab.id
-                ? 'bg-background text-text-primary shadow-sm'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ── Focus card: wymaga uwagi ── */}
+      {focusProject && (() => {
+        const s = stats[focusProject.id] ?? {} as ProjectStats;
+        const kpis = kpisByProject[focusProject.id] ?? [];
+        const score = calculateHealthScore(focusProject, s, kpis);
+        const level = getHealthLevel(score);
+        const hc = HEALTH_COLORS[level];
+        return (
+          <div className={`rounded-[20px] border p-4 ${hc.bg} ${
+            level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap size={12} className={hc.text} />
+              <p className={`text-[9px] font-black uppercase tracking-widest ${hc.text}`}>
+                Wymaga uwagi · Health {score}
+              </p>
+            </div>
+            <p className="text-[14px] font-bold text-text-primary">{focusProject.name}</p>
+            {focusProject.goal && (
+              <p className="text-[11px] text-text-muted mt-0.5 italic line-clamp-1">{focusProject.goal}</p>
+            )}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={() => setExpandedId(id => id === focusProject.id ? null : focusProject.id)}
+                className={`text-[11px] font-semibold px-3 py-1.5 rounded-full ${hc.bg} ${hc.text} border ${
+                  level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
+                }`}
+              >
+                Otwórz projekt
+              </button>
+              {s.openItems?.[0] && (
+                <p className="text-[11px] text-text-muted truncate">→ {s.openItems[0].title}</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
-      {/* Project cards */}
-      {filtered.length === 0 ? (
+      {/* ── Active projects list ── */}
+      {activeFiltered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
           <FolderKanban size={28} className="text-text-muted/30 mb-3" />
-          <p className="text-[14px] font-semibold text-text-secondary">Brak projektów</p>
+          <p className="text-[14px] font-semibold text-text-secondary">Brak aktywnych projektów</p>
           <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy cel" żeby zacząć.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(project => {
-            const s = stats[project.id];
-            const isExpanded = expandedId === project.id;
-            const projectCheckpoints = checkpointsByProject[project.id] ?? [];
-            const doneCheckpoints = projectCheckpoints.filter(cp => cp.status === 'done').length;
+          {activeFiltered.map(renderProjectCard)}
+        </div>
+      )}
 
+      {/* ── Paused accordion ── */}
+      {pausedFiltered.length > 0 && (
+        <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
+          <button
+            onClick={() => setPausedOpen(o => !o)}
+            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors"
+          >
+            {pausedOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
+            <span className="text-[12px] font-semibold text-text-secondary">Pauza ({pausedFiltered.length})</span>
+          </button>
+          {pausedOpen && (
+            <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
+              {pausedFiltered.map(renderProjectCard)}
+            </div>
+          )}
+        </div>
+      )}
 
-            return (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                s={s}
-                isExpanded={isExpanded}
-                setExpandedId={setExpandedId}
-                projectPillar={projectPillar}
-                projectCheckpoints={projectCheckpoints}
-                doneCheckpoints={doneCheckpoints}
-                busy={busy}
-                editingProjectId={editingProjectId}
-                editForm={editForm}
-                setEditForm={setEditForm}
-                startEditProject={startEditProject}
-                setEditingProjectId={setEditingProjectId}
-                handleSaveProject={handleSaveProject}
-                newCheckpoint={newCheckpoint}
-                setNewCheckpoint={setNewCheckpoint}
-                handleAddCheckpoint={handleAddCheckpoint}
-                handleToggleCheckpoint={handleToggleCheckpoint}
-                deleteCheckpoint={deleteCheckpoint}
-                kpisByProject={kpisByProject}
-                editingKpiId={editingKpiId}
-                setEditingKpiId={setEditingKpiId}
-                handleUpdateKpiValue={handleUpdateKpiValue}
-                handleToggleTask={handleToggleTask}
-                newTask={newTask}
-                setNewTask={setNewTask}
-                handleAddTask={handleAddTask}
-                handleStatusCycle={handleStatusCycle}
-                updateProjectStatus={updateProjectStatus}
-                handleDelete={handleDelete}
-              />
-            );
-          })}
+      {/* ── Done accordion ── */}
+      {doneFiltered.length > 0 && (
+        <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
+          <button
+            onClick={() => setDoneOpen(o => !o)}
+            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors"
+          >
+            {doneOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
+            <span className="text-[12px] font-semibold text-text-secondary">Zakończone ({doneFiltered.length})</span>
+          </button>
+          {doneOpen && (
+            <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
+              {doneFiltered.map(renderProjectCard)}
+            </div>
+          )}
         </div>
       )}
 

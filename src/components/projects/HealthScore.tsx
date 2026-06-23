@@ -1,0 +1,73 @@
+import { getHealthLevel, HEALTH_COLORS } from './projectUtils';
+
+interface HealthScoreProps {
+  score: number;
+  size?: number; // diameter in px, default 44
+  showLabel?: boolean;
+}
+
+/**
+ * Animated SVG ring showing project health score 0–100.
+ * Color: emerald ≥70 | blue 45–69 | amber 20–44 | rose <20
+ */
+export default function HealthScore({ score, size = 44, showLabel = false }: HealthScoreProps) {
+  const level = getHealthLevel(score);
+  const colors = HEALTH_COLORS[level];
+
+  const radius = (size - 6) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (score / 100) * circumference;
+  const gap = circumference - dash;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+        {/* Background ring */}
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="absolute inset-0 -rotate-90"
+          style={{ transform: 'rotate(-90deg)' }}
+        >
+          {/* Track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={5}
+            className="text-border-custom/40"
+          />
+          {/* Progress */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={colors.ring}
+            strokeWidth={5}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${gap}`}
+            style={{
+              transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)',
+            }}
+          />
+        </svg>
+        {/* Score label in center */}
+        <span
+          className={`relative text-[10px] font-black leading-none ${colors.fill}`}
+          style={{ fontSize: size < 36 ? 9 : 10 }}
+        >
+          {score}
+        </span>
+      </div>
+      {showLabel && (
+        <span className={`text-[9px] font-bold uppercase tracking-wider ${colors.text}`}>
+          {colors.label}
+        </span>
+      )}
+    </div>
+  );
+}
