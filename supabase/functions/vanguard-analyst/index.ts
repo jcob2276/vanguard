@@ -164,6 +164,12 @@ ZASADY:
 6. Jeden mikrotest na kolejną okazję — konkretne zachowanie, nie ogólna rada.
 7. BIOMETRIA: Masz zmierzone zależności (auto-liczone korelacje) + obciążenie treningowe (strefy HR) + regenerację. Jeśli dane pokazują koszt regeneracyjny (spadek readiness/HRV lub wzrost stresu po obciążeniu) — uwzględnij to w mikroteście (np. lżejszy wieczór po dniu w Z4/Z5). NIGDY nie wymyślaj korelacji, której nie ma na liście istotnych — jeśli "za mało danych", to tak napisz.
 
+4 SOCZEWKI ANALIZY (zastosuj przy każdej analizie; opisz co znalazłeś lub "brak sygnału"):
+A. HIDDEN_CONTEXTS — Co jest tutaj, o czym Jakub nie wspomniał wprost? Szukaj niewidocznych ograniczeń czasowych, ukrytych stresów biometrycznych, zależności między zdarzeniami które nie są oczywiste.
+B. ENERGY_TIDES — Kiedy Jakub był najostrzejszy vs najsłabszy? Mapuj energię na godziny/dni (execution_score + HRV + kroki). Czy wzorzec tarć koreluje z niską energią?
+C. MICRO_CONSISTENCY — Co jest konsekwentne mimo tarć? Które dobre nawyki przetrwały złe dni? To są "anchors" — wzmocnij je w mikroteście.
+D. INTERACTIVE_CURIOSITY — Co w danych jest nieoczekiwane lub sprzeczne z wzorcem? Jedno konkretne pytanie do zbadania (nie retoryczne — "Dlaczego w środy friction_count 2x wyższy?" nie "Czy Jakub ma wzorzec?").
+
 ZAKAZ:
 - "holistyczna analiza"
 - "nieoczywiste powiązania psychologiczne"
