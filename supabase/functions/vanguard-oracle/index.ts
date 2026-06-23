@@ -582,10 +582,10 @@ Tylko JSON, bez komentarzy.`,
       console.warn('[oracle] wiki context fetch failed (non-fatal):', e);
     }
 
-    // === Etap 1: Behavioral Patterns context (z detektorów S1/S4 zapisanych w reconciliation) ===
+    // === Etap 1: Behavioral Patterns context ===
     let behavioralPatternsContext = '';
     const wantsPatterns = intent === 'recent_pattern' ||
-      /\b(wzorzec|schemat|powtarza|powtarzaln|trend|dlaczego znowu|co się dzieje z|ostatnio mam problem)\b/.test((current_query || '').toLowerCase());
+      /\b(wzorzec|schemat|powtarza|powtarzaln|trend|dlaczego znowu|co się dzieje z|ostatnio mam problem|często|zawsze|kiedy|historia|historycznie)\b/.test((current_query || '').toLowerCase());
 
     if (wantsPatterns) {
       try {
@@ -598,6 +598,23 @@ Tylko JSON, bez komentarzy.`,
       } catch (e) {
         console.warn('[oracle] getRecentStrongBehavioralPatterns failed (non-fatal):', e);
       }
+    }
+
+    // === Iron rules (statyczny kontekst) ===
+    let ironRulesContext = '';
+    try {
+      const { data: ironRules } = await supabase
+        .from('vanguard_iron_rules')
+        .select('rule_text')
+        .eq('user_id', user_id)
+        .eq('active', true)
+        .order('sort_order', { ascending: true })
+        .limit(10);
+      if (ironRules && ironRules.length > 0) {
+        ironRulesContext = ironRules.map((r: { rule_text: string }) => `- ${r.rule_text}`).join('\n');
+      }
+    } catch (e) {
+      console.warn('[oracle] iron_rules fetch failed (non-fatal):', e);
     }
 
     const systemPrompt = `Jesteś Vanguard OS — systemem current-first do logowania mikrotarć i wykrywania wzorców behawioralnych.
@@ -767,6 +784,11 @@ ${lastEveningReflection ? `
 [WCZORAJSZA REFLEKSJA UŻYTKOWNIKA (z wieczornej reconciliation — surowe dane)]:
 Data: ${lastEveningReflection.date}
 ${lastEveningReflection.biggest_cost ? `Największy koszt (użytkownik): ${lastEveningReflection.biggest_cost}\n` : ''}${lastEveningReflection.best_move ? `Najlepszy ruch (użytkownik): ${lastEveningReflection.best_move}\n` : ''}${lastEveningReflection.blocker_candidates?.length ? `Blokery, które użytkownik sam nazwał: ${lastEveningReflection.blocker_candidates.join('; ')}\n` : ''}${lastEveningReflection.day_score ? `Ocena dnia (użytkownik): ${lastEveningReflection.day_score}/5\n` : ''}To są słowa użytkownika, nie interpretacja systemu. Używaj tylko jako kontekst tego, co sam zauważył wieczorem. Jeśli needs_manual_review — traktuj z rezerwą.
+` : ''}
+
+${ironRulesContext ? `
+[ŻELAZNE ZASADY — fakty statyczne o Jakubie, zawsze aktualne]:
+${ironRulesContext}
 ` : ''}
 
 ${behavioralPatternsContext ? `

@@ -7,12 +7,12 @@ const supabase = createServiceClient();
 interface DetectorResult {
   signature: string;
   pattern_type: string;
-  description: string;
-  evidence: Record<string, unknown>;
+  title: string;
+  evidence_text: string;
+  metadata: Record<string, unknown>;
   first_seen: string;
   last_seen: string;
   occurrence_count: number;
-  avg_impact: number | null;
   confidence: number;
   status: string;
 }
@@ -21,7 +21,6 @@ interface DetectorResult {
 // S1: Recurring Blocker → Friction correlation
 // ============================================================
 async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]> {
-  // Get last 90 days of p2_parsed blocker_candidates
   const { data: recs } = await supabase
     .from("daily_reconciliations")
     .select("date, p2_parsed")
@@ -32,7 +31,6 @@ async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]
 
   if (!recs || recs.length < 5) return [];
 
-  // Extract blockers per day
   const blockerDays: { date: string; blockers: string[] }[] = [];
   for (const rec of recs) {
     const p2 = rec.p2_parsed as Record<string, unknown> | null;
@@ -44,14 +42,11 @@ async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]
     } else if (typeof raw === "string" && raw.trim()) {
       blockers = [raw.toLowerCase().trim()];
     }
-    if (blockers.length > 0) {
-      blockerDays.push({ date: rec.date, blockers });
-    }
+    if (blockers.length > 0) blockerDays.push({ date: rec.date, blockers });
   }
 
   if (blockerDays.length < 5) return [];
 
-  // Count blocker frequency
   const blockerCount: Record<string, number> = {};
   for (const { blockers } of blockerDays) {
     for (const b of blockers) {
@@ -60,10 +55,9 @@ async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]
     }
   }
 
-  // Get friction events
   const { data: frictions } = await supabase
     .from("friction_events")
-    .select("id, friction_type, created_at, event_kind")
+    .select("friction_type, created_at, event_kind")
     .eq("user_id", userId)
     .eq("event_kind", "friction_event")
     .gte("created_at", offsetDate(getWarsawDateString(), -97) + "T00:00:00Z");
@@ -73,12 +67,10 @@ async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]
   for (const [blocker, count] of Object.entries(blockerCount)) {
     if (count < 6) continue;
 
-    // Find days when this blocker appeared
     const daysWithBlocker = blockerDays
       .filter(d => d.blockers.some(b => normalizeBlocker(b) === blocker))
       .map(d => d.date);
 
-    // Count friction events 1-7 days after each blocker day
     let frictionHits = 0;
     for (const day of daysWithBlocker) {
       const windowStart = offsetDate(day, 1);
@@ -96,23 +88,17 @@ async function detectRecurringBlockers(userId: string): Promise<DetectorResult[]
     const lastDay = daysWithBlocker[daysWithBlocker.length - 1];
     const firstDay = daysWithBlocker[0];
     const confidence = Math.min(0.95, 0.4 + strength * 0.4 + Math.min(count, 20) / 60);
+    const blockerLabel = blocker.replace(/_/g, " ").slice(0, 50);
 
     results.push({
       signature: `blocker:${blocker.slice(0, 40)}`,
       pattern_type: "recurring_blocker",
-      description: `Kiedy nazywasz "${blocker}" jako blocker, w ${Math.round(strength * 100)}% przypadków (${frictionHits}/${daysWithBlocker.length}) w ciągu 7 dni pojawia się friction (N=${count}, ostatnie 90 dni)`,
-      evidence: {
-        n_days: count,
-        strength,
-        blocker_normalized: blocker,
-        friction_hit_count: frictionHits,
-        days_with_blocker: daysWithBlocker.length,
-        examples: daysWithBlocker.slice(-3),
-      },
+      title: `Blocker: ${blockerLabel}`,
+      evidence_text: `Kiedy nazywasz "${blockerLabel}" jako blocker, w ${Math.round(strength * 100)}% przypadków (${frictionHits}/${daysWithBlocker.length}) w ciągu 7 dni pojawia się friction (N=${count}, ostatnie 90 dni)`,
+      metadata: { n_days: count, strength, blocker_normalized: blocker, friction_hit_count: frictionHits, days_with_blocker: daysWithBlocker.length, examples: daysWithBlocker.slice(-3) },
       first_seen: firstDay,
       last_seen: lastDay,
       occurrence_count: count,
-      avg_impact: null,
       confidence,
       status: confidence >= 0.65 && count >= 8 ? "visible" : "hypothesis",
     });
@@ -140,8 +126,7 @@ async function detectMorningProtocolImpact(userId: string): Promise<DetectorResu
     .select("date, execution_score")
     .eq("user_id", userId)
     .not("execution_score", "is", null)
-    .gte("date", offsetDate(getWarsawDateString(), -90))
-    .order("date", { ascending: true });
+    .gte("date", offsetDate(getWarsawDateString(), -90));
 
   if (!aggs || aggs.length < 8) return [];
 
@@ -169,7 +154,6 @@ async function detectMorningProtocolImpact(userId: string): Promise<DetectorResu
 
   const results: DetectorResult[] = [];
 
-  // phone_first pattern
   if (phoneFirstScores.length >= 6 && noPhoneScores.length >= 6) {
     const avgPhone = avg(phoneFirstScores);
     const avgNoPhone = avg(noPhoneScores);
@@ -178,29 +162,20 @@ async function detectMorningProtocolImpact(userId: string): Promise<DetectorResu
       const n = phoneFirstScores.length + noPhoneScores.length;
       const confidence = Math.min(0.92, 0.5 + Math.abs(delta) * 1.5 + Math.min(n, 30) / 100);
       results.push({
-        signature: "phone_first→execution_delta",
+        signature: "phone_first_execution_delta",
         pattern_type: "morning_protocol_impact",
-        description: `Dni po phone_first mają średnio o ${delta.toFixed(2)} niższy execution_score niż dni bez (${avgPhone.toFixed(2)} vs ${avgNoPhone.toFixed(2)}, N=${n})`,
-        evidence: {
-          n_days: n,
-          strength: Math.abs(delta),
-          avg_execution_phone_first: avgPhone,
-          avg_execution_no_phone: avgNoPhone,
-          delta,
-          n_phone_first: phoneFirstScores.length,
-          n_no_phone: noPhoneScores.length,
-        },
+        title: "Phone first → niższy execution score",
+        evidence_text: `Dni po phone_first mają średnio o ${delta.toFixed(2)} niższy execution_score następnego dnia (${avgPhone.toFixed(2)} vs ${avgNoPhone.toFixed(2)}, N=${n})`,
+        metadata: { n_days: n, strength: Math.abs(delta), avg_execution_phone_first: avgPhone, avg_execution_no_phone: avgNoPhone, delta, n_phone_first: phoneFirstScores.length, n_no_phone: noPhoneScores.length },
         first_seen: recs[0].date,
         last_seen: recs[recs.length - 1].date,
         occurrence_count: n,
-        avg_impact: delta,
         confidence,
         status: confidence >= 0.65 ? "visible" : "hypothesis",
       });
     }
   }
 
-  // first_90_protected pattern
   if (first90BrokenScores.length >= 5 && first90ProtectedScores.length >= 5) {
     const avgBroken = avg(first90BrokenScores);
     const avgProtected = avg(first90ProtectedScores);
@@ -209,22 +184,14 @@ async function detectMorningProtocolImpact(userId: string): Promise<DetectorResu
       const n = first90BrokenScores.length + first90ProtectedScores.length;
       const confidence = Math.min(0.90, 0.5 + Math.abs(delta) * 1.2 + Math.min(n, 30) / 100);
       results.push({
-        signature: "first_90_protected→execution_delta",
+        signature: "first_90_protected_execution_delta",
         pattern_type: "morning_protocol_impact",
-        description: `Kiedy first_90 jest chronione, execution_score następnego dnia jest średnio o ${delta.toFixed(2)} wyższy niż po przerwaniu (${avgProtected.toFixed(2)} vs ${avgBroken.toFixed(2)}, N=${n})`,
-        evidence: {
-          n_days: n,
-          strength: Math.abs(delta),
-          avg_execution_protected: avgProtected,
-          avg_execution_broken: avgBroken,
-          delta,
-          n_protected: first90ProtectedScores.length,
-          n_broken: first90BrokenScores.length,
-        },
+        title: "First 90 min protected → wyższy execution score",
+        evidence_text: `Kiedy first_90 jest chronione, execution_score następnego dnia jest średnio o ${delta.toFixed(2)} wyższy (${avgProtected.toFixed(2)} vs ${avgBroken.toFixed(2)}, N=${n})`,
+        metadata: { n_days: n, strength: Math.abs(delta), avg_execution_protected: avgProtected, avg_execution_broken: avgBroken, delta, n_protected: first90ProtectedScores.length, n_broken: first90BrokenScores.length },
         first_seen: recs[0].date,
         last_seen: recs[recs.length - 1].date,
         occurrence_count: n,
-        avg_impact: delta,
         confidence,
         status: confidence >= 0.65 ? "visible" : "hypothesis",
       });
@@ -263,58 +230,38 @@ async function detectSleepFrictionCorrelation(userId: string): Promise<DetectorR
     (frictionByDate[d] ??= []).push(f.friction_type);
   }
 
-  // Bin sleep: low(<6h), mid(6-7h), high(>7h)
-  const bins: Record<string, { frictions: string[] }> = {
-    "low": { frictions: [] },
-    "mid": { frictions: [] },
-    "high": { frictions: [] },
-  };
+  const lowFrictions: string[] = [];
+  let lowCount = 0;
 
   for (const agg of aggs) {
     const sleep = agg.total_sleep;
+    if (sleep >= 6) continue;
+    lowCount++;
     const nextDay = offsetDate(agg.date, 1);
-    const nextFrictions = frictionByDate[nextDay] ?? [];
-    if (nextFrictions.length === 0) continue;
-
-    const bin = sleep < 6 ? "low" : sleep <= 7 ? "mid" : "high";
-    bins[bin].frictions.push(...nextFrictions);
+    lowFrictions.push(...(frictionByDate[nextDay] ?? []));
   }
 
-  const results: DetectorResult[] = [];
-  const lowBin = bins["low"];
+  if (lowCount < 8 || lowFrictions.length < 8) return [];
 
-  if (lowBin.frictions.length >= 8) {
-    const topFriction = topValue(lowBin.frictions);
-    const topCount = lowBin.frictions.filter(f => f === topFriction).length;
-    const pct = topCount / lowBin.frictions.length;
+  const topFriction = topValue(lowFrictions);
+  const topCount = lowFrictions.filter(f => f === topFriction).length;
+  const pct = topCount / lowFrictions.length;
 
-    if (pct >= 0.35) {
-      const n = aggs.filter(a => a.total_sleep < 6).length;
-      const confidence = Math.min(0.88, 0.45 + pct * 0.6 + Math.min(n, 20) / 80);
-      results.push({
-        signature: `sleep<6h→${topFriction}`,
-        pattern_type: "sleep_friction_correlation",
-        description: `Po snach <6h następnego dnia pojawia się głównie friction:${topFriction} (${Math.round(pct * 100)}% przypadków, N=${n})`,
-        evidence: {
-          n_days: n,
-          strength: pct,
-          sleep_bin: "low",
-          sleep_threshold: 6,
-          top_friction_type: topFriction,
-          top_friction_pct: pct,
-          all_frictions_low: lowBin.frictions,
-        },
-        first_seen: offsetDate(getWarsawDateString(), -90),
-        last_seen: getWarsawDateString(),
-        occurrence_count: n,
-        avg_impact: null,
-        confidence,
-        status: confidence >= 0.65 && n >= 8 ? "visible" : "hypothesis",
-      });
-    }
-  }
+  if (pct < 0.35) return [];
 
-  return results;
+  const confidence = Math.min(0.88, 0.45 + pct * 0.6 + Math.min(lowCount, 20) / 80);
+  return [{
+    signature: `sleep_low_${topFriction}`,
+    pattern_type: "sleep_friction_correlation",
+    title: `Sen <6h → ${topFriction} następnego dnia`,
+    evidence_text: `Po snach <6h następnego dnia pojawia się głównie friction:${topFriction} (${Math.round(pct * 100)}% przypadków, N=${lowCount})`,
+    metadata: { n_days: lowCount, strength: pct, top_friction_type: topFriction, top_friction_pct: pct },
+    first_seen: offsetDate(getWarsawDateString(), -90),
+    last_seen: getWarsawDateString(),
+    occurrence_count: lowCount,
+    confidence,
+    status: confidence >= 0.65 && lowCount >= 8 ? "visible" : "hypothesis",
+  }];
 }
 
 // ============================================================
@@ -334,7 +281,6 @@ async function detectPlanAdherence(userId: string): Promise<DetectorResult[]> {
 
   let adherentCount = 0;
   let totalWithPlan = 0;
-  const examples: string[] = [];
 
   for (const rec of recs) {
     const plan = rec.planning_summary as Record<string, unknown> | null;
@@ -342,26 +288,17 @@ async function detectPlanAdherence(userId: string): Promise<DetectorResult[]> {
     if (!plan || !p2) continue;
 
     const artifact = String(plan.production_artifact ?? "").toLowerCase().trim();
-    const tension = String(plan.tension_action ?? "").toLowerCase().trim();
     if (!artifact || artifact.length < 3) continue;
-
     totalWithPlan++;
+
     const p2Text = [
       String(p2.biggest_cost ?? ""),
       String(p2.best_move ?? ""),
       String(p2.correction ?? ""),
     ].join(" ").toLowerCase();
 
-    // Simple heuristic: artifact keywords present in p2
     const artifactWords = artifact.split(/\s+/).filter(w => w.length > 3).slice(0, 3);
-    const tensionWords = tension.split(/\s+/).filter(w => w.length > 3).slice(0, 3);
-    const artifactHit = artifactWords.some(w => p2Text.includes(w));
-    const tensionHit = tensionWords.some(w => p2Text.includes(w));
-
-    if (artifactHit || tensionHit) {
-      adherentCount++;
-      examples.push(rec.date);
-    }
+    if (artifactWords.some(w => p2Text.includes(w))) adherentCount++;
   }
 
   if (totalWithPlan < 7) return [];
@@ -372,46 +309,38 @@ async function detectPlanAdherence(userId: string): Promise<DetectorResult[]> {
   return [{
     signature: "plan_vs_reality_adherence",
     pattern_type: "plan_adherence",
-    description: `W ${Math.round(adherenceRate * 100)}% planów (${adherentCount}/${totalWithPlan}) wieczorny p2_parsed pokazuje realizację deklarowanego artefaktu/tension (N=${totalWithPlan}, ostatnie 60 dni)`,
-    evidence: {
-      n_days: totalWithPlan,
-      strength: adherenceRate,
-      adherent_count: adherentCount,
-      total_with_plan: totalWithPlan,
-      adherence_rate: adherenceRate,
-      adherent_examples: examples.slice(-5),
-    },
+    title: `Adherence planu: ${Math.round(adherenceRate * 100)}%`,
+    evidence_text: `W ${Math.round(adherenceRate * 100)}% planów (${adherentCount}/${totalWithPlan}) wieczorny p2_parsed pokazuje realizację deklarowanego artefaktu (N=${totalWithPlan}, ostatnie 60 dni)`,
+    metadata: { n_days: totalWithPlan, strength: adherenceRate, adherent_count: adherentCount, total_with_plan: totalWithPlan, adherence_rate: adherenceRate },
     first_seen: recs[0].date,
     last_seen: recs[recs.length - 1].date,
     occurrence_count: totalWithPlan,
-    avg_impact: null,
     confidence,
     status: confidence >= 0.60 && totalWithPlan >= 8 ? "visible" : "hypothesis",
   }];
 }
 
 // ============================================================
-// Upsert patterns to DB
+// Upsert pattern to DB
 // ============================================================
-async function upsertPattern(userId: string, pattern: DetectorResult) {
+async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"inserted" | "updated"> {
   const { data: existing } = await supabase
     .from("vanguard_behavioral_patterns")
-    .select("id, status, occurrence_count")
+    .select("id, status")
     .eq("user_id", userId)
     .eq("signature", pattern.signature)
     .maybeSingle();
 
   if (existing) {
-    // Don't override user_confirmed/user_rejected status
     const keepStatus = existing.status === "user_confirmed" || existing.status === "user_rejected";
     const { error } = await supabase
       .from("vanguard_behavioral_patterns")
       .update({
-        description: pattern.description,
-        evidence: pattern.evidence,
+        title: pattern.title,
+        evidence_text: pattern.evidence_text,
+        metadata: pattern.metadata,
         last_seen: pattern.last_seen,
         occurrence_count: pattern.occurrence_count,
-        avg_impact: pattern.avg_impact,
         confidence: pattern.confidence,
         status: keepStatus ? existing.status : pattern.status,
         updated_at: new Date().toISOString(),
@@ -426,12 +355,12 @@ async function upsertPattern(userId: string, pattern: DetectorResult) {
         user_id: userId,
         pattern_type: pattern.pattern_type,
         signature: pattern.signature,
-        description: pattern.description,
-        evidence: pattern.evidence,
+        title: pattern.title,
+        evidence_text: pattern.evidence_text,
+        metadata: pattern.metadata,
         first_seen: pattern.first_seen,
         last_seen: pattern.last_seen,
         occurrence_count: pattern.occurrence_count,
-        avg_impact: pattern.avg_impact,
         confidence: pattern.confidence,
         status: pattern.status,
       });
@@ -469,7 +398,12 @@ function normalizeBlocker(b: string): string {
 // ============================================================
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type" } });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization,content-type",
+      },
+    });
   }
 
   try {
@@ -491,22 +425,29 @@ Deno.serve(async (req: Request) => {
     const all = [...s1, ...s2, ...s3, ...s4];
     console.log(`[detect-patterns] Found ${all.length} patterns total`);
 
-    let inserted = 0, updated = 0;
+    let inserted = 0;
+    let updated = 0;
     for (const p of all) {
       const result = await upsertPattern(userId, p);
       if (result === "inserted") inserted++;
       else updated++;
     }
 
-    return new Response(JSON.stringify({
-      patterns_found: all.length,
-      patterns_inserted: inserted,
-      patterns_updated: updated,
-      signatures: all.map(p => p.signature),
-    }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    return new Response(
+      JSON.stringify({
+        patterns_found: all.length,
+        patterns_inserted: inserted,
+        patterns_updated: updated,
+        signatures: all.map(p => p.signature),
+      }),
+      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } },
+    );
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[detect-patterns] error:", msg);
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });
