@@ -26,30 +26,54 @@ export function getWarsawDateStr(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
 
+const TG_LIMIT = 4000; // leave 96 chars margin below Telegram's 4096
+
+function chunkText(text: string): string[] {
+  if (text.length <= TG_LIMIT) return [text];
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > TG_LIMIT) {
+    // prefer splitting at a newline boundary within the limit
+    let cutAt = remaining.lastIndexOf('\n', TG_LIMIT);
+    if (cutAt < TG_LIMIT * 0.5) cutAt = TG_LIMIT; // no good newline, hard cut
+    chunks.push(remaining.slice(0, cutAt).trimEnd());
+    remaining = remaining.slice(cutAt).trimStart();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
 export async function safeSendTelegram(
   chatId: number,
   text: string,
   token: string,
   options: { reply_markup?: unknown; disable_notification?: boolean; parse_mode?: string } = {},
 ): Promise<boolean> {
-  const result = await sendMessageParsed(token, chatId, text, {
-    parseMode: options.parse_mode,
-    disableNotification: options.disable_notification,
-    replyMarkup: options.reply_markup,
-  });
-  if (result.ok) return true;
+  const chunks = chunkText(text);
+  let allOk = true;
 
-  // Telegram rejects the whole message on unbalanced Markdown entities (e.g. a stray
-  // "*" or "_" in LLM-generated text). Retry once as plain text instead of dropping the
-  // message entirely — the user seeing literal asterisks is much better than no reply.
-  if (options.parse_mode) {
-    console.warn('[telegram] send with parse_mode failed, retrying as plain text:', result.description);
-    const retry = await sendMessageParsed(token, chatId, text, {
+  for (let i = 0; i < chunks.length; i++) {
+    const isLast = i === chunks.length - 1;
+    const result = await sendMessageParsed(token, chatId, chunks[i], {
+      parseMode: options.parse_mode,
       disableNotification: options.disable_notification,
-      replyMarkup: options.reply_markup,
+      replyMarkup: isLast ? options.reply_markup : undefined,
     });
-    return retry.ok;
+
+    if (result.ok) continue;
+
+    // Retry without parse_mode on Markdown entity error
+    if (options.parse_mode) {
+      console.warn('[telegram] send with parse_mode failed, retrying as plain text:', result.description);
+      const retry = await sendMessageParsed(token, chatId, chunks[i], {
+        disableNotification: options.disable_notification,
+        replyMarkup: isLast ? options.reply_markup : undefined,
+      });
+      if (!retry.ok) allOk = false;
+    } else {
+      allOk = false;
+    }
   }
 
-  return false;
+  return allOk;
 }
