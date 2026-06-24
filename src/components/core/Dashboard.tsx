@@ -368,15 +368,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 🍽️ Zaloguj posiłek
               </button>
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
-              <Suspense fallback={<ViewFallback />}>
-                <BlockTimer session={session} todayWin={todayWin} />
-              </Suspense>
-              <Suspense fallback={<ViewFallback />}>
-                <OracleCard session={session} />
-              </Suspense>
-              <Suspense fallback={<ViewFallback />}>
-                <MorningBriefCard session={session} />
-              </Suspense>
+              {/* hidden: BlockTimer, OracleCard, MorningBriefCard */}
               <Suspense fallback={<ViewFallback />}>
                 <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
               </Suspense>
