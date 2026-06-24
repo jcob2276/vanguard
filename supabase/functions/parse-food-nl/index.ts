@@ -110,6 +110,10 @@ Jeśli podaje "porcja", "standardowa porcja", lub nie podaje gramatury wcale, za
 - Plasterek sera żółtego = 15g, plasterek szynki = 20g
 - Szklanka płynu (mleka/napoju): 250ml (250g)
 - Kawa czarna lub woda/napoje zero: 0 kcal
+- Ptasie mleczko (1 szt.): 13g
+- Ciastko kruche / herbatnik (1 szt.): 10g
+- Kostka czekolady (1 szt.): 5g
+- Żelka / cukierek (1 szt.): 5g
 
 ZASADY DOTYCZĄCE DAŃ ZŁOŻONYCH I SZACOWANIA:
 - Jeśli produkt jest domowy / złożony (np. "karkówka domowa", "sałata ze śmietaną"), rozbij go na składowe lub oszacuj jako jedno entry o realistycznych wartościach:
@@ -128,6 +132,7 @@ ZASADA UKRYTEGO TŁUSZCZU (BARDZO WAŻNE):
   - Dodaj do kalkulacji tłuszcz użyty do przygotowania (np. 5g masła na każde 2 jajka w jajecznicy, 5g oleju rzepakowego na porcję mięsa). Zwróć go jako osobny produkt (np. "masło do smażenia" / "olej do smażenia") lub uwzględnij w wartościach dania głównego.
 
 BARDZO WAŻNE REGUŁY PARSOWANIA:
+0. POLE "grams" ZAWSZE ZAWIERA MASĘ W GRAMACH — nigdy liczbę sztuk. Jeśli użytkownik podaje "7 sztuk", "3 kawałki", "2 kostki" itp., przelicz na gramy (korzystając z przeliczników powyżej lub własnej wiedzy) i wpisz masę w gramach. Przykład: "7 sztuk ptasiego mleczka" → grams: 91 (7 x 13g).
 1. GRAMATURA EXPLICITE JEST ŚWIĘTA. Jeśli tekst zawiera "130 g ziemniaki", gramatura ziemniaków MUSI wynosić dokładnie 130g. Nie zaokrąglaj do 150g ani 200g.
 2. Zwróć każdy produkt jako osobny obiekt w tablicy. Nie sumuj posiłku w jedno entry.
 3. Zweryfikuj matematykę przed wygenerowaniem wyniku! Obliczenia wartości odżywczych dla całej gramatury (grams):
