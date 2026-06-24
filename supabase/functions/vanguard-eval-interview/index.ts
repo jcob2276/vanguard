@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
       const cut72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
       const cut30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [curiosityRes, patternsRes, wikiRes, graphRes, frictionRes, streamRes] = await Promise.all([
+      const [curiosityRes, patternsRes, wikiRes, graphRes, frictionRes, streamRes, ouraRes, recentTopicsRes] = await Promise.all([
         supabase
           .from("vanguard_curiosity_queue")
           .select("hypothesis, provocation, confidence_score, category, evidence_count, created_at")
@@ -231,7 +231,40 @@ Deno.serve(async (req) => {
           .gte("created_at", cut72h)
           .order("created_at", { ascending: false })
           .limit(12),
+        supabase
+          .from("oura_daily_summary")
+          .select("date, sleep_start, sleep_end, total_sleep_hours, sleep_score, readiness_score")
+          .eq("user_id", userId)
+          .order("date", { ascending: false })
+          .limit(7),
+        // Topics asked in last 7 days (for deduplication by subject area)
+        supabase
+          .from("vanguard_stream")
+          .select("metadata, content")
+          .eq("user_id", userId)
+          .eq("source", "eval_interview")
+          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(10),
       ]);
+
+      // Extract topic tags asked in last 7 days to avoid repetition
+      const recentTopicTags: string[] = (recentTopicsRes.data || [])
+        .flatMap((r: any) => [
+          r.metadata?.topic_tag,
+          r.metadata?.friction_type_focus,
+        ])
+        .filter(Boolean);
+
+      // Summarize Oura sleep for LLM context
+      const ouraRows = ouraRes.data || [];
+      const ouraSleesSummary = ouraRows.length > 0
+        ? ouraRows.map((r: any) => {
+            const bedtime = r.sleep_start
+              ? new Date(r.sleep_start).toLocaleTimeString("pl-PL", { timeZone: "Europe/Warsaw", hour: "2-digit", minute: "2-digit" })
+              : null;
+            return `${r.date}: pora zaśnięcia=${bedtime ?? "??"}, sen=${r.total_sleep_hours?.toFixed(1) ?? "??"}h, score=${r.sleep_score ?? "??"}`;
+          })
+        : [];
 
       const memoryContext = {
         instruction: "Select one high-information-gain question for the user. Do not quote long source text. Do not force unrelated recent topics together.",
@@ -241,6 +274,8 @@ Deno.serve(async (req) => {
         graph_edges: graphRes.data || [],
         friction_events: frictionRes.data || [],
         recent_stream_72h: streamRes.data || [],
+        oura_sleep_last_7d: ouraSleesSummary,
+        recently_asked_topic_tags: recentTopicTags,
       };
 
       let generatedPrompt = "";
@@ -256,7 +291,7 @@ Deno.serve(async (req) => {
               role: "system",
               content: `Jesteś selektorem pytań dla Vanguard OS.
 
-Masz pamięć użytkownika: pending hypotheses, wzorce, wiki, graf, tarcia i świeży stream.
+Masz pamięć użytkownika: pending hypotheses, wzorce, wiki, graf, tarcia, świeży stream i dane biometryczne Oura.
 Wybierz JEDNO pytanie o najwyższej wartości informacyjnej dla pamięci systemu.
 
 Zasady:
@@ -268,7 +303,13 @@ Zasady:
 - Nie cytuj długich fragmentów źródłowych.
 - Max 2 zdania.
 - Zacznij od "Opowiedz mi..." / "Powiedz mi..." / "Kiedy..." / "Co dokładnie...".
-- Nie diagnozuj i nie psychoanalizuj.`,
+- Nie diagnozuj i nie psychoanalizuj.
+
+ZAKAZY:
+- NIE pytaj "dlaczego nie logujesz X" ani "nie odnotowałeś X" — brak logów ≠ brak problemu. Dane biometryczne Oura są ważniejsze niż logi friction events.
+- Jeśli oura_sleep_last_7d pokazuje późne spanie (po 00:30) lub krótki sen (<6.5h), NIE pytaj o brak logów sleep_disruption — wzorzec już widać w danych.
+- Jeśli recently_asked_topic_tags zawiera dany temat (np. "sleep", "sen", "trening"), wybierz INNY temat — nie wracaj do tego samego obszaru przez 7 dni.
+- Unikaj pytań czysto faktograficznych które można sprawdzić w bazie.`,
             },
             {
               role: "user",
@@ -300,11 +341,18 @@ Zwróć tylko treść pytania, bez komentarza.`,
         }
       }
 
+      const topicTag = /sen|śpi|spanie|nocn|sleep/i.test(generatedPrompt) ? "sleep"
+        : /trening|siłown|sport|workout|ćwicz/i.test(generatedPrompt) ? "training"
+        : /jedzen|posiłek|kalorii|białk|dieta|jedzeni/i.test(generatedPrompt) ? "nutrition"
+        : /relacj|przyjacie|znajom|spotkan/i.test(generatedPrompt) ? "social"
+        : /praca|projekt|kariera|biznes/i.test(generatedPrompt) ? "work"
+        : "other";
+
       await supabase.from("vanguard_stream").insert({
         user_id: userId,
         source: "eval_interview",
         content: `[PYTANIE POGŁĘBIAJĄCE]: ${generatedPrompt}`,
-        metadata: { generated: true, sent_at: now.toISOString() },
+        metadata: { generated: true, sent_at: now.toISOString(), topic_tag: topicTag },
       }).throwOnError();
 
       console.log("[eval-interview] sent generated deepening question");
