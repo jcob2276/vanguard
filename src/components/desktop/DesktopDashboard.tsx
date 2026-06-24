@@ -29,6 +29,7 @@ import HabitsPanel from './HabitsPanel';
 import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
 import DreamEditModal from './DreamEditModal';
+import GeneralView from './GeneralView';
 
 // Shared helpers and constants
 import {
@@ -52,6 +53,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
   const { oura, nutrition, sessions, body, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
+  const [activeTab, setActiveTab] = useState<'main' | 'general'>('main');
   const [habits, setHabits] = useState(habitsData);
   const [habitLogs, setHabitLogs] = useState(habitLogsData);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
@@ -432,6 +434,22 @@ export default function DesktopDashboard({ session }: { session: any }) {
             </span>
           ))}
         </div>
+        {/* Tab switcher */}
+        <div className="ml-6 flex items-center gap-1 rounded-full border border-border-custom bg-surface-solid/60 p-1">
+          {(['main', 'general'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-primary text-white'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              {tab === 'main' ? 'Dashboard' : 'General'}
+            </button>
+          ))}
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
             className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer">
@@ -458,6 +476,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
       </header>
 
       <main className="px-8 py-7 space-y-5 max-w-[1600px] mx-auto">
+
+        {activeTab === 'general' && <GeneralView userId={userId} />}
+        {activeTab === 'main' && <>
 
         <SmartAlerts alerts={alerts} />
         <CockpitBanner strain={strain} oura={oura14} />
@@ -638,6 +659,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
           oura={oura} sessions={sessions} nutrition={nutrition} wins={wins}
           patterns={patterns} wiki={wiki} knowledge={knowledge}
         />
+
+        </>}
 
       </main>
     </div>
