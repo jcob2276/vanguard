@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raport Cooper — Jakub Sobon — 24.06.2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;font-size:13px;color:#1a1a1a;background:#f4f4f4;}
+.page{max-width:820px;margin:24px auto;background:#fff;padding:32px;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.08);}
+.section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#999;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.section-title::after{content:'';flex:1;height:.5px;background:#e5e5e5;}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff;}
+  .page{margin:0;padding:24px;box-shadow:none;border-radius:0;max-width:100%;}
+  @page{margin:12mm;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #FC4C02;padding-bottom:12px;margin-bottom:16px;">
+  <div>
+    <div style="font-size:18px;font-weight:600;line-height:1.2;">Raport dla trenera — Jakub Sobon</div>
+    <div style="font-size:11px;color:#777;margin-top:3px;">Test Coopera · Krosno · Środa 24.06.2026 · 18:59 · ASICS Novablast 5 (132 km)</div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:#777;line-height:1.8;">
+    <div>Trener: <strong style="color:#1a1a1a;">Igor</strong></div>
+    <div><span style="color:#FC4C02;font-weight:600;">102 dni</span> do maratonu Koszyce 4.10.2026</div>
+  </div>
+</div>
+
+<!-- 3-DAY CONTEXT -->
+<div class="section-title">Kontekst 3 dni</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;" id="days-grid"></div>
+
+<!-- PRE-TEST ALERT -->
+<div style="background:#fee2e2;border:.5px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <div style="font-size:11px;color:#7f1d1d;line-height:1.6;">
+    <strong>Test w nieoptymalnych warunkach:</strong> Sen 5.42h (cel ≥7h) · Readiness 69/100 · Temp. ciała +0.25°C · Białko 81g (cel 130g) · Węgle 182g bez ładowania. Wynik niedoszacowany — potencjał zawodnika wyższy niż wskazuje test.
+  </div>
+</div>
+
+<!-- RESULT HERO -->
+<div class="section-title">Wynik</div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+  <div style="background:#dcfce7;border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;">
+    <div style="font-size:10px;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Dystans Cooper (12 min)</div>
+    <div style="font-size:52px;font-weight:600;color:#166534;line-height:1;">2613</div>
+    <div style="font-size:13px;color:#166534;margin-top:2px;">metrów · RPE 9/10</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="background:#f4f4f4;border-radius:8px;padding:12px 14px;flex:1;">
+      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">VO₂max (Cooper)</div>
+      <div style="font-size:24px;font-weight:600;color:#1a1a1a;line-height:1;">47.1</div>
+      <div style="font-size:10px;color:#888;margin-top:3px;">ml/kg/min</div>
+    </div>
+    <div style="background:#fef3c7;border:.5px solid #fcd34d;border-radius:8px;padding:12px 14px;flex:1;">
+      <div style="font-size:10px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Kategoria Cooper</div>
+      <div style="font-size:16px;font-weight:600;color:#78350f;line-height:1.2;">Dobry</div>
+      <div style="font-size:10px;color:#92400e;margin-top:3px;">2500–2799m (mężczyźni)</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="background:#dbeafe;border-radius:8px;padding:12px 14px;flex:1;">
+      <div style="font-size:10px;color:#1e40af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Sub-4h maraton</div>
+      <div style="font-size:15px;font-weight:600;color:#1e3a8a;line-height:1.3;">cel ~50<br>ml/kg/min</div>
+      <div style="font-size:10px;color:#1e40af;margin-top:3px;">brakuje 2.9 jednostki</div>
+    </div>
+    <div style="background:#f4f4f4;border-radius:8px;padding:12px 14px;flex:1;">
+      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Avg HR / Max HR</div>
+      <div style="font-size:22px;font-weight:600;color:#E53935;line-height:1;">187</div>
+      <div style="font-size:10px;color:#888;margin-top:2px;">avg · max 196 bpm</div>
+    </div>
+  </div>
+</div>
+
+<!-- PACING ANALYSIS -->
+<div class="section-title" style="margin-bottom:8px;">Analiza tempa — per 3 minuty <span style="margin-left:auto;font-size:9px;letter-spacing:0;text-transform:none;font-weight:400;">Linia pomarańczowa = optymalne 4:37/km</span></div>
+<div id="pacing-chart"></div>
+<div style="margin-bottom:18px;"></div>
+
+<!-- HR PROGRESSION -->
+<div class="section-title" style="margin-bottom:8px;">HR per minuta</div>
+<div id="hr-chart" style="margin-bottom:18px;"></div>
+
+<!-- BEST EFFORTS + CADENCE -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+  <div>
+    <div class="section-title">Best efforts (Strava)</div>
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#dcfce7;border-radius:7px;">
+        <div style="font-size:11px;color:#166534;">400m</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="font-size:13px;font-weight:600;color:#166534;">1:36</div>
+          <span style="font-size:9px;background:#FC4C02;color:#fff;padding:1px 5px;border-radius:3px;font-weight:600;">PR</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#dcfce7;border-radius:7px;">
+        <div style="font-size:11px;color:#166534;">1K</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="font-size:13px;font-weight:600;color:#166534;">4:25</div>
+          <span style="font-size:9px;background:#FC4C02;color:#fff;padding:1px 5px;border-radius:3px;font-weight:600;">PR</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f4f4f4;border-radius:7px;">
+        <div style="font-size:11px;color:#666;">1 mila</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div style="font-size:13px;font-weight:600;color:#1a1a1a;">7:13</div>
+          <span style="font-size:9px;background:#3b82f6;color:#fff;padding:1px 5px;border-radius:3px;font-weight:600;">PR#2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="section-title">Kadencja per segment</div>
+    <div id="cad-table"></div>
+  </div>
+</div>
+
+<!-- OBSERVATIONS -->
+<div class="section-title">Wnioski</div>
+<div style="display:flex;flex-direction:column;gap:8px;">
+  <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#fef3c7;border-radius:8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5-2 4-2 4 2 4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    <div style="font-size:12px;color:#78350f;line-height:1.6;"><strong>Pacing — kluczowy błąd:</strong> Min 1–3 → 4:10/km (za szybkie o ~30s/km). Cena: min 4–6 tempo spadło do 4:45/km. Estymowana strata dystansu: ~40–60m. Strategia na kolejny test: start 4:35–4:40/km i trzymaj do końca. Możliwy wynik: 2700–2750m (cel: Bardzo Dobry ≥2800m).</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#fee2e2;border-radius:8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M2 4v16M2 8h18a2 2 0 012 2v10M2 17h20M6 8v9"/></svg>
+    <div style="font-size:12px;color:#7f1d1d;line-height:1.6;"><strong>Warunki testu nie były optymalne:</strong> Sen 5.42h + Readiness 69 + brak ładowania węglowodanów. Przy pełnej regeneracji (sen ≥7h, readiness ≥85, carb loading 400g dzień wcześniej) wynik testu byłby wyższy. Kolejny test: zaplanować po tygodniu spokojnym — nie po nocy przy 1:25.</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#dbeafe;border-radius:8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+    <div style="font-size:12px;color:#1e3a8a;line-height:1.6;"><strong>VO₂max 47.1 → potrzeba +3 jednostek do sub-4h:</strong> Szybkość jest (1K PR 4:25, 400m PR 1:36) — limituje wydolność tlenowa. Rekomendacja: więcej Z2 (HR 140–155) — długie biegi 45–75 min poniżej progu tlenowego budują bazę do maratonu Koszyce.</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="margin-top:20px;padding-top:10px;border-top:.5px solid #e5e5e5;display:flex;justify-content:space-between;font-size:9px;color:#bbb;">
+  <span>Garmin Connect API (per-sekunda GPS) + Strava + Oura Ring + Yazio</span>
+  <span>Vanguard OS · Antygravity</span>
+</div>
+
+</div>
+<script>
+const days = [
+  {date:'22.06',dow:'Poniedziałek',training:'Odpoczynek',detail:'Brak treningu',tc:'neutral',readiness:77,hrv:57.8,sleep:'6h05',sleepH:6.08,kcal:1892,protein:139,carbs:165,cadence:null,weight:null},
+  {date:'23.06',dow:'Wtorek',training:'Odpoczynek',detail:'Brak treningu · carb day (pizza)',tc:'neutral',readiness:85,hrv:57.5,sleep:'6h56',sleepH:6.94,kcal:3048,protein:143,carbs:291,cadence:null,weight:73.6},
+  {date:'24.06',dow:'Środa',training:'Cooper Test',detail:'RPE 9 · 2613m · Krosno · 18:59',tc:'hard',readiness:69,hrv:63.4,sleep:'5h25',sleepH:5.42,kcal:1629,protein:81,carbs:182,cadence:173,weight:null},
+];
+const PROTEIN_TARGET = 130;
+const CARB_TARGET = 400;
+
+function dot(c) {
+  const hex = c==='g'?'#4CAF50':c==='r'?'#F4511E':'#F9A825';
+  return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${hex};flex-shrink:0;margin-top:3px;"></span>`;
+}
+function cRead(v) { return v>=85?'g':v>=75?'y':'r'; }
+function cHrv(v)  { return v>=62?'g':v>=52?'y':'r'; }
+function cSleep(v){ return v>=7?'g':v>=6.5?'y':'r'; }
+function cKcal(v) { return v>=1900?'g':v>=1600?'y':'r'; }
+function cProt(v) { return v>=110?'g':v>=85?'y':'r'; }
+function cCarb(v) { return v>=300?'g':v>=200?'y':'r'; }
+function textC(c) { return c==='g'?'#166534':c==='r'?'#991b1b':'#92400e'; }
+function bgC(c)   { return c==='g'?'#dcfce7':c==='r'?'#fee2e2':'#fef9c3'; }
+function bar(val, max, c) {
+  const pct = Math.min(100, (val/max)*100).toFixed(1);
+  const clr = c==='g'?'#4CAF50':c==='r'?'#F4511E':'#F9A825';
+  return `<div style="height:5px;background:#f0f0f0;border-radius:2px;margin-top:3px;"><div style="width:${pct}%;height:100%;background:${clr};border-radius:2px;"></div></div>`;
+}
+
+const tcMap = {success:'#dcfce7',neutral:'#f4f4f4',hard:'#fee2e2'};
+const tcBorder = {success:'#bbf7d0',neutral:'#e5e5e5',hard:'#fca5a5'};
+const tcText  = {success:'#166534',neutral:'#666',hard:'#b91c1c'};
+const grid = document.getElementById('days-grid');
+
+days.forEach(d => {
+  const rc = cRead(d.readiness), hc = cHrv(d.hrv), sc = cSleep(d.sleepH);
+  const kc = cKcal(d.kcal), pc = cProt(d.protein), cc = cCarb(d.carbs);
+  const card = document.createElement('div');
+  card.style.cssText = `background:${tcMap[d.tc]};border:.5px solid ${tcBorder[d.tc]};border-radius:8px;padding:10px 12px;`;
+  card.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+      <div style="font-size:11px;font-weight:600;color:${tcText[d.tc]};">${d.date} · ${d.dow}</div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#1a1a1a;margin-bottom:2px;">${d.training}</div>
+    <div style="font-size:10px;color:#888;margin-bottom:7px;">${d.detail}</div>
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <div style="display:flex;align-items:flex-start;gap:5px;">${dot(rc)}<div style="flex:1;"><div style="font-size:10px;color:${textC(rc)};">Readiness ${d.readiness}</div></div></div>
+      <div style="display:flex;align-items:flex-start;gap:5px;">${dot(hc)}<div style="flex:1;"><div style="font-size:10px;color:${textC(hc)};">HRV ${d.hrv} ms</div></div></div>
+      <div style="display:flex;align-items:flex-start;gap:5px;">${dot(sc)}<div style="flex:1;"><div style="font-size:10px;color:${textC(sc)};">Sen ${d.sleep}</div></div></div>
+      <div style="margin-top:2px;">
+        <div style="font-size:10px;color:${textC(pc)};">Białko ${d.protein}g / ${PROTEIN_TARGET}g</div>
+        ${bar(d.protein, PROTEIN_TARGET, pc)}
+      </div>
+      <div>
+        <div style="font-size:10px;color:${textC(cc)};">Węgle ${d.carbs}g / ${CARB_TARGET}g</div>
+        ${bar(d.carbs, CARB_TARGET, cc)}
+      </div>
+      ${d.cadence ? `<div style="display:flex;align-items:flex-start;gap:5px;margin-top:2px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.cadence>=170?'#4CAF50':d.cadence>=165?'#F9A825':'#F4511E'};flex-shrink:0;margin-top:3px;"></span><div style="font-size:10px;color:${d.cadence>=170?'#166534':d.cadence>=165?'#92400e':'#991b1b'};">Kadencja ${d.cadence} spm</div></div>` : ''}
+      ${d.weight ? `<div style="font-size:10px;color:#666;margin-top:2px;">Waga ${d.weight} kg</div>` : ''}
+    </div>
+  `;
+  grid.appendChild(card);
+});
+
+// PACING CHART
+const segments = [
+  {label:'Min 1–3',pace:'4:10/km',secs:250,hr:172,cad:183,note:'Za szybko! +27s/km vs cel',color:'#F4511E'},
+  {label:'Min 4–6',pace:'4:45/km',secs:285,hr:190,cad:175,note:'Cena za szybki start',color:'#F9A825'},
+  {label:'Min 7–9',pace:'4:36/km',secs:276,hr:191,cad:173,note:'Częściowe odbudowanie',color:'#4CAF50'},
+  {label:'Min 10–12',pace:'4:45/km',secs:285,hr:194,cad:172,note:'Zrezygnował z przyspieszenia',color:'#F9A825'},
+];
+const TARGET_SECS = 277; // 4:37/km
+const MAX_SECS = 300;
+const OPT_PCT = (TARGET_SECS / MAX_SECS * 100).toFixed(1);
+
+const pacingEl = document.getElementById('pacing-chart');
+pacingEl.innerHTML = segments.map(s => {
+  const bw = (s.secs / MAX_SECS * 100).toFixed(1);
+  const isOver = s.secs > TARGET_SECS;
+  return `
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #f0f0f0;">
+    <div style="width:56px;font-size:11px;font-weight:600;color:#888;flex-shrink:0;">${s.label}</div>
+    <div style="flex:1;position:relative;height:22px;background:#f4f4f4;border-radius:3px;">
+      <div style="position:absolute;left:0;top:0;width:${bw}%;height:100%;background:${s.color};border-radius:3px;opacity:.8;"></div>
+      <div style="position:absolute;left:${OPT_PCT}%;top:0;bottom:0;width:2px;background:#FC4C02;z-index:3;"></div>
+    </div>
+    <div style="width:52px;text-align:right;font-size:13px;font-weight:600;flex-shrink:0;">${s.pace}</div>
+    <div style="width:36px;text-align:right;font-size:11px;color:#E53935;flex-shrink:0;">${s.hr}</div>
+    <div style="width:150px;font-size:10px;color:#999;flex-shrink:0;padding-left:8px;">${s.note}</div>
+  </div>`;
+}).join('');
+
+pacingEl.innerHTML += `
+<div style="display:flex;gap:14px;font-size:10px;color:#888;margin-top:6px;">
+  <span>HR = avg bpm segmentu</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:2px;height:10px;background:#FC4C02;"></span>Cel 4:37/km (avg tempa biegu)</span>
+</div>`;
+
+// HR CHART by minute
+const hrByMin = [147,185,189,189,190,190,191,191,191,194,194,195];
+const HR_MAX = 200;
+const hrEl = document.getElementById('hr-chart');
+hrEl.innerHTML = `
+<div style="display:flex;align-items:flex-end;gap:4px;height:72px;margin-bottom:4px;">
+  ${hrByMin.map((h,i) => {
+    const heightPct = Math.max(5, (h / HR_MAX * 100)).toFixed(1);
+    const clr = h>=190?'#E84855':h>=180?'#FF8C42':'#FFD700';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+        <div style="width:100%;height:${heightPct}%;background:${clr};border-radius:3px 3px 0 0;" title="${h} bpm"></div>
+      </div>
+    </div>`;
+  }).join('')}
+</div>
+<div style="display:flex;gap:4px;">
+  ${hrByMin.map((h,i) => `
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:9px;font-weight:600;color:#555;">${h}</div>
+      <div style="font-size:9px;color:#bbb;">${i+1}min</div>
+    </div>
+  `).join('')}
+</div>
+<div style="margin-top:6px;font-size:11px;color:#666;">Avg HR <strong>187 bpm</strong> · Max HR <strong>196 bpm</strong> · HR od 147 (min 1) do 195 (min 12) — rozgrzewka brakująca przed testem</div>`;
+
+// CADENCE TABLE
+const cadEl = document.getElementById('cad-table');
+const cadData = [
+  {label:'Min 1–3',cad:183,good:true},
+  {label:'Min 4–6',cad:175,good:true},
+  {label:'Min 7–9',cad:173,good:false},
+  {label:'Min 10–12',cad:172,good:false},
+];
+cadEl.innerHTML = `
+<div style="display:flex;flex-direction:column;gap:5px;">
+  ${cadData.map(c => {
+    const clr = c.cad>=180?'#166534':c.cad>=175?'#92400e':'#991b1b';
+    const bg  = c.cad>=180?'#dcfce7':c.cad>=175?'#fef3c7':'#fee2e2';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${bg};border-radius:7px;">
+      <div style="font-size:11px;color:${clr};">${c.label}</div>
+      <div style="font-size:13px;font-weight:600;color:${clr};">${c.cad} spm</div>
+    </div>`;
+  }).join('')}
+  <div style="font-size:10px;color:#999;padding:4px 2px;">Cel: ≥175 spm · Avg: 173 spm (całość z rozgrzewką)</div>
+</div>`;
+</script>
+</body>
+</html>
