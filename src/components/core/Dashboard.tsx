@@ -328,6 +328,10 @@ export default function Dashboard({ session }: { session: Session }) {
                 <div className="space-y-7">
                   <DayCounter />
 
+              <Suspense fallback={<ViewFallback />}>
+                <DailyStrainCard session={session} />
+              </Suspense>
+
               {/* Weekly Review nudge */}
               {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
                 <div className="flex flex-wrap items-center gap-2 -mt-3">
@@ -381,9 +385,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 label="Zaloguj trening"
                 onClick={() => setShowWorkoutLogger(true)}
               />
-              <Suspense fallback={<ViewFallback />}>
-                <DailyStrainCard session={session} />
-              </Suspense>
             </div>
           </div>
 

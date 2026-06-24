@@ -32,11 +32,19 @@ const CONF_PILL = {
 const CONF_LABEL = { solid: 'Solid', building: 'Building', calibrating: 'Calibrating' };
 
 const STATUS_RING = {
-  green: 'border-emerald-500/20 bg-emerald-500/[0.03] shadow-[0_8px_30px_rgba(16,185,129,0.04)]', 
-  yellow: 'border-amber-500/20 bg-amber-500/[0.03] shadow-[0_8px_30px_rgba(245,158,11,0.04)]', 
-  red: 'border-rose-500/25 bg-rose-500/[0.03] shadow-[0_8px_30px_rgba(244,63,94,0.04)]' 
+  green:  'border-emerald-500/20 bg-emerald-500/[0.03] shadow-[0_8px_30px_rgba(16,185,129,0.04)]',
+  yellow: 'border-amber-500/20 bg-amber-500/[0.03] shadow-[0_8px_30px_rgba(245,158,11,0.04)]',
+  red:    'border-rose-500/25 bg-rose-500/[0.03] shadow-[0_8px_30px_rgba(244,63,94,0.04)]',
 };
 const STATUS_GLOW = { green: 'bg-emerald-500/5', yellow: 'bg-amber-500/5', red: 'bg-rose-500/5' };
+
+const READINESS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+  primed:       { label: '⚡ Gotowy do działania', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  balanced:     { label: '✓ Zbalansowany',          color: 'text-sky-600 dark:text-sky-400',         bg: 'bg-sky-500/10 border-sky-500/20' },
+  strained:     { label: '⚠ Zmęczony',             color: 'text-amber-600 dark:text-amber-400',      bg: 'bg-amber-500/10 border-amber-500/20' },
+  rundown:      { label: '↓ Wyczerpany',            color: 'text-rose-600 dark:text-rose-400',        bg: 'bg-rose-500/10 border-rose-500/20' },
+  insufficient: { label: '– Za mało danych',        color: 'text-text-muted',                         bg: 'bg-surface-solid border-border-custom' },
+};
 
 function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: LucideIcon; label: string; value: number | string | null | undefined; max: number; tone: string; note?: string | null }) {
   const pct = max ? Math.min((Number(value) / max) * 100, 100) : 0;
@@ -190,16 +198,18 @@ export default function DailyStrainCard({ session }: { session: Session }) {
   const isStale = row.date !== getTodayWarsaw();
 
   const comp = (row.components as any) ?? {};
-  const recConf  = comp.recovery_confidence as 'calibrating' | 'building' | 'solid' | undefined;
-  const strConf  = comp.strain_confidence  as 'calibrating' | 'building' | 'solid' | undefined;
-  const vitalityScore   = comp.vitality_score   as number  | null | undefined;
-  const fitnessAge      = comp.fitness_age       as number  | null | undefined;
-  const caffeineAlert   = comp.caffeine_alert    as boolean | null | undefined;
-  const caffeineMg      = comp.caffeine_active_mg as number | null | undefined;
-  const hydrationGoalMl = comp.hydration_goal_ml as number  | null | undefined;
-  const sleepDebtH      = comp.sleep_debt_h      as number  | null | undefined;
-  const hrvZ            = comp.hrv_z             as number  | null | undefined;
-  const rhrZ            = comp.rhr_z             as number  | null | undefined;
+  const recConf         = comp.recovery_confidence as 'calibrating' | 'building' | 'solid' | undefined;
+  const strConf         = comp.strain_confidence   as 'calibrating' | 'building' | 'solid' | undefined;
+  const vitalityScore   = comp.vitality_score      as number  | null | undefined;
+  const fitnessAge      = comp.fitness_age         as number  | null | undefined;
+  const caffeineAlert   = comp.caffeine_alert      as boolean | null | undefined;
+  const caffeineMg      = comp.caffeine_active_mg  as number  | null | undefined;
+  const hydrationGoalMl = comp.hydration_goal_ml   as number  | null | undefined;
+  const sleepDebtH      = comp.sleep_debt_h        as number  | null | undefined;
+  const hrvZ            = comp.hrv_z               as number  | null | undefined;
+  const rhrZ            = comp.rhr_z               as number  | null | undefined;
+  const readinessLevel  = (row as any).readiness_level as string | null | undefined;
+  const readinessInfo   = readinessLevel ? READINESS_MAP[readinessLevel] : null;
 
   return (
     <section className={`animate-fadeIn relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
@@ -215,6 +225,14 @@ export default function DailyStrainCard({ session }: { session: Session }) {
             Dane z {row.date} — odśwież po prawej
           </p>
         )}
+
+        {/* Readiness level — główny status dnia */}
+        {readinessInfo && (
+          <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
+            {readinessInfo.label}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
@@ -293,7 +311,7 @@ export default function DailyStrainCard({ session }: { session: Session }) {
             {[
               { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: zToVitalColor(hrvZ, 'text-dayA') },
               { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: zToVitalColor(rhrZ, 'text-dayB') },
-              { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: 'text-primary' },
+              { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: oura.total_sleep_hours == null ? 'text-text-muted' : oura.total_sleep_hours >= 7.5 ? 'text-emerald-500 dark:text-emerald-400' : oura.total_sleep_hours >= 6 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400' },
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
               { icon: Footprints, label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },
             ].map(({ icon: Icon, label, value, color }) => (
