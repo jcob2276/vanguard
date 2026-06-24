@@ -362,10 +362,12 @@ Deno.serve(async (req) => {
         const skinTempToday = skinTempByDate[date] ?? null
 
         // ── SLEEP DEBT (Strand SleepDebt.swift) 14-night rolling ledger ──
+        // Target: 7.5h (realistic). Positive = nadwyżka snu, Negative = dług.
+        const SLEEP_TARGET = 7.5
         if (sleep != null) sleepByDate[date] = Number(sleep)
         const sleepDates14 = Object.keys(sleepByDate).sort().filter(d => d <= date).slice(-14)
         const sleepDebtH = sleepDates14.length >= 4
-          ? Math.round(sleepDates14.reduce((acc, d) => acc + (sleepByDate[d] - 8.0), 0) * 10) / 10
+          ? Math.round(sleepDates14.reduce((acc, d) => acc + (sleepByDate[d] - SLEEP_TARGET), 0) * 10) / 10
           : null
 
         // z-scores hoisted out of recovery block for VitalBands export

@@ -287,15 +287,17 @@ export default function DailyStrainCard({ session }: { session: Session }) {
             )}
             {sleepDebtH != null && (
               <span className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-bold border ${
-                sleepDebtH <= -1
+                sleepDebtH < -0.5
                   ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
-                  : sleepDebtH >= 0.5
+                  : sleepDebtH > 0.5
                   ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                   : 'bg-surface-solid border-border-custom text-text-primary'
               }`}>
                 <Moon size={9} />
-                <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">dług snu</span>
-                <span>{sleepDebtH > 0 ? '+' : ''}{sleepDebtH}h</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">
+                  {sleepDebtH < 0 ? 'dług snu' : sleepDebtH > 0.5 ? 'nadwyżka snu' : 'sen ok'}
+                </span>
+                <span>{sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}</span>
               </span>
             )}
           </div>
