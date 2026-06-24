@@ -575,7 +575,7 @@ export async function exportStatsMarkdown({
         const dayFood = foodEntries.filter(f => f.date === dateStr);
         const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
         if (dayFood.length > 0) {
-          md += `### 🥗 Dieta (Yazio)\n`;
+          md += `### 🥗 Dieta (Vanguard)\n`;
           const meals = { breakfast: 'Śniadanie', lunch: 'Obiad', dinner: 'Kolacja', snack: 'Przekąski' };
           
           Object.entries(meals).forEach(([key, label]) => {
@@ -591,7 +591,10 @@ export async function exportStatsMarkdown({
                   item.insulin_load != null ? `IL_est: ${item.insulin_load}` : null,
                 ].filter(Boolean).join(' | ');
                 const brandStr = item.brand ? ` — ${item.brand}` : '';
-                md += `- ${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
+                const timeStr = item.logged_at
+                  ? `${new Date(item.logged_at).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })} — `
+                  : '';
+                md += `- ${timeStr}${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
               });
             }
           });
@@ -644,7 +647,7 @@ export async function exportStatsMarkdown({
           md += `\n**Suma dnia: ${totalCal} kcal | B: ${totalProt.toFixed(1)}g | W: ${totalCarb.toFixed(1)}g | T: ${totalFat.toFixed(1)}g${fiberSugarStr ? ' | ' + fiberSugarStr : ''}**\n`;
           md += `_Gęstość białka: ${proteinDensity}g / 100 kcal | IL_est: ${totalIL.toFixed(1)} (gęstość: ${ilPer1000} / 1000 kcal) — ${ilLabel}${ilTrend}${ilContext}_${mealWindowStr}\n\n`;
         } else if (dayNutrition) {
-          md += `### 🥗 Dieta (Yazio)\n`;
+          md += `### 🥗 Dieta (Vanguard)\n`;
           md += foodError
             ? `Nie udało się pobrać szczegółowych produktów z \`daily_food_entries\`: ${foodError.message}\n\n`
             : `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;

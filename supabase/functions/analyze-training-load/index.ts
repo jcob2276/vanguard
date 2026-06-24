@@ -35,6 +35,7 @@ const PATTERN_RULES: Array<{ key: string; label: string; re: RegExp; priority: n
   { key: 'calf', label: 'łydka / Achilles', re: /łyd|lydk|calf|wspię|wspiec|palce|soleus|achill/i, priority: 10 },
   { key: 'tibialis', label: 'tibialis / stopa', re: /tibialis|piszczel|stop|foot|toe|palc/i, priority: 9 },
   { key: 'single_leg', label: 'single-leg stabilizacja', re: /single.?leg|bułgar|bulgar|wykrok|lunge|step.?up|split squat|jednonóż|jednonoz/i, priority: 10 },
+  { key: 'plyo', label: 'plajometria / moc reaktywna', re: /plyo|plajo|skok|jump|bound|pogo|depth jump|box jump|tuck jump|skip a\/b/i, priority: 10 },
   { key: 'hinge', label: 'hinge / posterior chain', re: /martwy|deadlift|rdl|hip thrust|good morning|pull through|hinge|dwugłow|hamstring/i, priority: 9 },
   { key: 'squat', label: 'squat / kolano', re: /przysiad|squat|leg press|hack|front squat|goblet/i, priority: 7 },
   { key: 'pull', label: 'pull / plecy', re: /wios|row|podciąg|podciag|pull.?up|ściąg|sciag|lat|face pull|rear delt/i, priority: 6 },
@@ -42,7 +43,7 @@ const PATTERN_RULES: Array<{ key: string; label: string; re: RegExp; priority: n
   { key: 'core', label: 'core / antyrotacja', re: /plank|dead bug|pallof|core|brzuch|farmer|carry|side plank/i, priority: 8 },
 ]
 
-const LEG_PATTERN_KEYS = new Set(['calf', 'tibialis', 'single_leg', 'hinge', 'squat'])
+const LEG_PATTERN_KEYS = new Set(['calf', 'tibialis', 'single_leg', 'hinge', 'squat', 'plyo'])
 const EXERCISE_LIBRARY: Record<string, Array<{ name: string; setsReps: string; intensity: number | null; fallbackLoad: string; goal: string }>> = {
   calf: [
     { name: 'Wspięcia na palce stojąc', setsReps: '4×8-10', intensity: 0.78, fallbackLoad: 'RPE 7-8', goal: 'Achilles/łydka: ciężki bodziec siłowo-ścięgnisty' },
@@ -73,6 +74,10 @@ const EXERCISE_LIBRARY: Record<string, Array<{ name: string; setsReps: string; i
   core: [
     { name: 'Pallof press', setsReps: '3×10/strona', intensity: null, fallbackLoad: 'RPE 7', goal: 'antyrotacja pod kontrolę miednicy' },
     { name: 'Plank boczny', setsReps: '3×30-45s/strona', intensity: null, fallbackLoad: 'BW', goal: 'core boczny i stabilizacja' },
+  ],
+  plyo: [
+    { name: 'Box jump', setsReps: '3×5', intensity: null, fallbackLoad: 'pełny reset między skokami, jakość > liczba', goal: 'moc reaktywna i ekonomia biegu' },
+    { name: 'Single-leg hop', setsReps: '3×6 na nogę', intensity: null, fallbackLoad: 'kontrolowane lądowanie, RPE 7', goal: 'sprężystość łydki/Achillesa pod bieganie' },
   ],
 }
 
@@ -543,6 +548,7 @@ Deno.serve(async (req) => {
 
     const gapRules = [
       { key: 'calf', maxDays: 7, reason: 'łydka/Achilles musi amortyzować kilometraż biegowy' },
+      { key: 'plyo', maxDays: 10, reason: 'moc reaktywna i ekonomia biegu — bez tego siła nie przekłada się na bieganie' },
       { key: 'single_leg', maxDays: 10, reason: 'stabilizacja miednicy i kolana pod bieganie' },
       { key: 'tibialis', maxDays: 14, reason: 'stopa/piszczelowy jako ubezpieczenie łydki i piszczeli' },
       { key: 'hinge', maxDays: 10, reason: 'posterior chain dla siły biodra i ekonomii biegu' },
@@ -565,7 +571,7 @@ Deno.serve(async (req) => {
     const orderedPatternKeys = [
       ...strengthGaps.map(g => g.key),
       ...(pushPullRatio != null && pushPullRatio > 1.4 ? ['pull'] : []),
-      'hinge', 'calf', 'single_leg', 'pull', 'push', 'core',
+      'hinge', 'calf', 'single_leg', 'pull', 'push', 'core', 'plyo',
     ].filter((v, i, arr) => arr.indexOf(v) === i)
 
     const lowInterference = recentHardRuns >= 2 || hasUpcomingRunPlan || (w0.recovAvg != null && w0.recovAvg < 70)

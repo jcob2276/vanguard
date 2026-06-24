@@ -7,8 +7,6 @@ import { useHaptics } from '../../hooks/useHaptics';
 
 interface NutritionCardProps {
   weeklyCalories: number;
-  syncYazio: () => void;
-  isSyncing: boolean;
   session: any;
 }
 
@@ -54,8 +52,6 @@ function getWeekdayAbbr(dateStr: string): string {
 
 export default function NutritionCard({
   weeklyCalories,
-  syncYazio,
-  isSyncing,
   session,
 }: NutritionCardProps) {
   const userId = session?.user?.id;
@@ -78,6 +74,17 @@ export default function NutritionCard({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editEntry, setEditEntry] = useState<TodayEntry | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [forecast, setForecast] = useState<{
+    forecast_30d_weight_kg: number | null;
+    forecast_60d_weight_kg: number | null;
+    forecast_90d_weight_kg: number | null;
+    forecast_30d_bf_pct: number | null;
+    forecast_60d_bf_pct: number | null;
+    forecast_90d_bf_pct: number | null;
+    days_to_goal_est: number | null;
+    adaptive_correction_kcal: number | null;
+  } | null>(null);
+  const [forecastNote, setForecastNote] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined);
   const [activeChartTab, setActiveChartTab] = useState<'calories' | 'protein'>('calories');
@@ -123,7 +130,7 @@ export default function NutritionCard({
       try {
         const { data: targetRow } = await supabase
           .from('nutrition_targets')
-          .select('target_kcal, protein_floor_g, verdict')
+          .select('target_kcal, protein_floor_g, verdict, forecast_30d_weight_kg, forecast_60d_weight_kg, forecast_90d_weight_kg, forecast_30d_bf_pct, forecast_60d_bf_pct, forecast_90d_bf_pct, days_to_goal_est, adaptive_correction_kcal')
           .eq('user_id', userId)
           .order('date', { ascending: false })
           .limit(1)
@@ -133,11 +140,25 @@ export default function NutritionCard({
           setWeeklyBudget(targetRow.target_kcal * 7);
         }
         if (targetRow?.protein_floor_g) setProteinGoal(targetRow.protein_floor_g);
+        if (targetRow) {
+          setForecast({
+            forecast_30d_weight_kg: targetRow.forecast_30d_weight_kg,
+            forecast_60d_weight_kg: targetRow.forecast_60d_weight_kg,
+            forecast_90d_weight_kg: targetRow.forecast_90d_weight_kg,
+            forecast_30d_bf_pct: targetRow.forecast_30d_bf_pct,
+            forecast_60d_bf_pct: targetRow.forecast_60d_bf_pct,
+            forecast_90d_bf_pct: targetRow.forecast_90d_bf_pct,
+            days_to_goal_est: targetRow.days_to_goal_est,
+            adaptive_correction_kcal: targetRow.adaptive_correction_kcal,
+          });
+        }
         const verdict = targetRow?.verdict;
-        const suggestions = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
-          ? (verdict as Record<string, unknown>).food_suggestions
+        const verdictObj = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
+          ? (verdict as Record<string, unknown>)
           : undefined;
+        const suggestions = verdictObj?.food_suggestions;
         if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
+        if (typeof verdictObj?.forecast_note === 'string') setForecastNote(verdictObj.forecast_note);
       } catch (e) {
         console.error('nutrition_targets fetch failed', e);
       }
@@ -729,6 +750,41 @@ export default function NutritionCard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Thermodynamic forecast + adaptive correction */}
+      {forecast && (forecast.forecast_30d_weight_kg != null || forecast.adaptive_correction_kcal) && (
+        <div className="mt-3.5 rounded-xl border border-border-custom/50 bg-surface-solid/15 p-3">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">Prognoza przy obecnym tempie</p>
+          {forecast.forecast_30d_weight_kg != null && (
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {([
+                ['30d', forecast.forecast_30d_weight_kg, forecast.forecast_30d_bf_pct],
+                ['60d', forecast.forecast_60d_weight_kg, forecast.forecast_60d_bf_pct],
+                ['90d', forecast.forecast_90d_weight_kg, forecast.forecast_90d_bf_pct],
+              ] as const).map(([label, w, bf]) => (
+                <div key={label} className="rounded-lg border border-border-custom/40 bg-surface-solid/30 px-2 py-1.5 text-center">
+                  <p className="text-[8px] font-black uppercase text-text-muted">{label}</p>
+                  <p className="text-[12px] font-black text-text-primary">{w != null ? `${w}kg` : '—'}</p>
+                  {bf != null && <p className="text-[9px] font-bold text-text-muted">{bf}% BF</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          {forecast.days_to_goal_est != null && (
+            <p className="text-[10.5px] text-text-secondary mb-1">
+              Przy tym tempie cel BF za <strong className="text-text-primary">~{forecast.days_to_goal_est} dni</strong>
+            </p>
+          )}
+          {!!forecast.adaptive_correction_kcal && (
+            <p className="text-[10.5px] text-text-secondary mb-1">
+              🔧 Adaptive correction: <strong className={forecast.adaptive_correction_kcal > 0 ? 'text-rose-400' : 'text-emerald-400'}>
+                {forecast.adaptive_correction_kcal > 0 ? '-' : '+'}{Math.abs(forecast.adaptive_correction_kcal)} kcal/dzień
+              </strong> (tempo vs plan)
+            </p>
+          )}
+          {forecastNote && <p className="text-[10.5px] text-text-secondary leading-snug mt-1">{forecastNote}</p>}
         </div>
       )}
 

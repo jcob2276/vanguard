@@ -1,7 +1,6 @@
 import { getTodayWarsaw, formatWarsawDate } from '../lib/date';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { useStore } from '../store/useStore';
 import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import type { Tables } from '../lib/database.types';
@@ -29,7 +28,6 @@ export function useDashboardData() {
   });
 
   const mountedRef = useRef(true);
-  const { setSyncing } = useStore();
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -106,44 +104,6 @@ export function useDashboardData() {
     }
   };
 
-  const syncYazio = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.error('[syncYazio] brak sesji — zaloguj się ponownie');
-      alert('Brak sesji — odśwież stronę i zaloguj się ponownie.');
-      return;
-    }
-
-    setSyncing(true);
-    try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-yazio`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ userId: session.user.id, days: 2 }),
-        signal: AbortSignal.timeout(15000),
-      });
-
-      const res = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(res.error || `HTTP ${response.status}`);
-      if (res.success) {
-        const dates = (res.results || []).map((r: any) => `${r.date}: ${r.calories ?? 0} kcal`).join('\n');
-        alert(`Sync OK\n${dates}`);
-        await fetchData();
-      } else {
-        alert('Błąd synchronizacji: ' + (res.error || 'Nieznany błąd'));
-      }
-    } catch (err: any) {
-      console.error('[syncYazio] błąd:', err);
-      alert('Błąd synchronizacji: ' + err.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const autoSyncCalendar = async (session: any) => {
     try {
       const { data: lastEvent } = await supabase
@@ -183,5 +143,5 @@ export function useDashboardData() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  return { ...data, syncYazio, refresh: fetchData };
+  return { ...data, refresh: fetchData };
 }

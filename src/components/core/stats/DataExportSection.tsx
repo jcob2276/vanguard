@@ -17,8 +17,6 @@ interface DataExportSectionProps {
   setIncludeHabits: (v: boolean) => void;
   includeActivityWatch: boolean;
   setIncludeActivityWatch: (v: boolean) => void;
-  syncHistory: () => void;
-  isSyncing: boolean;
   exportData: () => void;
   isExporting: boolean;
 }
@@ -40,8 +38,6 @@ export function DataExportSection({
   setIncludeHabits,
   includeActivityWatch,
   setIncludeActivityWatch,
-  syncHistory,
-  isSyncing,
   exportData,
   isExporting,
 }: DataExportSectionProps) {

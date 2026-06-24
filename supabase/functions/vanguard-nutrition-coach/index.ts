@@ -44,6 +44,9 @@ function buildPushMessage(date: string, s: any, verdict: any): string {
   }
   L.push(`⚖️ Maintenance ~${e.est_maintenance} kcal · trend ${b.weight_trend_kg_per_week} kg/tydz`);
   if (e.underlog_gap_kcal > 150) L.push(`📉 Niedolog ~${e.underlog_gap_kcal} kcal/dzień — loguj dokładniej`);
+  const f = s.forecast;
+  if (f?.days_to_goal_est != null) L.push(`📅 Przy tym tempie: cel BF za ~${f.days_to_goal_est}d`);
+  if (f?.adaptive_correction_kcal) L.push(`🔧 Adaptive correction: ${f.adaptive_correction_kcal > 0 ? '-' : '+'}${Math.abs(f.adaptive_correction_kcal)} kcal (tempo vs plan)`);
   if (verdict?.today_focus) { L.push(""); L.push(`👉 ${verdict.today_focus}`); }
   if (Array.isArray(verdict?.flags) && verdict.flags.length) {
     L.push(""); for (const f of verdict.flags) L.push(`⚠️ ${f}`);
@@ -130,6 +133,43 @@ Deno.serve(async (req) => {
     const latestWaist = weights.length ? num(bm[bm.length - 1].waist) : null;
     const latestBelly = bm.length ? num(bm[bm.length - 1].belly) : null;
 
+    // ── Thermodynamic forecast (30/60/90d) ─────────────────────────────────────
+    // Weight projects linearly off the observed trend. BF% has no direct daily
+    // signal (body_metrics.body_fat is sparse/manual), so it's derived from a
+    // fat-mass/lean-mass split: assume FAT_LOSS_FRACTION of any weight change is
+    // fat mass (the rest is water/glycogen/measurement noise), hold lean mass
+    // constant, recompute BF% from the resulting fat-mass/total-weight ratio.
+    const FAT_LOSS_FRACTION = 0.85;
+    const reliableWeightWindow = weightDaysSpan >= 14;
+    const trendKgPerDay = reliableWeightWindow ? weightTrendPerWeek / 7 : 0;
+    const currentBf = num(profile.current_body_fat_est);
+    const fatMassNow = currentBf != null ? weightForCalc * (currentBf / 100) : null;
+    const leanMassNow = fatMassNow != null ? weightForCalc - fatMassNow : null;
+
+    const forecastAt = (days: number) => {
+      const projectedWeight = +(weightForCalc + trendKgPerDay * days).toFixed(1);
+      let projectedBf: number | null = null;
+      if (fatMassNow != null && leanMassNow != null) {
+        const projectedFatMass = fatMassNow + trendKgPerDay * FAT_LOSS_FRACTION * days;
+        projectedBf = projectedWeight > 0 ? +((projectedFatMass / projectedWeight) * 100).toFixed(1) : null;
+      }
+      return { weight: projectedWeight, bf: projectedBf };
+    };
+    const forecast30 = forecastAt(30);
+    const forecast60 = forecastAt(60);
+    const forecast90 = forecastAt(90);
+
+    // Days to reach goal_body_fat at the CURRENT (not target) trend — null if flat/wrong direction.
+    let daysToGoalEst: number | null = null;
+    const goalBf = num(profile.goal_body_fat);
+    if (currentBf != null && goalBf != null && fatMassNow != null && trendKgPerDay < 0 && currentBf > goalBf) {
+      // Binary-search-free closed form would need solving bf(t)=goal; step search is simpler and cheap (≤3650 iters).
+      for (let d = 1; d <= 3650; d++) {
+        const f = forecastAt(d);
+        if (f.bf != null && f.bf <= goalBf) { daysToGoalEst = d; break; }
+      }
+    }
+
     // ── 30d averages ───────────────────────────────────────────────────────────
     const tdeeArr = clean(oura, "total_calories");
     const activeArr = clean(oura, "active_calories");
@@ -160,9 +200,8 @@ Deno.serve(async (req) => {
     // ── Maintenance triangulation ──────────────────────────────────────────────
     const ouraAdj = Math.round(avgTdeeOura * OURA_CORRECTION);
 
-    // Only use weight trend adjustments if we have a wide enough window (at least 14 days)
+    // reliableWeightWindow computed above (forecast section) — at least 14 days
     // to filter out daily water weight fluctuations which would otherwise scale up to crazy numbers.
-    const reliableWeightWindow = weightDaysSpan >= 14;
     const dailyWeightSurplusDeficit = reliableWeightWindow
       ? (weightChangeKg * KCAL_PER_KG / weightDaysSpan)
       : 0;
@@ -184,13 +223,29 @@ Deno.serve(async (req) => {
       ? Math.round((new Date(profile.event_date).getTime() - new Date(today).getTime()) / 86400000)
       : null;
     const inTaper = daysToEvent != null && daysToEvent >= 0 && daysToEvent <= 21;
-    const deficitPerDay = inTaper ? 0 : Math.round((profile.weekly_loss_kg || 0.35) * KCAL_PER_KG / 7);
+    const targetWeeklyLossKg = profile.weekly_loss_kg || 0.35;
+    const deficitPerDay = inTaper ? 0 : Math.round(targetWeeklyLossKg * KCAL_PER_KG / 7);
+
+    // ── Adaptive correction ─────────────────────────────────────────────────────
+    // deficitPerDay above is the PLANNED deficit from the static goal. If the
+    // observed trend is consistently missing that rate (under-logging, NEAT
+    // drop, etc. already explain part of it via estMaintenance, but not all of
+    // it), nudge the target further — damped 50% and capped at ±150 kcal/day so
+    // one noisy week can't swing the target hard. Needs ≥14d of weight data and
+    // ≥10 logged days/30 to trust the gap; never applies in taper.
+    let adaptiveCorrectionKcal = 0;
+    if (reliableWeightWindow && !inTaper && daysLogged >= 10) {
+      const observedWeeklyLossKg = -weightTrendPerWeek; // positive = actually losing
+      const lossGapKgPerWeek = targetWeeklyLossKg - observedWeeklyLossKg; // positive = behind plan
+      adaptiveCorrectionKcal = Math.max(-150, Math.min(150,
+        Math.round(lossGapKgPerWeek * KCAL_PER_KG / 7 * 0.5)));
+    }
 
     const todayOura = todayOuraRes.data;
     const todayActive = todayOura ? num(todayOura.active_calories) : null;
     const addBack = (todayActive != null && avgActive)
       ? Math.min(500, Math.round(Math.max(0, todayActive - avgActive) * 0.5)) : 0;
-    const targetKcal = estMaintenance - deficitPerDay + addBack;
+    const targetKcal = estMaintenance - deficitPerDay - adaptiveCorrectionKcal + addBack;
     const proteinFloor = Math.round(weightForCalc * (profile.protein_g_per_kg || 2.0));
 
     const age = profile.birth_date
@@ -211,6 +266,13 @@ Deno.serve(async (req) => {
       },
       body: { weight: latestWeight, waist: latestWaist, belly: latestBelly,
         weight_trend_kg_per_week: weightTrendPerWeek, weight_window_days: Math.round(weightDaysSpan) },
+      forecast: {
+        target_weekly_loss_kg: targetWeeklyLossKg,
+        observed_weekly_loss_kg: reliableWeightWindow ? +(-weightTrendPerWeek).toFixed(2) : null,
+        adaptive_correction_kcal: adaptiveCorrectionKcal,
+        forecast_30d: forecast30, forecast_60d: forecast60, forecast_90d: forecast90,
+        days_to_goal_est: daysToGoalEst,
+      },
       energy: { avg_tdee_oura: avgTdeeOura, oura_adjusted: ouraAdj, avg_active: avgActive,
         avg_intake_logged: avgIntake, maintenance_from_log: maintFromLog,
         est_maintenance: estMaintenance, underlog_gap_kcal: underlogGap, days_logged_30: daysLogged },
@@ -235,6 +297,7 @@ Zasady oceny:
 - Białko to floor, nie cel — pilnuj spójności (CV) bardziej niż średniej.
 - Sen < 7h i niski błonnik to realne hamulce redukcji — flaguj.
 - Cel mierz trendem talia/brzuch/waga, nie samym %BF (bez DEXA % jest niepewny).
+- forecast.* to projekcja CURRENT trendu (nie planu) na 30/60/90 dni i adaptive_correction_kcal — gdy obserwowane tempo (observed_weekly_loss_kg) jest poniżej planu (target_weekly_loss_kg), target_kcal już został dociśnięty o ten correction; nazwij to userowi prosto ("tempo wolniejsze niż plan, target dziś trochę niższy żeby to skorygować"), nie traktuj jako odrębny problem do flagowania jeśli korekta już w target_kcal.
 - Konkretne polskie produkty (Lidl/Biedronka/Żabka), realne, nie suplementy jako baza.
 - Masz medical_context z badaniami. Używaj go jako kontekstu z datą: zawsze patrz na age_days/freshness. Stare/stale wyniki (np. >180 dni) nie opisują automatycznie dzisiejszego stanu. Nie diagnozuj; możesz flagować "warto odświeżyć badania" lub "historycznie X nie wyglądało jak oczywisty limiter".
 Mówisz po polsku, bezpośrednio, liczbami. Nie komplementujesz — diagnozujesz.`;
@@ -247,6 +310,7 @@ Zwróć WYŁĄCZNIE JSON:
   "summary": "2-3 zdania: gdzie jest, czy na kursie do celu BF na datę docelową",
   "trajectory": "on_track | behind | ahead",
   "trajectory_note": "1 zdanie — co napędza/hamuje",
+  "forecast_note": "1 zdanie o prognozie 30/60/90d i czy days_to_goal_est realistycznie domyka się przed event_date",
   "today_focus": "1 zdanie — co konkretnie zrobić DZIŚ (target/białko/trening)",
   "flags": ["max 4 krótkie flagi z konkretem — niedolog, sen, rozrzut, błonnik, białko"],
   "protein_note": "1 zdanie o spójności białka",
@@ -279,6 +343,10 @@ Zwróć WYŁĄCZNIE JSON:
       protein_floor_g: proteinFloor, deficit_kcal: deficitPerDay,
       weight_trend_kg_per_week: weightTrendPerWeek, underlog_gap_kcal: underlogGap,
       avg_tdee_oura: avgTdeeOura, avg_intake_logged: avgIntake,
+      forecast_30d_weight_kg: forecast30.weight, forecast_60d_weight_kg: forecast60.weight,
+      forecast_90d_weight_kg: forecast90.weight, forecast_30d_bf_pct: forecast30.bf,
+      forecast_60d_bf_pct: forecast60.bf, forecast_90d_bf_pct: forecast90.bf,
+      days_to_goal_est: daysToGoalEst, adaptive_correction_kcal: adaptiveCorrectionKcal,
       inputs: signals, verdict,
     }, { onConflict: "user_id,date" });
     if (upErr) console.error("[nutrition-coach] upsert error:", upErr.message);

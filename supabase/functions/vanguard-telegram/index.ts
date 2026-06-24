@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
             { command: "lenie", description: "Zapisz lenie (np. /lenie scrollowanie | zmęczenie)" },
             { command: "dieta", description: "Pokaż podsumowanie diety" },
             { command: "pytanie", description: "Uruchom wywiad" },
-            { command: "koniec", description: "Zakończ dzień (wieczorna refleksja)" }
+            { command: "koniec", description: "Zakończ dzień (wieczorna refleksja)" },
+            { command: "s", description: "Zaloguj suplement (np. /s)" }
           ]
         })
       });

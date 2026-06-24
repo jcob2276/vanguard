@@ -40,6 +40,20 @@ function markerPriority(markerKey: string): number {
   return idx === -1 ? PRIORITY_MARKERS.length + 1 : idx;
 }
 
+type TrendInfo = {
+  direction: "rising" | "falling" | "stable";
+  delta_pct: number;
+  prior_date: string;
+  prior_value: number;
+};
+
+function computeTrend(latest: number, priorDate: string, priorValue: number): TrendInfo {
+  const delta_pct = priorValue !== 0 ? Math.round(((latest - priorValue) / priorValue) * 1000) / 10 : 0;
+  const direction: TrendInfo["direction"] =
+    Math.abs(delta_pct) < 5 ? "stable" : delta_pct > 0 ? "rising" : "falling";
+  return { direction, delta_pct, prior_date: priorDate, prior_value: priorValue };
+}
+
 export async function fetchMedicalContext(
   supabase: SupabaseClientLike,
   userId: string,
@@ -70,14 +84,20 @@ export async function fetchMedicalContext(
   if (bodyCompRes.error) throw new Error(`[medicalContext] body_composition_measurements: ${bodyCompRes.error.message}`);
   if (docRes.error) throw new Error(`[medicalContext] medical_documents: ${docRes.error.message}`);
 
-  const latestByMarker = new Map<string, any>();
+  // labRes.data is ordered by result_date desc, so the first 2 rows seen per
+  // marker are [latest, prior] — enough for a direction-of-change trend without
+  // needing the daily-cadence data density a full SPC baseline would require.
+  const rowsByMarker = new Map<string, any[]>();
   for (const row of labRes.data || []) {
-    if (!latestByMarker.has(row.marker_key)) latestByMarker.set(row.marker_key, row);
+    const arr = rowsByMarker.get(row.marker_key);
+    if (arr) { if (arr.length < 2) arr.push(row); }
+    else rowsByMarker.set(row.marker_key, [row]);
   }
 
-  const latest_labs = Array.from(latestByMarker.values())
-    .map((row) => {
+  const latest_labs = Array.from(rowsByMarker.values())
+    .map(([row, prior]) => {
       const age_days = diffDays(row.result_date, today);
+      const trend = prior ? computeTrend(Number(row.value), prior.result_date, Number(prior.value)) : null;
       return {
         date: row.result_date,
         age_days,
@@ -92,6 +112,7 @@ export async function fetchMedicalContext(
         source: row.source_name,
         provider: row.provider,
         notes: row.notes,
+        trend,
       };
     })
     .sort((a, b) => markerPriority(a.marker_key) - markerPriority(b.marker_key))
@@ -144,9 +165,12 @@ export function formatMedicalContextBlock(ctx: Awaited<ReturnType<typeof fetchMe
     return "[BADANIA/MEDICAL CONTEXT]: brak danych.";
   }
 
-  const labLines = ctx.latest_labs.map((r) =>
-    `- ${r.marker_name} (${r.marker_key}): ${r.value} ${r.unit || ""}; data ${r.date}; ${r.age_days} dni temu; freshness=${r.freshness}; ref=${r.ref_text || "brak"}${r.flag ? `; flaga=${r.flag}` : ""}; zrodlo=${r.source}`
-  );
+  const labLines = ctx.latest_labs.map((r) => {
+    const trendStr = r.trend
+      ? `; trend: ${r.trend.direction} ${r.trend.delta_pct > 0 ? "+" : ""}${r.trend.delta_pct}% vs ${r.trend.prior_value}${r.unit || ""} (${r.trend.prior_date})`
+      : "; trend: brak poprzedniego pomiaru";
+    return `- ${r.marker_name} (${r.marker_key}): ${r.value} ${r.unit || ""}; data ${r.date}; ${r.age_days} dni temu; freshness=${r.freshness}; ref=${r.ref_text || "brak"}${r.flag ? `; flaga=${r.flag}` : ""}; zrodlo=${r.source}${trendStr}`;
+  });
   const bodyLines = ctx.body_composition.map((r: any) =>
     `- ${r.source}: ${r.measured_at}; ${r.age_days} dni temu; freshness=${r.freshness}; ${r.method}/${r.reliability}; masa ${r.weight_kg ?? "?"} kg; BF ${r.body_fat_pct ?? "?"}%; muscle ${r.muscle_mass_kg ?? "?"} kg; visceral ${r.visceral_fat_rating ?? "?"}`
   );

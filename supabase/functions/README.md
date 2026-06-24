@@ -114,7 +114,12 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 178 | 2026-06-11 |
 | `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 447 | 2026-06-11 |
 | `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 469 | 2026-06-12 |
+| `rescore-workout-sessions` | **active** | pg_cron `20 11 * * *` UTC (after sync-oura-timeseries + compute-daily-strain) | **false** | `workout_sessions` (hr_avg_bpm, hr_peak_bpm, hr_strain_score, hr_kcal_est, hr_rescored_at); reads `oura_heartrate`, `nutrition_profile`, `body_metrics`, `oura_daily_summary` | 165 | 2026-06-24 |
 | `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
+| `compute-illness-signal` | **active** | pg_cron `25 11 * * *` UTC (after compute-daily-strain) | **false** | `daily_strain` (illness_score, illness_level); reads `oura_daily_summary`, `oura_enhanced`, `behavior_log`, `exercise_logs` | 160 | 2026-06-24 |
+| `compute-behavior-effects` | **active** | Frontend / manual read-only "What Moves You" (Welch t-test + Cohen's d + dose-response) | true | none (read-only); reads `behavior_log`, `daily_strain` | 187 | 2026-06-24 |
+| `compute-recovery-forecast` | **active** | Frontend / manual read-only — wieczorna prognoza recovery na jutro | true | none (read-only); reads `daily_strain` | 100 | 2026-06-24 |
+| `compute-weekly-digest` | **active** | Frontend / manual read-only — deterministyczny przegląd tydzień-do-tygodnia | true | none (read-only); reads `daily_strain`, `oura_daily_summary` | 160 | 2026-06-24 |
 | `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
 | `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`, `medical_lab_results`, `medical_documents`, `body_composition_measurements`) | 240 | 2026-06-13 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |

@@ -57,8 +57,9 @@ export async function gatherUserContext(session: any) {
       supabase.from('daily_reconciliations').select('planning_summary, midday_status, midday_blocker, day_score').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('todo_items').select('title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('priority', { ascending: false }).limit(30),
       supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', format(subDays(new Date(), -14), 'yyyy-MM-dd')).order('due_date', { ascending: true }).limit(5),
+      supabase.from('daily_strain').select('date, strain_score, recovery_score, readiness_level, components').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes, todayRecRes, todosRes, checkpointsRes] = settled.map(r =>
+    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes, todayRecRes, todosRes, checkpointsRes, dailyStrainRes] = settled.map(r =>
       r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
     ) as any[];
 
@@ -199,6 +200,19 @@ export async function gatherUserContext(session: any) {
         title: c.title,
         due_date: c.due_date,
       })),
+      readiness: dailyStrainRes.data ? {
+        date: dailyStrainRes.data.date,
+        strain: dailyStrainRes.data.strain_score,
+        recovery: dailyStrainRes.data.recovery_score,
+        readiness_level: dailyStrainRes.data.readiness_level,
+        recovery_confidence: (dailyStrainRes.data.components as any)?.recovery_confidence ?? null,
+        strain_confidence: (dailyStrainRes.data.components as any)?.strain_confidence ?? null,
+        vitality_score: (dailyStrainRes.data.components as any)?.vitality_score ?? null,
+        fitness_age: (dailyStrainRes.data.components as any)?.fitness_age ?? null,
+        caffeine_alert: (dailyStrainRes.data.components as any)?.caffeine_alert ?? null,
+        caffeine_active_mg: (dailyStrainRes.data.components as any)?.caffeine_active_mg ?? null,
+        hydration_goal_ml: (dailyStrainRes.data.components as any)?.hydration_goal_ml ?? null,
+      } : null,
       active_signature: core.generateActiveSignature(footprintRes.data || [], currentMetrics),
       desktop_footprint: footprintRes.data?.map((f: any) => {
         const payload = f.payload && typeof f.payload === 'object' && !Array.isArray(f.payload)

@@ -67,6 +67,17 @@ export const EXERCISES = [
   { name: 'Wspięcia na łydki', tags: ['łydki'] },
   { name: 'Wspięcia na palce', tags: ['łydki'] },
   { name: 'Good morning', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
+  // Plajometria / moc reaktywna (pod biegacza)
+  { name: 'Box jump', tags: ['plyo', 'czworogłowe', 'pośladki'] },
+  { name: 'Depth jump', tags: ['plyo', 'czworogłowe', 'łydki'] },
+  { name: 'Single-leg hop', tags: ['plyo', 'łydki', 'pośladki'] },
+  { name: 'Single-leg box jump', tags: ['plyo', 'czworogłowe', 'pośladki'] },
+  { name: 'Bounding', tags: ['plyo', 'pośladki', 'dwugłowe ud'] },
+  { name: 'Split squat jump', tags: ['plyo', 'czworogłowe', 'pośladki'] },
+  { name: 'Lateral bound', tags: ['plyo', 'pośladki', 'czworogłowe'] },
+  { name: 'Tuck jump', tags: ['plyo', 'czworogłowe', 'łydki'] },
+  { name: 'Pogo hop', tags: ['plyo', 'łydki'] },
+  { name: 'Skip A/B drill', tags: ['plyo', 'łydki', 'czworogłowe'] },
   // Brzuch
   { name: 'Plank', tags: ['brzuch'] },
   { name: 'Crunch', tags: ['brzuch'] },
@@ -257,6 +268,20 @@ const STIMULUS_PROFILES: Array<{ patterns: string[]; stimulus: Record<string, { 
       przedramiona: { indirect: 0.25 },
     },
   },
+  {
+    patterns: ['box jump', 'depth jump', 'split squat jump', 'tuck jump'],
+    stimulus: {
+      czworogłowe: { direct: 1 },
+      pośladki: { indirect: 0.55 },
+    },
+  },
+  {
+    patterns: ['single-leg hop', 'single-leg box jump', 'pogo hop', 'bounding', 'lateral bound', 'skip a/b'],
+    stimulus: {
+      łydki: { direct: 1 },
+      pośladki: { indirect: 0.45 },
+    },
+  },
 ];
 
 export function stimulusForExercise(name: string, fallbackTags: string[] = []): Record<string, { direct?: number; indirect?: number }> {
@@ -286,6 +311,7 @@ export const TAG_COLOR: Record<string, string> = {
   przedramiona:  'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
   cardio:        'bg-red-500/15 text-red-300 border-red-500/25',
   wellness:      'bg-teal-400/15 text-teal-300 border-teal-400/25',
+  plyo:          'bg-lime-500/15 text-lime-300 border-lime-500/25',
 };
 
 export function tagClass(tag: string): string {

@@ -149,7 +149,7 @@ export default function Dashboard({ session }: { session: Session }) {
   }, []);
 
   const { isSyncing, setSyncing } = useStore();
-  const { weeklyCalories, todayWin, syncYazio, loading, refresh } = useDashboardData();
+  const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
   const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
 
   const showLock = !todayWin;
@@ -395,8 +395,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 <ScheduleView session={session} />
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
-                  syncYazio={syncYazio}
-                  isSyncing={isSyncing}
                   session={session}
                 />
                 <Direction session={session} />

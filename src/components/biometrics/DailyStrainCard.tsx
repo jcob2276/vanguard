@@ -1,7 +1,7 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
+import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, Heart, Coffee, Droplets } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -14,7 +14,24 @@ const LIMITER_PL = {
   mental_load: 'głowa', recovery_ok: 'OK',
 };
 
-const STATUS_RING = { 
+// VitalBands: color tile by z-score vs personal EWMA baseline (Strand VitalBands.swift)
+// positive z = better than baseline; |z| ≤ 2 = in personal normal range
+function zToVitalColor(z: number | null | undefined, defaultColor: string): string {
+  if (z == null) return defaultColor;
+  if (z >= 1.0)        return 'text-emerald-500 dark:text-emerald-400';
+  if (z >= -1.0)       return defaultColor;
+  if (z >= -2.0)       return 'text-amber-500 dark:text-amber-400';
+  return 'text-rose-500 dark:text-rose-400';
+}
+
+const CONF_PILL = {
+  solid:       'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  building:    'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  calibrating: 'bg-surface-solid text-text-muted border border-border-custom',
+};
+const CONF_LABEL = { solid: 'Solid', building: 'Building', calibrating: 'Calibrating' };
+
+const STATUS_RING = {
   green: 'border-emerald-500/20 bg-emerald-500/[0.03] shadow-[0_8px_30px_rgba(16,185,129,0.04)]', 
   yellow: 'border-amber-500/20 bg-amber-500/[0.03] shadow-[0_8px_30px_rgba(245,158,11,0.04)]', 
   red: 'border-rose-500/25 bg-rose-500/[0.03] shadow-[0_8px_30px_rgba(244,63,94,0.04)]' 
@@ -102,7 +119,6 @@ export default function DailyStrainCard({ session }: { session: Session }) {
       };
       // 1. źródła surowe (równolegle) - tolerujemy błędy pojedynczych synchronizatorów
       await Promise.all([
-        call('sync-yazio', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-yazio failed:', err)),
         call('sync-strava', {}).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
         call('sync-oura', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
@@ -173,6 +189,18 @@ export default function DailyStrainCard({ session }: { session: Session }) {
   const limiterKey = (row.main_limiter || '') as keyof typeof LIMITER_PL;
   const isStale = row.date !== getTodayWarsaw();
 
+  const comp = (row.components as any) ?? {};
+  const recConf  = comp.recovery_confidence as 'calibrating' | 'building' | 'solid' | undefined;
+  const strConf  = comp.strain_confidence  as 'calibrating' | 'building' | 'solid' | undefined;
+  const vitalityScore   = comp.vitality_score   as number  | null | undefined;
+  const fitnessAge      = comp.fitness_age       as number  | null | undefined;
+  const caffeineAlert   = comp.caffeine_alert    as boolean | null | undefined;
+  const caffeineMg      = comp.caffeine_active_mg as number | null | undefined;
+  const hydrationGoalMl = comp.hydration_goal_ml as number  | null | undefined;
+  const sleepDebtH      = comp.sleep_debt_h      as number  | null | undefined;
+  const hrvZ            = comp.hrv_z             as number  | null | undefined;
+  const rhrZ            = comp.rhr_z             as number  | null | undefined;
+
   return (
     <section className={`animate-fadeIn relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
       <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
@@ -192,6 +220,67 @@ export default function DailyStrainCard({ session }: { session: Session }) {
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
         </div>
 
+        {/* Confidence pills */}
+        {(recConf || strConf) && (
+          <div className="flex gap-1.5 flex-wrap">
+            {strConf && (
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CONF_PILL[strConf]}`}>
+                Strain · {CONF_LABEL[strConf]}
+              </span>
+            )}
+            {recConf && (
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CONF_PILL[recConf]}`}>
+                Recovery · {CONF_LABEL[recConf]}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Secondary metrics: vitality / fitness age / caffeine / hydration / sleep debt */}
+        {(vitalityScore != null || fitnessAge != null || caffeineAlert || hydrationGoalMl != null || sleepDebtH != null) && (
+          <div className="flex gap-1.5 flex-wrap">
+            {vitalityScore != null && (
+              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
+                <Heart size={9} className="text-rose-400" />
+                <span className="text-text-muted">Vitality</span>
+                <span className="text-text-primary">{vitalityScore}</span>
+              </span>
+            )}
+            {fitnessAge != null && (
+              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
+                <span className="text-text-muted">Bio age</span>
+                <span className="text-text-primary">{fitnessAge}</span>
+              </span>
+            )}
+            {caffeineAlert && caffeineMg != null && (
+              <span className="inline-flex items-center gap-1 rounded-xl bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                <Coffee size={9} />
+                {caffeineMg}mg kofeiny
+              </span>
+            )}
+            {hydrationGoalMl != null && (
+              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
+                <Droplets size={9} className="text-sky-400" />
+                <span className="text-text-muted">Nawodnienie</span>
+                <span className="text-text-primary">{(hydrationGoalMl / 1000).toFixed(1)}L</span>
+              </span>
+            )}
+            {sleepDebtH != null && (
+              <span className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-bold border ${
+                sleepDebtH <= -1
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+                  : sleepDebtH >= 0.5
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-surface-solid border-border-custom text-text-primary'
+              }`}>
+                <Moon size={9} />
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">dług snu</span>
+                <span>{sleepDebtH > 0 ? '+' : ''}{sleepDebtH}h</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {missingSignals.length > 0 && (
           <DataStateNotice
             title="Niepełne dane"
@@ -202,8 +291,8 @@ export default function DailyStrainCard({ session }: { session: Session }) {
         {oura && (
           <div className="grid grid-cols-5 gap-1.5 pt-2.5 border-t border-border-custom">
             {[
-              { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: 'text-dayA' },
-              { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: 'text-dayB' },
+              { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: zToVitalColor(hrvZ, 'text-dayA') },
+              { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: zToVitalColor(rhrZ, 'text-dayB') },
               { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: 'text-primary' },
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
               { icon: Footprints, label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },

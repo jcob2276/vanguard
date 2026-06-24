@@ -122,6 +122,36 @@ export type Database = {
         }
         Relationships: []
       }
+      behavior_log: {
+        Row: {
+          behavior_key: string
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          behavior_key: string
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          behavior_key?: string
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
       body_composition_measurements: {
         Row: {
           bmi: number | null
@@ -1998,12 +2028,20 @@ export type Database = {
       }
       nutrition_targets: {
         Row: {
+          adaptive_correction_kcal: number | null
           avg_intake_logged: number | null
           avg_tdee_oura: number | null
           created_at: string
           date: string
+          days_to_goal_est: number | null
           deficit_kcal: number | null
           est_maintenance_kcal: number | null
+          forecast_30d_bf_pct: number | null
+          forecast_30d_weight_kg: number | null
+          forecast_60d_bf_pct: number | null
+          forecast_60d_weight_kg: number | null
+          forecast_90d_bf_pct: number | null
+          forecast_90d_weight_kg: number | null
           id: string
           inputs: Json | null
           protein_floor_g: number | null
@@ -2015,12 +2053,20 @@ export type Database = {
           weight_trend_kg_per_week: number | null
         }
         Insert: {
+          adaptive_correction_kcal?: number | null
           avg_intake_logged?: number | null
           avg_tdee_oura?: number | null
           created_at?: string
           date: string
+          days_to_goal_est?: number | null
           deficit_kcal?: number | null
           est_maintenance_kcal?: number | null
+          forecast_30d_bf_pct?: number | null
+          forecast_30d_weight_kg?: number | null
+          forecast_60d_bf_pct?: number | null
+          forecast_60d_weight_kg?: number | null
+          forecast_90d_bf_pct?: number | null
+          forecast_90d_weight_kg?: number | null
           id?: string
           inputs?: Json | null
           protein_floor_g?: number | null
@@ -2032,12 +2078,20 @@ export type Database = {
           weight_trend_kg_per_week?: number | null
         }
         Update: {
+          adaptive_correction_kcal?: number | null
           avg_intake_logged?: number | null
           avg_tdee_oura?: number | null
           created_at?: string
           date?: string
+          days_to_goal_est?: number | null
           deficit_kcal?: number | null
           est_maintenance_kcal?: number | null
+          forecast_30d_bf_pct?: number | null
+          forecast_30d_weight_kg?: number | null
+          forecast_60d_bf_pct?: number | null
+          forecast_60d_weight_kg?: number | null
+          forecast_90d_bf_pct?: number | null
+          forecast_90d_weight_kg?: number | null
           id?: string
           inputs?: Json | null
           protein_floor_g?: number | null
@@ -2975,6 +3029,83 @@ export type Database = {
           expires_at?: number | null
           refresh_token?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      supplement_logs: {
+        Row: {
+          date: string
+          id: string
+          logged_at: string
+          note: string | null
+          quantity: number
+          supplement_id: string
+          user_id: string
+        }
+        Insert: {
+          date: string
+          id?: string
+          logged_at?: string
+          note?: string | null
+          quantity?: number
+          supplement_id: string
+          user_id: string
+        }
+        Update: {
+          date?: string
+          id?: string
+          logged_at?: string
+          note?: string | null
+          quantity?: number
+          supplement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplement_logs_supplement_id_fkey"
+            columns: ["supplement_id"]
+            isOneToOne: false
+            referencedRelation: "supplements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplements: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          dose_per_unit: Json
+          emoji: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          dose_per_unit?: Json
+          emoji?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          unit?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          dose_per_unit?: Json
+          emoji?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          unit?: string
           user_id?: string
         }
         Relationships: []
@@ -4679,6 +4810,11 @@ export type Database = {
           duration_minutes: number | null
           embedding: string | null
           end_time: string | null
+          hr_avg_bpm: number | null
+          hr_kcal_est: number | null
+          hr_peak_bpm: number | null
+          hr_rescored_at: string | null
+          hr_strain_score: number | null
           id: string
           importance_score: number | null
           msp_passed: boolean | null
@@ -4694,6 +4830,11 @@ export type Database = {
           duration_minutes?: number | null
           embedding?: string | null
           end_time?: string | null
+          hr_avg_bpm?: number | null
+          hr_kcal_est?: number | null
+          hr_peak_bpm?: number | null
+          hr_rescored_at?: string | null
+          hr_strain_score?: number | null
           id?: string
           importance_score?: number | null
           msp_passed?: boolean | null
@@ -4709,6 +4850,11 @@ export type Database = {
           duration_minutes?: number | null
           embedding?: string | null
           end_time?: string | null
+          hr_avg_bpm?: number | null
+          hr_kcal_est?: number | null
+          hr_peak_bpm?: number | null
+          hr_rescored_at?: string | null
+          hr_strain_score?: number | null
           id?: string
           importance_score?: number | null
           msp_passed?: boolean | null

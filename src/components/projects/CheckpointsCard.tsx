@@ -50,13 +50,21 @@ export default function CheckpointsCard({ session, onNavigateTo }: { session: an
         .order('due_date', { ascending: true }),
       supabase
         .from('projects')
-        .select('id, name, color, pillar')
+        .select('id, name, color, dream_id')
         .eq('user_id', userId)
         .eq('status', 'active'),
-    ]).then(([{ data: cps }, { data: projs }]) => {
+      supabase
+        .from('dreams')
+        .select('id, life_goal')
+        .eq('user_id', userId),
+    ]).then(([{ data: cps }, { data: projs }, { data: dreams }]) => {
       if (!cps || !projs) { setLoading(false); return; }
+      const dreamById: Record<string, any> = {};
+      (dreams ?? []).forEach((d: any) => { dreamById[d.id] = d; });
       const projMap: Record<string, any> = {};
-      (projs ?? []).forEach((p: any) => { projMap[p.id] = p; });
+      (projs ?? []).forEach((p: any) => {
+        projMap[p.id] = { ...p, pillar: p.dream_id ? dreamById[p.dream_id]?.life_goal ?? null : null };
+      });
 
       const enriched = (cps ?? [])
         .map((cp: any) => ({ ...cp, project: projMap[cp.project_id] }))

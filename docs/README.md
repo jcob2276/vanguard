@@ -28,6 +28,7 @@ Lean operational docs + links to existing deep context.
 ## Goals / direction
 
 - [direction/](./direction/) — North Star (`KIERUNEK.md`) + ETAP 0/1 planning docs
+- [PLAN_READINESS_NOOP.md](./PLAN_READINESS_NOOP.md) — własny recovery/readiness/strain engine inspirowany Noop/Strand (status: planning done, implementacja nie rozpoczęta)
 - [ROADMAP_V10.md](./ROADMAP_V10.md) — canonical roadmap
 - [VISION_10_10.md](./VISION_10_10.md) — canonical 10/10 vision
 - [VANGUARD_MANIFESTO.md](./VANGUARD_MANIFESTO.md) — system philosophy (PL)

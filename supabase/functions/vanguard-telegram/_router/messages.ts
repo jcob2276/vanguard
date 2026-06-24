@@ -22,6 +22,7 @@ import {
   handleKeepCommand,
   handlePosilekCommand,
 } from "./commands.ts";
+import { handleSuplementCommand } from "../_handlers/supplements.ts";
 
 export { DEFAULT_REPLY_KEYBOARD };
 
@@ -234,6 +235,12 @@ export async function handleIncomingMessage(
       // --- /todo command ---
       if (lowerText.startsWith('/todo')) {
         await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey);
+        return;
+      }
+
+      // --- /s command (supplement logging) ---
+      if (lowerText === '/s' || lowerText === '/suplement' || lowerText === '💊 suple') {
+        await handleSuplementCommand(chatId, telegramToken);
         return;
       }
 

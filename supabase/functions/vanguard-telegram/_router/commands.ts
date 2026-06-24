@@ -28,6 +28,9 @@ export const DEFAULT_REPLY_KEYBOARD = {
     [
       { text: "🍽️ Dieta" },
       { text: "🍴 Posiłek" }
+    ],
+    [
+      { text: "💊 Suple" }
     ]
   ],
   resize_keyboard: true,
@@ -118,16 +121,6 @@ export async function handleDietaCommand(
 ): Promise<void> {
   try {
     await sendChatAction(telegramToken, chatId, "typing");
-    // Refresh today's Yazio first so "zjedzone / zostało" reflects what you ate so far.
-    await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, { signal: AbortSignal.timeout(15000),
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-        'apikey': supabaseServiceRoleKey
-      },
-      body: JSON.stringify({ userId: vanguardUserId, days: 1 })
-    }).catch((e) => console.error('[commands] /dieta yazio presync failed:', e));
 
     const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, { signal: AbortSignal.timeout(15000),
       method: 'POST',

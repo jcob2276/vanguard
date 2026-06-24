@@ -17,6 +17,10 @@ import {
   handlePatternFeedbackCallback,
   isPatternFeedbackCallback,
 } from "../_handlers/patternFeedback.ts";
+import {
+  handleSupplementCallback,
+  isSupplementCallback,
+} from "../_handlers/supplements.ts";
 
 type CallbackQuery = {
   id: string;
@@ -42,6 +46,11 @@ export async function handleCallbackQuery(
     deepseekApiKey,
     vanguardUserId,
   } = ctx;
+
+  if (isSupplementCallback(data)) {
+    await handleSupplementCallback(data, chatId, messageId, callbackId, supabase, telegramToken, vanguardUserId);
+    return;
+  }
 
   if (ANALYSIS_ACTION_CALLBACKS.includes(data)) {
     await handleAnalysisActionCallback(

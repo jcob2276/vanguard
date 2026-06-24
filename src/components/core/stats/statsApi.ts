@@ -2,27 +2,6 @@ import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../lib/database.types';
 
-export async function syncYazioHistory({ supabase, supabaseUrl, userId, days = 25 }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; days?: number }) {
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  if (!authSession) throw new Error('No active session found');
-  try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/sync-yazio`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authSession.access_token}`
-      },
-      body: JSON.stringify({ userId, sync_history: true, days }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (err) {
-    console.error('syncYazioHistory error:', err);
-    throw err;
-  }
-}
-
 export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   if (!authSession) throw new Error('No active session found');

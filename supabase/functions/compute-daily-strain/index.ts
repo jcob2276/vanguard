@@ -147,6 +147,20 @@ function computeReadiness(
   return { level, signals }
 }
 
+// ── CAFFEINE inference from food name (no dedicated caffeine_mg column) ────────
+function estimateCaffeineMg(name: string): number {
+  const n = name.toLowerCase()
+  if (n.includes('espresso')) return 63
+  if (n.includes('kawa') || n.includes('coffee') || n.includes('americano') ||
+      n.includes('cappuccino') || n.includes('latte') || n.includes('flat white') ||
+      n.includes('cortado') || n.includes('macchiato') || n.includes('cold brew')) return 95
+  if (n.includes('matcha') || n.includes('green tea')) return 30
+  if (n.includes('herbata') || n.includes('tea')) return 47
+  if (n.includes('energy drink') || n.includes('red bull') || n.includes('monster')) return 80
+  if (n.includes('cola') || n.includes('pepsi')) return 35
+  return 0
+}
+
 function serviceClient() {
   return createServiceClient()
 }
@@ -184,9 +198,17 @@ Deno.serve(async (req) => {
         .order('date', { ascending: false }).limit(1).maybeSingle()
       const weight = Number(bw?.weight) || 75
 
+      // ── Profil (wiek, płeć → FitnessAge / VitalityEngine) ──
+      const { data: profile } = await supabase.from('nutrition_profile')
+        .select('birth_date, sex').eq('user_id', uid).maybeSingle()
+      const sex = String(profile?.sex ?? 'M').toUpperCase() === 'F' ? 'F' : 'M'
+      const ageYears = profile?.birth_date
+        ? (now.getTime() - new Date(profile.birth_date).getTime()) / (365.25 * 86400000)
+        : 30
+
       // ── Baseline HRV/RHR (90 dni, chronologicznie dla EWMA) ──
       const { data: base, error: baseErr } = await supabase.from('oura_daily_summary')
-        .select('date, hrv_avg, rhr_avg').eq('user_id', uid).gte('date', start90).order('date')
+        .select('date, hrv_avg, rhr_avg, total_sleep_hours').eq('user_id', uid).gte('date', start90).order('date')
       if (baseErr) console.error(`[strain] user ${uid} baseline query failed, EWMA will fall back to empty history:`, baseErr.message)
       const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
       const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
@@ -198,14 +220,23 @@ Deno.serve(async (req) => {
       const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0)
       const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0)
       const baseByDate: Record<string, any> = {}
-      for (const row of (base || []) as any[]) baseByDate[row.date] = row
+      const sleepByDate: Record<string, number> = {}
+      for (const row of (base || []) as any[]) {
+        baseByDate[row.date] = row
+        if (row.total_sleep_hours != null) sleepByDate[row.date] = Number(row.total_sleep_hours)
+      }
 
       const { data: respBase } = await supabase.from('oura_enhanced')
-        .select('date, sleep_average_breath').eq('user_id', uid).gte('date', start90).order('date')
+        .select('date, sleep_average_breath, temperature_deviation').eq('user_id', uid).gte('date', start90).order('date')
       const respByDate: Record<string, number | null> = {}
+      const skinTempByDate: Record<string, number | null> = {}
       for (const row of (respBase || []) as any[]) {
         respByDate[row.date] = row.sleep_average_breath != null ? Number(row.sleep_average_breath) : null
+        skinTempByDate[row.date] = row.temperature_deviation != null ? Number(row.temperature_deviation) : null
       }
+      // Winsorized EWMA baseline dla respiracji (PLAN_READINESS_NOOP.md 4.1/4.2 — floor 0.5)
+      const respVals = (respBase || []).map((r: any) => r.sleep_average_breath).filter((v: any): v is number => v != null) as number[]
+      const respEwma = ewmaBaseline(respVals, 4, 40, 0.5)
 
       // Strain history for ReadinessEngine (last 30 days, pre-existing rows)
       const { data: strainHistRows } = await supabase.from('daily_strain')
@@ -215,13 +246,14 @@ Deno.serve(async (req) => {
 
       // ── Źródła w oknie (z buforem -1 dnia na "wczoraj") ──
       const winStart = toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
-      const [zonesR, enhR, summR, nutrR, wsR, stravaR] = await Promise.all([
+      const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
         supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours').eq('user_id', uid).gte('date', winStart),
         supabase.from('daily_nutrition').select('date, calories, protein, carbs').eq('user_id', uid).gte('date', winStart),
         supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe, rir)').eq('user_id', uid).gte('date', winStart),
         supabase.from('strava_activities_clean').select('start_date, perceived_exertion, has_pr, sport_type, is_oura').eq('user_id', uid).eq('is_oura', false).gte('start_date', winStart + 'T00:00:00'),
+        supabase.from('daily_food_entries').select('name, logged_at, date').eq('user_id', uid).gte('date', winStart).not('logged_at', 'is', null),
       ])
 
       const byKey = <T,>(rows: T[] | null, key: (r: T) => string) => {
@@ -235,6 +267,7 @@ Deno.serve(async (req) => {
       const nutr = byKey(nutrR.data, (r: any) => r.date)
       const workouts = byKey(wsR.data, (r: any) => r.date)
       const strava = byKey(stravaR.data, (r: any) => warsawDate(r.start_date))
+      const food = byKey(foodR.data, (r: any) => r.date)
 
       // ── Iteracja chronologiczna ──
       const dayList: string[] = []
@@ -319,21 +352,43 @@ Deno.serve(async (req) => {
         const strain = hasAnyLoad ? Math.round(21 * (1 - Math.exp(-rawTotal / 156)) * 10) / 10 : null
 
         // ── RECOVERY 0–100 (NOOP RecoveryScorer: HRV-dominant logistic) ──
-        // Weights: HRV 60%, RHR 20%, sleep 15%. Z=0 → 58% (WHOOP population avg).
+        // Pełne wagi z PLAN_READINESS_NOOP.md 4.2: HRV 55%, RHR 20%, sleep 15%, resp 5%, skin temp 5%.
+        // Z=0 → 58% (WHOOP population avg).
         let recovery: number | null = null
         const sleep = s?.total_sleep_hours ?? null
+        const respToday = respByDate[date] ?? null
+        const skinTempToday = skinTempByDate[date] ?? null
+
+        // ── SLEEP DEBT (Strand SleepDebt.swift) 14-night rolling ledger ──
+        if (sleep != null) sleepByDate[date] = Number(sleep)
+        const sleepDates14 = Object.keys(sleepByDate).sort().filter(d => d <= date).slice(-14)
+        const sleepDebtH = sleepDates14.length >= 4
+          ? Math.round(sleepDates14.reduce((acc, d) => acc + (sleepByDate[d] - 8.0), 0) * 10) / 10
+          : null
+
+        // z-scores hoisted out of recovery block for VitalBands export
+        const SIGMA = 1.253
+        let zHrv: number | null = null
+        let zRhr: number | null = null
         if (s?.hrv_avg != null && hrvEwma != null && hrvEwma.nValid >= 4) {
-          const SIGMA = 1.253  // converts EWMA abs-dev spread to Gaussian σ
-          const W_HRV = 0.60, W_RHR = 0.20, W_SLEEP = 0.15
-          const zHrv = (Number(s.hrv_avg) - hrvEwma.center) / Math.max(SIGMA * hrvEwma.spread, 1e-9)
-          const zRhr = s.rhr_avg != null && rhrEwma != null
+          const W_HRV = 0.55, W_RHR = 0.20, W_SLEEP = 0.15, W_RESP = 0.05, W_SKIN = 0.05
+          zHrv = (Number(s.hrv_avg) - hrvEwma.center) / Math.max(SIGMA * hrvEwma.spread, 1e-9)
+          zRhr = s.rhr_avg != null && rhrEwma != null
             ? (rhrEwma.center - Number(s.rhr_avg)) / Math.max(SIGMA * rhrEwma.spread, 1e-9)
             : null
           const sleepPerf = sleep != null ? Number(sleep) / 8.0 : null
           const zSleep = sleepPerf != null ? (sleepPerf - 0.85) / 0.12 : null
+          // Resp: wyższa wartość = gorzej (early illness signal), inwersja jak RHR
+          const zResp = respToday != null && respEwma != null
+            ? (respEwma.center - respToday) / Math.max(SIGMA * respEwma.spread, 1e-9)
+            : null
+          // Skin temp: symetryczna kara — odchylenie w którąkolwiek stronę = gorzej (4.2: skinTempScaleC=1.0)
+          const zSkin = skinTempToday != null ? -Math.abs(skinTempToday) / 1.0 : null
           let zSum = zHrv * W_HRV, wSum = W_HRV
           if (zRhr != null) { zSum += zRhr * W_RHR; wSum += W_RHR }
           if (zSleep != null) { zSum += zSleep * W_SLEEP; wSum += W_SLEEP }
+          if (zResp != null) { zSum += zResp * W_RESP; wSum += W_RESP }
+          if (zSkin != null) { zSum += zSkin * W_SKIN; wSum += W_SKIN }
           // Logistic: K=1.6, Z0=-0.20 → Z=0 gives 58% (population average)
           const score = 100 / (1 + Math.exp(-1.6 * (zSum / wSum + 0.20)))
           recovery = clamp(Math.round(score), 0, 100)
@@ -344,6 +399,19 @@ Deno.serve(async (req) => {
           if (sleep != null) { if (Number(sleep) < 6) rec -= 12; else if (Number(sleep) < 7) rec -= 6 }
           recovery = clamp(Math.round(rec), 0, 100)
         }
+
+        // ── SCORE CONFIDENCE (PLAN_READINESS_NOOP.md 4.8) — szczere tiery pewności ──
+        // Charge: solid wymaga w pełni zaufanego baseline (≥14 nocy), building = baseline prowizoryczny.
+        const recoveryConfidence: 'calibrating' | 'building' | 'solid' =
+          recovery === null ? 'calibrating'
+          : (hrvEwma?.nValid ?? 0) >= 14 ? 'solid'
+          : 'building'
+        // Effort: solid wymaga realnych danych ze stref HR LUB zalogowanego treningu siłowego tego dnia.
+        const hasZoneData = z != null && (z.z1_regen_min != null || z.z2_tlenowa_min != null || z.z3_tempo_min != null || z.z4_prog_min != null || z.z5_max_min != null)
+        const strainConfidence: 'calibrating' | 'building' | 'solid' =
+          strain === null ? 'calibrating'
+          : (hasZoneData || wsets.length > 0) ? 'solid'
+          : 'building'
 
         // ── STATUS ──
         let status = 'yellow'
@@ -412,6 +480,52 @@ Deno.serve(async (req) => {
           }))
         const readiness = computeReadiness(readinessDays, date)
 
+        // ── CAFFEINE DECAY (4.16) half-life 5.5h; inferred from food names ──
+        // Reference point: current time for today, 22:00 Warsaw for past days
+        const refTs = date === todayWarsaw
+          ? now.getTime()
+          : new Date(date + 'T22:00:00').getTime()
+        let caffeineActiveMg = 0
+        for (const entry of (food[date] || [])) {
+          const mg = estimateCaffeineMg(entry.name)
+          if (mg === 0 || !entry.logged_at) continue
+          const hoursElapsed = (refTs - new Date(entry.logged_at).getTime()) / 3600000
+          if (hoursElapsed < 0 || hoursElapsed > 24) continue
+          caffeineActiveMg += mg * Math.pow(0.5, hoursElapsed / 5.5)
+        }
+        caffeineActiveMg = Math.round(caffeineActiveMg)
+        const caffeineAlert = caffeineActiveMg > 25
+
+        // ── HYDRATION GOAL (4.16) sex baseline + effort scalar ──
+        const hydrationGoalMl = (sex === 'F' ? 2700 : 3700)
+          + Math.round((strain ?? 0) / 21 * 700)
+
+        // ── FITNESS AGE (4.16 Nes 2011 waist variant) ──
+        const rhrToday = s?.rhr_avg != null ? Number(s.rhr_avg) : null
+        const paiProxy = steps != null ? clamp(steps / 2000, 0, 10) : 5
+        const rhrC = sex === 'F' ? 0.192 : 0.155
+        const paiC = sex === 'F' ? 0.186 : 0.226
+        const ageC = sex === 'F' ? 0.289 : 0.296
+        const fitnessAge = rhrToday != null
+          ? clamp(Math.round(ageYears + (rhrC * (rhrToday - 65) - paiC * (paiProxy - 5)) / ageC), 20, 90)
+          : null
+
+        // ── VITALITY ENGINE (4.13 Gompertz: ln(2)/8 hazard doubling) ──
+        // Available factors: RHR, HRV, sleep. VO2max/steps skipped (no direct source).
+        const LN_HAZARD = Math.log(2) / 8  // ≈ 0.0866
+        const normRHR = 60 + 0.15 * (ageYears - 25)
+        const normHRV = 75 - 0.8 * (ageYears - 20)
+        let vFactors = 0, nVFactors = 0
+        if (rhrToday != null) { vFactors += 0.025 * (rhrToday - normRHR); nVFactors++ }
+        if (s?.hrv_avg != null) { vFactors += -0.012 * (Number(s.hrv_avg) - normHRV); nVFactors++ }
+        if (sleep != null) { vFactors += -0.10 * clamp(Number(sleep) - 7.0, -2.5, 1.0); nVFactors++ }
+        let bodyAge: number | null = null
+        let vitalityScore: number | null = null
+        if (nVFactors >= 2) {
+          bodyAge = clamp(Math.round(ageYears + (0.75 * vFactors) / LN_HAZARD), 20, 90)
+          vitalityScore = clamp(Math.round(50 + (ageYears - bodyAge) * 2.5), 0, 100)
+        }
+
         const row = {
           user_id: uid, date,
           strain_score: strain, recovery_score: recovery, fueling_score: fuelingScore,
@@ -429,7 +543,19 @@ Deno.serve(async (req) => {
             hrv_base: hrvEwma ? Math.round(hrvEwma.center) : (hrvBase ? Math.round(hrvBase) : null),
             rhr_base: rhrEwma ? Math.round(rhrEwma.center) : (rhrBase ? Math.round(rhrBase) : null),
             hrv_ewma_nValid: hrvEwma?.nValid ?? null,
+            resp_base: respEwma ? Math.round(respEwma.center * 10) / 10 : null,
+            resp_today: respToday, skin_temp_dev_today: skinTempToday,
             readiness_signals: readiness.signals,
+            recovery_confidence: recoveryConfidence, strain_confidence: strainConfidence,
+            caffeine_active_mg: caffeineActiveMg > 0 ? caffeineActiveMg : null,
+            caffeine_alert: caffeineAlert || null,
+            hydration_goal_ml: hydrationGoalMl,
+            fitness_age: fitnessAge,
+            body_age: bodyAge,
+            vitality_score: vitalityScore,
+            sleep_debt_h: sleepDebtH,
+            hrv_z: zHrv != null ? Math.round(zHrv * 100) / 100 : null,
+            rhr_z: zRhr != null ? Math.round(zRhr * 100) / 100 : null,
           },
           updated_at: new Date().toISOString(),
         }

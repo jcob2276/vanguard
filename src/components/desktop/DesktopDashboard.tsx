@@ -309,7 +309,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
     };
     try {
       const phase1 = await Promise.allSettled([
-        call('sync-yazio', { userId, sync_history: true, days: 7 }),
         call('sync-oura', { userId }),
         call('sync-calendar', { userId })
       ]);

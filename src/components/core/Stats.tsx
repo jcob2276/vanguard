@@ -6,11 +6,11 @@ import { format, subDays } from 'date-fns';
 import { useStore } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection } from './stats/statsCalculations';
-import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad, syncYazioHistory } from './stats/statsApi';
+import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from './stats/statsApi';
 import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
-import { BodyMetricsSection } from './stats/BodyMetricsSection';
+import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
@@ -67,7 +67,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
   const [recentSessions, setRecentSessions] = useState<WorkoutSessionRow[]>([]);
-  const [newMetric, setNewMetric] = useState({ weight: '', waist: '' });
+  const [newMetric, setNewMetric] = useState<NewMetricState>({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
+  const [heightCm, setHeightCm] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
     from: format(subDays(nowWarsaw(), 7), 'yyyy-MM-dd'),
     to: format(nowWarsaw(), 'yyyy-MM-dd')
@@ -81,7 +82,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [includeWorkouts, setIncludeWorkouts] = useState(true);
   const [includeBody, setIncludeBody] = useState(true);
   const [includeActivityWatch, setIncludeActivityWatch] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeDate, setAnalyzeDate] = useState(() => getTodayWarsaw());
   const [analyzePeriod, setAnalyzePeriod] = useState(1);
@@ -101,12 +101,15 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       const [
         { data: body },
         { data: sessions },
-        { data: oura }
+        { data: oura },
+        { data: profile },
       ] = await Promise.all([
         supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
         supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
+        supabase.from('nutrition_profile').select('height_cm').eq('user_id', session.user.id).maybeSingle(),
       ]);
+      if (profile?.height_cm != null) setHeightCm(Number(profile.height_cm));
 
       if (body) setBodyData(body);
 
@@ -158,10 +161,18 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       user_id: session.user.id,
       date: today,
     };
-    if (newMetric.weight !== '') payload.weight = parseFloat(newMetric.weight);
-    if (newMetric.waist !== '') payload.waist = parseFloat(newMetric.waist);
-    if (payload.weight == null && payload.waist == null) {
-      alert('Podaj wagę albo talię.');
+    const p = payload as any;
+    if (newMetric.weight   !== '') p.weight   = parseFloat(newMetric.weight);
+    if (newMetric.waist    !== '') p.waist    = parseFloat(newMetric.waist);
+    if (newMetric.neck     !== '') p.neck     = parseFloat(newMetric.neck);
+    if (newMetric.chest    !== '') p.chest    = parseFloat(newMetric.chest);
+    if (newMetric.belly    !== '') p.belly    = parseFloat(newMetric.belly);
+    if (newMetric.hips     !== '') p.hips     = parseFloat(newMetric.hips);
+    if (newMetric.thigh    !== '') p.thigh    = parseFloat(newMetric.thigh);
+    if (newMetric.biceps_l !== '') p.biceps_l = parseFloat(newMetric.biceps_l);
+    if (newMetric.calf     !== '') p.calf     = parseFloat(newMetric.calf);
+    if (!p.weight && !p.waist && !p.neck && !p.chest && !p.belly && !p.hips && !p.thigh && !p.biceps_l && !p.calf) {
+      alert('Podaj przynajmniej jeden pomiar.');
       return;
     }
     const { error } = await supabase.from('body_metrics').upsert(payload);
@@ -176,28 +187,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       fetchStats();
     }
   }
-  async function syncHistory() {
-    setIsSyncing(true);
-    try {
-      const res = await syncYazioHistory({
-        supabase,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        userId: session.user.id,
-        days: 25
-      });
-      if (res.success) {
-        alert(`Zsynchronizowano ${res.synced_days} dni!`);
-        fetchStats();
-      } else {
-        alert('Błąd synchronizacji: ' + res.error);
-      }
-    } catch (_err) {
-      alert('Błąd połączenia z funkcją');
-    } finally {
-      setIsSyncing(false);
-    }
-  }
-
   async function analyzeFood() {
     setIsAnalyzing(true);
     setAnalyzeResult(null);
@@ -344,7 +333,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         trends={trends}
         newMetric={newMetric}
         setNewMetric={setNewMetric}
-        latestBody={latestBody}
+        latestBody={latestBody as any}
+        heightCm={heightCm}
         saveMetrics={saveMetrics}
       />
 
@@ -366,8 +356,6 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
           setIncludeHabits={setIncludeHabits}
           includeActivityWatch={includeActivityWatch}
           setIncludeActivityWatch={setIncludeActivityWatch}
-          syncHistory={syncHistory}
-          isSyncing={isSyncing}
           exportData={exportData}
           isExporting={isExporting}
         />
