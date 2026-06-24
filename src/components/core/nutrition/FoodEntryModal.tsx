@@ -114,6 +114,24 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const userId = session?.user?.id;
   const haptics = useHaptics();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Keep the bottom sheet above the virtual keyboard on mobile
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const el = sheetRef.current;
+      if (!el) return;
+      const offsetBottom = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+      el.style.marginBottom = `${offsetBottom}px`;
+      el.style.maxHeight = `${Math.floor(vv.height * 0.94)}px`;
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, []);
   const [activeTab, setActiveTab] = useState<'favorites' | 'recent'>('favorites');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
@@ -281,8 +299,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         // Drop them straight into name search, which usually finds it.
         setScannerOpen(false);
         haptics.error();
-        setError(`Kod ${code} nie ma wpisu w bazie — spróbuj wpisać nazwę produktu`);
-        setTimeout(() => searchInputRef.current?.focus(), 50);
+        setError(`Nie znaleziono kodu — wpisz nazwę produktu`);
+        setTimeout(() => { searchInputRef.current?.focus(); }, 50);
+        setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
       console.error('[FoodEntryModal] barcode lookup failed', err);
@@ -625,8 +644,15 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     : savedFlash ? '✓ Dodano!' : 'Dodaj posiłek';
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-t-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        ref={sheetRef}
+        className="w-full max-w-sm rounded-t-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[94dvh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-border-custom shrink-0">
