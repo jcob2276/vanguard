@@ -8,6 +8,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 interface NutritionCardProps {
   weeklyCalories: number;
   session: any;
+  refreshSignal?: number;
 }
 
 interface TodayEntry {
@@ -53,6 +54,7 @@ function getWeekdayAbbr(dateStr: string): string {
 export default function NutritionCard({
   weeklyCalories,
   session,
+  refreshSignal,
 }: NutritionCardProps) {
   const userId = session?.user?.id;
   const todayRaw = getTodayWarsaw();
@@ -165,7 +167,7 @@ export default function NutritionCard({
     })();
     fetchRows();
     fetchTodayEntries();
-  }, [userId, fetchRows, fetchTodayEntries]);
+  }, [userId, fetchRows, fetchTodayEntries, refreshSignal]);
 
   const handleSaved = useCallback(() => {
     fetchRows();

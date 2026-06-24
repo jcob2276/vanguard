@@ -89,6 +89,7 @@ export default function Dashboard({ session }: { session: Session }) {
   });
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
+  const [nutritionKey, setNutritionKey] = useState(0);
   const logoLongPressTimer = useRef<number | null>(null);
   const logoLongPressFired = useRef(false);
 
@@ -397,6 +398,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
                   session={session}
+                  refreshSignal={nutritionKey}
                 />
                 <Direction session={session} />
               </div>
@@ -477,7 +479,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <FoodEntryModal
           session={session}
           onClose={() => setShowQuickFoodEntry(false)}
-          onSaved={refresh}
+          onSaved={() => { refresh(); setNutritionKey(k => k + 1); }}
         />
       )}
     </div>
