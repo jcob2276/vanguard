@@ -208,6 +208,8 @@ export default function DailyStrainCard({ session }: { session: Session }) {
   const sleepDebtH      = comp.sleep_debt_h        as number  | null | undefined;
   const hrvZ            = comp.hrv_z               as number  | null | undefined;
   const rhrZ            = comp.rhr_z               as number  | null | undefined;
+  const sleepScoreToday = comp.sleep_score_today   as number  | null | undefined;
+  const sleepZ          = comp.sleep_z             as number  | null | undefined;
   const readinessLevel  = (row as any).readiness_level as string | null | undefined;
   const readinessInfo   = readinessLevel ? READINESS_MAP[readinessLevel] : null;
 
@@ -311,7 +313,7 @@ export default function DailyStrainCard({ session }: { session: Session }) {
             {[
               { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: zToVitalColor(hrvZ, 'text-dayA') },
               { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: zToVitalColor(rhrZ, 'text-dayB') },
-              { icon: Moon, label: 'Sen', value: oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--', color: oura.total_sleep_hours == null ? 'text-text-muted' : oura.total_sleep_hours >= 7.5 ? 'text-emerald-500 dark:text-emerald-400' : oura.total_sleep_hours >= 6 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400' },
+              { icon: Moon, label: 'Sen', value: sleepScoreToday != null ? `${sleepScoreToday}pts` : (oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--'), color: zToVitalColor(sleepZ, oura.total_sleep_hours == null ? 'text-text-muted' : oura.total_sleep_hours >= 7.5 ? 'text-emerald-500 dark:text-emerald-400' : oura.total_sleep_hours >= 6 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400') },
               { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
               { icon: Footprints, label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },
             ].map(({ icon: Icon, label, value, color }) => (

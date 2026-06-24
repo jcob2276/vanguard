@@ -208,17 +208,19 @@ Deno.serve(async (req) => {
 
       // ── Baseline HRV/RHR (90 dni, chronologicznie dla EWMA) ──
       const { data: base, error: baseErr } = await supabase.from('oura_daily_summary')
-        .select('date, hrv_avg, rhr_avg, total_sleep_hours').eq('user_id', uid).gte('date', start90).order('date')
+        .select('date, hrv_avg, rhr_avg, total_sleep_hours, sleep_score').eq('user_id', uid).gte('date', start90).order('date')
       if (baseErr) console.error(`[strain] user ${uid} baseline query failed, EWMA will fall back to empty history:`, baseErr.message)
-      const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
-      const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
+      const hrvVals        = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
+      const rhrVals        = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
+      const sleepScoreVals = (base || []).map((r: any) => r.sleep_score).filter((v: any): v is number => v != null) as number[]
       const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
       const hrvBase = mean(hrvVals)
       const rhrBase = mean(rhrVals)
 
       // Winsorized EWMA baselines (NOOP Baselines.swift) — robust, recency-weighted
-      const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0)
-      const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0)
+      const hrvEwma        = ewmaBaseline(hrvVals, 5, 250, 5.0)
+      const rhrEwma        = ewmaBaseline(rhrVals, 30, 120, 2.0)
+      const sleepScoreEwma = ewmaBaseline(sleepScoreVals, 0, 100, 5.0)
       const baseByDate: Record<string, any> = {}
       const sleepByDate: Record<string, number> = {}
       for (const row of (base || []) as any[]) {
@@ -249,7 +251,7 @@ Deno.serve(async (req) => {
       const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
-        supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours').eq('user_id', uid).gte('date', winStart),
+        supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, sleep_score').eq('user_id', uid).gte('date', winStart),
         supabase.from('daily_nutrition').select('date, calories, protein, carbs').eq('user_id', uid).gte('date', winStart),
         supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe, rir)').eq('user_id', uid).gte('date', winStart),
         supabase.from('strava_activities_clean').select('start_date, perceived_exertion, has_pr, sport_type, is_oura').eq('user_id', uid).eq('is_oura', false).gte('start_date', winStart + 'T00:00:00'),
@@ -370,6 +372,11 @@ Deno.serve(async (req) => {
         const SIGMA = 1.253
         let zHrv: number | null = null
         let zRhr: number | null = null
+        let zSleepScore: number | null = null
+        if (s?.sleep_score != null && sleepScoreEwma != null && sleepScoreEwma.nValid >= 4) {
+          zSleepScore = (Number(s.sleep_score) - sleepScoreEwma.center) / Math.max(SIGMA * sleepScoreEwma.spread, 1e-9)
+          zSleepScore = Math.round(zSleepScore * 100) / 100
+        }
         if (s?.hrv_avg != null && hrvEwma != null && hrvEwma.nValid >= 4) {
           const W_HRV = 0.55, W_RHR = 0.20, W_SLEEP = 0.15, W_RESP = 0.05, W_SKIN = 0.05
           zHrv = (Number(s.hrv_avg) - hrvEwma.center) / Math.max(SIGMA * hrvEwma.spread, 1e-9)
@@ -556,6 +563,8 @@ Deno.serve(async (req) => {
             sleep_debt_h: sleepDebtH,
             hrv_z: zHrv != null ? Math.round(zHrv * 100) / 100 : null,
             rhr_z: zRhr != null ? Math.round(zRhr * 100) / 100 : null,
+            sleep_score_today: s?.sleep_score != null ? Number(s.sleep_score) : null,
+            sleep_z: zSleepScore,
           },
           updated_at: new Date().toISOString(),
         }
