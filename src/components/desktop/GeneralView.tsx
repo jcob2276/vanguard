@@ -210,7 +210,7 @@ export default function GeneralView({ userId }: { userId: string }) {
         {/* Sleep score */}
         <Panel title="Sleep Score — 90 dni">
           <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={timelineData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={oura.map(r => ({ d: r.date.slice(5), sleepScore: r.sleep_score }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gSleep" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={C.indigo} stopOpacity={0.4} />

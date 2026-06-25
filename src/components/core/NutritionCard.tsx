@@ -299,7 +299,7 @@ export default function NutritionCard({
       <div className="flex flex-col items-center justify-center py-4 bg-surface-solid/35 border border-border-custom/50 rounded-2xl mb-4 text-center">
         <span className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Pozostało dzisiaj</span>
         <p className={`font-display text-[32px] font-black tracking-tight leading-none my-1.5 ${
-          remainingKcalToday >= 0 ? 'text-emerald-500' : 'text-rose-500'
+          remainingKcalToday >= -75 ? 'text-emerald-500' : 'text-rose-500'
         }`}>
           {remainingKcalToday >= 0 ? `${remainingKcalToday}` : `+${Math.abs(remainingKcalToday)}`}
           <span className="text-[12px] font-bold text-text-secondary ml-1">kcal</span>
@@ -314,25 +314,31 @@ export default function NutritionCard({
       {/* Suma makro dzisiaj */}
       <div className="mb-4 grid grid-cols-3 gap-2.5">
         {/* Protein Box */}
-        <div className="rounded-2xl border-l-4 border-l-primary/70 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between">
-          <div>
-            <p className="text-[8px] font-black uppercase tracking-wider text-primary mb-1 flex items-center justify-center gap-1">
-              <Zap size={9} className="fill-primary" /> Białko (B)
-            </p>
-            <p className="font-display text-[17px] font-black text-text-primary">{todayMacros.protein}g</p>
-          </div>
-          <div>
-            <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
-              <div 
-                className="bg-primary h-full rounded-full transition-all duration-500" 
-                style={{ width: `${Math.min((todayMacros.protein / (proteinGoal || 1)) * 100, 100)}%` }} 
-              />
+        {(() => {
+          const protPct = proteinGoal > 0 ? Math.round((todayMacros.protein / proteinGoal) * 100) : 100;
+          const protLow = protPct < 50 && todayMacros.protein > 0;
+          return (
+            <div className={`rounded-2xl border-l-4 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between ${protLow ? 'border-l-rose-500/80 bg-rose-500/5' : 'border-l-primary/70'}`}>
+              <div>
+                <p className={`text-[8px] font-black uppercase tracking-wider mb-1 flex items-center justify-center gap-1 ${protLow ? 'text-rose-500' : 'text-primary'}`}>
+                  <Zap size={9} className={protLow ? 'fill-rose-500' : 'fill-primary'} /> Białko (B)
+                </p>
+                <p className="font-display text-[17px] font-black text-text-primary">{todayMacros.protein}g</p>
+              </div>
+              <div>
+                <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${protLow ? 'bg-rose-500' : 'bg-primary'}`}
+                    style={{ width: `${Math.min((todayMacros.protein / (proteinGoal || 1)) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className={`text-[7.5px] font-bold mt-1 ${protLow ? 'text-rose-400' : 'text-text-muted'}`}>
+                  {proteinGoal > 0 ? `${protPct}% celu` : '—'}
+                </p>
+              </div>
             </div>
-            <p className="text-[7.5px] text-text-muted font-bold mt-1">
-              {proteinGoal > 0 ? `${Math.round((todayMacros.protein / proteinGoal) * 100)}% celu` : '—'}
-            </p>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Carbs Box */}
         <div className="rounded-2xl border-l-4 border-l-amber-500/70 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between">
@@ -602,7 +608,7 @@ export default function NutritionCard({
           </div>
           <span className={`text-[12px] font-black font-display ${
             todayMissingData ? 'text-text-muted'
-            : remainingKcalToday >= 0 ? 'text-emerald-500'
+            : remainingKcalToday >= -75 ? 'text-emerald-500'
             : 'text-rose-400'
           }`}>
             {todayMissingData

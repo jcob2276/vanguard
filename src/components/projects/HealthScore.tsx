@@ -10,6 +10,13 @@ interface HealthScoreProps {
  * Animated SVG ring showing project health score 0–100.
  * Color: emerald ≥70 | blue 45–69 | amber 20–44 | rose <20
  */
+const HEALTH_TOOLTIP: Record<string, string> = {
+  great:    'Health 70–100: projekt aktywny, zadania idą do przodu',
+  ok:       'Health 45–69: projekt działa, jest przestrzeń do przyspieszenia',
+  warning:  'Health 20–44: projekt stoi lub brak aktywności >7 dni',
+  critical: 'Health 0–19: projekt krytyczny — wymaga natychmiastowej uwagi',
+};
+
 export default function HealthScore({ score, size = 44, showLabel = false }: HealthScoreProps) {
   const level = getHealthLevel(score);
   const colors = HEALTH_COLORS[level];
@@ -20,7 +27,7 @@ export default function HealthScore({ score, size = 44, showLabel = false }: Hea
   const gap = circumference - dash;
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1" title={HEALTH_TOOLTIP[level]}>
       <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
         {/* Background ring */}
         <svg

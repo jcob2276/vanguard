@@ -98,6 +98,11 @@ export default function DirectionRadarMode({
             );
           })}
         </div>
+        <div className="flex items-center gap-4 mt-3 text-[9px] font-bold text-text-muted">
+          <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-dayC" />Wygrany</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-dayB" />Przegrany / brak</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm border border-border-custom bg-surface" />Zaplanowany</span>
+        </div>
       </div>
 
       {/* 3. Lekcja z poprzedniego tygodnia */}

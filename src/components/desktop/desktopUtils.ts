@@ -97,20 +97,12 @@ export function computeDigest(sessions: any[], oura: any[], strava: any[]) {
   };
 }
 
-export function computeAlerts(oura: any[], sessions: any[], nutrition: any[]) {
+export function computeAlerts(oura: any[], _sessions: any[], _nutrition: any[]) {
   const alerts: any[] = [];
   const lat = oura[oura.length - 1];
   const avg7HRV = avg(oura.slice(-8, -1).map((o: any) => o.hrv_avg).filter(Boolean));
   if (lat?.hrv_avg && avg7HRV && (avg7HRV - lat.hrv_avg) / avg7HRV > 0.12)
     alerts.push({ type: 'warn', msg: `HRV o ${Math.round(avg7HRV - lat.hrv_avg)}ms poniżej 7-dniowej średniej` });
-  const lastS = [...sessions].filter((s: any) => sessionVol(s) > 0).reverse()[0];
-  const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
-  if (daysSince !== null && daysSince >= 3)
-    alerts.push({ type: 'warn', msg: `${daysSince} dni bez treningu siłowego` });
-  const lowSleep = oura.slice(-3).filter((o: any) => o.total_sleep_hours > 0 && o.total_sleep_hours < 7).length;
-  if (lowSleep >= 2) alerts.push({ type: 'warn', msg: `${lowSleep}/3 ostatnich nocy poniżej 7h snu` });
-  const lowKcal = nutrition.slice(-3).filter((n: any) => n.calories > 100 && n.calories < 2200).length;
-  if (lowKcal >= 2) alerts.push({ type: 'info', msg: `Niskie kalorie ${lowKcal} dni pod rząd` });
   if (!alerts.length && (lat?.readiness_score ?? 0) >= 70)
     alerts.push({ type: 'ok', msg: 'Sygnały OK — dobry dzień na ciśnięcie' });
   return alerts;

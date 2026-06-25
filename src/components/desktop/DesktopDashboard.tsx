@@ -381,7 +381,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const movesDoneThisWeek = (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws).length;
   const projectMetrics   = {
     doneInSprint:   (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= sprint.sprintStart).length,
-    inProgress:     (moves||[]).filter(m => m.status === 'doing').length,
+    inProgress:     (moves||[]).filter(m => m.status === 'todo').length,
     blocked:        (moves||[]).filter(m => m.status === 'blocked').length,
     activeProjects: (projects||[]).filter(p => p.sense_status !== 'cut' && p.sense_status !== 'completed').length,
   };

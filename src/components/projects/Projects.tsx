@@ -45,6 +45,12 @@ import ProjectCard from './ProjectCard';
 
 type PillarFilter = PillarId | 'all';
 
+const COLOR_PILLAR: Record<string, PillarId> = {
+  emerald: 'cialo', green: 'cialo',
+  indigo: 'duch', violet: 'duch', purple: 'duch',
+  amber: 'konto', yellow: 'konto', orange: 'konto',
+};
+
 export default function Projects({
   session,
   onNavigateTo,
@@ -351,7 +357,8 @@ export default function Projects({
   // ── Derived data ──
   const projectPillar = useCallback((project: any): PillarId | null => {
     const lifeGoal = project.dream_id ? dreamById[project.dream_id]?.life_goal : null;
-    return PILLARS.includes(lifeGoal) ? lifeGoal : null;
+    if (PILLARS.includes(lifeGoal)) return lifeGoal as PillarId;
+    return COLOR_PILLAR[project.color] ?? null;
   }, [dreamById]);
 
   const matchesPillarFilter = useCallback((project: any): boolean => {
@@ -602,8 +609,8 @@ export default function Projects({
         </div>
       )}
 
-      {/* ── Focus card: wymaga uwagi ── */}
-      {focusProject && (() => {
+      {/* ── Focus card: wymaga uwagi — tylko gdy projekt nie jest widoczny jako pierwsza karta ── */}
+      {focusProject && activeFiltered[0]?.id !== focusProject.id && (() => {
         const s = stats[focusProject.id] ?? {} as ProjectStats;
         const kpis = kpisByProject[focusProject.id] ?? [];
         const score = calculateHealthScore(focusProject, s, kpis);
