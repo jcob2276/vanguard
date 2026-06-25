@@ -63,6 +63,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   }, [restRemaining, restEndTime, playRestGong, haptics]);
 
   const startRest = useCallback(() => {
+    setTimerStart(prev => prev ?? Date.now());
     setRestEndTime(Date.now() + restDuration * 1000);
   }, [restDuration]);
 
