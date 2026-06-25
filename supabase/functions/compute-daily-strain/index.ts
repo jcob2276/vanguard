@@ -12,6 +12,7 @@ const warsawDate = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { 
 // Klasyfikacja ćwiczeń
 const LEG_KW = ['przysiad', 'martwy', 'rdl', 'nog', 'leg', 'łydk', 'lydk', 'hip thrust', 'wykrok', 'lunge', 'calf', 'udo']
 const CNS_KW = ['martwy', 'przysiad', 'ohp', 'bench', 'wyciskanie', 'dip']
+const WELLNESS_KW = ['sauna', 'lodowata', 'zimny prysznic', 'cold', 'ice']
 const matches = (name: string, kws: string[]) => { const n = (name || '').toLowerCase(); return kws.some(k => n.includes(k)) }
 
 // ── NOOP port: Winsorized EWMA baseline (Baselines.swift) ────────────────────
@@ -248,14 +249,15 @@ Deno.serve(async (req) => {
 
       // ── Źródła w oknie (z buforem -1 dnia na "wczoraj") ──
       const winStart = toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
-      const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR] = await Promise.all([
+      const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR, behaviorR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
         supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, sleep_score').eq('user_id', uid).gte('date', winStart),
         supabase.from('daily_nutrition').select('date, calories, protein, carbs').eq('user_id', uid).gte('date', winStart),
-        supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe, rir)').eq('user_id', uid).gte('date', winStart),
+        supabase.from('workout_sessions').select('date, exercise_logs(exercise_name, rpe, rir, reps)').eq('user_id', uid).gte('date', winStart),
         supabase.from('strava_activities_clean').select('start_date, perceived_exertion, has_pr, sport_type, is_oura').eq('user_id', uid).eq('is_oura', false).gte('start_date', winStart + 'T00:00:00'),
         supabase.from('daily_food_entries').select('name, logged_at, date').eq('user_id', uid).gte('date', winStart).not('logged_at', 'is', null),
+        supabase.from('behavior_log').select('date, behavior_key, value').eq('user_id', uid).gte('date', winStart),
       ])
 
       const byKey = <T,>(rows: T[] | null, key: (r: T) => string) => {
@@ -270,6 +272,17 @@ Deno.serve(async (req) => {
       const workouts = byKey(wsR.data, (r: any) => r.date)
       const strava = byKey(stravaR.data, (r: any) => warsawDate(r.start_date))
       const food = byKey(foodR.data, (r: any) => r.date)
+
+      const ILLNESS_KEYS = /chorob|illness|unwell|sick|przezi|grypa|flu/i
+      // value: 1=lekki(-5), 2=wyraźny(-10), 3=pełna choroba(-18), null=lekki(-5)
+      const illnessDates = new Map<string, number>()
+      for (const row of (behaviorR.data || []) as any[]) {
+        if (ILLNESS_KEYS.test(row.behavior_key)) {
+          const severity = Number(row.value) || 1
+          const penalty = severity >= 3 ? 18 : severity >= 2 ? 10 : 5
+          illnessDates.set(row.date, penalty)
+        }
+      }
 
       // ── Iteracja chronologiczna ──
       const dayList: string[] = []
@@ -303,8 +316,13 @@ Deno.serve(async (req) => {
         cardioRaw += rpeBonus + prBonus
 
         // ── STRENGTH LOAD ──
-        let strengthPts = 0, legPts = 0, cnsPts = 0
+        let strengthPts = 0, legPts = 0, cnsPts = 0, wellnessPts = 0
         for (const set of wsets) {
+          if (matches(set.exercise_name, WELLNESS_KW)) {
+            // reps = minuty, weight = °C — 1.5 pkt/min, max 25 pkt per set
+            wellnessPts += Math.min((set.reps || 0) * 1.5, 25)
+            continue
+          }
           const isLeg = matches(set.exercise_name, LEG_KW)
           const isCns = matches(set.exercise_name, CNS_KW)
           const setRir = set.rir ?? set.rpe
@@ -349,7 +367,7 @@ Deno.serve(async (req) => {
         const mentalPts = 0
 
         // ── STRAIN 0–21 (log-kompresja) ──
-        const rawTotal = cardioRaw + strengthPts + stepsLoad + fuelingPenalty + mentalPts
+        const rawTotal = cardioRaw + strengthPts + wellnessPts + stepsLoad + fuelingPenalty + mentalPts
         const hasAnyLoad = rawTotal > 0 || z != null
         const strain = hasAnyLoad ? Math.round(21 * (1 - Math.exp(-rawTotal / 156)) * 10) / 10 : null
 
@@ -449,6 +467,16 @@ Deno.serve(async (req) => {
         else if (sleep != null && sleep < 6.8) limiter = 'sleep'
         else if (kcal != null && kcal < 1500 && !fuelingProvisional) limiter = 'calories'
 
+        // ── ILLNESS OVERRIDE — subiektywne objawy z behavior_log ──
+        const illnessPenalty = illnessDates.get(date) ?? 0
+        const isIll = illnessPenalty > 0
+        if (isIll) {
+          if (recovery != null) recovery = clamp(recovery - illnessPenalty, 0, 100)
+          limiter = 'illness'
+          // green → yellow, yellow/red → red
+          status = status === 'green' ? 'yellow' : 'red'
+        }
+
         // ── EXPLANATION (regułowa) ──
         const parts: string[] = []
         if (isRunDay) parts.push('bieg')
@@ -460,9 +488,10 @@ Deno.serve(async (req) => {
           sleep: 'głównym ograniczeniem jest sen', calories: 'za mało kalorii względem obciążenia',
           carbs: 'za mało węgli w dzień biegowy', cardio_load: 'wysoki koszt sercowo-naczyniowy',
           strength_load: 'ciężka sesja siłowa', mental_load: 'wysokie obciążenie mentalne',
-          recovery_ok: 'regeneracja OK',
+          recovery_ok: 'regeneracja OK', illness: 'choroba/infekcja — ogranicz obciążenie',
         }
         const explanation = `${ctx}. Strain ${strain ?? '—'}/21, recovery ${recovery ?? '—'} — ${limiterPL[limiter]}.`
+          + (isIll ? ' ⚠ choroba zalogowana.' : '')
           + (fuelingProvisional ? ' (fueling jeszcze niepełny)' : '')
 
         // ── READINESS LEVEL (NOOP ReadinessEngine port) ──────────────────────
@@ -556,6 +585,7 @@ Deno.serve(async (req) => {
             resp_today: respToday, skin_temp_dev_today: skinTempToday,
             readiness_signals: readiness.signals,
             recovery_confidence: recoveryConfidence, strain_confidence: strainConfidence,
+            wellness_load: wellnessPts > 0 ? Math.round(wellnessPts * 10) / 10 : null,
             caffeine_active_mg: caffeineActiveMg > 0 ? caffeineActiveMg : null,
             caffeine_alert: caffeineAlert || null,
             hydration_goal_ml: hydrationGoalMl,
