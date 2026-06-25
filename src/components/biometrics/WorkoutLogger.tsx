@@ -140,7 +140,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
 
       const { error } = await supabase.rpc('save_workout_atomic', {
         p_user_id:     userId,
-        p_day_key:     workoutName.trim() || 'Trening',
+        p_day_key:     workoutName.trim() || (validEx.every(e => (e.tags ?? []).includes('wellness')) && validEx.length > 0 ? 'Sauna' : 'Trening'),
         p_start_time:  (finalStart as string),
         p_end_time:    (finalEnd as string),
         p_notes:       notes,
