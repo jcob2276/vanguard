@@ -360,6 +360,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border-custom space-y-3 z-30">
         {(() => {
           const totalVol = exercises.reduce((sum, ex) => {
+            if ((ex.tags || []).includes('wellness')) return sum;
             const exVol = (ex.sets || []).reduce((sSum, s) => sSum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0);
             return sum + exVol;
           }, 0);

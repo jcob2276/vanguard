@@ -8,6 +8,7 @@ interface VolumeBarProps {
 export default function VolumeBar({ exercises }: VolumeBarProps) {
   const vol: Record<string, number> = {};
   exercises.forEach((ex) => {
+    if ((ex.tags ?? []).includes('wellness')) return;
     const exVol = (ex.sets ?? []).reduce((sum, s) => {
       const kg = parseFloat(s.kg) || 0;
       const reps = parseInt(s.reps) || 0;
