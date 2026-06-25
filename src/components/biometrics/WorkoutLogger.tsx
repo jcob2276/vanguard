@@ -22,7 +22,7 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   const [notes, setNotes]             = useState('');
   const [sessionRpe, setSessionRpe]   = useState<number | null>(null);
   const [saving, setSaving]           = useState(false);
-  const [timerStart, setTimerStart]   = useState<number | null>(null);
+  const [timerStart, setTimerStart]   = useState<number | null>(() => Date.now());
   
   // Custom manual time overrides
   const [manualTime, setManualTime] = useState(false);
