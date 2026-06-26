@@ -12,7 +12,7 @@ import { notify, confirmDialog } from '../../lib/notify';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
-import { bodyTrend, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
+import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
@@ -161,29 +161,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   async function saveMetrics(e: any) {
     e.preventDefault();
     const today = getTodayWarsaw();
-    const payload: TablesInsert<'body_metrics'> = {
-      user_id: session.user.id,
-      date: today,
-    };
-    const p = payload as any;
-    if (newMetric.weight   !== '') p.weight   = parseFloat(newMetric.weight);
-    if (newMetric.waist    !== '') p.waist    = parseFloat(newMetric.waist);
-    if (newMetric.neck     !== '') p.neck     = parseFloat(newMetric.neck);
-    if (newMetric.chest    !== '') p.chest    = parseFloat(newMetric.chest);
-    if (newMetric.belly    !== '') p.belly    = parseFloat(newMetric.belly);
-    if (newMetric.hips     !== '') p.hips     = parseFloat(newMetric.hips);
-    if (newMetric.thigh    !== '') p.thigh    = parseFloat(newMetric.thigh);
-    if (newMetric.biceps_l !== '') p.biceps_l = parseFloat(newMetric.biceps_l);
-    if (newMetric.calf     !== '') p.calf     = parseFloat(newMetric.calf);
-    if (!p.weight && !p.waist && !p.neck && !p.chest && !p.belly && !p.hips && !p.thigh && !p.biceps_l && !p.calf) {
+    const existingToday = bodyData.find((row) => row.date === today) ?? null;
+    const payload = mergeBodyMetricSavePayload(today, session.user.id, existingToday, newMetric);
+    if (!payload) {
       notify('Podaj przynajmniej jeden pomiar.', 'error');
       return;
     }
     const { error } = await supabase
       .from('body_metrics')
-      .upsert(payload, { onConflict: 'user_id,date' });
+      .upsert(payload as TablesInsert<'body_metrics'>, { onConflict: 'user_id,date' });
     if (error) notify(error.message, 'error');
-    else { notify('Zapisano!', 'success'); fetchStats(); }
+    else {
+      notify('Zapisano!', 'success');
+      setNewMetric({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
+      fetchStats();
+    }
   }
 
   async function deleteSession(id: any) {

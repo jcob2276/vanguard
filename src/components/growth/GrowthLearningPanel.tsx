@@ -1,0 +1,109 @@
+import { BookOpen, CheckCircle2, FileText, Link2, TrendingUp } from 'lucide-react';
+import type { LearningNeedItem, WeekLearningItem } from '../../lib/growthOverview';
+
+const KIND_ICON = {
+  pin: CheckCircle2,
+  note: FileText,
+  link: Link2,
+  score: TrendingUp,
+} as const;
+
+function NeedRow({ item, primary }: { item: LearningNeedItem; primary?: boolean }) {
+  return (
+    <li
+      className={`rounded-lg border px-3 py-2 ${
+        primary ? 'border-primary/30 bg-primary/[0.05]' : 'border-border-custom bg-background/30'
+      }`}
+    >
+      <p className="text-[12px] font-bold text-text-primary">{item.label}</p>
+      <p className="text-[10px] text-text-muted mt-0.5 tabular-nums">
+        {item.score}/5
+        {item.target != null && item.score < item.target ? ` · cel ${item.target}` : ''}
+      </p>
+    </li>
+  );
+}
+
+export default function GrowthLearningPanel({
+  primary,
+  alsoWeak,
+  drill,
+  weekItems,
+  readOnly,
+}: {
+  primary: LearningNeedItem | null;
+  alsoWeak: LearningNeedItem[];
+  drill: string | null;
+  weekItems: WeekLearningItem[];
+  readOnly: boolean;
+}) {
+  return (
+    <div className="space-y-4 h-full flex flex-col">
+      <section className="rounded-2xl border border-border-custom bg-surface/30 p-4">
+        <div className="flex items-center gap-1.5 mb-2">
+          <BookOpen size={12} className="text-text-muted" />
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+            Czego się uczyć {readOnly ? '(archiwum)' : 'teraz'}
+          </p>
+        </div>
+
+        {primary ? (
+          <ul className="space-y-2">
+            <NeedRow item={primary} primary />
+          </ul>
+        ) : (
+          <p className="text-[12px] text-text-muted">Ustaw focus w Todo albo oceń skilli — wtedy widać priorytet.</p>
+        )}
+
+        {drill && (
+          <div className="mt-3 rounded-lg border border-border-custom bg-background/40 px-3 py-2">
+            <p className="text-[8px] font-black uppercase text-text-muted">Drill / ćwiczenie</p>
+            <p className="text-[11px] text-text-secondary mt-0.5 leading-relaxed">{drill}</p>
+          </div>
+        )}
+
+        {alsoWeak.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[8px] font-black uppercase text-text-muted mb-1.5">Słabsze linki (&lt;3)</p>
+            <ul className="space-y-1.5">
+              {alsoWeak.map((w) => (
+                <NeedRow key={w.label} item={w} />
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 flex-1 flex flex-col min-h-[200px]">
+        <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
+          Nauczyłem się w tym tygodniu
+        </p>
+        {weekItems.length === 0 ? (
+          <p className="text-[12px] text-text-muted leading-relaxed">
+            Puste — zamknij MUST, przeczytaj link, zapisz notatkę #rozwoj albo podnieś ocenę skilli.
+          </p>
+        ) : (
+          <ul className="space-y-1.5 overflow-y-auto max-h-[280px] pr-1">
+            {weekItems.map((item) => {
+              const Icon = KIND_ICON[item.kind];
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-start gap-2 rounded-lg border border-border-custom bg-background/30 px-3 py-2"
+                >
+                  <Icon size={14} className="text-primary shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-text-primary truncate">{item.label}</p>
+                    {item.detail && (
+                      <p className="text-[10px] text-text-muted truncate">{item.detail}</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

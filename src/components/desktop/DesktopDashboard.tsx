@@ -15,6 +15,9 @@ import { supabase } from '../../lib/supabase';
 import {
   RefreshCw, Smartphone, Moon, Sun, Fingerprint, Dumbbell,
 } from 'lucide-react';
+import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
+import { useNudgeData } from '../../hooks/useNudgeData';
+import { createProject } from '../../lib/projects';
 import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { notify, confirmDialog } from '../../lib/notify';
 
@@ -45,10 +48,12 @@ import {
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Fundament = lazy(() => import('../core/Fundament'));
 const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
+const MedicalDesktopTeaser = lazy(() => import('../medical/MedicalDesktopTeaser'));
 
 export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
+  const { pendingGrowthMustCount } = useNudgeData(userId);
   const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
   const [habits, setHabits] = useState(habitsData);
   const [habitLogs, setHabitLogs] = useState(habitLogsData);
@@ -436,6 +441,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
           weight30ago={weight30ago}
         />
 
+        <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
+
         <SmartAlerts alerts={alerts} />
 
         <GeneralView userId={userId} oura={oura} />
@@ -533,6 +540,17 @@ export default function DesktopDashboard({ session }: { session: any }) {
         </div>
 
         <MarathonPanel strava={strava} grid={grid} tick={tick} />
+        </section>
+
+        <section id="badania" className="scroll-mt-28 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border-custom" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Badania i analityka</span>
+            <div className="h-px flex-1 bg-border-custom" />
+          </div>
+          <Suspense fallback={<div className="h-32 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
+            <MedicalDesktopTeaser userId={userId} />
+          </Suspense>
         </section>
 
         <section id="kierunek" className="scroll-mt-28 space-y-5">

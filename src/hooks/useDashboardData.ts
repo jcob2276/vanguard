@@ -31,7 +31,10 @@ export function useDashboardData() {
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      if (mountedRef.current) setData((prev) => ({ ...prev, loading: false }));
+      return;
+    }
     
     try {
       let totalCal = 0;

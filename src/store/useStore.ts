@@ -26,16 +26,19 @@ export const useStore = create<VanguardStore>((set, get) => ({
   fetchUserSettings: async () => {
     const { session } = get();
     if (!session) return;
-    
+
     const { data, error } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', session.user.id)
       .maybeSingle();
-    
-    if (!error && data) {
-      set({ userSettings: data });
+
+    if (error) {
+      console.warn('[fetchUserSettings]', error.message);
+      return;
     }
+
+    set({ userSettings: data ?? null });
   },
 
   fetchTodayWin: async () => {

@@ -11,6 +11,8 @@ import { ToastHost } from './components/ui/ToastHost';
 import SettingsView from './components/settings/SettingsView';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
+const GrowthView = lazy(() => import('./components/growth/GrowthView'));
+const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
 
 function KeepRedirect() {
   const params = new URLSearchParams(window.location.search);
@@ -59,6 +61,16 @@ function AppRoutes() {
         </Suspense>
       } />
       <Route path="/settings" element={<SettingsView session={session} />} />
+      <Route path="/rozwoj" element={
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+          <GrowthView session={session} />
+        </Suspense>
+      } />
+      <Route path="/badania" element={
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+          <MedicalStudiesPage session={session} />
+        </Suspense>
+      } />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

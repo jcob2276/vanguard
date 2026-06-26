@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyTrend, mergeLatestBodyMetrics, navyBodyFatPct } from './bodyMetrics';
+import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics, navyBodyFatPct } from './bodyMetrics';
 
 describe('mergeLatestBodyMetrics', () => {
   it('scala ostatnie niepuste wartości z wielu wpisów', () => {
@@ -27,6 +27,20 @@ describe('bodyTrend', () => {
       'weight',
     );
     expect(trend).toEqual({ cur: 74.5, prev: 75 });
+  });
+});
+
+describe('mergeBodyMetricSavePayload', () => {
+  it('zachowuje istniejące pola przy częściowym zapisie', () => {
+    const payload = mergeBodyMetricSavePayload(
+      '2026-06-26',
+      'user-1',
+      { date: '2026-06-26', weight: 74.5, waist: 83 },
+      { weight: '', waist: '', neck: '', chest: '', belly: '87', hips: '', thigh: '', biceps_l: '', calf: '' },
+    );
+    expect(payload?.weight).toBe(74.5);
+    expect(payload?.waist).toBe(83);
+    expect(payload?.belly).toBe(87);
   });
 });
 

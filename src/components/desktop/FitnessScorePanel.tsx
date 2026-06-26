@@ -144,9 +144,11 @@ function computeFitnessProfile(input: {
           ),
         );
 
-  const latestWeight = mergeLatestBodyMetrics(body)?.weight ?? null;
+  const mergedBody = mergeLatestBodyMetrics(body);
+  const latestWeight = mergedBody?.weight ?? null;
+  const weightAsOf = mergedBody?.asOfDate ?? null;
   const liftPRs = extractLiftPRs(sessions, today);
-  const capacity = strengthCapacityScore(liftPRs, latestWeight ?? null);
+  const capacity = strengthCapacityScore(liftPRs, latestWeight, weightAsOf);
   const strengthScore =
     capacity.score > 0
       ? Math.min(

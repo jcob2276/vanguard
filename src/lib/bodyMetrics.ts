@@ -103,3 +103,30 @@ export function bodyTrend(
   const prev = num(withValue[withValue.length - 2][field])!
   return { cur, prev }
 }
+
+/** Przy upsercie dzisiejszego wiersza — nie nadpisuj pól null wartościami z formularza. */
+export function mergeBodyMetricSavePayload(
+  today: string,
+  userId: string,
+  existingToday: BodyMetricRow | null | undefined,
+  input: Record<string, string>,
+): Record<string, unknown> | null {
+  const fields = ['weight', 'waist', 'neck', 'chest', 'belly', 'hips', 'thigh', 'biceps_l', 'calf'] as const
+  const out: Record<string, unknown> = { user_id: userId, date: today }
+  let anyNew = false
+
+  for (const key of fields) {
+    const raw = input[key]
+    if (raw !== '') {
+      const parsed = num(raw)
+      if (parsed != null) {
+        out[key] = parsed
+        anyNew = true
+      }
+    } else if (existingToday && num(existingToday[key as keyof BodyMetricRow]) != null) {
+      out[key] = num(existingToday[key as keyof BodyMetricRow])
+    }
+  }
+
+  return anyNew || existingToday ? out : null
+}

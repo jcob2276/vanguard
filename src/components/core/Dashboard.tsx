@@ -30,6 +30,7 @@ import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import WorkoutQuickCapture from '../biometrics/WorkoutQuickCapture';
 import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import CaptureQueueCard from './CaptureQueueCard';
+import FoodEntryModal from './nutrition/FoodEntryModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -51,7 +52,6 @@ const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').the
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
-const OracleCard = lazy(() => import('../ai/OracleCard'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
 
@@ -63,6 +63,7 @@ const normalizeView = (view: string | null | undefined) => {
   if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
   if (view === 'stats' || view === 'photos') return 'historia';
   if (view === 'kariera') return 'projekty';
+  if (view === 'badania') return 'dzis';
   return view;
 };
 
@@ -79,6 +80,15 @@ export default function Dashboard({ session }: { session: Session }) {
   const accessToken = session?.access_token;
   const [view, setView] = useState(() => {
     const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    if (viewParam === 'kariera') {
+      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e) {}
+      return 'projekty';
+    }
+    if (viewParam && TAB_ORDER.includes(viewParam)) {
+      try { localStorage.setItem('vanguard_view', viewParam); } catch (e) {}
+      return viewParam;
+    }
     if (params.get('todo') === 'new') {
       window.history.replaceState({}, '', '/');
       return 'todo';

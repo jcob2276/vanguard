@@ -2,6 +2,7 @@ const SECTIONS = [
   { id: 'korelacje', label: 'Korelacje' },
   { id: 'trening', label: 'Trening' },
   { id: 'biometria', label: 'Biometria' },
+  { id: 'badania', label: 'Badania' },
   { id: 'kierunek', label: 'Kierunek' },
   { id: 'pamiec', label: 'Pamięć' },
   { id: 'sprint', label: 'Sprint' },

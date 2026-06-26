@@ -13,12 +13,15 @@ import {
 } from './weeklyReviewUtils';
 import KpiEntryCard from './KpiEntryCard';
 import WeeklyBriefView from './WeeklyBriefView';
+import GrowthWeekRecapCard from '../growth/GrowthWeekRecapCard';
+import { useGrowthWeekRecap } from '../../hooks/useGrowthWeekRecap';
 import { convertNoteToTodoItem } from '../../lib/captureBridge';
 
 export default function WeeklyReview({ session, onBack }: { session: Session; onBack: () => void }) {
   const uid = session.user.id;
   const weekStart = useMemo(() => getWeekStart(), []);
   const prevWeek  = useMemo(() => getPrevWeekStart(weekStart), [weekStart]);
+  const { recap: growthRecap } = useGrowthWeekRecap(uid, weekStart);
 
   const [kpis, setKpis]           = useState<Kpi[]>([]);
   const [thisWeek, setThisWeek]   = useState<Record<string, string>>({});
@@ -456,6 +459,9 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
             })}
           </div>
         )}
+
+        {/* Rozwój — podsumowanie z /rozwoj (read-only) */}
+        {!setupMode && !noKpis && <GrowthWeekRecapCard recap={growthRecap} />}
 
         {/* Review notes */}
         {!setupMode && !noKpis && (

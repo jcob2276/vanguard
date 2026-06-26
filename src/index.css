@@ -2030,3 +2030,20 @@
 .pocket-card {
   @apply rounded-2xl border border-border-custom bg-surface-solid/60 p-4 shadow-sm;
 }
+
+/* Anatomiczna mapa mięśni (react-body-highlighter, MIT) */
+.muscle-map-model .rbh-wrapper {
+  width: 100%;
+}
+.muscle-map-model .rbh polygon {
+  transition: fill 0.2s ease, opacity 0.2s ease;
+  stroke: rgba(15, 23, 42, 0.08);
+  stroke-width: 0.35;
+}
+.dark .muscle-map-model .rbh polygon {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+.muscle-map-model .rbh polygon:hover {
+  opacity: 0.88;
+  filter: brightness(1.08);
+}

@@ -1,67 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Model from 'react-body-highlighter';
+import type { IMuscleStats } from 'react-body-highlighter';
 import { supabase } from '../../lib/supabase';
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
+import { notify } from '../../lib/notify';
 import { MUSCLE_TAGS, stimulusForExercise, tagsForExercise } from '../../data/exercises';
+import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/muscleMapData';
 
-// ─── SVG body region definitions ──────────────────────────────────────────────
-// viewBox="0 0 100 194"  (front and back use same coordinate space)
-
-const FRONT_REGIONS = [
-  { tag: 'barki', shapes: [
-    { t: 'ellipse', cx: 20, cy: 42, rx: 12, ry: 9 },
-    { t: 'ellipse', cx: 80, cy: 42, rx: 12, ry: 9 },
-  ]},
-  { tag: 'klatka', shapes: [
-    { t: 'rect', x: 29, y: 32, w: 42, h: 26, r: 5 },
-  ]},
-  { tag: 'biceps', shapes: [
-    { t: 'rect', x: 9,  y: 32, w: 11, h: 32, r: 5 },
-    { t: 'rect', x: 80, y: 32, w: 11, h: 32, r: 5 },
-  ]},
-  { tag: 'przedramiona', shapes: [
-    { t: 'rect', x: 6,  y: 65, w: 11, h: 24, r: 4 },
-    { t: 'rect', x: 83, y: 65, w: 11, h: 24, r: 4 },
-  ]},
-  { tag: 'brzuch', shapes: [
-    { t: 'rect', x: 31, y: 59, w: 38, h: 40, r: 4 },
-  ]},
-  { tag: 'czworogłowe', shapes: [
-    { t: 'rect', x: 29, y: 106, w: 16, h: 48, r: 8 },
-    { t: 'rect', x: 55, y: 106, w: 16, h: 48, r: 8 },
-  ]},
-  { tag: 'łydki', shapes: [
-    { t: 'rect', x: 30, y: 157, w: 14, h: 32, r: 7 },
-    { t: 'rect', x: 56, y: 157, w: 14, h: 32, r: 7 },
-  ]},
+const PERIODS = [
+  { label: '7d', days: 7 },
+  { label: '30d', days: 30 },
+  { label: '90d', days: 90 },
 ];
 
-const BACK_REGIONS = [
-  { tag: 'barki', shapes: [
-    { t: 'ellipse', cx: 20, cy: 42, rx: 12, ry: 9 },
-    { t: 'ellipse', cx: 80, cy: 42, rx: 12, ry: 9 },
-  ]},
-  { tag: 'plecy', shapes: [
-    { t: 'rect', x: 24, y: 32, w: 52, h: 54, r: 5 },
-  ]},
-  { tag: 'triceps', shapes: [
-    { t: 'rect', x: 9,  y: 32, w: 11, h: 32, r: 5 },
-    { t: 'rect', x: 80, y: 32, w: 11, h: 32, r: 5 },
-  ]},
-  { tag: 'pośladki', shapes: [
-    { t: 'rect', x: 29, y: 106, w: 16, h: 18, r: 8 },
-    { t: 'rect', x: 55, y: 106, w: 16, h: 18, r: 8 },
-  ]},
-  { tag: 'dwugłowe ud', shapes: [
-    { t: 'rect', x: 29, y: 126, w: 16, h: 32, r: 8 },
-    { t: 'rect', x: 55, y: 126, w: 16, h: 32, r: 8 },
-  ]},
-  { tag: 'łydki', shapes: [
-    { t: 'rect', x: 30, y: 161, w: 14, h: 28, r: 7 },
-    { t: 'rect', x: 56, y: 161, w: 14, h: 28, r: 7 },
-  ]},
-];
-
-const HEAT_COLORS: Record<string, string> = {
+const TAG_COLORS: Record<string, string> = {
   klatka: '#24b7ff',
   plecy: '#12d6c8',
   barki: '#21e7ff',
@@ -75,87 +27,59 @@ const HEAT_COLORS: Record<string, string> = {
   przedramiona: '#7ce0ff',
 };
 
-const fallbackHeat = '#00f2ff';
-
-function Shape({ s, opacity, glow, color }: { s: any; opacity: number; glow: boolean; color: string }) {
-  const fill   = opacity > 0.04 ? color : 'currentColor';
-  const filter = glow ? 'url(#mglow)' : undefined;
-  if (s.t === 'ellipse')
-    return <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill={fill} fillOpacity={opacity} filter={filter} />;
-  return <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.r} fill={fill} fillOpacity={opacity} filter={filter} />;
-}
-
-function BodySVG({ regions, intensity }: { regions: any[]; intensity: Record<string, number> }) {
-  return (
-    <svg viewBox="0 0 100 194" className="w-full h-full text-text-primary/10">
-      <defs>
-        <filter id="mglow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <linearGradient id="bodyFade" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.06" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-
-      {/* Silhouette — very faint structural shapes */}
-      <circle cx="50" cy="14" r="10.5" fill="url(#bodyFade)" />
-      <rect x="44" y="24" width="12" height="8" rx="3" fill="currentColor" fillOpacity="0.035" />
-      <rect x="22" y="31" width="56" height="72" rx="10" fill="url(#bodyFade)" />
-      <rect x="7"  y="32" width="13" height="56" rx="7" fill="currentColor" fillOpacity="0.026" />
-      <rect x="80" y="32" width="13" height="56" rx="7" fill="currentColor" fillOpacity="0.026" />
-      <rect x="27" y="104" width="46" height="6"  rx="3" fill="currentColor" fillOpacity="0.03" />
-      <rect x="28" y="108" width="19" height="82" rx="10" fill="url(#bodyFade)" />
-      <rect x="53" y="108" width="19" height="82" rx="10" fill="url(#bodyFade)" />
-
-      {/* Muscle regions */}
-      {regions.map(({ tag, shapes }) => {
-        const raw = intensity[tag] ?? 0;
-        const op  = raw > 0 ? 0.16 + raw * 0.52 : 0.035;
-        const glow = raw > 0.18;
-        const color = HEAT_COLORS[tag] ?? fallbackHeat;
-        return shapes.map((s: any, i: number) => (
-          <Shape key={`${tag}-${i}`} s={s} opacity={op} glow={glow} color={color} />
-        ));
-      })}
-    </svg>
-  );
-}
-
-// ─── Main component ────────────────────────────────────────────────────────────
-
-const PERIODS = [
-  { label: '7d',  days: 7  },
-  { label: '30d', days: 30 },
-  { label: '90d', days: 90 },
-];
-
-function tagsForLog(log: any) {
+function tagsForLog(log: { muscle_tags?: string[] | null; exercise_name?: string | null }) {
   if (Array.isArray(log.muscle_tags) && log.muscle_tags.length > 0) {
     return log.muscle_tags;
   }
-  return tagsForExercise(log.exercise_name);
+  return tagsForExercise(log.exercise_name ?? '');
 }
 
 function tagColor(tag: string) {
-  return HEAT_COLORS[tag] ?? fallbackHeat;
+  return TAG_COLORS[tag] ?? '#22d3ee';
 }
 
-export default function MuscleHeatmap({ session }: { session: any }) {
-  const [period, setPeriod]     = useState(30);
-  const [intensity, setIntensity] = useState<Record<string, number>>({});   // tag → 0–1
-  const [setsByTag, setSetsByTag] = useState<Record<string, number>>({});   // tag → count
+function BodyModel({
+  view,
+  loadByTag,
+  onMuscleClick,
+}: {
+  view: 'anterior' | 'posterior';
+  loadByTag: Record<string, number>;
+  onMuscleClick: (stats: IMuscleStats) => void;
+}) {
+  const data = useMemo(() => buildHighlighterData(loadByTag, view), [loadByTag, view]);
+
+  return (
+    <Model
+      type={view}
+      data={data}
+      bodyColor={BODY_BASE}
+      highlightedColors={[...HEAT_SCALE]}
+      onClick={onMuscleClick}
+      style={{ width: '100%', padding: '0.5rem 0.25rem 0' }}
+      svgStyle={{ display: 'block', overflow: 'visible' }}
+    />
+  );
+}
+
+export default function MuscleHeatmap({ session }: { session: { user?: { id?: string } } | null }) {
+  const [period, setPeriod] = useState(30);
+  const [setsByTag, setSetsByTag] = useState<Record<string, number>>({});
   const [directByTag, setDirectByTag] = useState<Record<string, number>>({});
   const [indirectByTag, setIndirectByTag] = useState<Record<string, number>>({});
-  const [loadByTag, setLoadByTag] = useState<Record<string, number>>({});    // tag → effective stimulus
-  const [loading, setLoading]   = useState(true);
+  const [loadByTag, setLoadByTag] = useState<Record<string, number>>({});
+  const [exercisesByTag, setExercisesByTag] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
   const userId = session?.user?.id;
 
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    const dateLimit = (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - period); return d.toISOString().split('T')[0] })();
+    const dateLimit = (() => {
+      const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() - period);
+      return d.toISOString().split('T')[0];
+    })();
 
     const fetchLogs = async () => {
       try {
@@ -167,24 +91,31 @@ export default function MuscleHeatmap({ session }: { session: any }) {
 
         if (error) throw error;
 
-        // Reset counters
         const directSets: Record<string, number> = {};
         const indirectSets: Record<string, number> = {};
         const effectiveSets: Record<string, number> = {};
-        MUSCLE_TAGS.forEach(t => { directSets[t] = 0; indirectSets[t] = 0; effectiveSets[t] = 0; });
+        const exerciseSets: Record<string, Set<string>> = {};
+        MUSCLE_TAGS.forEach((t) => {
+          directSets[t] = 0;
+          indirectSets[t] = 0;
+          effectiveSets[t] = 0;
+          exerciseSets[t] = new Set();
+        });
 
-        (data ?? []).forEach(log => {
+        (data ?? []).forEach((log) => {
           const tags = tagsForLog(log);
           const stimulus = stimulusForExercise(log.exercise_name, tags);
+          const exerciseName = (log.exercise_name || 'Ćwiczenie').trim();
 
           Object.entries(stimulus as Record<string, { direct?: number; indirect?: number }>).forEach(([tag, value]) => {
-            if (effectiveSets[tag] !== undefined) {
-              const direct = Number(value.direct || 0);
-              const indirect = Number(value.indirect || 0);
-              directSets[tag] += direct;
-              indirectSets[tag] += indirect;
-              effectiveSets[tag] += direct + indirect;
-            }
+            if (effectiveSets[tag] === undefined) return;
+            const direct = Number(value.direct || 0);
+            const indirect = Number(value.indirect || 0);
+            if (direct + indirect <= 0) return;
+            directSets[tag] += direct;
+            indirectSets[tag] += indirect;
+            effectiveSets[tag] += direct + indirect;
+            exerciseSets[tag].add(exerciseName);
           });
         });
 
@@ -192,15 +123,11 @@ export default function MuscleHeatmap({ session }: { session: any }) {
         setDirectByTag(directSets);
         setIndirectByTag(indirectSets);
         setLoadByTag(effectiveSets);
-
-        // Normalize intensities to 0-1
-        const maxVal = Math.max(...Object.values(effectiveSets), 1);
-        const nextIntensities: Record<string, number> = {};
-        Object.entries(effectiveSets).forEach(([tag, val]) => {
-          nextIntensities[tag] = val > 0 ? Math.min(val / maxVal, 1.0) : 0;
-        });
-        setIntensity(nextIntensities);
-
+        setExercisesByTag(
+          Object.fromEntries(
+            Object.entries(exerciseSets).map(([tag, names]) => [tag, [...names].sort()]),
+          ),
+        );
       } catch (err) {
         console.error('Heatmap fetch error:', err);
       } finally {
@@ -208,23 +135,36 @@ export default function MuscleHeatmap({ session }: { session: any }) {
       }
     };
 
-    fetchLogs();
+    void fetchLogs();
   }, [userId, period]);
 
-  // Sorted list for the legend (descending sets)
   const ranked = Object.entries(loadByTag)
     .sort((a, b) => b[1] - a[1])
     .filter(([, n]) => n > 0);
 
   const maxLoad = ranked[0]?.[1] ?? 1;
   const trainedTags = new Set(Object.entries(setsByTag).filter(([, n]) => n > 0).map(([tag]) => tag));
-  const neglected = MUSCLE_TAGS.filter(tag => !trainedTags.has(tag)).slice(0, 4);
+  const neglected = MUSCLE_TAGS.filter((tag) => !trainedTags.has(tag)).slice(0, 4);
   const topTag = ranked[0]?.[0] ?? null;
-  const formatSetCount = (count: number) => Number.isInteger(count) ? count : count.toFixed(1);
+  const formatSetCount = (count: number) => (Number.isInteger(count) ? count : count.toFixed(1));
+
+  const handleMuscleClick = useCallback(({ muscle, data }: IMuscleStats) => {
+    const tags = RB_MUSCLE_TO_TAGS[muscle as Muscle] ?? [];
+    const load = tags.reduce((sum, tag) => sum + (loadByTag[tag] ?? 0), 0);
+    const names = [...new Set(tags.flatMap((tag) => exercisesByTag[tag] ?? []))];
+
+    if (load <= 0 && data.frequency <= 0) {
+      notify('Brak bodźca w tym okresie.', 'info');
+      return;
+    }
+
+    const tagLabel = tags.length ? tags.join(' / ') : muscle;
+    const exerciseLine = names.length ? names.slice(0, 4).join(' · ') : '—';
+    notify(`${tagLabel}: ${load.toFixed(1)} eff · ${exerciseLine}`, 'info');
+  }, [exercisesByTag, loadByTag]);
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
-      {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -232,7 +172,7 @@ export default function MuscleHeatmap({ session }: { session: any }) {
             <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Co trenowałeś</h2>
           </div>
           <div className="flex shrink-0 gap-1">
-            {PERIODS.map(p => (
+            {PERIODS.map((p) => (
               <button
                 key={p.days}
                 onClick={() => setPeriod(p.days)}
@@ -269,26 +209,24 @@ export default function MuscleHeatmap({ session }: { session: any }) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-text-muted text-xs animate-pulse">Ładowanie...</div>
+        <div className="flex h-56 items-center justify-center text-xs text-text-muted animate-pulse">Ładowanie...</div>
       ) : (
         <>
-          {/* Front + Back SVG bodies */}
-          <div className="relative grid grid-cols-2 gap-5 px-5 pb-5 pt-1">
-            <div className="pointer-events-none absolute inset-x-7 bottom-4 top-7 rounded-2xl border border-border-custom bg-text-primary/[0.015]" />
-            {[
-              { label: 'Przód', regions: FRONT_REGIONS },
-              { label: 'Tył',   regions: BACK_REGIONS  },
-            ].map(({ label, regions }) => (
-              <div key={label} className="relative flex flex-col items-center gap-2">
+          <div className="relative grid grid-cols-2 gap-4 px-5 pb-4 pt-1">
+            <div className="pointer-events-none absolute inset-x-5 bottom-3 top-2 rounded-2xl border border-border-custom bg-text-primary/[0.015]" />
+            {([
+              { label: 'Przód', view: 'anterior' as const },
+              { label: 'Tył', view: 'posterior' as const },
+            ]).map(({ label, view }) => (
+              <div key={view} className="relative flex flex-col items-center gap-2">
                 <span className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
-                <div className="w-full max-w-[132px]" style={{ aspectRatio: '100/194' }}>
-                  <BodySVG regions={regions} intensity={intensity} />
+                <div className="muscle-map-model w-full max-w-[168px]">
+                  <BodyModel view={view} loadByTag={loadByTag} onMuscleClick={handleMuscleClick} />
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Ranked legend */}
           {ranked.length > 0 ? (
             <div className="space-y-3 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
@@ -323,7 +261,7 @@ export default function MuscleHeatmap({ session }: { session: any }) {
               {neglected.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 border-t border-border-custom pt-3">
                   <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
-                  {neglected.map(tag => (
+                  {neglected.map((tag) => (
                     <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-[10px] font-bold capitalize text-text-secondary shadow-sm">
                       {tag}
                     </span>

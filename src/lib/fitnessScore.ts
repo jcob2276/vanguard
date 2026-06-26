@@ -116,7 +116,11 @@ function ratioToPoints(ratio: number, low: number, mid: number, high: number): n
 export function strengthCapacityScore(
   prs: ReturnType<typeof extractLiftPRs>,
   bodyWeightKg: number | null,
+  bodyWeightAsOf?: string | null,
 ): { score: number; detail: string } {
+  const weightNote =
+    bodyWeightKg && bodyWeightAsOf ? ` (waga ${bodyWeightKg.toFixed(1)} kg z ${bodyWeightAsOf})` : '';
+
   if (!bodyWeightKg || bodyWeightKg <= 0) {
     const any = [prs.bench, prs.squat, prs.deadlift].filter(Boolean) as DecayedLiftPR[];
     if (!any.length) return { score: 0, detail: 'Brak zarejestrowanych maxów siłowych.' };
@@ -158,7 +162,7 @@ export function strengthCapacityScore(
 
   return {
     score: Math.min(10, Math.max(1, score)),
-    detail: parts.join(' · ') + '. PR starsze niż ~3 lata nie wchodzą.',
+    detail: `${parts.join(' · ')}. PR starsze niż ~3 lata nie wchodzą.${weightNote}`,
   };
 }
 

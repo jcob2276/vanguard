@@ -26,7 +26,26 @@ import { getOracleUserConf } from './AgentSystemPromptHelper';
 import exifr from 'exifr';
 
 const SCHEDULE_KEY = 'vanguard_schedule_view';
-const oracleChatKey = (userId: string) => `vanguard_oracle_chat_${userId}`;
+const oracleChatKey = (userId: string, scope: 'default' | 'medical' = 'default') =>
+  scope === 'medical' ? `vanguard_oracle_chat_medical_${userId}` : `vanguard_oracle_chat_${userId}`;
+
+const MEDICAL_PROMPTS = [
+  'Co warto badać / odświeżyć teraz — max 3 priorytety z moich danych',
+  'Czego nie robić teraz (overtesting)?',
+  'Co ma największe przełożenie operacyjne u mnie?',
+];
+
+export type OracleCardProps = {
+  session: Session;
+  embedded?: boolean;
+  defaultOpen?: boolean;
+  initialQuery?: string;
+  storageScope?: 'default' | 'medical';
+  suggestedPrompts?: string[];
+  emptyHint?: string;
+  collapsedTitle?: string;
+  collapsedSubtitle?: string;
+};
 
 function applyScheduleMutation(mutation: any) {
   try {
@@ -94,11 +113,21 @@ const PROMPTS_BY_MODE: Record<string, string[]> = {
   ],
 };
 
-export default function OracleCard({ session }: { session: Session }) {
+export default function OracleCard({
+  session,
+  embedded = false,
+  defaultOpen = false,
+  initialQuery = '',
+  storageScope = 'default',
+  suggestedPrompts,
+  emptyHint,
+  collapsedTitle = 'Zapytaj o swój stan',
+  collapsedSubtitle,
+}: OracleCardProps) {
   const userId = session?.user?.id;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen || embedded);
   const [items, setItems] = useState<ChatItem[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [currentMode, setCurrentMode] = useState<string>('default');
   const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
@@ -107,6 +136,7 @@ export default function OracleCard({ session }: { session: Session }) {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const idleTurnsRef = useRef(0);
+  const sectionRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,18 +144,26 @@ export default function OracleCard({ session }: { session: Session }) {
   useEffect(() => {
     if (!userId) return;
     try {
-      const raw = localStorage.getItem(oracleChatKey(userId));
+      const raw = localStorage.getItem(oracleChatKey(userId, storageScope));
       if (raw) {
         const parsed = JSON.parse(raw) as ChatItem[];
         if (Array.isArray(parsed) && parsed.length) setItems(parsed);
       }
     } catch { /* ignore corrupt cache */ }
-  }, [userId]);
+  }, [userId, storageScope]);
+
+  useEffect(() => {
+    if (initialQuery) setInput(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    if (defaultOpen || embedded) setOpen(true);
+  }, [defaultOpen, embedded]);
 
   useEffect(() => {
     if (!userId || items.length === 0) return;
     try {
-      localStorage.setItem(oracleChatKey(userId), JSON.stringify(items.slice(-80)));
+      localStorage.setItem(oracleChatKey(userId, storageScope), JSON.stringify(items.slice(-80)));
     } catch { /* quota */ }
   }, [userId, items]);
 
@@ -250,8 +288,8 @@ export default function OracleCard({ session }: { session: Session }) {
       content: i.text,
     }));
 
-  const ask = async () => {
-    let query = input.trim();
+  const ask = async (queryOverride?: string) => {
+    let query = (queryOverride ?? input).trim();
     if ((!query && pendingImages.length === 0) || loading) return;
     setInput('');
     const ts = new Date();
@@ -365,9 +403,20 @@ export default function OracleCard({ session }: { session: Session }) {
     }, 150);
   };
 
+  const promptSuggestions =
+    suggestedPrompts ??
+    (storageScope === 'medical'
+      ? MEDICAL_PROMPTS
+      : (PROMPTS_BY_MODE[currentMode] ?? PROMPTS_BY_MODE.default));
+  const emptyStateHint =
+    emptyHint ??
+    (storageScope === 'medical'
+      ? 'Kontekst laboratoryjny + pełny state_vector. Priorytetyzacja retestów — bez diagnozy.'
+      : 'Oracle ma dostęp do Twoich danych z ostatnich 48h.');
+
   return (
     <>
-      {!open ? (
+      {!open && !embedded ? (
         <button
           onClick={handleOpen}
           style={{ transform: btnPressed ? 'scale(0.9)' : 'scale(1)', transition: 'transform 150ms ease' }}
@@ -378,11 +427,15 @@ export default function OracleCard({ session }: { session: Session }) {
           </div>
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Oracle</p>
-            <p className="text-[13px] font-black text-text-primary mt-0.5">Zapytaj o swój stan</p>
+            <p className="text-[13px] font-black text-text-primary mt-0.5">{collapsedTitle}</p>
+            {collapsedSubtitle && (
+              <p className="text-[10px] text-text-muted mt-0.5">{collapsedSubtitle}</p>
+            )}
           </div>
         </button>
-      ) : (
+      ) : open ? (
         <section
+          ref={sectionRef}
           className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden"
           style={{
             animation: 'oracle-slide-up 500ms cubic-bezier(0.33, 1, 0.68, 1) both',
@@ -400,24 +453,26 @@ export default function OracleCard({ session }: { session: Session }) {
           <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-custom">
             <div className="flex items-center gap-2">
               <Sparkles size={13} className="text-primary" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-primary">Oracle</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-primary">
+                {storageScope === 'medical' ? 'Oracle · Badania' : 'Oracle'}
+              </span>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
-            >
-              <X size={14} />
-            </button>
+            {!embedded && (
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Messages */}
           <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-3">
             {items.length === 0 && (
               <div className="py-2 space-y-2">
-                <p className="text-[10px] text-text-muted text-center mb-3">
-                  Oracle ma dostęp do Twoich danych z ostatnich 48h.
-                </p>
-                {(PROMPTS_BY_MODE[currentMode] ?? PROMPTS_BY_MODE.default).map(q => (
+                <p className="text-[10px] text-text-muted text-center mb-3">{emptyStateHint}</p>
+                {promptSuggestions.map((q) => (
                   <button
                     key={q}
                     onClick={() => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50); }}
@@ -525,12 +580,16 @@ export default function OracleCard({ session }: { session: Session }) {
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Jak wygląda mój sen w tym tygodniu?"
+              placeholder={
+                storageScope === 'medical'
+                  ? 'Co warto badać / odświeżyć u mnie teraz?'
+                  : 'Jak wygląda mój sen w tym tygodniu?'
+              }
               disabled={loading}
               className="flex-1 bg-transparent text-[16px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
             />
             <button
-              onClick={ask}
+              onClick={() => void ask()}
               disabled={(!input.trim() && pendingImages.length === 0) || loading}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white disabled:opacity-30 hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
             >
@@ -538,7 +597,7 @@ export default function OracleCard({ session }: { session: Session }) {
             </button>
           </div>
         </section>
-      )}
+      ) : null}
     </>
   );
 }

@@ -28,6 +28,7 @@
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.11.0",
     "react": "^19.2.5",
+    "react-body-highlighter": "^2.0.5",
     "react-dom": "^19.2.5",
     "react-is": "^19.0.0",
     "react-router-dom": "^7.17.0",
