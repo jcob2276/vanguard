@@ -216,7 +216,8 @@ export default function NutritionCard({
 
   const todayRow = chart.find((r) => r.key === todayRaw);
   const todayProtein = todayRow?.protein ?? 0;
-  const todayKcal = todayRow?.calories ?? 0;
+  const todayKcalFromEntries = todayEntries.reduce((s, e) => s + (e.calories ?? 0), 0);
+  const todayKcal = todayEntries.length > 0 ? Math.round(todayKcalFromEntries) : (todayRow?.calories ?? 0);
   const todayInsulinLoad = todayRow?.insulin_load ?? null;
   const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
   const todayMissingData = todayKcal === 0 && todayProtein === 0;

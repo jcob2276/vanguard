@@ -1,7 +1,40 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { deepseekChat } from "../../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function isPrivateOrBlockedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0") return true;
+  if (host === "::1" || host === "[::1]") return true;
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!v4) return false;
+  const [a, b, c] = [Number(v4[1]), Number(v4[2]), Number(v4[3])];
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 0) return true;
+  return false;
+}
+
+/** Reject SSRF targets (private IPs, localhost, non-http schemes). */
+export function assertSafePublicUrl(raw: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("Invalid URL");
+  }
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Only http(s) URLs are allowed");
+  }
+  if (isPrivateOrBlockedHost(parsed.hostname)) {
+    throw new Error("Blocked URL host");
+  }
+  return parsed;
+}
 
 async function fetchYouTubeOembed(url: string): Promise<{ title: string; thumbnailUrl: string; channelName: string }> {
   try {
@@ -68,10 +101,49 @@ function extractMetaFromHtml(html: string): { title: string; description: string
   return { title, description };
 }
 
-/** Shared metadata fetch used by both the Telegram path and the direct HTTP path. */
+const POCKET_CATEGORIES = new Set(["Kariera", "Zdrowie", "Technologia", "Biznes", "Inne"]);
+
+/** Shared LLM analysis used by both the Telegram path and the direct HTTP path. */
+async function generateLinkAnalysis(
+  title: string,
+  description: string,
+  url: string,
+  apiKey: string,
+): Promise<{ takeaways: string[]; category: string }> {
+  if (!apiKey) return { takeaways: [], category: "Inne" };
+  try {
+    const { content } = await deepseekChat({
+      apiKey,
+      model: 'deepseek-v4-flash',
+      temperature: 0.2,
+      maxTokens: 250,
+      messages: [{
+        role: 'user',
+        content:
+          `Dla artykułu "${title}" (${url}). Opis: ${description.slice(0, 500)}. ` +
+          `Zwróć JSON: {"takeaways":["wniosek1","wniosek2","wniosek3"],"category":"Kariera|Zdrowie|Technologia|Biznes|Inne"} — ` +
+          `dokładnie 3 krótkie wnioski po polsku i jedna kategoria.`,
+      }],
+      responseFormat: { type: 'json_object' },
+      timeoutMs: 12000,
+    });
+    const parsed = parseJsonFromContent(content || '{}') ?? {};
+    const takeaways = Array.isArray(parsed.takeaways)
+      ? parsed.takeaways.map(String).filter(Boolean).slice(0, 3)
+      : [];
+    const rawCategory = String(parsed.category || "Inne");
+    const category = POCKET_CATEGORIES.has(rawCategory) ? rawCategory : "Inne";
+    return { takeaways, category };
+  } catch (e) {
+    console.warn('[savedLinks] link analysis failed:', e);
+    return { takeaways: [], category: "Inne" };
+  }
+}
+
 async function fetchUrlMetadata(url: string): Promise<{
   title: string; description: string; domain: string; thumbnailUrl: string; channelName: string;
 }> {
+  assertSafePublicUrl(url);
   let domain = "unknown";
   try {
     domain = new URL(url).hostname.replace("www.", "");
@@ -122,6 +194,12 @@ export async function handleSavedLink(
 
   // Sanitize: handle double-URL concatenation (copy-paste artifact from some clients)
   const url = urlMatch[0].replace(/(https?:\/\/.+?)(https?:\/\/.*)$/, '$1');
+  try {
+    assertSafePublicUrl(url);
+  } catch (err) {
+    await safeSendTelegram(chatId, `❌ Nieprawidłowy lub zablokowany link: ${(err as Error).message}`, telegramToken);
+    return true;
+  }
   console.log(`[savedLinks] Detected URL: ${url}`);
 
   // Idempotency anchor — write to vanguard_stream NOW so Telegram retries are blocked
@@ -151,16 +229,17 @@ export async function handleSavedLink(
   await safeSendTelegram(chatId, "📥 **Przetwarzam link i generuję podsumowanie...**", telegramToken);
 
   const { title: cleanTitle, description: pageDescription, domain, thumbnailUrl, channelName } = await fetchUrlMetadata(url);
+  const { takeaways, category } = await generateLinkAnalysis(cleanTitle, pageDescription, url, deepseekApiKey);
 
-  // 4. Save to vanguard_links table directly (no AI analysis)
+  // 4. Save to vanguard_links table
   try {
     const { error: insertErr } = await supabase.from('vanguard_links').insert({
       user_id: vanguardUserId,
       url: url,
       title: cleanTitle,
       description: pageDescription,
-      takeaways: [],
-      category: "Inne",
+      takeaways,
+      category,
       domain: domain,
       status: "unread",
       ...(thumbnailUrl && { thumbnail_url: thumbnailUrl }),
@@ -196,15 +275,15 @@ export async function handleSavedLinkDirect(
   console.log(`[savedLinks] Direct call for URL: ${url} user: ${vanguardUserId}`);
 
   const { title: cleanTitle, description: pageDescription, domain, thumbnailUrl, channelName } = await fetchUrlMetadata(url);
+  const { takeaways, category } = await generateLinkAnalysis(cleanTitle, pageDescription, url, ctx.deepseekApiKey);
 
-  // Insert into DB directly (no AI)
   const { data, error } = await supabase.from('vanguard_links').insert({
     user_id: vanguardUserId,
     url: url,
     title: cleanTitle,
     description: pageDescription,
-    takeaways: [],
-    category: "Inne",
+    takeaways,
+    category,
     domain: domain,
     status: "unread",
     ...(thumbnailUrl && { thumbnail_url: thumbnailUrl }),

@@ -64,7 +64,13 @@ function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: Lu
   );
 }
 
-export default function DailyStrainCard({ session }: { session: Session }) {
+export default function DailyStrainCard({
+  session,
+  refreshSignal = 0,
+}: {
+  session: Session
+  refreshSignal?: number
+}) {
   const haptics = useHaptics();
   const [row, setRow] = useState<Tables<'daily_strain'> | null>(null);
   const [oura, setOura] = useState<Tables<'oura_daily_summary'> | null>(null);
@@ -103,6 +109,14 @@ export default function DailyStrainCard({ session }: { session: Session }) {
       setLoading(false);
     })();
   }, [fetchRow]);
+
+  // Light refresh after food/workout save; second pass picks up debounced compute-daily-strain.
+  useEffect(() => {
+    if (!refreshSignal) return;
+    void fetchRow();
+    const retry = window.setTimeout(() => void fetchRow(), 6500);
+    return () => window.clearTimeout(retry);
+  }, [refreshSignal, fetchRow]);
 
   // Pełny refresh: sync źródeł → warstwy pochodne Oura → przelicz strain → odśwież
   async function refresh() {
@@ -210,6 +224,10 @@ export default function DailyStrainCard({ session }: { session: Session }) {
   const rhrZ            = comp.rhr_z               as number  | null | undefined;
   const sleepScoreToday = comp.sleep_score_today   as number  | null | undefined;
   const sleepZ          = comp.sleep_z             as number  | null | undefined;
+  const fuelingScore      = comp.fueling_score     as number  | null | undefined;
+  const readinessSignals = comp.readiness_signals as Record<string, unknown> | null | undefined;
+  const wellnessLoad      = comp.wellness_load     as number  | null | undefined;
+  const strainExplanation = comp.explanation       as string  | null | undefined;
   const readinessLevel  = (row as any).readiness_level as string | null | undefined;
   const readinessInfo   = readinessLevel ? READINESS_MAP[readinessLevel] : null;
 
@@ -238,7 +256,30 @@ export default function DailyStrainCard({ session }: { session: Session }) {
         <div className="flex gap-2">
           <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
           <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
+          {fuelingScore != null && (
+            <Metric icon={Zap} label="Fueling" value={fuelingScore} max={100} tone={fuelingScore >= 70 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'} />
+          )}
         </div>
+
+        {strainExplanation && (
+          <p className="text-[11px] text-text-secondary leading-relaxed">{strainExplanation}</p>
+        )}
+
+        {wellnessLoad != null && wellnessLoad > 0 && (
+          <p className="text-[10px] text-text-muted">
+            Wellness (sauna / lodowata): <span className="font-bold text-orange-500">{wellnessLoad}</span> pkt w strain
+          </p>
+        )}
+
+        {readinessSignals && Object.keys(readinessSignals).length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(readinessSignals).map(([k, v]) => (
+              <span key={k} className="inline-flex rounded-lg border border-border-custom bg-surface-solid px-2 py-0.5 text-[9px] font-bold text-text-muted">
+                {k}: {String(v)}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Confidence pills */}
         {(recConf || strConf) && (

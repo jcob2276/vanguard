@@ -1,4 +1,4 @@
-import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 
 const OURA_BASE_URL = 'https://api.ouraring.com/v2/usercollection'
 
@@ -11,7 +11,9 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient()
 
     const body = await req.json()
-    const { userId, start_date, end_date } = body
+    const { start_date, end_date } = body
+    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
+    const userId = scopedUserId ?? body.userId
     if (!userId) throw new Error('Missing userId')
 
     // 1. Get Token
@@ -49,8 +51,10 @@ Deno.serve(async (req) => {
     console.log(`[OURA BACKFILL] ${resolvedStart} → ${resolvedEnd} — ${batches.length} batches`)
 
     let totalUpserted = 0
+    const warnings: string[] = []
 
     for (const [batchStart, batchEnd] of batches) {
+      try {
       // 2. Fetch Data
       console.log(`[OURA DEBUG] Fetching for range: ${batchStart} to ${batchEnd}`);
       const [readinessRes, sleepRes, sleepStagesRes, activityRes] = await Promise.all([
@@ -141,9 +145,19 @@ Deno.serve(async (req) => {
         totalUpserted += upsertData.length
         console.log(`[OURA] batch ${batchStart}→${batchEnd}: ${upsertData.length} rows upserted`)
       }
+      } catch (batchErr: any) {
+        const msg = `batch ${batchStart}→${batchEnd}: ${batchErr?.message || batchErr}`
+        console.error(`[OURA] ${msg}`)
+        warnings.push(msg)
+      }
     } // end batch loop
 
-    return new Response(JSON.stringify({ success: true, total_upserted: totalUpserted, batches: batches.length }), {
+    return new Response(JSON.stringify({
+      success: true,
+      total_upserted: totalUpserted,
+      batches: batches.length,
+      ...(warnings.length ? { warnings } : {}),
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 

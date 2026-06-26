@@ -4,6 +4,7 @@
 // dane kategorialne/dawka (zalogowano/nie, ile), więc potrzebuje group-comparison
 // (Welch t-test + Cohen's d), nie korelacji Pearsona.
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { studentTPValue } from "../_shared/stats.ts"
 
 function erfApprox(x: number): number {
   const sign = x < 0 ? -1 : 1
@@ -31,7 +32,7 @@ function welchTTest(a: number[], b: number[]): { t: number; df: number; p: numbe
   if (se2 <= 0) return null
   const t = (m1 - m2) / Math.sqrt(se2)
   const df = (se2 * se2) / (((v1 / a.length) ** 2) / (a.length - 1) + ((v2 / b.length) ** 2) / (b.length - 1))
-  const p = 2 * (1 - normalCDF(Math.abs(t))) // normal approx, jak compute-correlations
+  const p = studentTPValue(Math.abs(t), df)
   return { t, df, p }
 }
 

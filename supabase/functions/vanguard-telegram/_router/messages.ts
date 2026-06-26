@@ -26,6 +26,20 @@ import { handleSuplementCommand } from "../_handlers/supplements.ts";
 
 export { DEFAULT_REPLY_KEYBOARD };
 
+/** Plain-text messages with date/priority tokens → todo, not stream. */
+function looksLikeTodoCapture(text: string): boolean {
+  const t = text.trim();
+  if (!t || t.length > 180) return false;
+  if (/https?:\/\//.test(t)) return false;
+  if (/^(\?|!!|##|@|poprawka:)/i.test(t)) return false;
+  if (/^\/\w/.test(t)) return false;
+  if (/(^|\s)(p[1-4])(?=\s|$)/i.test(t)) return true;
+  if (/(^|\s)(jutro|pojutrze|dzisiaj|dziś|dzis)(?=\s|$)/i.test(t)) return true;
+  if (/^\+/.test(t) || /\s\+(jutro|tydz)/i.test(t)) return true;
+  if (/!high|!low|pilne/i.test(t)) return true;
+  return false;
+}
+
 export async function handleIncomingMessage(
   message: {
     text?: string;
@@ -172,8 +186,7 @@ export async function handleIncomingMessage(
       let mode = 'stream';
       let cleanText = text;
 
-      // commandSource is defined but unused, so we remove it or just prefix with _
-      const _commandSource = isVoice ? text : originalText;
+      // commandSource reserved for future voice/command routing
       const explicitVoiceCommand = isVoice && hasCommandPrefix;
 
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }
@@ -248,6 +261,11 @@ export async function handleIncomingMessage(
       if (lowerText.startsWith('/keep') || lowerText.startsWith('/notatka')) {
         const sliceLen = lowerText.startsWith('/keep') ? 5 : 8;
         await handleKeepCommand(text.slice(sliceLen).trim(), chatId, telegramToken, supabase, vanguardUserId, false);
+        return;
+      }
+
+      if (!hasCommandPrefix && looksLikeTodoCapture(text)) {
+        await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey);
         return;
       }
 
@@ -353,7 +371,7 @@ export async function handleIncomingMessage(
           // Window stays open until it expires naturally — no early close.
           mode = 'stream';
         } else {
-          mode = transcriptWordCount > 120 ? 'knowledge' : 'stream';
+          mode = transcriptWordCount > 200 ? 'knowledge' : 'stream';
         }
       }
 
@@ -509,8 +527,8 @@ export async function handleIncomingMessage(
               metadata: { category, length: rawContent.length, source: 'telegram' }
             }).catch((e: unknown) => console.warn('[telegram] audit log failed:', e));
           } else {
-            // Very short non-correction vault notes still go to stream (existing behavior)
-            deferredVaultIngest = { text: rawContent, category };
+            // Very short non-correction vault notes stay in stream only
+            deferredVaultIngest = null;
           }
         }
       }
@@ -585,7 +603,7 @@ export async function handleIncomingMessage(
         };
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 55000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         let data: any = null;
         let error: any = null;
@@ -621,7 +639,7 @@ export async function handleIncomingMessage(
             console.error(`[telegram] oracle returned empty text — data keys: ${data ? Object.keys(data).join(',') : 'null'}`);
             responseText = "⚠️ Oracle: pusta odpowiedź modelu. Spróbuj jeszcze raz.";
           } else {
-            responseText = raw.length > 4000 ? raw.substring(0, 4000) + '…' : raw;
+            responseText = raw;
           }
 
           if (mode === 'planning' && activePlanningSession && raw) {

@@ -80,7 +80,8 @@ Deno.serve(async (req) => {
         const { data: behaviorRows } = await supabase.from('behavior_log')
           .select('date, behavior_key').eq('user_id', uid).gte('date', startStr)
         const { data: saunaRows } = await supabase
-          .from('exercise_logs').select('exercise_name, session_id, workout_sessions(date)')
+          .from('exercise_logs').select('exercise_name, session_id, workout_sessions!inner(date, user_id)')
+          .eq('workout_sessions.user_id', uid)
           .ilike('exercise_name', 'sauna%')
 
         const confounderDates = new Set<string>()

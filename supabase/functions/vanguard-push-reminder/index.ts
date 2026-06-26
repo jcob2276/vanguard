@@ -68,14 +68,19 @@ Deno.serve(async () => {
       url: "/",
     });
 
-    await Promise.allSettled(
+    const deliveryResults = await Promise.allSettled(
       subs.map(sub =>
         webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
           payload,
-        ).catch((e: Error) => console.warn("[push-reminder] send failed:", sub.endpoint, e.message))
+        )
       )
     );
+    const anyDelivered = deliveryResults.some(r => r.status === "fulfilled");
+    if (!anyDelivered) {
+      console.warn(`[push-reminder] all sends failed for item ${item.id}`);
+      continue;
+    }
     sent++;
 
     const { error: markErr } = await supabase

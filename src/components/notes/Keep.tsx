@@ -22,6 +22,8 @@ import NoteCard from './NoteCard';
 import MasonryGrid from './MasonryGrid';
 import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
+import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../lib/captureBridge';
+import { notify } from '../../lib/notify';
 
 export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session.user.id;
@@ -361,6 +363,33 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     setActiveTag(t => (t === tag ? null : tag));
   };
 
+  const handleConvertToTodo = async (note: Note) => {
+    setBusy(true);
+    try {
+      await convertNoteToTodoItem(userId, note);
+      setNotes(prev => prev.map(n => (
+        n.id === note.id ? { ...n, is_archived: true, is_pinned: false } : n
+      )));
+      notify('Dodano do zadań', 'success');
+    } catch (e: any) {
+      notify(e.message || 'Nie udało się dodać do zadań', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleExportChecklists = async (note: Note) => {
+    setBusy(true);
+    try {
+      const created = await exportNoteChecklistsToTodos(userId, note);
+      notify(`Dodano ${created.length} zadań`, 'success');
+    } catch (e: any) {
+      notify(e.message || 'Eksport nie powiódł się', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sharedGridProps = {
     onDelete: handleDelete,
     onTogglePin: handleTogglePin,
@@ -371,6 +400,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     editingId,
     onOpenCard: handleOpenCard,
     onClickTag: handleTagClick,
+    onConvertToTodo: sidebarTab === 'notes' ? handleConvertToTodo : undefined,
   };
 
 
@@ -531,6 +561,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           onDragOver={e => e.preventDefault()}
                           isDragOver={false}
                           onClickTag={handleTagClick}
+                          onConvertToTodo={sidebarTab === 'notes' ? handleConvertToTodo : undefined}
                         />
                       ))}
                     </div>
@@ -564,6 +595,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           onDragOver={e => e.preventDefault()}
                           isDragOver={false}
                           onClickTag={handleTagClick}
+                          onConvertToTodo={sidebarTab === 'notes' ? handleConvertToTodo : undefined}
                         />
                       ))}
 
@@ -600,6 +632,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
               onTogglePin={handleTogglePin}
               busy={busy}
               allTags={allTags}
+              onExportChecklists={handleExportChecklists}
             />
           ) : null;
         })()

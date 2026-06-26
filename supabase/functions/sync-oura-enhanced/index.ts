@@ -13,17 +13,27 @@ const serviceClient = createServiceClient
 
 // Robust fetch — Oura zwraca 404/426 dla endpointów, których dany ring/plan nie obsługuje.
 // W takim wypadku po prostu pomijamy (pusta lista), zamiast wywalać cały sync.
-async function fetchOura(url: string, headers: Record<string, string>): Promise<any> {
+async function fetchOura(url: string, headers: Record<string, string>, attempt = 0): Promise<any> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers })
+    if (res.status === 429 && attempt < 3) {
+      const retryAfter = Number(res.headers.get('Retry-After') || '2');
+      await new Promise((r) => setTimeout(r, retryAfter * 1000));
+      return fetchOura(url, headers, attempt + 1);
+    }
     if (!res.ok) {
       console.warn(`[oura-enh] ${url} -> ${res.status}`)
+      if (res.status === 429) throw new Error(`Oura rate limit (429) for ${url}`);
       return { data: [] }
     }
     return await res.json()
   } catch (e: any) {
+    if (attempt < 2 && String(e.message || '').includes('429')) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      return fetchOura(url, headers, attempt + 1);
+    }
     console.warn(`[oura-enh] fetch failed ${url}: ${e.message}`)
-    return { data: [] }
+    throw e
   }
 }
 

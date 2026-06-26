@@ -6,6 +6,7 @@ import { sendChatAction } from "../../_shared/telegram.ts";
 import { runRealityAdversary } from '../_utils/adversary.ts';
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { deepseekChat } from "../../_shared/deepseek.ts";
+import { getWarsawDateString, getWarsawDayBoundaries } from "../../_shared/time.ts";
 
 
 export async function handleSaturdayCheckin(
@@ -107,18 +108,21 @@ export async function handleSaturdayCheckin(
 
     await sendChatAction(telegramToken, chatId, "typing");
 
-    // Fetch context for Saturday Synthesis
-    const cut7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // Fetch context for Saturday Synthesis — Warsaw calendar 7 days
+    const todayWarsaw = getWarsawDateString();
+    const sevenDaysAgoDate = new Date(new Date(`${todayWarsaw}T12:00:00Z`).getTime() - 7 * 86400000)
+      .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const cut7d = getWarsawDayBoundaries(sevenDaysAgoDate).start;
     const [frictionRes, streamRes] = await Promise.all([
       supabase.from('friction_events')
         .select('occurred_at, friction_type, actual_behavior, deviation')
         .eq('user_id', userId)
-        .gte('occurred_at', cut7d.toISOString())
+        .gte('occurred_at', cut7d)
         .order('occurred_at', { ascending: false }),
       supabase.from('vanguard_stream')
         .select('created_at, content')
         .eq('user_id', userId)
-        .gte('created_at', cut7d.toISOString())
+        .gte('created_at', cut7d)
         .not('source', 'eq', 'system')
         .order('created_at', { ascending: false })
         .limit(30)
@@ -205,7 +209,8 @@ ${streamLines || 'brak'}`
     // Try running Reality Adversary to get concrete recommendation.
     // If it fails or returns nothing, we ask the user directly instead of injecting
     // generic placeholders into planning_history (which Oracle would later read as a real plan).
-    let tomorrowArtifact: string | null = null;
+    const userFirstMove = (answers.system || answers.input || '').trim() || null;
+    let tomorrowArtifact: string | null = userFirstMove;
     let tomorrowMinimum: string | null = null;
     const tomorrowStart = "08:45";
     let tomorrowTension: string | null = null;
@@ -214,10 +219,12 @@ ${streamLines || 'brak'}`
     try {
       const adversaryOutput = await runRealityAdversary(null, streamRes.data || [], deepseekApiKey);
       if (adversaryOutput?.recommended_tension_action?.action) {
-        tomorrowArtifact = adversaryOutput.recommended_tension_action.action;
-        tomorrowMinimum = adversaryOutput.recommended_tension_action.minimum_version || null;
         tomorrowTension = adversaryOutput.recommended_tension_action.action;
         tomorrowTensionMin = adversaryOutput.recommended_tension_action.minimum_version || null;
+        if (!tomorrowArtifact) {
+          tomorrowArtifact = adversaryOutput.recommended_tension_action.action;
+          tomorrowMinimum = adversaryOutput.recommended_tension_action.minimum_version || null;
+        }
       }
     } catch (advErr) {
       console.warn('[saturday] adversary run failed:', advErr);

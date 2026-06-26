@@ -4,8 +4,10 @@ import { Shield, Fingerprint, Lock, Zap } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Sync theme with document class on mount
@@ -22,8 +24,23 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
     
     try {
+      if (mode === 'reset') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        });
+        if (error) throw error;
+        setMessage('Link do resetu hasła wysłany na e-mail.');
+        return;
+      }
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage('Konto utworzone. Sprawdź e-mail jeśli wymagana jest weryfikacja.');
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error) {
@@ -56,6 +73,11 @@ export default function Auth() {
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
+            {message && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center">
+                {message}
+              </div>
+            )}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
                 {error}
@@ -76,6 +98,7 @@ export default function Auth() {
               </div>
             </div>
 
+            {mode !== 'reset' && (
             <div className="space-y-2">
               <label className="text-[10px] font-black text-text-muted uppercase tracking-widest ml-4">Secure Key</label>
               <div className="relative">
@@ -89,6 +112,7 @@ export default function Auth() {
                 />
               </div>
             </div>
+            )}
             
             <button 
               type="submit" 
@@ -100,11 +124,23 @@ export default function Auth() {
               ) : (
                 <>
                   <Lock size={16} />
-                  Inicjuj Sesję
+                  {mode === 'reset' ? 'Wyślij link resetu' : mode === 'signup' ? 'Utwórz konto' : 'Inicjuj Sesję'}
                 </>
               )}
             </button>
           </form>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3 text-[10px] font-bold text-text-muted">
+            {mode !== 'signin' && (
+              <button type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Logowanie</button>
+            )}
+            {mode !== 'signup' && (
+              <button type="button" onClick={() => { setMode('signup'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Rejestracja</button>
+            )}
+            {mode !== 'reset' && (
+              <button type="button" onClick={() => { setMode('reset'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Reset hasła</button>
+            )}
+          </div>
 
           <div className="mt-10 pt-8 border-t border-border-custom text-center">
             <div className="flex items-center justify-center gap-2 text-text-muted">

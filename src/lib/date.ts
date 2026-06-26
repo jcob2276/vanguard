@@ -53,17 +53,8 @@ export function warsawDayBoundsISO(dateStr: string): { fromISO: string; toISO: s
 }
 
 export function nowWarsaw(): Date {
-  const d = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: WARSAW_TZ,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3,
-    hour12: false
-  });
-  const parts = formatter.formatToParts(d);
-  const p = (type: string) => parts.find(x => x.type === type)?.value;
-  // Format as ISO-like string and parse to shift the internal representation
-  return new Date(`${p('year')}-${p('month')}-${p('day')}T${p('hour')}:${p('minute')}:${p('second')}.${p('fractionalSecond')}`);
+  // Shift wall-clock so getHours/getDate match Europe/Warsaw on any system TZ (see date.test.ts).
+  return new Date(new Date().toLocaleString('en-US', { timeZone: WARSAW_TZ }));
 }
 
 export function formatWarsawDate(date: Date | string | number): string {

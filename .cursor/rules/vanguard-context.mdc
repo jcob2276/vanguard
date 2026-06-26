@@ -30,7 +30,7 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 - **Frontend:** React + Vite + Tailwind, SPA deployowany na Vercel
 - **Backend:** Supabase (Postgres + Edge Functions w Deno/TypeScript)
 - **Notifications:** Telegram Bot API
-- **Biometrics:** Oura Ring API (HRV, sen, readiness), Yazio (dieta)
+- **Biometrics:** Oura Ring API (HRV, sen, readiness); dieta — własny log posiłków w app
 - **Crons:** pg_cron w Supabase
 
 ---

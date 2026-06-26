@@ -2,6 +2,7 @@
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { formatWarsawDate } from '../../../lib/date';
+import { notify } from '../../../lib/notify';
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -19,7 +20,7 @@ export async function exportStatsMarkdown({
   session,
   dateRange,
   userSettings,
-  includeYazio,
+  includeNutrition,
   includeJournal,
   includeOura,
   includeHabits,
@@ -69,8 +70,8 @@ export async function exportStatsMarkdown({
     ] = await Promise.all([
       includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
       includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
-      includeYazio ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
-      includeYazio ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+      includeNutrition ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
+      includeNutrition ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
       includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [] }),
       includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve({ data: [] }),
       supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
@@ -204,7 +205,7 @@ export async function exportStatsMarkdown({
 
       // Header and Lose Day Logic
       const hasAnyData = (includeWorkouts && (daySessions.length > 0 || dayStrava.length > 0)) || 
-                         (includeYazio && (dayFood.length > 0 || dayNutrition)) || 
+                         (includeNutrition && (dayFood.length > 0 || dayNutrition)) || 
                          (includeJournal && (dayJournal || dayTelegramLogs.length > 0)) || 
                          (includeBody && dayBody) || 
                          (includeOura && dayOura) || 
@@ -571,7 +572,7 @@ export async function exportStatsMarkdown({
         md += `\n`;
       }
 
-      if (includeYazio) {
+      if (includeNutrition) {
         const dayFood = foodEntries.filter(f => f.date === dateStr);
         const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
         if (dayFood.length > 0) {
@@ -650,7 +651,7 @@ export async function exportStatsMarkdown({
           md += `### 🥗 Dieta (Vanguard)\n`;
           md += foodError
             ? `Nie udało się pobrać szczegółowych produktów z \`daily_food_entries\`: ${foodError.message}\n\n`
-            : `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma z Yazio jest zapisana.\n\n`;
+            : `Brak szczegółowych produktów w \`daily_food_entries\`, ale dzienna suma makro jest zapisana.\n\n`;
           const calories = dayNutrition.calories || 0;
           const protein = Number(dayNutrition.protein || 0);
           const density = calories > 0 ? ((protein / calories) * 100).toFixed(1) : '0.0';
@@ -772,11 +773,11 @@ export async function exportOuraCsv({ supabase, session, dateRange }) {
         .order('day', { ascending: true }),
     ]);
 
-    if (enhancedRes.error) { alert('Błąd pobierania Oura: ' + enhancedRes.error.message); return; }
+    if (enhancedRes.error) { notify('Błąd pobierania Oura: ' + enhancedRes.error.message, 'error'); return; }
     const enhanced = enhancedRes.data || [];
     const derived = derivedRes.data || [];
     if (enhanced.length === 0 && derived.length === 0) {
-      alert('Brak danych Oura w wybranym zakresie dat.'); return;
+      notify('Brak danych Oura w wybranym zakresie dat.', 'error'); return;
     }
 
     // Scalanie po dacie — jeden wiersz na dzień

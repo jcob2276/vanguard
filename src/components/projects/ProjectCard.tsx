@@ -30,6 +30,7 @@ import {
   getProjectMomentum,
 } from './projectUtils';
 import HealthScore from './HealthScore';
+import { KpiTrendSparkline } from './KpiTrendSparkline';
 
 const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
 const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
@@ -77,6 +78,7 @@ interface ProjectCardProps {
   handleStatusCycle: (project: any) => void;
   updateProjectStatus: (project: any, status: string) => void;
   handleDelete: (id: string) => void;
+  userId: string;
 }
 
 export default function ProjectCard({
@@ -88,7 +90,7 @@ export default function ProjectCard({
   handleToggleCheckpoint, deleteCheckpoint,
   editingKpiId, setEditingKpiId, handleUpdateKpiValue,
   handleToggleTask, newTask, setNewTask, handleAddTask,
-  handleStatusCycle, updateProjectStatus, handleDelete,
+  handleStatusCycle, updateProjectStatus, handleDelete, userId,
 }: ProjectCardProps) {
   const col = colorOf(project.color);
   const pillar = projectPillar(project);
@@ -217,6 +219,14 @@ export default function ProjectCard({
                       <span className="text-[9px] font-bold text-text-muted/60 shrink-0">{pct}%</span>
                     )}
                   </div>
+                  {isExpanded && (
+                    <KpiTrendSparkline
+                      kpiId={kpi.id}
+                      userId={userId}
+                      unit={kpi.unit}
+                      target={kpi.target}
+                    />
+                  )}
                   {pct !== null && (
                     <div className="ml-3 h-1 w-full rounded-full bg-border-custom overflow-hidden">
                       <div

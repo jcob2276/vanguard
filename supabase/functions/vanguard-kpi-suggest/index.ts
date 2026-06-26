@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       db.from("life_goals").select("goal_cialo, goal_duch, goal_konto, bhag_pillar").eq("user_id", userId).maybeSingle(),
       db.from("projects").select("name, goal").eq("user_id", userId).eq("status", "active"),
       db.from("goal_kpis").select("name, pillar").eq("user_id", userId),
-      db.from("strava_activities").select("id").eq("user_id", userId).gte("created_at", thirtyDaysAgo).limit(1),
+      db.from("strava_activities").select("id").eq("user_id", userId).gte("start_date", thirtyDaysAgo).limit(1),
       db.from("daily_nutrition").select("date").eq("user_id", userId).limit(1),
     ]);
     if (lifeGoalsRes.error) console.warn("[kpi-suggest] life_goals query failed:", lifeGoalsRes.error.message);
@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
 
     const tracking: string[] = ["Oura (sen, HRV, odzysk — auto)"];
     if (hasStrava) tracking.push("Strava (biegi, km, tempo — auto)");
-    if (hasNutrition) tracking.push("Yazio (kcal, bialko — logowane)");
+    if (hasNutrition) tracking.push("Dziennik posilkow (kcal, bialko — logowane)");
 
-    const systemPrompt = "Jestes Antigravity - AI Jakuba. Zaproponuj PRAKTYCZNE tygodniowe KPI.\n\nZASADY:\n- Tylko metryki mierzalne co tydzien bez specjalnego sprzetu\n- Proxy zamiast idealow: obwod talii zamiast % tluszczu, serie treningowe zamiast sily max\n- Jesli dane sa auto-trackowane (Strava, Oura, Yazio) - to preferuj, oznacz w reason\n- Unikaj metryk ktore juz istnieja w systemie\n- Max 3 propozycje na sfere\n- reason: 1 krotkie zdanie jak mierzyc i dlaczego ta metryka\n\nZwroc TYLKO JSON:\n{\"suggestions\": [{\"pillar\": \"cialo|duch|konto\", \"name\": \"...\", \"unit\": \"...\", \"higher_is_better\": true, \"reason\": \"...\"}]}";
+    const systemPrompt = "Jestes Antigravity - AI Jakuba. Zaproponuj PRAKTYCZNE tygodniowe KPI.\n\nZASADY:\n- Tylko metryki mierzalne co tydzien bez specjalnego sprzetu\n- Proxy zamiast idealow: obwod talii zamiast % tluszczu, serie treningowe zamiast sily max\n- Jesli dane sa auto-trackowane (Strava, Oura, log posilkow) - to preferuj, oznacz w reason\n- Unikaj metryk ktore juz istnieja w systemie\n- Max 3 propozycje na sfere\n- reason: 1 krotkie zdanie jak mierzyc i dlaczego ta metryka\n\nZwroc TYLKO JSON:\n{\"suggestions\": [{\"pillar\": \"cialo|duch|konto\", \"name\": \"...\", \"unit\": \"...\", \"higher_is_better\": true, \"reason\": \"...\"}]}";
 
     const userPrompt = "CELE:\n- Cialo: " + (g?.goal_cialo ?? "nie ustawione") +
       "\n- Duch: " + (g?.goal_duch ?? "nie ustawione") +

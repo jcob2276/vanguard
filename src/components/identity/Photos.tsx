@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
+import { notify, confirmDialog } from '../../lib/notify';
 
 export default function Photos({ session }: { session: any }) {
   const [loading, setLoading] = useState(true);
@@ -80,16 +81,16 @@ export default function Photos({ session }: { session: any }) {
       if (insertErr) throw insertErr;
       fetchPhotos();
     } catch (error) {
-      alert('Błąd: ' + (error instanceof Error ? error.message : String(error)));
+      notify('Błąd: ' + (error instanceof Error ? error.message : String(error)), 'error');
     } finally { setUploading(false); }
   }
 
   async function deletePhoto(id: string, url: string) {
-    if (!confirm('Usunąć?')) return;
+    if (!(await confirmDialog('Usunąć?'))) return;
     const fileName = `${session.user.id}/${url.split('/').pop()}`;
     await supabase.storage.from('progress-photos').remove([fileName]);
     const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
-    if (delErr) { alert(delErr.message); return; }
+    if (delErr) { notify(delErr.message, 'error'); return; }
     fetchPhotos();
   }
 

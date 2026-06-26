@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Archive, Pin, Trash2 } from 'lucide-react';
+import { Archive, ListTodo, Pin, Trash2 } from 'lucide-react';
 import { getColor, relativeDate, sanitizeHtml, Note } from './keepUtils';
 
 export default function NoteCard({
@@ -16,6 +16,7 @@ export default function NoteCard({
   onDragOver,
   isDragOver,
   onClickTag,
+  onConvertToTodo,
 }: {
   note: Note;
   onDelete: (id: string) => void;
@@ -30,6 +31,7 @@ export default function NoteCard({
   onDragOver: (e: React.DragEvent) => void;
   isDragOver: boolean;
   onClickTag?: (tag: string) => void;
+  onConvertToTodo?: (note: Note) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const c = getColor(note.color);
@@ -122,6 +124,16 @@ export default function NoteCard({
           {relativeDate(note.updated_at || note.created_at)}
         </span>
          <div className="keep-card-actions">
+          {!note.is_archived && onConvertToTodo && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onConvertToTodo(note); }}
+              className="keep-icon-btn"
+              title="Dodaj do zadań"
+            >
+              <ListTodo size={14} />
+            </button>
+          )}
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onTogglePin(note); }}

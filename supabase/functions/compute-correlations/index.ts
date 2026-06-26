@@ -1,4 +1,5 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { studentTPValue } from '../_shared/stats.ts'
 
 // ── Pearson r + OLS slope/intercept + approximate two-sided p-value.
 // Lagged variant: x[D] vs y[D+lag] to probe delayed effects.
@@ -30,7 +31,7 @@ function pValue(r: number, n: number): number {
   const oneMinusR2 = 1 - r * r
   if (oneMinusR2 <= 0) return 0
   const t = r * Math.sqrt((n - 2) / oneMinusR2)
-  return 2 * (1 - normalCDF(Math.abs(t)))
+  return studentTPValue(t, n - 2)
 }
 
 function pearson(xy: [number, number][]): Correlation | null {
@@ -74,7 +75,7 @@ function lagged(
   for (const row of y) mapY[row.day] = row.value
 
   const pairs: [number, number][] = []
-  for (const row of x.sort((a, b) => a.day.localeCompare(b.day))) {
+  for (const row of [...x].sort((a, b) => a.day.localeCompare(b.day))) {
     const shifted = shiftDay(row.day, lagDays)
     if (shifted && mapY[shifted] != null) {
       pairs.push([row.value, mapY[shifted]])

@@ -23,6 +23,7 @@ export async function checkAntiAnalysis(text: string, deepseekApiKey: string): P
       model: 'deepseek-v4-flash',
       temperature: 0.1,
       maxTokens: 10,
+      timeoutMs: 8000,
       messages: [{
         role: 'user',
         content: `Przeanalizuj tekst i określ, czy jest to czysta autoanaliza stanu psychicznego/emocjonalnego (self_analysis), projektowanie systemu/narzędzi (system_design), budowanie teorii/zasad/ram działania (framework_building), pre_mortem (teoretyzowanie o porażce przed działaniem) lub abstrakcyjne planowanie (abstract_planning) BEZ konkretnego, namacalnego fizycznego lub zewnętrznego działania (np. wysłanie maila, wdrożenie kodu, telefon do klienta, wykonanie zaplanowanego treningu). \nOdpowiedz TYLKO słowem "YES" jeśli to analiza bez namacalnego działania/artefaktu, lub "NO" w przeciwnym wypadku. Zero dodatkowych słów.\n\nTEKST DO OCENY:\n"${text.substring(0, 800)}"`

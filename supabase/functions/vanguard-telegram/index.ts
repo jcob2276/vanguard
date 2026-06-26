@@ -1,36 +1,61 @@
-/**
- * vanguard-telegram — webhook entry (thin router).
- * Callbacks → _router/callbacks.ts | Messages → _router/messages.ts
- * Domain logic → _handlers/*
- */
-
 import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
-import { corsHeaders } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+
+function verifyTelegramSecret(req: Request): boolean | "missing_config" {
+  const expected = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+  if (!expected) return "missing_config";
+  const header = req.headers.get("X-Telegram-Bot-Api-Secret-Token") || "";
+  return header === expected;
+}
 
 Deno.serve(async (req) => {
-  // Support OPTIONS for CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+    if (!rawBody?.trim()) {
+      return new Response("OK", { status: 200 });
+    }
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      console.warn("[telegram] invalid JSON body");
+      return new Response("OK", { status: 200 });
+    }
+
     const ctx = createTelegramContext();
 
-    // Manual link save from the web app (Pocket "+" button)
     if (payload.type === "save_link" && payload.url) {
+      const { userId } = await resolveUserScope(req, ctx.vanguardUserId);
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing user scope" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { handleSavedLinkDirect } = await import("./_handlers/savedLinks.ts");
-      const result = await handleSavedLinkDirect(payload.url, ctx.vanguardUserId, ctx);
+      const result = await handleSavedLinkDirect(String(payload.url), userId, ctx);
       return new Response(JSON.stringify({ ok: true, link: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Telegram setMyCommands configuration trigger
     if (payload.setup_commands) {
+      const setupSecret = Deno.env.get("TELEGRAM_SETUP_SECRET") || Deno.env.get("SB_SECRET_KEY") || "";
+      const auth = req.headers.get("Authorization") || "";
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      if (!setupSecret || token !== setupSecret) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const res = await fetch(`https://api.telegram.org/bot${ctx.telegramToken}/setMyCommands`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,25 +79,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    const secretCheck = verifyTelegramSecret(req);
+    if (secretCheck === "missing_config") {
+      console.error("[telegram] TELEGRAM_WEBHOOK_SECRET not configured");
+      return new Response("Webhook secret not configured", { status: 503 });
+    }
+    if (secretCheck === false) {
+      console.warn("[telegram] webhook secret mismatch");
+      return new Response("Forbidden", { status: 403 });
+    }
+
     if (payload.callback_query) {
-      await handleCallbackQuery(payload.callback_query, ctx).catch((err) => {
+      await handleCallbackQuery(payload.callback_query as never, ctx).catch((err) => {
         console.error("[telegram] callback error:", err);
       });
       return new Response("OK", { status: 200 });
     }
 
-    // Edits aren't new events — handling them like new messages double-logs the same
-    // note in vanguard_stream (original + edited version), corrupting behavioral analysis.
     if (payload.edited_message) return new Response("OK", { status: 200 });
 
-    const message = payload.message;
+    const message = payload.message as { chat?: { id: number }; text?: string; voice?: unknown } | undefined;
     if (!message) return new Response("OK", { status: 200 });
     if (!message.text && !message.voice) return new Response("OK", { status: 200 });
-    if (message.chat.id !== ctx.authorizedChatId) {
+    if (!Number.isFinite(ctx.authorizedChatId) || ctx.authorizedChatId <= 0 || message.chat?.id !== ctx.authorizedChatId) {
       return new Response("OK", { status: 200 });
     }
 
-    await handleIncomingMessage(message, ctx);
+    await handleIncomingMessage(message as never, ctx);
     return new Response("OK", { status: 200 });
   } catch (err) {
     await logCriticalError({

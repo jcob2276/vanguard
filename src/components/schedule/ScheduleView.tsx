@@ -42,7 +42,19 @@ function buildDefaultSchedule(session: Session): ScheduleViewData {
 
 export function ScheduleView({ session }: { session: Session }) {
   const [scheduleData, setScheduleData] = useState<ScheduleViewData | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<{ summary: string | null; start_time: string | null }[]>([]);
   const today = getTodayWarsaw();
+
+  useEffect(() => {
+    supabase
+      .from('vanguard_calendar')
+      .select('summary, start_time')
+      .eq('user_id', session.user.id)
+      .gte('start_time', `${today}T00:00:00`)
+      .lte('start_time', `${today}T23:59:59`)
+      .order('start_time', { ascending: true })
+      .then(({ data }) => setCalendarEvents(data || []));
+  }, [session.user.id, today]);
 
   useEffect(() => {
     let data = loadFromStorage();
@@ -105,6 +117,17 @@ export function ScheduleView({ session }: { session: Session }) {
 
   return (
     <div className="space-y-5">
+      {calendarEvents.length > 0 && (
+        <div className="rounded-2xl border border-border-custom bg-surface-solid/40 p-4 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">Kalendarz (dziś)</p>
+          {calendarEvents.map((ev, i) => (
+            <div key={i} className="flex justify-between gap-2 text-[12px] text-text-secondary">
+              <span className="font-semibold truncate">{ev.summary || 'Wydarzenie'}</span>
+              <span className="shrink-0 text-text-muted">{ev.start_time ? new Date(ev.start_time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' }) : '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {/* Hero event */}
       {displayHero && (
         <HeroCard

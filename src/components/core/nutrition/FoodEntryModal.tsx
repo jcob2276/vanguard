@@ -4,6 +4,15 @@ import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Keyboard, P
 import { supabase } from '../../../lib/supabase';
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
 import { useHaptics } from '../../../hooks/useHaptics';
+import {
+  parseFoodNL,
+  saveParsedFoodItems,
+  saveFoodCorrection,
+  confidenceLabel,
+  needsReview,
+  scheduleFoodQualityAnalysis,
+  type ParsedFoodItem as NLFoodItem,
+} from '../../../lib/foodLogging';
 
 declare global {
   interface Window {
@@ -62,16 +71,7 @@ function derivePer100(entry: RecentEntry) {
   };
 }
 
-interface NLItem {
-  name: string;
-  grams: number;
-  calories: number;
-  protein: number;
-  carbs: number | null;
-  fat: number | null;
-  fiber?: number | null;
-  sugar?: number | null;
-}
+interface NLItem extends NLFoodItem {}
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },
@@ -175,6 +175,19 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const [nlItems, setNlItems] = useState<NLItem[] | null>(null);
   const [nlSaving, setNlSaving] = useState(false);
   const [nlRemovedIdx, setNlRemovedIdx] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (editingEntry) { setEditingEntry(null); return; }
+      if (nlMode) { setNlMode(false); return; }
+      if (manualMode) { setManualMode(false); return; }
+      if (selected) { setSelected(null); return; }
+      onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editingEntry, nlMode, manualMode, selected, onClose]);
 
   const todayStr = getTodayWarsaw();
   const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
@@ -330,6 +343,10 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     setTimeout(() => setSavedFlash(false), 1200);
   }, [haptics]);
 
+  const afterFoodLog = useCallback(() => {
+    if (userId) scheduleFoodQualityAnalysis(userId, getTodayWarsaw());
+  }, [userId]);
+
   // Grows the personal product cache so the next search for the same item
   // resolves instantly without depending on OFF. Fire-and-forget — never
   // blocks or fails the actual food-log save.
@@ -361,6 +378,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       });
       if (rpcError) throw rpcError;
       cacheToLibrary(selected, gramsNum);
+      afterFoodLog();
       flashSaved();
       onSaved?.();
       setSelected(null); setQuery(''); setGrams('100');
@@ -370,7 +388,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setSaving(false);
     }
-  }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved, cacheToLibrary]);
+  }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
 
   // ── Quick-add from search results (1 tap, product's own serving size if known) ──
   const quickAddSearchResult = useCallback(async (food: FoodBase) => {
@@ -389,6 +407,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       });
       if (rpcError) throw rpcError;
       cacheToLibrary(food, food.defaultGrams ?? 100);
+      afterFoodLog();
       flashSaved();
       onSaved?.();
       loadLists();
@@ -397,7 +416,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setQuickAddingId(null);
     }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, cacheToLibrary]);
+  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
 
   // ── Quick-add favorite ────────────────────────────────────────────────────────
   const quickAddFavorite = useCallback(async (fav: Favorite) => {
@@ -414,6 +433,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (rpcError) throw rpcError;
+      afterFoodLog();
       flashSaved();
       onSaved?.();
       loadLists();
@@ -422,7 +442,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setQuickAddingId(null);
     }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved]);
+  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, afterFoodLog]);
 
   // ── Repeat recent entry — uses current mealType, not the source entry's meal ──
   const quickRepeatEntry = useCallback(async (entry: RecentEntry) => {
@@ -444,6 +464,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (rpcError) throw rpcError;
+      afterFoodLog();
       flashSaved();
       onSaved?.();
       loadLists();
@@ -452,7 +473,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setQuickAddingId(null);
     }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved]);
+  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, afterFoodLog]);
 
   // ── Manual entry ──────────────────────────────────────────────────────────────
   const saveManual = useCallback(async () => {
@@ -480,6 +501,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         fat: manualFat.trim() ? Number(manualFat) : null,
         fiber: null, sugar: null,
       }, 100);
+      afterFoodLog();
       flashSaved();
       onSaved?.();
       setManualName(''); setManualKcal(''); setManualProtein(''); setManualCarbs(''); setManualFat('');
@@ -490,37 +512,38 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     } finally {
       setSaving(false);
     }
-  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved, cacheToLibrary]);
+  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
 
   // ── NL parse ──────────────────────────────────────────────────────────────────
   const parseNL = useCallback(async () => {
-    if (!nlText.trim() || nlParsing) return;
+    if (!nlText.trim() || nlParsing || !userId) return;
     setNlParsing(true);
     setError(null);
     setNlItems(null);
     setNlRemovedIdx(new Set());
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-food-nl`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${authSession?.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: nlText.trim() }),
-          signal: AbortSignal.timeout(30000),
-        }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      setNlItems(json.items || []);
+      const items = await parseFoodNL(nlText.trim(), userId, authSession?.access_token ?? session.access_token);
+      if (!items.length) {
+        setError('Nie rozpoznano produktów');
+        return;
+      }
+      if (!needsReview(items)) {
+        await saveParsedFoodItems(userId, items, { date: getTodayWarsaw(), mealType });
+        flashSaved();
+        onSaved?.();
+        setNlText(''); setNlItems(null); setNlRemovedIdx(new Set()); setNlMode(false);
+        loadLists();
+        return;
+      }
+      setNlItems(items);
     } catch (err) {
       console.error('[FoodEntryModal] NL parse failed', err);
       setError('Parsowanie nie powiodło się — spróbuj ponownie');
     } finally {
       setNlParsing(false);
     }
-  }, [nlText, nlParsing]);
+  }, [nlText, nlParsing, userId, session.access_token, mealType, onSaved, loadLists, flashSaved]);
 
   // ── NL bulk save ──────────────────────────────────────────────────────────────
   const saveNLItems = useCallback(async () => {
@@ -530,30 +553,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     setNlSaving(true);
     setError(null);
     try {
-      const today = getTodayWarsaw();
-      // Sequential to avoid advisory lock contention on the same (user, date) key.
-      // add_food_entry expects p_entry as per-100g values and scales by p_grams/100 —
-      // but item.calories/protein/carbs/fat are already scaled to item.grams, so they
-      // must be converted back to per-100g here. Sending them as-is with p_grams:100
-      // (as before) reproduced the right logged total but poisoned food_favorites with
-      // the wrong per-100g density, corrupting any future re-add at a different grams.
-      for (const item of toSave) {
-        const scale100 = item.grams > 0 ? 100 / item.grams : 1;
-        const { error: rpcError } = await supabase.rpc('add_food_entry', {
-          p_user_id: userId, p_date: today, p_grams: item.grams,
-          p_entry: {
-            name: item.name, brand: null, barcode: null,
-            calories: Math.round(item.calories * scale100),
-            protein: Math.round(item.protein * scale100 * 10) / 10,
-            carbs: item.carbs != null ? Math.round(item.carbs * scale100 * 10) / 10 : null,
-            fat: item.fat != null ? Math.round(item.fat * scale100 * 10) / 10 : null,
-            fiber: item.fiber != null ? Math.round(item.fiber * scale100 * 10) / 10 : null,
-            sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
-            meal_type: mealType,
-          },
-        });
-        if (rpcError) throw rpcError;
-      }
+      await saveParsedFoodItems(userId, toSave, { date: getTodayWarsaw(), mealType });
       flashSaved();
       onSaved?.();
       setNlText(''); setNlItems(null); setNlRemovedIdx(new Set()); setNlMode(false);
@@ -604,6 +604,12 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         },
       });
       if (updErr) throw updErr;
+      const origGrams = parseGrams(editingEntry.amount);
+      if (Math.abs(newGrams - origGrams) >= 5) {
+        saveFoodCorrection(userId, editingEntry.name, newGrams).catch((e) =>
+          console.warn('[FoodEntryModal] saveFoodCorrection failed', e),
+        );
+      }
       setEditingEntry(null);
       onSaved?.();
       loadLists();
@@ -820,7 +826,18 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                       <div key={i} className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all ${removed ? 'opacity-30 border-border-custom/30 bg-transparent' : 'border-border-custom bg-surface-solid/20'}`}>
                         <div className="flex-1 min-w-0">
                           <p className={`text-[12px] font-semibold truncate ${removed ? 'line-through text-text-muted' : 'text-text-primary'}`}>{item.name}</p>
-                          <p className="text-[9px] text-text-muted">{item.grams}g</p>
+                          <p className="text-[9px] text-text-muted flex items-center gap-1.5">
+                            <span>{item.grams}g</span>
+                            {confidenceLabel(item) && (
+                              <span className={`rounded px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide ${
+                                item.confidence === 'low' ? 'bg-amber-500/15 text-amber-400' :
+                                item.source === 'library' || item.source === 'database' ? 'bg-emerald-500/15 text-emerald-400' :
+                                'bg-primary/10 text-primary/80'
+                              }`}>
+                                {confidenceLabel(item)}
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-[11px] font-black text-text-secondary">{item.calories} kcal</p>

@@ -9,7 +9,7 @@ export default {
       colors: {
         background: '#0a0a0a',
         surface: '#171717',
-        primary: '#3b82f6', // Niebieski akcent
+        primary: '#4f46e5',
         dayA: '#3b82f6', // blue-500
         dayB: '#ef4444', // red-500
         dayC: '#22c55e', // green-500

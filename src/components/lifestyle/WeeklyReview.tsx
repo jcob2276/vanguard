@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Check, ChevronLeft, Settings, Sparkles } from 'lucide-react';
+import { Plus, Check, ChevronLeft, Settings, Sparkles, Archive, ListTodo } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { notify } from '../../lib/notify';
 import {
   PILLARS,
   getWeekStart,
@@ -12,6 +13,7 @@ import {
 } from './weeklyReviewUtils';
 import KpiEntryCard from './KpiEntryCard';
 import WeeklyBriefView from './WeeklyBriefView';
+import { convertNoteToTodoItem } from '../../lib/captureBridge';
 
 export default function WeeklyReview({ session, onBack }: { session: Session; onBack: () => void }) {
   const uid = session.user.id;
@@ -36,6 +38,12 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [suggestingKpis, setSuggestingKpis] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+
+  const [keepSuggestions, setKeepSuggestions] = useState<any[]>([]);
+  const [keepTotalStale, setKeepTotalStale] = useState(0);
+  const [triagingNotes, setTriagingNotes] = useState(false);
+  const [triageError, setTriageError] = useState<string | null>(null);
+  const [triagedIds, setTriagedIds] = useState<Set<string>>(new Set());
 
   const db = supabase as any;
 
@@ -122,7 +130,7 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
     const snapshot = kpis;
     setKpis(prev => prev.filter(k => k.id !== id));
     const { error } = await db.from('goal_kpis').delete().eq('id', id).eq('user_id', uid);
-    if (error) { setKpis(snapshot); alert(error.message); }
+    if (error) { setKpis(snapshot); notify(error.message, 'error'); }
   }
 
   async function addKpiDirect(s: { pillar: string; name: string; unit: string; higher_is_better: boolean }) {
@@ -158,6 +166,43 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
     } finally {
       setSuggestingKpis(false);
     }
+  }
+
+  async function triageNotes() {
+    setTriagingNotes(true);
+    setTriageError(null);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-keep-triage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userId: uid }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setKeepSuggestions(data.suggestions ?? []);
+      setKeepTotalStale(data.totalStale ?? 0);
+      setTriagedIds(new Set());
+    } catch (e: any) {
+      setTriageError(e.message);
+    } finally {
+      setTriagingNotes(false);
+    }
+  }
+
+  async function keepNote(id: string) {
+    setTriagedIds(prev => new Set([...prev, id]));
+    await db.from('vanguard_notes').update({ updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', uid);
+  }
+
+  async function archiveStaleNote(id: string) {
+    setTriagedIds(prev => new Set([...prev, id]));
+    await db.from('vanguard_notes').update({ is_archived: true }).eq('id', id).eq('user_id', uid);
+  }
+
+  async function convertNoteToTodo(s: { id: string; title: string; snippet: string; action?: string }) {
+    setTriagedIds(prev => new Set([...prev, s.id]));
+    await convertNoteToTodoItem(uid, { id: s.id, title: s.title, content: s.snippet });
   }
 
   async function save() {
@@ -436,6 +481,68 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
                 className="w-full resize-none bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted/40 leading-relaxed"
               />
             </div>
+          </div>
+        )}
+
+        {/* Keep triage */}
+        {!setupMode && !noKpis && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Stare notatki</p>
+              <button
+                onClick={triageNotes}
+                disabled={triagingNotes}
+                className="flex items-center gap-1.5 rounded-full bg-primary/8 px-2.5 py-1 text-[10px] font-black text-primary cursor-pointer hover:bg-primary/15 transition-all disabled:opacity-50"
+              >
+                <Sparkles size={11} className={triagingNotes ? 'animate-pulse' : ''} />
+                {triagingNotes ? 'Sprawdzam...' : 'Sprawdź stare notatki'}
+              </button>
+            </div>
+            {triageError && <p className="text-[11px] text-rose-500">{triageError}</p>}
+            {keepSuggestions.filter(s => !triagedIds.has(s.id)).length === 0 && !triagingNotes && keepTotalStale === 0 && triagedIds.size === 0 && (
+              <p className="text-[11px] italic text-text-muted/40">Kliknij, żeby sprawdzić notatki nieedytowane 30+ dni.</p>
+            )}
+            {keepSuggestions.filter(s => !triagedIds.has(s.id)).map(s => {
+              const suggested = s.action || 'keep';
+              const actionMeta: Record<string, { label: string; primary: string; onClick: () => void }> = {
+                keep: { label: 'Zachowaj', primary: 'bg-surface border-border-custom text-text-muted hover:text-text-primary', onClick: () => keepNote(s.id) },
+                archive: { label: 'Archiwizuj', primary: 'bg-primary text-white hover:bg-primary/90', onClick: () => archiveStaleNote(s.id) },
+                todo: { label: 'Zrób zadanie', primary: 'bg-primary text-white hover:bg-primary/90', onClick: () => convertNoteToTodo(s) },
+              };
+              const suggestedMeta = actionMeta[suggested] ?? actionMeta.keep;
+              const secondary = (['keep', 'archive', 'todo'] as const).filter(k => k !== suggested);
+
+              return (
+              <div key={s.id} className="rounded-[18px] border border-border-custom bg-surface/60 px-3.5 py-3 space-y-2">
+                <p className="text-[12px] font-bold text-text-primary">{s.title || '(bez tytułu)'}</p>
+                <p className="text-[11px] text-text-muted leading-snug line-clamp-2">{s.snippet}</p>
+                <p className="text-[11px] text-primary leading-snug">{s.reasoning}</p>
+                <div className="flex gap-1.5 pt-1">
+                  <button
+                    onClick={suggestedMeta.onClick}
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] font-bold transition-colors cursor-pointer ${suggestedMeta.primary}`}
+                  >
+                    {suggested === 'archive' && <Archive size={11} />}
+                    {suggested === 'todo' && <ListTodo size={11} />}
+                    {suggestedMeta.label}
+                  </button>
+                  {secondary.map(key => (
+                    <button
+                      key={key}
+                      onClick={actionMeta[key].onClick}
+                      className="rounded-xl border border-border-custom px-2 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                      title={actionMeta[key].label}
+                    >
+                      {key === 'archive' ? <Archive size={11} /> : key === 'todo' ? <ListTodo size={11} /> : '✓'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              );
+            })}
+            {keepTotalStale > keepSuggestions.length && keepSuggestions.length > 0 && (
+              <p className="text-[10px] text-text-muted/60">+{keepTotalStale - keepSuggestions.length} więcej nie pokazanych</p>
+            )}
           </div>
         )}
 

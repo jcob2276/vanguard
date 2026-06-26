@@ -1,12 +1,22 @@
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { supabase } from '../../lib/supabase';
 import { Check, Link2, Search, Shield, Target, Upload, Wallet, X, Zap, Sparkles } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
+import { getPlanForDate, upsertPlanForDate } from '../../lib/dailyPlan';
 import type { TablesUpdate } from '../../lib/database.types';
 import { gatherUserContext } from '../../lib/aiContext';
+import { notify } from '../../lib/notify';
+
+const ENERGY_META = [
+  { score: 1, label: 'Bardzo nisko', color: 'bg-rose-500' },
+  { score: 2, label: 'Nisko', color: 'bg-amber-500' },
+  { score: 3, label: 'Normalnie', color: 'bg-yellow-400' },
+  { score: 4, label: 'Dobrze', color: 'bg-emerald-400' },
+  { score: 5, label: 'Świetnie', color: 'bg-emerald-500' },
+];
 
 const SPHERE_SLOTS = [
   { category: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', placeholder: 'Priorytet Ciało — co dziś?' },
@@ -30,6 +40,48 @@ const PRIORITY_DOT: Record<string, string> = {
   urgent: 'bg-rose-500',
 };
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+function powerListDraftKey(userId: string, date: string) {
+  return `vanguard_powerlist_draft_${userId}_${date}`;
+}
+
+interface PowerListDraft {
+  tasks: Array<{ task: string; todoId: string | null }>;
+  yesterdayNote: string;
+  energyLevel: number | null;
+  savedAt: number;
+}
+
+function EnergyPicker({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: number | null;
+  onChange: (v: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-1.5 ${compact ? '' : 'rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2.5'}`}>
+      <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mr-0.5">Energia</span>
+      {ENERGY_META.map((e) => (
+        <button
+          key={e.score}
+          type="button"
+          onClick={() => onChange(e.score)}
+          title={e.label}
+          className={`${compact ? 'h-6 w-6 text-[10px]' : 'h-7 w-7 text-[11px]'} rounded-full flex items-center justify-center font-black transition-all ${
+            value === e.score
+              ? `${e.color} text-white scale-110 shadow-md`
+              : 'bg-surface-solid text-text-muted hover:scale-105'
+          }`}
+        >
+          {e.score}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface TodoPickerProps {
   items: any[];
@@ -90,6 +142,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   // Wczorajszy dzień — wymagana refleksja przed odblokowaniem dzisiejszych 5 zwycięstw
   const [yesterdayWin, setYesterdayWin] = useState<any>(null);
   const [yesterdayNote, setYesterdayNote] = useState('');
+  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
   const yesterdayNoteRequired = !!yesterdayWin && !yesterdayWin.day_note;
 
   const [newTaskForm, setNewTaskForm] = useState<Array<{ task: string; todoId: string | null }>>([
@@ -103,6 +156,7 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const draftLoaded = useRef(false);
 
   // AI assistant states
   const [aiQuestions, setAiQuestions] = useState<string>('');
@@ -159,7 +213,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       setAiQuestions(reply);
     } catch (e: any) {
       console.error('generateQuestions failed', e);
-      alert('Błąd pomocy AI: ' + e.message);
+      notify('Błąd pomocy AI: ' + e.message, 'error');
     } finally {
       setAiLoading(false);
     }
@@ -198,6 +252,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
   // Fetch yesterday's daily_wins to require a reflection before unlocking today
   useEffect(() => {
     if (todayWin) return;
+    draftLoaded.current = false;
     const yesterday = getYesterdayWarsaw();
     supabase
       .from('daily_wins')
@@ -210,6 +265,52 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         setYesterdayNote((data as any)?.day_note ?? '');
       }, () => setYesterdayWin(null));
   }, [userId, todayWin]);
+
+  useEffect(() => {
+    getPlanForDate(userId, today)
+      .then((plan) => { if (plan?.energy_level) setEnergyLevel(plan.energy_level); })
+      .catch(() => {});
+  }, [userId, today]);
+
+  useEffect(() => {
+    if (todayWin || draftLoaded.current) return;
+    try {
+      const raw = localStorage.getItem(powerListDraftKey(userId, today));
+      if (!raw) return;
+      const draft = JSON.parse(raw) as PowerListDraft;
+      if (Array.isArray(draft.tasks) && draft.tasks.length === 5) {
+        setNewTaskForm(draft.tasks);
+      }
+      if (typeof draft.yesterdayNote === 'string') {
+        setYesterdayNote(draft.yesterdayNote);
+      }
+      if (draft.energyLevel != null) {
+        setEnergyLevel(draft.energyLevel);
+      }
+    } catch {
+      /* ignore corrupt draft */
+    } finally {
+      draftLoaded.current = true;
+    }
+  }, [userId, today, todayWin]);
+
+  useEffect(() => {
+    if (todayWin) {
+      try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
+      return;
+    }
+    if (!draftLoaded.current) return;
+    const t = window.setTimeout(() => {
+      const draft: PowerListDraft = {
+        tasks: newTaskForm,
+        yesterdayNote,
+        energyLevel,
+        savedAt: Date.now(),
+      };
+      try { localStorage.setItem(powerListDraftKey(userId, today), JSON.stringify(draft)); } catch { /* ignore */ }
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [userId, today, todayWin, newTaskForm, yesterdayNote, energyLevel]);
 
   useEffect(() => {
     if (todayWin) return;
@@ -239,12 +340,46 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     return () => document.removeEventListener('mousedown', handler);
   }, [pickerSlot]);
 
+  const suggestedTodos = useMemo(() => {
+    if (todayWin) return [];
+    const usedIds = new Set(newTaskForm.map((s) => s.todoId).filter(Boolean));
+    return todoItems
+      .filter((item) => !usedIds.has(item.id))
+      .sort((a, b) => {
+        const aToday = a.due_date === today;
+        const bToday = b.due_date === today;
+        if (aToday !== bToday) return aToday ? -1 : 1;
+        return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
+      })
+      .slice(0, 4);
+  }, [todayWin, newTaskForm, todoItems, today]);
+
   const updateSlot = (i: number, patch: Partial<{ task: string; todoId: string | null }>) => {
     setNewTaskForm((prev) => {
       const n = [...prev];
       n[i] = { ...n[i], ...patch };
       return n;
     });
+  };
+
+  const applyFromTodo = (item: { id: string; title: string }) => {
+    const idx = newTaskForm.findIndex((s) => !s.task.trim() && !s.todoId);
+    if (idx === -1) {
+      notify('Wszystkie sloty zajęte', 'error');
+      return;
+    }
+    updateSlot(idx, { task: item.title, todoId: item.id });
+    haptics.light();
+  };
+
+  const saveEnergy = async (score: number) => {
+    setEnergyLevel(score);
+    haptics.light();
+    try {
+      await upsertPlanForDate(userId, today, { energy_level: score });
+    } catch (e) {
+      console.warn('[PowerList] energy save failed', e);
+    }
   };
 
   async function toggleTask(index: number) {
@@ -301,7 +436,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         completed_at: newValue ? new Date().toISOString() : null,
       }).catch((e: Error) => {
         console.error('[PowerList] todo sync failed for', linkedTodoId, e.message);
-        alert('Błąd synchronizacji z Todo — odśwież stronę.');
+        notify('Błąd synchronizacji z Todo — odśwież stronę.', 'error');
       });
     }
   }
@@ -309,11 +444,11 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
   async function startNewDay() {
     if (submitting) return;
     if (yesterdayNoteRequired && !yesterdayNote.trim()) {
-      alert('Najpierw odpowiedz, dlaczego zrealizowałeś / nie zrealizowałeś zadania z wczoraj.');
+      notify('Najpierw odpowiedz, dlaczego zrealizowałeś / nie zrealizowałeś zadania z wczoraj.', 'error');
       return;
     }
     if (!newTaskForm.some((t) => t.task.trim())) {
-      alert('Wypełnij przynajmniej 1 zadanie!');
+      notify('Wypełnij przynajmniej 1 zadanie!', 'error');
       return;
     }
 
@@ -336,12 +471,16 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
       const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
       if (error) throw error;
+      if (energyLevel != null) {
+        await upsertPlanForDate(userId, today, { energy_level: energyLevel });
+      }
+      try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);
     } catch (err: any) {
       console.error('[startNewDay]', err);
       haptics.error();
-      alert('Błąd startu dnia: ' + (err?.message ?? 'nieznany błąd'));
+      notify('Błąd startu dnia: ' + (err?.message ?? 'nieznany błąd'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -405,6 +544,8 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             </div>
           )}
 
+          <EnergyPicker value={energyLevel} onChange={saveEnergy} />
+
           <div>
             <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
               Zdefiniuj 5 zwycięstw
@@ -466,6 +607,23 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
               </div>
             )}
           </div>
+
+          {suggestedTodos.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-wider text-text-muted shrink-0">Z todo</span>
+              {suggestedTodos.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => applyFromTodo(item)}
+                  className="max-w-[160px] truncate rounded-full border border-border-custom bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-text-secondary hover:border-primary/30 hover:text-primary"
+                  title={item.title}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2.5" ref={pickerRef}>
             {newTaskForm.map((slot, i) => {
@@ -535,6 +693,8 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         </div>
       ) : (
         <div className="space-y-2.5">
+          <EnergyPicker value={energyLevel} onChange={saveEnergy} compact />
+
           {/* Cele tygodnia w widoku aktywnego dnia */}
           {weekGoals && (
             <div className="rounded-xl border border-border-custom bg-surface px-3 py-2.5 space-y-1.5">

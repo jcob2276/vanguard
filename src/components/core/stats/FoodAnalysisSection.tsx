@@ -200,7 +200,7 @@ export function FoodAnalysisSection({
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
-                          width: `${Math.min(100, (m.protein_g / 60) * 100)}%`,
+                          width: `${Math.min(100, (m.protein_g / 40) * 100)}%`,
                           backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#f43f5e',
                         }}
                       />

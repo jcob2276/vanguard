@@ -2,8 +2,9 @@ import { getTodayWarsaw } from '../../lib/date';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import SmartAlerts from './SmartAlerts';
-import WeeklyDigest from './WeeklyDigest';
-import CockpitBanner from './CockpitBanner';
+import DesktopHero from './DesktopHero';
+import SprintScorecard from './SprintScorecard';
+import DesktopSectionNav from './DesktopSectionNav';
 import Heatmap from './Heatmap';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -12,9 +13,10 @@ import {
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import {
-  RefreshCw, Dumbbell, Smartphone, Moon, Sun, Fingerprint,
+  RefreshCw, Smartphone, Moon, Sun, Fingerprint, Dumbbell,
 } from 'lucide-react';
-import { createProject } from '../../lib/projects';
+import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { notify, confirmDialog } from '../../lib/notify';
 
 // Subcomponents and hooks
 import { useDesktopData } from './useDesktopData';
@@ -22,7 +24,6 @@ import { Panel, Tip } from './Panel';
 import MarathonPanel from './MarathonPanel';
 import IntelligencePanel from './IntelligencePanel';
 import LeniePanelMini from './LeniePanelMini';
-import SprintPanel from './SprintPanel';
 import HexagonPanel from './HexagonPanel';
 import FitnessScorePanel from './FitnessScorePanel';
 import HabitsPanel from './HabitsPanel';
@@ -36,11 +37,8 @@ import {
   C,
   getSprintInfo,
   sprintMetrics,
-  computeDigest,
   computeAlerts,
-  computeWeekStreak,
   daysBefore,
-  weekStartDate,
   weeklyVolume
 } from './desktopUtils';
 
@@ -52,8 +50,7 @@ const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
-  const { oura, nutrition, sessions, body, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
-  const [activeTab, setActiveTab] = useState<'main' | 'general'>('main');
+  const { oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
   const [habits, setHabits] = useState(habitsData);
   const [habitLogs, setHabitLogs] = useState(habitLogsData);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
@@ -69,9 +66,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
   }
 
   async function deleteHabit(id: string) {
-    if (!confirm('Usunąć nawyk?')) return;
+    if (!(await confirmDialog('Usunąć nawyk?'))) return;
     const { error } = await supabase.from('habits').delete().eq('id', id);
-    if (error) { alert('Błąd usuwania nawyku.'); return; }
+    if (error) { notify('Błąd usuwania nawyku.', 'error'); return; }
     setHabits(prev => prev.filter(h => h.id !== id));
   }
 
@@ -136,7 +133,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   async function deleteDream(id: string) {
     const { error } = await supabase.from('dreams').delete().eq('id', id);
-    if (error) { alert(error.message); return; }
+    if (error) { notify(error.message, 'error'); return; }
     setDreams(prev => prev.filter(d => d.id !== id));
     if (editingDream?.id === id) setEditingDream(null);
   }
@@ -174,10 +171,10 @@ export default function DesktopDashboard({ session }: { session: any }) {
       if (project) {
         const { error: linkErr } = await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
         if (linkErr) console.warn('[dreamToProject] link failed:', linkErr.message);
-        alert(`Projekt "${dream.title}" utworzony!`);
+        notify(`Projekt "${dream.title}" utworzony!`, 'success');
       }
     } catch (e: any) {
-      alert('Błąd: ' + e.message);
+      notify('Błąd: ' + e.message, 'error');
     }
   }
 
@@ -191,7 +188,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   async function deleteVisionItem(id: string) {
     const { error } = await supabase.from('vision_board_items').delete().eq('id', id);
-    if (error) { alert(error.message); return; }
+    if (error) { notify(error.message, 'error'); return; }
     setVisionItems(prev => prev.filter(v => v.id !== id));
   }
 
@@ -218,6 +215,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
+  const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [showFundament, setShowFundament] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
 
@@ -226,72 +224,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
     try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
   }, [theme]);
 
-  // Hexagon state
-  const [hexagonScores, setHexagonScores] = useState({
-    zdrowie: 5,
-    finanse: 5,
-    kariera: 5,
-    relacje: 5,
-    rozwoj: 5,
-    duchowosc: 5,
-  });
-  const [savingHexagon, setSavingHexagon] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return;
-    const fetchHexagon = async () => {
-      try {
-        const { data } = await supabase
-          .from('vanguard_preferences')
-          .select('key, value')
-          .eq('user_id', userId)
-          .eq('key', 'morning_hexagon_scores')
-          .maybeSingle();
-        if (data) {
-          try {
-            setHexagonScores(JSON.parse(data.value));
-          } catch { /* malformed pref, ignore */ }
-        }
-      } catch (err) {
-        console.error('Failed to load hexagon scores:', err);
-      }
-    };
-    fetchHexagon();
-  }, [userId]);
-
-  const saveHexagonScores = async () => {
-    if (!userId) return;
-    setSavingHexagon(true);
-    try {
-      const today = getTodayWarsaw();
-      const valStr = JSON.stringify(hexagonScores);
-      
-      // Save to preferences
-      const { error: prefErr } = await supabase
-        .from('vanguard_preferences')
-        .upsert({ user_id: userId, key: 'morning_hexagon_scores', value: valStr, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' });
-      if (prefErr) throw prefErr;
-
-      // Log change to stream
-      const streamText = `[Heksagon] Zaktualizowano ocenę sfer życia: Zdrowie & Ciało: ${hexagonScores.zdrowie}/10, Finanse: ${hexagonScores.finanse}/10, Kariera & Praca: ${hexagonScores.kariera}/10, Relacje: ${hexagonScores.relacje}/10, Rozwój: ${hexagonScores.rozwoj}/10, Duchowość & Czas dla siebie: ${hexagonScores.duchowosc}/10.`;
-      const { error: streamErr } = await supabase.from('vanguard_stream').insert({
-        user_id: userId,
-        content: streamText,
-        source: 'hexagon',
-        category: 'productivity',
-        classification: 'hexagon_update'
-      });
-      if (streamErr) throw streamErr;
-
-      alert('Zapisano oceny sfer życia w bazie! 🎯');
-      refresh();
-    } catch (err) {
-      console.error('Failed to save hexagon scores:', err);
-      alert('Błąd zapisu ocen.');
-    } finally {
-      setSavingHexagon(false);
-    }
-  };
+  // Hexagon — self-contained in HexagonPanel
 
   const grid = theme === 'dark' ? '#2d3748' : '#e5e7eb';
   const tick = theme === 'dark' ? '#9ca3af' : '#6b7280';
@@ -331,6 +264,16 @@ export default function DesktopDashboard({ session }: { session: any }) {
     finally { setSyncing(false); }
   }, [syncing, accessToken, userId, refresh]);
 
+  const openWorkout = useCallback(async () => {
+    if (!userId) {
+      setShowWorkout(true);
+      return;
+    }
+    const tpl = await loadWorkoutTemplate(userId);
+    setWorkoutInitial(tpl);
+    setShowWorkout(true);
+  }, [userId]);
+
   function startGoogleAuth() {
     const root = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
@@ -352,21 +295,19 @@ export default function DesktopDashboard({ session }: { session: any }) {
       const target = e.target as HTMLElement | null;
       if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey) return;
       if (e.key === 's') syncAll();
-      if (e.key === 't') setShowWorkout(true);
+      if (e.key === 't') void openWorkout();
       if (e.key === 'd') setTheme(th => th === 'light' ? 'dark' : 'light');
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [syncAll]);
+  }, [syncAll, openWorkout]);
 
   // Derived
   const oura14    = oura.slice(-14);
   const latest    = oura[oura.length - 1] ?? null;
   const lastS     = [...sessions].reverse()[0] ?? null;
   const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
-  const digest    = computeDigest(sessions, oura, strava);
   const alerts    = computeAlerts(oura, sessions, nutrition);
-  const streak    = computeWeekStreak(sessions);
   const currentWeight = body.length ? +(body[body.length - 1]?.weight || 0) || null : null;
   const weight30ago   = currentWeight ? +([...body].reverse().find(b => b.date <= daysBefore(28))?.weight || 0) || null : null;
 
@@ -377,8 +318,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const prevMetrics = sprint.prevStart ? sprintMetrics(oura, sessions, strava, sprint.prevStart, sprint.prevEnd) : null;
 
   // Project metrics
-  const ws               = weekStartDate();
-  const movesDoneThisWeek = (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= ws).length;
   const projectMetrics   = {
     doneInSprint:   (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= sprint.sprintStart).length,
     inProgress:     (moves||[]).filter(m => m.status === 'todo').length,
@@ -413,7 +352,12 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   if (showWorkout) return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
-      <WorkoutLogger session={session} onBack={() => { setShowWorkout(false); refresh(); }} />
+      <WorkoutLogger
+        session={session}
+        initial={workoutInitial}
+        onSaved={() => refresh()}
+        onBack={() => { setShowWorkout(false); setWorkoutInitial(null); refresh(); }}
+      />
     </Suspense>
   );
 
@@ -434,23 +378,14 @@ export default function DesktopDashboard({ session }: { session: any }) {
             </span>
           ))}
         </div>
-        {/* Tab switcher */}
-        <div className="ml-6 flex items-center gap-1 rounded-full border border-border-custom bg-surface-solid/60 p-1">
-          {(['main', 'general'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                activeTab === tab
-                  ? 'bg-primary text-white'
-                  : 'text-text-muted hover:text-text-primary'
-              }`}
-            >
-              {tab === 'main' ? 'Dashboard' : 'General'}
-            </button>
-          ))}
-        </div>
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void openWorkout()}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.08] px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/15 transition-all active:scale-95 cursor-pointer"
+          >
+            <Dumbbell size={13} /> Zaloguj trening
+          </button>
           <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
             className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer">
             {theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-yellow-400" />}
@@ -464,10 +399,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
             title="Fundament">
             <Fingerprint size={14} />
           </button>
-          <button onClick={() => setShowWorkout(true)}
-            className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.07] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/[0.14] transition-all active:scale-95 cursor-pointer">
-            <Dumbbell size={13} /> Zaloguj trening
-          </button>
           <Link to="/"
             className="flex items-center gap-1.5 rounded-full border border-border-custom px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary hover:bg-surface-solid transition-all cursor-pointer">
             <Smartphone size={12} /> Mobile
@@ -475,27 +406,30 @@ export default function DesktopDashboard({ session }: { session: any }) {
         </div>
       </header>
 
-      <main className="px-8 py-7 space-y-5 max-w-[1600px] mx-auto">
-
-        {activeTab === 'general' && <GeneralView userId={userId} />}
-        {activeTab === 'main' && <>
+      <main className="px-8 py-7 max-w-[1600px] mx-auto">
+        <div className="flex gap-8 items-start">
+          <DesktopSectionNav />
+          <div className="flex-1 min-w-0 space-y-5">
 
         <SmartAlerts alerts={alerts} />
-        <CockpitBanner strain={strain} oura={oura14} />
-        <SprintPanel
+        <DesktopHero
+          strain={strain}
+          oura={oura14}
           sprint={sprint}
           sprintGoal={sprintGoal}
           onSave={saveSprintGoal}
-          metrics={currMetrics}
-          prevMetrics={prevMetrics}
-          projectMetrics={projectMetrics}
-          goals={goals}
-          currentWeight={currentWeight}
-          weight30ago={weight30ago}
         />
+
+        <GeneralView userId={userId} oura={oura} />
+
+        <section id="trening" className="scroll-mt-28 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border-custom" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Trening</span>
+            <div className="h-px flex-1 bg-border-custom" />
+          </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-5">
-            <WeeklyDigest digest={digest} movesDoneThisWeek={movesDoneThisWeek} streak={streak} />
             <Panel title="Konsekwencja treningowa — 13 tygodni">
               <Heatmap sessions={sessions} strava={strava} />
             </Panel>
@@ -507,7 +441,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
           <FitnessScorePanel
             oura={oura}
             nutrition={nutrition}
@@ -515,8 +449,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
             strava={strava}
             habits={habits}
             habitLogs={habitLogs}
-            moves={moves}
             volData={volData}
+            body={body}
+            heightCm={heightCm}
             theme={theme}
             grid={grid}
           />
@@ -524,8 +459,14 @@ export default function DesktopDashboard({ session }: { session: any }) {
             <MuscleHeatmap session={session} />
           </Suspense>
         </div>
+        </section>
 
-        {/* Charts Row */}
+        <section id="biometria" className="scroll-mt-28 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border-custom" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Biometria & paliwo</span>
+            <div className="h-px flex-1 bg-border-custom" />
+          </div>
         <div className="grid grid-cols-3 gap-5">
           <Panel title="Sen & HRV — 14 dni">
             <ResponsiveContainer width="100%" height={190}>
@@ -580,21 +521,18 @@ export default function DesktopDashboard({ session }: { session: any }) {
           </Panel>
         </div>
 
-        {/* Marathon */}
         <MarathonPanel strava={strava} grid={grid} tick={tick} />
+        </section>
 
+        <section id="kierunek" className="scroll-mt-28 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border-custom" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Kierunek długoterminowy</span>
+            <div className="h-px flex-1 bg-border-custom" />
+          </div>
 
-        {/* Heksagon Życia */}
-        <HexagonPanel
-          hexagonScores={hexagonScores}
-          setHexagonScores={setHexagonScores}
-          saveHexagonScores={saveHexagonScores}
-          savingHexagon={savingHexagon}
-          theme={theme}
-          grid={grid}
-        />
+        <HexagonPanel userId={userId} theme={theme} grid={grid} onSaved={refresh} />
 
-        {/* Lenie + Nawyki side by side */}
         <div className="grid grid-cols-2 gap-4">
           <LeniePanelMini logs={lenieLogs} userId={userId} accessToken={accessToken} />
           <HabitsPanel
@@ -610,7 +548,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
           />
         </div>
 
-        {/* Lista 200 Marzeń */}
         <DreamsPanel
           dreams={dreams}
           doneDreams={doneDreams}
@@ -637,8 +574,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
           DREAM_CAT_COLOR={DREAM_CAT_COLOR}
         />
 
-
-        {/* Vision Board */}
         <VisionBoardPanel
           visionItems={visionItems}
           isAddingVision={isAddingVision}
@@ -653,15 +588,25 @@ export default function DesktopDashboard({ session }: { session: any }) {
           deleteVisionItem={deleteVisionItem}
           VB_COLORS={VB_COLORS}
         />
+        </section>
 
-        {/* Intelligence — conclusions, not data */}
         <IntelligencePanel
           oura={oura} sessions={sessions} nutrition={nutrition} wins={wins}
           patterns={patterns} wiki={wiki} knowledge={knowledge}
         />
 
-        </>}
+        <SprintScorecard
+          sprint={sprint}
+          metrics={currMetrics}
+          prevMetrics={prevMetrics}
+          projectMetrics={projectMetrics}
+          goals={goals}
+          currentWeight={currentWeight}
+          weight30ago={weight30ago}
+        />
 
+          </div>
+        </div>
       </main>
     </div>
 

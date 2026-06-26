@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Archive, ChevronLeft, MoreHorizontal, Pin, Tag, Trash2 } from 'lucide-react';
+import { Archive, ChevronLeft, ListTodo, MoreHorizontal, Pin, Tag, Trash2 } from 'lucide-react';
 import RichEditor from './RichEditor';
 import { COLORS, getColor, Note } from './keepUtils';
 
@@ -11,6 +11,7 @@ export default function EditNoteModal({
   onTogglePin,
   busy,
   allTags,
+  onExportChecklists,
 }: {
   note: Note;
   onClose: () => void;
@@ -19,6 +20,7 @@ export default function EditNoteModal({
   onTogglePin: (note: Note) => void;
   busy: boolean;
   allTags?: string[];
+  onExportChecklists?: (note: Note) => void;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -53,6 +55,17 @@ export default function EditNoteModal({
   const noteDate = new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
+
+  const uncheckedCount = (() => {
+    const doc = new DOMParser().parseFromString(content, 'text/html');
+    let count = 0;
+    doc.querySelectorAll('.keep-todo-item').forEach((el) => {
+      const checkbox = el.querySelector('.keep-todo-checkbox');
+      const text = el.querySelector('.keep-todo-text')?.textContent?.trim();
+      if (text && !checkbox?.classList.contains('checked')) count += 1;
+    });
+    return count;
+  })();
 
   return (
     <>
@@ -109,6 +122,19 @@ export default function EditNoteModal({
                 <Pin size={17} fill={note.is_pinned ? 'currentColor' : 'none'} />
                 <span>{note.is_pinned ? 'Odepnij' : 'Przypnij'}</span>
               </button>
+              {uncheckedCount > 0 && onExportChecklists && (
+                <button
+                  type="button"
+                  className="keep-menu-item"
+                  onClick={() => {
+                    onExportChecklists({ ...note, title, content });
+                    setShowMenu(false);
+                  }}
+                >
+                  <ListTodo size={17} />
+                  <span>Eksportuj {uncheckedCount} pkt. do zadań</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="keep-menu-item"

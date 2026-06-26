@@ -21,7 +21,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
         'Authorization': `Bearer ${authSession.access_token}`
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(55000),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
@@ -42,7 +42,7 @@ export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from,
         'Authorization': `Bearer ${authSession.access_token}`
       },
       body: JSON.stringify({ userId, start_date: from, end_date: to }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(55000),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();

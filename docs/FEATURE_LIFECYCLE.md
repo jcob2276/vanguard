@@ -19,7 +19,8 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Oracle chat | Active | Reasoning layer only; no direct graph/knowledge writes from chat turns. |
 | Oura enhanced/timeseries | Active | Auth-scoped endpoints; user calls are scoped to the authenticated user. |
 | Daily strain | Active | `compute-daily-strain` writes `daily_strain`; auth-scoped single-user calls, service-role batch. |
-| Strava/Yazio/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
+| Strava/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
+| Yazio sync | Dropped | Removed 2026-06-26. Nutrition is logged in-app (`daily_nutrition`, `daily_food_entries`, `parse-food-nl`, `lookup-food`). Do not revive `sync-yazio` or store Yazio credentials in settings. |
 | Projects | Active | `projects` is the canonical app model for the Projekty section. `todo_sections.project_id` is an optional bridge for project-scoped tasks; projects are not defined by Todo. |
 | Todo | Active | `todo_sections` / `todo_items` power the separate Zadania section and quick task surfaces. |
 | Career module | Deprecated | `career_projects`, `career_moves`, `career_evidence`, and `career_decisions` are legacy from the removed Kariera section. Do not build new reads/writes here; keep only compatibility until data can be archived or removed deliberately. |

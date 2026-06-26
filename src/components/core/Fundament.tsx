@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { notify } from '../../lib/notify';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
 
@@ -109,10 +110,10 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       });
 
       if (error) throw error;
-      alert('Fundament zapisany.');
+      notify('Fundament zapisany.', 'success');
     } catch (err) {
       console.error('Save Identity Error:', err);
-      alert(`Błąd zapisu: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Błąd zapisu: ${err instanceof Error ? err.message : String(err)}`, 'error');
     } finally {
       setSaving(false);
     }

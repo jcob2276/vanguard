@@ -17,10 +17,7 @@
  * ten plik jest teraz tylko barrel re-exportem, żeby istniejące importy
  * `from '../_shared/vanguardPatterns.ts'` nie wymagały zmian.
  *
- * UWAGA: detectRecurringBlockers, detectPlanAdherenceGaps, detectMorningProtocolImpact,
- * detectSleepFrictionLink, detectEarlyWarningSignals, detectNarrativeBiometricMismatch
- * i recordBehavioralPattern nie są obecnie wywoływane z żadnego miejsca w repo
- * (sprawdzone 2026-06-20) — detektory zbudowane, nigdy niepodłączone do reconciliation.ts.
+ * Detektory S1–S6 są wywoływane z vanguard-detect-patterns (cron / manual POST).
  */
 
 export type { PatternInsight, BehavioralPattern } from './vanguardPatterns/types.ts';

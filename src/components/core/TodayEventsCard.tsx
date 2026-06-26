@@ -31,7 +31,17 @@ export default function TodayEventsCard({ session }: { session: any }) {
     return () => clearInterval(id);
   }, []);
 
-  if (!events.length) return null;
+  if (!events.length) {
+    return (
+      <section className="animate-fadeIn rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <CalendarDays size={12} className="text-text-muted" />
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
+        </div>
+        <p className="text-[12px] text-text-muted">Brak wydarzeń — sync kalendarza w ustawieniach / Fundament.</p>
+      </section>
+    );
+  }
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });

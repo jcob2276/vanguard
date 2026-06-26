@@ -22,13 +22,13 @@ Acceptance checks:
 - If `daily_strain` has no row, show an unavailable state, not `null`.
 - If the query fails, show the failed source name and error summary.
 - If `fueling_provisional=true`, UI must not present calories/carbs as a final limiter.
-- If `fueling_provisional=true`, show that Yazio is not closed yet.
+- If `fueling_provisional=true`, show that the food log for today is not closed yet.
 - If `strain_score`, `recovery_score`, or `fueling_score` is `null`, show which signal is missing.
 - The decision text must come from `daily_status`, `main_limiter`, and provisional state only.
 
 Example guarded claim:
 
-> Fueling is provisional today. Do not infer a final calorie deficit until Yazio is closed.
+> Fueling is provisional today. Do not infer a final calorie deficit until today's food log is closed.
 
 ## OuraEnhanced
 
@@ -37,7 +37,7 @@ Acceptance checks:
 - If `oura_hr_zones_daily` has no rows, show "Brak stref HR" and do not render an empty chart.
 - If correlations are unavailable, show that the view/data is missing.
 - If `n_dni < 60`, show the sample size warning.
-- Correlation rows must include source families such as Oura, Yazio, Strava, or strain.
+- Correlation rows must include source families such as Oura, food log, Strava, or strain.
 - A hidden chart section must still leave a visible data-state notice.
 - Query errors from `oura_enhanced`, `oura_correlations`, `strain_correlations`, or `oura_hr_zones_daily` must be visible.
 
@@ -67,4 +67,4 @@ Acceptance checks:
 - Sync functions should return which dates were upserted or why none were.
 - Unsupported external endpoints should degrade to empty data, not fail the whole sync.
 - Compute functions should make provisional states explicit when a day is not closed.
-- After Oura/Yazio/Strava sync, `compute-daily-strain` should be rerunnable idempotently.
+- After Oura/food-log/Strava sync, `compute-daily-strain` should be rerunnable idempotently.

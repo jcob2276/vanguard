@@ -27,6 +27,7 @@ function ewmaBaseline(
   const WINSOR_K = 3.0, HARD_K = 5.0, MIN_SEED = 4
   let center: number | null = null, spread = floorSpread, nValid = 0
   for (const v of values) {
+    if (v == null || !Number.isFinite(v)) continue
     if (v < minVal || v > maxVal) continue
     if (center === null) { center = v; nValid = 1; continue }
     if (nValid >= MIN_SEED && Math.abs(v - center) > HARD_K * spread) continue
@@ -294,7 +295,7 @@ Deno.serve(async (req) => {
       const upserts: any[] = []
 
       for (const date of dayList) {
-        // Dzień bieżący (Europe/Warsaw): Yazio jeszcze niedomknięte → fueling tymczasowy.
+        // Dzień bieżący (Europe/Warsaw): log posiłków jeszcze niedomknięty → fueling tymczasowy.
         const fuelingProvisional = date === todayWarsaw
         const z = zones[date]?.[0]
         const e = enh[date]?.[0]
@@ -389,7 +390,7 @@ Deno.serve(async (req) => {
           : null
 
         // z-scores hoisted out of recovery block for VitalBands export
-        const SIGMA = 1.253
+        const SIGMA = 1.4826 // MAD → pseudo-standard deviation
         let zHrv: number | null = null
         let zRhr: number | null = null
         let zSleepScore: number | null = null

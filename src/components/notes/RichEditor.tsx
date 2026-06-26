@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
+import { notify } from '../../lib/notify';
 
 export default function RichEditor({
   value,
@@ -207,7 +208,7 @@ export default function RichEditor({
     if (!file) return;
     // Limit: 5 MB
     if (file.size > 5 * 1024 * 1024) {
-      alert('Zdjęcie jest za duże (max 5 MB). Użyj mniejszego pliku.');
+      notify('Zdjęcie jest za duże (max 5 MB). Użyj mniejszego pliku.', 'error');
       e.target.value = '';
       return;
     }

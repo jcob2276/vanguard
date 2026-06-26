@@ -1,21 +1,32 @@
 import { useEffect } from 'react';
+import { getTodayWarsaw } from '../lib/date';
+
+function getWarsawHourMinute(): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(new Date());
+  return {
+    hour: Number(parts.find((p) => p.type === 'hour')?.value ?? 0),
+    minute: Number(parts.find((p) => p.type === 'minute')?.value ?? 0),
+  };
+}
 
 export function useNotifications() {
   useEffect(() => {
-    // Prośba o uprawnienia przy starcie (tylko raz)
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
 
     const checkTime = () => {
-      const now = new Date();
-      // Sprawdzamy czy jest dokładnie 20:30 (z tolerancją do minuty)
-      if (now.getHours() === 20 && now.getMinutes() === 30) {
+      const { hour, minute } = getWarsawHourMinute();
+      if (hour === 20 && minute === 30) {
         if (Notification.permission === "granted") {
-          // Zapobiegamy wielokrotnym powiadomieniom w tej samej minucie
           let lastNotified: string | null = null;
           try { lastNotified = localStorage.getItem('last_reminder_date'); } catch (_e) { /* unavailable */ }
-          const today = now.toDateString();
+          const today = getTodayWarsaw();
 
           if (lastNotified !== today) {
             new Notification("🔥 SYSTEM: RAPORT WIECZORNY", {
@@ -24,18 +35,14 @@ export function useNotifications() {
               tag: 'daily-reminder',
               requireInteraction: true
             });
-            try { localStorage.setItem('last_reminder_date', today); } catch (e) { console.warn('Storage warn:', e); }
-          } else {
-            try { localStorage.removeItem('last_reminder_date'); } catch (e) {}
+            try { localStorage.setItem('last_reminder_date', today); } catch (_e) { /* unavailable */ }
           }
         }
       }
     };
 
-    // Sprawdzaj co 30 sekund
-    const interval = setInterval(checkTime, 30000);
-    checkTime(); // Sprawdź od razu przy ładowaniu
-
+    const interval = setInterval(checkTime, 30_000);
+    checkTime();
     return () => clearInterval(interval);
   }, []);
 }

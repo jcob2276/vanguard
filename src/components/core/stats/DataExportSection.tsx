@@ -7,8 +7,8 @@ interface DataExportSectionProps {
   setIncludeWorkouts: (v: boolean) => void;
   includeBody: boolean;
   setIncludeBody: (v: boolean) => void;
-  includeYazio: boolean;
-  setIncludeYazio: (v: boolean) => void;
+  includeNutrition: boolean;
+  setIncludeNutrition: (v: boolean) => void;
   includeJournal: boolean;
   setIncludeJournal: (v: boolean) => void;
   includeOura: boolean;
@@ -28,8 +28,8 @@ export function DataExportSection({
   setIncludeWorkouts,
   includeBody,
   setIncludeBody,
-  includeYazio,
-  setIncludeYazio,
+  includeNutrition,
+  setIncludeNutrition,
   includeJournal,
   setIncludeJournal,
   includeOura,
@@ -84,7 +84,7 @@ export function DataExportSection({
         {[
           { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłownia/Strava)' },
           { state: includeBody, setter: setIncludeBody, label: 'Pomiary Ciała' },
-          { state: includeYazio, setter: setIncludeYazio, label: 'Dieta (Vanguard)' },
+          { state: includeNutrition, setter: setIncludeNutrition, label: 'Dieta (Vanguard)' },
           { state: includeJournal, setter: setIncludeJournal, label: 'Notatnik (Telegram)' },
           { state: includeOura, setter: setIncludeOura, label: 'Oura Ring' },
           { state: includeHabits, setter: setIncludeHabits, label: 'Nawyki' },

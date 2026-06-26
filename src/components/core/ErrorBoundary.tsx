@@ -7,19 +7,30 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  chunkReloadAttempted: boolean;
 }
+
+const CHUNK_RELOAD_KEY = 'vanguard_chunk_reload_ts';
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
+    chunkReloadAttempted: false,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    // Check if it's a chunk load error and reload the page automatically
-    if (error.name === 'ChunkLoadError' || error.message.includes('Failed to fetch dynamically imported module')) {
-      window.location.reload();
+  public static getDerivedStateFromError(error: Error): Partial<State> {
+    const isChunk =
+      error.name === 'ChunkLoadError' ||
+      error.message.includes('Failed to fetch dynamically imported module');
+    if (isChunk) {
+      const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || '0');
+      const now = Date.now();
+      if (now - last > 30_000) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+        window.location.reload();
+      }
     }
-    return { hasError: true };
+    return { hasError: true, chunkReloadAttempted: isChunk };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -33,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
           <h2 className="text-[16px] font-black text-text-primary mb-2 font-display uppercase tracking-wide">Coś poszło nie tak</h2>
           <p className="text-[12px] font-semibold text-text-muted mb-4">Wystąpił nieoczekiwany błąd aplikacji.</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="rounded-full bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white shadow-md hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
           >

@@ -7,6 +7,8 @@ import Dashboard from './components/core/Dashboard';
 import NotFoundPage from './components/core/NotFoundPage';
 import { useNotifications } from './hooks/useNotifications';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
+import { ToastHost } from './components/ui/ToastHost';
+import SettingsView from './components/settings/SettingsView';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
 
@@ -18,7 +20,7 @@ function KeepRedirect() {
 }
 
 function AppRoutes() {
-  const { session, setSession } = useStore();
+    const { session, setSession, fetchUserSettings } = useStore();
   const [loading, setLoading] = useState(true);
 
   useNotifications();
@@ -26,13 +28,15 @@ function AppRoutes() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) fetchUserSettings();
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) fetchUserSettings();
     });
     return () => subscription.unsubscribe();
-  }, [setSession]);
+  }, [setSession, fetchUserSettings]);
 
   if (loading) {
     return (
@@ -54,6 +58,7 @@ function AppRoutes() {
           <DesktopDashboard session={session} />
         </Suspense>
       } />
+      <Route path="/settings" element={<SettingsView session={session} />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
@@ -64,6 +69,7 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AppRoutes />
+        <ToastHost />
       </BrowserRouter>
     </ErrorBoundary>
   );

@@ -42,6 +42,11 @@ function createWorkoutSession(date: string, workoutDay: string): Tables<'workout
     session_notes: null,
     session_rpe: null,
     start_time: null,
+    hr_avg_bpm: null,
+    hr_kcal_est: null,
+    hr_peak_bpm: null,
+    hr_rescored_at: null,
+    hr_strain_score: null,
   };
 }
 

@@ -47,7 +47,9 @@ function buildDeterministicMemoryQuestion(memoryContext: any): string {
   if (curiosity?.provocation && curiosity.provocation.includes("?")) return curiosity.provocation;
   if (curiosity?.hypothesis) {
     const hypothesis = cleanMemoryLabel(curiosity.hypothesis);
-    return `Opowiedz mi, co jest prawdą, a co fałszem w tej hipotezie: ${hypothesis}. Jaki konkretny przykład z życia ją potwierdza albo obala?`;
+    // Take only the first clause (before ; or , or 60 chars) to avoid dumping a long hypothesis verbatim
+    const firstClause = hypothesis.split(/[;,]/)[0].trim().slice(0, 80);
+    return `Kiedy ostatnio zdarzyło się: ${firstClause}? Co wtedy było inaczej niż zwykle?`;
   }
 
   const pattern = memoryContext.behavioral_patterns?.[0];
@@ -282,10 +284,10 @@ Deno.serve(async (req) => {
       try {
         const result = await deepseekChat({
           apiKey: deepseekApiKey,
-          model: "deepseek-v4-flash",
-          maxTokens: 150,
+          model: "deepseek-chat",
+          maxTokens: 120,
           temperature: 0.5,
-          timeoutMs: 8000,
+          timeoutMs: 15000,
           messages: [
             {
               role: "system",
@@ -294,21 +296,24 @@ Deno.serve(async (req) => {
 Masz pamięć użytkownika: pending hypotheses, wzorce, wiki, graf, tarcia, świeży stream i dane biometryczne Oura.
 Wybierz JEDNO pytanie o najwyższej wartości informacyjnej dla pamięci systemu.
 
+FORMAT — jeden z tych wzorców:
+- "Co konkretnie [obserwacja] — co wtedy robisz?"
+- "Kiedy ostatnio [wzorzec], co było inaczej?"
+- "Co sprawia że [hipoteza] — jeden przykład?"
+- "Jak wygląda [zjawisko] w praktyce?"
+
 Zasady:
-- Nie musisz pytać o ostatnie 24h.
-- Nie łącz dwóch wątków tylko dlatego, że są obok siebie czasowo.
-- Preferuj: lukę w grafie, needs_review, pending hypothesis, powtarzalny wzorzec z N, albo niejasną decyzję.
-- Pytanie ma być naturalne, krótkie, konkretne, po polsku.
-- Możesz dać jedno zdanie obserwacji, ale MUSISZ zakończyć jednym operacyjnym pytaniem ze znakiem "?".
-- Nie cytuj długich fragmentów źródłowych.
-- Max 2 zdania.
-- Zacznij od "Opowiedz mi..." / "Powiedz mi..." / "Kiedy..." / "Co dokładnie...".
+- JEDNO zdanie — max 20 słów.
+- Musi kończyć się znakiem "?".
+- Zero wstępu, zero obserwacji przed pytaniem — tylko samo pytanie.
+- Konkretne i operacyjne, nie filozoficzne.
+- Zacznij bezpośrednio od pytania (nie od "Opowiedz mi o hipotezie").
+- Nie cytuj hipotez ani źródeł — przetłumacz na ludzkie pytanie.
 - Nie diagnozuj i nie psychoanalizuj.
 
 ZAKAZY:
-- NIE pytaj "dlaczego nie logujesz X" ani "nie odnotowałeś X" — brak logów ≠ brak problemu. Dane biometryczne Oura są ważniejsze niż logi friction events.
-- Jeśli oura_sleep_last_7d pokazuje późne spanie (po 00:30) lub krótki sen (<6.5h), NIE pytaj o brak logów sleep_disruption — wzorzec już widać w danych.
-- Jeśli recently_asked_topic_tags zawiera dany temat (np. "sleep", "sen", "trening"), wybierz INNY temat — nie wracaj do tego samego obszaru przez 7 dni.
+- NIE pytaj "dlaczego nie logujesz X" ani "nie odnotowałeś X".
+- Jeśli recently_asked_topic_tags zawiera dany temat, wybierz INNY — 7 dni cooldown.
 - Unikaj pytań czysto faktograficznych które można sprawdzić w bazie.`,
             },
             {

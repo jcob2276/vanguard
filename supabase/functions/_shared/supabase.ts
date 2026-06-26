@@ -12,35 +12,6 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const [, payload] = token.split(".");
-  if (!payload) return null;
-  try {
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    return JSON.parse(atob(padded));
-  } catch {
-    return null;
-  }
-}
-
-async function isValidServiceRoleToken(token: string): Promise<boolean> {
-  const payload = decodeJwtPayload(token);
-  if (payload?.role !== "service_role") return false;
-
-  const url = Deno.env.get("SUPABASE_URL") || "";
-  if (!url) return false;
-
-  const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/admin/users?page=1&per_page=1`, {
-    headers: {
-      apikey: token,
-      Authorization: `Bearer ${token}`,
-    },
-  }).catch(() => null);
-
-  return !!res && res.status < 400;
-}
-
 export async function resolveUserScope(
   req: Request,
   requestedUserId: string | null = null,
@@ -77,7 +48,23 @@ export async function safeExecute(promise: any): Promise<any> {
   }
   return data;
 }
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+/** CORS headers — whitelist via ALLOWED_ORIGINS (comma-separated). Falls back to * when unset. */
+export function corsHeadersFor(req?: Request): Record<string, string> {
+  const allowed = (Deno.env.get('ALLOWED_ORIGINS') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const requestOrigin = req?.headers.get('Origin') ?? '';
+  let origin = '*';
+  if (allowed.length > 0) {
+    origin = allowed.includes(requestOrigin) ? requestOrigin : allowed[0];
+  }
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    ...(allowed.length > 0 ? { Vary: 'Origin' } : {}),
+  };
 }
+
+/** Static fallback for handlers that don't have the request object. */
+export const corsHeaders = corsHeadersFor();

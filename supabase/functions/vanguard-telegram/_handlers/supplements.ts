@@ -53,7 +53,12 @@ export async function handleSupplementCallback(
     }
 
     if (supl.skipQty) {
-      await logSupplement(supabase, vanguardUserId, slug, 1);
+      try {
+        await logSupplement(supabase, vanguardUserId, slug, 1);
+      } catch (err) {
+        await answerCallbackQuery(telegramToken, callbackId, { text: '❌ Błąd zapisu' });
+        return;
+      }
       await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
       await editMessage(telegramToken, chatId, messageId, `✅ ${supl.label} — 1 porcja (5g)`);
       return;
@@ -81,7 +86,12 @@ export async function handleSupplementCallback(
       return;
     }
 
-    await logSupplement(supabase, vanguardUserId, slug, qty);
+    try {
+      await logSupplement(supabase, vanguardUserId, slug, qty);
+    } catch (err) {
+      await answerCallbackQuery(telegramToken, callbackId, { text: '❌ Błąd zapisu' });
+      return;
+    }
     await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
     await editMessage(telegramToken, chatId, messageId, `✅ ${supl.label} — ${qty}x`);
   }
@@ -104,7 +114,7 @@ async function logSupplement(
 
   if (fetchErr || !supl?.id) {
     console.error(`[supplements] not found: ${slug}`, fetchErr?.message);
-    return;
+    throw new Error('Suplement nie znaleziony');
   }
 
   const { error } = await supabase.from('supplement_logs').insert({
@@ -114,7 +124,10 @@ async function logSupplement(
     date: today,
   });
 
-  if (error) console.error('[supplements] insert failed:', error.message);
+  if (error) {
+    console.error('[supplements] insert failed:', error.message);
+    throw new Error('Insert failed');
+  }
 }
 
 async function editMessage(

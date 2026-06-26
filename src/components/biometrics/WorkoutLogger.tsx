@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
-import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus, Flame } from 'lucide-react';
+import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
+import { notify, confirmDialog } from '../../lib/notify';
 import {
   newExercise,
   newActivity,
@@ -11,11 +11,29 @@ import {
   type WorkoutExercise,
   type WorkoutActivity,
 } from './workout/workoutUtils';
+import {
+  clearWorkoutDraft,
+  loadWorkoutDraft,
+  saveWorkoutDraft,
+  saveWorkoutSession,
+  type WorkoutDraft,
+  type WorkoutLoggerInitial,
+} from '../../lib/workoutLogging';
 import ExerciseCard from './workout/ExerciseCard';
 import ActivityCard from './workout/ActivityCard';
 import VolumeBar from './workout/VolumeBar';
 
-export default function WorkoutLogger({ session, onBack }: { session: any; onBack: () => void }) {
+export default function WorkoutLogger({
+  session,
+  onBack,
+  initial,
+  onSaved,
+}: {
+  session: any;
+  onBack: () => void;
+  initial?: WorkoutLoggerInitial | null;
+  onSaved?: () => void;
+}) {
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises]     = useState<WorkoutExercise[]>([newExercise()]);
   const [activities, setActivities]   = useState<WorkoutActivity[]>([]);
@@ -67,6 +85,48 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
     setRestEndTime(Date.now() + restDuration * 1000);
   }, [restDuration]);
 
+  useEffect(() => {
+    if (!userId) return;
+    const draft = loadWorkoutDraft(userId);
+    const seed = draft ?? initial;
+    if (!seed) return;
+    setWorkoutName(seed.workoutName);
+    setExercises(seed.exercises?.length ? seed.exercises : [newExercise()]);
+    setActivities(seed.activities ?? []);
+    setNotes(seed.notes ?? '');
+    setSessionRpe(seed.sessionRpe ?? null);
+    if (draft) {
+      setWorkoutDate(draft.workoutDate);
+      setTimerStart(draft.timerStart);
+      setManualTime(draft.manualTime);
+      setStartTimeManual(draft.startTimeManual);
+      setEndTimeManual(draft.endTimeManual);
+      setRestDuration(draft.restDuration);
+    }
+  }, [userId, initial]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const t = window.setTimeout(() => {
+      const draft: WorkoutDraft = {
+        workoutName,
+        exercises,
+        activities,
+        notes,
+        sessionRpe,
+        workoutDate,
+        timerStart,
+        manualTime,
+        startTimeManual,
+        endTimeManual,
+        restDuration,
+        savedAt: Date.now(),
+      };
+      saveWorkoutDraft(userId, draft);
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [userId, workoutName, exercises, activities, notes, sessionRpe, workoutDate, timerStart, manualTime, startTimeManual, endTimeManual, restDuration]);
+
   const adjustRest = (deltaSec: number) => {
     haptics.light();
     setRestEndTime(prev => prev ? Math.max(Date.now(), prev + deltaSec * 1000) : null);
@@ -77,8 +137,8 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
     exercises.some(e => e.name.trim()) || activities.some(a => a.name.trim())
   );
 
-  const handleBack = () => {
-    if (hasUnsavedData && !confirm('Masz niezapisane dane treningu — wyjść bez zapisywania?')) return;
+  const handleBack = async () => {
+    if (hasUnsavedData && !(await confirmDialog('Masz niezapisane dane treningu — wyjść bez zapisywania?'))) return;
     onBack();
   };
 
@@ -98,63 +158,32 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
   };
 
   async function save() {
+    if (!userId || saving) return;
     const validEx = exercises.filter(e => e.name.trim());
     const validAc = activities.filter(a => a.name.trim());
-    if (!validEx.length && !validAc.length) { alert('Dodaj przynajmniej jedno ćwiczenie lub aktywność'); return; }
+    if (!validEx.length && !validAc.length) { notify('Dodaj przynajmniej jedno ćwiczenie lub aktywność', 'error'); return; }
 
     setSaving(true);
     try {
-      const exLogs = validEx.flatMap(ex =>
-        ex.sets.map((s, i) => ({
-          exercise_name: ex.name.trim(),
-          set_number: i + 1,
-          weight: parseFloat(s.kg) || 0,
-          reps: parseInt(s.reps) || 0,
-          rir: s.rir !== '' ? parseFloat(s.rir) : null,
-          rpe: null,
-          is_pws_or_msp: s.msp === true,
-          muscle_tags: ex.tags ?? [],
-        }))
-      );
-      const acLogs = validAc.map((a, i) => ({
-        exercise_name: a.note.trim() ? `${a.name.trim()} — ${a.note.trim()}` : a.name.trim(),
-        set_number: i + 1,
-        weight: 0,
-        reps: parseInt(a.min) || 0,
-        rpe: null,
-        rir: null,
-        muscle_tags: [],
-      }));
-
-      let finalStart: string | null = null;
-      let finalEnd: string | null = null;
-
-      if (manualTime) {
-        finalStart = new Date(`${workoutDate}T${startTimeManual}:00`).toISOString();
-        finalEnd = new Date(`${workoutDate}T${endTimeManual}:00`).toISOString();
-      } else if (timerStart) {
-        finalStart = new Date(timerStart).toISOString();
-        finalEnd = new Date().toISOString();
-      }
-
-      const mspPassed = exLogs.some(l => l.is_pws_or_msp);
-
-      const { error } = await supabase.rpc('save_workout_atomic', {
-        p_user_id:     userId,
-        p_day_key:     workoutName.trim() || (validEx.every(e => (e.tags ?? []).includes('wellness')) && validEx.length > 0 ? 'Sauna' : 'Trening'),
-        p_start_time:  (finalStart as string),
-        p_end_time:    (finalEnd as string),
-        p_notes:       notes,
-        p_msp_passed:  mspPassed,
-        p_logs:        [...exLogs, ...acLogs],
-        p_session_rpe: sessionRpe ?? undefined,
+      await saveWorkoutSession(userId, {
+        workoutName,
+        exercises,
+        activities,
+        notes,
+        sessionRpe,
+        workoutDate,
+        timerStart,
+        manualTime,
+        startTimeManual,
+        endTimeManual,
       });
-      if (error) throw error;
+      clearWorkoutDraft(userId);
       haptics.success();
+      onSaved?.();
       onBack();
     } catch (err) {
       haptics.error();
-      alert(err instanceof Error ? err.message : String(err));
+      notify(err instanceof Error ? err.message : String(err), 'error');
     } finally {
       setSaving(false);
     }
@@ -299,14 +328,8 @@ export default function WorkoutLogger({ session, onBack }: { session: any; onBac
             <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Inne aktywności</span>
           </div>
 
-          {/* Sauna/lodowata kąpiel get serie×min(+°C) — added as a wellness exercise above, not a plain activity */}
+          {/* Lodowata kąpiel — wellness exercise, not plain activity */}
           <div className="flex gap-2">
-            <button
-              onClick={() => addWellnessQuick('Sauna')}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-orange-500/25 bg-orange-500/[0.06] py-2 text-[10px] font-black uppercase tracking-wider text-orange-500 hover:bg-orange-500/10 active:scale-95 transition-all cursor-pointer"
-            >
-              <Flame size={12} /> + Sauna
-            </button>
             <button
               onClick={() => addWellnessQuick('Lodowata kąpiel')}
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] py-2 text-[10px] font-black uppercase tracking-wider text-sky-500 hover:bg-sky-500/10 active:scale-95 transition-all cursor-pointer"

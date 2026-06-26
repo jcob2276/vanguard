@@ -30,7 +30,7 @@ export const avg = (arr: number[]) =>
 
 export function weekStartDate() {
   const ds = getTodayWarsaw();
-  const d = new Date(ds + 'T12:00:00');
+  const d = new Date(ds + 'T12:00:00Z');
   const dow = d.getDay();
   d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
   return formatWarsawDate(d);
@@ -47,7 +47,7 @@ export function weeklyVolume(sessions: any[]) {
   const map: Record<string, number> = {};
   const dates: Record<string, Date> = {};
   for (const s of sessions) {
-    const ws = startOfWeek(new Date(s.date + 'T12:00:00'), { weekStartsOn: 1 });
+    const ws = startOfWeek(new Date(s.date + 'T12:00:00Z'), { weekStartsOn: 1 });
     const k = ws.toISOString().slice(0, 10);
     map[k] = (map[k] || 0) + sessionVol(s);
     dates[k] = ws;
@@ -115,7 +115,7 @@ export function computeDayOfWeekReadiness(oura: any[]) {
   const groups: Record<number, number[]> = {};
   for (const o of oura) {
     if (!o.readiness_score) continue;
-    const d = new Date(o.date + 'T12:00:00').getDay();
+    const d = new Date(o.date + 'T12:00:00Z').getDay();
     if (!groups[d]) groups[d] = [];
     groups[d].push(o.readiness_score);
   }
@@ -151,7 +151,7 @@ export function computeSleepBuckets(oura: any[]) {
 export function computeNutritionImpact(oura: any[], nutrition: any[]) {
   const nutrMap = Object.fromEntries((nutrition || []).map((n: any) => [n.date, n]));
   const nextDay = (d: string) => {
-    const dt = new Date(d + 'T12:00:00');
+    const dt = new Date(d + 'T12:00:00Z');
     dt.setDate(dt.getDate() + 1);
     return formatWarsawDate(dt);
   };

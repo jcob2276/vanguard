@@ -206,6 +206,7 @@ WAŻNE: Odpowiedź to WYŁĄCZNIE surowy obiekt JSON, bez markdown, bez tekstu p
 
       const result = await deepseekChat({
         apiKey,
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
@@ -443,6 +444,7 @@ Zwróć WYŁĄCZNIE poprawny JSON bez markdown ani komentarzy:
 
     const result = await deepseekChat({
       apiKey,
+      model: 'deepseek-chat',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },

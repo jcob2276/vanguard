@@ -79,6 +79,12 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 | `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
 | `vanguard-goal-create` | **active** | Frontend Goal suggestion trigger | true | none (calls DeepSeek only) | 85 | 2026-06-20 |
 | `parse-food-nl` | **active** | Frontend NL meal parser | true | none (calls DeepSeek only) | 149 | 2026-06-21 |
+| `parse-workout-nl` | **active** | Frontend `WorkoutQuickCapture` NL parser | true | `exercise_logs` (read history) | ~75 | 2026-06-26 |
+| `lookup-food` | **active** | Frontend `FoodEntryModal` food/barcode search | true | none (external food DB lookup) | 217 | 2026-06-26 |
+| `vanguard-detect-patterns` | **active** | Frontend `PatternsView` on-demand | true | `friction_events`, `vanguard_stream` (read) | 453 | 2026-06-26 |
+| `vanguard-keep-triage` | **active** | Frontend `WeeklyReview` | true | `vanguard_notes`, `vanguard_stream` (read/write) | 105 | 2026-06-26 |
+| `vanguard-kpi-suggest` | **active** | Frontend `WeeklyReview` | true | `life_goals`, `projects`, `goal_kpis` (read) | 85 | 2026-06-26 |
+| `vanguard-week-recap` | **active** | Frontend `Direction` weekly recap | true | `daily_wins`, `friction_events`, `vanguard_stream` (read) | 430 | 2026-06-26 |
 
 
 ## `vanguard-telegram` Handler Map
@@ -111,9 +117,9 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 151 | 2026-06-11 |
 | `sync-oura-enhanced` | **active** | Frontend / manual | true | `oura_enhanced`, `user_settings` | 207 | 2026-06-11 |
 | `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-11 |
-| `sync-yazio` | **active** | Frontend / manual | true | `daily_nutrition`, `daily_food_entries` | 178 | 2026-06-11 |
+| `sync-yazio` | **dropped** | Deleted from codebase; nutrition via app food log (`daily_nutrition`, `daily_food_entries`) | true | none | — | 2026-06-26 |
 | `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 447 | 2026-06-11 |
-| `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Yazio/Strava/workout tables | 469 | 2026-06-12 |
+| `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Strava/workout + food log tables | 469 | 2026-06-12 |
 | `rescore-workout-sessions` | **active** | pg_cron `20 11 * * *` UTC (after sync-oura-timeseries + compute-daily-strain) | **false** | `workout_sessions` (hr_avg_bpm, hr_peak_bpm, hr_strain_score, hr_kcal_est, hr_rescored_at); reads `oura_heartrate`, `nutrition_profile`, `body_metrics`, `oura_daily_summary` | 165 | 2026-06-24 |
 | `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
 | `compute-illness-signal` | **active** | pg_cron `25 11 * * *` UTC (after compute-daily-strain) | **false** | `daily_strain` (illness_score, illness_level); reads `oura_daily_summary`, `oura_enhanced`, `behavior_log`, `exercise_logs` | 160 | 2026-06-24 |

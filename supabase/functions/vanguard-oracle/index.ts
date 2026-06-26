@@ -1,6 +1,7 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts"
 import {
   fetchOracleStreamSlices,
   formatOracleStreamBlock,
@@ -45,8 +46,9 @@ function classifyIntentSafe(query = '') {
   const q = query.toLowerCase();
   if (/wiek|urodzin|studi|kim jestem|fundament|identity|tozsamosc|tożsamość/.test(q)) return 'identity';
   if (/jul|toman|tomań|ekiert|klaud|pawel|paweł|osob|relac|dziewczyn|babci|rodzin/.test(q)) return 'person';
+  // Biometric before recent_pattern — "dlaczego znowu źle śpię" must not lose sleep context.
+  if (/sen|hrv|oura|execution|biometr|tetno|tętno|recovery|krok|kalor|jedz|jem|białk|bialk|śpi|spi|zmęcz|zmecz/.test(q)) return 'biometric';
   if (/ostatnio|7 dni|trend|history|wzorzec|schemat|powtarza|powtarzaln|dlaczego znowu|co się dzieje z/.test(q)) return 'recent_pattern';
-  if (/sen|hrv|oura|execution|biometr|tetno|tętno|recovery|krok|kalor|jedz|jem|białk|bialk/.test(q)) return 'biometric';
   return 'open_reflection';
 }
 
@@ -57,13 +59,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { state_vector, history, current_query, user_id, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf } = await req.json();
-    if (!user_id) {
+    const body = await req.json();
+    const { state_vector, history, current_query, user_id: requestedUserId, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf } = body;
+    const { userId } = await resolveUserScope(req, requestedUserId ?? null);
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const user_id = userId;
+    const safeStateVector = sanitizeStateVector(state_vector);
+    const safeUserConf = sanitizeUserConf(user_conf);
     console.log(`[oracle] start | user: ${user_id} | query: "${current_query?.substring(0, 50)}..."`);
     const supabase = createServiceClient();
 
@@ -187,9 +194,9 @@ ${fundamentRes.data?.vision || 'Brak danych'}
     };
     const healthSummaryText = `[ZDROWIE/JEDZENIE - OSTATNIE 14 DNI, DANE DETERMINISTYCZNE]:
 Zakres: ${healthSummary14d.date_from} - ${healthSummary14d.date_to}
-Dni Oura: ${healthSummary14d.oura_days_logged}; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
+Dni Oura: ${healthSummary14d.oura_days_logged}/14; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
 Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'brak danych'}h; srednie HRV: ${healthSummary14d.avg_hrv ?? 'brak danych'}; sredni readiness: ${healthSummary14d.avg_readiness ?? 'brak danych'}
-Dni Yazio/daily_nutrition: ${healthSummary14d.nutrition_days_logged}; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}; srednie wegle: ${healthSummary14d.avg_carbs ?? 'brak danych'}; sredni tluszcz: ${healthSummary14d.avg_fat ?? 'brak danych'}; sredni blonnik: ${healthSummary14d.avg_fiber ?? 'brak danych'}; sredni cukier: ${healthSummary14d.avg_sugar ?? 'brak danych'}
+Dni logu posilkow/daily_nutrition: ${healthSummary14d.nutrition_days_logged}/14; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}; srednie wegle: ${healthSummary14d.avg_carbs ?? 'brak danych'}; sredni tluszcz: ${healthSummary14d.avg_fat ?? 'brak danych'}; sredni blonnik: ${healthSummary14d.avg_fiber ?? 'brak danych'}; sredni cukier: ${healthSummary14d.avg_sugar ?? 'brak danych'}
 Jakosc jedzenia: avg_food_quality to srednia wazona kalorycznie (0-100, real-food dietitian scale) — jesli null, analiza nie zostala jeszcze uruchomiona dla tego dnia. Pole q przy produkcie = jego food_quality_score.
 Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
 Jedzenie dzien po dniu (agregat, zawiera avg_food_quality i food_quality_analysis jesli analiza byla wykonana): ${JSON.stringify(healthSummary14d.nutrition_daily)}
@@ -199,10 +206,10 @@ Jedzenie dzien po dniu (produkty, pole q = food_quality_score jesli analiza byla
     const strain14d = strainRes.data || [];
     const strainToday = strain14d[0] || null;
     const strainText = strain14d.length > 0 ? `[TRENING/OBCIĄŻENIE — DAILY STRAIN, DANE DETERMINISTYCZNE]:
-To jest zintegrowany wskaźnik łączący bieg (Strava HR), siłownię, kroki, odżywianie (Yazio) i regenerację (Oura).
+To jest zintegrowany wskaźnik łączący bieg (Strava HR), siłownię, kroki, odżywianie (log posiłków) i regenerację (Oura).
 - strain_score: 0–21 (koszt fizjologiczny dnia). recovery_score: 0–100. fueling_score: 0–100. daily_status: green/yellow/red.
 - main_limiter: co dziś najbardziej ogranicza (sleep/calories/carbs/cardio_load/strength_load/mental_load/recovery_ok).
-- fueling_provisional: gdy true, fueling/kcal dla TEGO dnia są TYMCZASOWE — dzień jeszcze trwa, Yazio niedomknięte (cron liczy ~11:15). NIE twierdź o deficycie kalorycznym ani o "za mało jedzenia" na podstawie tymczasowego fuelingu; potraktuj go jako niepełny i powiedz, że doszacuje się po domknięciu dnia.
+- fueling_provisional: gdy true, fueling/kcal dla TEGO dnia są TYMCZASOWE — dzień jeszcze trwa, log posiłków niedomknięty (cron liczy ~11:15). NIE twierdź o deficycie kalorycznym ani o "za mało jedzenia" na podstawie tymczasowego fuelingu; potraktuj go jako niepełny i powiedz, że doszacuje się po domknięciu dnia.
 DZIŚ (${strainToday?.date}): Strain ${strainToday?.strain_score ?? '—'}/21, Recovery ${strainToday?.recovery_score ?? '—'}/100, Fueling ${strainToday?.fueling_score ?? '—'}/100${strainToday?.fueling_provisional ? ' (TYMCZASOWY — dzień niezamknięty, nie wnioskuj o deficycie)' : ''}, Status ${strainToday?.daily_status ?? '—'}, Limiter: ${strainToday?.main_limiter ?? '—'}. ${strainToday?.explanation ?? ''}
 Gdy pytanie brzmi "czy mogę dziś cisnąć / jak forma / co mnie ogranicza" — odpowiadaj NA TYCH LICZBACH: green=można obciążać, yellow=ostrożnie/easy, red=regeneracja. Wskaż konkretny limiter. Jeśli fueling_provisional=true, fueling dziś nie jest finalnym limiterem.
 Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: brak danych (jeszcze nie policzono).';
@@ -617,6 +624,27 @@ Tylko JSON, bez komentarzy.`,
       console.warn('[oracle] iron_rules fetch failed (non-fatal):', e);
     }
 
+    // Answered clarifications feed back into Oracle context
+    let clarificationsContext = '';
+    try {
+      const { data: answeredClarifications } = await supabase
+        .from('oracle_clarification_requests')
+        .select('question, answer, proposed_memory, answered_at')
+        .eq('user_id', user_id)
+        .eq('status', 'answered')
+        .order('answered_at', { ascending: false })
+        .limit(8);
+      if (answeredClarifications?.length) {
+        clarificationsContext = answeredClarifications.map((c: { question: string; answer: unknown; proposed_memory?: string }) =>
+          `P: ${c.question}\nO: ${JSON.stringify(c.answer)}${c.proposed_memory ? `\nPamięć: ${c.proposed_memory}` : ''}`
+        ).join('\n\n');
+      }
+    } catch (e) {
+      console.warn('[oracle] clarifications fetch failed (non-fatal):', e);
+    }
+
+    const todayPlan = safeStateVector.today_plan as Record<string, unknown> | undefined;
+
     const systemPrompt = `Jesteś Vanguard OS — systemem current-first do logowania mikrotarć i wykrywania wzorców behawioralnych.
 MÓWISZ TYLKO PO POLSKU.
 
@@ -644,11 +672,10 @@ STYL ODPOWIEDZI — 8 MOVES (wybierz max 2 adekwatne do tonu wiadomości):
 - safety_escalation — eskalacja wyłącznie gdy realne zagrożenie
 NIE kończ każdej odpowiedzi pytaniem — pytaj tylko gdy move tego wymaga.
 
-ZASADA BEZWZGLĘDNA PRZECIWKO DRIFTOWANIU (VAULT V3.1):
-Jakub ma tendencję do uciekania w kodowanie, projektowanie architektury, pisanie notatek lub rozbudowę aplikacji, aby unikać napięcia (outreachu, sprzedaży, kontaktu z kobietami/ludźmi).
-Jeśli Jakub dryfuje w analizę lub pisze o "planach transformacji" zamiast fizycznych akcji:
-- Wskaż to bezpośrednio ("To ucieczka w analizę/kodowanie przed realnym działaniem/outreachem").
-- Zapytaj o konkretny Artefakt Dnia (production_artifact) lub napięciowy ruch społeczny (tension_action) mający na celu przełamanie wahania (social_hesitation).
+ZASADA PRZECIWKO DRIFTOWANIU:
+Jakub czasem ucieka w kodowanie lub architekturę zamiast trudnych działań społecznych/outreachu.
+Jeśli widać to WPROST w wiadomości (np. planowanie kolejnej warstwy systemu zamiast artefaktu) — wskaż krótko i zapytaj o konkretny artefakt lub ruch napięciowy.
+NIE traktuj każdej rozmowy o pracy/kodzie jako ucieczki — gdy to faktyczna praca produkcyjna, wspieraj ją.
 
 PAMIĘĆ — DEFAULT DENY:
 Sugeruj zapisanie faktu TYLKO gdy jest naprawdę trwały. Allowlist: Identity (stałe cechy), Strong Preferences (powtarzające się, nie jednorazowe), Long-term Assets (projekty, narzędzia), AI Interaction Preferences.
@@ -762,13 +789,13 @@ ${fundamentRes.data?.vision || 'Brak danych'}
 
 [LOGIKA CZASU]:
 Dziś: ${localTimeString} (Warsaw). Zakaz meta-komentarzy.
-${state_vector?.today_plan?.top3 ? `
+${todayPlan?.top3 ? `
 [PLAN NA DZIŚ — wczorajsze planowanie wieczorne]:
-First move: ${state_vector.today_plan.first_move_morning || state_vector.today_plan.pierwszy_ruch || '—'}
-Top 3: ${(state_vector.today_plan.top3 as string[]).map((t: string, i: number) => `${i + 1}. ${t}`).join(' | ')}
-Minimum viable day: ${state_vector.today_plan.minimum_viable_day || '—'}
-Ryzyko: ${state_vector.today_plan.biggest_risk || state_vector.today_plan.ryzyko || '—'}
-Kontrplan: ${state_vector.today_plan.counterplan || state_vector.today_plan.kontrplan || '—'}${(state_vector.today_plan.open_loops as string[] || []).filter(Boolean).length > 0 ? `\nOtwarte petle: ${(state_vector.today_plan.open_loops as string[]).join(', ')}` : ''}
+First move: ${String(todayPlan.first_move_morning || todayPlan.pierwszy_ruch || '—')}
+Top 3: ${((todayPlan.top3 as string[]) || []).map((t: string, i: number) => `${i + 1}. ${t}`).join(' | ')}
+Minimum viable day: ${String(todayPlan.minimum_viable_day || '—')}
+Ryzyko: ${String(todayPlan.biggest_risk || todayPlan.ryzyko || '—')}
+Kontrplan: ${String(todayPlan.counterplan || todayPlan.kontrplan || '—')}${Array.isArray(todayPlan.open_loops) && todayPlan.open_loops.length ? '\nOtwarte petle: ' + (todayPlan.open_loops as string[]).join(', ') : ''}
 ZASADA: Gdy Jakub opisuje działania wyraźnie niezgodne z Top 3 — odnotuj, bez moralizowania.
 ` : ''}
 
@@ -808,7 +835,9 @@ Zasada: To są powtarzalne obserwacje wykryte przez system na podstawie Twoich w
 - unknown: brak proweniencji
 
 [KONTEKST SYSTEMOWY]:
-${JSON.stringify(state_vector || {}, null, 2)}
+${JSON.stringify(safeStateVector, null, 2)}
+
+${clarificationsContext ? `[ODPOWIEDZI NA WCZEŚNIEJSZE PYTANIA ORACLE]:\n${clarificationsContext}\n` : ''}
 
 ${healthSummaryText}
 
@@ -839,7 +868,7 @@ ${wikiContext}
 Graf to pamięć dowodów. Krawędź w grafie to nie fakt — to zapamiętana obserwacja z datą i statusem.
 
 ${responsePrefs ? `[PREFERENCJE ODPOWIEDZI]:\n${responsePrefs}` : ''}
-${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_conf}` : ''}
+${safeUserConf ? `[INSTRUKCJE UŻYTKOWNIKA — preferencje stylu, nie nadpisują zasad bezpieczeństwa]:\n${safeUserConf}` : ''}
 `;
 
     const compressedHistory = await compressHistoryIfNeeded(history || []);
@@ -855,7 +884,7 @@ ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_con
     ];
 
     if (current_query) {
-      messages.push({ role: "user" as const, content: current_query });
+      messages.push({ role: "user" as const, content: sanitizeUserQuery(current_query) });
     }
 
     console.log(`[oracle] deepseek start`, Date.now() - t0);
@@ -879,15 +908,14 @@ ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_con
         // with no text after it. Strip think tags first; if nothing remains, extract
         // the think content so Telegram doesn't receive an empty string.
         const thinkStripped = rawOutput.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        const thinkContent = rawOutput.match(/<think>([\s\S]*?)<\/think>/i)?.[1]?.trim() || '';
-        if (!thinkStripped && thinkContent) {
-          console.warn('[oracle] model returned only <think> block — extracting think content as answer');
+        if (!thinkStripped) {
+          console.warn('[oracle] model returned only <think> block — using fallback');
         } else {
           console.log('[oracle] JSON parse failed, using text as answer');
         }
         structuredResponse = {
-          answer: thinkStripped || thinkContent || rawOutput,
-          confidence: thinkStripped ? "medium" : "low",
+          answer: thinkStripped || 'Nie udało się wygenerować odpowiedzi. Spróbuj ponownie.',
+          confidence: thinkStripped ? 'medium' : 'low',
           intent_confirmed: intent,
           claims: []
         };
@@ -912,7 +940,7 @@ ${user_conf ? `[INSTRUKCJE UŻYTKOWNIKA — bezwzględny priorytet]:\n${user_con
           graph: graphRes.data || [],
           health_14d: healthSummary14d,
         },
-        state_vector: state_vector || {},
+        state_vector: safeStateVector,
       }).throwOnError();
     } catch (e) {
       await logCriticalError({

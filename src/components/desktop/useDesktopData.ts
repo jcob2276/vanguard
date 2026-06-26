@@ -8,6 +8,7 @@ export function useDesktopData(userId: string | undefined) {
     nutrition: any[];
     sessions: any[];
     body: any[];
+    heightCm: number | null;
     strain: any | null;
     strava: any[];
     projects: any[];
@@ -28,6 +29,7 @@ export function useDesktopData(userId: string | undefined) {
     nutrition: [],
     sessions: [],
     body: [],
+    heightCm: null,
     strain: null,
     strava: [],
     projects: [],
@@ -48,6 +50,11 @@ export function useDesktopData(userId: string | undefined) {
     if (!userId) return;
     setS(p => ({ ...p, loading: true }));
     const { data, error } = await supabase.rpc('get_desktop_dashboard_data', { p_user_id: userId });
+    const { data: profile } = await supabase
+      .from('nutrition_profile')
+      .select('height_cm')
+      .eq('user_id', userId)
+      .maybeSingle();
     if (error) {
       console.error('Error loading dashboard data:', error);
       setS(p => ({ ...p, loading: false }));
@@ -60,6 +67,7 @@ export function useDesktopData(userId: string | undefined) {
       nutrition: d?.nutrition || [],
       sessions: d?.sessions || [],
       body: d?.body || [],
+      heightCm: profile?.height_cm != null ? Number(profile.height_cm) : null,
       strain: d?.strain || null,
       strava: d?.strava || [],
       projects: d?.projects || [],

@@ -8,6 +8,7 @@ import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from './stats/statsApi';
 import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats';
+import { notify, confirmDialog } from '../../lib/notify';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
@@ -75,7 +76,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   });
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingOura, setIsExportingOura] = useState(false);
-  const [includeYazio, setIncludeYazio] = useState(true);
+  const [includeNutrition, setIncludeNutrition] = useState(true);
   const [includeJournal, setIncludeJournal] = useState(true);
   const [includeOura, setIncludeOura] = useState(true);
   const [includeHabits, setIncludeHabits] = useState(true);
@@ -156,7 +157,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
 
   async function saveMetrics(e: any) {
     e.preventDefault();
-    const today = new Intl.DateTimeFormat('sv', { timeZone: 'Europe/Warsaw' }).format(new Date());
+    const today = getTodayWarsaw();
     const payload: TablesInsert<'body_metrics'> = {
       user_id: session.user.id,
       date: today,
@@ -172,20 +173,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
     if (newMetric.biceps_l !== '') p.biceps_l = parseFloat(newMetric.biceps_l);
     if (newMetric.calf     !== '') p.calf     = parseFloat(newMetric.calf);
     if (!p.weight && !p.waist && !p.neck && !p.chest && !p.belly && !p.hips && !p.thigh && !p.biceps_l && !p.calf) {
-      alert('Podaj przynajmniej jeden pomiar.');
+      notify('Podaj przynajmniej jeden pomiar.', 'error');
       return;
     }
-    const { error } = await supabase.from('body_metrics').upsert(payload);
-    if (error) alert(error.message);
-    else { alert('Zapisano!'); fetchStats(); }
+    const { error } = await supabase
+      .from('body_metrics')
+      .upsert(payload, { onConflict: 'user_id,date' });
+    if (error) notify(error.message, 'error');
+    else { notify('Zapisano!', 'success'); fetchStats(); }
   }
 
   async function deleteSession(id: any) {
-    if (confirm('Usunąć trening?')) {
-      const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
-      if (error) { alert(error.message); return; }
-      fetchStats();
-    }
+    if (!(await confirmDialog('Usunąć trening?'))) return;
+    const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
+    if (error) { notify(error.message, 'error'); return; }
+    fetchStats();
   }
   async function analyzeFood() {
     setIsAnalyzing(true);
@@ -201,10 +203,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       if (res.success) {
         setAnalyzeResult(res);
       } else {
-        alert('Błąd analizy: ' + (res.error || 'Nieznany błąd'));
+        notify('Błąd analizy: ' + (res.error || 'Nieznany błąd'), 'error');
       }
     } catch (err) {
-      alert('Błąd połączenia: ' + (err instanceof Error ? err.message : String(err)));
+      notify('Błąd połączenia: ' + (err instanceof Error ? err.message : String(err)), 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -224,7 +226,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       if (res.success) setTrainingAnalysis(res);
       else throw new Error(res.error || 'Nieznany błąd');
     } catch (err) {
-      alert('Błąd analizy treningu: ' + (err instanceof Error ? err.message : String(err)));
+      notify('Błąd analizy treningu: ' + (err instanceof Error ? err.message : String(err)), 'error');
     } finally {
       setIsAnalyzingTraining(false);
     }
@@ -271,19 +273,18 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         if (logError) throw logError;
       }
       
-      alert('Trening zaktualizowany!');
+      notify('Trening zaktualizowany!', 'success');
       setEditingSession(null);
       fetchStats();
     } catch (_err) {
-      alert('Błąd podczas aktualizacji');
+      notify('Błąd podczas aktualizacji', 'error');
     }
   }
   async function deleteLog(id: any) {
-    if (confirm('Usunąć tę serię?')) {
-      const { error } = await supabase.from('exercise_logs').delete().eq('id', id);
-      if (error) { alert(error.message); return; }
-      setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
-    }
+    if (!(await confirmDialog('Usunąć tę serię?'))) return;
+    const { error } = await supabase.from('exercise_logs').delete().eq('id', id);
+    if (error) { notify(error.message, 'error'); return; }
+    setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
   }
 
   async function exportData() {
@@ -294,7 +295,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         session,
         dateRange,
         userSettings,
-        includeYazio,
+        includeNutrition,
         includeJournal,
         includeOura,
         includeHabits,
@@ -304,7 +305,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       });
     } catch (err: any) {
       console.error('Export markdown error:', err);
-      alert('Błąd podczas generowania raportu: ' + (err?.message || err));
+      notify('Błąd podczas generowania raportu: ' + (err?.message || err), 'error');
     } finally {
       setIsExporting(false);
     }
@@ -316,7 +317,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       await exportOuraCsv({ supabase, session, dateRange });
     } catch (err: any) {
       console.error('Export Oura CSV error:', err);
-      alert('Błąd podczas generowania CSV Oura: ' + (err?.message || err));
+      notify('Błąd podczas generowania CSV Oura: ' + (err?.message || err), 'error');
     } finally {
       setIsExportingOura(false);
     }
@@ -346,8 +347,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
           setIncludeWorkouts={setIncludeWorkouts}
           includeBody={includeBody}
           setIncludeBody={setIncludeBody}
-          includeYazio={includeYazio}
-          setIncludeYazio={setIncludeYazio}
+          includeNutrition={includeNutrition}
+          setIncludeNutrition={setIncludeNutrition}
           includeJournal={includeJournal}
           setIncludeJournal={setIncludeJournal}
           includeOura={includeOura}

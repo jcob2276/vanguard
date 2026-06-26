@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { getTodayWarsaw } from '../lib/date';
 import type { Session } from '@supabase/supabase-js';
 
 export interface DailyStatPoint {
@@ -69,13 +70,14 @@ export function useUserStatsSnapshot(session: Session | null) {
 
         // streak
         let currentStreakDays = 0;
-        const today = new Date().toISOString().substring(0, 10);
+        const today = getTodayWarsaw();
         let check = today;
         while (byDate[check]) {
           currentStreakDays++;
-          const d = new Date(check);
-          d.setDate(d.getDate() - 1);
-          check = d.toISOString().substring(0, 10);
+          const [y, m, d] = check.split('-').map(Number);
+          const prev = new Date(Date.UTC(y, m - 1, d));
+          prev.setUTCDate(prev.getUTCDate() - 1);
+          check = prev.toISOString().split('T')[0];
         }
 
         setData({ totalInputs, totalCards, totalCompletedTodos, activeDays, currentStreakDays, daily });

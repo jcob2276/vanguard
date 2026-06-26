@@ -84,6 +84,12 @@ function searchGeneric(query: string): FoodResult[] {
 // pull out the leading number, which is all we need for a sane portion default.
 function parseLeadingGrams(value: unknown): number | null {
   if (typeof value !== 'string') return null
+  // Prefer grams in parentheses: "1 sztuka (30g)" → 30
+  const parenG = value.match(/\((\d+(?:[.,]\d+)?)\s*g\)/i)
+  if (parenG) {
+    const n = parseFloat(parenG[1].replace(',', '.'))
+    return n > 0 ? Math.round(n) : null
+  }
   const m = value.match(/(\d+(?:[.,]\d+)?)/)
   if (!m) return null
   const n = parseFloat(m[1].replace(',', '.'))

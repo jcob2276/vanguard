@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { notify } from '../lib/notify';
 
 const GOOGLE_CLIENT_ID = '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com';
 const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
@@ -56,11 +57,11 @@ export function useSyncActions({
         await syncCalendar();
       } else {
         console.error('Google Auth Error:', res?.error);
-        alert('Błąd połączenia z Google: ' + (res?.error || 'Nieznany błąd'));
+        notify('Błąd połączenia z Google: ' + (res?.error || 'Nieznany błąd'), 'error');
       }
     } catch (err: any) {
       console.error('Google Auth Error:', err);
-      alert('Błąd połączenia z Google: ' + err.message);
+      notify('Błąd połączenia z Google: ' + err.message, 'error');
     } finally {
       setSyncing(false);
     }

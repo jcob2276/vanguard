@@ -83,11 +83,10 @@ export async function checkReEntryMode(userId: string): Promise<boolean> {
   // If no previous plan ever, maybe it's the first time using the app. No re-entry mode needed.
   if (!data) return false;
   
-  // Calculate days between today and the last plan_date
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const t1 = new Date(`${today}T00:00:00Z`).getTime();
-  const t2 = new Date(`${data.plan_date}T00:00:00Z`).getTime();
-  const diffDays = Math.floor((t1 - t2) / msPerDay);
+  // Calendar-day diff using noon UTC anchors (same pattern as getDaysAgoWarsaw)
+  const t1 = new Date(`${today}T12:00:00Z`).getTime();
+  const t2 = new Date(`${data.plan_date}T12:00:00Z`).getTime();
+  const diffDays = Math.floor((t1 - t2) / (1000 * 60 * 60 * 24));
   
   // If difference is >= 2 days (meaning they skipped yesterday), trigger re-entry mode
   return diffDays >= 2;

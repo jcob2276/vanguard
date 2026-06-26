@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { VanguardCore, computeSignals } from './vanguardCore';
-import { format, startOfWeek, subDays } from 'date-fns';
+import { getTodayWarsaw, getDaysAgoWarsaw } from './date';
 
 type FootprintPayload = {
   window?: {
@@ -15,17 +15,33 @@ type FootprintPayload = {
 /**
  * AI CONTEXT 3.1 - Unified & Complete Bridge
  */
+const contextCache = new Map<string, { data: unknown; ts: number }>();
+const CACHE_TTL_MS = 60_000;
+
+function warsawWeekStart(dateStr: string): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
 export async function gatherUserContext(session: any) {
   if (!session?.user?.id) return "Brak sesji użytkownika.";
 
   const userId = session.user.id;
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = getTodayWarsaw();
+  const cacheKey = `${userId}:${today}`;
+  const cached = contextCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data;
+  }
   const core = new VanguardCore(userId, supabase);
 
   try {
-    const currentWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const lastWeekStart = format(startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const fourteenDaysAgo = format(subDays(new Date(), 13), 'yyyy-MM-dd');
+    const currentWeekStart = warsawWeekStart(today);
+    const lastWeekStart = warsawWeekStart(getDaysAgoWarsaw(7));
+    const fourteenDaysAgo = getDaysAgoWarsaw(13);
     
     const settled = await Promise.allSettled([
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
@@ -56,7 +72,7 @@ export async function gatherUserContext(session: any) {
       // Daily context
       supabase.from('daily_reconciliations').select('planning_summary, midday_status, midday_blocker, day_score').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('todo_items').select('title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('priority', { ascending: false }).limit(30),
-      supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', format(subDays(new Date(), -14), 'yyyy-MM-dd')).order('due_date', { ascending: true }).limit(5),
+      supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', getDaysAgoWarsaw(-14)).order('due_date', { ascending: true }).limit(5),
       supabase.from('daily_strain').select('date, strain_score, recovery_score, readiness_level, components').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
     const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes, todayRecRes, todosRes, checkpointsRes, dailyStrainRes] = settled.map(r =>
@@ -149,9 +165,9 @@ export async function gatherUserContext(session: any) {
           readiness: currentMetrics.readiness || 0
         },
         digital: {
-          dopamine_z: 0,
-          fragmentation_z: 0,
-          screen_time: 0
+          dopamine_z: null,
+          fragmentation_z: null,
+          screen_time: null
         }
       },
       last_14_days: {
@@ -231,6 +247,7 @@ export async function gatherUserContext(session: any) {
       }) || []
     };
 
+    contextCache.set(cacheKey, { data: stateVector, ts: Date.now() });
     return stateVector;
 
   } catch (error) {

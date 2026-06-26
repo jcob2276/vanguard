@@ -3,12 +3,10 @@ import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
-  AlertCircle,
   Calendar,
   FolderKanban,
   CheckSquare,
   Clock,
-  Dumbbell,
   LayoutDashboard,
   Moon,
   Sun,
@@ -23,12 +21,18 @@ import { useNudgeData } from '../../hooks/useNudgeData';
 import { useSyncActions } from '../../hooks/useSyncActions';
 import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
-import CommandButton from './CommandButton';
-import DayCounter from './DayCounter';
+import OrientationFooter from './OrientationFooter';
 import NutritionCard from './NutritionCard';
-import FoodEntryModal from './nutrition/FoodEntryModal';
+import FoodQuickCapture from './nutrition/FoodQuickCapture';
+import TodayMealsCard from './nutrition/TodayMealsCard';
+import TodayWorkoutsCard from '../biometrics/TodayWorkoutsCard';
+import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
+import WorkoutQuickCapture from '../biometrics/WorkoutQuickCapture';
+import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import CaptureQueueCard from './CaptureQueueCard';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
+const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
 const Stats = lazy(() => import('./Stats'));
 const Fundament = lazy(() => import('./Fundament'));
 const DailyStrainCard = lazy(() => import('../biometrics/DailyStrainCard'));
@@ -43,7 +47,6 @@ const Keep = lazy(() => import('../notes/Keep'));
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
-const ScheduleView = lazy(() => import('../schedule/ScheduleView').then(m => ({ default: m.ScheduleView })));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
@@ -51,7 +54,6 @@ const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const OracleCard = lazy(() => import('../ai/OracleCard'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
-const DayPlanCard = lazy(() => import('./DayPlanCard'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -87,9 +89,23 @@ export default function Dashboard({ session }: { session: Session }) {
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set([normalizeView(localStorage.getItem('vanguard_view')) || 'dzis']));
+
+  useEffect(() => {
+    setMountedTabs((prev) => {
+      if (prev.has(view)) return prev;
+      const next = new Set(prev);
+      next.add(view);
+      return next;
+    });
+  }, [view]);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [showSaunaLogger, setShowSaunaLogger] = useState(false);
+  const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
+  const [workoutKey, setWorkoutKey] = useState(0);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
+  const [foodEditEntry, setFoodEditEntry] = useState<any>(null);
   const logoLongPressTimer = useRef<number | null>(null);
   const logoLongPressFired = useRef(false);
 
@@ -124,7 +140,7 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, []);
 
-  const { reviewOverdueDays, urgentTodoCount, refresh: refreshNudge } = useNudgeData(userId);
+  const { reviewOverdueDays, urgentTodoCount, unreadLinkCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
 
   const navigateTo = useCallback((newView: string) => {
     if (newView === view) return;
@@ -230,11 +246,30 @@ export default function Dashboard({ session }: { session: Session }) {
     );
   }
 
+  if (showSaunaLogger) {
+    return (
+      <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
+        <Suspense fallback={<ViewFallback />}>
+          <SaunaLoggerModal
+            session={session}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
+            onBack={() => { setShowSaunaLogger(false); refresh(); }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
   if (showWorkoutLogger) {
     return (
       <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
         <Suspense fallback={<ViewFallback />}>
-          <WorkoutLogger session={session} onBack={() => { setShowWorkoutLogger(false); refresh(); }} />
+          <WorkoutLogger
+            session={session}
+            initial={workoutInitial}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
+            onBack={() => { setShowWorkoutLogger(false); setWorkoutInitial(null); refresh(); }}
+          />
         </Suspense>
       </div>
     );
@@ -291,17 +326,27 @@ export default function Dashboard({ session }: { session: Session }) {
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
-                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="relative rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Notatki"
                 >
                   <Paintbrush size={15} />
+                  {staleNoteCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                      {staleNoteCount > 9 ? '9+' : staleNoteCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('links'); }}
-                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="relative rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Zapisane linki"
                 >
                   <Bookmark size={15} />
+                  {unreadLinkCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                      {unreadLinkCount > 9 ? '9+' : unreadLinkCount}
+                    </span>
+                  )}
                 </button>
                 <Link
                   to="/dashboard"
@@ -318,75 +363,102 @@ export default function Dashboard({ session }: { session: Session }) {
         <main className="flex-1 overflow-hidden vt-tab-main">
           {showLock ? (
             <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
-              <DayCounter />
+              <OrientationFooter session={session} />
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
             </div>
           ) : (
             <>
               {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
               <ErrorBoundary>
+              {mountedTabs.has('dzis') && (
               <div className={`p-5 pb-8 ${view === 'dzis' ? '' : 'hidden'}`}>
-                <div className="space-y-7">
-                  <DayCounter />
+                <div className="space-y-5">
+              <OrientationFooter session={session} />
 
               <Suspense fallback={<ViewFallback />}>
-                <DailyStrainCard session={session} />
-              </Suspense>
-
-              {/* Weekly Review nudge */}
-              {reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
-                <div className="flex flex-wrap items-center gap-2 -mt-3">
-                  <button
-                    onClick={() => navigateTo('projekty')}
-                    className="flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[11px] font-black text-rose-500 cursor-pointer hover:bg-rose-500/20 transition-all"
-                  >
-                    <AlertCircle size={11} />
-                    {reviewOverdueDays >= 100 ? 'Zacznij Weekly Review →' : `${reviewOverdueDays}d bez review →`}
-                  </button>
-                </div>
-              )}
-
-              <GoalsCard session={session} />
-
-              {/* DayPlanCard — MIT + supporting tasks + energy check-in + shutdown */}
-              <Suspense fallback={<ViewFallback />}>
-                <DayPlanCard session={session} />
+                <DailyStrainCard session={session} refreshSignal={nutritionKey + workoutKey} />
               </Suspense>
 
               <Suspense fallback={null}>
                 <TodayEventsCard session={session} />
               </Suspense>
 
+              <FoodQuickCapture
+                session={session}
+                refreshSignal={nutritionKey}
+                onSaved={() => { refresh(); setNutritionKey((k) => k + 1); }}
+                onOpenFullModal={() => setShowQuickFoodEntry(true)}
+              />
+
+              <TrainingSaunaQuickBar
+                session={session}
+                refreshSignal={workoutKey}
+                onOpenWorkout={() => {
+                  setWorkoutInitial(null);
+                  setShowWorkoutLogger(true);
+                }}
+                onOpenSauna={() => setShowSaunaLogger(true)}
+              />
+
+              <WorkoutQuickCapture
+                session={session}
+                refreshSignal={workoutKey}
+                onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
+                onOpenLogger={(initial) => {
+                  setWorkoutInitial(initial ?? null);
+                  setShowWorkoutLogger(true);
+                }}
+              />
+
+              <TodayMealsCard
+                session={session}
+                refreshSignal={nutritionKey}
+                onEditEntry={(entry) => {
+                  setFoodEditEntry(entry);
+                  setShowQuickFoodEntry(true);
+                }}
+              />
+
+              <CaptureQueueCard
+                session={session}
+                onNavigate={(dest) => {
+                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
+                  setView(dest);
+                }}
+                onQueueChange={refreshNudge}
+              />
+
+              <TodayWorkoutsCard
+                session={session}
+                refreshSignal={workoutKey}
+                onOpenLogger={async () => {
+                  const tpl = await loadWorkoutTemplate(session.user.id);
+                  setWorkoutInitial(tpl);
+                  setShowWorkoutLogger(true);
+                }}
+              />
+
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+
               <Suspense fallback={<ViewFallback />}>
                 <DailySnapshotCard session={session} />
               </Suspense>
 
-              <button
-                onClick={() => setShowQuickFoodEntry(true)}
-                className="w-full rounded-2xl border border-primary/25 bg-primary/[0.06] py-3 text-[12px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                🍽️ Zaloguj posiłek
-              </button>
-              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
-              {/* hidden: BlockTimer, OracleCard, MorningBriefCard */}
               <Suspense fallback={<ViewFallback />}>
                 <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
               </Suspense>
-              <CommandButton
-                icon={Dumbbell}
-                eyebrow="Trening"
-                label="Zaloguj trening"
-                onClick={() => setShowWorkoutLogger(true)}
-              />
+
+              <GoalsCard session={session} />
             </div>
           </div>
+          )}
 
           </ErrorBoundary>
           <ErrorBoundary>
+          {mountedTabs.has('tydzien') && (
           <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
-                <ScheduleView session={session} />
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
                   session={session}
@@ -396,9 +468,11 @@ export default function Dashboard({ session }: { session: Session }) {
               </div>
             </Suspense>
           </div>
+          )}
 
           </ErrorBoundary>
           <ErrorBoundary>
+          {mountedTabs.has('historia') && (
           <div className={`p-5 pb-8 ${view === 'historia' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
@@ -408,8 +482,11 @@ export default function Dashboard({ session }: { session: Session }) {
               </div>
             </Suspense>
           </div>
+          )}
+
           </ErrorBoundary>
           <ErrorBoundary>
+          {mountedTabs.has('projekty') && (
           <div className={`p-5 pb-8 ${view === 'projekty' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <Projects
@@ -422,6 +499,7 @@ export default function Dashboard({ session }: { session: Session }) {
               />
             </Suspense>
           </div>
+          )}
           </ErrorBoundary>
           </>
           )}
@@ -452,9 +530,6 @@ export default function Dashboard({ session }: { session: Session }) {
             >
               <div className="relative">
                 <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-                {item.id === 'projekty' && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
-                  <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
-                )}
                 {item.id === 'dzis' && urgentTodoCount > 0 && (
                   <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
                     {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
@@ -470,8 +545,9 @@ export default function Dashboard({ session }: { session: Session }) {
       {showQuickFoodEntry && (
         <FoodEntryModal
           session={session}
-          onClose={() => setShowQuickFoodEntry(false)}
+          onClose={() => { setShowQuickFoodEntry(false); setFoodEditEntry(null); }}
           onSaved={() => { refresh(); setNutritionKey(k => k + 1); }}
+          initialEditEntry={foodEditEntry ?? undefined}
         />
       )}
     </div>

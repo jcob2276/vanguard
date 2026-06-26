@@ -1,6 +1,7 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { deprecateSupersededLinks } from "../_shared/deprecateSupersededLinks.ts"
 
 type Triad = {
   source: string
@@ -240,8 +241,19 @@ Deno.serve(async (req) => {
           p_source_episode_id: streamIds[0] || rawEventId,
           p_observed_at: new Date().toISOString(),
         })
-        if (!error) triadCount++
-        else console.error("[VAULT INGEST] graph upsert error:", error)
+        if (!error) {
+          triadCount++
+          const conf = triad.confidence_score || 0.7
+          await deprecateSupersededLinks(
+            supabase,
+            userId,
+            triad.source,
+            triad.relation,
+            triad.target,
+            conf,
+            streamIds[0] || rawEventId,
+          )
+        } else console.error("[VAULT INGEST] graph upsert error:", error)
       }
     }
 

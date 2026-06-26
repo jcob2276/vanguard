@@ -43,12 +43,54 @@ function ScoreBar({ value, max = 100, color = '#38bdf8' }: { value: number; max?
   );
 }
 
-export default function GeneralView({ userId }: { userId: string }) {
+function buildTimeline(strainRows: any[], ouraRows: any[]) {
+  const ouraMap = Object.fromEntries(ouraRows.map((r) => [r.date, r]));
+  const strainMap = Object.fromEntries(strainRows.map((r) => [r.date, r]));
+  const dates = [...new Set([...strainRows.map((r) => r.date), ...ouraRows.map((r) => r.date)])].sort();
+
+  return dates.map((date) => {
+    const s = strainMap[date] || {};
+    const o = ouraMap[date] || {};
+    const comp = (s.components as Record<string, number> | null) || {};
+    return {
+      d: date.slice(5),
+      date,
+      recovery: s.recovery_score ?? null,
+      strain: s.strain_score ?? null,
+      readiness: s.readiness_level ?? null,
+      hrv: o.hrv_avg ?? null,
+      rhr: o.rhr_avg ?? null,
+      sleepH: o.total_sleep_hours ?? null,
+      sleepScore: o.sleep_score ?? o.sleep_efficiency ?? null,
+      hrv_z: comp.hrv_z ?? null,
+      rhr_z: comp.rhr_z ?? null,
+      sleep_z: comp.sleep_z ?? null,
+      ouraReadiness: o.readiness_score ?? null,
+    };
+  });
+}
+
+function buildSleepHrvScatter(ouraRows: any[]) {
+  return ouraRows
+    .slice(0, -1)
+    .map((r, i) => ({
+      sleep: r.total_sleep_hours != null ? Number(r.total_sleep_hours) : null,
+      hrvNext: ouraRows[i + 1]?.hrv_avg != null ? Number(ouraRows[i + 1].hrv_avg) : null,
+    }))
+    .filter((r) => r.sleep != null && r.hrvNext != null && Number.isFinite(r.sleep) && Number.isFinite(r.hrvNext));
+}
+
+export default function GeneralView({
+  userId,
+  oura: ouraProp,
+}: {
+  userId: string;
+  oura?: any[];
+}) {
   const [strain, setStrain] = useState<any[]>([]);
   const [oura, setOura] = useState<any[]>([]);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [wiki, setWiki] = useState<any[]>([]);
-  const [links, setLinks] = useState<any[]>([]);
   const [curiosity, setCuriosity] = useState<any[]>([]);
   const [friction, setFriction] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,29 +105,30 @@ export default function GeneralView({ userId }: { userId: string }) {
     Promise.all([
       supabase.from('daily_strain').select('date, recovery_score, strain_score, readiness_level, components')
         .eq('user_id', userId).gte('date', since90).order('date', { ascending: true }),
-      supabase.from('oura_daily_summary').select('date, hrv_avg, rhr_avg, total_sleep_hours, sleep_score, readiness_score, activity_score')
-        .eq('user_id', userId).gte('date', since90).order('date', { ascending: true }),
+      ouraProp
+        ? Promise.resolve({ data: ouraProp.filter((r) => r.date >= since90), error: null })
+        : supabase.from('oura_daily_summary').select('date, hrv_avg, rhr_avg, total_sleep_hours, sleep_efficiency, readiness_score')
+          .eq('user_id', userId).gte('date', since90).order('date', { ascending: true }),
       supabase.from('vanguard_behavioral_patterns').select('pattern_type, title, evidence_text, occurrence_count, confidence, status, last_seen')
         .eq('user_id', userId).in('status', ['active', 'candidate']).order('confidence', { ascending: false }).limit(20),
       supabase.from('vanguard_wiki_pages').select('title, page_type, status, confidence, summary, tags, last_seen_at')
         .eq('user_id', userId).in('status', ['active', 'needs_review']).order('last_seen_at', { ascending: false }).limit(30),
-      supabase.from('vanguard_entity_links').select('source_entity, relation, target_entity, fact_text, confidence_score, evidence_count, temporal_status, last_seen')
-        .eq('user_id', userId).eq('status', 'active').order('evidence_count', { ascending: false }).limit(40),
       supabase.from('vanguard_curiosity_queue').select('hypothesis, provocation, confidence_score, category, evidence_count, created_at')
         .eq('user_id', userId).eq('status', 'pending').order('confidence_score', { ascending: false }).limit(15),
       supabase.from('confirmed_friction_events').select('occurred_at, friction_type, actual_behavior, immediate_cost, deviation, confidence')
         .eq('user_id', userId).gte('occurred_at', since90 + 'T00:00:00Z').order('occurred_at', { ascending: true }),
-    ]).then(([s, o, p, w, l, c, f]) => {
+    ]).then(([s, o, p, w, c, f]) => {
+      if (s.error) console.warn('[GeneralView] daily_strain:', s.error.message);
+      if (o.error) console.warn('[GeneralView] oura:', o.error.message);
       setStrain(s.data || []);
       setOura(o.data || []);
       setPatterns(p.data || []);
       setWiki(w.data || []);
-      setLinks(l.data || []);
       setCuriosity(c.data || []);
       setFriction(f.data || []);
       setLoading(false);
     });
-  }, [userId]);
+  }, [userId, ouraProp]);
 
   if (loading) return (
     <div className="grid grid-cols-3 gap-5">
@@ -95,26 +138,19 @@ export default function GeneralView({ userId }: { userId: string }) {
     </div>
   );
 
-  // Merge strain + oura by date
-  const ouraMap = Object.fromEntries(oura.map(r => [r.date, r]));
-  const timelineData = strain.map(s => {
-    const o = ouraMap[s.date] || {};
-    const comp = (s.components as any) || {};
-    return {
-      d: s.date.slice(5),
-      recovery: s.recovery_score,
-      strain: s.strain_score,
-      readiness: s.readiness_level,
-      hrv: o.hrv_avg,
-      rhr: o.rhr_avg,
-      sleepH: o.total_sleep_hours,
-      sleepScore: o.sleep_score,
-      hrv_z: comp.hrv_z,
-      rhr_z: comp.rhr_z,
-      sleep_z: comp.sleep_z,
-      ouraReadiness: o.readiness_score,
-    };
-  });
+  // Merge strain + oura by date (union — not only strain days)
+  const timelineData = buildTimeline(strain, oura);
+  const sleepSeries = oura.map((r) => ({
+    d: r.date.slice(5),
+    sleepScore: r.sleep_score ?? r.sleep_efficiency ?? null,
+    sleepHours: r.total_sleep_hours ?? null,
+  }));
+  const hasSleepScore = sleepSeries.some((r) => r.sleepScore != null);
+  const sleepUsesHours = !hasSleepScore && sleepSeries.some((r) => r.sleepHours != null);
+  const sleepChartData = sleepSeries.map((r) => ({
+    d: r.d,
+    value: sleepUsesHours ? r.sleepHours : r.sleepScore,
+  })).filter((r) => r.value != null);
 
   // Friction by type — last 90d counts
   const frictionCounts: Record<string, number> = {};
@@ -126,11 +162,7 @@ export default function GeneralView({ userId }: { userId: string }) {
     .map(([type, count]) => ({ type: type.replace(/_/g, ' '), count, color: FRICTION_COLOR[type] || '#9ca3af' }))
     .sort((a, b) => b.count - a.count);
 
-  // Correlation: sleep → next-day HRV
-  const sleepHrvCorr = oura.slice(0, -1).map((r, i) => ({
-    sleep: r.total_sleep_hours,
-    hrvNext: oura[i + 1]?.hrv_avg,
-  })).filter(r => r.sleep && r.hrvNext);
+  const sleepHrvCorr = buildSleepHrvScatter(oura);
 
   // Readiness distribution
   const readinessCounts: Record<string, number> = {};
@@ -145,7 +177,7 @@ export default function GeneralView({ userId }: { userId: string }) {
     <div className="space-y-5">
 
       {/* ── SEKCJA: ZDROWIE ── */}
-      <div className="flex items-center gap-3">
+      <div id="korelacje" className="scroll-mt-28 flex items-center gap-3">
         <div className="h-px flex-1 bg-border-custom" />
         <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Zdrowie — 90 dni</span>
         <div className="h-px flex-1 bg-border-custom" />
@@ -208,9 +240,12 @@ export default function GeneralView({ userId }: { userId: string }) {
         </Panel>
 
         {/* Sleep score */}
-        <Panel title="Sleep Score — 90 dni">
+        <Panel title={sleepUsesHours ? 'Sen — 90 dni (h)' : 'Sleep score — 90 dni'}>
+          {sleepChartData.length === 0 ? (
+            <p className="text-[10px] text-text-muted py-8 text-center">Brak danych Oura — uruchom sync (S)</p>
+          ) : (
           <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={oura.map(r => ({ d: r.date.slice(5), sleepScore: r.sleep_score }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={sleepChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gSleep" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={C.indigo} stopOpacity={0.4} />
@@ -219,12 +254,13 @@ export default function GeneralView({ userId }: { userId: string }) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
               <XAxis dataKey="d" tick={{ fontSize: 9, fill: tick }} interval={9} />
-              <YAxis domain={[40, 100]} tick={{ fontSize: 9, fill: tick }} />
+              <YAxis domain={sleepUsesHours ? [4, 10] : [40, 100]} tick={{ fontSize: 9, fill: tick }} />
               <Tooltip content={<Tip />} />
-              <ReferenceLine y={80} stroke={C.emerald} strokeDasharray="4 4" strokeOpacity={0.4} />
-              <Area type="monotone" dataKey="sleepScore" stroke={C.indigo} fill="url(#gSleep)" strokeWidth={2} dot={false} connectNulls name="Sleep score" />
+              {!sleepUsesHours && <ReferenceLine y={80} stroke={C.emerald} strokeDasharray="4 4" strokeOpacity={0.4} />}
+              <Area type="monotone" dataKey="value" stroke={C.indigo} fill="url(#gSleep)" strokeWidth={2} dot={false} connectNulls name={sleepUsesHours ? 'Sen (h)' : 'Sleep score'} />
             </AreaChart>
           </ResponsiveContainer>
+          )}
         </Panel>
 
         {/* Readiness distribution */}
@@ -256,15 +292,19 @@ export default function GeneralView({ userId }: { userId: string }) {
       {/* Korelacja: sen → HRV następnego dnia */}
       <div className="grid grid-cols-2 gap-5">
         <Panel title="Korelacja: długość snu → HRV następnego dnia">
+          {sleepHrvCorr.length === 0 ? (
+            <p className="text-[10px] text-text-muted py-8 text-center">Za mało par sen/HRV (min. 2 dni Oura)</p>
+          ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <ScatterChart margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <ScatterChart data={sleepHrvCorr} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
-              <XAxis dataKey="sleep" name="Sen (h)" tick={{ fontSize: 9, fill: tick }} domain={[4, 10]} label={{ value: 'Sen (h)', position: 'insideBottom', offset: -2, fontSize: 9, fill: tick }} />
-              <YAxis dataKey="hrvNext" name="HRV next" tick={{ fontSize: 9, fill: tick }} />
+              <XAxis dataKey="sleep" name="Sen (h)" type="number" tick={{ fontSize: 9, fill: tick }} domain={['auto', 'auto']} label={{ value: 'Sen (h)', position: 'insideBottom', offset: -2, fontSize: 9, fill: tick }} />
+              <YAxis dataKey="hrvNext" name="HRV next" type="number" tick={{ fontSize: 9, fill: tick }} />
               <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<Tip />} />
               <Scatter data={sleepHrvCorr} fill={C.emerald} fillOpacity={0.6} />
             </ScatterChart>
           </ResponsiveContainer>
+          )}
           <p className="text-[10px] text-text-muted mt-1">Każdy punkt = jeden dzień. Więcej snu → wyższe HRV jutro?</p>
         </Panel>
 
@@ -331,7 +371,7 @@ export default function GeneralView({ userId }: { userId: string }) {
       </div>
 
       {/* ── SEKCJA: MEMEX ── */}
-      <div className="flex items-center gap-3 mt-2">
+      <div id="pamiec" className="scroll-mt-28 flex items-center gap-3 mt-2">
         <div className="h-px flex-1 bg-border-custom" />
         <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Memex — Pamięć systemu</span>
         <div className="h-px flex-1 bg-border-custom" />
@@ -398,41 +438,6 @@ export default function GeneralView({ userId }: { userId: string }) {
             </div>
           ))}
           {wiki.length === 0 && <p className="text-text-muted text-[10px] py-2 col-span-3">Brak stron wiki</p>}
-        </div>
-      </Panel>
-
-      {/* Entity links */}
-      <Panel title={`Graf wiedzy — relacje (${links.length})`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[10px]">
-            <thead>
-              <tr className="text-text-muted border-b border-border-custom">
-                <th className="text-left pb-2 pr-3 font-medium">Podmiot A</th>
-                <th className="text-left pb-2 pr-3 font-medium">Relacja</th>
-                <th className="text-left pb-2 pr-3 font-medium">Podmiot B</th>
-                <th className="text-left pb-2 pr-3 font-medium">Fakt</th>
-                <th className="text-right pb-2 font-medium">n/conf</th>
-              </tr>
-            </thead>
-            <tbody>
-              {links.slice(0, 25).map((l, i) => (
-                <tr key={i} className="border-b border-border-custom/40 last:border-0">
-                  <td className="py-1.5 pr-3 font-bold text-text-primary">{l.source_entity}</td>
-                  <td className="pr-3 text-primary italic">{l.relation}</td>
-                  <td className="pr-3 text-text-secondary">{l.target_entity}</td>
-                  <td className="pr-3 text-text-muted max-w-[200px] truncate">{l.fact_text}</td>
-                  <td className="text-right text-text-muted whitespace-nowrap">
-                    {l.evidence_count} · <ZBadge z={null} />
-                    <span className="ml-1">{Math.round((l.confidence_score || 0) * 100)}%</span>
-                  </td>
-                </tr>
-              ))}
-              {links.length === 0 && (
-                <tr><td colSpan={5} className="text-text-muted py-3">Brak relacji w grafie</td></tr>
-              )}
-            </tbody>
-          </table>
-          {links.length > 25 && <p className="text-[9px] text-text-muted mt-2">+{links.length - 25} więcej relacji</p>}
         </div>
       </Panel>
 

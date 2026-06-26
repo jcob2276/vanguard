@@ -69,8 +69,8 @@ export function computeSignals(
   const executionRatio = Math.max(0, (completedTasks / 5) - timePenalty);
   const dailyRpe = todayWin?.daily_rpe || 5;
 
-  // Nutrition Vector (Protein focus)
-  const proteinGoal = 160; 
+  // Nutrition Vector (Protein focus) — prefer coach target when available
+  const proteinGoal = Number(nutrition?.protein_floor_g) || Number(nutrition?.protein_target) || 160;
   const proteinConsumed = nutrition?.protein || 0;
   const proteinRatio = Math.min(proteinConsumed / proteinGoal, 1.2);
 

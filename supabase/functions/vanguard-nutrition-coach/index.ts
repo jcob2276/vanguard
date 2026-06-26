@@ -1,9 +1,9 @@
 /**
  * vanguard-nutrition-coach — the energy/target brain.
  *
- * Sees everything: body_metrics (weight/waist/belly trend), Yazio macros,
+ * Sees everything: body_metrics (weight/waist/belly trend), logged macros (daily_nutrition),
  * Oura (measured TDEE / steps / sleep / recovery), strength + runs.
- * Triangulates the REAL maintenance (catches Yazio under-logging by comparing
+ * Triangulates the REAL maintenance (catches under-logging by comparing
  * Oura-measured burn against logged intake + actual weight trend), then sets a
  * gentle, training-aware daily target + protein floor anchored to the profile
  * goal (e.g. ~14% BF by the marathon). DeepSeek writes the coaching verdict.
@@ -22,7 +22,8 @@ const OURA_CORRECTION = 0.88;        // wearables over-read active burn ~10-15%
 
 const toWarsaw = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
 
-const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+const mean = (xs: number[]): number | null =>
+  xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 const num = (v: unknown): number | null => (v == null || isNaN(Number(v)) ? null : Number(v));
 const clean = (rows: any[] | null, key: string) =>
   (rows || []).map((r) => num(r[key])).filter((v): v is number => v != null && v > 0);
@@ -173,24 +174,26 @@ Deno.serve(async (req) => {
     // ── 30d averages ───────────────────────────────────────────────────────────
     const tdeeArr = clean(oura, "total_calories");
     const activeArr = clean(oura, "active_calories");
-    const avgTdeeOura = Math.round(mean(tdeeArr));
-    const avgActive = Math.round(mean(activeArr));
-    const avgSteps = Math.round(mean(clean(oura, "steps")));
-    const avgSleep = +mean(clean(oura, "total_sleep_hours")).toFixed(2);
-    const avgReadiness = Math.round(mean(clean(oura, "readiness_score")));
-    const avgHrv = Math.round(mean(clean(oura, "hrv_avg")));
-    const avgRhr = Math.round(mean(clean(oura, "rhr_avg")));
+    const avgTdeeOura = Math.round(mean(tdeeArr) ?? 0);
+    const avgActive = Math.round(mean(activeArr) ?? 0);
+    const avgSteps = Math.round(mean(clean(oura, "steps")) ?? 0);
+    const avgSleepRaw = mean(clean(oura, "total_sleep_hours"));
+    const avgSleep = avgSleepRaw != null ? +avgSleepRaw.toFixed(2) : null;
+    const avgReadiness = Math.round(mean(clean(oura, "readiness_score")) ?? 0);
+    const avgHrv = Math.round(mean(clean(oura, "hrv_avg")) ?? 0);
+    const avgRhr = Math.round(mean(clean(oura, "rhr_avg")) ?? 0);
 
     const intakeArr = clean(nutr, "calories");
-    const avgIntake = Math.round(mean(intakeArr));
+    const avgIntake = Math.round(mean(intakeArr) ?? 0);
     const daysLogged = intakeArr.length;
-    const avgProtein = Math.round(mean(clean(nutr, "protein")));
-    const avgCarbs = Math.round(mean(clean(nutr, "carbs")));
-    const avgFat = Math.round(mean(clean(nutr, "fat")));
-    const avgFiber = +mean(clean(nutr, "fiber")).toFixed(1);
+    const avgProtein = Math.round(mean(clean(nutr, "protein")) ?? 0);
+    const avgCarbs = Math.round(mean(clean(nutr, "carbs")) ?? 0);
+    const avgFat = Math.round(mean(clean(nutr, "fat")) ?? 0);
+    const avgFiberRaw = mean(clean(nutr, "fiber"));
+    const avgFiber = avgFiberRaw != null ? +avgFiberRaw.toFixed(1) : null;
     // intake variability (coefficient of variation) — the "swing" signal
     const intakeStd = intakeArr.length
-      ? Math.sqrt(mean(intakeArr.map((x) => (x - avgIntake) ** 2))) : 0;
+      ? Math.sqrt(mean(intakeArr.map((x) => (x - (avgIntake || 0)) ** 2)) ?? 0) : 0;
     const intakeCv = avgIntake ? +(intakeStd / avgIntake).toFixed(2) : 0;
 
     const runs = (runsRes.data || []);
@@ -289,7 +292,7 @@ Deno.serve(async (req) => {
     };
 
     // ── DeepSeek verdict ───────────────────────────────────────────────────────
-    const SYSTEM = `Jesteś trenerem żywieniowym maratończyka, który równolegle tnie tłuszcz do celu BF. Masz NAJDOKŁADNIEJSZE dane o tym człowieku: zmierzone spalanie z Oura, zalogowane makra z Yazio, trend wagi/talii, sen i trening. Twoja przewaga nad zwykłym dietetykiem: widzisz rozbieżność między spalaniem a logiem i trend wagi — więc łapiesz NIEDOLOG (gdy waga stoi mimo "deficytu" w logu, user je więcej niż wpisuje).
+    const SYSTEM = `Jesteś trenerem żywieniowym maratończyka, który równolegle tnie tłuszcz do celu BF. Masz NAJDOKŁADNIEJSZE dane o tym człowieku: zmierzone spalanie z Oura, zalogowane makra z dziennika posiłków, trend wagi/talii, sen i trening. Twoja przewaga nad zwykłym dietetykiem: widzisz rozbieżność między spalaniem a logiem i trend wagi — więc łapiesz NIEDOLOG (gdy waga stoi mimo "deficytu" w logu, user je więcej niż wpisuje).
 
 Zasady oceny:
 - Prawdziwe maintenance ważniejsze niż wzór. Jeśli underlog_gap duży a waga płaska → user je ~tyle co spala, nie tyle co loguje.

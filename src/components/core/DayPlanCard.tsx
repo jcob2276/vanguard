@@ -512,9 +512,30 @@ export default function DayPlanCard({ session }: DayPlanCardProps) {
             </div>
           )}
 
-          {/* Energy check-in (only morning / if not set yet, and not planning tomorrow) */}
-          {((phase === 'morning' || !plan?.energy_level) && !isShutdownDone && !isPlanningTomorrow && !isReEntry) && (
-            <EnergyPicker value={plan?.energy_level ?? null} onChange={handleEnergyChange} />
+          {/* Energy check-in */}
+          {!isShutdownDone && !isPlanningTomorrow && !isReEntry && (
+            plan?.energy_level && phase !== 'morning' ? (
+              <button
+                onClick={() => save({ energy_level: null })}
+                className="flex items-center gap-2 text-[11px] text-text-muted hover:text-text-secondary transition-colors"
+                title="Kliknij żeby zmienić"
+              >
+                <span className="font-black uppercase tracking-widest">Energia</span>
+                {ENERGY_META.map(e => (
+                  <span
+                    key={e.score}
+                    className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      plan.energy_level === e.score ? `${e.color} text-white` : 'opacity-0 pointer-events-none'
+                    }`}
+                  >
+                    {e.score}
+                  </span>
+                ))}
+                <span className="text-[10px] text-text-muted/50">✓ zapisano</span>
+              </button>
+            ) : (
+              <EnergyPicker value={plan?.energy_level ?? null} onChange={handleEnergyChange} />
+            )
           )}
 
           {/* MIT */}

@@ -3,34 +3,7 @@
 // i liczy realny per-sesja strain (Edwards TRIMP/Karvonen %HRR), nie dzienny agregat.
 // oura_heartrate ma rolling 14-dniowy prune (sync-oura-timeseries) — rescoring musi
 // się dziać blisko czasu treningu, nie retroaktywnie.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function createServiceClient() {
-  const url = Deno.env.get("SUPABASE_URL") || ""
-  const key = Deno.env.get("SB_SECRET_KEY") || ""
-  return createClient(url, key)
-}
-
-async function resolveUserScope(
-  req: Request, requestedUserId: string | null = null
-): Promise<{ userId: string | null; isServiceRole: boolean }> {
-  const authHeader = req.headers.get("Authorization") || ""
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : ""
-  if (!token) throw new Error("Missing Authorization bearer token")
-
-  const secretKey = Deno.env.get("SB_SECRET_KEY") || ""
-  if (secretKey && token === secretKey) return { userId: requestedUserId, isServiceRole: true }
-
-  const { data, error } = await createServiceClient().auth.getUser(token)
-  if (error || !data.user) throw new Error("Invalid user token")
-  if (requestedUserId && requestedUserId !== data.user.id) throw new Error("Forbidden userId mismatch")
-  return { userId: data.user.id, isServiceRole: false }
-}
+import { createServiceClient, resolveUserScope, corsHeaders } from "../_shared/supabase.ts"
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, Sparkles, X, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { gatherUserContext } from '../../lib/aiContext';
+import { notify } from '../../lib/notify';
 import type { Session } from '@supabase/supabase-js';
 import { ClarificationRequestCard } from './ClarificationRequestCard';
 import {
@@ -25,6 +26,7 @@ import { getOracleUserConf } from './AgentSystemPromptHelper';
 import exifr from 'exifr';
 
 const SCHEDULE_KEY = 'vanguard_schedule_view';
+const oracleChatKey = (userId: string) => `vanguard_oracle_chat_${userId}`;
 
 function applyScheduleMutation(mutation: any) {
   try {
@@ -102,11 +104,36 @@ export default function OracleCard({ session }: { session: Session }) {
   const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
   const [btnPressed, setBtnPressed] = useState(false);
   const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const idleTurnsRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const raw = localStorage.getItem(oracleChatKey(userId));
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatItem[];
+        if (Array.isArray(parsed) && parsed.length) setItems(parsed);
+      }
+    } catch { /* ignore corrupt cache */ }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || items.length === 0) return;
+    try {
+      localStorage.setItem(oracleChatKey(userId), JSON.stringify(items.slice(-80)));
+    } catch { /* quota */ }
+  }, [userId, items]);
+
+  useEffect(() => {
+    const urls = pendingImages.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [pendingImages]);
 
   useEffect(() => {
     if (!userId) return;
@@ -212,7 +239,7 @@ export default function OracleCard({ session }: { session: Session }) {
         return item;
       }));
     } catch (e: any) {
-      alert(`Błąd akceptacji: ${e.message}`);
+      notify(`Błąd akceptacji: ${e.message}`, 'error');
     }
   };
 
@@ -376,8 +403,8 @@ export default function OracleCard({ session }: { session: Session }) {
               <span className="text-[11px] font-black uppercase tracking-wider text-primary">Oracle</span>
             </div>
             <button
-              onClick={() => { setOpen(false); setItems([]); }}
-              className="rounded-full p-1.5 text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
+              onClick={() => setOpen(false)}
+              className="rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:bg-surface-solid hover:text-text-primary transition-all cursor-pointer"
             >
               <X size={14} />
             </button>
@@ -465,11 +492,11 @@ export default function OracleCard({ session }: { session: Session }) {
           {pendingImages.length > 0 && (
             <div className="flex gap-2 px-4 py-2 border-t border-border-custom bg-surface-solid/20">
               {pendingImages.map((file, idx) => (
-                <div key={idx} className="relative h-10 w-10 rounded-lg overflow-hidden border border-border-custom group">
-                  <img src={URL.createObjectURL(file)} className="h-full w-full object-cover" />
+                <div key={`${file.name}-${idx}`} className="relative h-10 w-10 rounded-lg overflow-hidden border border-border-custom group">
+                  <img src={previewUrls[idx]} alt="" className="h-full w-full object-cover" />
                   <button
                     onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
-                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white cursor-pointer"
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-white cursor-pointer"
                   >
                     <X size={10} />
                   </button>
@@ -500,7 +527,7 @@ export default function OracleCard({ session }: { session: Session }) {
               onBlur={() => setFocused(false)}
               placeholder="Jak wygląda mój sen w tym tygodniu?"
               disabled={loading}
-              className="flex-1 bg-transparent text-[12px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
+              className="flex-1 bg-transparent text-[16px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
             />
             <button
               onClick={ask}

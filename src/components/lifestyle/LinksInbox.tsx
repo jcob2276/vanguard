@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { notify, confirmDialog } from '../../lib/notify';
+import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/captureBridge';
 
 interface SavedLink {
   id: string;
@@ -71,6 +73,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [addLoading, setAddLoading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [bouncingIds, setBouncingIds] = useState<Set<string>>(new Set());
+  const [convertingLinkId, setConvertingLinkId] = useState<string | null>(null);
 
   const haptic = (pattern: number | number[]) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -119,7 +122,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       setTimeout(() => setSharingStatus(null), 2500);
     } catch (err) {
       console.error('[LinksInbox] Failed to process shared link:', err);
-      alert(`Błąd zapisu linku: ${(err as Error).message}`);
+      notify(`Błąd zapisu linku: ${(err as Error).message}`, 'error');
       setSharingStatus(null);
     } finally {
       fetchLinks();
@@ -147,7 +150,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       setShowAddForm(false);
       await fetchLinks();
     } catch (err) {
-      alert(`Błąd: ${(err as Error).message}`);
+      notify(`Błąd: ${(err as Error).message}`, 'error');
     } finally {
       setAddLoading(false);
     }
@@ -191,7 +194,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   };
 
   const deleteLink = async (id: string) => {
-    if (!confirm('Usuń ten link?')) return;
+    if (!(await confirmDialog('Usuń ten link?'))) return;
     haptic([12, 50, 18]);
     setDeletingIds(prev => new Set([...prev, id]));
     setTimeout(async () => {
@@ -212,6 +215,32 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
     } catch (err) {
       console.error('[LinksInbox] Failed to update category:', err);
+    }
+  };
+
+  const handleLinkToTodo = async (link: SavedLink) => {
+    setConvertingLinkId(link.id);
+    try {
+      await convertLinkToTodoItem(session.user.id, link);
+      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
+      notify('Dodano do zadań', 'success');
+    } catch (err) {
+      notify((err as Error).message || 'Nie udało się dodać do zadań', 'error');
+    } finally {
+      setConvertingLinkId(null);
+    }
+  };
+
+  const handleLinkToNote = async (link: SavedLink) => {
+    setConvertingLinkId(link.id);
+    try {
+      await convertLinkToKeepNote(session.user.id, link);
+      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
+      notify('Zapisano w notatkach', 'success');
+    } catch (err) {
+      notify((err as Error).message || 'Nie udało się zapisać notatki', 'error');
+    } finally {
+      setConvertingLinkId(null);
     }
   };
 
@@ -484,6 +513,28 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                                 </ul>
                               </div>
                             )}
+
+                            {/* Konwersja */}
+                            <div className="flex flex-wrap gap-2 border-t border-border-custom/40 pt-3">
+                              <button
+                                type="button"
+                                disabled={convertingLinkId === link.id}
+                                onClick={() => handleLinkToTodo(link)}
+                                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-all disabled:opacity-50"
+                              >
+                                {convertingLinkId === link.id ? <Loader2 size={12} className="animate-spin" /> : <ListTodo size={12} />}
+                                Zrób zadanie
+                              </button>
+                              <button
+                                type="button"
+                                disabled={convertingLinkId === link.id}
+                                onClick={() => handleLinkToNote(link)}
+                                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl border border-border-custom px-3 py-2 text-[11px] font-semibold text-text-muted hover:text-text-primary transition-all disabled:opacity-50"
+                              >
+                                <StickyNote size={12} />
+                                Do notatek
+                              </button>
+                            </div>
 
                             {/* Kategoria */}
                             <div className="border-t border-border-custom/40 pt-3 space-y-1.5">

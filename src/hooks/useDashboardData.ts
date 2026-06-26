@@ -118,7 +118,7 @@ export function useDashboardData() {
       const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
       const lastSync = lastEvent?.start_time ? new Date(lastEvent.start_time).getTime() : 0;
 
-      if (lastSync < twoHoursAgo) {
+      if (lastEvent && lastSync < twoHoursAgo) {
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
           method: 'POST',
           headers: {

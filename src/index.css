@@ -2026,3 +2026,7 @@
   border-color: var(--primary);
   color: var(--primary);
 }
+
+.pocket-card {
+  @apply rounded-2xl border border-border-custom bg-surface-solid/60 p-4 shadow-sm;
+}

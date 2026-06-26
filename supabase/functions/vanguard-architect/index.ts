@@ -2,6 +2,7 @@ import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { deprecateSupersededLinks } from "../_shared/deprecateSupersededLinks.ts"
 
 
 const allowedRelations = [
@@ -408,16 +409,18 @@ function deterministicTriads(text: string) {
     })
   }
 
-  if (/maraton/.test(n)) {
-    triads.push({
-      source: "Jakub",
-      source_type: "person",
-      relation: "osiaga",
-      target: "Dwa maratony",
-      target_type: "event",
-      memory_type: "fact",
-      confidence_score: 0.8,
-    })
+  if (/maraton/.test(n) && !/\b(nie|bez|nigdy|zaden|żaden)\b.{0,40}maraton|maraton.{0,40}\b(nie|bez)\b/.test(n)) {
+    if (/\b(ukonczyl|ukończył|biegl|biega|dwa|2|drugi|drugim)\b/.test(n)) {
+      triads.push({
+        source: "Jakub",
+        source_type: "person",
+        relation: "osiaga",
+        target: "Dwa maratony",
+        target_type: "event",
+        memory_type: "fact",
+        confidence_score: 0.8,
+      })
+    }
   }
 
   if (/jul.*tomon|julki tomon/.test(n) && /maraton/.test(n)) {
@@ -483,43 +486,6 @@ function deterministicTriads(text: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-deprecation helper (Zmiana 4)
-// Calls the SQL function that supersedes conflicting active facts when a new
-// high-confidence (>= 0.80) fact arrives for the same (source, relation).
-// Returns the number of records deprecated (for logging).
-// ---------------------------------------------------------------------------
-async function deprecateSupersededLinks(
-  supabase: ReturnType<typeof import("../_shared/supabase.ts").createServiceClient>,
-  userId: string,
-  source: string,
-  relation: string,
-  newTarget: string,
-  newConfidence: number,
-  newEpisodeId: string | null,
-): Promise<number> {
-  if (newConfidence < 0.80) return 0
-  if (!source || !relation || !newTarget) return 0
-
-  try {
-    const { data, error } = await supabase.rpc("deprecate_superseded_facts", {
-      p_user_id:        userId,
-      p_source:         source,
-      p_relation:       relation,
-      p_new_target:     newTarget,
-      p_new_confidence: newConfidence,
-      p_new_episode_id: newEpisodeId ?? null,
-    })
-    if (error) {
-      console.error("[architect] deprecateSupersededLinks error:", error)
-      return 0
-    }
-    return typeof data === "number" ? data : 0
-  } catch (err) {
-    console.error("[architect] deprecateSupersededLinks exception:", err)
-    return 0
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 

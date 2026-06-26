@@ -29,27 +29,9 @@ const INITIAL_SYNC_FROM = Math.floor(new Date('2026-05-19T22:00:00Z').getTime() 
 
 const supabase = createServiceClient();
 
-// ---------------------------------------------------------------------------
-// Token management
-// ---------------------------------------------------------------------------
+let tokenRefreshPromise: Promise<string> | null = null;
 
-async function getAccessToken(): Promise<string> {
-  const { data: tokenRow } = await supabase
-    .from('strava_tokens')
-    .select('refresh_token, access_token, expires_at')
-    .eq('user_id', VANGUARD_USER_ID)
-    .maybeSingle();
-
-  const now = Math.floor(Date.now() / 1000);
-
-  // Use cached access_token if still valid (5 min buffer)
-  if (tokenRow?.access_token && tokenRow?.expires_at && tokenRow.expires_at > now + 300) {
-    return tokenRow.access_token;
-  }
-
-  const refreshToken = tokenRow?.refresh_token;
-  if (!refreshToken) throw new Error('[sync-strava] No refresh token found in DB');
-
+async function refreshAccessToken(refreshToken: string): Promise<string> {
   const res = await fetch('https://www.strava.com/oauth/token', { signal: AbortSignal.timeout(15000),
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -77,6 +59,35 @@ async function getAccessToken(): Promise<string> {
 
   console.log('[sync-strava] Token refreshed, expires:', new Date(data.expires_at * 1000).toISOString());
   return data.access_token;
+}
+
+// ---------------------------------------------------------------------------
+// Token management
+// ---------------------------------------------------------------------------
+
+async function getAccessToken(): Promise<string> {
+  const { data: tokenRow } = await supabase
+    .from('strava_tokens')
+    .select('refresh_token, access_token, expires_at')
+    .eq('user_id', VANGUARD_USER_ID)
+    .maybeSingle();
+
+  const now = Math.floor(Date.now() / 1000);
+
+  // Use cached access_token if still valid (5 min buffer)
+  if (tokenRow?.access_token && tokenRow?.expires_at && tokenRow.expires_at > now + 300) {
+    return tokenRow.access_token;
+  }
+
+  const refreshToken = tokenRow?.refresh_token;
+  if (!refreshToken) throw new Error('[sync-strava] No refresh token found in DB');
+
+  if (!tokenRefreshPromise) {
+    tokenRefreshPromise = refreshAccessToken(refreshToken).finally(() => {
+      tokenRefreshPromise = null;
+    });
+  }
+  return tokenRefreshPromise;
 }
 
 // ---------------------------------------------------------------------------

@@ -42,6 +42,7 @@ import {
 import GoalCreateModal from './GoalCreateModal';
 import RetroModal from './RetroModal';
 import ProjectCard from './ProjectCard';
+import { confirmDialog } from '../../lib/notify';
 
 type PillarFilter = PillarId | 'all';
 
@@ -180,25 +181,39 @@ export default function Projects({
   const handleCreate = () => {
     if (!form.name.trim()) return;
     run(async () => {
-      const project = (await createProject(userId, {
-        name: form.name.trim(),
-        goal: form.goal.trim() || undefined,
-        deadline: form.deadline || undefined,
-        color: form.color,
-        dream_id: form.dream_id || undefined,
-      })) as any;
-      const section = (await createTodoSection(userId, form.name.trim())) as any;
-      if (section?.id && project?.id) {
-        await linkSectionToProject(section.id, project.id);
+      let project: { id?: string } | null = null;
+      let section: { id?: string } | null = null;
+      try {
+        project = (await createProject(userId, {
+          name: form.name.trim(),
+          goal: form.goal.trim() || undefined,
+          deadline: form.deadline || undefined,
+          color: form.color,
+          dream_id: form.dream_id || undefined,
+        })) as unknown as { id: string };
+        section = (await createTodoSection(userId, form.name.trim())) as unknown as { id: string };
+        if (section?.id && project?.id) {
+          await linkSectionToProject(section.id, project.id);
+        }
+        setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
+        setShowForm(false);
+      } catch (err) {
+        if (section?.id) {
+          await supabase.from('todo_sections').delete().eq('id', section.id);
+        }
+        if (project?.id) {
+          await deleteProject(project.id).catch(() => {});
+        }
+        throw err;
       }
-      setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
-      setShowForm(false);
     });
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('Usunąć projekt? Zadania w sekcji zostają.')) return;
-    run(() => deleteProject(id));
+    void confirmDialog('Usunąć projekt? Zadania w sekcji zostają.').then((ok) => {
+      if (!ok) return;
+      run(() => deleteProject(id));
+    });
   };
 
   const handleStatusCycle = (project: any) => {
@@ -454,6 +469,7 @@ export default function Projects({
         handleStatusCycle={handleStatusCycle}
         updateProjectStatus={updateProjectStatus}
         handleDelete={handleDelete}
+        userId={userId}
       />
     );
   };

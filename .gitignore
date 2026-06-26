@@ -35,6 +35,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.mcp.json
 supabase/.temp/
 .supabase/
 *.bak
