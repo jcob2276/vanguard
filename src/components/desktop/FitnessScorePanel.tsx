@@ -11,6 +11,7 @@ import {
   strengthCapacityScore,
   type BodyRow,
 } from '../../lib/fitnessScore';
+import { mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { Activity } from 'lucide-react';
 
 interface FitnessScorePanelProps {
@@ -143,8 +144,7 @@ function computeFitnessProfile(input: {
           ),
         );
 
-  const latestWeight =
-    [...body].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[0]?.weight ?? null;
+  const latestWeight = mergeLatestBodyMetrics(body)?.weight ?? null;
   const liftPRs = extractLiftPRs(sessions, today);
   const capacity = strengthCapacityScore(liftPRs, latestWeight ?? null);
   const strengthScore =

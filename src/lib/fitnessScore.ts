@@ -1,5 +1,13 @@
 /** Hybrydowy fitness score — maxy z decay + metryki ciała względem profilu użytkownika. */
 
+import {
+  computeBmi,
+  effectiveWaistForNavy,
+  mergeLatestBodyMetrics,
+  navyBodyFatPct,
+  type BodyMetricRow,
+} from './bodyMetrics';
+
 export function epley1rm(weight: number, reps: number): number | null {
   if (!weight || weight <= 0 || !reps || reps <= 0) return null;
   if (reps === 1) return weight;
@@ -193,33 +201,31 @@ export type BodyRow = {
   weight?: number | null;
   waist?: number | null;
   neck?: number | null;
+  belly?: number | null;
   hips?: number | null;
   body_fat?: number | null;
 };
 
-function navyBf(waistCm: number, neckCm: number, heightCm: number): number | null {
-  const diff = waistCm - neckCm;
-  if (diff <= 0 || heightCm <= 0) return null;
-  const bf = 495 / (1.0324 - 0.19077 * Math.log10(diff) + 0.15456 * Math.log10(heightCm)) - 450;
-  if (!Number.isFinite(bf)) return null;
-  return Math.max(3, Math.min(50, Math.round(bf * 10) / 10));
-}
-
 export function bodyCompositionBonus(body: BodyRow[], heightCm: number | null): { score: number; detail: string } {
-  const latest = [...body].sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))[0] as
-    | (BodyRow & { date?: string })
-    | undefined;
-  if (!latest?.weight || !heightCm) {
-    return { score: 0, detail: 'Brak masy ciała / wzrostu do BMI i BF%.' };
+  const merged = mergeLatestBodyMetrics(body as BodyMetricRow[]);
+  if (!merged?.weight || !heightCm) {
+    if (!heightCm) {
+      return { score: 0, detail: 'Brak wzrostu w profilu żywieniowym — uzupełnij w ustawieniach.' };
+    }
+    return { score: 0, detail: 'Brak zapisanej wagi — dodaj wagę w Trenerze (Ciało).' };
   }
 
-  const w = latest.weight;
-  const bmi = w / Math.pow(heightCm / 100, 2);
-  const waist = latest.waist ?? null;
-  const neck = latest.neck ?? null;
-  const hips = latest.hips ?? null;
-  const whr = waist && hips ? waist / hips : null;
-  const bf = waist && neck ? navyBf(waist, neck, heightCm) : latest.body_fat ?? null;
+  const w = merged.weight;
+  const bmi = computeBmi(w, heightCm)!;
+  const waistNavy = effectiveWaistForNavy(merged);
+  const neck = merged.neck;
+  const hips = merged.hips;
+  const whrWaist = merged.waist ?? merged.belly;
+  const whr = whrWaist && hips ? Math.round((whrWaist / hips) * 100) / 100 : null;
+  const bf =
+    waistNavy && neck
+      ? navyBodyFatPct(waistNavy, neck, heightCm)
+      : merged.body_fat ?? null;
 
   let pts = 0;
   const parts: string[] = [];

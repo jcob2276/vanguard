@@ -107,7 +107,115 @@ interface Per100gFood {
   sugar?: number | null
 }
 
-const COMPLEX_MEAL_RE = /obiad|restaurac|u mamy|domow/i
+const COMPLEX_MEAL_RE = /\b(obiad|restaurac|u mamy|potrawa domow|karkowka domow|bigos domow)\b/i
+
+/** Waga 1 szt. — do przeliczania "4 naleśniki" → grams łącznie. */
+const PIECE_GRAMS_RULES: Array<{ test: (n: string) => boolean; grams: number; label: string }> = [
+  { test: (n) => /nalesnik|placek|racuch/.test(n), grams: 75, label: 'naleśnik/placki' },
+  { test: (n) => /\bjaj/.test(n), grams: 60, label: 'jajko' },
+  { test: (n) => /pierog/.test(n), grams: 55, label: 'pieróg' },
+  { test: (n) => /kromk/.test(n), grams: 35, label: 'kromka chleba' },
+  { test: (n) => /\bbul/.test(n), grams: 55, label: 'bułka' },
+  { test: (n) => /plaster/.test(n), grams: 18, label: 'plasterek' },
+]
+
+export function pieceGramsForName(name: string): number | null {
+  const n = normalizePl(name)
+  for (const rule of PIECE_GRAMS_RULES) {
+    if (rule.test(n)) return rule.grams
+  }
+  return null
+}
+
+/** "4 naleśniki", "3 jajka", "2x pieróg" → liczba sztuk z tekstu użytkownika. */
+export function parseDeclaredPieceCount(text: string): number | null {
+  const n = normalizePl(text)
+  const m = n.match(
+    /\b(\d{1,2})\s*(?:x\s*)?(?:szt\.?\s*)?(?:nalesnik\w*|placek\w*|racuch\w*|jaj\w*|pierog\w*|kromk\w*|bul\w*|plaster\w*)/,
+  )
+  if (!m) return null
+  const count = parseInt(m[1], 10)
+  return count >= 2 && count <= 24 ? count : null
+}
+
+function scaleParsedItem(item: ParsedFoodItem, factor: number): ParsedFoodItem {
+  if (factor <= 0 || !Number.isFinite(factor) || Math.abs(factor - 1) < 0.04) return item
+  const round1 = (v: number) => Math.round(v * 10) / 10
+  return {
+    ...item,
+    grams: Math.max(1, Math.round(item.grams * factor)),
+    calories: Math.max(0, Math.round(item.calories * factor)),
+    protein: round1(item.protein * factor),
+    carbs: round1(item.carbs * factor),
+    fat: round1(item.fat * factor),
+    fiber: item.fiber != null ? round1(item.fiber * factor) : undefined,
+    sugar: item.sugar != null ? round1(item.sugar * factor) : undefined,
+  }
+}
+
+/** Jeśli user napisał "4 naleśniki", a LLM zwrócił porcję na ~1–2 szt. — skaluj w górę. */
+export function applyDeclaredPieceCount(text: string, items: ParsedFoodItem[]): ParsedFoodItem[] {
+  const count = parseDeclaredPieceCount(text)
+  if (!count || items.length !== 1) return items
+
+  const perPiece =
+    pieceGramsForName(items[0].name) ??
+    pieceGramsForName(text)
+  if (!perPiece) return items
+
+  const targetGrams = count * perPiece
+  const item = items[0]
+  const assumption = `${count} szt. × ~${perPiece}g ≈ ${targetGrams}g łącznie`
+
+  if (item.grams < targetGrams * 0.85) {
+    const factor = targetGrams / item.grams
+    const scaled = scaleParsedItem(item, factor)
+    return [{
+      ...scaled,
+      confidence: item.confidence === 'high' ? 'medium' : item.confidence,
+      assumptions: [...(item.assumptions ?? []), assumption],
+    }]
+  }
+
+  if (item.grams <= targetGrams * 1.25) {
+    return [{
+      ...item,
+      assumptions: [...(item.assumptions ?? []), assumption],
+    }]
+  }
+
+  return items
+}
+
+export function isHomemadeContext(text: string): boolean {
+  const n = normalizePl(text)
+  return /\b(domow\w*|wlasn\w*|babci|babcia|mamy|tesciow\w*|gotowane w domu)\b/.test(n)
+}
+
+/** Domowe ≈ mniej cukru/tłuszczu niż paczka/restauracja — skromna korekta, z assumption. */
+export function applyHomemadeAdjustment(text: string, items: ParsedFoodItem[]): ParsedFoodItem[] {
+  if (!isHomemadeContext(text)) return items
+
+  return items.map((item) => {
+    const sugarBefore = item.sugar ?? 0
+    const fatBefore = item.fat
+    const sugar = item.sugar != null ? Math.round(item.sugar * 0.88 * 10) / 10 : undefined
+    const fat = Math.round(item.fat * 0.92 * 10) / 10
+    const sugarSaved = item.sugar != null ? (sugarBefore - (sugar ?? 0)) * 4 : 0
+    const fatSaved = (fatBefore - fat) * 9
+    const calories = Math.max(0, Math.round(item.calories - sugarSaved - fatSaved))
+    return {
+      ...item,
+      sugar,
+      fat,
+      calories,
+      assumptions: [
+        ...(item.assumptions ?? []),
+        'domowe — lekko niższy cukier/tłuszcz niż wersja sklepowa/restauracyjna',
+      ],
+    }
+  })
+}
 
 export function normalizePl(s: string): string {
   return s
@@ -147,11 +255,15 @@ Jeśli podaje "porcja", "standardowa porcja", lub nie podaje gramatury wcale, za
 - Ptasie mleczko (1 szt.): 13g
 - Ciastko kruche / herbatnik (1 szt.): 10g
 - Kostka czekolady (1 szt.): 5g
-- Żelka / cukierek (1 szt.): 5g`
+- Żelka / cukierek (1 szt.): 5g
+- Naleśnik / placki z nadzieniem (1 szt., domowe): 70-85g (średnio 75g). "4 naleśniki" → JEDNO entry, grams = 4 × 75g = 300g (nie 4 osobne wpisy, nie 75g).
+- Pieróg (1 szt.): 55g. "6 pierogów" → grams = 330g.
+- Gdy użytkownik podaje liczbę sztuk przed produktem (np. "4 naleśniki", "3 jajka") — ZMNOŻ wagę 1 sztuki przez liczbę w polu grams.`
 }
 
 function complexDishRulesBlock(): string {
   return `ZASADY DOTYCZĄCE DAŃ ZŁOŻONYCH I SZACOWANIA:
+- "domowe", "od babci", "własne" przy pojedynczym produkcie (np. naleśniki, pierogi) = jedno entry, realistyczna gramatura × liczba sztuk; lekko niższy cukier/tłuszcz niż wersja sklepowa (mniej cukru w cieście, bez frytki głębokiej).
 - Jeśli produkt jest domowy / złożony (np. "karkówka domowa", "sałata ze śmietaną"), rozbij go na składowe lub oszacuj jako jedno entry o realistycznych wartościach:
   - "karkówka domowa": karkówka wieprzowa pieczona/duszona. Na 100g: ~250 kcal, 24g białka, 0g węglowodanów, 17g tłuszczu.
   - "sałata zielona ze śmietaną": sałata z dodatkiem śmietany 12-18%. Na 100g: ~50 kcal, 1.2g białka, 3.5g węglowodanów, 3.5g tłuszczu.
@@ -177,7 +289,7 @@ function parsingRulesBlock(mode: 'full' | 'grams_only' | 'macros_only'): string 
     ? `0. POLE "grams" ZAWSZE ZAWIERA MASĘ W GRAMACH — nigdy liczbę sztuk. Jeśli użytkownik podaje "7 sztuk", "3 kawałki", "2 kostki" itp., przelicz na gramy (korzystając z przeliczników powyżej lub własnej wiedzy) i wpisz masę w gramach. Przykład: "7 sztuk ptasiego mleczka" → grams: 91 (7 x 13g).
 1. GRAMATURA EXPLICITE JEST ŚWIĘTA. Jeśli tekst zawiera "130 g ziemniaki", gramatura ziemniaków MUSI wynosić dokładnie 130g. Nie zaokrąglaj do 150g ani 200g.
 2. Zwróć każdy produkt jako osobny obiekt w tablicy. Nie sumuj posiłku w jedno entry.`
-    : `0. POLE "grams" ZAWSZE ZAWIERA MASĘ W GRAMACH — nigdy liczbę sztuk.
+    : `0. POLE "grams" ZAWSZE ZAWIERA MASĘ W GRAMACH — nigdy liczbę sztuk. Jeśli użytkownik podaje "4 naleśniki", "3 jajka", "2 kromki" itp., przelicz na gramy (liczba × waga 1 szt.) i wpisz masę łączną. Przykład: "4 naleśniki z serem" → grams: 300 (4 × 75g).
 1. GRAMATURA EXPLICITE JEST ŚWIĘTA — nie zmieniaj gramatur podanych w liście produktów.
 2. Zwróć każdy produkt jako osobny obiekt w tablicy. Nie sumuj posiłku w jedno entry.
 3. Zweryfikuj matematykę przed wygenerowaniem wyniku! Obliczenia wartości odżywczych dla całej gramatury (grams):
@@ -370,7 +482,7 @@ export async function parseMealText(
       1200,
     )
     const macroItems = normalizeRawItems(macrosRaw)
-    return macroItems.map((item, i) => {
+    let merged = macroItems.map((item, i) => {
       const gramItem = gramItems[i]
       if (!gramItem) return item
       const conf = item.confidence === 'medium' && gramItem.confidence !== 'medium'
@@ -385,6 +497,8 @@ export async function parseMealText(
         ...(assumptions?.length ? { assumptions } : {}),
       }
     })
+    merged = applyDeclaredPieceCount(trimmed, merged)
+    return merged
   }
 
   const fullRaw = await callParseLLM(
@@ -392,7 +506,9 @@ export async function parseMealText(
     buildSystemPrompt(ctx, 'full'),
     `Parsuj: "${trimmed}"`,
   )
-  return normalizeRawItems(fullRaw)
+  let items = normalizeRawItems(fullRaw)
+  items = applyDeclaredPieceCount(trimmed, items)
+  return items
 }
 
 function pickBestMatch(query: string, results: Per100gFood[]): Per100gFood | null {

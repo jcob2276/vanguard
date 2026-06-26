@@ -8,6 +8,7 @@ import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/s
 import {
   parseMealText,
   reconcileItems,
+  applyHomemadeAdjustment,
   type UserParseContext,
 } from '../_shared/foodParseCore.ts'
 
@@ -117,6 +118,8 @@ Deno.serve(async (req) => {
     if (supabaseUrl && serviceKey) {
       items = await reconcileItems(items, { supabaseUrl, serviceKey, userId, db })
     }
+
+    items = applyHomemadeAdjustment(text, items)
 
     console.log(`[parse-food-nl] "${text.slice(0, 60)}" → ${items.length} items (user=${userId ?? 'anon'})`)
 

@@ -305,6 +305,9 @@ export default function FoodQuickCapture({
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold truncate">{item.name}</p>
                   <p className="text-[10px] text-text-muted">{item.grams}g · {item.calories} kcal · {item.protein}B</p>
+                  {item.assumptions?.length ? (
+                    <p className="text-[9px] text-amber-600/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>
+                  ) : null}
                 </div>
                 {badge && (
                   <span className={`text-[9px] font-bold uppercase ${badge === 'sprawdź' ? 'text-amber-500' : 'text-emerald-500'}`}>{badge}</span>

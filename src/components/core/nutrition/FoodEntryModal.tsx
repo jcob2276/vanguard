@@ -838,6 +838,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                               </span>
                             )}
                           </p>
+                          {item.assumptions?.length ? (
+                            <p className="text-[9px] text-amber-600/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>
+                          ) : null}
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-[11px] font-black text-text-secondary">{item.calories} kcal</p>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { StrainData, OuraData } from './CockpitBanner';
 import { SPRINT_SEASON } from './desktopUtils';
 import type { SprintPanelProps } from './SprintPanel';
+import SprintMetricsGrid from './SprintMetricsGrid';
 
 const LIMITER_PL: Record<string, string> = {
   sleep: 'sen',
@@ -33,9 +34,27 @@ export interface DesktopHeroProps {
   sprint: SprintPanelProps['sprint'];
   sprintGoal: SprintPanelProps['sprintGoal'];
   onSave: SprintPanelProps['onSave'];
+  metrics: SprintPanelProps['metrics'];
+  prevMetrics: SprintPanelProps['prevMetrics'];
+  projectMetrics: SprintPanelProps['projectMetrics'];
+  goals: SprintPanelProps['goals'];
+  currentWeight: number | null;
+  weight30ago: number | null;
 }
 
-export default function DesktopHero({ strain, oura, sprint, sprintGoal, onSave }: DesktopHeroProps) {
+export default function DesktopHero({
+  strain,
+  oura,
+  sprint,
+  sprintGoal,
+  onSave,
+  metrics,
+  prevMetrics,
+  projectMetrics,
+  goals,
+  currentWeight,
+  weight30ago,
+}: DesktopHeroProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(sprintGoal?.goal_text || '');
   const [saving, setSaving] = useState(false);
@@ -70,8 +89,9 @@ export default function DesktopHero({ strain, oura, sprint, sprintGoal, onSave }
         : 'text-rose-500';
 
   return (
-    <div className={`rounded-[24px] border ${cfg.bg} border-primary/15 overflow-hidden`}>
-      <div className="px-8 py-5 flex items-center justify-between gap-8">
+    <section id="sprint" className="scroll-mt-28">
+      <div className={`rounded-[24px] border ${cfg.bg} border-primary/15 overflow-hidden`}>
+        <div className="px-8 py-5 flex items-center justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 mb-2">
             <div className="relative flex items-center justify-center w-3 h-3">
@@ -107,10 +127,18 @@ export default function DesktopHero({ strain, oura, sprint, sprintGoal, onSave }
       <div className="px-8 py-4 border-t border-primary/10 bg-primary/[0.02]">
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-text-muted">
+            Sprint scorecard
+          </span>
+          <span className="text-text-muted/40">·</span>
+          <span className="text-[9px] font-bold text-text-muted">
+            {sprint.sprintStart} → {sprint.sprintEnd}
+          </span>
+          <span className="text-text-muted/40 hidden sm:inline">·</span>
+          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-text-muted hidden sm:inline">
             PY{sprint.personalYear}
           </span>
-          <span className="text-text-muted/40">→</span>
-          <span className="rounded-full border border-primary/20 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider px-2.5 py-0.5">
+          <span className="text-text-muted/40 hidden sm:inline">→</span>
+          <span className="rounded-full border border-primary/20 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider px-2.5 py-0.5 hidden sm:inline">
             Sprint {sprint.sprintNumber} · {SPRINT_SEASON[sprint.sprintNumber] || `S${sprint.sprintNumber}`}
           </span>
           <span className="text-[9px] font-bold text-text-muted ml-auto">
@@ -171,7 +199,17 @@ export default function DesktopHero({ strain, oura, sprint, sprintGoal, onSave }
         <div className="h-1.5 mt-3 bg-border-custom rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${sprint.pct}%` }} />
         </div>
+
+        <SprintMetricsGrid
+          metrics={metrics}
+          prevMetrics={prevMetrics}
+          projectMetrics={projectMetrics}
+          goals={goals}
+          currentWeight={currentWeight}
+          weight30ago={weight30ago}
+        />
       </div>
     </div>
+    </section>
   );
 }

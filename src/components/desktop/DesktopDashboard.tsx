@@ -1,9 +1,9 @@
 import { getTodayWarsaw } from '../../lib/date';
+import { mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import SmartAlerts from './SmartAlerts';
 import DesktopHero from './DesktopHero';
-import SprintScorecard from './SprintScorecard';
 import DesktopSectionNav from './DesktopSectionNav';
 import Heatmap from './Heatmap';
 import {
@@ -44,13 +44,12 @@ import {
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const Fundament = lazy(() => import('../core/Fundament'));
-const WeeklyAnalytics = lazy(() => import('../lifestyle/WeeklyAnalytics'));
 const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 
 export default function DesktopDashboard({ session }: { session: any }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
-  const { oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
+  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
   const [habits, setHabits] = useState(habitsData);
   const [habitLogs, setHabitLogs] = useState(habitLogsData);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
@@ -308,7 +307,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const lastS     = [...sessions].reverse()[0] ?? null;
   const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
   const alerts    = computeAlerts(oura, sessions, nutrition);
-  const currentWeight = body.length ? +(body[body.length - 1]?.weight || 0) || null : null;
+  const mergedBodySnapshot = useMemo(() => mergeLatestBodyMetrics(body), [body]);
+  const currentWeight = mergedBodySnapshot?.weight ?? null;
   const weight30ago   = currentWeight ? +([...body].reverse().find(b => b.date <= daysBefore(28))?.weight || 0) || null : null;
 
   // Sprint
@@ -361,6 +361,17 @@ export default function DesktopDashboard({ session }: { session: any }) {
     </Suspense>
   );
 
+  if (loading && !oura.length && !sessions.length) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
     <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
@@ -411,14 +422,21 @@ export default function DesktopDashboard({ session }: { session: any }) {
           <DesktopSectionNav />
           <div className="flex-1 min-w-0 space-y-5">
 
-        <SmartAlerts alerts={alerts} />
         <DesktopHero
           strain={strain}
           oura={oura14}
           sprint={sprint}
           sprintGoal={sprintGoal}
           onSave={saveSprintGoal}
+          metrics={currMetrics}
+          prevMetrics={prevMetrics}
+          projectMetrics={projectMetrics}
+          goals={goals}
+          currentWeight={currentWeight}
+          weight30ago={weight30ago}
         />
+
+        <SmartAlerts alerts={alerts} />
 
         <GeneralView userId={userId} oura={oura} />
 
@@ -428,36 +446,29 @@ export default function DesktopDashboard({ session }: { session: any }) {
             <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Trening</span>
             <div className="h-px flex-1 bg-border-custom" />
           </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 space-y-5">
-            <Panel title="Konsekwencja treningowa — 13 tygodni">
-              <Heatmap sessions={sessions} strava={strava} />
-            </Panel>
-          </div>
-          <div className="lg:col-span-1">
-            <Suspense fallback={<div className="h-40 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
-              <WeeklyAnalytics session={session} />
+        <div className="space-y-5">
+          <Panel title="Konsekwencja treningowa — 13 tygodni">
+            <Heatmap sessions={sessions} strava={strava} />
+          </Panel>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+            <FitnessScorePanel
+              oura={oura}
+              nutrition={nutrition}
+              sessions={sessions}
+              strava={strava}
+              habits={habits}
+              habitLogs={habitLogs}
+              volData={volData}
+              body={body}
+              heightCm={heightCm}
+              theme={theme}
+              grid={grid}
+            />
+            <Suspense fallback={<div className="h-[450px] animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
+              <MuscleHeatmap session={session} />
             </Suspense>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-          <FitnessScorePanel
-            oura={oura}
-            nutrition={nutrition}
-            sessions={sessions}
-            strava={strava}
-            habits={habits}
-            habitLogs={habitLogs}
-            volData={volData}
-            body={body}
-            heightCm={heightCm}
-            theme={theme}
-            grid={grid}
-          />
-          <Suspense fallback={<div className="h-[450px] animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
-            <MuscleHeatmap session={session} />
-          </Suspense>
         </div>
         </section>
 
@@ -593,16 +604,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
         <IntelligencePanel
           oura={oura} sessions={sessions} nutrition={nutrition} wins={wins}
           patterns={patterns} wiki={wiki} knowledge={knowledge}
-        />
-
-        <SprintScorecard
-          sprint={sprint}
-          metrics={currMetrics}
-          prevMetrics={prevMetrics}
-          projectMetrics={projectMetrics}
-          goals={goals}
-          currentWeight={currentWeight}
-          weight30ago={weight30ago}
         />
 
           </div>

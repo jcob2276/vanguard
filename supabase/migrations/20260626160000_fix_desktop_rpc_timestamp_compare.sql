@@ -1,4 +1,4 @@
--- Richer body + Strava best_efforts for fitness score (BMI/WHR/Cooper)
+-- Hotfix: timestamptz >= text broke get_desktop_dashboard_data at runtime (empty dashboard)
 CREATE OR REPLACE FUNCTION public.get_desktop_dashboard_data(p_user_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql

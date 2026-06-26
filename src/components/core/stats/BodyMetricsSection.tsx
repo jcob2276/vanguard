@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrendArrow } from './TrendArrow';
+import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/bodyMetrics';
 
 interface TrendPoint {
   cur: number | null;
@@ -42,14 +43,6 @@ interface BodyMetricsSectionProps {
   saveMetrics: (e: React.FormEvent) => void;
 }
 
-function navyBf(waistCm: number, neckCm: number, heightCm: number): number | null {
-  const diff = waistCm - neckCm;
-  if (diff <= 0 || heightCm <= 0) return null;
-  const bf = 495 / (1.0324 - 0.19077 * Math.log10(diff) + 0.15456 * Math.log10(heightCm)) - 450;
-  if (!isFinite(bf)) return null;
-  return Math.max(3, Math.min(50, Math.round(bf * 10) / 10));
-}
-
 function Field({
   label, value, onChange, placeholder,
 }: {
@@ -78,14 +71,20 @@ export function BodyMetricsSection({
   const set = (key: keyof NewMetricState) => (v: string) => setNewMetric({ ...newMetric, [key]: v });
 
   // Live calculators — prefer typed value, fall back to latest
-  const w    = parseFloat(newMetric.weight) || latestBody?.weight  || null;
-  const waist = parseFloat(newMetric.waist) || latestBody?.waist   || null;
-  const neck  = parseFloat(newMetric.neck)  || latestBody?.neck    || null;
-  const hips  = parseFloat(newMetric.hips)  || latestBody?.hips    || null;
+  const w = parseFloat(newMetric.weight) || latestBody?.weight || null;
+  const waist = parseFloat(newMetric.waist) || latestBody?.waist || null;
+  const belly = parseFloat(newMetric.belly) || latestBody?.belly || null;
+  const neck = parseFloat(newMetric.neck) || latestBody?.neck || null;
+  const hips = parseFloat(newMetric.hips) || latestBody?.hips || null;
 
-  const bmi = w && heightCm ? Math.round((w / Math.pow(heightCm / 100, 2)) * 10) / 10 : null;
-  const whr = waist && hips ? Math.round((waist / hips) * 100) / 100 : null;
-  const bf  = waist && neck && heightCm ? navyBf(waist, neck, heightCm) : null;
+  const bmi = w && heightCm ? computeBmi(w, heightCm) : null;
+  const whrWaist = waist ?? belly;
+  const whr = whrWaist && hips ? Math.round((whrWaist / hips) * 100) / 100 : null;
+  const waistNavy = effectiveWaistForNavy({
+    waist: parseFloat(newMetric.waist) || latestBody?.waist,
+    belly: parseFloat(newMetric.belly) || latestBody?.belly,
+  });
+  const bf = waistNavy && neck && heightCm ? navyBodyFatPct(waistNavy, neck, heightCm) : null;
 
   const bfColor = bf == null ? '' : bf < 12 ? 'text-amber-500' : bf < 18 ? 'text-emerald-500 dark:text-emerald-400' : bf < 25 ? 'text-text-primary' : 'text-rose-500';
   const bmiColor = bmi == null ? '' : bmi < 18.5 ? 'text-amber-500' : bmi < 25 ? 'text-emerald-500 dark:text-emerald-400' : bmi < 30 ? 'text-amber-500' : 'text-rose-500';
@@ -187,7 +186,7 @@ export function BodyMetricsSection({
             <p className="text-[9px] text-text-muted leading-relaxed">
               Mierz rano, na czczo, na rozluźnionych mięśniach. Talia = najwęższe miejsce tułowia.
               Brzuch = na poziomie pępka. Biodra = najszerszy punkt pośladków.
-              BF% obliczany metodą US Navy (waist − neck → log₁₀).
+              BF% obliczany metodą US Navy (brzuch/talia − szyja → log₁₀).
             </p>
           </div>
         )}

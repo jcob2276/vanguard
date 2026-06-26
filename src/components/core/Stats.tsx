@@ -12,6 +12,7 @@ import { notify, confirmDialog } from '../../lib/notify';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
+import { bodyTrend, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
@@ -126,8 +127,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       const ouraRaw = oura || [];
 
       if (body && body.length >= 2) {
-        newTrends.weight = { cur: body[body.length - 1].weight, prev: body[body.length - 2].weight };
-        newTrends.waist = { cur: body[body.length - 1].waist, prev: body[body.length - 2].waist };
+        const weightTrend = bodyTrend(body, 'weight');
+        const waistTrend = bodyTrend(body, 'waist');
+        if (weightTrend) newTrends.weight = weightTrend;
+        if (waistTrend) newTrends.waist = waistTrend;
       }
       if (ouraRaw.length >= 2) {
         newTrends.readiness = { cur: ouraRaw[0].readiness_score, prev: ouraRaw[1].readiness_score };
@@ -325,7 +328,21 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
 
   if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
-  const latestBody = bodyData?.[bodyData.length - 1] || null;
+  const mergedBody = mergeLatestBodyMetrics(bodyData);
+  const latestBody = mergedBody
+    ? {
+        weight: mergedBody.weight,
+        waist: mergedBody.waist,
+        neck: mergedBody.neck,
+        belly: mergedBody.belly,
+        hips: mergedBody.hips,
+        chest: mergedBody.chest,
+        thigh: mergedBody.thigh,
+        biceps_l: mergedBody.biceps_l,
+        calf: mergedBody.calf,
+        body_fat: mergedBody.body_fat,
+      }
+    : null;
 
   return (
     <div className="space-y-6 pb-4">
