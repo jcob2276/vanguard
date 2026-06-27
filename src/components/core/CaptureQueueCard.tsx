@@ -7,6 +7,7 @@ import { notify } from '../../lib/notify';
 import { updateTodoItem } from '../../lib/todo';
 import { convertLinkToTodoItem, convertNoteToTodoItem } from '../../lib/captureBridge';
 import { useCaptureQueue, type CaptureQueueItem } from '../../hooks/useCaptureQueue';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 
 const KIND_META = {
   link: { label: 'Pocket', icon: BookOpen, tone: 'text-sky-500 bg-sky-500/10' },
@@ -89,7 +90,7 @@ export default function CaptureQueueCard({
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ itemId: item.id, userId, title: item.title }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

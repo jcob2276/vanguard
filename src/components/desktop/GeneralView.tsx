@@ -16,17 +16,7 @@ const READINESS_COLOR: Record<string, string> = {
   insufficient: '#6b7280',
 };
 
-const FRICTION_COLOR: Record<string, string> = {
-  sleep_disruption: '#f59e0b',
-  avoidance: '#f43f5e',
-  procrastination: '#fb923c',
-  habit_break: '#a78bfa',
-  training_drop: '#60a5fa',
-  social_hesitation: '#34d399',
-  emotional_spike: '#f472b6',
-  positive_micro_action: '#10b981',
-  other: '#9ca3af',
-};
+import { FRICTION_COLOR } from '../../../../supabase/functions/_shared/domain';
 
 function ZBadge({ z }: { z: number | null | undefined }) {
   if (z == null) return <span className="text-text-muted text-[10px]">–</span>;

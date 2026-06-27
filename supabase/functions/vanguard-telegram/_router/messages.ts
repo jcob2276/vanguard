@@ -26,6 +26,80 @@ import { handleSuplementCommand } from "../_handlers/supplements.ts";
 
 export { DEFAULT_REPLY_KEYBOARD };
 
+type VoiceLikeAttachment = { file_id: string; duration?: number };
+
+function getVoiceLikeAttachment(message: {
+  voice?: VoiceLikeAttachment;
+  audio?: VoiceLikeAttachment & { mime_type?: string };
+}): VoiceLikeAttachment | null {
+  if (message.voice?.file_id) return message.voice;
+  if (!message.audio?.file_id) return null;
+
+  const mime = (message.audio.mime_type || "").toLowerCase();
+  if (
+    !mime
+    || mime.includes("ogg")
+    || mime.includes("opus")
+    || mime.includes("mpeg")
+    || mime.includes("mp4")
+    || mime.includes("m4a")
+  ) {
+    return { file_id: message.audio.file_id, duration: message.audio.duration };
+  }
+
+  return null;
+}
+
+async function tryResumeStuckReconciliationVoice(
+  messageId: number,
+  chatId: number,
+  ctx: Pick<TelegramRouterContext, "supabase" | "telegramToken" | "deepseekApiKey" | "supabaseUrl" | "supabaseServiceRoleKey" | "vanguardUserId">,
+): Promise<boolean> {
+  const { supabase, telegramToken, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey, vanguardUserId } = ctx;
+
+  const { data: existing } = await supabase
+    .from("vanguard_stream")
+    .select("id, content, metadata")
+    .eq("metadata->>telegram_message_id", messageId.toString())
+    .maybeSingle();
+
+  if (!existing?.content) return false;
+
+  const reconId = (existing.metadata as { reconciliation_id?: string } | null)?.reconciliation_id;
+  if (!reconId) return false;
+
+  const { data: recon } = await supabase
+    .from("daily_reconciliations")
+    .select("id, date, status")
+    .eq("id", reconId)
+    .maybeSingle();
+
+  if (recon?.status !== "sent") return false;
+
+  await safeSendTelegram(
+    chatId,
+    "⏳ Wznawiam analizę refleksji...",
+    telegramToken,
+    { disable_notification: true },
+  );
+
+  await handleReconciliation(
+    recon.id,
+    String(existing.content),
+    existing.id,
+    chatId,
+    supabase,
+    telegramToken,
+    deepseekApiKey,
+    supabaseUrl,
+    supabaseServiceRoleKey,
+    vanguardUserId,
+    recon.date,
+    { telegramFastPath: true },
+  );
+  return true;
+}
+
 /** Plain-text messages with date/priority tokens → todo, not stream. */
 function looksLikeTodoCapture(text: string): boolean {
   const t = text.trim();
@@ -43,7 +117,8 @@ function looksLikeTodoCapture(text: string): boolean {
 export async function handleIncomingMessage(
   message: {
     text?: string;
-    voice?: { file_id: string; duration?: number };
+    voice?: VoiceLikeAttachment;
+    audio?: VoiceLikeAttachment & { mime_type?: string };
     message_id: number;
     chat: { id: number };
     reply_to_message?: { text?: string };
@@ -62,7 +137,8 @@ export async function handleIncomingMessage(
 
   const chatId = message.chat.id;
   const messageId = message.message_id;
-  const isVoice = !!message.voice;
+  const voiceAttachment = getVoiceLikeAttachment(message);
+  const isVoice = !!voiceAttachment;
   let text = message.text || "";
 
   // --- Handle ForceReply replies (text messages only — voice handled after transcription) ---
@@ -108,7 +184,14 @@ export async function handleIncomingMessage(
 
       // --- Voice transcription ---
       if (isVoice) {
-        // Check if we are handling a pending reconciliation response or active planning to prevent sending '🎤 Słucham...' again.
+        await sendChatAction(telegramToken, chatId, "record_voice");
+        await safeSendTelegram(chatId, "🎤 Słucham...", telegramToken, { disable_notification: true });
+
+        if (await tryResumeStuckReconciliationVoice(messageId, chatId, ctx)) {
+          return;
+        }
+
+        // Check if we are handling a pending reconciliation response or active planning.
         const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
         activePlanningFromVoiceCheck = activePlanning;
 
@@ -129,11 +212,12 @@ export async function handleIncomingMessage(
           }
         }
 
-        const skipListenMsg = pendingReconciliation || activePlanning;
-        if (!skipListenMsg) {
-          await safeSendTelegram(chatId, "🎤 Słucham...", telegramToken, { disable_notification: true });
-        }
-        text = await transcribeAudio(message.voice!.file_id, telegramToken, openAiKey);
+        text = await transcribeAudio(
+          voiceAttachment!.file_id,
+          telegramToken,
+          openAiKey,
+          pendingReconciliation ? { timeoutMs: 22000 } : undefined,
+        );
 
         // ForceReply for voice: intercept Keep before stream recording
         if (replyTo?.text && text) {
@@ -146,12 +230,26 @@ export async function handleIncomingMessage(
 
       // Idempotency guard
       try {
-        const { data: existing, error: existErr } = await supabase.from('vanguard_stream').select('id')
+        const { data: existing, error: existErr } = await supabase.from('vanguard_stream').select('id, content, metadata')
           .eq('metadata->>telegram_message_id', messageId.toString()).maybeSingle();
         if (existErr) {
           console.error('[telegram] Idempotency DB check returned error:', existErr);
         }
-        if (existing) return;
+        if (existing) {
+          const reconId = (existing.metadata as { reconciliation_id?: string } | null)?.reconciliation_id;
+          if (reconId && existing.content) {
+            const { data: recon } = await supabase
+              .from('daily_reconciliations')
+              .select('id, date, status')
+              .eq('id', reconId)
+              .maybeSingle();
+            if (recon?.status === 'sent') {
+              await tryResumeStuckReconciliationVoice(messageId, chatId, ctx);
+              return;
+            }
+          }
+          return;
+        }
       } catch (err) {
         await logCriticalError({
           area: 'telegram-messages',
@@ -377,55 +475,55 @@ export async function handleIncomingMessage(
 
       // --- Stream recording ---
       let streamSaveFailed = false;
+      const skipStreamEnrichment = mode === 'daily_reconciliation_response' || !!pendingReconciliation;
       if (mode !== 'knowledge') {
         let streamEmbedding = null;
         let emotionData: { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null = null;
 
-        const voiceDurationSec = message.voice?.duration || 0;
+        const voiceDurationSec = voiceAttachment?.duration || 0;
         let voiceWpm: number | null = null;
         if (isVoice && voiceDurationSec > 0) {
           const wordCount = cleanText.trim().split(/\s+/).filter(Boolean).length;
           voiceWpm = Math.round(wordCount / (voiceDurationSec / 60));
         }
 
-        try {
-          const [embedRes, emotionRes] = await Promise.all([
-            getEmbedding(cleanText, openAiKey),
-            deepseekChat({
-              apiKey: deepseekApiKey,
-              model: 'deepseek-v4-flash',
-              temperature: 0.1,
-              maxTokens: 100,
-              responseFormat: { type: 'json_object' },
-              messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"` }]
-            }).catch((e) => {
-              console.error('[telegram] Deepseek emotion fetch exception:', e);
-              return null;
-            })
-          ]);
+        if (!skipStreamEnrichment) {
+          try {
+            const [embedRes, emotionRes] = await Promise.all([
+              getEmbedding(cleanText, openAiKey),
+              deepseekChat({
+                apiKey: deepseekApiKey,
+                model: 'deepseek-v4-flash',
+                temperature: 0.1,
+                maxTokens: 100,
+                responseFormat: { type: 'json_object' },
+                messages: [{ role: 'user', content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"` }]
+              }).catch((e) => {
+                console.error('[telegram] Deepseek emotion fetch exception:', e);
+                return null;
+              })
+            ]);
 
-          if (Array.isArray(embedRes) && typeof embedRes[0] === 'number') {
-            streamEmbedding = embedRes;
-          } else {
-            console.warn('[telegram] OpenAI embedding returned empty result');
-          }
-
-          if (emotionRes && 'content' in emotionRes) {
-            // DeepSeek occasionally wraps JSON in markdown fences despite responseFormat:
-            // json_object — parseJsonFromContent strips those before parsing, raw JSON.parse
-            // would throw and silently drop emotion data for the whole stream entry.
-            emotionData = parseJsonFromContent(emotionRes.content || '{}') as { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null;
-            if (!emotionData) {
-              console.error('[telegram] Failed to parse emotion text content to JSON:', emotionRes.content);
+            if (Array.isArray(embedRes) && typeof embedRes[0] === 'number') {
+              streamEmbedding = embedRes;
+            } else {
+              console.warn('[telegram] OpenAI embedding returned empty result');
             }
-          }
 
-        } catch (err) {
-          await logCriticalError({
-            area: 'telegram-messages',
-            error: err,
-            message: 'Stream embedding or emotion extraction failed',
-          });
+            if (emotionRes && 'content' in emotionRes) {
+              emotionData = parseJsonFromContent(emotionRes.content || '{}') as { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null;
+              if (!emotionData) {
+                console.error('[telegram] Failed to parse emotion text content to JSON:', emotionRes.content);
+              }
+            }
+
+          } catch (err) {
+            await logCriticalError({
+              area: 'telegram-messages',
+              error: err,
+              message: 'Stream embedding or emotion extraction failed',
+            });
+          }
         }
 
         const { data: streamInserted, error: streamInsertError } = await supabase.from('vanguard_stream').insert({
@@ -484,7 +582,8 @@ export async function handleIncomingMessage(
             pendingReconciliation.id, cleanText, streamRecordId, chatId,
             supabase, telegramToken, deepseekApiKey,
             supabaseUrl, supabaseServiceRoleKey, vanguardUserId,
-            pendingReconciliation.date
+            pendingReconciliation.date,
+            { telegramFastPath: true },
           );
           handlerResponded = true;
         }
@@ -735,6 +834,10 @@ export async function handleIncomingMessage(
       error: innerErr,
       message: 'Unhandled error in handleIncomingMessage',
     });
-    await safeSendTelegram(chatId, `⚠️ Błąd: ${(innerErr as Error).message}`, telegramToken);
+    const errMsg = (innerErr as Error).message || String(innerErr);
+    const friendly = /abort|timeout|whisper|file/i.test(errMsg)
+      ? "⚠️ Nie udało się odczytać głosu. Przekazana stara wiadomość często nie działa — nagraj NOWĄ głosówkę (przytrzymaj mikrofon)."
+      : `⚠️ Błąd: ${errMsg}`;
+    await safeSendTelegram(chatId, friendly, telegramToken);
   }
 }

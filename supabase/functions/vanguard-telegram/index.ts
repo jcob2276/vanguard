@@ -79,6 +79,64 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (payload.fix_webhook) {
+      const setupSecret = Deno.env.get("TELEGRAM_SETUP_SECRET") || Deno.env.get("SB_SECRET_KEY") || "";
+      const auth = req.headers.get("Authorization") || "";
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      if (!setupSecret || token !== setupSecret) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!ctx.telegramToken) {
+        return new Response(JSON.stringify({ error: "TELEGRAM_BOT_TOKEN not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+      if (!webhookSecret) {
+        return new Response(JSON.stringify({ error: "TELEGRAM_WEBHOOK_SECRET not configured" }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const webhookUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/vanguard-telegram`;
+
+      const beforeRes = await fetch(`https://api.telegram.org/bot${ctx.telegramToken}/getWebhookInfo`);
+      const before = await beforeRes.json().catch(() => ({}));
+
+      const setRes = await fetch(`https://api.telegram.org/bot${ctx.telegramToken}/setWebhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: webhookUrl,
+          secret_token: webhookSecret,
+          allowed_updates: ["message", "callback_query"],
+          drop_pending_updates: false,
+        }),
+      });
+      const setData = await setRes.json().catch(() => ({}));
+
+      const afterRes = await fetch(`https://api.telegram.org/bot${ctx.telegramToken}/getWebhookInfo`);
+      const after = await afterRes.json().catch(() => ({}));
+
+      return new Response(JSON.stringify({
+        ok: setRes.ok && setData.ok === true,
+        webhook_url: webhookUrl,
+        secret_configured: true,
+        before: before.result ?? before,
+        set: setData,
+        after: after.result ?? after,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const secretCheck = verifyTelegramSecret(req);
     if (secretCheck === "missing_config") {
       console.error("[telegram] TELEGRAM_WEBHOOK_SECRET not configured");
@@ -98,9 +156,17 @@ Deno.serve(async (req) => {
 
     if (payload.edited_message) return new Response("OK", { status: 200 });
 
-    const message = payload.message as { chat?: { id: number }; text?: string; voice?: unknown } | undefined;
+    const message = payload.message as {
+      chat?: { id: number };
+      text?: string;
+      voice?: { file_id: string; duration?: number };
+      audio?: { file_id: string; duration?: number; mime_type?: string };
+    } | undefined;
     if (!message) return new Response("OK", { status: 200 });
-    if (!message.text && !message.voice) return new Response("OK", { status: 200 });
+    if (!message.text && !message.voice && !message.audio) {
+      console.log("[telegram] ignored message: no text/voice/audio");
+      return new Response("OK", { status: 200 });
+    }
     if (!Number.isFinite(ctx.authorizedChatId) || ctx.authorizedChatId <= 0 || message.chat?.id !== ctx.authorizedChatId) {
       return new Response("OK", { status: 200 });
     }

@@ -1,4 +1,5 @@
 import { getTodayWarsaw } from '../../lib/date';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, Heart, Coffee, Droplets } from 'lucide-react';
@@ -131,7 +132,7 @@ export default function DailyStrainCard({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));

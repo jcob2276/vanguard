@@ -134,7 +134,13 @@ export function telegramFileUrl(token: string, filePath: string): string {
   return `https://api.telegram.org/file/bot${token}/${filePath}`;
 }
 
-export async function transcribeAudio(fileId: string, telegramToken: string, openAiKey: string): Promise<string> {
+export async function transcribeAudio(
+  fileId: string,
+  telegramToken: string,
+  openAiKey: string,
+  options?: { timeoutMs?: number },
+): Promise<string> {
+  const timeoutMs = options?.timeoutMs ?? 30000;
   const filePath = await getTelegramFilePath(telegramToken, fileId);
   const fileUrl = telegramFileUrl(telegramToken, filePath);
 
@@ -143,7 +149,7 @@ export async function transcribeAudio(fileId: string, telegramToken: string, ope
   }
 
   const downloadController = new AbortController();
-  const downloadTimeoutId = setTimeout(() => downloadController.abort(), 30000);
+  const downloadTimeoutId = setTimeout(() => downloadController.abort(), timeoutMs);
   let audioBlob: Blob;
   try {
     const audioRes = await fetch(fileUrl, { signal: downloadController.signal });
@@ -158,7 +164,7 @@ export async function transcribeAudio(fileId: string, telegramToken: string, ope
   formData.append("language", "pl");
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",

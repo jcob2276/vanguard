@@ -162,7 +162,7 @@ function normalizeParsed(raw: unknown): ParsedWorkout {
         sets,
         confidence: parseConfidence(ex.confidence),
         assumptions,
-      }
+      } as ParsedWorkoutExercise
     })
     .filter((e): e is ParsedWorkoutExercise => e != null)
 
@@ -172,7 +172,7 @@ function normalizeParsed(raw: unknown): ParsedWorkout {
       const name = String(a.name || '').trim()
       const minutes = Math.max(1, Math.round(Number(a.minutes) || 0))
       if (!name || !minutes) return null
-      return { name, minutes, note: a.note ? String(a.note) : undefined }
+      return { name, minutes, note: a.note ? String(a.note) : undefined } as ParsedWorkoutActivity
     })
     .filter((a): a is ParsedWorkoutActivity => a != null)
 

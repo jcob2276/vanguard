@@ -8,18 +8,7 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 
-// Zamknięty słownik kategorii — model nie może wymyślać własnych wartości.
-// Hallucynacja poza tą listą zawsze spada do 'Chaos' (patrz normalizeClassification).
-const ALLOWED_CATEGORIES = ['Ciało', 'Konto', 'Duch', 'Chaos', 'Relacje'];
-
-// Zamknięty słownik event_kind i friction_type dla mikrotarć.
-const ALLOWED_EVENT_KINDS = ['friction_event', 'positive_micro_action', 'recovery_event', 'state_observation', 'micro_behavior_observation', 'reflection'];
-const ALLOWED_FRICTION_TYPES = [
-  'sleep_disruption', 'avoidance', 'procrastination', 'habit_break',
-  'training_drop', 'social_hesitation', 'communication_drift',
-  'emotional_spike', 'self_control_break', 'positive_micro_action',
-  'recovery_anchor', 'adaptive_move', 'other'
-];
+import { ALLOWED_CATEGORIES, ALLOWED_EVENT_KINDS, ALLOWED_FRICTION_TYPES } from '../_shared/domain.ts';
 
 // Normalizuje output LLM dla klasyfikacji: wymusza zamknięte słowniki i bezpieczne typy.
 function normalizeClassification(raw: any): any {
