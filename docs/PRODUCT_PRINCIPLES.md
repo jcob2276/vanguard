@@ -28,9 +28,11 @@
 
 System może:
 - odzwierciedlać powtarzające się obserwacje (z liczbą wystąpień)
+- rozpoznawać sekwencyjne stany zachowania (np. Spirale Spadkowe, Momentum)
+- zestawiać deklaracje intencji ze śledzeniem ich wyników (Outcome Continuity)
+- wyłapywać momenty przełamania oporu (Recovery Layer)
+- pokazywać tygodniową kompresję behawioralną (Weekly Deltas)
 - sugerować praktyki (Transurfing layer, reset prompts)
-- podkreślać ciągłość i wzorce dryfu/recovery
-- pokazywać trajectory w czasie
 
 System nie może:
 - twierdzić psychologicznej pewności
@@ -153,6 +155,10 @@ System nie może:
 - w co najmniej 2 różnych kontekstach czasowych
 - `confidence >= 0.75` lub `review_status = good`
 
+**Dozwolona kompresja behawioralna (Behavioral Compression):**
+- system może analizować i wyciągać wnioski (tzw. delty) porównując ze sobą całe bloki czasu (np. Tydzień N vs Tydzień N-1).
+- system może łączyć izolowane zdarzenia z 3+ dni w "Stany" (State Transitions - np. spirala spadkowa, momentum).
+
 ---
 
 ## 6. Resource data is separate from friction data
@@ -264,23 +270,16 @@ System musi pamiętać o tych limitach przy każdym patternie który prezentuje.
 
 ## Where we are now (honest assessment)
 
-Vanguard OS to **aktualnie**:
+Vanguard OS wszedł w fazę włączania **Continuous Behavioral Memory**. Przeszliśmy test stabilnego logowania i wyłapywania tarcia, a teraz system zaczyna integrować wyższe warstwy świadomości.
 
-- A. Behavioral logging system
-- B. Structured reconciliation layer
-- C. Evidence-aware pattern groundwork
+**Cele operacyjne (Aktualne priorytety):**
 
-To już więcej niż journaling. Ale mniej niż "longitudinal behavioral memory".
-
-**Czego jeszcze nie ma:**
-
-| brakujący element | co to oznacza |
+| aktywowany element | co to oznacza w praktyce |
 |---|---|
-| Stable longitudinal patterns | Prawdziwa ciągłość zaczyna się po tygodniach, nie dniach |
-| Outcome continuity | System nie widzi czy zmiana zadziałała, czy pattern się zmniejszył |
-| State transitions | Brak rozumienia spirali, momentum, przeciążenia jako stanów dynamicznych |
-| Behavioral compression | Brak tygodniowych/miesięcznych podsumowań jako jednostek analizy |
-| Interventional learning | "Gdy zrobiłeś X, pattern Y zmniejszył się przez 8 dni" — jeszcze nie istnieje |
+| Recovery Layer (Positive Trajectory) | System aktywnie wyłapuje "adaptive moves", powroty do pionu i pokonywanie oporu, a nie tylko tarcie. |
+| State transitions | System potrafi rozpoznać, że ciąg kilkudniowych zdarzeń (np. późny sen -> drift) to "Spirala Spadkowa" lub "Momentum". |
+| Behavioral compression | System wykorzystuje tygodniowe podsumowania jako zunifikowane jednostki analizy i mierzenia zmian (% różnicy). |
+| Outcome continuity | System koreluje deklaracje interwencji (np. "od dziś X") ze spadkiem powiązanego tarcia w kolejnych dniach. |
 
 **Minimum żeby powiedzieć "mamy continuity layer":**
 - 60–90 dni danych
@@ -544,13 +543,13 @@ Jeśli użytkownik w głosówce mówi "jest 21:30", ale metadata timestamp mówi
 
 ---
 
-## P2: Positive trajectory signals — improve extraction
+## ACTIVE: Positive trajectory signals & Recovery Layer
 
-Obserwacja z 2026-05-18: pipeline dobrze łapie dryf, avoidance, blokady, self-control breaks. Słabiej łapie recovery, adaptive moves, małe przełamania.
+*Zaktualizowano ze statusu P2 na P1 (Aktywne wdrożenie).*
 
-Bez recovery layer weekly review staje się listą defektów zamiast mapą trajectory.
+Obserwacja z 2026-05-18 pokazała, że pipeline świetnie łapał dryf i blokady, ale słabiej widział przełamania oporu. Bez warstwy Recovery system tworzył negatywną "listę defektów" zamiast mapy trajektorii.
 
-**Cel:** `weekly review = mapa (friction vs recovery), nie lista problemów`
+**Główny cel architektury analitycznej:** `weekly review = mapa (friction vs recovery), nie lista problemów`
 
 ### Do dodania do extraction pipeline (kiedy ≥5 podobnych missów w backlogu):
 

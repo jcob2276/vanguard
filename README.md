@@ -1,231 +1,147 @@
 # Vanguard OS
 
-**A personal operating system built for one person.** Not a productivity app. Not a wellness tracker. A longitudinal system that turns daily behavior into signal — and signal into better decisions.
+> **A personal operating system built for one person.** Not a productivity app. Not a wellness tracker. A continuous behavioral memory system that turns daily action into signal — and signal into better decisions.
 
-Built solo. Running daily. 3 months in.
-
----
-
-## What it actually is
-
-Most life apps collect data. Vanguard connects it.
-
-Oura knows your HRV. Strava knows your kilometers. Yazio knows your macros. Google Calendar knows your schedule. ActivityWatch knows where your time goes. Your gym logger knows your sets and reps.
-
-None of them talk to each other. Vanguard does.
-
-The result: a system that knows when you're under-fueled for tomorrow's long run, when your CNS load is too high to add strength work, when your sleep debt is accumulating faster than your marathon training can absorb, and when the gap between what you planned and what you did is widening.
-
-It doesn't tell you what to do. It shows you what's actually happening.
+Built solo. Running daily. 
 
 ---
 
-## Architecture
+## 🌌 The Core Philosophy: "Everything Sees Itself"
 
-```
-Passive inputs                    Active inputs
-─────────────                     ─────────────
-Oura Ring     ──┐                 Telegram bot   ──┐
-Strava        ──┤                 Workout logger ──┤
-Yazio         ──┤──▶  Supabase   Web app        ──┤──▶  Supabase
-Google Cal    ──┤     (70+ tables)               │     Edge Functions
-ActivityWatch ──┘                               ──┘     (33 functions)
-                                                         │
-                                              ┌──────────┼──────────┐
-                                              ▼          ▼          ▼
-                                           Oracle    Analyst    Nutrition
-                                           (chat)    (3am cron) (coach)
-                                              │          │          │
-                                              └──────────┴──────────┘
-                                                         │
-                                                    Telegram push
-                                                    Web dashboard
-```
+Most life-tracking apps live in silos. Oura knows your HRV, Strava knows your running pace, Yazio knows your macros, and your Todo app knows your tasks. **They don't talk to each other. Vanguard does.**
 
-**Frontend:** React 19 + TypeScript + Vite + TailwindCSS 4  
-**Backend:** Supabase (PostgreSQL + Auth + RLS + Edge Functions on Deno)  
-**AI:** DeepSeek (V3 for structured output, temperature 0.35)  
-**Primary AI channel:** Telegram bot — morning brief, evening close, on-demand  
-**Deployment:** Vercel (frontend) + Supabase (backend)
+In Vanguard OS, everything is interconnected. Your daily recovery score knows if you hit your *5 Tasks a Day*. Your food logging engine adjusts based on the training load from Strava. The AI Oracle understands when you are entering a "Downward Spiral" because it sees the correlation between your late sleep, missed tasks, and elevated friction events. It is a holistic, self-aware system.
 
 ---
 
-## Core modules
+## 🏗️ Architecture & How It Connects
 
-### Daily loop
-The system runs a structured daily cycle — not a reminder, a reasoning cycle.
+Vanguard operates on a dual-layer architecture: **Passive Inputs** (automated data syncs) and **Active Inputs** (your manual logs and voice notes).
 
-- **Morning** — Oura readiness + nutrition target + training plan for the day, pushed to Telegram
-- **Midday** — check-in on energy, focus blocks, PowerList progress
-- **Evening** — `/koniec` command triggers reconciliation: voice/stream events → Deepseek → reflective questions → planning summary stored for Oracle context
-- **3am cron** — `vanguard-analyst` runs cross-module pattern analysis while you sleep
+```mermaid
+graph TD
+    %% Inputs
+    Oura[Oura Ring] -->|Raw Biometrics| Backend
+    Strava[Strava] -->|Workouts| Backend
+    Yazio[Yazio] -->|Nutrition| Backend
+    TG[Telegram Bot] -->|Voice/Text Logs| Backend
+    Web[Web App / Memex] -->|UI Interactions| Backend
 
-### Biometrics
-Passive sync every few hours. No manual entry required.
+    %% Core
+    subgraph Supabase [Supabase Backend]
+        Backend[(PostgreSQL 70+ Tables)]
+        Classify[vanguard-auto-classify]
+        Strain[compute-daily-strain]
+        Analyst[vanguard-analyst]
+        Oracle[vanguard-oracle]
+    end
 
-| Source | Data |
-|---|---|
-| Oura Ring | HRV, sleep stages, readiness, RHR, body temperature |
-| Strava | Runs, rides, elevation, HR zones |
-| Yazio | Calories, protein, carbs, fat per meal |
-| Google Calendar | Events, blocks, time budget |
-| ActivityWatch | Screen time, app categories, focus periods |
-
-### Daily strain engine
-`compute-daily-strain` runs after each biometric sync and produces:
-
-- **Strain score** (0–100) — cardio + strength + leg + CNS load
-- **Recovery score** — Oura readiness + sleep debt + HRV trend
-- **Fueling score** — actual intake vs. maintenance estimate
-- **Main limiter** — what's most limiting performance right now
-
-### Nutrition coach
-`vanguard-nutrition-coach` triangulates real maintenance from three sources — Oura TDEE (×0.88 correction factor), food logs, and 30-day weight trend — then computes a daily calorie/protein target accounting for training load and taper windows.
-
-Goal: ~14% BF while sustaining marathon training. Target event: Košice Marathon, October 4 2026.
-
-### Oracle (AI chat)
-Every Oracle conversation is grounded in:
-
-- 14 days of biometrics (HRV, sleep, nutrition, training)
-- Evening reflections (P2-parsed: biggest cost, best move, blockers)
-- 4 strongest behavioral patterns
-- Active career projects and evidence
-- Medical context (lab results, documents)
-- Entity graph (people, projects — via embeddings)
-
-Oracle never invents. It reads the evidence layer. The evidence layer never gets written by Oracle.
-
-### Telegram bot
-Primary interface. Not a fallback.
-
-```
-/koniec          — evening close, triggers reconciliation
-/dieta           — nutrition status: target vs. today so far
-/posilek [food]  — log a meal in natural language
-/todo [task]     — add task with NL date parsing (+tomorrow, +5d)
-/keep [note]     — save a note to Keep
+    Backend --> Classify
+    Backend --> Strain
+    Backend --> Analyst
+    
+    %% Outputs
+    Classify -->|Extracts Friction & Recovery| KnowledgeGraph
+    Strain -->|Custom Noop Scores| MemexUI
+    Analyst -->|Weekly Deltas| MemexUI
+    
+    KnowledgeGraph[(Behavioral Memory)] --> Oracle
+    Oracle -->|Actionable Insights| TG
 ```
 
-Automatic messages: morning brief (Mon 6:00), evening questions (21:30 cron), Saturday check-in, weekly synthesis (Monday).
-
-### Workout logger
-Atomic save via RPC. Full session data:
-
-- Exercises: name (autocomplete), sets, kg, reps, RIR, RPE
-- Tags: muscle groups (back, chest, legs, shoulders, arms, core...)
-- Special protocols: MSP (Max Strength Protocol)
-- Cardio: type, duration, notes
-- Session: name, start/stop timer, session RPE
-
-### Career module
-Not a todo list. A strategic record.
-
-- `career_projects` — initiatives with thesis, leverage level, risk, sense status
-- `career_moves` — individual actions with value type (leverage/stability/recovery) and work mode (deep/shallow/admin/recovery)
-- `career_evidence` — proof that work happened, auto-created on move completion
-- `career_decisions` — major decisions with expected effect, tradeoff, fear, verdict
+### Tech Stack
+- **Frontend:** React 19 + TypeScript + Vite + TailwindCSS 4 (SPA on Vercel)
+- **Backend:** Supabase (PostgreSQL, Auth, RLS, pg_cron)
+- **Edge Compute:** Deno Edge Functions (30+ specialized microservices)
+- **AI Brain:** DeepSeek v4 Flash (for structured extraction and Oracle reasoning)
+- **Interfaces:** Telegram (primary quick-capture) + Web Dashboard (deep work)
 
 ---
 
-## Edge functions
+## 🧠 Key Features & Modules
 
-| Function | Purpose |
-|---|---|
-| `vanguard-oracle` | Main AI chat with full biometric + behavioral context |
-| `vanguard-analyst` | 3am cross-module pattern analysis |
-| `vanguard-nutrition-coach` | Daily calorie/protein target computation |
-| `vanguard-daily-reconciliation` | Evening close: stream → reflective questions → planning summary |
-| `vanguard-weekly-synthesis` | Monday digest of behavioral patterns |
-| `compute-daily-strain` | Strain/recovery/fueling scoring |
-| `sync-oura` / `sync-oura-enhanced` | Sleep, readiness, HRV, timeseries |
-| `sync-strava` | Runs and rides |
-| `sync-yazio` | Nutrition data |
-| `sync-calendar` | Google Calendar events |
-| `analyze-food-quality` | Meal quality scoring, MPS timing, micronutrient gaps |
-| `analyze-training-load` | Volume trends, frequency, projection |
-| `vanguard-auto-classify` | Stream event classification |
-| `vanguard-todo-classify` | AI bucket assignment for tasks |
-| `vanguard-graph-embedder` | Entity embeddings for Oracle context |
-| `parse-food-nl` | Natural language food entry parsing |
-| `lookup-food` | Food database search |
+### 1. The Memex Layer (UI & Compiled Memory)
+Inspired by Vannevar Bush's concept of the Memex, this is the visual hub of Vanguard. It moves away from static dashboards into a dynamic **Timeline of Cards and Widgets**. It compiles your fragmented life data into coherent "compiled memory pages," allowing you to browse your life chronologically or by entity (projects, habits, people). It features a Magazine Bar for daily reading and advanced Stats & Insights that overlay your biometric data with your behavioral patterns.
+
+### 2. Custom "Noop" Algorithms (Biometrics & Strain)
+We don't blindly trust generic, black-box scores from wearables. Vanguard takes raw data from Oura (HRV, Resting Heart Rate, Body Temperature, Sleep Stages) and runs it through **Custom Noop Algorithms**. These algorithms recalculate your actual readiness and daily strain tailored specifically to *your* context (e.g., marathon training, targeted body composition goals). If Oura says you're fully recovered but your CNS load from recent heavy lifting is peaking, Vanguard's Noop algorithm will tell you the truth.
+
+### 3. PowerList (5 Tasks a Day)
+Forget endless to-do lists that cause decision paralysis. Vanguard enforces a strict **5 Tasks a Day** rule. This module forces ruthless prioritization. The system tracks your completion rate and correlates it with your biometric readiness — answering questions like *"Do I fail my PowerList more often when my HRV drops?"*
+
+### 4. Frictionless Food & Training Logging
+- **Nutrition:** Log meals in natural language via Telegram (`/posilek zjadłem 200g kurczaka z ryżem`). Vanguard parses it, looks up macros, and feeds it into the `vanguard-nutrition-coach` which dynamically calculates your protein/calorie targets based on that day's training volume.
+- **Training:** Atomic, detailed workout logging (exercises, sets, reps, kg, RPE, RIR). The data immediately impacts your CNS load score and recovery demands for the next 48 hours.
+
+### 5. Continuous Behavioral Memory (Friction & Recovery)
+Vanguard listens to your daily voice notes and stream of consciousness. The `vanguard-auto-classify` pipeline extracts:
+- **Friction Events:** Procrastination, avoidance, time loss.
+- **Recovery Anchors:** Moments you broke a bad habit, pushed through resistance, or executed an *adaptive move*.
+The system detects State Transitions (e.g., identifying when you are in a "Downward Spiral" or building "Momentum") and provides Weekly Deltas to measure real progress.
+
+### 6. Research & Development (Interventional Learning)
+Vanguard acts as a personal R&D lab. You can declare an intervention (e.g., *"Starting today, no screens after 22:00"*). Vanguard will track the **Outcome Continuity**—measuring exactly how this specific rule impacts your sleep architecture, friction events, and task completion over the next 14 days.
 
 ---
 
-## Database
+## 📂 Directory Structure
 
-70+ tables. Key ones:
-
-```
-Daily tracking      oura_daily_summary, daily_strain, daily_nutrition,
-                    daily_food_entries, daily_wins, daily_habits
-
-Biometrics          oura_enhanced, oura_timeseries, body_metrics,
-                    body_composition_measurements, exercise_logs,
-                    workout_sessions, strava_activities
-
-Nutrition           nutrition_profile, nutrition_targets, food_favorites
-
-AI & stream         vanguard_stream, vanguard_behavioral_patterns,
-                    friction_events, vanguard_oracle_runs,
-                    vanguard_knowledge, vanguard_entity_links
-
-Career              career_projects, career_moves, career_evidence,
-                    career_decisions
-
-Goals               life_goals, goal_kpis, kpi_entries, weekly_reviews,
-                    weekly_kpi_reviews, dreams, vision_board_items
+```text
+vanguard-os/
+├── src/                    # Frontend Web App (React 19, Vite, Tailwind 4)
+│   ├── components/         # UI Components (Memex Cards, Widgets, Chat)
+│   ├── lib/                # Frontend utilities and Supabase clients
+│   └── styles/             # Design system and Tailwind configuration
+├── supabase/
+│   ├── functions/          # Deno Edge Functions (The AI & Logic Brain)
+│   │   ├── vanguard-oracle/          # Conversational AI agent
+│   │   ├── vanguard-auto-classify/   # NLP parser for friction & recovery
+│   │   ├── vanguard-analyst/         # Nightly pattern recognition cron
+│   │   ├── compute-daily-strain/     # Custom Noop algorithms for Oura data
+│   │   └── _shared/                  # Shared core logic (time, DB, LLM)
+│   └── migrations/         # PostgreSQL schema and DB migrations
+├── docs/                   # Documentation (Architecture, Principles)
+│   ├── ARCHITECTURE.md     # System design and data flow
+│   ├── PRODUCT_PRINCIPLES.md # The unshakeable laws of the Vanguard AI
+│   └── VISION_10_10.md     # The end-game vision for the system
+├── scripts/                # CI/CD, deployment, and ops utilities
+└── AGENTS.md               # Constitution for AI agents working in this repo
 ```
 
 ---
 
-## Core guardrails
+## 🛠️ Getting Started
 
-1. **Evidence and reasoning are separate layers.** Oracle reads evidence. It never writes it.
-2. **Friction writes go through one path.** `vanguard_stream → vanguard-auto-classify`. No shortcuts.
-3. **Patterns need evidence.** Count, confidence, date range. No invented claims.
-4. **Missing data stays missing.** Never backfilled, never assumed.
-5. **LLM output cannot mutate the evidence layer** without explicit user confirmation.
-6. **Timezone is Europe/Warsaw at the DB level.** Always `(now() AT TIME ZONE 'Europe/Warsaw')::date::text`. Never `current_date::text`.
+To spin up your own instance of Vanguard OS:
 
----
-
-## Getting started
-
-```bash
-git clone https://github.com/jcob2276/vanguard-os
-cd vanguard-os
-npm install
-cp .env.example .env
-# fill in Supabase URL, anon key, service role key
-npm run dev
-```
-
-For edge functions:
-```bash
-supabase functions serve vanguard-oracle --env-file .env.local
-```
-
-Full setup: [docs/DEV_GUIDE.md](docs/DEV_GUIDE.md)
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/jcob2276/vanguard-os.git
+   cd vanguard-os
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Configure Environment:**
+   Copy `.env.example` to `.env` and fill in your Supabase URL, Anon Key, Service Role Key, Telegram Bot tokens, and DeepSeek API keys.
+4. **Run the Web App:**
+   ```bash
+   npm run dev
+   ```
+5. **Deploy Edge Functions:**
+   ```bash
+   supabase functions deploy
+   ```
 
 ---
 
-## Status
-
-Active. Built solo, daily, for ~3 months.
-
-This is a personal system built for one person's specific context: marathon training, body composition, career portfolio, daily execution. It is not a generic productivity app and it is not designed to be. Every architectural decision reflects a specific constraint or behavioral pattern from actual daily use.
-
-If you're building something similar — a personal OS, a life data layer, a self-tracking system with real AI reasoning — the code is here and the patterns are real.
+## 📜 Core Guardrails (The Constitution)
+Vanguard is bound by a strict set of rules defined in `AGENTS.md` and `PRODUCT_PRINCIPLES.md`:
+1. **Evidence Layer ≠ Reasoning Layer:** The AI reads evidence, but it never alters the factual logs without human confirmation.
+2. **No Psychoanalysis:** The system measures behavior, it does not invent psychological narratives.
+3. **User Correction is Signal:** If the user rejects an AI insight, it's not a failure—it's highly valuable data that corrects the system's trajectory.
 
 ---
 
-## Inspired by
-
-[Memex](https://memexlab.ai) — incredible work on the timeline card model and insight philosophy. Different stack (Flutter, local-first) but the same core belief: life data deserves better than a dashboard.
-
----
-
-## License
-
-MIT
+*This is a personal system built for a specific lifestyle. If you're building a life-tracking data layer or a behavioral memory OS, feel free to steal the architecture, prompts, and patterns.*

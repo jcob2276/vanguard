@@ -13,11 +13,12 @@ const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
 const ALLOWED_CATEGORIES = ['Ciało', 'Konto', 'Duch', 'Chaos', 'Relacje'];
 
 // Zamknięty słownik event_kind i friction_type dla mikrotarć.
-const ALLOWED_EVENT_KINDS = ['friction_event', 'positive_micro_action', 'state_observation', 'micro_behavior_observation', 'reflection'];
+const ALLOWED_EVENT_KINDS = ['friction_event', 'positive_micro_action', 'recovery_event', 'state_observation', 'micro_behavior_observation', 'reflection'];
 const ALLOWED_FRICTION_TYPES = [
   'sleep_disruption', 'avoidance', 'procrastination', 'habit_break',
   'training_drop', 'social_hesitation', 'communication_drift',
-  'emotional_spike', 'self_control_break', 'positive_micro_action', 'other'
+  'emotional_spike', 'self_control_break', 'positive_micro_action',
+  'recovery_anchor', 'adaptive_move', 'other'
 ];
 
 // Normalizuje output LLM dla klasyfikacji: wymusza zamknięte słowniki i bezpieczne typy.
@@ -170,11 +171,13 @@ Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_ki
    - Przykład: "miałem napisać raport ale znowu odłożyłem" lub "chciałem poprosić do tańca ale się zawahałem".
 2. \`positive_micro_action\` — dobry mikrogest, pozytywne mikrozachowanie.
    - Przykład: "podałem ramię przy schodach" lub "powiedziałem komplement".
-3. \`state_observation\` — stan emocjonalny lub fizyczny użytkownika bez jawnego odchylenia intencji.
+3. \`recovery_event\` — przełamanie oporu, powrót do pionu po tarciu, lub zrobienie czegoś mimo niechęci (adaptive move).
+   - Przykład: "chciałem scrollować, ale odłożyłem telefon" lub "nie chciało mi się, ale i tak poszedłem na trening".
+4. \`state_observation\` — stan emocjonalny lub fizyczny użytkownika bez jawnego odchylenia intencji.
    - Przykład: "jadę na wesele, boli mnie brzuch, stresuję się" lub "jestem zmęczony, mam dziś mało energii".
-4. \`micro_behavior_observation\` — zaobserwowane zachowanie bez jawnej intencji w danym momencie (nawykowe gesty, tiki, sposoby reakcji).
+5. \`micro_behavior_observation\` — zaobserwowane zachowanie bez jawnej intencji w danym momencie (nawykowe gesty, tiki, sposoby reakcji).
    - Przykład: "zauważyłem, że nie patrzę w oczy podczas mówienia".
-5. \`reflection\` — refleksja, generalizacja, wniosek, przemyślenia.
+6. \`reflection\` — refleksja, generalizacja, wniosek, przemyślenia.
    - Przykład: "ludzie boją się ciszy, więc gadają o byle czym".
 
 Jeśli tekst nie opisuje żadnego z powyższych (np. jest to zwykłe neutralne powiadomienie, suchy plan dnia bez opisu wykonania, pytanie) → set \`is_relevant = false\` i \`event_kind = null\`.
@@ -196,13 +199,15 @@ SŁOWNIK friction_type (dla wszystkich typów oprócz 'reflection' i neutralnych
 - emotional_spike: nieoczekiwana, silna reakcja emocjonalna
 - self_control_break: złamanie własnej zasady (nie pić, nie sprawdzać telefonu, nie jeść X)
 - positive_micro_action: dobry mikrogest (podał ramię, zaproponował napój, powiedział komplement)
+- recovery_anchor: świadome powstrzymanie złego nawyku (np. odłożył telefon, wyszedł z aplikacji)
+- adaptive_move: zrobienie czegoś trudnego/ważnego pomimo oporu (np. poszedł na trening mimo braku sił)
 - other: inne odchylenie lub stan niepasujący do powyższych
 
 Zwróć TYLKO JSON:
 {
   "is_relevant": boolean,
-  "event_kind": "friction_event" | "positive_micro_action" | "state_observation" | "micro_behavior_observation" | "reflection" | null,
-  "friction_type": "sleep_disruption"|"avoidance"|"procrastination"|"habit_break"|"training_drop"|"social_hesitation"|"communication_drift"|"emotional_spike"|"self_control_break"|"positive_micro_action"|"other"|null,
+  "event_kind": "friction_event" | "positive_micro_action" | "recovery_event" | "state_observation" | "micro_behavior_observation" | "reflection" | null,
+  "friction_type": "sleep_disruption"|"avoidance"|"procrastination"|"habit_break"|"training_drop"|"social_hesitation"|"communication_drift"|"emotional_spike"|"self_control_break"|"positive_micro_action"|"recovery_anchor"|"adaptive_move"|"other"|null,
   "declared_intention": "dosłownie z tekstu co miało być zrobione (lub null jeśli nie podano)",
   "actual_behavior": "dosłownie z tekstu co się stało/co zaobserwowano (lub null)",
   "deviation": "różnica między intencją a zachowaniem — tylko jeśli obie strony są jawne w tekście (lub null)",
@@ -212,7 +217,7 @@ Zwróć TYLKO JSON:
   "location_context": "miejsce jeśli wymienione (lub null)"
 }
 
-WAŻNE: positive_micro_action zawsze ma is_relevant=true (to zdarzenie warte zalogowania).
+WAŻNE: positive_micro_action oraz recovery_event zawsze mają is_relevant=true (to zdarzenia warte zalogowania).
 
 Przykłady:
 "zaspałem" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", declared_intention=null, actual_behavior="zaspał", immediate_cost=null
@@ -389,7 +394,7 @@ Przykłady:
 
         if (friction.event_kind === 'friction_event') {
           criticalFields = ['declared_intention', 'actual_behavior', 'deviation'];
-        } else if (friction.event_kind === 'positive_micro_action') {
+        } else if (friction.event_kind === 'positive_micro_action' || friction.event_kind === 'recovery_event') {
           criticalFields = ['actual_behavior'];
         } else if (friction.event_kind === 'state_observation' || friction.event_kind === 'micro_behavior_observation') {
           criticalFields = ['actual_behavior', 'emotional_state'];
@@ -460,7 +465,7 @@ Przykłady:
     return new Response(JSON.stringify({
       success: true,
       classification,
-      friction_detected: friction.is_relevant && (friction.event_kind === 'friction_event' || friction.event_kind === 'positive_micro_action'),
+      friction_detected: friction.is_relevant && (friction.event_kind === 'friction_event' || friction.event_kind === 'positive_micro_action' || friction.event_kind === 'recovery_event'),
       event_kind: friction.event_kind || null,
       friction_type: friction.friction_type || null,
       extraction_quality: extractionQuality   // exposed for monitoring drift

@@ -14,11 +14,11 @@ Entry point for AI agents working in this repository.
 
 ## Konstytucja (non-negotiable)
 
-1. **System measures behavior. User gives meaning.** Evidence layer ≠ reasoning layer.
-2. **One write path for friction:** `vanguard_stream` → `vanguard-auto-classify` only.
+1. **System measures behavior. User gives meaning.** Evidence layer ≠ reasoning layer. System mierzy tarcie (friction), odzyskiwanie (recovery) oraz rozpoznaje powtarzalne stany (spirals/momentum).
+2. **One write path for friction & recovery:** `vanguard_stream` → `vanguard-auto-classify` only.
 3. **Extend, don’t duplicate:** new features plug into existing handlers / README-listed functions — no parallel Telegram clients, no second classify pipeline, no Oracle writes to graph/knowledge on chat turns.
-4. **Current-first:** stream 72h beats archive; patterns need explicit N — no “confirmed pattern” language.
-5. **Do not build:** shadow engine, psychoanalytic coaching, undeclared “digital twin” certainty, **ani mechanizmu, w którym system autonomicznie orzeka, że „manifestacja/intencja zadziałała”** (metafizyczna pewność). Deklarowane intencje (modlitwy, afirmacje, cele) są DOZWOLONE jako warstwa **deklaracji** do konfrontacji z zachowaniem — status zmienia wyłącznie użytkownik. Wiążący jest „Transurfing Layer Guardrail” w [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md), nie blankietowy zakaz.
+4. **Current-first:** stream 72h beats archive; patterns need explicit N — system może wyciągać wnioski o stanie/trajectory, jeśli opiera je na twardych danych historycznych.
+5. **Do not build:** shadow engine, psychoanalytic coaching, undeclared “digital twin” certainty, **ani mechanizmu, w którym system autonomicznie orzeka, że „manifestacja/intencja zadziałała”** (metafizyczna pewność). Deklarowane intencje (modlitwy, afirmacje, cele) są DOZWOLONE jako warstwa **deklaracji** do konfrontacji z zachowaniem (Outcome Continuity). Wiążący jest „Transurfing Layer Guardrail” w [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md), nie blankietowy zakaz.
 
 Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
