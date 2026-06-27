@@ -10,9 +10,9 @@ import {
   numInput,
 } from './workoutUtils';
 import ExerciseNameInput from './ExerciseNameInput';
-import TagRow from './TagRow';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { getTodayWarsaw } from '../../../lib/date';
+import { confirmDialog } from '../../../lib/notify';
 
 interface ExerciseCardProps {
   exercise: WorkoutExercise;
@@ -51,10 +51,19 @@ export default function ExerciseCard({
     });
   }
 
-  function removeSet(id: number) {
+  async function removeSet(id: number) {
     if (sets.length <= 1) return;
+    const set = sets.find((s) => s.id === id);
+    const hasData = !!(set?.kg || set?.reps);
+    if (hasData && !(await confirmDialog('Usunąć tę serię?'))) return;
     haptics.light();
     onChange({ ...exercise, sets: sets.filter((s) => s.id !== id) });
+  }
+
+  async function removeExercise() {
+    const hasData = sets.some((s) => s.kg || s.reps);
+    if (hasData && !(await confirmDialog(`Usunąć ćwiczenie "${exercise.name || 'bez nazwy'}" wraz z seriami?`))) return;
+    onRemove();
   }
 
   function updateSet(id: number, field: string, value: any) {
@@ -91,17 +100,12 @@ export default function ExerciseCard({
           {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
         <button
-          onClick={onRemove}
+          onClick={removeExercise}
           className="p-1 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
         >
           <Trash2 size={14} />
         </button>
       </div>
-
-      {/* Tags */}
-      {(tags.length > 0 || (exercise.name ?? '').trim().length > 0) && (
-        <TagRow tags={tags} onChange={(t) => onChange({ ...exercise, tags: t })} />
-      )}
 
       {/* Ostatnio + sugestia */}
       {lastSession && !isSaunaMode && (

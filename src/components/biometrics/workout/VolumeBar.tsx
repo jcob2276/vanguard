@@ -1,4 +1,4 @@
-import { tagClass } from '../../../data/exercises';
+import { tagClass, stimulusForExercise } from '../../../data/exercises';
 import { WorkoutExercise } from './workoutUtils';
 
 interface VolumeBarProps {
@@ -15,8 +15,11 @@ export default function VolumeBar({ exercises }: VolumeBarProps) {
       return sum + kg * reps;
     }, 0);
     if (exVol > 0) {
-      (ex.tags ?? []).forEach((tag) => {
-        vol[tag] = (vol[tag] || 0) + exVol;
+      const stimulus = stimulusForExercise(ex.name, ex.tags ?? []);
+      Object.entries(stimulus).forEach(([tag, weight]) => {
+        const factor = Number(weight.direct || 0) || Number(weight.indirect || 0);
+        if (factor <= 0) return;
+        vol[tag] = (vol[tag] || 0) + exVol * factor;
       });
     }
   });

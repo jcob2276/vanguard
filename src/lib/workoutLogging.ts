@@ -400,7 +400,7 @@ export async function saveWorkoutSession(
     p_logs: [...exLogs, ...acLogs],
     p_session_rpe: opts.sessionRpe ?? undefined,
   })
-  if (error) throw error
+  if (error) throw new Error(error.message || 'Nie udało się zapisać treningu')
 
   scheduleTrainingLoadAnalysis(userId, opts.workoutDate)
   scheduleStrainRecompute(userId)
@@ -419,13 +419,24 @@ export function isWellnessOnlySession(session: {
   return logs.every((l) => (l.muscle_tags ?? []).includes('wellness'))
 }
 
+export function sessionDateKey(date: string | null | undefined): string {
+  if (!date) return ''
+  return date.slice(0, 10)
+}
+
 export function isSaunaSession(session: {
   workout_day?: string | null
   exercise_logs?: Array<{ exercise_name?: string | null; muscle_tags?: string[] | null; reps?: number | null }> | null
 }): boolean {
   const logs = session.exercise_logs ?? []
   if (logs.some((l) => (l.exercise_name || '').toLowerCase().includes('sauna'))) return true
-  return (session.workout_day || '').toLowerCase() === 'sauna'
+  const day = (session.workout_day || '').toLowerCase()
+  if (day.includes('sauna')) return true
+  return logs.some(
+    (l) =>
+      (l.muscle_tags ?? []).includes('wellness') &&
+      WELLNESS_NAMES.some((w) => (l.exercise_name || '').toLowerCase().startsWith(w) && w === 'sauna'),
+  )
 }
 
 export function sumSaunaMinutes(session: {
@@ -444,7 +455,9 @@ export function getSaunaStats(
   }>,
   sinceDate: string,
 ) {
-  const recent = sessions.filter((s) => s.date >= sinceDate && isSaunaSession(s))
+  const recent = sessions.filter(
+    (s) => sessionDateKey(s.date) >= sinceDate && isSaunaSession(s),
+  )
   const sessionsCount = recent.length
   const totalMinutes = recent.reduce((sum, s) => sum + sumSaunaMinutes(s), 0)
   return { sessionsCount, totalMinutes }

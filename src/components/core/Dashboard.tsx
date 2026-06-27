@@ -121,6 +121,19 @@ export default function Dashboard({ session }: { session: Session }) {
     resumedWorkoutDraft.current = true;
     if (loadWorkoutDraft(userId)) setShowWorkoutLogger(true);
   }, [userId]);
+
+  // Some Android/WebView builds suspend the page in place (no remount) when the
+  // user switches to another app and back, but still drop in-memory UI state.
+  // Re-check on visibility return so an unfinished workout never silently strands.
+  useEffect(() => {
+    if (!userId) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      setShowWorkoutLogger((prev) => prev || !!loadWorkoutDraft(userId));
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [userId]);
   const [showSaunaLogger, setShowSaunaLogger] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);
@@ -256,17 +269,6 @@ export default function Dashboard({ session }: { session: Session }) {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="relative h-16 w-16">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-          <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-      </div>
-    );
-  }
-
   if (showSaunaLogger) {
     return (
       <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
@@ -292,6 +294,17 @@ export default function Dashboard({ session }: { session: Session }) {
             onBack={() => { setShowWorkoutLogger(false); setWorkoutInitial(null); refresh(); }}
           />
         </Suspense>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
       </div>
     );
   }

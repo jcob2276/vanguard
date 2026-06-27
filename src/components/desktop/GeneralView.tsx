@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BarChart2, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
 import {
@@ -7,6 +9,7 @@ import {
 } from 'recharts';
 import { Panel, Tip } from './Panel';
 import { C } from './desktopUtils';
+import { FRICTION_COLOR } from '../../../supabase/functions/_shared/domain.ts';
 
 const READINESS_COLOR: Record<string, string> = {
   primed: '#10b981',
@@ -15,8 +18,6 @@ const READINESS_COLOR: Record<string, string> = {
   rundown: '#f43f5e',
   insufficient: '#6b7280',
 };
-
-import { FRICTION_COLOR } from '../../../../supabase/functions/_shared/domain';
 
 function ZBadge({ z }: { z: number | null | undefined }) {
   if (z == null) return <span className="text-text-muted text-[10px]">–</span>;
@@ -166,8 +167,25 @@ export default function GeneralView({
   return (
     <div className="space-y-5">
 
+      <Link
+        id="korelacje"
+        to="/korealcje"
+        className="scroll-mt-28 flex items-center gap-4 rounded-[20px] border border-primary/20 bg-primary/[0.04] px-5 py-4 hover:bg-primary/[0.08] transition-colors group"
+      >
+        <div className="rounded-full border border-primary/25 bg-background p-2.5 text-primary">
+          <BarChart2 size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-black uppercase tracking-wider text-primary">Korelacje</p>
+          <p className="text-[10px] text-text-muted mt-0.5">
+            Skan odkrywczy z logów — sen, deep/REM, kawa, trening, nawyki (Lenie)…
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-text-muted group-hover:text-primary shrink-0 transition-colors" />
+      </Link>
+
       {/* ── SEKCJA: ZDROWIE ── */}
-      <div id="korelacje" className="scroll-mt-28 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-border-custom" />
         <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Zdrowie — 90 dni</span>
         <div className="h-px flex-1 bg-border-custom" />

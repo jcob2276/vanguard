@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTodayWarsaw } from '../../lib/date';
+import { supabase } from '../../lib/supabase';
 import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify, confirmDialog } from '../../lib/notify';
@@ -72,12 +73,14 @@ export default function WorkoutLogger({
     } catch { /* AudioContext unavailable/blocked */ }
   }, []);
 
+  const prevRestRemainingRef = useRef(0);
   useEffect(() => {
-    if (restEndTime && restRemaining <= 0) {
+    if (restEndTime && restRemaining <= 0 && prevRestRemainingRef.current > 0) {
       playRestGong();
       haptics.success();
       setRestEndTime(null);
     }
+    prevRestRemainingRef.current = restRemaining;
   }, [restRemaining, restEndTime, playRestGong, haptics]);
 
   const startRest = useCallback(() => {
@@ -165,6 +168,9 @@ export default function WorkoutLogger({
 
     setSaving(true);
     try {
+      // Long sessions (>1h) can outlive the access token if the tab was backgrounded;
+      // force a refresh check before writing so a stale token doesn't fail the save.
+      await supabase.auth.getSession();
       await saveWorkoutSession(userId, {
         workoutName,
         exercises,
@@ -183,7 +189,12 @@ export default function WorkoutLogger({
       onBack();
     } catch (err) {
       haptics.error();
-      notify(err instanceof Error ? err.message : String(err), 'error');
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('Not authorized') || message.includes('JWT')) {
+        notify('Sesja wygasła — odśwież stronę (Twój trening jest zapisany lokalnie, nic nie przepadnie)', 'error');
+      } else {
+        notify(message, 'error');
+      }
     } finally {
       setSaving(false);
     }
