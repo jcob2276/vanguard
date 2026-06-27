@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     // STATIC CONTEXT
     // Dead declared-intentions layer removed 2026-06-11: no writer, 0 rows.
     // Keep preferences: they contain user correction data.
-    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, strainRes] = await Promise.all([
+    const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, strainRes, dailyWinsRes] = await Promise.all([
       supabase.from('user_fundament')
         .select('identity, philosophy, vision')
         .eq('user_id', user_id)
@@ -149,14 +149,30 @@ Deno.serve(async (req) => {
         .eq('user_id', user_id)
         .gte('date', fourteenDaysAgoDate)
         .order('date', { ascending: false }),
+      supabase.from('daily_wins')
+        .select('task_1, done_1, category_1, task_2, done_2, category_2, task_3, done_3, category_3, task_4, done_4, category_4, task_5, done_5, category_5, importance_score, daily_rpe, day_note, gratitude_entry, mood_score')
+        .eq('user_id', user_id)
+        .eq('date', todayDate)
+        .maybeSingle(),
     ]);
 
     if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
     if (preferencesRes.error) console.error('[oracle] vanguard_preferences query error:', preferencesRes.error);
     if (oura14dRes.error) console.error('[oracle] oura_daily_summary query error:', oura14dRes.error);
     if (nutrition14dRes.error) console.error('[oracle] daily_nutrition query error:', nutrition14dRes.error);
+    if (dailyWinsRes.error) console.error('[oracle] daily_wins query error:', dailyWinsRes.error);
+
+    const w = dailyWinsRes.data;
+    const powerListText = w ? `
+1. [${w.category_1 || '?'}] ${w.task_1 || 'Brak'} (${w.done_1 ? 'ZROBIONE' : 'NIEWYKONANE'})
+2. [${w.category_2 || '?'}] ${w.task_2 || 'Brak'} (${w.done_2 ? 'ZROBIONE' : 'NIEWYKONANE'})
+3. [${w.category_3 || '?'}] ${w.task_3 || 'Brak'} (${w.done_3 ? 'ZROBIONE' : 'NIEWYKONANE'})
+4. [${w.category_4 || '?'}] ${w.task_4 || 'Brak'} (${w.done_4 ? 'ZROBIONE' : 'NIEWYKONANE'})
+5. [${w.category_5 || '?'}] ${w.task_5 || 'Brak'} (${w.done_5 ? 'ZROBIONE' : 'NIEWYKONANE'})` : '\nBrak ustalonej PowerListy na dziś.';
 
     const staticProfile = `
+[DZISIEJSZE CELE (PowerList) - AKTUALNY STAN DLA DATY ${todayDate}]:${powerListText}
+
 [TŁO TOŻSAMOŚCI - KONTEKST]:
 ${fundamentRes.data?.identity || 'Brak danych'}
 ${fundamentRes.data?.philosophy || 'Brak danych'}
