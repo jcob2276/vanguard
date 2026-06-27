@@ -23,12 +23,10 @@ import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
 import OrientationFooter from './OrientationFooter';
 import NutritionCard from './NutritionCard';
+import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
-import TodayMealsCard from './nutrition/TodayMealsCard';
-import TodayWorkoutsCard from '../biometrics/TodayWorkoutsCard';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
-import WorkoutQuickCapture from '../biometrics/WorkoutQuickCapture';
-import { loadWorkoutTemplate, loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import CaptureQueueCard from './CaptureQueueCard';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 
@@ -434,25 +432,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 onOpenSauna={() => setShowSaunaLogger(true)}
               />
 
-              <WorkoutQuickCapture
-                session={session}
-                refreshSignal={workoutKey}
-                onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
-                onOpenLogger={(initial) => {
-                  setWorkoutInitial(initial ?? null);
-                  setShowWorkoutLogger(true);
-                }}
-              />
-
-              <TodayMealsCard
-                session={session}
-                refreshSignal={nutritionKey}
-                onEditEntry={(entry) => {
-                  setFoodEditEntry(entry);
-                  setShowQuickFoodEntry(true);
-                }}
-              />
-
               <CaptureQueueCard
                 session={session}
                 onNavigate={(dest) => {
@@ -460,16 +439,6 @@ export default function Dashboard({ session }: { session: Session }) {
                   setView(dest);
                 }}
                 onQueueChange={refreshNudge}
-              />
-
-              <TodayWorkoutsCard
-                session={session}
-                refreshSignal={workoutKey}
-                onOpenLogger={async () => {
-                  const tpl = await loadWorkoutTemplate(session.user.id);
-                  setWorkoutInitial(tpl);
-                  setShowWorkoutLogger(true);
-                }}
               />
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
@@ -493,6 +462,7 @@ export default function Dashboard({ session }: { session: Session }) {
           <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
+                <NutritionTrainingBarCard session={session} refreshSignal={nutritionKey} />
                 <NutritionCard
                   weeklyCalories={weeklyCalories}
                   session={session}

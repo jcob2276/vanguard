@@ -3,12 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { notify } from '../../../lib/notify'
 import { getTodayWarsaw } from '../../../lib/date'
-import {
-  fetchNutritionDayContext,
-  isFoodLogClosed,
-  setFoodLogClosed,
-  type NutritionDayContext,
-} from '../../../lib/nutritionContext'
+import { fetchNutritionDayContext } from '../../../lib/nutritionContext'
 import {
   MEAL_TYPES,
   defaultMealType,
@@ -24,7 +19,6 @@ import {
   type ParsedFoodItem,
   confidenceLabel,
 } from '../../../lib/foodLogging'
-import NutritionTrainingBar from './NutritionTrainingBar'
 
 interface FavoriteChip extends FoodFavoriteRow {}
 
@@ -62,26 +56,16 @@ export default function FoodQuickCapture({
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<ParsedFoodItem[] | null>(null)
   const [removed, setRemoved] = useState<Set<number>>(new Set())
-  const [dayContext, setDayContext] = useState<NutritionDayContext | null>(null)
-  const [contextLoading, setContextLoading] = useState(true)
-  const [logClosed, setLogClosed] = useState(() => isFoodLogClosed(userId, getTodayWarsaw()))
-
   const refreshContext = useCallback(async () => {
-    setContextLoading(true)
-    try {
-      const ctx = await fetchNutritionDayContext(userId, logDate, session.access_token)
-      setDayContext(ctx)
-      setTotals({
-        calories: ctx.calories,
-        protein: ctx.protein,
-        targetKcal: ctx.targetKcal,
-        targetProtein: ctx.targetProtein,
-        avgFoodQuality: ctx.avgFoodQuality,
-        foodQualityAnalysis: ctx.foodQualityAnalysis,
-      })
-    } finally {
-      setContextLoading(false)
-    }
+    const ctx = await fetchNutritionDayContext(userId, logDate, session.access_token)
+    setTotals({
+      calories: ctx.calories,
+      protein: ctx.protein,
+      targetKcal: ctx.targetKcal,
+      targetProtein: ctx.targetProtein,
+      avgFoodQuality: ctx.avgFoodQuality,
+      foodQualityAnalysis: ctx.foodQualityAnalysis,
+    })
   }, [userId, logDate, session.access_token])
 
   const bumpQualityRefresh = useCallback(() => {
@@ -100,9 +84,8 @@ export default function FoodQuickCapture({
   }, [refreshContext, loadFavorites, refreshSignal])
 
   useEffect(() => {
-    setLogClosed(isFoodLogClosed(userId, logDate))
     void refreshContext()
-  }, [logDate, userId, refreshContext])
+  }, [logDate, refreshContext])
 
   useEffect(() => {
     try {
@@ -221,19 +204,6 @@ export default function FoodQuickCapture({
           </button>
         </div>
       </div>
-
-      {logDate === today ? (
-        <NutritionTrainingBar
-          ctx={dayContext}
-          loading={contextLoading}
-          logClosed={logClosed}
-          onToggleLogClosed={() => {
-            const next = !logClosed
-            setLogClosed(next)
-            setFoodLogClosed(userId, logDate, next)
-          }}
-        />
-      ) : null}
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[10px] font-bold text-text-muted">

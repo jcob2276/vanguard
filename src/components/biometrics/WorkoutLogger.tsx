@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTodayWarsaw } from '../../lib/date';
 import { supabase } from '../../lib/supabase';
-import { ChevronLeft, Save, Dumbbell, Zap, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
+import { ChevronLeft, Save, Dumbbell, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify, confirmDialog } from '../../lib/notify';
 import {
   newExercise,
-  newActivity,
   useStopwatch,
   useCountdown,
   type WorkoutExercise,
@@ -21,7 +20,6 @@ import {
   type WorkoutLoggerInitial,
 } from '../../lib/workoutLogging';
 import ExerciseCard from './workout/ExerciseCard';
-import ActivityCard from './workout/ActivityCard';
 import VolumeBar from './workout/VolumeBar';
 
 export default function WorkoutLogger({
@@ -148,17 +146,6 @@ export default function WorkoutLogger({
   const addExercise    = () => { haptics.light(); setExercises(p => [...p, newExercise()]); };
   const removeExercise = (id: number) => { if (exercises.length > 1) { haptics.light(); setExercises(p => p.filter(e => e.id !== id)); } };
   const updateExercise = (u: WorkoutExercise) => setExercises(p => p.map(e => e.id === u.id ? u : e));
-
-  const addActivity    = () => { haptics.light(); setActivities(p => [...p, newActivity()]); };
-  const removeActivity = (id: number) => { haptics.light(); setActivities(p => p.filter(a => a.id !== id)); };
-  const updateActivity = (u: WorkoutActivity) => setActivities(p => p.map(a => a.id === u.id ? u : a));
-
-  // Sauna/lodowata kąpiel/zimny prysznic get serie × minuty (+ opcjonalnie stopnie) via the
-  // 'wellness' exercise tag — same Min/°C set UI as ExerciseCard, no need to rebuild it here.
-  const addWellnessQuick = (name: string) => {
-    haptics.light();
-    setExercises(p => [...p, { ...newExercise(), name, tags: ['wellness'] }]);
-  };
 
   async function save() {
     if (!userId || saving) return;
@@ -331,31 +318,6 @@ export default function WorkoutLogger({
             <Plus size={13} /> Dodaj ćwiczenie
           </button>
           <VolumeBar exercises={exercises} />
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Zap size={12} className="text-text-muted" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Inne aktywności</span>
-          </div>
-
-          {/* Lodowata kąpiel — wellness exercise, not plain activity */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => addWellnessQuick('Lodowata kąpiel')}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] py-2 text-[10px] font-black uppercase tracking-wider text-sky-500 hover:bg-sky-500/10 active:scale-95 transition-all cursor-pointer"
-            >
-              + Lodowata
-            </button>
-          </div>
-
-          {activities.map(a => (
-            <ActivityCard key={a.id} activity={a} onChange={updateActivity} onRemove={() => removeActivity(a.id)} />
-          ))}
-          <button onClick={addActivity}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-orange-500/50 hover:text-orange-400 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
-            <Plus size={13} /> Dodaj aktywność (rower, spacer...)
-          </button>
         </div>
 
         <div className="space-y-2">
