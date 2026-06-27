@@ -445,7 +445,7 @@ export async function callParseLLM(
     model: 'deepseek-chat',
     temperature: 0.1,
     maxTokens: maxTokens ?? 1200,
-    timeoutMs: 25000,
+    timeoutMs: 45000,
     responseFormat: { type: 'json_object' },
     messages: [
       { role: 'system', content: system },

@@ -61,3 +61,8 @@ docs/GARMIN_COACH_REPORT_GUIDE.md
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Session debug artifacts
+.playwright-mcp/
+.tmp-get-based/
+screen-*.png

@@ -48,6 +48,8 @@ const GENERIC_FOODS: FoodResult[] = [
   { name: 'Truskawki', calories: 32, protein: 0.7, carbs: 7.7, fat: 0.3, fiber: 2, sugar: 4.9 },
   { name: 'Mleko 2%', calories: 50, protein: 3.4, carbs: 4.8, fat: 2, fiber: 0, sugar: 4.8 },
   { name: 'Jogurt naturalny', calories: 61, protein: 3.5, carbs: 4.7, fat: 3.3, fiber: 0, sugar: 4.7 },
+  { name: 'Skyr naturalny', calories: 65, protein: 12, carbs: 4, fat: 0, fiber: 0, sugar: 4 },
+  { name: 'Serek wiejski', calories: 97, protein: 11, carbs: 2, fat: 5, fiber: 0, sugar: 2 },
   { name: 'Twaróg półtłusty', calories: 137, protein: 18, carbs: 3.7, fat: 5, fiber: 0, sugar: 3.7 },
   { name: 'Ser żółty', calories: 350, protein: 25, carbs: 2, fat: 27, fiber: 0, sugar: 0.5 },
   { name: 'Masło', calories: 717, protein: 0.9, carbs: 0.1, fat: 81, fiber: 0, sugar: 0.1 },
@@ -133,7 +135,7 @@ async function fetchOffWithRetry(url: string): Promise<Response | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 400))
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': OFF_USER_AGENT }, signal: AbortSignal.timeout(15000) })
+      const res = await fetch(url, { headers: { 'User-Agent': OFF_USER_AGENT }, signal: AbortSignal.timeout(22000) })
       if (res.ok) return res
       console.warn(`[lookup-food] OFF attempt ${attempt + 1} -> ${res.status}`)
     } catch (err) {

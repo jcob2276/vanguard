@@ -1,5 +1,6 @@
 import { createServiceClient } from "../_shared/supabase.ts"
 import { resolveUserScope } from "../_shared/supabase.ts"
+import { estimateCaffeineMg } from "../_shared/caffeineEstimate.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -147,20 +148,6 @@ function computeReadiness(
   else if (good >= 2 && watch === 0) level = 'primed'
   else level = 'balanced'
   return { level, signals }
-}
-
-// ── CAFFEINE inference from food name (no dedicated caffeine_mg column) ────────
-function estimateCaffeineMg(name: string): number {
-  const n = name.toLowerCase()
-  if (n.includes('espresso')) return 63
-  if (n.includes('kawa') || n.includes('coffee') || n.includes('americano') ||
-      n.includes('cappuccino') || n.includes('latte') || n.includes('flat white') ||
-      n.includes('cortado') || n.includes('macchiato') || n.includes('cold brew')) return 95
-  if (n.includes('matcha') || n.includes('green tea')) return 30
-  if (n.includes('herbata') || n.includes('tea')) return 47
-  if (n.includes('energy drink') || n.includes('red bull') || n.includes('monster')) return 80
-  if (n.includes('cola') || n.includes('pepsi')) return 35
-  return 0
 }
 
 function serviceClient() {

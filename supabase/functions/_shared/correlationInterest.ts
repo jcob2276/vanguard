@@ -28,8 +28,14 @@ export function isPrivateBehaviorKey(key: string): boolean {
 }
 
 export function isPrivateBehaviorMetric(metric: string): boolean {
-  if (!metric.startsWith('behav__')) return false
-  return PRIVATE_BEHAVIOR.test(metric.replace(/^behav__/, ''))
+  if (metric.startsWith('behav__')) {
+    return PRIVATE_BEHAVIOR.test(metric.replace(/^behav__/, ''))
+  }
+  if (metric.startsWith('habit__')) {
+    const slug = metric.replace(/^habit__/, '')
+    return PRIVATE_BEHAVIOR.test(slug) || slug === 'lenie'
+  }
+  return false
 }
 
 export function isInterestingCorrelation(r: CorrelationLike & { x_metric?: string; y_metric?: string }): boolean {

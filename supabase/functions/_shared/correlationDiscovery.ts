@@ -52,6 +52,28 @@ export function behaviorMetricLabel(behaviorKey: string): string {
   return behaviorKey.replace(/_/g, ' ')
 }
 
+export function appendHabitLogMetrics(
+  series: Record<string, SeriesPoint[]>,
+  rows: { date: string; habit_name: string; completed: boolean | null }[],
+  labels: Record<string, string>,
+): void {
+  const byMetricDay: Record<string, Record<string, number>> = {}
+  for (const row of rows) {
+    if (!row.date || !row.completed) continue
+    const id = habitMetricId(row.habit_name)
+    labels[id] = row.habit_name
+    ;(byMetricDay[id] ||= {})[row.date] = 1
+  }
+  for (const [id, days] of Object.entries(byMetricDay)) {
+    series[id] = Object.entries(days).map(([day, value]) => ({ day, value }))
+  }
+}
+
+export function habitMetricId(habitName: string): string {
+  const slug = habitName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+  return `habit__${slug || 'unknown'}`
+}
+
 export function appendBehaviorLogMetrics(
   series: Record<string, SeriesPoint[]>,
   behaviorRows: { date: string; behavior_key: string; value: number | null }[],
@@ -94,7 +116,7 @@ export function scannableMetrics(
 }
 
 export function inferMetricCategory(metric: string): CorrelationCategory {
-  if (metric.startsWith('behav__')) return 'zachowanie'
+  if (metric.startsWith('behav__') || metric.startsWith('habit__')) return 'zachowanie'
   if (SEN_METRICS.has(metric)) return 'sen'
   if (ZYW_METRICS.has(metric)) return 'zywienie'
   if (TRENING_METRICS.has(metric)) return 'trening'

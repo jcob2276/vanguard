@@ -1,36 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
-import { supabase } from '../../../lib/supabase'
 import { notify } from '../../../lib/notify'
 import { getTodayWarsaw } from '../../../lib/date'
 import {
+  fetchNutritionDayContext,
+  isFoodLogClosed,
+  setFoodLogClosed,
+  type NutritionDayContext,
+} from '../../../lib/nutritionContext'
+import {
   MEAL_TYPES,
   defaultMealType,
-  fetchTodayNutrition,
+  ensureFoodStaples,
+  fetchQuickFavorites,
   getYesterdayWarsaw,
   needsReview,
   parseFoodNL,
   quickAddFavorite,
   repeatYesterdayMeal,
   saveParsedFoodItems,
+  type FoodFavoriteRow,
   type ParsedFoodItem,
   confidenceLabel,
 } from '../../../lib/foodLogging'
+import NutritionTrainingBar from './NutritionTrainingBar'
 
-interface FavoriteChip {
-  id: string
-  name: string
-  brand: string | null
-  barcode: string | null
-  calories: number | null
-  protein: number | null
-  carbs: number | null
-  fat: number | null
-  fiber: number | null
-  sugar: number | null
-  default_grams: number
-}
+interface FavoriteChip extends FoodFavoriteRow {}
 
 export default function FoodQuickCapture({
   session,
@@ -66,34 +62,47 @@ export default function FoodQuickCapture({
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<ParsedFoodItem[] | null>(null)
   const [removed, setRemoved] = useState<Set<number>>(new Set())
+  const [dayContext, setDayContext] = useState<NutritionDayContext | null>(null)
+  const [contextLoading, setContextLoading] = useState(true)
+  const [logClosed, setLogClosed] = useState(() => isFoodLogClosed(userId, getTodayWarsaw()))
 
-  const refreshTotals = useCallback(async () => {
-    setTotals(await fetchTodayNutrition(userId, logDate))
-  }, [userId, logDate])
+  const refreshContext = useCallback(async () => {
+    setContextLoading(true)
+    try {
+      const ctx = await fetchNutritionDayContext(userId, logDate, session.access_token)
+      setDayContext(ctx)
+      setTotals({
+        calories: ctx.calories,
+        protein: ctx.protein,
+        targetKcal: ctx.targetKcal,
+        targetProtein: ctx.targetProtein,
+        avgFoodQuality: ctx.avgFoodQuality,
+        foodQualityAnalysis: ctx.foodQualityAnalysis,
+      })
+    } finally {
+      setContextLoading(false)
+    }
+  }, [userId, logDate, session.access_token])
 
   const bumpQualityRefresh = useCallback(() => {
     setQualityPending(true)
-    window.setTimeout(() => { void refreshTotals().then(() => setQualityPending(false)) }, 8000)
-  }, [refreshTotals])
+    window.setTimeout(() => { void refreshContext().then(() => setQualityPending(false)) }, 8000)
+  }, [refreshContext])
 
   const loadFavorites = useCallback(async () => {
-    const { data } = await supabase
-      .from('food_favorites')
-      .select('id, name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams')
-      .eq('user_id', userId)
-      .order('use_count', { ascending: false })
-      .limit(3)
-    setFavorites((data as FavoriteChip[]) ?? [])
+    await ensureFoodStaples(userId)
+    setFavorites(await fetchQuickFavorites(userId, 8))
   }, [userId])
 
   useEffect(() => {
-    refreshTotals()
+    void refreshContext()
     loadFavorites()
-  }, [refreshTotals, loadFavorites, refreshSignal])
+  }, [refreshContext, loadFavorites, refreshSignal])
 
   useEffect(() => {
-    refreshTotals()
-  }, [logDate, refreshTotals])
+    setLogClosed(isFoodLogClosed(userId, logDate))
+    void refreshContext()
+  }, [logDate, userId, refreshContext])
 
   useEffect(() => {
     try {
@@ -118,7 +127,7 @@ export default function FoodQuickCapture({
       if (!needsReview(items)) {
         await saveParsedFoodItems(userId, items, { date: logDate, mealType })
         setText('')
-        await refreshTotals()
+        await refreshContext()
         bumpQualityRefresh()
         onSaved?.()
         notify(`Zapisano ${items.length} pozycji`, 'success')
@@ -140,7 +149,7 @@ export default function FoodQuickCapture({
       setText('')
       setPreview(null)
       setRemoved(new Set())
-      await refreshTotals()
+      await refreshContext()
       bumpQualityRefresh()
       onSaved?.()
       notify(`Zapisano ${activePreview.length} pozycji`, 'success')
@@ -156,7 +165,8 @@ export default function FoodQuickCapture({
     setSaving(true)
     try {
       await quickAddFavorite(userId, fav, logDate, mealType)
-      await refreshTotals()
+      await refreshContext()
+      await loadFavorites()
       bumpQualityRefresh()
       onSaved?.()
       notify(fav.name, 'success')
@@ -176,7 +186,7 @@ export default function FoodQuickCapture({
         notify('Brak wpisów z wczoraj', 'error')
         return
       }
-      await refreshTotals()
+      await refreshContext()
       bumpQualityRefresh()
       onSaved?.()
       notify('Powtórzono pierwszy wpis z wczoraj', 'success')
@@ -211,6 +221,19 @@ export default function FoodQuickCapture({
           </button>
         </div>
       </div>
+
+      {logDate === today ? (
+        <NutritionTrainingBar
+          ctx={dayContext}
+          loading={contextLoading}
+          logClosed={logClosed}
+          onToggleLogClosed={() => {
+            const next = !logClosed
+            setLogClosed(next)
+            setFoodLogClosed(userId, logDate, next)
+          }}
+        />
+      ) : null}
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[10px] font-bold text-text-muted">
@@ -284,17 +307,28 @@ export default function FoodQuickCapture({
 
       {(favorites.length > 0 || logDate === today) && (
         <div className="flex flex-wrap gap-1.5">
-          {favorites.map((f) => (
+          {favorites.map((f) => {
+            const shortName = f.name.replace(/\s*\(\d+mg kofeiny\)/i, '')
+            const label = f.is_pinned
+              ? `★ ${shortName.length > 18 ? `${shortName.slice(0, 16)}…` : shortName}`
+              : f.name.length > 22 ? `${f.name.slice(0, 20)}…` : f.name
+            return (
             <button
               key={f.id}
               type="button"
               disabled={saving}
               onClick={() => handleFavorite(f)}
-              className="rounded-full border border-border-custom bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-50"
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 ${
+                f.is_pinned
+                  ? 'border-primary/35 bg-primary/10 text-primary hover:bg-primary/15'
+                  : 'border-border-custom bg-background/40 text-text-secondary hover:border-primary/30 hover:text-primary'
+              }`}
+              title={f.brand ? `${f.name} — ${f.brand}` : f.name}
             >
-              {f.name.length > 22 ? `${f.name.slice(0, 20)}…` : f.name}
+              {label}
             </button>
-          ))}
+            )
+          })}
           <button
             type="button"
             disabled={saving}

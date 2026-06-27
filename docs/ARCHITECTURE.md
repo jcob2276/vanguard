@@ -14,8 +14,8 @@ Supabase project: configured per deployment through environment variables.
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
 | **Integrations** | Oura, Calendar, Strava, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
 | **Projects & Todo** | Native projects and separate task surfaces | `src/components/projects`, `src/components/todo`, `projects`, `todo_*` tables |
-| **Legacy workout** | Existing workout UI/data model | `src/`, `workout_*` tables |
-
+| Legacy workout | Existing workout UI/data model | `src/`, `workout_*` tables |
+| **Behavior capture map** | Where each behavior type is logged (SSOT: `src/lib/behaviorCapture.ts`) | Desktop `BehaviorCapturePanel`, Telegram commands |
 
 ---
 
@@ -115,6 +115,19 @@ Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midd
 | `todo_sections`, `todo_items` | Separate task model; `todo_sections.project_id` is only an optional project bridge |
 
 Deprecated legacy tables: `career_projects`, `career_moves`, `career_evidence`, `career_decisions`. These belonged to the removed Kariera module and must not be used for new product reads/writes.
+
+**Behavior logging (do not duplicate):**
+
+| What | Canonical table | How to log |
+|------|-----------------|------------|
+| Free text, friction, context | `vanguard_stream` | Telegram, voice, PowerList, BlockTimer |
+| Daily habits incl. Lenie | `habits` + `habit_logs` | Desktop Nawyki, `/lenie` → also mirrors to stream |
+| Strength / wellness (sauna) | `workout_sessions` + `exercise_logs` | Workout logger, Sauna modal |
+| Confounders (alcohol, stress, illness, travel) | `behavior_log` | Desktop Sygnały dnia |
+| Meals / caffeine | `daily_food_entries` | Food logger, Telegram meal |
+| Supplements | `supplement_logs` | Telegram `/sup` |
+| Friction atoms | `friction_events` | **Derived** from stream via auto-classify only |
+| Legacy stretch checkboxes | `daily_habits` | **Deprecated** — no UI; use `habits` instead |
 
 ---
 

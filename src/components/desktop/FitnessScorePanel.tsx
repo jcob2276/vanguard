@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { Panel } from './Panel';
 import { daysBefore, isLogWellness, weekStartDate } from './desktopUtils';
-import { getSaunaStats, isWellnessOnlySession } from '../../lib/workoutLogging';
+import { getSaunaStats, isWellnessOnlySession, sessionDateKey } from '../../lib/workoutLogging';
 import { getTodayWarsaw } from '../../lib/date';
 import {
   bodyCompositionBonus,
   cooperBestKm,
   cooperToPoints,
+  computeHabitConsistency,
   extractLiftPRs,
   strengthCapacityScore,
   type BodyRow,
@@ -82,15 +83,15 @@ function computeFitnessProfile(input: {
   const weekStart = weekStartDate();
 
   const trainingSessions7d = sessions.filter(
-    (s) => s.date >= since7 && !isWellnessOnlySession(s),
+    (s) => sessionDateKey(s.date) >= since7 && !isWellnessOnlySession(s),
   ).length;
   const strava7dActivities = strava.filter((a) => stravaDay(a) >= since7);
   const strava7d = strava7dActivities.length;
   const strava7dStats = summarizeStravaWindow(strava7dActivities);
 
-  const habitLogs7d = habitLogs.filter((l) => l.date >= since7 && l.completed).length;
-  const activeHabitsCount = habits.length || 1;
-  const habitRate = habitLogs7d / (activeHabitsCount * 7);
+  const habitConsistency = computeHabitConsistency(habits, habitLogs, today);
+  const { habitRate, successTotal: habitSuccessTotal, slotTotal: habitSlotTotal, summaryLabel: habitSummaryLabel } =
+    habitConsistency;
   const consistencyScore = Math.min(
     10,
     Math.max(1, parseFloat(((trainingSessions7d + strava7d) * 1.5 + habitRate * 4).toFixed(1))),
@@ -270,7 +271,15 @@ function computeFitnessProfile(input: {
       key: 'consistency',
       label: 'Regularność',
       score: consistencyScore,
-      detail: `${trainingSessions7d} sesji treningowych + ${strava7d} cardio (7 dni, bez sauny). Nawyki: ${habitLogs7d}/${activeHabitsCount * 7} (${Math.round(habitRate * 100)}%). Wzór: (trening + cardio) × 1,5 + nawyki × 4.`,
+      detail:
+        `${trainingSessions7d} sesji siłowych + ${strava7d} cardio (7 dni). Nawyki — ${habitSummaryLabel}` +
+        (habitSlotTotal > 0
+          ? ` (łącznie ${habitSuccessTotal}/${habitSlotTotal}, ${Math.round(habitRate * 100)}%).`
+          : '.') +
+        ` Wzór: (trening + cardio) × 1,5 + nawyki × 4.` +
+        (saunaCount7d > 0
+          ? ` Sauna: ${saunaCount7d}× / ${saunaMinutes7d} min — liczy się w „Regeneracja & wellness”, nie w regularności.`
+          : ' Sauna/wellness liczy się osobno w „Regeneracja & wellness”.'),
     },
     {
       key: 'endurance',

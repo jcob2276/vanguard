@@ -548,6 +548,19 @@ export async function handleLenieCommand(
 
     if (logErr) throw logErr;
 
+    const streamParts = [`[Nawyk/Lenie] (unikać, ${today})`];
+    if (finalStimulus) streamParts.push(`bodziec: ${finalStimulus}`);
+    if (contextNote) streamParts.push(`kontekst: ${contextNote}`);
+    const { error: streamErr } = await supabase.from('vanguard_stream').insert({
+      user_id: vanguardUserId,
+      content: streamParts.join(' · '),
+      source: 'habit_log',
+      category: 'behavior',
+      classification: 'habit_log',
+      metadata: { habit_name: 'Lenie', is_positive: false, date: today },
+    });
+    if (streamErr) console.warn('[commands] /lenie stream mirror failed:', streamErr.message);
+
     const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
     await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   } catch (err) {

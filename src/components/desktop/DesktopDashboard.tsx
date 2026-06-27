@@ -14,7 +14,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import {
-  RefreshCw, Smartphone, Moon, Sun, Fingerprint, Dumbbell,
+  RefreshCw, Smartphone, Moon, Sun, Fingerprint,
 } from 'lucide-react';
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
 import { useNudgeData } from '../../hooks/useNudgeData';
@@ -31,6 +31,8 @@ import LeniePanelMini from './LeniePanelMini';
 import HexagonPanel from './HexagonPanel';
 import FitnessScorePanel from './FitnessScorePanel';
 import HabitsPanel from './HabitsPanel';
+import BehaviorCapturePanel from './BehaviorCapturePanel';
+import { mirrorHabitLogToStream } from '../../lib/behaviorEvidence';
 import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
 import DreamEditModal from './DreamEditModal';
@@ -79,13 +81,21 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   async function toggleHabit(habitId: string) {
     const today = getTodayWarsaw();
+    const habit = habits.find((h: any) => h.id === habitId);
     const existing = habitLogs.find((l: any) => l.habit_id === habitId && l.date === today);
     if (existing) {
       const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
       if (!error) setHabitLogs((prev: any) => prev.filter((l: any) => l.id !== existing.id));
     } else {
       const { data, error } = await supabase.from('habit_logs').insert({ user_id: userId, habit_id: habitId, date: today, completed: true }).select().single();
-      if (!error) setHabitLogs((prev: any) => [...prev, data]);
+      if (!error) {
+        setHabitLogs((prev: any) => [...prev, data]);
+        if (habit) {
+          void mirrorHabitLogToStream(userId, habit, { completed: true, date: today }).catch((err) => {
+            console.warn('[toggleHabit] stream mirror failed', err);
+          });
+        }
+      }
     }
   }
   // ── Dreams (Lista 200 Marzeń) ─────────────────────────────────────────────
@@ -406,13 +416,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void openWorkout()}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.08] px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/15 transition-all active:scale-95 cursor-pointer"
-          >
-            <Dumbbell size={13} /> Zaloguj trening
-          </button>
+          <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
           <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
             className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer">
             {theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-yellow-400" />}
@@ -451,8 +455,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
           currentWeight={currentWeight}
           weight30ago={weight30ago}
         />
-
-        <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
 
         <SmartAlerts alerts={alerts} />
 
@@ -587,6 +589,8 @@ export default function DesktopDashboard({ session }: { session: any }) {
             toggleHabit={toggleHabit}
           />
         </div>
+
+        <BehaviorCapturePanel userId={userId} />
 
         <DreamsPanel
           dreams={dreams}

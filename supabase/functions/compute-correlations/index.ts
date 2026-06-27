@@ -4,7 +4,7 @@ import {
 } from '../_shared/correlationEngine.ts'
 import { METRIC_LABELS, type CorrelationCategory } from '../_shared/correlationCatalog.ts'
 import {
-  appendBehaviorLogMetrics, discoveryScore, DISCOVERY_LAGS, DISCOVERY_MAX_RESULTS,
+  appendBehaviorLogMetrics, appendHabitLogMetrics, discoveryScore, DISCOVERY_LAGS, DISCOVERY_MAX_RESULTS,
   inferMetricCategory, isCrossDomainPair, passesDiscoveryGate, scannableMetrics, shouldSkipDiscoveryPair,
 } from '../_shared/correlationDiscovery.ts'
 import { aggregateStravaRuns, buildMetricSeries } from '../_shared/correlationSeries.ts'
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
 
     const [
       strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, workoutR,
-      winsR, planR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR,
+      winsR, planR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
     ] = await Promise.all([
       supabase.from('daily_strain')
         .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, cns_load, leg_load, mental_load_score, illness_score, components')
@@ -183,6 +183,9 @@ Deno.serve(async (req) => {
       supabase.from('body_metrics')
         .select('date, weight')
         .eq('user_id', userId).gte('date', start90).order('date'),
+      supabase.from('habit_logs')
+        .select('date, completed, habits(name)')
+        .eq('user_id', userId).gte('date', start90),
     ])
 
     const slugMap = new Map((suppR.data ?? []).map(s => [s.id, s.slug]))
@@ -215,8 +218,15 @@ Deno.serve(async (req) => {
       bodyRows: bodyR.data ?? [],
     })
 
+    const habitLogRows = (habitLogR.data ?? []).flatMap(row => {
+      const name = (row.habits as { name?: string } | null)?.name
+      if (!name || !row.date) return []
+      return [{ date: row.date, habit_name: name, completed: row.completed }]
+    })
+
     const runtimeLabels: Record<string, string> = {}
     appendBehaviorLogMetrics(series, behaviorRows, runtimeLabels)
+    appendHabitLogMetrics(series, habitLogRows, runtimeLabels)
     const labels = { ...METRIC_LABELS, ...runtimeLabels }
 
     const metrics = scannableMetrics(series)

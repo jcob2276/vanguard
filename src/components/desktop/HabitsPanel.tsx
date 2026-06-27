@@ -34,7 +34,10 @@ export default function HabitsPanel({
   return (
     <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Nawyki</p>
+        <div>
+          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Nawyki</p>
+          <p className="text-[8px] text-text-muted/70 mt-0.5">Kanoniczny log → habit_logs (Lenie = ten sam mechanizm co /lenie)</p>
+        </div>
         <button onClick={() => setIsAddingHabit(p => !p)} className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary border border-primary/20 bg-primary/5 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-all cursor-pointer">
           <Plus size={10} /> Dodaj
         </button>

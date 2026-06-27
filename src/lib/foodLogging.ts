@@ -82,15 +82,17 @@ export function getYesterdayWarsaw(): string {
 }
 
 export async function fetchTodayNutrition(userId: string, date = getTodayWarsaw()): Promise<TodayNutritionSnapshot> {
-  const [{ data: dayRow }, { data: targetRow }] = await Promise.all([
+  const [{ data: dayRow }, { data: targetRow }, { data: latestTarget }] = await Promise.all([
     supabase.from('daily_nutrition').select('calories, protein, avg_food_quality, food_quality_analysis').eq('user_id', userId).eq('date', date).maybeSingle(),
+    supabase.from('nutrition_targets').select('target_kcal, protein_floor_g').eq('user_id', userId).eq('date', date).maybeSingle(),
     supabase.from('nutrition_targets').select('target_kcal, protein_floor_g').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
   ])
+  const target = targetRow ?? latestTarget
   return {
     calories: dayRow?.calories ?? 0,
     protein: dayRow?.protein ?? 0,
-    targetKcal: targetRow?.target_kcal ?? null,
-    targetProtein: targetRow?.protein_floor_g ?? null,
+    targetKcal: target?.target_kcal ?? null,
+    targetProtein: target?.protein_floor_g ?? null,
     avgFoodQuality: dayRow?.avg_food_quality ?? null,
     foodQualityAnalysis: dayRow?.food_quality_analysis ?? null,
   }
@@ -104,7 +106,7 @@ export async function parseFoodNL(text: string, userId: string, accessToken: str
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ text: text.trim(), userId }),
-    signal: AbortSignal.timeout(35000),
+    signal: AbortSignal.timeout(60000),
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
@@ -165,9 +167,111 @@ export async function saveFoodCorrection(
   if (error) throw error
 }
 
+export interface FoodFavoriteRow {
+  id: string
+  name: string
+  brand: string | null
+  barcode: string | null
+  calories: number | null
+  protein: number | null
+  carbs: number | null
+  fat: number | null
+  fiber: number | null
+  sugar: number | null
+  default_grams: number
+  is_pinned?: boolean
+}
+
+/** Per-100g base values; default_grams = typical portion size. */
+export const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
+  {
+    name: 'Kawa domowa (90mg kofeiny)',
+    brand: 'express + 180ml mleko',
+    calories: 50,
+    protein: 3,
+    carbs: 4.5,
+    fat: 2,
+    fiber: 0,
+    sugar: 4,
+    default_grams: 200,
+    is_pinned: true,
+  },
+  {
+    name: 'Twaróg 150g',
+    brand: 'staple',
+    calories: 100,
+    protein: 18,
+    carbs: 3,
+    fat: 2,
+    fiber: 0,
+    sugar: 2,
+    default_grams: 150,
+    is_pinned: true,
+  },
+  {
+    name: 'Jajka 3 szt',
+    brand: 'staple',
+    calories: 155,
+    protein: 13,
+    carbs: 1,
+    fat: 11,
+    fiber: 0,
+    sugar: 1,
+    default_grams: 150,
+    is_pinned: true,
+  },
+]
+
+export async function ensureFoodStaples(userId: string): Promise<void> {
+  for (const staple of FOOD_STAPLES) {
+    const { data: existing } = await supabase
+      .from('food_favorites')
+      .select('id, is_pinned')
+      .eq('user_id', userId)
+      .eq('name', staple.name)
+      .eq('brand', staple.brand)
+      .maybeSingle()
+
+    if (!existing) {
+      const { error } = await supabase.from('food_favorites').insert({
+        user_id: userId,
+        name: staple.name,
+        brand: staple.brand,
+        calories: staple.calories,
+        protein: staple.protein,
+        carbs: staple.carbs,
+        fat: staple.fat,
+        fiber: staple.fiber,
+        sugar: staple.sugar,
+        default_grams: staple.default_grams,
+        is_pinned: true,
+        use_count: 50,
+      })
+      if (error) console.warn('[ensureFoodStaples] insert failed', staple.name, error.message)
+      continue
+    }
+
+    if (!existing.is_pinned) {
+      await supabase.from('food_favorites').update({ is_pinned: true }).eq('id', existing.id)
+    }
+  }
+}
+
+export async function fetchQuickFavorites(userId: string, limit = 8): Promise<FoodFavoriteRow[]> {
+  const { data, error } = await supabase
+    .from('food_favorites')
+    .select('id, name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams, is_pinned')
+    .eq('user_id', userId)
+    .order('is_pinned', { ascending: false })
+    .order('use_count', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data as FoodFavoriteRow[]) ?? []
+}
+
 export async function quickAddFavorite(
   userId: string,
-  fav: { name: string; brand: string | null; barcode: string | null; calories: number | null; protein: number | null; carbs: number | null; fat: number | null; fiber: number | null; sugar: number | null; default_grams: number },
+  fav: FoodFavoriteRow,
   date: string,
   mealType: string,
 ): Promise<void> {

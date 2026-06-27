@@ -29,6 +29,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |
+| `daily_habits` (fixed columns: stretch, protein_170g…) | Deprecated | No write UI. New habits → `habits`/`habit_logs`. Read-only in old correlation series until data archived. |
 | Unmounted web widgets | Dropped | OuraWidget, OuraEnhanced, SleepDebtCard, MentorChat (web Oracle chat), GraphMind, ThoughtStream, IntentionTracker, ManifestationBoard, LocationTracker, AWImporter — deleted 2026-06-11 after being deliberately unmounted in earlier commits; recover from git history if needed. |
 | Training plan-vs-Strava Telegram analysis | Dropped | `analyze-training` deleted from the codebase. Do not send plan-vs-Strava LLM reports to Telegram; `analyze-training-load` remains UI-only. |
 | Ghost prediction/intervention tables | Dropped | `vanguard_correlations`, `vanguard_temporal_links`, and `vanguard_youtube` dropped 2026-06-11 after their only runtime paths were removed. |
