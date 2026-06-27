@@ -195,7 +195,7 @@ export interface FoodFavoriteRow {
 /** Per-100g base values; default_grams = typical portion size. */
 export const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
   {
-    name: 'Kawa domowa (120mg kofeiny)',
+    name: 'Kawa domowa (70mg kofeiny)',
     brand: 'espresso 60ml + 340ml mleko 3.2%',
     calories: 51,
     protein: 2.6,
