@@ -321,20 +321,7 @@ export default function GrowthView({ session }: { session: Session }) {
       </header>
 
       <div className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-6">
-        {!loading && hasLegacySkillTree && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
-            <p className="text-[12px] text-text-secondary">
-              Stara lista skilli w bazie — przywróć drzewo życiowe, żeby mapa miała sens.
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleRestoreSkillTree()}
-              className="shrink-0 rounded-lg bg-primary px-3 py-2 text-[10px] font-black uppercase text-white cursor-pointer"
-            >
-              Przywróć domyślne
-            </button>
-          </div>
-        )}
+
 
         {loading ? (
           <div className="h-64 animate-pulse rounded-2xl bg-surface border border-border-custom" />
