@@ -6,6 +6,7 @@ import { notify } from '../../lib/notify';
 import type { GrowthLinkRow, GrowthTodoRow } from '../../hooks/useGrowthData';
 import type { LearningWeekPin } from '../../lib/growth';
 import { pinTitle } from './PinPickerModal';
+import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 
 function escapeHtml(text: string): string {
   return text
@@ -31,9 +32,10 @@ export default function DoneTakeawayModal({
   onSaved: () => void;
 }) {
   const title = pinTitle(pin, linksById, todosById);
-  const [gapText, setGapText] = useState('');
-  const [recallText, setRecallText] = useState('');
-  const [critiqueText, setCritiqueText] = useState('');
+  // Persisted per-pin — a backgrounded-tab kill mid-write-up must not erase the takeaway.
+  const [gapText, setGapText] = usePersistentDraft(`vanguard_takeaway_gap_${pin.id}`, '');
+  const [recallText, setRecallText] = usePersistentDraft(`vanguard_takeaway_recall_${pin.id}`, '');
+  const [critiqueText, setCritiqueText] = usePersistentDraft(`vanguard_takeaway_critique_${pin.id}`, '');
   const [lines, setLines] = useState(['', '']);
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +86,7 @@ export default function DoneTakeawayModal({
         tags: ['rozwoj'],
       });
       if (error) throw error;
+      setGapText(''); setRecallText(''); setCritiqueText('');
       notify('Wniosek zapisany w Notatkach', 'success');
       onSaved();
       onClose();

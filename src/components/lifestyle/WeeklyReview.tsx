@@ -16,6 +16,7 @@ import WeeklyBriefView from './WeeklyBriefView';
 import GrowthWeekRecapCard from '../growth/GrowthWeekRecapCard';
 import { useGrowthWeekRecap } from '../../hooks/useGrowthWeekRecap';
 import { convertNoteToTodoItem } from '../../lib/captureBridge';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 
 export default function WeeklyReview({ session, onBack }: { session: Session; onBack: () => void }) {
   const uid = session.user.id;
@@ -159,7 +160,7 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId: uid }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);

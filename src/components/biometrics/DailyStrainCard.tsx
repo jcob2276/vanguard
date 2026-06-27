@@ -1,8 +1,9 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 import { useCallback, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, Heart, Coffee, Droplets } from 'lucide-react';
+import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, Heart, Coffee, Droplets, BarChart2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -369,6 +370,14 @@ export default function DailyStrainCard({
             ))}
           </div>
         )}
+
+        <Link
+          to="/korealcje"
+          className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-border-custom bg-surface-solid/40 py-2 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
+        >
+          <BarChart2 size={11} />
+          Korelacje — kawa, sen, trening
+        </Link>
       </div>
     </section>
   );

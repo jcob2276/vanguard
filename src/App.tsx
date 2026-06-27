@@ -13,6 +13,11 @@ import SettingsView from './components/settings/SettingsView';
 const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
 const GrowthView = lazy(() => import('./components/growth/GrowthView'));
 const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
+const CorrelationsPage = lazy(() => import('./components/correlations/CorrelationsPage'));
+
+function KorelacjeRedirect() {
+  return <Navigate to="/korealcje" replace />;
+}
 
 function KeepRedirect() {
   const params = new URLSearchParams(window.location.search);
@@ -71,6 +76,12 @@ function AppRoutes() {
           <MedicalStudiesPage session={session} />
         </Suspense>
       } />
+      <Route path="/korealcje" element={
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+          <CorrelationsPage session={session} />
+        </Suspense>
+      } />
+      <Route path="/korelacje" element={<KorelacjeRedirect />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

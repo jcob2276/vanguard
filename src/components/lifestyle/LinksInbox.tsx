@@ -21,6 +21,8 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { notify, confirmDialog } from '../../lib/notify';
 import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/captureBridge';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
+import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 
 interface SavedLink {
   id: string;
@@ -66,10 +68,12 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
-  const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
+  // Persisted — in-progress per-link notes and the URL being added must survive a
+  // backgrounded-tab kill before they're saved.
+  const [notesDrafts, setNotesDrafts] = usePersistentDraft<Record<string, string>>(`vanguard_link_notes_drafts_${session.user.id}`, {});
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addUrl, setAddUrl] = useState('');
+  const [addUrl, setAddUrl] = usePersistentDraft(`vanguard_link_add_url_draft_${session.user.id}`, '');
+  const [showAddForm, setShowAddForm] = useState(() => Boolean(addUrl.trim()));
   const [addLoading, setAddLoading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [bouncingIds, setBouncingIds] = useState<Set<string>>(new Set());
@@ -112,7 +116,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ type: 'save_link', url: actualUrl }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -140,7 +144,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ type: 'save_link', url: urlMatch[0] }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));

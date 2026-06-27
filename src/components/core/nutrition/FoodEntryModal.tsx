@@ -13,6 +13,8 @@ import {
   scheduleFoodQualityAnalysis,
   type ParsedFoodItem as NLFoodItem,
 } from '../../../lib/foodLogging';
+import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
+import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
 
 declare global {
   interface Window {
@@ -160,17 +162,18 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const [todayTotals, setTodayTotals] = useState<{ calories: number; protein: number } | null>(null);
   const [targets, setTargets] = useState<{ target_kcal: number | null; protein_floor_g: number | null } | null>(null);
 
-  // Manual entry
+  // Manual entry — persisted so a backgrounded-tab kill mid-typing doesn't wipe it.
+  const manualDraftKey = (field: string) => userId ? `vanguard_food_manual_${field}_${userId}` : null;
   const [manualMode, setManualMode] = useState(false);
-  const [manualName, setManualName] = useState('');
-  const [manualKcal, setManualKcal] = useState('');
-  const [manualProtein, setManualProtein] = useState('');
-  const [manualCarbs, setManualCarbs] = useState('');
-  const [manualFat, setManualFat] = useState('');
+  const [manualName, setManualName] = usePersistentDraft(manualDraftKey('name'), '');
+  const [manualKcal, setManualKcal] = usePersistentDraft(manualDraftKey('kcal'), '');
+  const [manualProtein, setManualProtein] = usePersistentDraft(manualDraftKey('protein'), '');
+  const [manualCarbs, setManualCarbs] = usePersistentDraft(manualDraftKey('carbs'), '');
+  const [manualFat, setManualFat] = usePersistentDraft(manualDraftKey('fat'), '');
 
   // NL mode
   const [nlMode, setNlMode] = useState(false);
-  const [nlText, setNlText] = useState('');
+  const [nlText, setNlText] = usePersistentDraft(userId ? `vanguard_food_nl_draft_${userId}` : null, '');
   const [nlParsing, setNlParsing] = useState(false);
   const [nlItems, setNlItems] = useState<NLItem[] | null>(null);
   const [nlSaving, setNlSaving] = useState(false);
@@ -266,7 +269,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
         const { data: { session: authSession } } = await supabase.auth.getSession();
         const offPromise = fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?q=${encodeURIComponent(query.trim())}`,
-          { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(15000) }
+          { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) }
         ).then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); });
 
         const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
@@ -297,7 +300,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       const { data: { session: authSession } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?barcode=${encodeURIComponent(code)}`,
-        { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(15000) }
+        { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();

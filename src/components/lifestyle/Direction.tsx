@@ -21,6 +21,7 @@ import type { Tables, TablesUpdate } from '../../lib/database.types';
 import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
+import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
@@ -54,6 +55,7 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
 
 export default function Direction({ session }: { session: Session }) {
   const haptics = useHaptics();
+  const userId = session.user.id;
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<DailyWinRow[]>([]);
 
@@ -62,18 +64,24 @@ export default function Direction({ session }: { session: Session }) {
   const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
   const [weekGoals, setWeekGoals] = useState<LifeGoalRow | null>(null);
 
-  const [proudOf, setProudOf] = useState('');
-  const [doDifferently, setDoDifferently] = useState('');
-  const [sabotage, setSabotage] = useState('');
-  const [obligation, setObligation] = useState('');
-  const [weekHighlight, setWeekHighlight] = useState('');
-  const [weekRegret, setWeekRegret] = useState('');
-  const [newBelief, setNewBelief] = useState('');
-  const [weekIntention, setWeekIntention] = useState('');
-  const [weekCommitment, setWeekCommitment] = useState('');
-  const [weekGoalCialo, setWeekGoalCialo] = useState('');
-  const [weekGoalDuch, setWeekGoalDuch] = useState('');
-  const [weekGoalKonto, setWeekGoalKonto] = useState('');
+  const currentWeekStart = format(startOfWeek(new Date(todayWarsaw() + 'T12:00:00'), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+  // Persisted — multi-paragraph weekly review answers, filled in over a session;
+  // a backgrounded-tab kill (Android reclaiming memory) must not erase them before submit.
+  // Keyed by week_start so a stale draft never bleeds into next week's blank review.
+  const draftKey = (field: string) => `vanguard_review_draft_${field}_${userId}_${currentWeekStart}`;
+  const [proudOf, setProudOf] = usePersistentDraft(draftKey('proudOf'), '');
+  const [doDifferently, setDoDifferently] = usePersistentDraft(draftKey('doDifferently'), '');
+  const [sabotage, setSabotage] = usePersistentDraft(draftKey('sabotage'), '');
+  const [obligation, setObligation] = usePersistentDraft(draftKey('obligation'), '');
+  const [weekHighlight, setWeekHighlight] = usePersistentDraft(draftKey('weekHighlight'), '');
+  const [weekRegret, setWeekRegret] = usePersistentDraft(draftKey('weekRegret'), '');
+  const [newBelief, setNewBelief] = usePersistentDraft(draftKey('newBelief'), '');
+  const [weekIntention, setWeekIntention] = usePersistentDraft(draftKey('weekIntention'), '');
+  const [weekCommitment, setWeekCommitment] = usePersistentDraft(draftKey('weekCommitment'), '');
+  const [weekGoalCialo, setWeekGoalCialo] = usePersistentDraft(draftKey('weekGoalCialo'), '');
+  const [weekGoalDuch, setWeekGoalDuch] = usePersistentDraft(draftKey('weekGoalDuch'), '');
+  const [weekGoalKonto, setWeekGoalKonto] = usePersistentDraft(draftKey('weekGoalKonto'), '');
   const [pillarScores, setPillarScores] = useState<PillarScores>({ cialo: null, duch: null, konto: null });
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
   const [focusGoalMappings, setFocusGoalMappings] = useState<Record<string, string>>({});
@@ -89,13 +97,12 @@ export default function Direction({ session }: { session: Session }) {
   const [phase2Loading, setPhase2Loading] = useState(false);
 
   const [savingReflection, setSavingReflection] = useState(false);
-  const [deepeningAnswers, setDeepeningAnswers] = useState<Record<string, string>>({});
+  const [deepeningAnswers, setDeepeningAnswers] = usePersistentDraft<Record<string, string>>(draftKey('deepeningAnswers'), {});
   const [completing, setCompleting] = useState(false);
 
 
   const todayNoon = new Date(todayWarsaw() + 'T12:00:00');
   const isSunday = todayNoon.getDay() === 0;
-  const currentWeekStart = format(startOfWeek(todayNoon, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
   // Sunday → plan next week; otherwise → current week
   const planRef = isSunday ? addDays(todayNoon, 7) : todayNoon;

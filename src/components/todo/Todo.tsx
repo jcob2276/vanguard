@@ -25,6 +25,7 @@ import {
 import { listProjects } from '../../lib/projects';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 
 // Subcomponents and helpers
 import {
@@ -40,6 +41,7 @@ import BucketHeader from './BucketHeader';
 import TodoCard from './TodoCard';
 import SectionTabs from './SectionTabs';
 import TodoQuickCapture from './TodoQuickCapture';
+import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 
 export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session?.user?.id;
@@ -68,7 +70,11 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const goTo = (dest: 'todo' | 'keep' | 'links') => {
     if (onNavigateTo) onNavigateTo(dest);
   };
-  const [form, setForm] = useState({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
+  // Persisted — typed quick-add text must survive a backgrounded-tab kill before it's submitted.
+  const [form, setForm] = usePersistentDraft(
+    userId ? `vanguard_todo_quickadd_draft_${userId}` : null,
+    { title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' },
+  );
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: any } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [batchClassifying, setBatchClassifying] = useState(false);
@@ -315,7 +321,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, due_date: item.due_date || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }).then(() => setTimeout(fetchAll, 200)).catch(() => {});
   }, [userId, session.access_token, fetchAll]);
 
@@ -329,7 +335,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       })
     ));
     await fetchAll();

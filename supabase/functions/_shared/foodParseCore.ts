@@ -574,40 +574,43 @@ async function lookupViaLibrary(
   return pickBestMatch(name, data as Per100gFood[])
 }
 
+async function reconcileOne(
+  item: ParsedFoodItem,
+  opts: { supabaseUrl: string; serviceKey: string; userId?: string; db?: any },
+): Promise<ParsedFoodItem> {
+  let match: Per100gFood | null = null
+  let source: 'library' | 'database' | null = null
+
+  if (opts.userId && opts.db) {
+    match = await lookupViaLibrary(item.name, opts.userId, opts.db)
+    if (match?.calories != null) source = 'library'
+  }
+
+  if (!match?.calories) {
+    match = await lookupViaDatabase(item.name, opts.supabaseUrl, opts.serviceKey)
+    if (match?.calories != null) source = 'database'
+  }
+
+  if (match?.calories != null && source) {
+    const macros = recalcFromPer100g(item.grams, match)
+    return {
+      ...item,
+      ...macros,
+      name: match.name || item.name,
+      confidence: 'high',
+      source,
+      assumptions: item.assumptions,
+    }
+  }
+
+  return item
+}
+
 export async function reconcileItems(
   items: ParsedFoodItem[],
   opts: { supabaseUrl: string; serviceKey: string; userId?: string; db?: any },
 ): Promise<ParsedFoodItem[]> {
-  const reconciled: ParsedFoodItem[] = []
-
-  for (const item of items) {
-    let match: Per100gFood | null = null
-    let source: 'library' | 'database' | null = null
-
-    if (opts.userId && opts.db) {
-      match = await lookupViaLibrary(item.name, opts.userId, opts.db)
-      if (match?.calories != null) source = 'library'
-    }
-
-    if (!match?.calories) {
-      match = await lookupViaDatabase(item.name, opts.supabaseUrl, opts.serviceKey)
-      if (match?.calories != null) source = 'database'
-    }
-
-    if (match?.calories != null && source) {
-      const macros = recalcFromPer100g(item.grams, match)
-      reconciled.push({
-        ...item,
-        ...macros,
-        name: match.name || item.name,
-        confidence: 'high',
-        source,
-        assumptions: item.assumptions,
-      })
-    } else {
-      reconciled.push(item)
-    }
-  }
-
-  return reconciled
+  // Items are independent — reconciling them one-at-a-time turned a 3-item meal into
+  // up to 3x15s of sequential lookup-food round trips, blowing the caller's 35s budget.
+  return Promise.all(items.map((item) => reconcileOne(item, opts)))
 }

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import type { Tables } from '../lib/database.types';
+import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 
 type DashboardData = {
   weeklyCalories: number;
@@ -129,7 +130,7 @@ export function useDashboardData() {
             'Authorization': `Bearer ${session.access_token}`
           },
           body: JSON.stringify({ userId: session.user.id }),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
         });
       }
     } catch (_e) {

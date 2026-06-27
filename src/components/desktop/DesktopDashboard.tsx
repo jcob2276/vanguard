@@ -1,6 +1,7 @@
 import { getTodayWarsaw } from '../../lib/date';
 import { mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
-import { Suspense, lazy, useEffect, useState, useCallback, useMemo } from 'react';
+import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
+import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import SmartAlerts from './SmartAlerts';
 import DesktopHero from './DesktopHero';
@@ -18,7 +19,7 @@ import {
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { createProject } from '../../lib/projects';
-import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { loadWorkoutTemplate, loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { notify, confirmDialog } from '../../lib/notify';
 
 // Subcomponents and hooks
@@ -220,6 +221,16 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
+  const resumedWorkoutDraft = useRef(false);
+
+  // Tab/process can get killed and remounted fresh (memory pressure) while the logger was
+  // open; this in-memory flag would default back to false and strand the persisted draft
+  // with no UI to reach it. Auto-resume into the logger instead.
+  useEffect(() => {
+    if (resumedWorkoutDraft.current || !userId) return;
+    resumedWorkoutDraft.current = true;
+    if (loadWorkoutDraft(userId)) setShowWorkout(true);
+  }, [userId]);
   const [showFundament, setShowFundament] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
 
@@ -242,7 +253,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(b),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!r.ok) throw new Error(fn);
     };

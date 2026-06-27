@@ -5,6 +5,7 @@
 // (Welch t-test + Cohen's d), nie korelacji Pearsona.
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
 import { studentTPValue } from "../_shared/stats.ts"
+import { isInterestingBehaviorEffect } from "../_shared/correlationInterest.ts"
 
 function erfApprox(x: number): number {
   const sign = x < 0 ? -1 : 1
@@ -82,6 +83,7 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient()
     const body = await req.json().catch(() => ({}))
     const { userId } = await resolveUserScope(req, body.userId ?? null)
+    const includeWeak = body.include_weak === true
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
@@ -176,7 +178,26 @@ Deno.serve(async (req) => {
       return Math.abs(b.cohens_d ?? 0) - Math.abs(a.cohens_d ?? 0)
     })
 
-    return new Response(JSON.stringify({ success: true, results, behaviors_tracked: Object.keys(byKey).length, window_days: 90 }), {
+    const computedTotal = results.length
+    const interesting = results.filter(r => isInterestingBehaviorEffect({
+      behavior_key: r.behavior_key,
+      significant: r.significant,
+      cohens_d: r.cohens_d,
+      n_with: r.n_with,
+      n_without: r.n_without,
+      p_value: r.p_value,
+    }, { includePrivate: includeWeak }))
+    const output = includeWeak ? results : interesting
+
+    return new Response(JSON.stringify({
+      success: true,
+      results: output,
+      behaviors_tracked: Object.keys(byKey).length,
+      computed_total: computedTotal,
+      hidden_weak: computedTotal - interesting.length,
+      window_days: 90,
+      filtered: !includeWeak,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error: any) {

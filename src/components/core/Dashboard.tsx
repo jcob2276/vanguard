@@ -28,7 +28,7 @@ import TodayMealsCard from './nutrition/TodayMealsCard';
 import TodayWorkoutsCard from '../biometrics/TodayWorkoutsCard';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import WorkoutQuickCapture from '../biometrics/WorkoutQuickCapture';
-import { loadWorkoutTemplate, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { loadWorkoutTemplate, loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import CaptureQueueCard from './CaptureQueueCard';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 
@@ -110,6 +110,17 @@ export default function Dashboard({ session }: { session: Session }) {
     });
   }, [view]);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const resumedWorkoutDraft = useRef(false);
+
+  // Android frequently kills a backgrounded PWA tab to reclaim memory; on return the app
+  // does a fresh mount and this in-memory flag defaults back to false, stranding the
+  // (still-persisted) workout draft with no UI to reach it. Auto-resume into the logger
+  // instead of silently landing back on the dashboard.
+  useEffect(() => {
+    if (resumedWorkoutDraft.current || !userId) return;
+    resumedWorkoutDraft.current = true;
+    if (loadWorkoutDraft(userId)) setShowWorkoutLogger(true);
+  }, [userId]);
   const [showSaunaLogger, setShowSaunaLogger] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);

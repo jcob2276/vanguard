@@ -44,7 +44,12 @@ export default function FoodQuickCapture({
   refreshSignal?: number
 }) {
   const userId = session.user.id
-  const [text, setText] = useState('')
+  const draftKey = `vanguard_food_quick_draft_${userId}`
+  // Survives a backgrounded-tab kill (Android frequently reclaims a PWA tab's memory) —
+  // without this, switching apps mid-typing silently lost the unparsed meal description.
+  const [text, setText] = useState(() => {
+    try { return localStorage.getItem(draftKey) || '' } catch { return '' }
+  })
   const [mealType, setMealType] = useState(defaultMealType())
   const [logDate, setLogDate] = useState(() => getTodayWarsaw())
   const [totals, setTotals] = useState({
@@ -89,6 +94,13 @@ export default function FoodQuickCapture({
   useEffect(() => {
     refreshTotals()
   }, [logDate, refreshTotals])
+
+  useEffect(() => {
+    try {
+      if (text.trim()) localStorage.setItem(draftKey, text)
+      else localStorage.removeItem(draftKey)
+    } catch { /* quota */ }
+  }, [text, draftKey])
 
   const activePreview = preview?.filter((_, i) => !removed.has(i)) ?? []
 

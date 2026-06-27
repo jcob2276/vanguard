@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrendArrow } from './TrendArrow';
 import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/bodyMetrics';
+import { BMI_NORMAL_LOW, BMI_NORMAL_HIGH } from '../../../lib/constants';
 
 interface TrendPoint {
   cur: number | null;
@@ -87,7 +88,7 @@ export function BodyMetricsSection({
   const bf = waistNavy && neck && heightCm ? navyBodyFatPct(waistNavy, neck, heightCm) : null;
 
   const bfColor = bf == null ? '' : bf < 12 ? 'text-amber-500' : bf < 18 ? 'text-emerald-500 dark:text-emerald-400' : bf < 25 ? 'text-text-primary' : 'text-rose-500';
-  const bmiColor = bmi == null ? '' : bmi < 18.5 ? 'text-amber-500' : bmi < 25 ? 'text-emerald-500 dark:text-emerald-400' : bmi < 30 ? 'text-amber-500' : 'text-rose-500';
+  const bmiColor = bmi == null ? '' : bmi < BMI_NORMAL_LOW ? 'text-amber-500' : bmi < BMI_NORMAL_HIGH ? 'text-emerald-500 dark:text-emerald-400' : bmi < 30 ? 'text-amber-500' : 'text-rose-500';
 
   return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">

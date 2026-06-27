@@ -1,165 +1,111 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
-import { studentTPValue } from '../_shared/stats.ts'
+import {
+  confidenceTier, dualCorrelation, interpretR, laggedPairs, type CorrelationMethod, type ScatterPoint,
+} from '../_shared/correlationEngine.ts'
+import { METRIC_LABELS, type CorrelationCategory } from '../_shared/correlationCatalog.ts'
+import {
+  appendBehaviorLogMetrics, discoveryScore, DISCOVERY_LAGS, DISCOVERY_MAX_RESULTS,
+  inferMetricCategory, isCrossDomainPair, passesDiscoveryGate, scannableMetrics, shouldSkipDiscoveryPair,
+} from '../_shared/correlationDiscovery.ts'
+import { aggregateStravaRuns, buildMetricSeries } from '../_shared/correlationSeries.ts'
+import { correlationInterestScore, isInterestingCorrelation } from '../_shared/correlationInterest.ts'
 
-// ── Pearson r + OLS slope/intercept + approximate two-sided p-value.
-// Lagged variant: x[D] vs y[D+lag] to probe delayed effects.
-
-interface Correlation {
-  r: number        // Pearson [-1, 1]
-  n: number        // pairs used
-  p: number        // two-sided p-value (normal approx)
-  slope: number    // OLS y on x
-  intercept: number
-}
-
-// erf(x) — Abramowitz & Stegun 7.1.26, |error| ≤ 1.5e-7
-function erfApprox(x: number): number {
-  const sign = x < 0 ? -1 : 1
-  const ax = Math.abs(x)
-  const t = 1 / (1 + 0.3275911 * ax)
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
-    - 0.284496736) * t + 0.254829592) * t * Math.exp(-ax * ax)
-  return sign * y
-}
-
-function normalCDF(z: number): number {
-  return 0.5 * (1 + erfApprox(z / Math.sqrt(2)))
-}
-
-function pValue(r: number, n: number): number {
-  if (n <= 2) return 1
-  const oneMinusR2 = 1 - r * r
-  if (oneMinusR2 <= 0) return 0
-  const t = r * Math.sqrt((n - 2) / oneMinusR2)
-  return studentTPValue(t, n - 2)
-}
-
-function pearson(xy: [number, number][]): Correlation | null {
-  const n = xy.length
-  if (n < 3) return null
-  const nd = n
-
-  let sumX = 0, sumY = 0
-  for (const [x, y] of xy) { sumX += x; sumY += y }
-  const meanX = sumX / nd, meanY = sumY / nd
-
-  let sxx = 0, syy = 0, sxy = 0
-  for (const [x, y] of xy) {
-    const dx = x - meanX, dy = y - meanY
-    sxx += dx * dx; syy += dy * dy; sxy += dx * dy
-  }
-  if (sxx <= 0 || syy <= 0) return null
-
-  let r = sxy / (Math.sqrt(sxx) * Math.sqrt(syy))
-  r = Math.max(-1, Math.min(1, r))
-
-  const slope = sxy / sxx
-  const intercept = meanY - slope * meanX
-  return { r, n, p: pValue(r, n), slope, intercept }
-}
-
-function shiftDay(day: string, delta: number): string | null {
-  if (delta === 0) return day
-  const d = new Date(day + 'T12:00:00Z')
-  if (isNaN(d.getTime())) return null
-  d.setUTCDate(d.getUTCDate() + delta)
-  return d.toISOString().slice(0, 10)
-}
-
-function lagged(
-  x: { day: string; value: number }[],
-  y: { day: string; value: number }[],
-  lagDays: number
-): Correlation | null {
-  const mapY: Record<string, number> = {}
-  for (const row of y) mapY[row.day] = row.value
-
-  const pairs: [number, number][] = []
-  for (const row of [...x].sort((a, b) => a.day.localeCompare(b.day))) {
-    const shifted = shiftDay(row.day, lagDays)
-    if (shifted && mapY[shifted] != null) {
-      pairs.push([row.value, mapY[shifted]])
-    }
-  }
-  return pearson(pairs)
-}
-
-// ── Correlation spec ────────────────────────────────────────────────────────
-
-interface CorrelationSpec {
+interface CorrelationResult {
   id: string
-  label: string        // human-readable, PL
-  xMetric: string
-  yMetric: string
-  lagDays: number
-  note: string         // context why this matters
+  category: CorrelationCategory
+  label: string
+  note: string
+  x_metric: string
+  y_metric: string
+  x_label: string
+  y_label: string
+  lag_days: number
+  method: CorrelationMethod
+  r: number
+  r_pearson: number | null
+  r_spearman: number | null
+  r_abs: number
+  n: number
+  p: number
+  significant: boolean
+  confidence: 'calibrating' | 'building' | 'solid'
+  has_enough_data: boolean
+  slope: number
+  intercept: number
+  interpretation: string
+  discovered: boolean
+  cross_domain: boolean
+  scatter: ScatterPoint[]
 }
 
-const SPECS: CorrelationSpec[] = [
-  // Recovery / regeneracja
-  { id: 'strain_recovery_1d',    label: 'Strain dziś → Recovery jutro',      xMetric: 'strain',    yMetric: 'recovery',  lagDays: 1,  note: 'Czy ciężki trening obniża jutrzejsze recovery?' },
-  { id: 'strain_recovery_2d',    label: 'Strain dziś → Recovery pojutrze',   xMetric: 'strain',    yMetric: 'recovery',  lagDays: 2,  note: 'Opóźniona odpowiedź regeneracyjna (DOMS)' },
-  { id: 'strain_hrv_1d',         label: 'Strain dziś → HRV jutro',           xMetric: 'strain',    yMetric: 'hrv',       lagDays: 1,  note: 'Wpływ obciążenia na autonomiczny układ nerwowy' },
-  { id: 'recovery_strain_0d',    label: 'Recovery → Strain tego dnia',       xMetric: 'recovery',  yMetric: 'strain',    lagDays: 0,  note: 'Czy lepsze recovery → cięższy trening?' },
-  { id: 'sleep_recovery_0d',     label: 'Sen → Recovery',                    xMetric: 'sleep_h',   yMetric: 'recovery',  lagDays: 0,  note: 'Prosta korelacja sen–recovery' },
-  { id: 'sleep_hrv_0d',          label: 'Sen → HRV',                         xMetric: 'sleep_h',   yMetric: 'hrv',       lagDays: 0,  note: 'Długość snu vs zmienność rytmu serca' },
-  // Żywienie → regeneracja
-  { id: 'protein_hrv_1d',        label: 'Białko dziś → HRV jutro',           xMetric: 'protein',   yMetric: 'hrv',       lagDays: 1,  note: 'Makroskładnik z najsilniejszym sygnałem anabolicznym' },
-  { id: 'protein_recovery_1d',   label: 'Białko dziś → Recovery jutro',      xMetric: 'protein',   yMetric: 'recovery',  lagDays: 1,  note: 'Czy dobre odżywienie białkowe wspiera regenerację?' },
-  { id: 'calories_recovery_1d',  label: 'Kalorie dziś → Recovery jutro',     xMetric: 'calories',  yMetric: 'recovery',  lagDays: 1,  note: 'Ujemna korelacja = underfueling obniża recovery' },
-  { id: 'carbs_recovery_1d',     label: 'Węgle dziś → Recovery jutro',       xMetric: 'carbs',     yMetric: 'recovery',  lagDays: 1,  note: 'Ważne dla biegaczy: glikogen vs regeneracja' },
-  { id: 'fueling_recovery_1d',   label: 'Fueling score → Recovery jutro',    xMetric: 'fueling',   yMetric: 'recovery',  lagDays: 1,  note: 'Kompozytowy wskaźnik żywienia vs regeneracja' },
-  { id: 'calories_hrv_1d',       label: 'Kalorie dziś → HRV jutro',          xMetric: 'calories',  yMetric: 'hrv',       lagDays: 1,  note: 'Niedojadanie jako stresor autonomiczny' },
-  // Aktywność → zdrowie
-  { id: 'steps_recovery_1d',     label: 'Kroki dziś → Recovery jutro',       xMetric: 'steps',     yMetric: 'recovery',  lagDays: 1,  note: 'NEAT: lekka aktywność vs regeneracja' },
-  { id: 'cardio_hrv_1d',         label: 'Cardio load → HRV jutro',           xMetric: 'cardio',    yMetric: 'hrv',       lagDays: 1,  note: 'Intensywność cardio vs ANS' },
-  { id: 'strength_recovery_1d',  label: 'Siłownia → Recovery jutro',         xMetric: 'strength',  yMetric: 'recovery',  lagDays: 1,  note: 'Czy ciężka siłownia obniża recovery?' },
-]
-
-// ── Predictor and Outcome definitions for dynamic discovery
-const PREDICTORS = [
-  'sleep_h', 'hrv', 'rhr', 'readiness',
-  'strain', 'recovery', 'fueling',
-  'calories', 'protein', 'carbs', 'steps'
-]
-
-const OUTCOMES = [
-  'execution_score', 'identity_score', 'dopamine_load_index',
-  'friction_count', 'avoidance_count', 'procrastination_count'
-]
-
-const METRIC_LABELS: Record<string, string> = {
-  sleep_h: 'Długość snu',
-  hrv: 'HRV',
-  rhr: 'Tętno spoczynkowe (RHR)',
-  readiness: 'Gotowość (Readiness)',
-  strain: 'Obciążenie (Strain)',
-  recovery: 'Regeneracja (Recovery)',
-  fueling: 'Fueling score',
-  calories: 'Kalorie',
-  protein: 'Białko',
-  carbs: 'Węglowodany',
-  steps: 'Kroki',
-  execution_score: 'Wykonanie zadań (Execution)',
-  identity_score: 'Zgodność z tożsamością',
-  dopamine_load_index: 'Dopamine load',
-  friction_count: 'Liczba tarć (Friction)',
-  avoidance_count: 'Liczba unikań (Avoidance)',
-  procrastination_count: 'Liczba prokrastynacji'
+function pairKey(x: string, y: string, lag: number) {
+  return `${x}|${y}|${lag}`
 }
 
-// ── Label helpers ────────────────────────────────────────────────────────────
-
-function interpretR(r: number): string {
-  const a = Math.abs(r)
-  const dir = r > 0 ? 'pozytywna' : 'negatywna'
-  if (a >= 0.5) return `silna ${dir}`
-  if (a >= 0.3) return `umiarkowana ${dir}`
-  if (a >= 0.1) return `słaba ${dir}`
-  return 'brak korelacji'
+function labelFor(metric: string, labels: Record<string, string>): string {
+  return labels[metric] ?? METRIC_LABELS[metric] ?? metric.replace(/^behav__/, '').replace(/_/g, ' ')
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+function buildResult(
+  xMetric: string,
+  yMetric: string,
+  lagDays: number,
+  dual: ReturnType<typeof dualCorrelation>,
+  scatter: ScatterPoint[],
+  labels: Record<string, string>,
+  crossDomain: boolean,
+): CorrelationResult | null {
+  const primary = dual.primary
+  if (!primary) return null
+  const significant = primary.p < 0.05 && primary.n >= 10
+  const xLabel = labelFor(xMetric, labels)
+  const yLabel = labelFor(yMetric, labels)
+  const lagSuffix = lagDays > 0 ? ` (+${lagDays}d)` : ''
+  return {
+    id: `disc_${xMetric}_${yMetric}_${lagDays}d`,
+    category: inferMetricCategory(xMetric),
+    label: `${xLabel} → ${yLabel}${lagSuffix}`,
+    note: crossDomain
+      ? 'Odkryte skanowanie — para między domenami (Pearson/Spearman, wybrano silniejszą).'
+      : 'Odkryte skanowanie — para w Twoich logach (Pearson/Spearman, wybrano silniejszą).',
+    x_metric: xMetric,
+    y_metric: yMetric,
+    x_label: xLabel,
+    y_label: yLabel,
+    lag_days: lagDays,
+    method: dual.method,
+    r: +primary.r.toFixed(3),
+    r_pearson: dual.pearson ? +dual.pearson.r.toFixed(3) : null,
+    r_spearman: dual.spearman ? +dual.spearman.r.toFixed(3) : null,
+    r_abs: +Math.abs(primary.r).toFixed(3),
+    n: primary.n,
+    p: +primary.p.toFixed(4),
+    significant,
+    confidence: confidenceTier(primary.n),
+    has_enough_data: primary.n >= 6,
+    slope: +primary.slope.toFixed(4),
+    intercept: +primary.intercept.toFixed(2),
+    interpretation: interpretR(primary.r),
+    discovered: true,
+    cross_domain: crossDomain,
+    scatter: scatter.slice(-60),
+  }
+}
+
+function computePair(
+  series: Record<string, { day: string; value: number }[]>,
+  xMetric: string,
+  yMetric: string,
+  lagDays: number,
+) {
+  const x = series[xMetric]
+  const y = series[yMetric]
+  if (!x?.length || !y?.length) return null
+  const { pairs, scatter } = laggedPairs(x, y, lagDays)
+  if (pairs.length < 6) return null
+  const dual = dualCorrelation(pairs)
+  return dual.primary ? { dual, scatter } : null
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -168,190 +114,180 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient()
     const body = await req.json().catch(() => ({}))
     const { userId } = await resolveUserScope(req, body.userId ?? null)
+    const includeWeak = body.include_weak === true
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
     const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-    const start90 = (() => { const d = new Date(todayWarsaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 90); return d.toISOString().split('T')[0] })()
+    const start90 = (() => {
+      const d = new Date(todayWarsaw + 'T12:00:00Z')
+      d.setUTCDate(d.getUTCDate() - 90)
+      return d.toISOString().slice(0, 10)
+    })()
 
-    // ── Fetch all source series ────────────────────────────────────────────
-    const [strainR, ouraR, nutrR, aggregatesR, frictionR] = await Promise.all([
+    const [
+      strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, workoutR,
+      winsR, planR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR,
+    ] = await Promise.all([
       supabase.from('daily_strain')
-        .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, components')
+        .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, cns_load, leg_load, mental_load_score, illness_score, components')
         .eq('user_id', userId).gte('date', start90).order('date'),
       supabase.from('oura_daily_summary')
-        .select('date, hrv_avg, rhr_avg, readiness_score, total_sleep_hours')
+        .select('date, hrv_avg, rhr_avg, readiness_score, total_sleep_hours, sleep_score')
+        .eq('user_id', userId).gte('date', start90).order('date'),
+      supabase.from('oura_enhanced')
+        .select('date, sleep_efficiency, sleep_latency_minutes, deep_sleep_hours, rem_sleep_hours, light_sleep_hours, sleep_average_heart_rate, sleep_average_hrv, sleep_lowest_heart_rate, restless_periods, temperature_deviation, spo2_percentage, vo2_max, stress_high_minutes, average_met_minutes, sedentary_minutes, bedtime_start')
         .eq('user_id', userId).gte('date', start90).order('date'),
       supabase.from('daily_nutrition')
-        .select('date, calories, protein, carbs')
+        .select('date, calories, protein, carbs, fat, sugar, fiber, insulin_load, avg_food_quality')
         .eq('user_id', userId).gte('date', start90).order('date'),
       supabase.from('vanguard_daily_aggregates')
-        .select('date, execution_score, identity_score, dopamine_load_index')
+        .select('date, execution_score, identity_score, dopamine_load_index, screen_time_min, fragmentation_index')
         .eq('user_id', userId).gte('date', start90).order('date'),
       supabase.from('friction_events')
         .select('occurred_at, friction_type')
-        .eq('user_id', userId)
-        .gte('occurred_at', start90 + 'T00:00:00Z'),
+        .eq('user_id', userId).gte('occurred_at', start90 + 'T00:00:00Z'),
+      supabase.from('daily_food_entries')
+        .select('date, name, logged_at, calories')
+        .eq('user_id', userId).gte('date', start90).order('date'),
+      supabase.from('workout_sessions')
+        .select('workout_day, hr_avg_bpm, hr_peak_bpm, hr_strain_score')
+        .eq('user_id', userId).gte('workout_day', start90),
+      supabase.from('daily_wins')
+        .select('date, mood_score, daily_rpe, done_1, done_2, done_3, done_4, done_5, task_1, task_2, task_3, task_4, task_5')
+        .eq('user_id', userId).gte('date', start90).order('date'),
+      supabase.from('daily_plan')
+        .select('plan_date, energy_level')
+        .eq('user_id', userId).gte('plan_date', start90),
+      supabase.from('daily_reconciliations')
+        .select('date, day_score, phone_drift_morning')
+        .eq('user_id', userId).gte('date', start90),
+      supabase.from('behavior_log')
+        .select('date, behavior_key, value')
+        .eq('user_id', userId).gte('date', start90),
+      supabase.from('supplement_logs')
+        .select('date, supplement_id')
+        .eq('user_id', userId).gte('date', start90),
+      supabase.from('supplements')
+        .select('id, slug')
+        .eq('user_id', userId),
+      supabase.from('strava_activities_clean')
+        .select('start_date, sport_type, hr_avg, perceived_exertion, cadence_spm, suffer_score, distance, is_oura')
+        .eq('user_id', userId).gte('start_date', start90 + 'T00:00:00Z'),
+      supabase.from('aw_daily_summary')
+        .select('date, productivity_ratio, phone_active_seconds')
+        .eq('user_id', userId).gte('date', start90),
+      supabase.from('daily_habits')
+        .select('date, bar_hang, child_pose, chin_tucks, couch_stretch, glute_bridge, protein_170g')
+        .eq('user_id', userId).gte('date', start90),
+      supabase.from('body_metrics')
+        .select('date, weight')
+        .eq('user_id', userId).gte('date', start90).order('date'),
     ])
 
-    if (strainR.error) console.warn('[correlations] strain query error:', strainR.error.message)
-    if (ouraR.error) console.warn('[correlations] oura query error:', ouraR.error.message)
-    if (nutrR.error) console.warn('[correlations] nutrition query error:', nutrR.error.message)
-    if (aggregatesR.error) console.warn('[correlations] aggregates query error:', aggregatesR.error.message)
-    if (frictionR.error) console.warn('[correlations] friction query error:', frictionR.error.message)
+    const slugMap = new Map((suppR.data ?? []).map(s => [s.id, s.slug]))
+    const supplementRows = (suppLogR.data ?? []).map(row => ({
+      date: row.date,
+      slug: slugMap.get(row.supplement_id) ?? 'unknown',
+    }))
 
-    // ── Build metric series ────────────────────────────────────────────────
-    type Series = { day: string; value: number }[]
-    const series: Record<string, Series> = {
-      strain: [], recovery: [], fueling: [], cardio: [], strength: [],
-      hrv: [], rhr: [], sleep_h: [],
-      calories: [], protein: [], carbs: [], steps: [],
-      execution_score: [], identity_score: [], dopamine_load_index: [],
-      friction_count: [], avoidance_count: [], procrastination_count: []
-    }
+    const stravaRows = aggregateStravaRuns(stravaR.data ?? [], todayWarsaw, start90)
+    const behaviorRows = behaviorR.data ?? []
 
-    for (const r of strainR.data ?? []) {
-      if (r.strain_score   != null) series.strain.push({ day: r.date, value: Number(r.strain_score) })
-      if (r.recovery_score != null) series.recovery.push({ day: r.date, value: Number(r.recovery_score) })
-      if (r.fueling_score  != null) series.fueling.push({ day: r.date, value: Number(r.fueling_score) })
-      if (r.cardio_load    != null) series.cardio.push({ day: r.date, value: Number(r.cardio_load) })
-      if (r.strength_load  != null) series.strength.push({ day: r.date, value: Number(r.strength_load) })
-      const steps = (r.components as any)?.steps
-      if (steps != null) series.steps.push({ day: r.date, value: Number(steps) })
-    }
-    for (const r of ouraR.data ?? []) {
-      if (r.hrv_avg          != null) series.hrv.push({ day: r.date, value: Number(r.hrv_avg) })
-      if (r.rhr_avg          != null) series.rhr.push({ day: r.date, value: Number(r.rhr_avg) })
-      if (r.total_sleep_hours != null) series.sleep_h.push({ day: r.date, value: Number(r.total_sleep_hours) })
-    }
-    for (const r of nutrR.data ?? []) {
-      if (r.calories != null) series.calories.push({ day: r.date, value: Number(r.calories) })
-      if (r.protein  != null) series.protein.push({ day: r.date, value: Number(r.protein) })
-      if (r.carbs    != null) series.carbs.push({ day: r.date, value: Number(r.carbs) })
-    }
-    for (const r of aggregatesR.data ?? []) {
-      if (r.execution_score      != null) series.execution_score.push({ day: r.date, value: Number(r.execution_score) })
-      if (r.identity_score       != null) series.identity_score.push({ day: r.date, value: Number(r.identity_score) })
-      if (r.dopamine_load_index  != null) series.dopamine_load_index.push({ day: r.date, value: Number(r.dopamine_load_index) })
-    }
+    const series = buildMetricSeries({
+      todayWarsaw,
+      strainRows: strainR.data ?? [],
+      ouraRows: ouraR.data ?? [],
+      ouraEnhRows: ouraEnhR.data ?? [],
+      nutrRows: nutrR.data ?? [],
+      aggregateRows: aggregatesR.data ?? [],
+      frictionRows: frictionR.data ?? [],
+      foodRows: foodR.data ?? [],
+      workoutRows: workoutR.data ?? [],
+      winsRows: winsR.data ?? [],
+      planRows: (planR.data ?? []).map(r => ({ plan_date: r.plan_date, energy_level: r.energy_level })),
+      reconRows: (reconR.data ?? []).map(r => ({ date: r.date, day_score: r.day_score, phone_drift_morning: r.phone_drift_morning })),
+      behaviorRows,
+      supplementRows,
+      stravaRows,
+      awRows: awR.data ?? [],
+      habitRows: habitR.data ?? [],
+      bodyRows: bodyR.data ?? [],
+    })
 
-    // ── Build and backfill daily friction metric series ──
-    const dailyFriction: Record<string, { total: number; avoidance: number; procrastination: number }> = {}
-    
-    // Initialize all 90 days with 0 to prevent selection bias
-    for (let i = 0; i < 90; i++) {
-      const d = new Date(todayWarsaw + 'T12:00:00Z')
-      d.setUTCDate(d.getUTCDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
-      dailyFriction[dateStr] = { total: 0, avoidance: 0, procrastination: 0 }
-    }
+    const runtimeLabels: Record<string, string> = {}
+    appendBehaviorLogMetrics(series, behaviorRows, runtimeLabels)
+    const labels = { ...METRIC_LABELS, ...runtimeLabels }
 
-    // Aggregate friction event counts
-    for (const row of frictionR.data ?? []) {
-      if (!row.occurred_at) continue
-      const dateStr = new Date(row.occurred_at).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-      if (dailyFriction[dateStr]) {
-        dailyFriction[dateStr].total++
-        if (row.friction_type === 'avoidance') dailyFriction[dateStr].avoidance++
-        if (row.friction_type === 'procrastination') dailyFriction[dateStr].procrastination++
-      }
-    }
+    const metrics = scannableMetrics(series)
+    const candidates: CorrelationResult[] = []
+    const seen = new Set<string>()
 
-    // Populate the series arrays
-    for (const [day, counts] of Object.entries(dailyFriction)) {
-      series.friction_count.push({ day, value: counts.total })
-      series.avoidance_count.push({ day, value: counts.avoidance })
-      series.procrastination_count.push({ day, value: counts.procrastination })
-    }
+    for (const xMetric of metrics) {
+      for (const yMetric of metrics) {
+        for (const lagDays of DISCOVERY_LAGS) {
+          if (shouldSkipDiscoveryPair(xMetric, yMetric, lagDays)) continue
+          const pk = pairKey(xMetric, yMetric, lagDays)
+          if (seen.has(pk)) continue
 
-    // ── Compute all specs ──────────────────────────────────────────────────
-    const results = []
-    for (const spec of SPECS) {
-      const x = series[spec.xMetric]
-      const y = series[spec.yMetric]
-      if (!x?.length || !y?.length) continue
+          const computed = computePair(series, xMetric, yMetric, lagDays)
+          if (!computed) continue
+          const p = computed.dual.primary!
+          if (!passesDiscoveryGate(Math.abs(p.r), p.n, p.p)) continue
 
-      const cor = lagged(x, y, spec.lagDays)
-      if (!cor) continue
+          const crossDomain = isCrossDomainPair(xMetric, yMetric)
+          const row = buildResult(xMetric, yMetric, lagDays, computed.dual, computed.scatter, labels, crossDomain)
+          if (!row) continue
 
-      results.push({
-        id: spec.id,
-        label: spec.label,
-        note: spec.note,
-        x_metric: spec.xMetric,
-        y_metric: spec.yMetric,
-        lag_days: spec.lagDays,
-        r: +cor.r.toFixed(3),
-        r_abs: +Math.abs(cor.r).toFixed(3),
-        n: cor.n,
-        p: +cor.p.toFixed(4),
-        significant: cor.p < 0.05 && cor.n >= 10,
-        slope: +cor.slope.toFixed(4),
-        intercept: +cor.intercept.toFixed(2),
-        interpretation: interpretR(cor.r),
-      })
-    }
-
-    // ── Discovered correlations loop (dynamic scanning) ──
-    for (const xMetric of PREDICTORS) {
-      for (const yMetric of OUTCOMES) {
-        for (const lagDays of [0, 1, 2]) {
-          // Avoid duplicate calculations if already computed in SPECS
-          const alreadyExists = results.some(
-            r => r.x_metric === xMetric && r.y_metric === yMetric && r.lag_days === lagDays
-          )
-          if (alreadyExists) continue
-
-          const x = series[xMetric]
-          const y = series[yMetric]
-          if (!x?.length || !y?.length) continue
-
-          const cor = lagged(x, y, lagDays)
-          if (!cor) continue
-
-          // Only add discovered correlations if they are statistically significant
-          const significant = cor.p < 0.05 && cor.n >= 10
-          if (!significant) continue
-
-          results.push({
-            id: `discovered_${xMetric}_${yMetric}_${lagDays}d`,
-            label: `${METRIC_LABELS[xMetric]} → ${METRIC_LABELS[yMetric]}${lagDays > 0 ? ` (+${lagDays}d)` : ''}`,
-            note: `Automatycznie odkryta korelacja behawioralna (lag: ${lagDays}d).`,
-            x_metric: xMetric,
-            y_metric: yMetric,
-            lag_days: lagDays,
-            r: +cor.r.toFixed(3),
-            r_abs: +Math.abs(cor.r).toFixed(3),
-            n: cor.n,
-            p: +cor.p.toFixed(4),
-            significant: true,
-            slope: +cor.slope.toFixed(4),
-            intercept: +cor.intercept.toFixed(2),
-            interpretation: interpretR(cor.r)
-          })
+          candidates.push(row)
+          seen.add(pk)
         }
       }
     }
 
-    // Sort: significant first, then by |r| desc
-    results.sort((a, b) => {
-      if (a.significant !== b.significant) return a.significant ? -1 : 1
-      return b.r_abs - a.r_abs
+    candidates.sort((a, b) => {
+      const scoreA = discoveryScore(a.r_abs, a.n, a.p, a.cross_domain)
+      const scoreB = discoveryScore(b.r_abs, b.n, b.p, b.cross_domain)
+      return scoreB - scoreA
     })
 
-    // Series lengths for context
+    const capped = candidates.slice(0, DISCOVERY_MAX_RESULTS * 3)
+    const computedTotal = capped.length
+    const interesting = capped.filter(r => isInterestingCorrelation({
+      ...r,
+      x_metric: r.x_metric,
+      y_metric: r.y_metric,
+    }))
+    interesting.sort((a, b) => correlationInterestScore(b) - correlationInterestScore(a))
+    const output = (includeWeak ? capped : interesting).slice(0, DISCOVERY_MAX_RESULTS)
+
+    output.sort((a, b) => correlationInterestScore(b) - correlationInterestScore(a))
+
     const coverage: Record<string, number> = {}
     for (const [k, v] of Object.entries(series)) coverage[k] = v.length
 
+    const stats = {
+      total_pairs: output.length,
+      computed_total: computedTotal,
+      pairs_scanned: seen.size,
+      hidden_weak: includeWeak ? 0 : Math.max(0, computedTotal - interesting.length),
+      significant: output.filter(r => r.significant).length,
+      discovered: output.length,
+      cross_domain: output.filter(r => r.cross_domain).length,
+      spearman_primary: output.filter(r => r.method === 'spearman').length,
+      metrics_tracked: metrics.length,
+    }
+
     return new Response(
-      JSON.stringify({ success: true, results, coverage, window_days: 90 }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, results: output, coverage, stats, window_days: 90, filtered: !includeWeak, mode: 'discovery' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
     console.error('[compute-correlations]', err)
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 })

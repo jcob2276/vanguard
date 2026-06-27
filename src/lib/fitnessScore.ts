@@ -7,6 +7,7 @@ import {
   navyBodyFatPct,
   type BodyMetricRow,
 } from './bodyMetrics';
+import { BMI_NORMAL_LOW, BMI_NORMAL_HIGH } from './constants';
 
 export function epley1rm(weight: number, reps: number): number | null {
   if (!weight || weight <= 0 || !reps || reps <= 0) return null;
@@ -234,13 +235,13 @@ export function bodyCompositionBonus(body: BodyRow[], heightCm: number | null): 
   let pts = 0;
   const parts: string[] = [];
 
-  if (bmi >= 20 && bmi <= 25) {
+  if (bmi >= 20 && bmi <= BMI_NORMAL_HIGH) {
     pts += 2;
     parts.push(`BMI ${bmi.toFixed(1)} OK`);
-  } else if (bmi >= 18.5 && bmi < 20) {
+  } else if (bmi >= BMI_NORMAL_LOW && bmi < 20) {
     pts += 1.2;
     parts.push(`BMI ${bmi.toFixed(1)} lekko nisko`);
-  } else if (bmi > 25 && bmi <= 28) {
+  } else if (bmi > BMI_NORMAL_HIGH && bmi <= 28) {
     pts += 1;
     parts.push(`BMI ${bmi.toFixed(1)} podwyższone`);
   } else {

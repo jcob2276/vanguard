@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { notify } from '../lib/notify';
+import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 
 const GOOGLE_CLIENT_ID = '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com';
 const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
@@ -22,7 +23,7 @@ export function useSyncActions({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     });
     if (!res.ok) {
       const p = await res.json().catch(() => ({}));
@@ -50,7 +51,7 @@ export function useSyncActions({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ userId, code, redirectUri: window.location.origin }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       const res = await response.json();
       if (res?.success) {

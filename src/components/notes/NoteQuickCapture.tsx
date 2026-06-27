@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, Tag } from 'lucide-react';
 import { COLORS, getColor } from './keepUtils';
 import RichEditor from './RichEditor';
+import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 
 interface NoteQuickCaptureProps {
   onSave: (note: { title: string; content: string; color: string; tags: string[] }) => void;
@@ -10,11 +11,12 @@ interface NoteQuickCaptureProps {
 }
 
 export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCaptureProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // Persisted — typed note text must survive a backgrounded-tab kill before it's saved.
+  const [title, setTitle] = usePersistentDraft('vanguard_note_quickcapture_title', '');
+  const [content, setContent] = usePersistentDraft('vanguard_note_quickcapture_content', '');
   const [color, setColor] = useState('default');
-  const [tagsText, setTagsText] = useState('');
+  const [tagsText, setTagsText] = usePersistentDraft('vanguard_note_quickcapture_tags', '');
+  const [isExpanded, setIsExpanded] = useState(() => Boolean(title.trim() || content.trim()));
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleClose = () => {
