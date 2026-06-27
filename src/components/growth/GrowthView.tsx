@@ -31,6 +31,12 @@ import GrowthProjectsPanel from './GrowthProjectsPanel';
 import GrowthSkillsList from './GrowthSkillsList';
 import { pinTitle } from './PinPickerModal';
 import SkillTreePanel from './SkillTreePanel';
+import PinPickerModal from './PinPickerModal';
+import FocusEditorModal from './FocusEditorModal';
+import GrowthOverview from './GrowthOverview';
+import GrowthWeekPlan from './GrowthWeekPlan';
+import { computeTheoryPracticeBalance } from '../../lib/growthMastery';
+import type { GrowthPinSlot } from '../../lib/growth';
 
 export default function GrowthView({ session }: { session: Session }) {
   const userId = session.user.id;
@@ -48,11 +54,15 @@ export default function GrowthView({ session }: { session: Session }) {
     weekNotes,
     weekFocusScore,
     activeProjects,
+    powerListStats,
+    prevWeekSummary: prevWeek,
     refresh,
   } = useGrowthData(userId, weekStart);
 
   const [showScores, setShowScores] = useState(false);
   const [editingScores, setEditingScores] = useState(false);
+  const [pickerSlot, setPickerSlot] = useState<GrowthPinSlot | null>(null);
+  const [showFocusEditor, setShowFocusEditor] = useState(false);
   const [draftScores, setDraftScores] = useState<Record<string, number>>({});
   const [savingScores, setSavingScores] = useState(false);
   const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
@@ -121,6 +131,104 @@ export default function GrowthView({ session }: { session: Session }) {
 
   const mustDone = pins.filter((p) => p.slot === 'must' && p.done).length;
   const mustTotal = pins.filter((p) => p.slot === 'must').length;
+
+  const balance = useMemo(() => computeTheoryPracticeBalance(pins, linksById), [pins, linksById]);
+
+  const handleSaveFocus = async (
+    skillId: string | null,
+    why: string,
+    drill: string,
+    targetLevel: number,
+  ) => {
+    try {
+      const { error } = await supabase.from('learning_week_focus').upsert(
+        {
+          user_id: userId,
+          week_start: weekStart,
+          skill_id: skillId,
+          why_text: why,
+          drill_text: drill,
+          target_level: targetLevel,
+        },
+        { onConflict: 'user_id,week_start' },
+      );
+      if (error) throw error;
+      notify('Zapisano focus tygodnia', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd zapisu', 'error');
+      throw e;
+    }
+  };
+
+  const handleDonePin = async (pin: typeof pins[0]) => {
+    try {
+      const today = getTodayWarsaw();
+      const { error } = await supabase
+        .from('learning_week_pins')
+        .update({ done: true, done_at: today })
+        .eq('id', pin.id);
+      if (error) throw error;
+
+      if (pin.entity_type === 'link' && pin.entity_id) {
+        await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', pin.entity_id);
+      } else if (pin.entity_type === 'todo' && pin.entity_id) {
+        await supabase.from('todo_items').update({ status: 'done' }).eq('id', pin.entity_id);
+      }
+
+      notify('Zrealizowano repa!', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    }
+  };
+
+  const handleRemovePin = async (pinId: string) => {
+    try {
+      const { error } = await supabase.from('learning_week_pins').delete().eq('id', pinId);
+      if (error) throw error;
+      notify('Odpięto element', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    }
+  };
+
+  const handleQuickPinLink = async (linkId: string, slot: GrowthPinSlot) => {
+    try {
+      const { error } = await supabase.from('learning_week_pins').insert({
+        user_id: userId,
+        week_start: weekStart,
+        slot,
+        entity_type: 'link',
+        entity_id: linkId,
+        sort_order: pins.filter((p) => p.slot === slot).length,
+      });
+      if (error) throw error;
+      notify('Przypięto link', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    }
+  };
+
+  const handleQuickPinTodo = async (todoId: string, slot: GrowthPinSlot) => {
+    try {
+      const { error } = await supabase.from('learning_week_pins').insert({
+        user_id: userId,
+        week_start: weekStart,
+        slot,
+        entity_type: 'todo',
+        entity_id: todoId,
+        sort_order: pins.filter((p) => p.slot === slot).length,
+      });
+      if (error) throw error;
+      notify('Przypięto zadanie', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    }
+  };
 
   const theme =
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
@@ -232,29 +340,58 @@ export default function GrowthView({ session }: { session: Session }) {
           <div className="h-64 animate-pulse rounded-2xl bg-surface border border-border-custom" />
         ) : (
           <>
-            {directionLine && (
-              <div className="rounded-xl border border-border-custom bg-surface/20 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px]">
-                <span className="text-text-secondary line-clamp-2 flex-1 min-w-[200px]">
-                  <span className="font-black uppercase text-text-muted mr-2">Kontekst</span>
-                  {directionLine}
-                </span>
-                <span className="text-text-muted tabular-nums shrink-0">
-                  MUST {mustDone}/{mustTotal}
-                </span>
-                {weekFocusScore != null && (
-                  <span className="text-text-muted tabular-nums shrink-0">
-                    Focus {weekFocusScore}%
-                  </span>
-                )}
-              </div>
-            )}
-
             <GrowthProjectsPanel
               projects={activeProjects}
               userId={userId}
               sprintGoal={context.sprintGoal}
               sprintLabel={context.sprintLabel}
             />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <div className="lg:col-span-8 flex flex-col justify-between">
+                <GrowthWeekPlan
+                  pins={pins}
+                  skills={skills}
+                  links={allLinks}
+                  todos={openTodos}
+                  focusSkillId={focusParentId}
+                  focusTargetLevel={focus?.target_level ?? null}
+                  readOnly={readOnly}
+                  suggestedLinks={unreadLinks}
+                  suggestedTodos={openTodos}
+                  balance={balance}
+                  onAddPin={(slot) => setPickerSlot(slot)}
+                  onQuickPinLink={handleQuickPinLink}
+                  onQuickPinTodo={handleQuickPinTodo}
+                  onDonePin={handleDonePin}
+                  onRemovePin={handleRemovePin}
+                />
+              </div>
+              <div className="lg:col-span-4 flex flex-col justify-between h-full">
+                <GrowthOverview
+                  context={context}
+                  powerListStats={powerListStats}
+                  focusProposal={focusProposal}
+                  pins={pins}
+                  linksById={linksById}
+                  prevWeek={prevWeek}
+                  mustDone={mustDone}
+                  mustTotal={mustTotal}
+                  weekFocusScore={weekFocusScore}
+                  focusTarget={focus?.target_level ?? null}
+                  readOnly={readOnly}
+                />
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFocusEditor(true)}
+                    className="w-full mt-3 rounded-xl border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 py-2.5 text-[11px] font-black uppercase text-primary transition-all cursor-pointer shrink-0"
+                  >
+                    🎯 Ustaw focus tygodnia
+                  </button>
+                )}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               <div className="lg:col-span-4">
@@ -280,6 +417,86 @@ export default function GrowthView({ session }: { session: Session }) {
           </>
         )}
       </div>
+
+      {pickerSlot && (
+        <PinPickerModal
+          slot={pickerSlot}
+          skills={skills}
+          focusSkillId={focusParentId}
+          unreadLinks={unreadLinks}
+          openTodos={openTodos}
+          pinnedLinkIds={new Set(pins.filter((p) => p.entity_type === 'link').map((p) => p.entity_id).filter(Boolean) as string[])}
+          pinnedTodoIds={new Set(pins.filter((p) => p.entity_type === 'todo').map((p) => p.entity_id).filter(Boolean) as string[])}
+          onClose={() => setPickerSlot(null)}
+          onPickLink={async (linkId, skillId) => {
+            try {
+              const { error } = await supabase.from('learning_week_pins').insert({
+                user_id: userId,
+                week_start: weekStart,
+                slot: pickerSlot,
+                entity_type: 'link',
+                entity_id: linkId,
+                skill_id: skillId,
+                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
+              });
+              if (error) throw error;
+              notify('Przypięto link', 'success');
+              setPickerSlot(null);
+              await refresh();
+            } catch (e) {
+              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            }
+          }}
+          onPickTodo={async (todoId, skillId) => {
+            try {
+              const { error } = await supabase.from('learning_week_pins').insert({
+                user_id: userId,
+                week_start: weekStart,
+                slot: pickerSlot,
+                entity_type: 'todo',
+                entity_id: todoId,
+                skill_id: skillId,
+                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
+              });
+              if (error) throw error;
+              notify('Przypięto zadanie', 'success');
+              setPickerSlot(null);
+              await refresh();
+            } catch (e) {
+              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            }
+          }}
+          onPickManual={async (title, type, skillId) => {
+            try {
+              const { error } = await supabase.from('learning_week_pins').insert({
+                user_id: userId,
+                week_start: weekStart,
+                slot: pickerSlot,
+                entity_type: 'manual',
+                manual_title: title,
+                manual_resource_type: type,
+                skill_id: skillId,
+                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
+              });
+              if (error) throw error;
+              notify('Dodano element do planu', 'success');
+              setPickerSlot(null);
+              await refresh();
+            } catch (e) {
+              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            }
+          }}
+        />
+      )}
+
+      {showFocusEditor && (
+        <FocusEditorModal
+          skills={skills}
+          currentFocus={focus}
+          onClose={() => setShowFocusEditor(false)}
+          onSave={handleSaveFocus}
+        />
+      )}
 
       {showScores && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">

@@ -92,7 +92,7 @@ export function focusScoreForWeek(
   return snap?.scores[skill.key] ?? null;
 }
 
-export function summarizePins(pins: LearningWeekPin[]) {
+export function summarizePins(pins: Array<{ slot: string; done: boolean }>) {
   return {
     mustDone: pins.filter((p) => p.slot === 'must' && p.done).length,
     mustTotal: pins.filter((p) => p.slot === 'must').length,

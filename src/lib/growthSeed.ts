@@ -7,21 +7,21 @@ export async function insertDefaultSkillTree(supabase: SupabaseClient, userId: s
     const node = DEFAULT_SKILL_TREE[i];
     const { data: parent, error: parentErr } = await supabase
       .from('learning_skills')
-      .insert({
+      .upsert({
         user_id: userId,
         key: node.key,
         label: node.label,
         sort_order: i,
         active: true,
         parent_id: null,
-      })
+      }, { onConflict: 'user_id,key' })
       .select('id')
       .single();
 
     if (parentErr) throw parentErr;
     if (!parent?.id || node.subskills.length === 0) continue;
 
-    const { error: subErr } = await supabase.from('learning_skills').insert(
+    const { error: subErr } = await supabase.from('learning_skills').upsert(
       node.subskills.map((sub, j) => ({
         user_id: userId,
         key: sub.key,
@@ -30,6 +30,7 @@ export async function insertDefaultSkillTree(supabase: SupabaseClient, userId: s
         active: true,
         parent_id: parent.id,
       })),
+      { onConflict: 'user_id,key' }
     );
     if (subErr) throw subErr;
   }

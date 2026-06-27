@@ -474,7 +474,7 @@ export interface TodaySaunaEntry {
 export async function fetchTodaySaunaEntries(userId: string, date = getTodayWarsaw()): Promise<TodaySaunaEntry[]> {
   const { data: sessions } = await supabase
     .from('workout_sessions')
-    .select('id, session_rpe, notes, workout_day, exercise_logs(exercise_name, reps, weight, muscle_tags)')
+    .select('id, session_rpe, session_notes, workout_day, exercise_logs(exercise_name, reps, weight, muscle_tags)')
     .eq('user_id', userId)
     .eq('date', date)
     .order('start_time', { ascending: true })
@@ -489,7 +489,7 @@ export async function fetchTodaySaunaEntries(userId: string, date = getTodayWars
         minutes: Number(log?.reps) || 0,
         celsius: Number(log?.weight) > 0 ? Number(log?.weight) : null,
         sessionRpe: s.session_rpe,
-        notes: s.notes,
+        notes: s.session_notes,
       }
     })
 }

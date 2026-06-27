@@ -152,7 +152,7 @@ export async function saveParsedFoodItems(
         sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
         meal_type: opts.mealType,
         meal_group_id: groupId ?? null,
-        parse_meta: item.parseMeta ?? null,
+        parse_meta: (item.parseMeta ?? null) as any,
       },
     })
     if (error) throw error
@@ -234,13 +234,19 @@ export const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
 
 export async function ensureFoodStaples(userId: string): Promise<void> {
   for (const staple of FOOD_STAPLES) {
-    const { data: existing } = await supabase
+    const query = supabase
       .from('food_favorites')
       .select('id, is_pinned')
       .eq('user_id', userId)
-      .eq('name', staple.name)
-      .eq('brand', staple.brand)
-      .maybeSingle()
+      .eq('name', staple.name);
+
+    if (staple.brand) {
+      query.eq('brand', staple.brand);
+    } else {
+      query.is('brand', null);
+    }
+
+    const { data: existing } = await query.maybeSingle();
 
     if (!existing) {
       const { error } = await supabase.from('food_favorites').insert({
