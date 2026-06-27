@@ -8,7 +8,7 @@ Built solo. Running daily.
 
 ## 🌌 The Core Philosophy: "Everything Sees Itself"
 
-Most life-tracking apps live in silos. Oura knows your HRV, Strava knows your running pace, Yazio knows your macros, and your Todo app knows your tasks. **They don't talk to each other. Vanguard does.**
+Most life-tracking apps live in silos. Oura knows your HRV, Strava knows your running pace, and your Todo app knows your tasks. **They don't talk to each other. Vanguard does.**
 
 In Vanguard OS, everything is interconnected. Your daily recovery score knows if you hit your *5 Tasks a Day*. Your food logging engine adjusts based on the training load from Strava. The AI Oracle understands when you are entering a "Downward Spiral" because it sees the correlation between your late sleep, missed tasks, and elevated friction events. It is a holistic, self-aware system.
 
@@ -23,7 +23,6 @@ graph TD
     %% Inputs
     Oura[Oura Ring] -->|Raw Biometrics| Backend
     Strava[Strava] -->|Workouts| Backend
-    Yazio[Yazio] -->|Nutrition| Backend
     TG[Telegram Bot] -->|Voice/Text Logs| Backend
     Web[Web App / Memex] -->|UI Interactions| Backend
 
