@@ -1,58 +1,79 @@
-# PROJECT_MAP — navigation index (read this first if you are new here)
+# PROJECT_MAP — The Complete Vanguard OS Directory
 
-Vanguard OS: personal behavioral OS. Daily loop lives in **Telegram + Supabase edge functions**; the React app in `src/` is the legacy workout/dashboard frontend.
+Vanguard OS: A personal behavioral OS. The intelligence and daily loop live in **Telegram + Supabase edge functions**; the visual layer and compiled memory live in the **React app (`src/`)**.
 
-## Read order (cold start)
+## 🗺️ Top-level Architecture
 
-1. `CLAUDE.md` — hard project rules (timezone, auth, fetch, DB patterns)
-2. `AGENTS.md` — agent constitution + deploy rules
-3. `supabase/functions/README.md` — registry of edge functions (SSOT)
-4. `docs/ARCHITECTURE.md` — one-page data flow + crons
-5. `BACKLOG.md` — intentionally deferred work (do not "fix")
-
-## Top-level folders
-
-| Path | What it is |
+| Path | Purpose |
 |---|---|
-| `supabase/functions/` | **Production code.** Deno edge functions; one folder = one deployed function. `_shared/` = kernel helpers (always use these). Do not restructure. |
-| `supabase/migrations/` | Applied SQL migrations — filenames immutable. Do not rename/reorder. |
-| `src/` | Legacy React frontend (workout, dashboard widgets, sync UI). See `src/README.md`. |
-| `src/components/` | Grouped by domain: `core/` (Auth, Dashboard, DataHub, Stats, Fundament, DataStateNotice), `biometrics/` (DailyStrainCard, MuscleHeatmap, BrainHealth, WorkoutLogger), `lifestyle/` (legacy component names for Plan/Direction/Goals), `notes/` (Notes), `todo/` (Tasks), `integrations/` (StravaWidget), `identity/` (IdentityVault, Photos). |
-| `docs/PRODUCT_LANGUAGE.md` | Canonical product vocabulary for UI/docs/agents: Plan, Move, Artifact, Evidence, Reflection, Note, Task, Goal, Project, Pattern. |
-| `docs/` | All documentation. `docs/direction/` = North Star + ETAP plans (PL). `docs/runbooks/` = incident fixes. `docs/README.md` = full index. |
-| `examples/` | Canonical code patterns referenced by `CLAUDE.md` — copy these when writing new code. |
-| `scripts/` | Local automation, **not** deployed. `ops/` (deploy, smoke, CI), `aw/` (ActivityWatch bridge), `analysis/` (eval/data one-offs). See `scripts/README.md`. |
-| `PRPs/` | PRP workflow: `INITIAL.md` (feature request template), `templates/prp_base.md`, generated PRPs. |
-| `public/` | Static assets for the PWA. |
-| `scratch/` | **Gitignored local junk** — debug scripts, personal notes. Never reference from real code. |
+| `supabase/functions/` | **The Brain.** Deno Edge Functions (30+ microservices) running CRONs, webhooks, and AI logic. |
+| `src/` | **The Memex UI.** React 19 Frontend handling data visualization, timelines, and specialized panels. |
+| `supabase/migrations/` | Applied SQL migrations for the PostgreSQL database. Immutable. |
+| `docs/` | **Knowledge Base.** `ARCHITECTURE.md`, `PRODUCT_PRINCIPLES.md`, `DEV_GUIDE.md`. |
+| `scripts/` | **Ops & CI.** Local automation (`ops/`), eval scripts, testing. |
 
-## Runtime Boundaries
+---
 
-- `supabase/functions/` is the only production backend path. New production behavior must be listed in `supabase/functions/README.md`.
-- `src/` is the legacy frontend. Its sanctioned Core bridges are `src/lib/aiContext.ts` for read-only Oracle context and `src/lib/vanguardCore.ts` for shared signal helpers.
-- `docs/FEATURE_LIFECYCLE.md` is the canonical active / disabled / deprecated / dropped status map. Vision documents are not runtime authority.
-- Experiments live in `PRPs/` or `scratch/`; deployed Edge Functions are never "just experiments".
+## 🧠 Backend Ecosystem: `supabase/functions/`
 
-## Known quirks (do not "discover" these as bugs)
+The backend is split into independent edge functions. Each folder is one deployed Deno function.
 
-- **Deleted dead UI (2026-06-11)**: `OuraWidget`, `OuraEnhanced`, `SleepDebtCard`, `MentorChat`, `GraphMind`, `ThoughtStream`, `IntentionTracker`, `ManifestationBoard`, `LocationTracker`, `AWImporter` + `lib/oura.js`, `lib/activityWatch.js`. All were deliberately unmounted in earlier commits and orphaned; recover from git history if ever needed. Oracle chat lives in Telegram, not the web app.
-- `src/lib/vanguardCore.ts` re-exports from `supabase/functions/_shared/vanguardCore.ts` — frontend and edge share one implementation.
-- Deprecated names (never reference): `stayfreeData`, `dopamine_load_index`, `fragmentation_index`, `screen_time_min`, `ProgressionTable.jsx`, `WorkoutExecution.jsx`, `useStats.js`, `workoutPlan.js`.
+### 1. Vanguard Core (AI & Logic)
+- `vanguard-oracle` — Main Conversational AI agent handling context and answers.
+- `vanguard-telegram` — Webhook handler and router for all Telegram interactions.
+- `vanguard-auto-classify` — NLP pipeline for extracting friction and recovery events.
+- `vanguard-daily-reconciliation` — Evening reflection loop.
+- `vanguard-detect-patterns` / `vanguard-eval-interview` — Behavioral pattern analysis.
+- `vanguard-weekly-synthesis` / `vanguard-week-recap` — Weekly aggregation engines.
 
-## Reorg changelog (2026-06-11)
+### 2. Strain & Medical Engine ("Noop" Algorithms)
+- `compute-daily-strain` — Recalculates Oura data against workout load.
+- `compute-behavior-effects` / `compute-correlations` — Links biometrics to task completion.
+- `compute-recovery-forecast` / `compute-illness-signal` — Predictive health models.
+- `analyze-training-load` / `analyze-food-quality` — Specialized deep-dive scoring.
 
-| Old path | New path |
-|---|---|
-| `KIERUNEK NAJWAŻNIEJSZE!/*` | `docs/direction/*` (its `ROADMAP_V10.md` / `VISION_10_10.md` stubs deleted — `docs/` versions are canonical) |
-| `VANGUARD_MANIFESTO.md`, `GRAPH_TEMPORAL_STATUS.md` | `docs/` |
-| `INITIAL.md`, `INITIAL_EXAMPLE.md` | `PRPs/` |
-| `demo_sluchawki.txt` | untracked → `scratch/` (personal note) |
-| `scratch/goose-bnnett/` | moved out of repo → `..\goose-bnnett` (separate git project) |
-| `src/components/*.jsx` (flat) | `src/components/{core,biometrics,ai,lifestyle,integrations,identity}/` |
-| `src/components/stats/` | `src/components/core/stats/` |
-| `scripts/aw-*.cjs` | `scripts/aw/` |
-| `scripts/{smoke-vanguard,smoke-ui,check-edge-functions,oss-audit,e2e-daily-loop}.mjs` | `scripts/ops/` |
-| `scripts/{run_eval.mjs,backfill_triads.mjs,audit-registry.mjs,analyze-weak-plans.mjs,closure_proposals_review.sql}` | `scripts/analysis/` |
-| 10 orphan components + `lib/oura.js`, `lib/activityWatch.js` | **deleted** (dead UI — see Known quirks) |
+### 3. Sync & Data Bridges (Passive Inputs)
+- `sync-oura` / `sync-oura-enhanced` / `sync-oura-timeseries` — Biometrics pull.
+- `sync-strava` — Training load pull.
+- `sync-calendar` — Schedule pull.
 
-Same day, outside the reorg: enabled RLS on `daily_reconciliations`, `strava_activities`, `strava_tokens`, `training_plan_workouts` (migration `20260611000001`), and fixed + redeployed `vanguard-auto-classify` (v41) — a `safeExecute` destructuring bug had silenced the friction pipeline since 2026-05-24.
+### 4. Special Tools & Parsers
+- `parse-food-nl` / `parse-workout-nl` / `lookup-food` — Natural language parsing for quick-capture.
+- `vanguard-graph-embedder` — Vector embeddings for the Knowledge Graph.
+- `_shared/` — **CRITICAL.** Shared kernel helpers (`deepseek.ts`, `telegram.ts`, `supabase.ts`). Always import from here.
+
+---
+
+## 🖥️ Frontend Ecosystem: `src/`
+
+The frontend has grown into a massive Memex layer. It is organized by domain and component type.
+
+### 1. The Memex Cards (`src/components/cards/`)
+The building blocks of the timeline and compiled memory.
+- `entities/` (person, place, link)
+- `quantifiable/` (metric, mood, progress)
+- `temporal/` (event, routine, task)
+- `textual/` (article, insight_summary)
+- `visual/` (canvas, video, snapshot)
+
+### 2. Core Modules (`src/components/`)
+- `desktop/` — The heavy-duty "Cockpit" dashboard (`DesktopDashboard`, `SprintMetricsGrid`, `SmartAlerts`, `MarathonPanel`).
+- `growth/` — Interventional learning and skill tracking (`GrowthVault`, `SkillTreePanel`, `GrowthProjectsPanel`).
+- `lifestyle/` — PowerList, direction radar, goals (`PowerList`, `WeeklyAnalytics`, `DirectionPlanningMode`).
+- `medical/` — Deep dive into biology (`MedicalBiologyScores`, `MedicalLabSections`, `MedicalTrendCharts`).
+- `stats/` — Cross-domain analytics (`WorkoutHistorySection`, `BodyMetricsSection`, `FoodAnalysisSection`).
+- `insights/` / `projects/` / `todo/` / `schedule/` — Domain-specific views.
+
+### 3. Infrastructure & Logic (`src/`)
+- `widgets/` — Reusable charts and specialized visual components (`RadarChart`, `RouteMapCard`, `CompositionCard`).
+- `ui/` — Design system primitives and UI blocks.
+- `lib/` — Frontend API clients, parsers, and local business logic (`vanguardCore.ts`, `supabaseUtils.ts`, `dailyPlan.ts`).
+- `hooks/` — Custom React hooks for data fetching and state (`useDashboardData`, `useGrowthData`, `useMedicalData`).
+
+---
+
+## 🔒 Runtime Boundaries & Rules
+
+1. **`supabase/functions/_shared/` is the single source of truth for logic.** If frontend needs complex scoring, it should rely on the DB or shared logic, not duplicate it in React.
+2. **Never commit secrets.** The `git push` rule is active. If you test edge functions, use `.env.local`.
+3. **No Phantom Code.** The frontend has been purged of dead modules (like old generic Oura widgets or ManifestationBoards). If you see a file, it's either active or a deliberate part of the Memex.
