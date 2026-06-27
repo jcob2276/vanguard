@@ -1,4 +1,8 @@
 import { deepseekChat, parseJsonFromContent } from './deepseek.ts'
+import { lookupGenericFood, scoreFoodNameMatch } from './foodGeneric.ts'
+import { lookupReferencePl } from './foodReferencePl.ts'
+
+export const PARSER_VERSION = '2026-06-28'
 
 // Per-100g reference so DeepSeek anchors to the same values as our generic list.
 export const FOOD_REF = `Per 100g (kcal / B g / W g / T g):
@@ -72,7 +76,19 @@ sałatka ziemniaczana z majonezem: 143/1.5/12/10
 kotlet schabowy panierowany smażony: 270/17/8/19
 kotlet mielony smażony: 250/16/5/18
 pierogi ruskie gotowane: 200/6/35/4
-pizza Margherita: 250/10/30/10`
+pizza Margherita: 250/10/30/10
+wątróbka wieprzowa smażona: 165/26/4/5
+wątróbka drobiowa smażona: 167/25/4/6
+borówki: 57/0.7/14/0.3
+kaszanka: 379/14/1/35
+karkówka wieprzowa pieczona: 250/24/0/17`
+
+export interface FoodParseMeta {
+  macroSource: 'library' | 'generic' | 'reference_pl' | 'off' | 'llm_estimate' | 'user_correction'
+  matchScore?: number
+  matchedName?: string
+  parserVersion: string
+}
 
 export interface ParsedFoodItem {
   name: string
@@ -86,6 +102,7 @@ export interface ParsedFoodItem {
   confidence: 'high' | 'medium' | 'low'
   source: 'llm' | 'database' | 'library'
   assumptions?: string[]
+  parseMeta?: FoodParseMeta
 }
 
 export interface UserParseContext {
@@ -95,6 +112,24 @@ export interface UserParseContext {
   favoritesBlock: string
   correctionsBlock: string
   historyBlock: string
+  portionsBlock: string
+}
+
+export interface FoodCorrection {
+  query_name: string
+  corrected_name: string | null
+  corrected_grams: number
+}
+
+export interface FinalizeFoodParseOpts {
+  originalText: string
+  corrections?: FoodCorrection[]
+  supabaseUrl: string
+  serviceKey: string
+  userId?: string
+  db?: unknown
+  apiKey?: string
+  parseContext?: UserParseContext
 }
 
 interface Per100gFood {
@@ -105,6 +140,7 @@ interface Per100gFood {
   fat: number | null
   fiber?: number | null
   sugar?: number | null
+  source?: 'generic' | 'reference_pl' | 'off'
 }
 
 const COMPLEX_MEAL_RE = /\b(obiad|restaurac|u mamy|potrawa domow|karkowka domow|bigos domow)\b/i
@@ -192,11 +228,12 @@ export function isHomemadeContext(text: string): boolean {
   return /\b(domow\w*|wlasn\w*|babci|babcia|mamy|tesciow\w*|gotowane w domu)\b/.test(n)
 }
 
-/** Domowe ≈ mniej cukru/tłuszczu niż paczka/restauracja — skromna korekta, z assumption. */
+/** Domowe ≈ mniej cukru/tłuszczu niż paczka/restauracja — tylko dla szacunków LLM. */
 export function applyHomemadeAdjustment(text: string, items: ParsedFoodItem[]): ParsedFoodItem[] {
   if (!isHomemadeContext(text)) return items
 
   return items.map((item) => {
+    if (item.source !== 'llm') return item
     const sugarBefore = item.sugar ?? 0
     const fatBefore = item.fat
     const sugar = item.sugar != null ? Math.round(item.sugar * 0.88 * 10) / 10 : undefined
@@ -339,6 +376,10 @@ ${ctx.correctionsBlock.trim()}`)
     blocks.push(`PRODUKTY CZĘSTO LOGOWANE (preferuj te nazwy i styl porcji — audyt historii):
 ${ctx.historyBlock.trim()}`)
   }
+  if (ctx.portionsBlock && ctx.portionsBlock.trim()) {
+    blocks.push(`STANDARDOWE PORCJE UŻYTKOWNIKA (użyj tych wartości w gramach, gdy użytkownik podaje te potrawy):
+${ctx.portionsBlock.trim()}`)
+  }
   return blocks.length ? `\n\n${blocks.join('\n\n')}` : ''
 }
 
@@ -384,6 +425,53 @@ function parseAssumptions(value: unknown): string[] | undefined {
   return items.length ? items : undefined
 }
 
+export function normalizeGramOnlyItems(raw: unknown): ParsedFoodItem[] {
+  const parsed = typeof raw === 'string'
+    ? parseJsonFromContent(raw)
+    : (raw && typeof raw === 'object' ? raw as Record<string, unknown> : null)
+
+  if (!parsed) return []
+
+  const rawItems: unknown[] = Array.isArray(parsed.items)
+    ? parsed.items as unknown[]
+    : Array.isArray(parsed)
+    ? parsed as unknown[]
+    : []
+
+  return rawItems
+    .map((entry) => {
+      const item = entry as Record<string, unknown>
+      const name = String(item.name || '').trim()
+      if (!name) return null
+
+      const grams = Math.max(1, Math.round(Number(item.grams) || 100))
+      const assumptions = parseAssumptions(item.assumptions)
+
+      const result: ParsedFoodItem = {
+        name,
+        grams,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        confidence: parseConfidence(item.confidence),
+        source: 'llm',
+        parseMeta: { macroSource: 'llm_estimate', parserVersion: PARSER_VERSION },
+      }
+      if (assumptions) result.assumptions = assumptions
+      return result
+    })
+    .filter((item): item is ParsedFoodItem => item != null && item.name.length > 0)
+}
+
+export function isUnmatchedForMacros(item: ParsedFoodItem): boolean {
+  return item.source === 'llm'
+    && item.calories === 0
+    && item.protein === 0
+    && item.carbs === 0
+    && item.fat === 0
+}
+
 export function normalizeRawItems(raw: unknown): ParsedFoodItem[] {
   const parsed = typeof raw === 'string'
     ? parseJsonFromContent(raw)
@@ -418,6 +506,7 @@ export function normalizeRawItems(raw: unknown): ParsedFoodItem[] {
         fat,
         confidence: parseConfidence(item.confidence),
         source: 'llm',
+        parseMeta: { macroSource: 'llm_estimate', parserVersion: PARSER_VERSION },
       }
 
       if (item.fiber != null) {
@@ -464,66 +553,152 @@ export async function parseMealText(
   const trimmed = text.trim()
   if (!trimmed) return []
 
-  if (isComplexMeal(trimmed)) {
-    const gramsRaw = await callParseLLM(
-      apiKey,
-      buildSystemPrompt(ctx, 'grams_only'),
-      `Parsuj: "${trimmed}"`,
-      800,
-    )
-    const gramItems = normalizeRawItems(gramsRaw)
-    if (gramItems.length === 0) return []
-
-    const itemsForMacros = gramItems.map(({ name, grams }) => ({ name, grams }))
-    const macrosRaw = await callParseLLM(
-      apiKey,
-      buildSystemPrompt(ctx, 'macros_only'),
-      `Oblicz makro dla produktów (gramatura ustalona):\n${JSON.stringify(itemsForMacros, null, 2)}\n\nOryginalny opis: "${trimmed}"`,
-      1200,
-    )
-    const macroItems = normalizeRawItems(macrosRaw)
-    let merged = macroItems.map((item, i) => {
-      const gramItem = gramItems[i]
-      if (!gramItem) return item
-      const conf = item.confidence === 'medium' && gramItem.confidence !== 'medium'
-        ? gramItem.confidence
-        : item.confidence
-      const assumptions = item.assumptions?.length
-        ? item.assumptions
-        : gramItem.assumptions
-      return {
-        ...item,
-        confidence: conf,
-        ...(assumptions?.length ? { assumptions } : {}),
-      }
-    })
-    merged = applyDeclaredPieceCount(trimmed, merged)
-    return merged
-  }
-
-  const fullRaw = await callParseLLM(
+  // LLM: name + grams only. Makro liczy kod z bazy (RAG), nie model.
+  const gramsRaw = await callParseLLM(
     apiKey,
-    buildSystemPrompt(ctx, 'full'),
+    buildSystemPrompt(ctx, 'grams_only'),
     `Parsuj: "${trimmed}"`,
+    isComplexMeal(trimmed) ? 1200 : 800,
   )
-  let items = normalizeRawItems(fullRaw)
+  let items = normalizeGramOnlyItems(gramsRaw)
   items = applyDeclaredPieceCount(trimmed, items)
   return items
 }
 
-function pickBestMatch(query: string, results: Per100gFood[]): Per100gFood | null {
+const MIN_RECONCILE_SCORE = 0.52
+
+function pickBestMatchScored(query: string, results: Per100gFood[]): { match: Per100gFood; score: number } | null {
   if (!results.length) return null
 
-  const qWords = normalizePl(query).split(/\s+/).filter(Boolean)
-  if (qWords.length === 0) return null
+  let best: Per100gFood | null = null
+  let bestScore = MIN_RECONCILE_SCORE
 
   for (const r of results) {
-    if (r.calories == null) continue
-    const name = normalizePl(r.name)
-    if (qWords.every((w) => name.includes(w))) return r
+    if (r.calories == null || !r.name) continue
+    const score = scoreFoodNameMatch(query, r.name)
+    if (score > bestScore) {
+      bestScore = score
+      best = r
+    }
+  }
+  return best ? { match: best, score: bestScore } : null
+}
+
+function pickBestMatch(query: string, results: Per100gFood[]): Per100gFood | null {
+  return pickBestMatchScored(query, results)?.match ?? null
+}
+
+function findCorrectionForItem(
+  item: ParsedFoodItem,
+  corrections: FoodCorrection[],
+  originalText: string,
+  itemCount: number,
+): FoodCorrection | null {
+  const itemNorm = normalizePl(item.name)
+  for (const c of corrections) {
+    const q = normalizePl(c.query_name)
+    if (!q) continue
+    if (itemNorm.includes(q) || q.includes(itemNorm)) return c
+  }
+  if (itemCount === 1) {
+    const textNorm = normalizePl(originalText)
+    for (const c of corrections) {
+      const q = normalizePl(c.query_name)
+      if (q && textNorm.includes(q)) return c
+    }
+  }
+  return null
+}
+
+/** Hard override from food_corrections — deterministic, not prompt-only. */
+export function applyUserCorrections(
+  items: ParsedFoodItem[],
+  corrections: FoodCorrection[] | undefined,
+  originalText: string,
+): ParsedFoodItem[] {
+  if (!corrections?.length) return items
+
+  return items.map((item) => {
+    const c = findCorrectionForItem(item, corrections, originalText, items.length)
+    if (!c) return item
+
+    const newGrams = Math.max(1, c.corrected_grams)
+    const scaled = newGrams !== item.grams ? scaleParsedItem(item, newGrams / item.grams) : item
+
+    return {
+      ...scaled,
+      name: c.corrected_name?.trim() || item.name,
+      grams: newGrams,
+      confidence: 'high',
+      source: 'library',
+      parseMeta: {
+        macroSource: 'user_correction',
+        matchedName: c.corrected_name?.trim() || item.name,
+        parserVersion: PARSER_VERSION,
+      },
+      assumptions: [
+        ...(item.assumptions ?? []),
+        `poprawka użytkownika: ${newGrams}g`,
+      ],
+    }
+  })
+}
+
+function splitCompoundName(name: string): [string, string] | null {
+  const parts = normalizePl(name).split(/\s+(?:z|ze)\s+/)
+  if (parts.length !== 2) return null
+  const [a, b] = parts.map((p) => p.trim())
+  if (a.length < 3 || b.length < 3) return null
+  return [a, b]
+}
+
+function titleCasePl(fragment: string): string {
+  const trimmed = fragment.trim()
+  if (!trimmed) return fragment
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
+/** "wątróbka z cebulą" → dwa składniki z bazy, jeśli oba się dopasują. */
+async function tryExpandCompoundItems(
+  items: ParsedFoodItem[],
+  opts: { supabaseUrl: string; serviceKey: string; userId?: string; db?: unknown },
+): Promise<ParsedFoodItem[]> {
+  if (items.length !== 1 || !isUnmatchedForMacros(items[0])) return items
+
+  const split = splitCompoundName(items[0].name)
+  if (!split) return items
+
+  const [mainRaw, secRaw] = split
+  const totalGrams = items[0].grams
+  const mainGrams = Math.max(1, Math.round(totalGrams * 0.82))
+  const secGrams = Math.max(1, totalGrams - mainGrams)
+
+  const base = items[0]
+  const mainItem: ParsedFoodItem = {
+    ...base,
+    name: titleCasePl(mainRaw),
+    grams: mainGrams,
+  }
+  const secItem: ParsedFoodItem = {
+    ...base,
+    name: titleCasePl(secRaw),
+    grams: secGrams,
   }
 
-  return results.find((r) => r.calories != null) ?? null
+  const [rMain, rSec] = await Promise.all([
+    reconcileOne(mainItem, opts),
+    reconcileOne(secItem, opts),
+  ])
+
+  if (rMain.source === 'llm' && isUnmatchedForMacros(rMain) && rSec.source === 'llm' && isUnmatchedForMacros(rSec)) {
+    return items
+  }
+
+  const assumption = `rozbite na składniki (${mainGrams}g + ${secGrams}g)`
+  return [
+    { ...rMain, assumptions: [...(rMain.assumptions ?? []), assumption] },
+    { ...rSec, assumptions: [...(rSec.assumptions ?? []), assumption] },
+  ]
 }
 
 function recalcFromPer100g(grams: number, per100: Per100gFood): Pick<ParsedFoodItem, 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar'> {
@@ -544,7 +719,8 @@ async function lookupViaDatabase(
   name: string,
   supabaseUrl: string,
   serviceKey: string,
-): Promise<Per100gFood | null> {
+): Promise<{ match: Per100gFood; score: number; macroSource: 'off' | 'generic' | 'reference_pl' } | null> {
+  if (!supabaseUrl || !serviceKey) return null
   const res = await fetch(
     `${supabaseUrl}/functions/v1/lookup-food?q=${encodeURIComponent(name)}`,
     {
@@ -554,44 +730,128 @@ async function lookupViaDatabase(
   )
   if (!res.ok) return null
 
-  const json = await res.json().catch(() => ({})) as { results?: Per100gFood[] }
-  return pickBestMatch(name, json.results ?? [])
+  const json = await res.json().catch(() => ({})) as {
+    results?: Array<Per100gFood & { source?: string }>
+  }
+  const results: Per100gFood[] = (json.results ?? []).map((r) => ({
+    ...r,
+    source: r.source === 'reference_pl'
+      ? 'reference_pl'
+      : r.source === 'generic'
+      ? 'generic'
+      : 'off',
+  }))
+  const picked = pickBestMatchScored(name, results)
+  if (!picked) return null
+
+  return {
+    match: picked.match,
+    score: picked.score,
+    macroSource: picked.match.source ?? 'off',
+  }
 }
 
-async function lookupViaLibrary(
-  name: string,
-  userId: string,
-  db: any,
-): Promise<Per100gFood | null> {
-  const { data, error } = await db
-    .from('food_library')
-    .select('name, calories, protein, carbs, fat, fiber, sugar')
-    .eq('user_id', userId)
-    .ilike('name', `%${name}%`)
-    .limit(10)
+async function verifyMatchWithLLM(
+  query: string,
+  candidate: string,
+  apiKey: string,
+): Promise<boolean> {
+  const prompt = `Jesteś precyzyjnym dietetykiem-sędzią. Decydujesz, czy wyszukiwany produkt spożywczy (Query) odpowiada produktowi znalezionemu w bazie danych (Candidate).
+Czasami algorytmy dopasowują podobnie brzmiące słowa, które oznaczają zupełnie co innego.
 
-  if (error || !data?.length) return null
-  return pickBestMatch(name, data as Per100gFood[])
+Przykłady:
+Query: "borówki", Candidate: "Ser topiony Borówka" -> NIE
+Query: "borówka", Candidate: "Borówki amerykańskie świeże" -> TAK
+Query: "kebab", Candidate: "Kebab w cienkim cieście" -> TAK
+Query: "szynka", Candidate: "Szynka konserwowa kurczak" -> TAK
+Query: "mleko", Candidate: "Czekolada mleczna" -> NIE
+
+Zasada: Czy Candidate to w 100% ten sam rodzaj jedzenia co Query? Odpowiedz TYLKO słowem TAK lub NIE.
+Query: "${query}"
+Candidate: "${candidate}"
+Decyzja:`
+
+  try {
+    const res = await deepseekChat({
+      apiKey,
+      model: 'deepseek-chat',
+      temperature: 0,
+      maxTokens: 5,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = res.content.trim().toUpperCase()
+    return text.includes('TAK')
+  } catch {
+    return true
+  }
 }
 
 async function reconcileOne(
   item: ParsedFoodItem,
-  opts: { supabaseUrl: string; serviceKey: string; userId?: string; db?: any },
+  opts: ReconcileOpts,
 ): Promise<ParsedFoodItem> {
   let match: Per100gFood | null = null
-  let source: 'library' | 'database' | null = null
+  let source: ParsedFoodItem['source'] = 'llm'
+  let macroSource: FoodParseMeta['macroSource'] = 'llm_estimate'
+  let matchScore: number | undefined
+  let matchedName: string | undefined
 
   if (opts.userId && opts.db) {
-    match = await lookupViaLibrary(item.name, opts.userId, opts.db)
-    if (match?.calories != null) source = 'library'
+    const lib = pickBestMatchScored(item.name, (await lookupViaLibraryRaw(item.name, opts.userId, opts.db)) ?? [])
+    if (lib) {
+      match = lib.match
+      source = 'library'
+      macroSource = 'library'
+      matchScore = lib.score
+      matchedName = lib.match.name
+    }
   }
 
   if (!match?.calories) {
-    match = await lookupViaDatabase(item.name, opts.supabaseUrl, opts.serviceKey)
-    if (match?.calories != null) source = 'database'
+    const ref = lookupReferencePl(item.name)
+    if (ref) {
+      match = ref
+      source = 'database'
+      macroSource = 'reference_pl'
+      matchedName = ref.name
+      matchScore = scoreFoodNameMatch(item.name, ref.name)
+    }
   }
 
-  if (match?.calories != null && source) {
+  if (!match?.calories) {
+    const local = lookupGenericFood(item.name)
+    if (local) {
+      match = local
+      source = 'database'
+      macroSource = 'generic'
+      matchedName = local.name
+      matchScore = scoreFoodNameMatch(item.name, local.name)
+    }
+  }
+
+  if (!match?.calories) {
+    const remote = await lookupViaDatabase(item.name, opts.supabaseUrl, opts.serviceKey)
+    if (remote?.match.calories != null) {
+      match = remote.match
+      source = 'database'
+      macroSource = remote.macroSource
+      matchScore = remote.score
+      matchedName = remote.match.name
+    }
+  }
+
+  if (matchScore != null && matchScore >= 0.50 && matchScore <= 0.78 && opts.apiKey && matchedName) {
+    const ok = await verifyMatchWithLLM(item.name, matchedName, opts.apiKey)
+    if (!ok) {
+      match = null
+      source = 'llm'
+      macroSource = 'llm_estimate'
+      matchScore = undefined
+      matchedName = undefined
+    }
+  }
+
+  if (match?.calories != null && source !== 'llm') {
     const macros = recalcFromPer100g(item.grams, match)
     return {
       ...item,
@@ -600,22 +860,190 @@ async function reconcileOne(
       confidence: 'high',
       source,
       assumptions: item.assumptions,
+      parseMeta: {
+        macroSource,
+        matchScore,
+        matchedName,
+        parserVersion: PARSER_VERSION,
+      },
     }
   }
 
   return item
 }
 
+async function lookupViaLibraryRaw(
+  name: string,
+  userId: string,
+  db: any,
+): Promise<Per100gFood[] | null> {
+  const { data, error } = await db
+    .from('food_library')
+    .select('name, calories, protein, carbs, fat, fiber, sugar')
+    .eq('user_id', userId)
+    .ilike('name', `%${name}%`)
+    .limit(10)
+
+  if (error || !data?.length) return null
+  return data as Per100gFood[]
+}
+
+type ReconcileOpts = { supabaseUrl: string; serviceKey: string; userId?: string; db?: unknown; apiKey?: string }
+
 export async function reconcileItems(
   items: ParsedFoodItem[],
-  opts: { supabaseUrl: string; serviceKey: string; userId?: string; db?: any },
+  opts: ReconcileOpts,
 ): Promise<ParsedFoodItem[]> {
-  // Items are independent — reconciling them one-at-a-time turned a 3-item meal into
-  // up to 3x15s of sequential lookup-food round trips, blowing the caller's 35s budget.
   return Promise.all(items.map((item) => reconcileOne(item, opts)))
 }
 
+async function fillMacrosLlmFallback(
+  items: ParsedFoodItem[],
+  apiKey: string,
+  ctx: UserParseContext,
+  originalText: string,
+): Promise<ParsedFoodItem[]> {
+  const indices = items
+    .map((item, i) => (isUnmatchedForMacros(item) ? i : -1))
+    .filter((i) => i >= 0)
+  if (!indices.length) return items
+
+  const payload = indices.map((i) => ({ name: items[i].name, grams: items[i].grams }))
+  const macrosRaw = await callParseLLM(
+    apiKey,
+    buildSystemPrompt(ctx, 'macros_only'),
+    `Oblicz makro dla produktów (gramatura ustalona):\n${JSON.stringify(payload, null, 2)}\n\nOryginalny opis: "${originalText}"`,
+    1200,
+  )
+  const macroItems = normalizeRawItems(macrosRaw)
+  const out = [...items]
+
+  for (let j = 0; j < indices.length; j++) {
+    const idx = indices[j]
+    const macro = macroItems[j]
+      ?? macroItems.find((m) => normalizePl(m.name).includes(normalizePl(out[idx].name)))
+    if (!macro) continue
+
+    out[idx] = {
+      ...out[idx],
+      calories: macro.calories,
+      protein: macro.protein,
+      carbs: macro.carbs,
+      fat: macro.fat,
+      fiber: macro.fiber,
+      sugar: macro.sugar,
+      confidence: macro.confidence === 'high' ? 'medium' : macro.confidence,
+      source: 'llm',
+      assumptions: [
+        ...(out[idx].assumptions ?? []),
+        ...(macro.assumptions ?? []),
+        'makro szacowane — brak w bazie',
+      ],
+      parseMeta: {
+        macroSource: 'llm_estimate',
+        parserVersion: PARSER_VERSION,
+      },
+    }
+  }
+
+  return out
+}
+
+/**
+ * Canonical post-LLM pipeline — single entry point for parse-food-nl.
+ * Order: corrections → reconcile → compound split → homemade → macro math.
+ */
+export async function finalizeParsedItems(
+  items: ParsedFoodItem[],
+  opts: FinalizeFoodParseOpts,
+): Promise<ParsedFoodItem[]> {
+  const reconcileOpts: ReconcileOpts = {
+    supabaseUrl: opts.supabaseUrl,
+    serviceKey: opts.serviceKey,
+    userId: opts.userId,
+    db: opts.db,
+    apiKey: opts.apiKey,
+  }
+
+  let out = applyUserCorrections(items, opts.corrections, opts.originalText)
+  out = await reconcileItems(out, reconcileOpts)
+  out = await tryExpandCompoundItems(out, reconcileOpts)
+
+  if (opts.apiKey && opts.parseContext) {
+    out = await fillMacrosLlmFallback(out, opts.apiKey, opts.parseContext, opts.originalText)
+  }
+
+  out = applyHomemadeAdjustment(opts.originalText, out)
+  out = applyPhysiologicalGuardrails(out, opts.originalText)
+  out = enforceMacroMath(out)
+  return out
+}
+
+interface GuardrailRule {
+  keywords: string[]
+  maxGrams: number
+  defaultGrams: number
+}
+
+const NUTRITION_GUARDRAILS: GuardrailRule[] = [
+  { keywords: ['maslo', 'masla'], maxGrams: 35, defaultGrams: 10 },
+  { keywords: ['olej', 'oleju', 'rzepakow', 'slonecznik'], maxGrams: 35, defaultGrams: 10 },
+  { keywords: ['oliwa', 'oliwy'], maxGrams: 35, defaultGrams: 10 },
+  { keywords: ['sol', 'soli'], maxGrams: 10, defaultGrams: 2 },
+  { keywords: ['cukier', 'cukru'], maxGrams: 50, defaultGrams: 10 },
+  { keywords: ['maslo orzechowe', 'masla orzechowego'], maxGrams: 60, defaultGrams: 20 },
+]
+
+export function applyPhysiologicalGuardrails(items: ParsedFoodItem[], originalText: string): ParsedFoodItem[] {
+  const normText = normalizePl(originalText)
+
+  return items.map((item) => {
+    const normName = normalizePl(item.name)
+    for (const rule of NUTRITION_GUARDRAILS) {
+      const matches = rule.keywords.some((kw) => normName.includes(kw))
+      if (matches && item.grams > rule.maxGrams) {
+        // Sprawdź czy użytkownik wpisał ilość jawnie (np. "50g masła", "masło 50g")
+        const explicitePattern = new RegExp(`(\\d+)\\s*(?:g|gram\\w*|szt\\w*)\\s*(?:${rule.keywords.join('|')})|(?:${rule.keywords.join('|')})\\s*(\\d+)`, 'i')
+        const isExplicite = explicitePattern.test(normText)
+
+        if (!isExplicite) {
+          const originalGrams = item.grams
+          const adjustedGrams = rule.defaultGrams
+          const scale = adjustedGrams / originalGrams
+
+          return {
+            ...item,
+            grams: adjustedGrams,
+            calories: Math.round(item.calories * scale),
+            protein: Math.round(item.protein * scale * 10) / 10,
+            carbs: Math.round(item.carbs * scale * 10) / 10,
+            fat: Math.round(item.fat * scale * 10) / 10,
+            fiber: item.fiber != null ? Math.round(item.fiber * scale * 10) / 10 : undefined,
+            sugar: item.sugar != null ? Math.round(item.sugar * scale * 10) / 10 : undefined,
+            confidence: 'low',
+            assumptions: [
+              ...(item.assumptions ?? []),
+              `guardrail: przycięto gramaturę ${item.name} z ${originalGrams}g do ${adjustedGrams}g (brak explicite w opisie)`,
+            ],
+          }
+        }
+      }
+    }
+    return item
+  })
+}
+
+/** Auto-save only when every line is high-confidence (baza / explicite gramy / poprawka). */
+export function needsFoodReview(items: ParsedFoodItem[]): boolean {
+  if (!items.length) return false
+  return items.some((i) => i.confidence !== 'high')
+}
+
 const MACRO_MISMATCH_TOLERANCE = 0.15
+
+export function caloriesFromMacros(protein: number, carbs: number, fat: number): number {
+  return Math.round(protein * 4 + carbs * 4 + fat * 9)
+}
 
 /**
  * The LLM is told to compute calories = 4*protein + 4*carbs + 9*fat, but doesn't always
@@ -629,15 +1057,20 @@ export function enforceMacroMath(items: ParsedFoodItem[]): ParsedFoodItem[] {
   return items.map((item) => {
     if (item.source !== 'llm') return item
 
-    const computed = item.protein * 4 + item.carbs * 4 + item.fat * 9
+    const computed = caloriesFromMacros(item.protein, item.carbs, item.fat)
     if (computed <= 0) return item
 
     const diff = Math.abs(computed - item.calories) / Math.max(computed, item.calories)
-    if (diff <= MACRO_MISMATCH_TOLERANCE) return item
+    if (diff <= MACRO_MISMATCH_TOLERANCE) {
+      if (item.calories !== computed) {
+        return { ...item, calories: computed }
+      }
+      return item
+    }
 
     return {
       ...item,
-      calories: Math.round(computed),
+      calories: computed,
       confidence: 'low',
       assumptions: [
         ...(item.assumptions ?? []),

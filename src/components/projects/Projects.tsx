@@ -506,26 +506,7 @@ export default function Projects({
         </div>
       </div>
 
-      {/* Weekly Review overdue banner */}
-      {onNavigateTo && reviewOverdueDays !== null && reviewOverdueDays >= 7 && (
-        <button
-          onClick={() => onNavigateTo('weekly-review')}
-          className="w-full flex items-center gap-3 rounded-[20px] border border-rose-500/25 bg-rose-500/8 px-4 py-3.5 text-left cursor-pointer hover:bg-rose-500/12 transition-all group"
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15">
-            <TrendingUp size={16} className="text-rose-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">
-              {reviewOverdueDays >= 100 ? 'Nigdy nie zrobiony' : `${reviewOverdueDays} dni bez przeglądu`}
-            </p>
-            <p className="text-[13px] font-bold text-text-primary leading-tight mt-0.5">
-              Czas na Weekly Review KPI
-            </p>
-          </div>
-          <AlertCircle size={16} className="shrink-0 text-rose-500 group-hover:scale-110 transition-transform" />
-        </button>
-      )}
+
 
       {/* ── Pillar filter tabs ── */}
       <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">

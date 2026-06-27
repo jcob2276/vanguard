@@ -21,6 +21,10 @@ import {
   handleSupplementCallback,
   isSupplementCallback,
 } from "../_handlers/supplements.ts";
+import {
+  handleFoodMealCallback,
+  isFoodMealCallback,
+} from "../_handlers/foodMeal.ts";
 
 type CallbackQuery = {
   id: string;
@@ -46,6 +50,19 @@ export async function handleCallbackQuery(
     deepseekApiKey,
     vanguardUserId,
   } = ctx;
+
+  if (isFoodMealCallback(data)) {
+    await handleFoodMealCallback(
+      data,
+      chatId,
+      messageId,
+      callbackId,
+      supabase,
+      telegramToken,
+      vanguardUserId,
+    );
+    return;
+  }
 
   if (isSupplementCallback(data)) {
     await handleSupplementCallback(data, chatId, messageId, callbackId, supabase, telegramToken, vanguardUserId);

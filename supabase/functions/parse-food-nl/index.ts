@@ -7,13 +7,16 @@
 import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
 import {
   parseMealText,
-  reconcileItems,
-  enforceMacroMath,
-  applyHomemadeAdjustment,
+  finalizeParsedItems,
   type UserParseContext,
+  type FoodCorrection,
 } from '../_shared/foodParseCore.ts'
 
-async function loadUserContext(userId: string, db: ReturnType<typeof createServiceClient>): Promise<UserParseContext> {
+async function loadUserContext(
+  userId: string,
+  db: ReturnType<typeof createServiceClient>,
+  timeOfDay?: 'morning' | 'afternoon' | 'evening',
+): Promise<{ ctx: UserParseContext; corrections: FoodCorrection[] }> {
   const cutoff = new Date()
   cutoff.setUTCDate(cutoff.getUTCDate() - 120)
 
@@ -23,7 +26,8 @@ async function loadUserContext(userId: string, db: ReturnType<typeof createServi
     db.from('body_metrics').select('weight_kg').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     db.from('food_favorites').select('name, default_grams, use_count').eq('user_id', userId).order('use_count', { ascending: false }).limit(15),
     db.from('food_corrections').select('query_name, corrected_name, corrected_grams').eq('user_id', userId).order('updated_at', { ascending: false }).limit(10),
-    db.from('daily_food_entries').select('name').eq('user_id', userId).gte('date', cutoff.toISOString().slice(0, 10)).limit(600),
+    db.from('daily_food_entries').select('name, logged_at').eq('user_id', userId).gte('date', cutoff.toISOString().slice(0, 10)).order('logged_at', { ascending: false }).limit(1500),
+    db.from('user_portions').select('name, grams').eq('user_id', userId),
   ])
 
   const profile = profileRes.data as { height_cm?: number; sex?: string; birth_date?: string } | null
@@ -31,6 +35,7 @@ async function loadUserContext(userId: string, db: ReturnType<typeof createServi
   const weight = weightRes.data as { weight_kg?: number } | null
   const favorites = (favRes.data ?? []) as { name: string; default_grams: number; use_count: number }[]
   const corrections = corrRes.error ? [] : ((corrRes.data ?? []) as { query_name: string; corrected_name: string | null; corrected_grams: number }[])
+  const portions = portionsRes.error ? [] : ((portionsRes.data ?? []) as { name: string; grams: number }[])
 
   const age = profile?.birth_date
     ? Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 86400000))
@@ -53,11 +58,22 @@ async function loadUserContext(userId: string, db: ReturnType<typeof createServi
     ? corrections.map((c) => `- "${c.query_name}" → ${c.corrected_grams}g${c.corrected_name ? ` jako "${c.corrected_name}"` : ''}`).join('\n')
     : ''
 
-  const historyNames = (historyRes.error ? [] : (historyRes.data ?? [])) as { name: string }[]
+  const portionsBlock = portions.length
+    ? portions.map((p) => `- ${p.name}: ${p.grams}g`).join('\n')
+    : ''
+
+  const historyRows = (historyRes.error ? [] : (historyRes.data ?? [])) as { name: string; logged_at?: string }[]
   const nameCounts = new Map<string, number>()
-  for (const row of historyNames) {
+  for (const row of historyRows) {
     const key = row.name?.trim()
     if (!key) continue
+    if (timeOfDay && row.logged_at) {
+      const h = new Date(row.logged_at).getUTCHours() + 2
+      let rowTod = 'evening'
+      if (h >= 5 && h < 12) rowTod = 'morning'
+      else if (h >= 12 && h < 17) rowTod = 'afternoon'
+      if (rowTod !== timeOfDay) continue
+    }
     nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1)
   }
   const historyBlock = [...nameCounts.entries()]
@@ -67,12 +83,16 @@ async function loadUserContext(userId: string, db: ReturnType<typeof createServi
     .join('\n')
 
   return {
-    profileLine: profileLine || 'Profil domyślny dorosłego użytkownika',
-    targetKcal: target?.target_kcal ?? null,
-    targetProtein: target?.protein_floor_g ?? null,
-    favoritesBlock,
-    correctionsBlock,
-    historyBlock,
+    ctx: {
+      profileLine: profileLine || 'Profil domyślny dorosłego użytkownika',
+      targetKcal: target?.target_kcal ?? null,
+      targetProtein: target?.protein_floor_g ?? null,
+      favoritesBlock,
+      correctionsBlock,
+      historyBlock,
+      portionsBlock,
+    },
+    corrections,
   }
 }
 
@@ -82,6 +102,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const text: string = (body.text || '').trim()
+    const clientTime: string | undefined = body.clientTime
     if (!text) {
       return new Response(JSON.stringify({ error: 'Missing text' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -103,25 +124,43 @@ Deno.serve(async (req) => {
     }
 
     const db = createServiceClient()
-    const ctx: UserParseContext = userId
-      ? await loadUserContext(userId, db)
-      : {
+    let ctx: UserParseContext
+    let corrections: FoodCorrection[] = []
+
+    if (userId) {
+      let timeOfDay: 'morning' | 'afternoon' | 'evening' | undefined
+      const h = clientTime ? (new Date(clientTime).getUTCHours() + 2) : (new Date().getUTCHours() + 2)
+      if (h >= 5 && h < 12) timeOfDay = 'morning'
+      else if (h >= 12 && h < 17) timeOfDay = 'afternoon'
+      else timeOfDay = 'evening'
+
+      const loaded = await loadUserContext(userId, db, timeOfDay)
+      ctx = loaded.ctx
+      corrections = loaded.corrections
+    } else {
+      ctx = {
         profileLine: 'Profil domyślny dorosłego użytkownika',
         targetKcal: null,
         targetProtein: null,
         favoritesBlock: '',
         correctionsBlock: '',
         historyBlock: '',
+        portionsBlock: '',
       }
+    }
 
     let items = await parseMealText(apiKey, text, ctx)
 
-    if (supabaseUrl && serviceKey) {
-      items = await reconcileItems(items, { supabaseUrl, serviceKey, userId, db })
-    }
-
-    items = enforceMacroMath(items)
-    items = applyHomemadeAdjustment(text, items)
+    items = await finalizeParsedItems(items, {
+      originalText: text,
+      corrections,
+      supabaseUrl,
+      serviceKey,
+      userId,
+      db,
+      apiKey,
+      parseContext: ctx,
+    })
 
     console.log(`[parse-food-nl] "${text.slice(0, 60)}" → ${items.length} items (user=${userId ?? 'anon'})`)
 

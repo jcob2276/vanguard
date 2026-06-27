@@ -21,7 +21,8 @@ $all = @(
   "save-daily-aggregate",
   "sync-strava",
   "analyze-training-load",
-  "vanguard-nutrition-coach"
+  "vanguard-nutrition-coach",
+  "vanguard-librarian"
 )
 
 $targets = if ($args.Count -gt 0) { $args } else { $all }

@@ -122,6 +122,7 @@ export async function handleIncomingMessage(
     message_id: number;
     chat: { id: number };
     reply_to_message?: { text?: string };
+    photo?: any[];
   },
   ctx: TelegramRouterContext,
 ): Promise<void> {
@@ -137,6 +138,14 @@ export async function handleIncomingMessage(
 
   const chatId = message.chat.id;
   const messageId = message.message_id;
+
+  const photo = message.photo;
+  if (photo && photo.length > 0) {
+    const { handlePhotoLabel } = await import("../_handlers/photoLabel.ts");
+    await handlePhotoLabel(photo, chatId, telegramToken, openAiKey, vanguardUserId, supabase);
+    return;
+  }
+
   const voiceAttachment = getVoiceLikeAttachment(message);
   const isVoice = !!voiceAttachment;
   let text = message.text || "";
@@ -162,6 +171,10 @@ export async function handleIncomingMessage(
     } else if (promptText.includes("Co zjadłeś?")) {
       await handlePosilekCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey);
       return;
+    } else if (promptText.includes("Zapisano (")) {
+      const { handleMealCorrection } = await import("../_handlers/foodCorrection.ts");
+      const handled = await handleMealCorrection(promptText, text, vanguardUserId, supabase, telegramToken, chatId, deepseekApiKey);
+      if (handled) return;
     }
   }
 
@@ -359,6 +372,16 @@ export async function handleIncomingMessage(
       if (lowerText.startsWith('/keep') || lowerText.startsWith('/notatka')) {
         const sliceLen = lowerText.startsWith('/keep') ? 5 : 8;
         await handleKeepCommand(text.slice(sliceLen).trim(), chatId, telegramToken, supabase, vanguardUserId, false);
+        return;
+      }
+
+      // --- /librarian command ---
+      if (lowerText.startsWith('/librarian')) {
+        await safeSendTelegram(chatId, "⏳ Uruchamiam Agenta Bibliotekarza...", telegramToken, { disable_notification: true });
+        fetch(`${supabaseUrl}/functions/v1/vanguard-librarian`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${supabaseServiceRoleKey}` }
+        }).catch(err => console.error('[telegram] /librarian invoke failed:', err));
         return;
       }
 

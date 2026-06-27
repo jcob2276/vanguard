@@ -4,6 +4,8 @@ Pamięć agenta o napotkanych problemach i ich rozwiązaniach między sesjami. P
 
 | Data | Zadanie | Problem | Lekcja |
 |---|---|---|---|
+| 2026-06-27 | NL food accuracy overhaul | LLM: losowe kcal przy tym samym B/W/T; słabe dopasowanie OFF; Telegram bez podglądu; poprawki tylko w prompcie. | `finalizeParsedItems` = jeden pipeline; auto-save tylko `confidence: high`; GENERIC SSOT w `foodGeneric.ts`; Telegram → `food_parse_pending` + inline Zapisz. |
+| 2026-06-28 | Unbreakable food parse (grams-only) | LLM liczył makro end-to-end → dryfy kcal; brak provenance w DB. | `parseMealText` = tylko name+grams; reconcile → `food_reference_pl` / generic / OFF; `fillMacrosLlmFallback` tylko dla unmatched; `parse_meta` w `daily_food_entries`; migracja `20260628100000`. |
 | 2026-06-24 | Etap 7-8 drobnych dodatków (CaffeineDecay, FitnessAge, VitalityEngine, UX pills) | `daily_food_entries` nie ma kolumny `caffeine_mg` — plan zakładał "dane już są" ale były tylko nazwy produktów. | Infer caffeine z nazwy (`estimateCaffeineMg()`) + `logged_at` timestamp — wystarczające dla osobistego systemu. Przy nowych "dane już są" sprawdzać schemat tabeli PRZED planowaniem. |
 | 2026-06-24 | Etap 8 UX — TypeScript check na zmienionych plikach | `tsc --noEmit` zwraca exit code 2 nawet gdy błąd jest wyłącznie w testowym fixture innego pliku. | Filtrować output przez nazwę pliku, nie polegać na exit code — `No errors in modified files` = czyste. Pre-existing błędy w testach nie blokują frontendu. |
 | 2026-06-14 | Weekly Board implementation | Arithmetic subtraction of Date objects directly causes type errors in TypeScript (TS2362 / TS2363). | Zawsze używaj `.getTime()` przy odejmowaniu lub sortowaniu obiektów `Date` w TS. |

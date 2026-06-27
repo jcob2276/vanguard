@@ -9,6 +9,8 @@
 
 import { sendChatAction } from "../../_shared/telegram.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
+import { sendFoodParseResult } from "../_handlers/foodMeal.ts";
+import type { ParsedFoodItem } from "../../_shared/foodParseCore.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 export const DEFAULT_REPLY_KEYBOARD = {
@@ -391,20 +393,12 @@ function defaultMealTypeWarsaw(): string {
   return 'snack';
 }
 
-const MEAL_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Śniadanie',
-  lunch: 'Obiad',
-  dinner: 'Kolacja',
-  snack: 'Przekąska',
-};
-
-
 async function callParseFoodNl(
   rawText: string,
   userId: string,
   supabaseUrl: string,
   serviceKey: string,
-): Promise<Array<{ name: string; grams: number; calories: number; protein: number; carbs: number | null; fat: number | null; fiber?: number | null; sugar?: number | null }>> {
+): Promise<ParsedFoodItem[]> {
   const res = await fetch(`${supabaseUrl}/functions/v1/parse-food-nl`, {
     method: 'POST',
     headers: {
@@ -420,7 +414,7 @@ async function callParseFoodNl(
     throw new Error(err.error || `parse-food-nl HTTP ${res.status}`);
   }
   const body = await res.json();
-  return Array.isArray(body.items) ? body.items : [];
+  return Array.isArray(body.items) ? body.items as ParsedFoodItem[] : [];
 }
 
 export async function handlePosilekCommand(
@@ -429,7 +423,7 @@ export async function handlePosilekCommand(
   telegramToken: string,
   supabase: any,
   vanguardUserId: string,
-  deepseekApiKey: string,
+  _deepseekApiKey: string,
   supabaseUrl: string,
   supabaseServiceRoleKey: string,
 ): Promise<void> {
@@ -450,49 +444,16 @@ export async function handlePosilekCommand(
 
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
     const mealType = defaultMealTypeWarsaw();
-    const mealGroupId = items.length > 1 ? crypto.randomUUID() : null;
 
-    const logged: { name: string; grams: number; calories: number }[] = [];
-    for (const item of items) {
-      const scale100 = item.grams > 0 ? 100 / item.grams : 1;
-      const { error } = await supabase.rpc('add_food_entry', {
-        p_user_id: vanguardUserId,
-        p_date: today,
-        p_grams: item.grams,
-        p_entry: {
-          name: item.name,
-          brand: null,
-          barcode: null,
-          calories: Math.round(item.calories * scale100),
-          protein: Math.round(item.protein * scale100 * 10) / 10,
-          carbs: item.carbs != null ? Math.round(item.carbs * scale100 * 10) / 10 : null,
-          fat: item.fat != null ? Math.round(item.fat * scale100 * 10) / 10 : null,
-          fiber: item.fiber != null ? Math.round(Number(item.fiber) * scale100 * 10) / 10 : null,
-          sugar: item.sugar != null ? Math.round(Number(item.sugar) * scale100 * 10) / 10 : null,
-          meal_type: mealType,
-          meal_group_id: mealGroupId,
-        },
-      });
-      if (error) {
-        console.error('[posilek] add_food_entry failed for', item.name, error);
-        continue;
-      }
-      logged.push({ name: item.name, grams: item.grams, calories: item.calories });
-    }
-
-    if (logged.length === 0) {
-      await safeSendTelegram(chatId, '❌ Nie udało się zapisać posiłku.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
-      return;
-    }
-
-    const total = logged.reduce((sum, l) => sum + l.calories, 0);
-    const lines = logged.map((l) => `• ${l.name} — ${l.grams}g — ${l.calories} kcal`).join('\n');
-    await safeSendTelegram(
+    await sendFoodParseResult(items, {
       chatId,
-      `🍽 Zapisano (${MEAL_TYPE_LABELS[mealType]}):\n${lines}\nRazem: ${total} kcal`,
       telegramToken,
-      { reply_markup: DEFAULT_REPLY_KEYBOARD },
-    );
+      supabase,
+      userId: vanguardUserId,
+      date: today,
+      mealType,
+      replyKeyboard: DEFAULT_REPLY_KEYBOARD,
+    });
   } catch (err) {
     console.error('[commands] /posilek failed:', err);
     await safeSendTelegram(chatId, '❌ Błąd zapisu posiłku: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });

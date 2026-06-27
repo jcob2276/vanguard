@@ -11,18 +11,26 @@ export const MEAL_TYPES = [
 
 export type MealTypeId = (typeof MEAL_TYPES)[number]['id']
 
+export interface FoodParseMeta {
+  macroSource: 'library' | 'generic' | 'reference_pl' | 'off' | 'llm_estimate' | 'user_correction'
+  matchScore?: number
+  matchedName?: string
+  parserVersion: string
+}
+
 export interface ParsedFoodItem {
   name: string
   grams: number
   calories: number
   protein: number
-  carbs: number | null
-  fat: number | null
-  fiber?: number | null
-  sugar?: number | null
-  confidence?: 'high' | 'medium' | 'low'
-  source?: 'llm' | 'database' | 'library'
+  carbs: number
+  fat: number
+  fiber?: number
+  sugar?: number
+  confidence: 'high' | 'medium' | 'low'
+  source: 'llm' | 'database' | 'library'
   assumptions?: string[]
+  parseMeta?: FoodParseMeta
 }
 
 export interface TodayNutritionSnapshot {
@@ -114,7 +122,8 @@ export async function parseFoodNL(text: string, userId: string, accessToken: str
 }
 
 export function needsReview(items: ParsedFoodItem[]): boolean {
-  return items.some((i) => (i.confidence ?? 'medium') === 'low')
+  if (!items.length) return false
+  return items.some((i) => i.confidence !== 'high')
 }
 
 export async function saveParsedFoodItems(
@@ -143,6 +152,7 @@ export async function saveParsedFoodItems(
         sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
         meal_type: opts.mealType,
         meal_group_id: groupId ?? null,
+        parse_meta: item.parseMeta ?? null,
       },
     })
     if (error) throw error
@@ -324,6 +334,6 @@ export async function repeatYesterdayMeal(userId: string, targetDate: string): P
 export function confidenceLabel(item: ParsedFoodItem): string | null {
   if (item.source === 'library' || item.source === 'database') return 'baza'
   if (item.confidence === 'high') return 'ok'
-  if (item.confidence === 'low') return 'sprawdź'
+  if (item.confidence === 'low' || item.confidence === 'medium') return 'sprawdź'
   return null
 }

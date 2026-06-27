@@ -161,10 +161,12 @@ Deno.serve(async (req) => {
       text?: string;
       voice?: { file_id: string; duration?: number };
       audio?: { file_id: string; duration?: number; mime_type?: string };
+      photo?: any[];
+      message_id: number;
     } | undefined;
     if (!message) return new Response("OK", { status: 200 });
-    if (!message.text && !message.voice && !message.audio) {
-      console.log("[telegram] ignored message: no text/voice/audio");
+    if (!message.text && !message.voice && !message.audio && !message.photo) {
+      console.log("[telegram] ignored message: no text/voice/audio/photo");
       return new Response("OK", { status: 200 });
     }
     if (!Number.isFinite(ctx.authorizedChatId) || ctx.authorizedChatId <= 0 || message.chat?.id !== ctx.authorizedChatId) {
