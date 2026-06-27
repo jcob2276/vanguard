@@ -614,3 +614,35 @@ export async function reconcileItems(
   // up to 3x15s of sequential lookup-food round trips, blowing the caller's 35s budget.
   return Promise.all(items.map((item) => reconcileOne(item, opts)))
 }
+
+const MACRO_MISMATCH_TOLERANCE = 0.15
+
+/**
+ * The LLM is told to compute calories = 4*protein + 4*carbs + 9*fat, but doesn't always
+ * follow its own arithmetic — observed in production as the same dish (identical P/C/F)
+ * logged with two different calorie totals on different days. Scanned/database items
+ * (source !== 'llm') carry real label values that legitimately don't satisfy a clean
+ * 4-4-9 split (Atwater factors vary, label rounding, etc.) — only correct items the LLM
+ * itself estimated end-to-end.
+ */
+export function enforceMacroMath(items: ParsedFoodItem[]): ParsedFoodItem[] {
+  return items.map((item) => {
+    if (item.source !== 'llm') return item
+
+    const computed = item.protein * 4 + item.carbs * 4 + item.fat * 9
+    if (computed <= 0) return item
+
+    const diff = Math.abs(computed - item.calories) / Math.max(computed, item.calories)
+    if (diff <= MACRO_MISMATCH_TOLERANCE) return item
+
+    return {
+      ...item,
+      calories: Math.round(computed),
+      confidence: 'low',
+      assumptions: [
+        ...(item.assumptions ?? []),
+        `kalorie skorygowane z B/W/T (model podał ${item.calories} kcal, niezgodne z makro)`,
+      ],
+    }
+  })
+}
