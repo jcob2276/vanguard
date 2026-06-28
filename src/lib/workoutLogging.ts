@@ -332,6 +332,17 @@ export async function parseWorkoutNL(text: string, userId: string, accessToken: 
   return json as ParsedWorkout
 }
 
+export type PlyoSetLog = {
+  exercise_name: string
+  set_number: number
+  weight: number
+  reps: number
+  rir: null
+  rpe: null
+  is_pws_or_msp: boolean
+  muscle_tags: string[]
+}
+
 export async function saveWorkoutSession(
   userId: string,
   opts: {
@@ -345,11 +356,15 @@ export async function saveWorkoutSession(
     manualTime: boolean
     startTimeManual: string
     endTimeManual: string
+    plyoLogs?: PlyoSetLog[]
   },
 ): Promise<void> {
   const validEx = opts.exercises.filter((e) => e.name.trim())
   const validAc = opts.activities.filter((a) => a.name.trim())
-  if (!validEx.length && !validAc.length) throw new Error('Dodaj co najmniej jedno ćwiczenie')
+  const plyoLogs = opts.plyoLogs ?? []
+  if (!validEx.length && !validAc.length && !plyoLogs.length) {
+    throw new Error('Dodaj co najmniej jedno ćwiczenie')
+  }
 
   const exLogs = validEx.flatMap((ex) =>
     (ex.sets ?? []).map((s, i) => ({
@@ -397,7 +412,7 @@ export async function saveWorkoutSession(
     p_end_time: finalEnd as string,
     p_notes: opts.notes,
     p_msp_passed: mspPassed,
-    p_logs: [...exLogs, ...acLogs],
+    p_logs: [...plyoLogs, ...exLogs, ...acLogs],
     p_session_rpe: opts.sessionRpe ?? undefined,
   })
   if (error) throw new Error(error.message || 'Nie udało się zapisać treningu')

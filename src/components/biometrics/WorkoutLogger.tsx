@@ -21,6 +21,16 @@ import {
 } from '../../lib/workoutLogging';
 import ExerciseCard from './workout/ExerciseCard';
 import VolumeBar from './workout/VolumeBar';
+import PlyoBlock from './workout/PlyoBlock';
+import {
+  advancePlyoProgram,
+  clearPlyoCheckoff,
+  initPlyoCheckoff,
+  isPlyoSessionComplete,
+  plyoPrescriptionToLogs,
+  resolvePlyoSession,
+  savePlyoCheckoff,
+} from '../../lib/plyoMarathonProgram';
 
 export default function WorkoutLogger({
   session,
@@ -56,6 +66,18 @@ export default function WorkoutLogger({
   const [restDuration, setRestDuration] = useState(90);
   const [restEndTime, setRestEndTime] = useState<number | null>(null);
   const restRemaining = useCountdown(restEndTime);
+
+  const [plyoSkipped, setPlyoSkipped] = useState(false);
+  const plyoSession = userId ? resolvePlyoSession(workoutDate, userId) : null;
+  const [plyoDone, setPlyoDone] = useState<boolean[][]>(() =>
+    plyoSession && userId ? initPlyoCheckoff(userId, plyoSession) : [],
+  );
+
+  useEffect(() => {
+    if (!userId || plyoSkipped) return;
+    const session = resolvePlyoSession(workoutDate, userId);
+    setPlyoDone(initPlyoCheckoff(userId, session));
+  }, [userId, workoutDate, plyoSkipped]);
 
   const playRestGong = useCallback(() => {
     try {
@@ -107,6 +129,22 @@ export default function WorkoutLogger({
   }, [userId, initial]);
 
   useEffect(() => {
+    if (!userId || plyoSkipped || !plyoSession) return;
+    const t = window.setTimeout(() => {
+      savePlyoCheckoff(userId, plyoSession.sessionKey, plyoDone);
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [userId, plyoSkipped, plyoSession, plyoDone]);
+
+  const togglePlyoSet = (exIdx: number, setIdx: number) => {
+    setPlyoDone((prev) =>
+      prev.map((row, i) =>
+        i === exIdx ? row.map((d, j) => (j === setIdx ? !d : d)) : row,
+      ),
+    );
+  };
+
+  useEffect(() => {
     if (!userId) return;
     const t = window.setTimeout(() => {
       const draft: WorkoutDraft = {
@@ -151,12 +189,21 @@ export default function WorkoutLogger({
     if (!userId || saving) return;
     const validEx = exercises.filter(e => e.name.trim());
     const validAc = activities.filter(a => a.name.trim());
-    if (!validEx.length && !validAc.length) { notify('Dodaj przynajmniej jedno ćwiczenie lub aktywność', 'error'); return; }
+    const plyoLogs =
+      !plyoSkipped && plyoSession
+        ? plyoPrescriptionToLogs(plyoSession.exercises, plyoDone)
+        : [];
+    if (!validEx.length && !validAc.length && !plyoLogs.length) {
+      notify('Dodaj ćwiczenia siłowe albo odhacz serie plyo', 'error');
+      return;
+    }
+
+    const plyoComplete = Boolean(
+      !plyoSkipped && plyoSession && isPlyoSessionComplete(plyoDone),
+    );
 
     setSaving(true);
     try {
-      // Long sessions (>1h) can outlive the access token if the tab was backgrounded;
-      // force a refresh check before writing so a stale token doesn't fail the save.
       await supabase.auth.getSession();
       await saveWorkoutSession(userId, {
         workoutName,
@@ -169,8 +216,14 @@ export default function WorkoutLogger({
         manualTime,
         startTimeManual,
         endTimeManual,
+        plyoLogs,
       });
       clearWorkoutDraft(userId);
+      if (plyoComplete) {
+        advancePlyoProgram(userId);
+      } else if (plyoLogs.length) {
+        clearPlyoCheckoff(userId);
+      }
       haptics.success();
       onSaved?.();
       onBack();
@@ -229,6 +282,18 @@ export default function WorkoutLogger({
       )}
 
       <main className="flex-1 p-5 space-y-8 max-w-md mx-auto w-full">
+        {!plyoSkipped && plyoSession && plyoDone.length > 0 && (
+          <PlyoBlock
+            session={plyoSession}
+            done={plyoDone}
+            onToggleSet={togglePlyoSet}
+            onSkip={() => {
+              haptics.light();
+              setPlyoSkipped(true);
+            }}
+          />
+        )}
+
         <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
           <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}

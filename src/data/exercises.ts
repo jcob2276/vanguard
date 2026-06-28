@@ -69,6 +69,7 @@ export const EXERCISES = [
   { name: 'Good morning', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   // Plajometria / moc reaktywna (pod biegacza)
   { name: 'Box jump', tags: ['plyo', 'czworogłowe', 'pośladki'] },
+  { name: 'Box jump continuous', tags: ['plyo', 'czworogłowe', 'pośladki'] },
   { name: 'Depth jump', tags: ['plyo', 'czworogłowe', 'łydki'] },
   { name: 'Single-leg hop', tags: ['plyo', 'łydki', 'pośladki'] },
   { name: 'Single-leg box jump', tags: ['plyo', 'czworogłowe', 'pośladki'] },
@@ -77,6 +78,12 @@ export const EXERCISES = [
   { name: 'Lateral bound', tags: ['plyo', 'pośladki', 'czworogłowe'] },
   { name: 'Tuck jump', tags: ['plyo', 'czworogłowe', 'łydki'] },
   { name: 'Pogo hop', tags: ['plyo', 'łydki'] },
+  { name: 'Pogo hop jednonóż', tags: ['plyo', 'łydki'] },
+  { name: 'Skater', tags: ['plyo', 'pośladki', 'czworogłowe'] },
+  { name: 'Broad jump', tags: ['plyo', 'pośladki', 'dwugłowe ud'] },
+  { name: 'Box jump lateral', tags: ['plyo', 'czworogłowe', 'pośladki'] },
+  { name: 'Box step-off', tags: ['plyo', 'czworogłowe', 'łydki'] },
+  { name: 'Alternating jump lunge', tags: ['plyo', 'czworogłowe', 'pośladki'] },
   { name: 'Skip A/B drill', tags: ['plyo', 'łydki', 'czworogłowe'] },
   // Brzuch
   { name: 'Plank', tags: ['brzuch'] },
