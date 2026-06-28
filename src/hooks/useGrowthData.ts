@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   getWeekStartWarsaw,
+  isCurrentWeek,
   partitionSkillTree,
   type LearningSkill,
   type LearningSkillSnapshot,
@@ -58,11 +59,22 @@ export interface GrowthContextData {
   kpiId: string | null;
 }
 
+export interface GrowthCheckpoint {
+  id: string;
+  project_id: string;
+  project_name: string;
+  title: string;
+  due_date: string;
+  status: string;
+  daysOverdue: number; // negative = upcoming, positive = overdue
+}
+
 export interface GrowthProjectSummary {
   id: string;
   name: string;
   goal: string | null;
   status: string;
+  primarySkillId: string | null;
   kpis: { id: string; name: string; current: number | null; target: number | null }[];
 }
 
@@ -98,6 +110,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
   const [weekNotes, setWeekNotes] = useState<GrowthWeekNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [rozwojNotesCount, setRozwojNotesCount] = useState(0);
+  const [upcomingCheckpoints, setUpcomingCheckpoints] = useState<GrowthCheckpoint[]>([]);
 
   const ensureDefaultSkills = useCallback(async () => {
     if (!userId) return;
@@ -105,6 +118,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
       .from('learning_skills')
       .select('id')
       .eq('user_id', userId)
+      .eq('active', true)
       .limit(1);
     if (existing && existing.length > 0) return;
 
@@ -136,6 +150,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         kpisRes,
         rozwojNotesRes,
         dailyWinsRes,
+        checkpointsRes,
         prevWeekRes,
       ] = await Promise.all([
         supabase
@@ -201,10 +216,10 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .maybeSingle(),
         supabase
           .from('projects')
-          .select('id, name, goal, status')
+          .select('id, name, goal, status, primary_skill_id')
           .eq('user_id', userId)
           .eq('status', 'active')
-          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(24),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
         supabase
@@ -221,6 +236,13 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .eq('user_id', userId)
           .gte('date', weekStart)
           .lt('date', weekEnd),
+        supabase
+          .from('project_checkpoints')
+          .select('id, project_id, title, due_date, status')
+          .eq('user_id', userId)
+          .in('status', ['pending', 'open'])
+          .order('due_date', { ascending: true })
+          .limit(10),
         fetchGrowthPrevWeekSummary(userId, weekStart),
       ]);
 
@@ -257,6 +279,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         name: p.name,
         goal: p.goal ?? null,
         status: p.status,
+        primarySkillId: p.primary_skill_id ?? null,
         kpis: allKpis
           .filter((k) => k.project_id === p.id)
           .map((k) => ({
@@ -268,11 +291,47 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
       }));
       setActiveProjects(projectSummaries);
 
+      // Build upcoming/overdue checkpoints
+      const todayStr = weekStart; // use current date context
+      const checkpointRows = (checkpointsRes.data ?? []) as { id: string; project_id: string; title: string; due_date: string; status: string }[];
+      const projNameMap = new Map(activeProjectRows.map((p) => [p.id, p.name]));
+      const checkpoints: GrowthCheckpoint[] = checkpointRows
+        .filter((cp) => projNameMap.has(cp.project_id))
+        .map((cp) => {
+          const diffMs = new Date(cp.due_date).getTime() - new Date(todayStr).getTime();
+          const daysOverdue = -Math.round(diffMs / (1000 * 60 * 60 * 24));
+          return {
+            id: cp.id,
+            project_id: cp.project_id,
+            project_name: projNameMap.get(cp.project_id) ?? '',
+            title: cp.title,
+            due_date: cp.due_date,
+            status: cp.status,
+            daysOverdue,
+          };
+        })
+        .sort((a, b) => b.daysOverdue - a.daysOverdue); // overdue first
+      setUpcomingCheckpoints(checkpoints);
+
       const activeProject = activeProjectRows[0] ?? null;
       const projectKpis = allKpis.filter((k) => k.project_id === activeProject?.id);
       const firstKpi = projectKpis[0];
 
-      const review = reviewRes.data;
+      let review = reviewRes.data;
+      if (isCurrentWeek(weekStart) && (!review || (!review.week_intention && !review.week_goal_cialo && !review.week_goal_duch && !review.week_goal_konto))) {
+        const { data: fallbackReview } = await supabase
+          .from('weekly_reviews')
+          .select('week_intention, week_commitment, week_goal_cialo, week_goal_duch, week_goal_konto')
+          .eq('user_id', userId)
+          .not('week_intention', 'is', null)
+          .order('week_start', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (fallbackReview) {
+          review = fallbackReview as any;
+        }
+      }
+
       const weekGoals: WeekDirectionGoals = {
         intention: review?.week_intention ?? null,
         commitment: review?.week_commitment ?? null,
@@ -339,5 +398,6 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
     setFocus,
     setPins,
     setSkills,
+    upcomingCheckpoints,
   };
 }

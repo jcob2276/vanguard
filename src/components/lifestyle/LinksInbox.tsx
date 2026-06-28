@@ -7,12 +7,15 @@ import {
   ChevronLeft,
   ChevronUp,
   ExternalLink,
+  Grid3X3,
   Inbox,
+  LayoutList,
   Link2,
   ListTodo,
   Loader2,
   PenLine,
   Plus,
+  Search,
   StickyNote,
   Trash2,
   X,
@@ -78,6 +81,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [bouncingIds, setBouncingIds] = useState<Set<string>>(new Set());
   const [convertingLinkId, setConvertingLinkId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   const haptic = (pattern: number | number[]) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -251,7 +256,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const filteredLinks = links.filter(link => {
     const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
     const matchesCategory = !categoryFilter || link.category === categoryFilter;
-    return matchesStatus && matchesCategory;
+    const q = search.toLowerCase().trim();
+    const matchesSearch = !q ||
+      (link.title || '').toLowerCase().includes(q) ||
+      (link.description || '').toLowerCase().includes(q) ||
+      (link.domain || '').toLowerCase().includes(q) ||
+      (link.category || '').toLowerCase().includes(q);
+    return matchesStatus && matchesCategory && matchesSearch;
   });
 
   const unreadCount = links.filter(l => l.status === 'unread').length;
@@ -328,6 +339,14 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
             </p>
           </div>
           <button
+            type="button"
+            onClick={() => setViewMode(v => v === 'card' ? 'list' : 'card')}
+            className="rounded-full p-2 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-colors"
+            title={viewMode === 'card' ? 'Widok listy' : 'Widok kart'}
+          >
+            {viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
+          </button>
+          <button
             onClick={() => { setShowAddForm(p => !p); setAddUrl(''); }}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
@@ -367,6 +386,22 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[640px] mx-auto px-5 py-5 pb-24 space-y-4">
+
+            {/* Search Input Bar */}
+            <div className="relative flex items-center gap-2.5 rounded-2xl bg-surface border border-border-custom/40 px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+              <Search size={15} className="text-text-muted shrink-0" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Szukaj po tytule, domenie lub kategorii..."
+                className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/40 outline-none w-full"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
 
             {/* Status tabs */}
             <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07)]">
@@ -420,79 +455,141 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         isDeleting ? 'opacity-0 scale-[0.93] -translate-y-2 pointer-events-none' : 'opacity-100 scale-100'
                       }`}
                     >
-                    <div
-                      className={`pocket-card ${
-                        link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
-                      }`}
-                    >
-                      {/* Thumbnail (YouTube) */}
-                      {link.thumbnail_url && (
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[24px] overflow-hidden">
-                          <img
-                            src={link.thumbnail_url}
-                            alt={link.title}
-                            className="w-full h-[180px] object-cover"
-                            loading="lazy"
-                          />
-                        </a>
-                      )}
-
-                      {/* Top row */}
-                      <div className="flex items-start gap-3">
-                        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
-                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                            <div className="flex items-center gap-1 select-none">
-                              <img
-                                src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
-                                alt=""
-                                className="w-3.5 h-3.5 rounded-sm object-contain"
-                                onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                              />
-                              <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
-                            </div>
-                            <span
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCategoryFilter(p => p === link.category ? null : link.category);
-                              }}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
-                            >
-                              {link.category}
-                            </span>
-                            {(link.notes || notesDrafts[link.id]) && (
-                              <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
-                                <PenLine size={9} />
-                              </span>
-                            )}
-                          </div>
-                          <h3 className={`text-[15px] font-semibold leading-snug tracking-tight ${
-                            link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
-                          }`}>
-                            {link.title}
-                          </h3>
-                          {link.description && (
-                            <p className="mt-1 text-[12.5px] text-text-muted leading-relaxed line-clamp-2">
-                              {link.description}
-                            </p>
-                          )}
-                        </div>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => haptic([6])}
-                          className="btn-press shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-all duration-75 active:scale-[0.78] active:text-text-primary"
+                      {viewMode === 'list' ? (
+                        // List Mode
+                        <div
+                          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3 transition-all hover:bg-surface-solid/15 ${
+                            link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
+                          }`}
                         >
-                          <ExternalLink size={14} />
-                        </a>
-                      </div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
+                            <img
+                              src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
+                              alt=""
+                              className="w-4 h-4 rounded-sm object-contain shrink-0"
+                              onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h3 className={`text-[14px] font-semibold truncate leading-tight ${
+                                link.status === 'read' ? 'text-text-secondary line-through' : 'text-text-primary'
+                              }`}>
+                                {link.title}
+                              </h3>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span className="text-[10px] text-text-muted">{link.domain}</span>
+                                <span className={`rounded-full px-1.5 py-0.5 text-[8.5px] font-bold ${catStyle.pill}`}>
+                                  {link.category}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => toggleReadStatus(link.id, link.status)}
+                              className={`btn-press rounded-full p-1.5 transition-all ${
+                                link.status === 'read'
+                                  ? 'bg-emerald-500/10 text-emerald-500'
+                                  : 'text-text-muted/40 hover:text-text-primary hover:bg-surface-solid/60'
+                              }`}
+                              title={link.status === 'unread' ? 'Oznacz jako przeczytane' : 'Oznacz jako nieprzeczytane'}
+                            >
+                              <Check size={13} className={bouncingIds.has(link.id) ? 'animate-pop-check' : ''} />
+                            </button>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => haptic([6])}
+                              className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-text-primary hover:bg-surface-solid/60"
+                            >
+                              <ExternalLink size={13} />
+                            </a>
+                            <button
+                              onClick={() => deleteLink(link.id)}
+                              className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Card Mode
+                        <div
+                          className={`pocket-card ${
+                            link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
+                          }`}
+                        >
+                          {/* Thumbnail (YouTube) */}
+                          {link.thumbnail_url && (
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[24px] overflow-hidden">
+                              <img
+                                src={link.thumbnail_url}
+                                alt={link.title}
+                                className="w-full h-[180px] object-cover"
+                                loading="lazy"
+                              />
+                            </a>
+                          )}
+
+                          {/* Top row */}
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
+                              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                                <div className="flex items-center gap-1 select-none">
+                                  <img
+                                    src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
+                                    alt=""
+                                    className="w-3.5 h-3.5 rounded-sm object-contain"
+                                    onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                  <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
+                                </div>
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCategoryFilter(p => p === link.category ? null : link.category);
+                                  }}
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
+                                >
+                                  {link.category}
+                                </span>
+                                {(link.notes || notesDrafts[link.id]) && (
+                                  <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
+                                    <PenLine size={9} />
+                                  </span>
+                                )}
+                              </div>
+                              <h3 className={`text-[15px] font-semibold leading-snug tracking-tight ${
+                                link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
+                              }`}>
+                                {link.title}
+                              </h3>
+                              {link.description && (
+                                <p className="mt-1 text-[12.5px] text-text-muted leading-relaxed line-clamp-2">
+                                  {link.description}
+                                </p>
+                              )}
+                            </div>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => haptic([6])}
+                              className="btn-press shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-all duration-75 active:scale-[0.78] active:text-text-primary"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Expanded: AI Takeaways + Przemyślenia + Kategoria */}
                       <div
                         className={`grid-expand-wrapper ${isExpanded ? 'expanded' : ''}`}
                       >
                         <div className="grid-expand-content">
-                          <div className="mt-4 border-t border-border-custom/40 pt-3 space-y-4">
+                          <div className={`mt-4 pt-3 space-y-4 ${viewMode === 'list' ? 'border border-t-0 border-border-custom/40 bg-surface-solid/5 rounded-b-2xl p-4 -mt-2' : 'border-t border-border-custom/40'}`}>
                             {youtubeId && (
                               <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-inner border border-border-custom/50">
                                 <iframe
@@ -599,48 +696,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                             </div>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-custom/30">
-                        <button
-                          onClick={() => { haptic([3]); setExpandedLinkId(p => p === link.id ? null : link.id); }}
-                          className="btn-press flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-all duration-75 active:scale-[0.88]"
-                        >
-                          {isExpanded
-                            ? <><ChevronUp size={13} /> Zwiń</>
-                            : link.takeaways?.length > 0
-                              ? <><ChevronDown size={13} /> Wnioski · notatka</>
-                              : <><PenLine size={12} /> Notatka</>
-                          }
-                        </button>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => toggleReadStatus(link.id, link.status)}
-                            className={`btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-75 active:scale-[0.88] ${
-                              bouncingIds.has(link.id) ? 'animate-pop-check' : ''
-                            } ${
-                              link.status === 'unread'
-                                ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                                : 'bg-surface-solid/60 text-text-muted hover:text-text-secondary'
-                            }`}
-                          >
-                            {link.status === 'unread' ? (
-                              <><Check size={12} /> Przeczytane</>
-                            ) : (
-                              <><BookOpen size={12} /> Cofnij</>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => deleteLink(link.id)}
-                            className="btn-press rounded-full p-1.5 text-text-muted/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-75 active:scale-[0.75]"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                     </div>
                     </div>
                   );
                 })}

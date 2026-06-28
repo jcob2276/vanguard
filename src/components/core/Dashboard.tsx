@@ -19,14 +19,13 @@ import { useDashboardData } from '../../hooks/useDashboardData';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { useSyncActions } from '../../hooks/useSyncActions';
-import GoalsCard from '../lifestyle/GoalsCard';
 import PowerList from '../lifestyle/PowerList';
 import OrientationFooter from './OrientationFooter';
 import NutritionCard from './NutritionCard';
 import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
-import { loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import CaptureQueueCard from './CaptureQueueCard';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 
@@ -117,7 +116,11 @@ export default function Dashboard({ session }: { session: Session }) {
   useEffect(() => {
     if (resumedWorkoutDraft.current || !userId) return;
     resumedWorkoutDraft.current = true;
-    if (loadWorkoutDraft(userId)) setShowWorkoutLogger(true);
+    purgeStaleWorkoutDraft(userId);
+    if (shouldAutoResumeWorkout(userId)) {
+      markWorkoutSessionActive(userId);
+      setShowWorkoutLogger(true);
+    }
   }, [userId]);
 
   // Some Android/WebView builds suspend the page in place (no remount) when the
@@ -127,7 +130,12 @@ export default function Dashboard({ session }: { session: Session }) {
     if (!userId) return;
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      setShowWorkoutLogger((prev) => prev || !!loadWorkoutDraft(userId));
+      setShowWorkoutLogger((prev) => {
+        if (prev) return prev;
+        if (!shouldAutoResumeWorkout(userId)) return prev;
+        markWorkoutSessionActive(userId);
+        return true;
+      });
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
@@ -427,6 +435,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 refreshSignal={workoutKey}
                 onOpenWorkout={() => {
                   setWorkoutInitial(null);
+                  if (userId) markWorkoutSessionActive(userId);
                   setShowWorkoutLogger(true);
                 }}
                 onOpenSauna={() => setShowSaunaLogger(true)}
@@ -447,11 +456,11 @@ export default function Dashboard({ session }: { session: Session }) {
                 <DailySnapshotCard session={session} />
               </Suspense>
 
-              <Suspense fallback={<ViewFallback />}>
-                <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
-              </Suspense>
-
-              <GoalsCard session={session} />
+              {todayWin && (
+                <Suspense fallback={<ViewFallback />}>
+                  <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
+                </Suspense>
+              )}
             </div>
           </div>
           )}

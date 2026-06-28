@@ -1,18 +1,27 @@
 import { Link } from 'react-router-dom';
-import { FolderKanban } from 'lucide-react';
+import { FolderKanban, Plus, Target } from 'lucide-react';
 import type { GrowthProjectSummary } from '../../hooks/useGrowthData';
+import type { LearningWeekPin } from '../../lib/growth';
 import { KpiTrendSparkline } from '../projects/KpiTrendSparkline';
 
 export default function GrowthProjectsPanel({
   projects,
+  pins,
   userId,
   sprintGoal,
   sprintLabel,
+  focusProjectId,
+  onAddMust,
+  onKpiChange,
 }: {
   projects: GrowthProjectSummary[];
+  pins: LearningWeekPin[];
   userId: string;
   sprintGoal: string | null;
   sprintLabel: string | null;
+  focusProjectId?: string | null;
+  onAddMust?: (projectId: string) => void;
+  onKpiChange?: () => void;
 }) {
   if (projects.length === 0 && !sprintGoal) {
     return (
@@ -23,16 +32,10 @@ export default function GrowthProjectsPanel({
         </p>
         <Link
           to="/?view=projekty"
-          onClick={() => {
-            try {
-              localStorage.setItem('vanguard_view', 'projekty');
-            } catch {
-              /* ignore */
-            }
-          }}
+          onClick={() => { try { localStorage.setItem('vanguard_view', 'projekty'); } catch {} }}
           className="inline-block text-[11px] font-black uppercase text-primary hover:underline"
         >
-          Otwórz Projekty →
+          Otwórz Projekty -&gt;
         </Link>
       </section>
     );
@@ -42,20 +45,14 @@ export default function GrowthProjectsPanel({
     <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 space-y-3 h-full">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-text-muted">
-          <FolderKanban size={12} /> Projekty · dowód
+          <FolderKanban size={12} /> Projekty &middot; dow&oacute;d
         </p>
         <Link
           to="/?view=projekty"
-          onClick={() => {
-            try {
-              localStorage.setItem('vanguard_view', 'projekty');
-            } catch {
-              /* ignore */
-            }
-          }}
+          onClick={() => { try { localStorage.setItem('vanguard_view', 'projekty'); } catch {} }}
           className="text-[9px] font-black uppercase text-primary hover:underline shrink-0"
         >
-          Wszystkie →
+          Wszystkie -&gt;
         </Link>
       </div>
 
@@ -67,34 +64,93 @@ export default function GrowthProjectsPanel({
       )}
 
       <div className="space-y-2">
-        {projects.map((p) => (
-          <div key={p.id} className="rounded-xl border border-border-custom bg-background/40 px-3 py-2.5">
-            <p className="text-[12px] font-bold text-text-primary truncate">{p.name}</p>
-            {p.goal && (
-              <p className="text-[10px] text-text-muted mt-0.5 line-clamp-2">{p.goal}</p>
-            )}
-            {p.kpis.length > 0 ? (
-              <ul className="mt-2 space-y-1.5">
-                {p.kpis.map((k) => (
-                  <li key={k.id} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold text-text-secondary truncate">
-                      {k.name}
-                      {k.current != null && (
-                        <span className="text-primary ml-1 tabular-nums">
-                          {k.current}
-                          {k.target != null ? `/${k.target}` : ''}
-                        </span>
-                      )}
+        {projects.map((p) => {
+          const projectPins = pins.filter((pin) => pin.project_id === p.id);
+          const allRelevantPins = p.id === focusProjectId
+            ? pins.filter((pin) => pin.project_id === p.id || pin.project_id == null)
+            : projectPins;
+          const mustCount = allRelevantPins.filter((pin) => pin.slot === 'must').length;
+          const doneCount = allRelevantPins.filter((pin) => pin.done).length;
+          const totalCount = allRelevantPins.length;
+          const isFocus = p.id === focusProjectId;
+          const primaryKpi = p.kpis[0] ?? null;
+          const kpiPct = primaryKpi?.target && primaryKpi.current != null
+            ? Math.min(100, Math.round((primaryKpi.current / primaryKpi.target) * 100))
+            : null;
+
+          return (
+            <div
+              key={p.id}
+              className={`rounded-xl border px-3 py-2.5 ${isFocus ? 'border-primary/30 bg-primary/[0.03]' : 'border-border-custom bg-background/40'}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    {isFocus && <Target size={11} className="text-primary shrink-0" />}
+                    <p className="text-[12px] font-bold text-text-primary truncate">{p.name}</p>
+                  </div>
+                  {p.goal && (
+                    <p className="text-[10px] text-text-muted mt-0.5 line-clamp-2">{p.goal}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {totalCount > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black text-primary">
+                      {doneCount}/{totalCount}{mustCount > 0 ? ` · ${mustCount} MUST` : ''}
                     </span>
-                    <KpiTrendSparkline kpiId={k.id} userId={userId} target={k.target} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">Brak KPI</p>
-            )}
-          </div>
-        ))}
+                  ) : (
+                    <span className="text-[9px] font-bold text-text-muted">brak planu tygodnia</span>
+                  )}
+                  {onAddMust && (
+                    <button
+                      type="button"
+                      onClick={() => onAddMust(p.id)}
+                      className="rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1 text-rose-600 dark:text-rose-400 transition-all cursor-pointer"
+                      title="Dodaj MUST"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {p.kpis.length > 0 ? (
+                <div className="mt-2 space-y-1.5">
+                  {p.kpis.map((k) => (
+                    <div key={k.id} className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-semibold text-text-secondary truncate">{k.name}</span>
+                          {k.current != null && (
+                            <span className="text-[10px] font-black text-primary tabular-nums shrink-0">
+                              {k.current}{k.target != null ? `/${k.target}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        {kpiPct != null && k.id === primaryKpi?.id && (
+                          <div className="mt-1 h-1 rounded-full bg-border-custom overflow-hidden">
+                            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${kpiPct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                      <KpiTrendSparkline
+                        kpiId={k.id}
+                        userId={userId}
+                        target={k.target}
+                        currentValue={k.current}
+                        unit={undefined}
+                        compact
+                        onValueChange={() => onKpiChange?.()}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">Brak KPI</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

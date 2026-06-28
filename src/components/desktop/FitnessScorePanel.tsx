@@ -36,6 +36,7 @@ type DimensionBreakdown = {
   label: string;
   score: number;
   detail: string;
+  group: 'capability' | 'process';
 };
 
 function stravaDay(a: { start_date?: string }) {
@@ -117,7 +118,7 @@ function computeFitnessProfile(input: {
     return Math.min(
       10,
       Math.max(
-        1,
+        0,
         parseFloat((aerobicPoints * 0.55 + cooperPts.score * 0.45).toFixed(1)),
       ),
     );
@@ -136,11 +137,11 @@ function computeFitnessProfile(input: {
       : 0;
   const recentStrengthScore =
     workouts14d.length === 0
-      ? 1
+      ? 0
       : Math.min(
           10,
           Math.max(
-            1,
+            0,
             parseFloat((qualitySets14d * 0.65 + avgRpe14d * 0.25).toFixed(1)),
           ),
         );
@@ -155,7 +156,7 @@ function computeFitnessProfile(input: {
       ? Math.min(
           10,
           Math.max(
-            1,
+            0,
             parseFloat((recentStrengthScore * 0.4 + capacity.score * 0.6).toFixed(1)),
           ),
         )
@@ -248,9 +249,10 @@ function computeFitnessProfile(input: {
     Math.min(2, weekStravaStats.walkKm * 0.35 + weekStravaStats.otherMin * 0.04);
   const volumeScore = Math.min(10, Math.max(1, parseFloat((1 + loadPoints).toFixed(1))));
 
-  const sum =
-    consistencyScore + enduranceScore + strengthScore + habitsScore + progressScore + volumeScore;
-  const fitnessScore = Math.round((sum / 60) * 1000);
+  const capabilityScore = Math.round(((enduranceScore + strengthScore) / 20) * 100);
+  const processScore = Math.round(
+    ((consistencyScore + habitsScore + progressScore + volumeScore) / 40) * 100,
+  );
 
   const cardioParts: string[] = [];
   if (strava7dStats.runKm > 0) cardioParts.push(`${strava7dStats.runKm.toFixed(1)} km biegu`);
@@ -271,6 +273,7 @@ function computeFitnessProfile(input: {
       key: 'consistency',
       label: 'Regularność',
       score: consistencyScore,
+      group: 'process',
       detail:
         `${trainingSessions7d} sesji siłowych + ${strava7d} cardio (7 dni). Nawyki — ${habitSummaryLabel}` +
         (habitSlotTotal > 0
@@ -285,6 +288,7 @@ function computeFitnessProfile(input: {
       key: 'endurance',
       label: 'Wydolność',
       score: enduranceScore,
+      group: 'capability',
       detail:
         cooperPts.score > 0
           ? `Strava 7d → ${aerobicPoints.toFixed(1)} pkt (${cardioSummary}). ${cooperPts.detail} Blend: 55% tyg. + 45% max Cooper.`
@@ -294,6 +298,7 @@ function computeFitnessProfile(input: {
       key: 'strength',
       label: 'Siła',
       score: strengthScore,
+      group: 'capability',
       detail:
         capacity.score > 0
           ? `Ostatnie 14 dni: ${workouts14d.length} sesji, ${qualitySets14d} serii jakościowych, śr. RPE ${avgRpe14d.toFixed(1)} → ${recentStrengthScore.toFixed(1)}/10. Kapitał (maxy ×BW, decay do 3 lat): ${capacity.detail} Blend: 40% ostatnie + 60% maxy.`
@@ -305,6 +310,7 @@ function computeFitnessProfile(input: {
       key: 'habits',
       label: 'Regeneracja & wellness',
       score: habitsScore,
+      group: 'process',
       detail:
         (bodyBonus.detail
           ? `${bodyBonus.detail}. `
@@ -317,6 +323,7 @@ function computeFitnessProfile(input: {
       key: 'progress',
       label: 'Adaptacja',
       score: progressScore,
+      group: 'process',
       detail:
         first7dHRV != null && last7dHRV != null
           ? `Trendy 7 vs poprzednie 7 dni — HRV: ${last7dHRV.toFixed(0)} vs ${first7dHRV.toFixed(0)} ms (${hrvTrend > 0 ? '+1,5' : '−1'}), readiness: ${avgReadiness7d?.toFixed(0) ?? '—'} vs ${avgReadinessPrev7d?.toFixed(0) ?? '—'} (${readinessTrend >= 0 ? '+' : ''}${readinessTrend}), aktywność: ${activity7d} vs ${activityPrev7d} sesji/cardio (${activityTrend >= 0 ? '+' : ''}${activityTrend}). To nie są zadania kariery — tylko sygnały regeneracji i obciążenia.`
@@ -326,6 +333,7 @@ function computeFitnessProfile(input: {
       key: 'volume',
       label: 'Obciążenie tygodnia',
       score: volumeScore,
+      group: 'process',
       detail: `Hybrydowe obciążenie bieżącego tygodnia: ${loadSummary}. Wzór: Mg siłowo (max 3,5) + km biegu (max 3,5) + marsz/min inne (max 2) + baza 1.`,
     },
   ];
@@ -337,8 +345,8 @@ function computeFitnessProfile(input: {
     habits: habitsScore,
     progress: progressScore,
     volume: volumeScore,
-    fitnessScore,
-    sum,
+    capabilityScore,
+    processScore,
     breakdowns,
   };
 }
@@ -393,20 +401,33 @@ export default function FitnessScorePanel({
     <Panel title="Hybrydowy Profil & Fitness Score" className="h-full flex flex-col">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-6 items-center flex-1">
         <div className="flex flex-col items-center justify-center py-4 xl:py-8 xl:min-h-[280px] border-b xl:border-b-0 xl:border-r border-border-custom">
-          <div className="flex items-center gap-1.5 mb-2 text-primary">
+          <div className="flex items-center gap-1.5 mb-3 text-primary">
             <Activity size={16} className="animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">
-              Fitness Score
+              Hybrydowy profil
             </span>
           </div>
-          <p className="text-[72px] xl:text-[84px] font-black italic tracking-tighter leading-none text-text-primary font-display drop-shadow-[0_4px_12px_rgba(79,70,229,0.15)]">
-            {profile.fitnessScore}
-          </p>
-          <p className="text-[10px] font-bold text-text-muted mt-3 uppercase tracking-widest text-center">
-            Skala hybrydowa (0 – 1000)
-          </p>
-          <p className="text-[11px] text-text-secondary mt-4 max-w-[260px] text-center leading-relaxed">
-            6 wymiarów hybrydy (siła + cardio + regeneracja). Suma {profile.sum.toFixed(1)}/60 → skala 1000.
+          <div className="flex items-stretch gap-6">
+            <div className="flex flex-col items-center">
+              <p className="text-[56px] xl:text-[64px] font-black italic tracking-tighter leading-none text-primary font-display">
+                {profile.capabilityScore}
+              </p>
+              <p className="text-[9px] font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
+                Capability /100
+              </p>
+            </div>
+            <div className="w-px bg-border-custom" />
+            <div className="flex flex-col items-center">
+              <p className="text-[56px] xl:text-[64px] font-black italic tracking-tighter leading-none text-text-primary font-display">
+                {profile.processScore}
+              </p>
+              <p className="text-[9px] font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
+                Process /100
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] text-text-secondary mt-5 max-w-[280px] text-center leading-relaxed">
+            Capability = siła + wydolność (realna zdolność). Process = regularność + regeneracja + adaptacja + obciążenie (dyscyplina, nie zdolność) — liczone osobno, żeby jedno nie maskowało drugiego.
           </p>
         </div>
 
@@ -533,7 +554,11 @@ export default function FitnessScorePanel({
             >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
                 <span className="text-[11px] font-black text-text-primary">{item.label}</span>
-                <span className="text-[12px] font-black italic text-primary font-display shrink-0">
+                <span
+                  className={`text-[12px] font-black italic font-display shrink-0 ${
+                    item.group === 'capability' ? 'text-primary' : 'text-text-secondary'
+                  }`}
+                >
                   {item.score.toFixed(1)}/10
                 </span>
               </div>
@@ -542,7 +567,7 @@ export default function FitnessScorePanel({
           ))}
         </div>
         <p className="text-[10px] text-text-muted mt-3 leading-relaxed">
-          Hybrydowy profil = siła + cardio + regeneracja. Siła i wydolność łączą ostatnią pracę z maxami (wycisk / przysiad / martwy, Cooper) względem masy ciała — PR starsze niż ~3 lata wypadają. Regeneracja uwzględnia BMI, WHR i BF%.
+          Niebieskie wyniki (Wydolność, Siła) wchodzą do Capability. Szare (Regularność, Regeneracja, Adaptacja, Obciążenie) wchodzą do Process. Siła i wydolność łączą ostatnią pracę z maxami (wycisk / przysiad / martwy, Cooper) względem masy ciała — PR starsze niż ~3 lata wypadają. Regeneracja uwzględnia BMI, WHR i BF%.
         </p>
       </div>
     </Panel>

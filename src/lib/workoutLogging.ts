@@ -29,7 +29,6 @@ export interface WorkoutDraft extends WorkoutLoggerInitial {
   manualTime: boolean
   startTimeManual: string
   endTimeManual: string
-  restDuration: number
   savedAt: number
 }
 
@@ -89,6 +88,7 @@ export interface ParsedWorkout {
 }
 
 const DRAFT_KEY = (userId: string) => `vanguard_workout_draft_${userId}`
+const ACTIVE_SESSION_KEY = (userId: string) => `vanguard_workout_session_active_${userId}`
 const INSIGHT_KEY = (userId: string, date: string) => `vanguard_training_insight_${userId}_${date}`
 
 const loadTimers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -97,16 +97,109 @@ function draftKey(userId: string) {
   return DRAFT_KEY(userId)
 }
 
-export function loadWorkoutDraft(userId: string): WorkoutDraft | null {
+function readWorkoutDraftRaw(userId: string): WorkoutDraft | null {
   try {
     const raw = localStorage.getItem(draftKey(userId))
     if (!raw) return null
-    const parsed = JSON.parse(raw) as WorkoutDraft
-    if (!parsed?.exercises?.length && !parsed?.activities?.length && !parsed.workoutName?.trim()) return null
-    return parsed
+    return JSON.parse(raw) as WorkoutDraft
   } catch {
     return null
   }
+}
+
+/** Real session in progress — not an empty logger that was opened and closed. */
+export function hasResumableWorkoutDraftContent(draft: WorkoutDraft): boolean {
+  if (draft.workoutName?.trim()) return true
+  if (draft.notes?.trim()) return true
+  if (draft.sessionRpe != null) return true
+  if (draft.activities?.some((a) => a.name?.trim())) return true
+  if (draft.exercises?.some((e) => e.name?.trim())) return true
+  if (draft.exercises?.some((e) => (e.sets ?? []).some((s) => s.kg?.trim() || s.reps?.trim()))) {
+    return true
+  }
+  return false
+}
+
+function hasPlyoCheckoffProgress(userId: string): boolean {
+  try {
+    const raw = localStorage.getItem(`vanguard_plyo_checkoff_${userId}`)
+    if (!raw) return false
+    const parsed = JSON.parse(raw) as { done?: boolean[][] }
+    return (parsed.done ?? []).some((row) => row.some(Boolean))
+  } catch {
+    return false
+  }
+}
+
+export function markWorkoutSessionActive(userId: string): void {
+  try {
+    localStorage.setItem(ACTIVE_SESSION_KEY(userId), String(Date.now()))
+  } catch {
+    /* quota */
+  }
+}
+
+export function clearWorkoutSessionActive(userId: string): void {
+  try {
+    localStorage.removeItem(ACTIVE_SESSION_KEY(userId))
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isWorkoutSessionActive(userId: string): boolean {
+  try {
+    return localStorage.getItem(ACTIVE_SESSION_KEY(userId)) != null
+  } catch {
+    return false
+  }
+}
+
+export function shouldAutoResumeWorkout(userId: string): boolean {
+  const draft = readWorkoutDraftRaw(userId)
+  const hasPlyo = hasPlyoCheckoffProgress(userId)
+  const hasDraft = draft != null && hasResumableWorkoutDraftContent(draft)
+
+  if (isWorkoutSessionActive(userId)) {
+    if (hasDraft || hasPlyo) return true
+    clearWorkoutSessionActive(userId)
+    clearWorkoutDraft(userId)
+    return false
+  }
+
+  if (hasDraft) return true
+  if (hasPlyo) return true
+  return false
+}
+
+export function purgeStaleWorkoutDraft(userId: string): void {
+  if (isWorkoutSessionActive(userId)) return
+  const draft = readWorkoutDraftRaw(userId)
+  if (draft && !hasResumableWorkoutDraftContent(draft)) {
+    clearWorkoutDraft(userId)
+  }
+}
+
+export function loadWorkoutDraft(userId: string): WorkoutDraft | null {
+  const parsed = readWorkoutDraftRaw(userId)
+  if (!parsed) return null
+  if (isWorkoutSessionActive(userId) || hasResumableWorkoutDraftContent(parsed)) {
+    return parsed
+  }
+  clearWorkoutDraft(userId)
+  return null
+}
+
+/** Persist in-progress logger state (e.g. before app backgrounds). */
+export function persistWorkoutDraft(userId: string, draft: WorkoutDraft): void {
+  if (isWorkoutSessionActive(userId) || hasResumableWorkoutDraftContent(draft)) {
+    saveWorkoutDraft(userId, draft)
+  }
+}
+
+export function endWorkoutSession(userId: string): void {
+  clearWorkoutDraft(userId)
+  clearWorkoutSessionActive(userId)
 }
 
 export function saveWorkoutDraft(userId: string, draft: WorkoutDraft): void {
@@ -222,7 +315,6 @@ function logsToExercises(logs: Array<{
         reps: String(s.reps),
         rir: s.rir != null ? String(s.rir) : '',
         msp: s.is_pws_or_msp === true,
-        done: false,
       })),
     })
   }
@@ -367,16 +459,18 @@ export async function saveWorkoutSession(
   }
 
   const exLogs = validEx.flatMap((ex) =>
-    (ex.sets ?? []).map((s, i) => ({
-      exercise_name: ex.name.trim(),
-      set_number: i + 1,
-      weight: parseFloat(s.kg) || 0,
-      reps: parseInt(s.reps, 10) || 0,
-      rir: s.rir !== '' ? parseFloat(s.rir) : null,
-      rpe: null,
-      is_pws_or_msp: s.msp === true,
-      muscle_tags: ex.tags ?? [],
-    })),
+    (ex.sets ?? [])
+      .filter((s) => s.kg.trim() !== '' || s.reps.trim() !== '')
+      .map((s, i) => ({
+        exercise_name: ex.name.trim(),
+        set_number: i + 1,
+        weight: parseFloat(s.kg) || 0,
+        reps: parseInt(s.reps, 10) || 0,
+        rir: s.rir !== '' ? parseFloat(s.rir) : null,
+        rpe: null,
+        is_pws_or_msp: s.msp === true,
+        muscle_tags: ex.tags ?? [],
+      })),
   )
 
   const acLogs = validAc.map((a, i) => ({
@@ -393,8 +487,26 @@ export async function saveWorkoutSession(
   let finalEnd: string | null = null
 
   if (opts.manualTime) {
-    finalStart = new Date(`${opts.workoutDate}T${opts.startTimeManual}:00`).toISOString()
-    finalEnd = new Date(`${opts.workoutDate}T${opts.endTimeManual}:00`).toISOString()
+    if (!opts.workoutDate || !opts.startTimeManual || !opts.endTimeManual) {
+      throw new Error('Brakujące dane czasu manualnego (data, start lub koniec)')
+    }
+    const startStr = `${opts.workoutDate}T${opts.startTimeManual}:00`
+    let endStr = `${opts.workoutDate}T${opts.endTimeManual}:00`
+
+    if (opts.endTimeManual < opts.startTimeManual) {
+      const dateObj = new Date(opts.workoutDate)
+      dateObj.setDate(dateObj.getDate() + 1)
+      const nextDayStr = dateObj.toISOString().slice(0, 10)
+      endStr = `${nextDayStr}T${opts.endTimeManual}:00`
+    }
+
+    const startD = new Date(startStr)
+    const endD = new Date(endStr)
+    if (isNaN(startD.getTime()) || isNaN(endD.getTime())) {
+      throw new Error('Niepoprawny format daty lub godziny')
+    }
+    finalStart = startD.toISOString()
+    finalEnd = endD.toISOString()
   } else if (opts.timerStart) {
     finalStart = new Date(opts.timerStart).toISOString()
     finalEnd = new Date().toISOString()
@@ -530,7 +642,6 @@ export async function saveSaunaSession(
         ...newSet(),
         reps: String(opts.minutes),
         kg: opts.celsius != null && opts.celsius > 0 ? String(Math.round(opts.celsius)) : '',
-        done: true,
       },
     ],
   }

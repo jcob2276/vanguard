@@ -245,7 +245,15 @@ export default function TodoCard({
         }}
         style={{ transform: `translateX(${swipeOffset}px)` }}
         onClick={e => e.stopPropagation()}
-        className="relative border-b border-border-custom/10 px-1 py-3 transition-all duration-150 ease-out hover:bg-surface-solid/20"
+        className={`relative border-b border-border-custom/10 pr-1.5 py-3 transition-all duration-150 ease-out hover:bg-surface-solid/15 ${
+          sectionGoalKey === 'cialo'
+            ? 'border-l-3 border-l-emerald-500/60 pl-2.5'
+            : sectionGoalKey === 'duch'
+            ? 'border-l-3 border-l-indigo-500/60 pl-2.5'
+            : sectionGoalKey === 'konto'
+            ? 'border-l-3 border-l-amber-500/60 pl-2.5'
+            : 'border-l-3 border-l-transparent pl-2.5'
+        }`}
       >
         <div className="flex items-start gap-3">
           {/* Drag grip */}
@@ -338,7 +346,7 @@ export default function TodoCard({
             )}
 
             {/* Metadata */}
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
               {dateInfo && !isDone && <span className={`text-[10px] font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
               {item.recurrence && (
                 <span className="flex items-center gap-0.5 text-[10px] text-primary/40">
@@ -349,7 +357,15 @@ export default function TodoCard({
                 <div className="todo-progress-container" title={`${doneCount}/${subtasks.length} podzadań`}>
                   <div className="todo-progress-track">
                     <div
-                      className="todo-progress-bar"
+                      className={`todo-progress-bar ${
+                        sectionGoalKey === 'cialo'
+                          ? 'bg-emerald-500'
+                          : sectionGoalKey === 'duch'
+                          ? 'bg-indigo-500'
+                          : sectionGoalKey === 'konto'
+                          ? 'bg-amber-500'
+                          : 'bg-primary'
+                      }`}
                       style={{ width: `${(doneCount / subtasks.length) * 100}%` }}
                     />
                   </div>
@@ -369,12 +385,19 @@ export default function TodoCard({
               {sectionName &&
                 (() => {
                   const GoalIcon = sectionGoalKey ? GOAL_ICON[sectionGoalKey] : null;
+                  const chipBg = sectionGoalKey === 'cialo'
+                    ? 'bg-emerald-500/8 border-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : sectionGoalKey === 'duch'
+                    ? 'bg-indigo-500/8 border-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+                    : sectionGoalKey === 'konto'
+                    ? 'bg-amber-500/8 border-amber-500/15 text-amber-600 dark:text-amber-400'
+                    : 'bg-surface-solid border-border-custom/50 text-text-secondary';
                   return (
-                    <span className="flex items-center gap-1">
-                      {GoalIcon && <GoalIcon size={7} className={GOAL_COLOR[sectionGoalKey!]} />}
-                      <span className="text-[10px] text-text-muted/25 uppercase tracking-wider">{sectionName}</span>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wide transition-all ${chipBg}`}>
+                      {GoalIcon && <GoalIcon size={8} />}
+                      <span className="uppercase">{sectionName}</span>
                       {dreamTitle && (
-                        <span className="text-[10px] text-primary/30 truncate max-w-[120px]">· {dreamTitle}</span>
+                        <span className="opacity-60 truncate max-w-[80px]">· {dreamTitle}</span>
                       )}
                     </span>
                   );

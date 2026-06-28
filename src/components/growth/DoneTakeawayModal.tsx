@@ -102,7 +102,7 @@ export default function DoneTakeawayModal({
       <div className="w-full max-w-md rounded-2xl border border-border-custom bg-background shadow-xl">
         <div className="flex items-start justify-between border-b border-border-custom px-4 py-3 gap-2">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Rep done</p>
+            <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Gotowe</p>
             <h2 className="text-[13px] font-bold text-text-primary leading-snug mt-0.5">{title}</h2>
             <p className="text-[10px] text-text-muted mt-1">Feedback loop — zamknij sesję zanim odejdziesz</p>
           </div>

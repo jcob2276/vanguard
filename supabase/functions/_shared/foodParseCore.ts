@@ -534,7 +534,7 @@ export async function callParseLLM(
     model: 'deepseek-chat',
     temperature: 0.1,
     maxTokens: maxTokens ?? 1200,
-    timeoutMs: 45000,
+    timeoutMs: 32000,
     responseFormat: { type: 'json_object' },
     messages: [
       { role: 'system', content: system },
@@ -715,39 +715,34 @@ function recalcFromPer100g(grams: number, per100: Per100gFood): Pick<ParsedFoodI
   }
 }
 
-async function lookupViaDatabase(
+async function lookupOffFast(
   name: string,
-  supabaseUrl: string,
-  serviceKey: string,
-): Promise<{ match: Per100gFood; score: number; macroSource: 'off' | 'generic' | 'reference_pl' } | null> {
-  if (!supabaseUrl || !serviceKey) return null
-  const res = await fetch(
-    `${supabaseUrl}/functions/v1/lookup-food?q=${encodeURIComponent(name)}`,
-    {
-      headers: { Authorization: `Bearer ${serviceKey}` },
-      signal: AbortSignal.timeout(15000),
-    },
-  )
-  if (!res.ok) return null
-
-  const json = await res.json().catch(() => ({})) as {
-    results?: Array<Per100gFood & { source?: string }>
-  }
-  const results: Per100gFood[] = (json.results ?? []).map((r) => ({
-    ...r,
-    source: r.source === 'reference_pl'
-      ? 'reference_pl'
-      : r.source === 'generic'
-      ? 'generic'
-      : 'off',
-  }))
-  const picked = pickBestMatchScored(name, results)
-  if (!picked) return null
-
-  return {
-    match: picked.match,
-    score: picked.score,
-    macroSource: picked.match.source ?? 'off',
+): Promise<{ match: Per100gFood; score: number; macroSource: 'off' } | null> {
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=5&tagtype_0=languages&tag_contains_0=contains&tag_0=polish`
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'VanguardOS/1.0 (personal nutrition log)' },
+      signal: AbortSignal.timeout(6000),
+    })
+    if (!res.ok) return null
+    const json = await res.json() as { products?: Array<{ product_name?: string; nutriments?: Record<string, number> }> }
+    const results: Per100gFood[] = (json.products ?? [])
+      .filter((p) => p.product_name && p.nutriments?.['energy-kcal_100g'] != null)
+      .map((p) => ({
+        name: p.product_name!,
+        calories: Math.round(Number(p.nutriments!['energy-kcal_100g'])),
+        protein: p.nutriments!['proteins_100g'] ?? 0,
+        carbs: p.nutriments!['carbohydrates_100g'] ?? 0,
+        fat: p.nutriments!['fat_100g'] ?? 0,
+        fiber: p.nutriments!['fiber_100g'],
+        sugar: p.nutriments!['sugars_100g'],
+        source: 'off' as const,
+      }))
+    const picked = pickBestMatchScored(name, results)
+    if (!picked) return null
+    return { match: picked.match, score: picked.score, macroSource: 'off' }
+  } catch {
+    return null
   }
 }
 
@@ -777,6 +772,7 @@ Decyzja:`
       model: 'deepseek-chat',
       temperature: 0,
       maxTokens: 5,
+      timeoutMs: 5000,
       messages: [{ role: 'user', content: prompt }],
     })
     const text = res.content.trim().toUpperCase()
@@ -830,7 +826,7 @@ async function reconcileOne(
   }
 
   if (!match?.calories) {
-    const remote = await lookupViaDatabase(item.name, opts.supabaseUrl, opts.serviceKey)
+    const remote = await lookupOffFast(item.name)
     if (remote?.match.calories != null) {
       match = remote.match
       source = 'database'
@@ -840,7 +836,7 @@ async function reconcileOne(
     }
   }
 
-  if (matchScore != null && matchScore >= 0.50 && matchScore <= 0.78 && opts.apiKey && matchedName) {
+  if (matchScore != null && matchScore >= 0.50 && matchScore <= 0.72 && opts.apiKey && matchedName) {
     const ok = await verifyMatchWithLLM(item.name, matchedName, opts.apiKey)
     if (!ok) {
       match = null

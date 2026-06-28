@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTodayWarsaw } from '../../lib/date';
 import { supabase } from '../../lib/supabase';
-import { ChevronLeft, Save, Dumbbell, Clock, Play, Square, Plus, TimerReset, X, Minus } from 'lucide-react';
+import { ChevronLeft, Save, Dumbbell, Clock, Play, Square, Plus } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify, confirmDialog } from '../../lib/notify';
 import {
   newExercise,
   useStopwatch,
-  useCountdown,
   type WorkoutExercise,
   type WorkoutActivity,
 } from './workout/workoutUtils';
 import {
-  clearWorkoutDraft,
+  endWorkoutSession,
+  hasResumableWorkoutDraftContent,
+  isWorkoutSessionActive,
   loadWorkoutDraft,
+  markWorkoutSessionActive,
+  persistWorkoutDraft,
   saveWorkoutDraft,
   saveWorkoutSession,
   type WorkoutDraft,
@@ -61,11 +64,14 @@ export default function WorkoutLogger({
   const elapsed = useStopwatch(timerStart);
   const userId  = session?.user?.id;
   const haptics = useHaptics();
+  const sessionEndedRef = useRef(false);
 
-  // Rest timer — auto-starts when a set is checked off as done in ExerciseCard
-  const [restDuration, setRestDuration] = useState(90);
-  const [restEndTime, setRestEndTime] = useState<number | null>(null);
-  const restRemaining = useCountdown(restEndTime);
+  const finalizeWorkoutSession = useCallback(() => {
+    sessionEndedRef.current = true;
+    if (!userId) return;
+    endWorkoutSession(userId);
+    clearPlyoCheckoff(userId);
+  }, [userId]);
 
   const [plyoSkipped, setPlyoSkipped] = useState(false);
   const plyoSession = userId ? resolvePlyoSession(workoutDate, userId) : null;
@@ -79,39 +85,10 @@ export default function WorkoutLogger({
     setPlyoDone(initPlyoCheckoff(userId, session));
   }, [userId, workoutDate, plyoSkipped]);
 
-  const playRestGong = useCallback(() => {
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
-      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 1.2);
-    } catch { /* AudioContext unavailable/blocked */ }
-  }, []);
-
-  const prevRestRemainingRef = useRef(0);
-  useEffect(() => {
-    if (restEndTime && restRemaining <= 0 && prevRestRemainingRef.current > 0) {
-      playRestGong();
-      haptics.success();
-      setRestEndTime(null);
-    }
-    prevRestRemainingRef.current = restRemaining;
-  }, [restRemaining, restEndTime, playRestGong, haptics]);
-
-  const startRest = useCallback(() => {
-    setTimerStart(prev => prev ?? Date.now());
-    setRestEndTime(Date.now() + restDuration * 1000);
-  }, [restDuration]);
-
   useEffect(() => {
     if (!userId) return;
     const draft = loadWorkoutDraft(userId);
-    const seed = draft ?? initial;
+    const seed = (draft && hasResumableWorkoutDraftContent(draft)) ? draft : (initial ?? draft);
     if (!seed) return;
     setWorkoutName(seed.workoutName);
     setExercises(seed.exercises?.length ? seed.exercises : [newExercise()]);
@@ -124,13 +101,13 @@ export default function WorkoutLogger({
       setManualTime(draft.manualTime);
       setStartTimeManual(draft.startTimeManual);
       setEndTimeManual(draft.endTimeManual);
-      setRestDuration(draft.restDuration);
     }
   }, [userId, initial]);
 
   useEffect(() => {
-    if (!userId || plyoSkipped || !plyoSession) return;
+    if (!userId || plyoSkipped || !plyoSession || sessionEndedRef.current) return;
     const t = window.setTimeout(() => {
+      if (sessionEndedRef.current) return;
       savePlyoCheckoff(userId, plyoSession.sessionKey, plyoDone);
     }, 400);
     return () => window.clearTimeout(t);
@@ -146,38 +123,70 @@ export default function WorkoutLogger({
 
   useEffect(() => {
     if (!userId) return;
-    const t = window.setTimeout(() => {
-      const draft: WorkoutDraft = {
-        workoutName,
-        exercises,
-        activities,
-        notes,
-        sessionRpe,
-        workoutDate,
-        timerStart,
-        manualTime,
-        startTimeManual,
-        endTimeManual,
-        restDuration,
-        savedAt: Date.now(),
-      };
-      saveWorkoutDraft(userId, draft);
-    }, 800);
-    return () => window.clearTimeout(t);
-  }, [userId, workoutName, exercises, activities, notes, sessionRpe, workoutDate, timerStart, manualTime, startTimeManual, endTimeManual, restDuration]);
+    markWorkoutSessionActive(userId);
+  }, [userId]);
 
-  const adjustRest = (deltaSec: number) => {
-    haptics.light();
-    setRestEndTime(prev => prev ? Math.max(Date.now(), prev + deltaSec * 1000) : null);
+  const draftSnapshotRef = useRef<WorkoutDraft | null>(null);
+  draftSnapshotRef.current = {
+    workoutName,
+    exercises,
+    activities,
+    notes,
+    sessionRpe,
+    workoutDate,
+    timerStart,
+    manualTime,
+    startTimeManual,
+    endTimeManual,
+    savedAt: Date.now(),
   };
 
+  useEffect(() => {
+    if (!userId) return;
+    const flush = () => {
+      if (sessionEndedRef.current) return;
+      const draft = draftSnapshotRef.current;
+      if (!draft) return;
+      persistWorkoutDraft(userId, draft);
+      if (!sessionEndedRef.current && plyoSession && plyoDone.length > 0) {
+        savePlyoCheckoff(userId, plyoSession.sessionKey, plyoDone);
+      }
+    };
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [userId, plyoSession, plyoDone]);
+
+  useEffect(() => {
+    if (!userId || sessionEndedRef.current) return;
+    const t = window.setTimeout(() => {
+      if (sessionEndedRef.current) return;
+      const draft = draftSnapshotRef.current;
+      if (!draft) return;
+      if (isWorkoutSessionActive(userId) || hasResumableWorkoutDraftContent(draft)) {
+        saveWorkoutDraft(userId, draft);
+      } else {
+        endWorkoutSession(userId);
+      }
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [userId, workoutName, exercises, activities, notes, sessionRpe, workoutDate, timerStart, manualTime, startTimeManual, endTimeManual]);
+
   const hasUnsavedData = Boolean(
-    workoutName.trim() || notes.trim() || sessionRpe != null || timerStart != null ||
-    exercises.some(e => e.name.trim()) || activities.some(a => a.name.trim())
+    workoutName.trim() || notes.trim() || sessionRpe != null ||
+    exercises.some(e => e.name.trim()) || activities.some(a => a.name.trim()) ||
+    plyoDone.some((row) => row.some(Boolean))
   );
 
   const handleBack = async () => {
     if (hasUnsavedData && !(await confirmDialog('Masz niezapisane dane treningu — wyjść bez zapisywania?'))) return;
+    finalizeWorkoutSession();
     onBack();
   };
 
@@ -196,6 +205,22 @@ export default function WorkoutLogger({
     if (!validEx.length && !validAc.length && !plyoLogs.length) {
       notify('Dodaj ćwiczenia siłowe albo odhacz serie plyo', 'error');
       return;
+    }
+
+    if (manualTime) {
+      if (!workoutDate) {
+        notify('Wybierz datę treningu', 'error');
+        return;
+      }
+      if (!startTimeManual || !endTimeManual) {
+        notify('Podaj godzinę rozpoczęcia i zakończenia treningu', 'error');
+        return;
+      }
+      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+      if (!timeRegex.test(startTimeManual) || !timeRegex.test(endTimeManual)) {
+        notify('Niepoprawny format godziny rozpoczęcia lub zakończenia', 'error');
+        return;
+      }
     }
 
     const plyoComplete = Boolean(
@@ -218,12 +243,10 @@ export default function WorkoutLogger({
         endTimeManual,
         plyoLogs,
       });
-      clearWorkoutDraft(userId);
       if (plyoComplete) {
         advancePlyoProgram(userId);
-      } else if (plyoLogs.length) {
-        clearPlyoCheckoff(userId);
       }
+      finalizeWorkoutSession();
       haptics.success();
       onSaved?.();
       onBack();
@@ -231,7 +254,7 @@ export default function WorkoutLogger({
       haptics.error();
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('Not authorized') || message.includes('JWT')) {
-        notify('Sesja wygasła — odśwież stronę (Twój trening jest zapisany lokalnie, nic nie przepadnie)', 'error');
+        notify('Sesja wygasła — odśwież stronę (draft treningu zostaje lokalnie)', 'error');
       } else {
         notify(message, 'error');
       }
@@ -260,29 +283,8 @@ export default function WorkoutLogger({
         )}
       </header>
 
-      {restEndTime && (
-        <div className="sticky top-[60px] z-20 mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.08] backdrop-blur-md px-4 py-2.5 shadow-md animate-fadeIn">
-          <button onClick={() => adjustRest(-15)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary active:scale-90 transition-all cursor-pointer">
-            <Minus size={13} />
-          </button>
-          <div className="flex-1 flex items-center justify-center gap-2">
-            <TimerReset size={14} className="text-primary shrink-0" />
-            <span className="font-display text-xl font-black tabular-nums text-primary leading-none">
-              {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
-            </span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">odpoczynek</span>
-          </div>
-          <button onClick={() => adjustRest(15)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary active:scale-90 transition-all cursor-pointer">
-            <Plus size={13} />
-          </button>
-          <button onClick={() => { haptics.light(); setRestEndTime(null); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:text-text-primary active:scale-90 transition-all cursor-pointer">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       <main className="flex-1 p-5 space-y-8 max-w-md mx-auto w-full">
-        {!plyoSkipped && plyoSession && plyoDone.length > 0 && (
+        {!plyoSkipped && plyoSession && plyoDone.length > 0 && !isPlyoSessionComplete(plyoDone) && (
           <PlyoBlock
             session={plyoSession}
             done={plyoDone}
@@ -299,6 +301,54 @@ export default function WorkoutLogger({
           <input type="text" value={workoutName} onChange={e => setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
             className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all placeholder:text-text-muted/40" />
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Dumbbell size={12} className="text-text-muted" />
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
+          </div>
+          {exercises.map(ex => (
+            <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} />
+          ))}
+          <button onClick={addExercise}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
+            <Plus size={13} /> Dodaj ćwiczenie
+          </button>
+          <VolumeBar exercises={exercises} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatki</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">RPE sesji</label>
+            {sessionRpe && (
+              <button onClick={() => setSessionRpe(null)} className="text-[9px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer">wyczyść</button>
+            )}
+          </div>
+          <div className="grid grid-cols-10 gap-1">
+            {[1,2,3,4,5,6,7,8,9,10].map(n => {
+              const color = n <= 4 ? 'border-sky-500/30 dark:border-sky-500/40 text-sky-650 dark:text-sky-400 bg-sky-500/8 dark:bg-sky-500/15 hover:bg-sky-500/20'
+                          : n <= 6 ? 'border-yellow-500/35 dark:border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/8 dark:bg-yellow-500/15 hover:bg-yellow-500/20'
+                          : n <= 8 ? 'border-orange-500/35 dark:border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-500/8 dark:bg-orange-500/15 hover:bg-orange-500/20'
+                          : 'border-dayB/35 dark:border-dayB/40 text-dayB bg-dayB/8 dark:bg-dayB/15 hover:bg-dayB/20';
+              const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-80 hover:opacity-100';
+              return (
+                <button key={n} onClick={() => setSessionRpe(sessionRpe === n ? null : n)}
+                  className={`rounded-lg border py-2 text-[11px] font-black transition-all cursor-pointer ${color} ${active}`}>
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-text-muted">
+            {sessionRpe ? (sessionRpe <= 4 ? 'Łatwa — dużo rezerwy' : sessionRpe <= 6 ? 'Umiarkowana' : sessionRpe <= 8 ? 'Ciężka — mało rezerwy' : 'Maksymalna — do oporu') : 'Jak ciężka była cała sesja?'}
+          </p>
         </div>
 
         {/* Manual Time Picker Row */}
@@ -352,70 +402,6 @@ export default function WorkoutLogger({
               </div>
             </div>
           )}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Dumbbell size={12} className="text-text-muted" />
-              <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <TimerReset size={11} className="text-text-muted/60" />
-              {[60, 90, 120, 150].map(s => (
-                <button
-                  key={s}
-                  onClick={() => { haptics.light(); setRestDuration(s); }}
-                  className={`rounded-full px-2 py-1 text-[9px] font-black transition-all cursor-pointer ${
-                    restDuration === s ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  {s}s
-                </button>
-              ))}
-            </div>
-          </div>
-          {exercises.map(ex => (
-            <ExerciseCard key={ex.id} exercise={ex} onChange={updateExercise} onRemove={() => removeExercise(ex.id)} userId={userId} onSetDone={startRest} />
-          ))}
-          <button onClick={addExercise}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
-            <Plus size={13} /> Dodaj ćwiczenie
-          </button>
-          <VolumeBar exercises={exercises} />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatki</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jak poszło?..."
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">RPE sesji</label>
-            {sessionRpe && (
-              <button onClick={() => setSessionRpe(null)} className="text-[9px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer">wyczyść</button>
-            )}
-          </div>
-          <div className="grid grid-cols-10 gap-1">
-            {[1,2,3,4,5,6,7,8,9,10].map(n => {
-              const color = n <= 4 ? 'border-sky-500/30 dark:border-sky-500/40 text-sky-650 dark:text-sky-400 bg-sky-500/8 dark:bg-sky-500/15 hover:bg-sky-500/20'
-                          : n <= 6 ? 'border-yellow-500/35 dark:border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/8 dark:bg-yellow-500/15 hover:bg-yellow-500/20'
-                          : n <= 8 ? 'border-orange-500/35 dark:border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-500/8 dark:bg-orange-500/15 hover:bg-orange-500/20'
-                          : 'border-dayB/35 dark:border-dayB/40 text-dayB bg-dayB/8 dark:bg-dayB/15 hover:bg-dayB/20';
-              const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-80 hover:opacity-100';
-              return (
-                <button key={n} onClick={() => setSessionRpe(sessionRpe === n ? null : n)}
-                  className={`rounded-lg border py-2 text-[11px] font-black transition-all cursor-pointer ${color} ${active}`}>
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[9px] text-text-muted">
-            {sessionRpe ? (sessionRpe <= 4 ? 'Łatwa — dużo rezerwy' : sessionRpe <= 6 ? 'Umiarkowana' : sessionRpe <= 8 ? 'Ciężka — mało rezerwy' : 'Maksymalna — do oporu') : 'Jak ciężka była cała sesja?'}
-          </p>
         </div>
       </main>
 

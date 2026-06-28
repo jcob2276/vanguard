@@ -1,25 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { Calendar, Check, Shield, Target, Wallet, Zap } from 'lucide-react';
-import { addDays, differenceInDays, format, parseISO, startOfWeek, subDays } from 'date-fns';
+import { Calendar, Check, Target } from 'lucide-react';
+import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw, formatWarsawDate , nowWarsaw } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
+import type { LifeGoalDisplayRow } from '../../lib/lifeGoals';
+import LifeGoalsPanel from './LifeGoalsPanel';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
 type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
-type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
 
 const APP_LAUNCH_DATE = '2026-05-03';
 const todayWarsaw = () => getTodayWarsaw();
-
-const GOAL_DEFS: Array<{ key: 'goal_cialo' | 'goal_duch' | 'goal_konto'; dateKey: 'date_cialo' | 'date_duch' | 'date_konto'; Icon: typeof Target; color: string }> = [
-  { key: 'goal_cialo', dateKey: 'date_cialo', Icon: Shield, color: 'text-emerald-500' },
-  { key: 'goal_duch', dateKey: 'date_duch', Icon: Zap, color: 'text-indigo-400' },
-  { key: 'goal_konto', dateKey: 'date_konto', Icon: Wallet, color: 'text-amber-400' },
-];
 
 interface DirectionRadarModeProps {
   stats: { streak: number; weeklyP: number; monthlyWin: boolean; weeks: Array<{ isWeekWin: boolean; pCount: number; start: Date }> };
@@ -31,7 +26,7 @@ interface DirectionRadarModeProps {
   focusTasks: TodoItemRow[];
   focusGoalMappings: Record<string, string>;
   currentReview: WeeklyReviewRow | null;
-  weekGoals: LifeGoalRow | null;
+  lifeGoalRows: LifeGoalDisplayRow[];
 }
 
 export default function DirectionRadarMode({
@@ -44,7 +39,7 @@ export default function DirectionRadarMode({
   focusTasks,
   focusGoalMappings,
   currentReview,
-  weekGoals,
+  lifeGoalRows,
 }: DirectionRadarModeProps) {
   const todayCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -320,26 +315,9 @@ export default function DirectionRadarMode({
             </span>
           </div>
         )}
-        {weekGoals && GOAL_DEFS.some((g) => (weekGoals as any)[g.key]) && (
+        {lifeGoalRows.length > 0 && (
           <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
-            <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele kierunkowe</p>
-            <div className="space-y-2.5">
-              {GOAL_DEFS.filter((g) => (weekGoals as any)[g.key]).map(({ key, dateKey, Icon, color }) => {
-                const weekGoalsAny = weekGoals as any;
-                const days = weekGoalsAny[dateKey] ? differenceInDays(parseISO(weekGoalsAny[dateKey]), nowWarsaw()) : null;
-                return (
-                  <div key={key} className="flex items-center gap-2.5">
-                    <Icon size={13} className={`${color} shrink-0`} />
-                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{weekGoalsAny[key]}</span>
-                    {days !== null && (
-                      <span className={`shrink-0 text-[9px] font-bold ${days <= 0 ? 'text-rose-500 font-black' : days <= 14 ? 'text-amber-500' : 'text-text-muted'}`}>
-                        {days <= 0 ? `${Math.abs(days)}d po` : `za ${days}d`}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <LifeGoalsPanel rows={lifeGoalRows} fromProjects />
           </div>
         )}
       </div>

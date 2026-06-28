@@ -156,6 +156,40 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.getAttribute('contenteditable') === 'true')
+      ) {
+        if (e.key === 'Escape') {
+          target.blur();
+          setExpandedId(null);
+          setContextMenu(null);
+        }
+        return;
+      }
+
+      if (e.key === 'n' || e.key === 'N' || e.key === '/') {
+        e.preventDefault();
+        const inputEl = document.querySelector('input[placeholder="Nowe zadanie..."]') as HTMLInputElement;
+        if (inputEl) {
+          inputEl.focus();
+        }
+      } else if (e.key === 'Escape') {
+        setExpandedId(null);
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // ── Drag tracking ──
   const getSectionAtPoint = useCallback((x: number, y: number) => {
     if (todayZoneRef.current) {
@@ -679,7 +713,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 <button
                   onClick={batchClassify}
                   disabled={batchClassifying}
-                  className="relative overflow-hidden w-full flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 px-4 py-3 text-left transition-all hover:scale-[1.01] hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] active:scale-[0.99] disabled:opacity-50 cursor-pointer group"
+                  className="relative overflow-hidden w-full flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 px-4 py-3 text-left transition-all hover:scale-[1.01] hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] active:scale-[0.99] disabled:opacity-50 cursor-pointer group animate-[pulse_4s_infinite] shadow-[0_0_12px_rgba(99,102,241,0.06)]"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors">

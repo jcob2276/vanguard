@@ -19,7 +19,7 @@ import {
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { createProject } from '../../lib/projects';
-import { loadWorkoutTemplate, loadWorkoutDraft, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
+import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { notify, confirmDialog } from '../../lib/notify';
 
 // Subcomponents and hooks
@@ -239,7 +239,11 @@ export default function DesktopDashboard({ session }: { session: any }) {
   useEffect(() => {
     if (resumedWorkoutDraft.current || !userId) return;
     resumedWorkoutDraft.current = true;
-    if (loadWorkoutDraft(userId)) setShowWorkout(true);
+    purgeStaleWorkoutDraft(userId);
+    if (shouldAutoResumeWorkout(userId)) {
+      markWorkoutSessionActive(userId);
+      setShowWorkout(true);
+    }
   }, [userId]);
   const [showFundament, setShowFundament] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
@@ -294,6 +298,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
       setShowWorkout(true);
       return;
     }
+    markWorkoutSessionActive(userId);
     const tpl = await loadWorkoutTemplate(userId);
     setWorkoutInitial(tpl);
     setShowWorkout(true);

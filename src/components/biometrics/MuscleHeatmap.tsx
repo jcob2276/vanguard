@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Model from 'react-body-highlighter';
-import type { IMuscleStats } from 'react-body-highlighter';
+import type { IMuscleStats, Muscle } from 'react-body-highlighter';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
 import { notify } from '../../lib/notify';
-import { MUSCLE_TAGS, stimulusForExercise, tagsForExercise } from '../../data/exercises';
+import { MUSCLE_TAGS, rirEffectiveness, stimulusForExercise, tagsForExercise } from '../../data/exercises';
 import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/muscleMapData';
 
 const PERIODS = [
@@ -106,11 +106,12 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
           const tags = tagsForLog(log);
           const stimulus = stimulusForExercise(log.exercise_name, tags);
           const exerciseName = (log.exercise_name || 'Ćwiczenie').trim();
+          const effectiveness = rirEffectiveness(log.rir);
 
           Object.entries(stimulus as Record<string, { direct?: number; indirect?: number }>).forEach(([tag, value]) => {
             if (effectiveSets[tag] === undefined) return;
-            const direct = Number(value.direct || 0);
-            const indirect = Number(value.indirect || 0);
+            const direct = Number(value.direct || 0) * effectiveness;
+            const indirect = Number(value.indirect || 0) * effectiveness;
             if (direct + indirect <= 0) return;
             directSets[tag] += direct;
             indirectSets[tag] += indirect;
@@ -150,8 +151,8 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
 
   const handleMuscleClick = useCallback(({ muscle, data }: IMuscleStats) => {
     const tags = RB_MUSCLE_TO_TAGS[muscle as Muscle] ?? [];
-    const load = tags.reduce((sum, tag) => sum + (loadByTag[tag] ?? 0), 0);
-    const names = [...new Set(tags.flatMap((tag) => exercisesByTag[tag] ?? []))];
+    const load = tags.reduce((sum: number, tag: string) => sum + (loadByTag[tag] ?? 0), 0);
+    const names = [...new Set(tags.flatMap((tag: string) => exercisesByTag[tag] ?? []))];
 
     if (load <= 0 && data.frequency <= 0) {
       notify('Brak bodźca w tym okresie.', 'info');

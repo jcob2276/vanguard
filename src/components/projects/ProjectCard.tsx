@@ -31,6 +31,7 @@ import {
 } from './projectUtils';
 import HealthScore from './HealthScore';
 import { KpiTrendSparkline } from './KpiTrendSparkline';
+import ProjectEvidenceStrip from './ProjectEvidenceStrip';
 
 const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
 const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
@@ -54,7 +55,7 @@ interface ProjectCardProps {
   kpisByProject: Record<string, any[]>;
 
   editingProjectId: string | null;
-  editForm: { name: string; goal: string; deadline: string; color: string };
+  editForm: { name: string; goal: string; deadline: string; color: string; primary_skill_id: string };
   setEditForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string }>>;
   startEditProject: (project: any) => void;
   setEditingProjectId: (id: string | null) => void;
@@ -79,6 +80,7 @@ interface ProjectCardProps {
   updateProjectStatus: (project: any, status: string) => void;
   handleDelete: (id: string) => void;
   userId: string;
+  parentSkills: { id: string; label: string }[];
 }
 
 export default function ProjectCard({
@@ -90,7 +92,7 @@ export default function ProjectCard({
   handleToggleCheckpoint, deleteCheckpoint,
   editingKpiId, setEditingKpiId, handleUpdateKpiValue,
   handleToggleTask, newTask, setNewTask, handleAddTask,
-  handleStatusCycle, updateProjectStatus, handleDelete, userId,
+  handleStatusCycle, updateProjectStatus, handleDelete, userId, parentSkills,
 }: ProjectCardProps) {
   const col = colorOf(project.color);
   const pillar = projectPillar(project);
@@ -330,6 +332,21 @@ export default function ProjectCard({
                     ))}
                   </div>
                 </div>
+                {parentSkills.length > 0 && (
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Skill główny</label>
+                    <select
+                      value={editForm.primary_skill_id}
+                      onChange={(e) => setEditForm((f) => ({ ...f, primary_skill_id: e.target.value }))}
+                      className="mt-1 w-full rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-[12px] text-text-secondary outline-none focus:border-primary/30"
+                    >
+                      <option value="">— brak —</option>
+                      {parentSkills.map((sk) => (
+                        <option key={sk.id} value={sk.id}>{sk.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setEditingProjectId(null)}
@@ -555,6 +572,8 @@ export default function ProjectCard({
           )}
 
           {/* Footer actions */}
+          <ProjectEvidenceStrip userId={userId} projectId={project.id} />
+
           <div className="flex items-center gap-2 pt-0.5">
             <div className="flex gap-1">
               {(['active', 'paused', 'done'] as const).map(st => (

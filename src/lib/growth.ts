@@ -54,6 +54,7 @@ export interface LearningWeekPin {
   manual_title: string | null;
   manual_resource_type: GrowthResourceType | null;
   skill_id: string | null;
+  project_id: string | null;
   slot: GrowthPinSlot;
   sort_order: number;
   done: boolean;

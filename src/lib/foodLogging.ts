@@ -107,15 +107,24 @@ export async function fetchTodayNutrition(userId: string, date = getTodayWarsaw(
 }
 
 export async function parseFoodNL(text: string, userId: string, accessToken: string): Promise<ParsedFoodItem[]> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-food-nl`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text: text.trim(), userId }),
-    signal: AbortSignal.timeout(60000),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-food-nl`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: text.trim(), userId, clientTime: new Date().toISOString() }),
+      signal: AbortSignal.timeout(120000),
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (/timed out|timeout|abort/i.test(msg)) {
+      throw new Error('Parsowanie trwało za długo — spróbuj ponownie za chwilę.')
+    }
+    throw e
+  }
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
   return json.items ?? []

@@ -14,8 +14,6 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
   const haptics = useHaptics()
   const totalSets = session.exercises.reduce((s, ex) => s + ex.sets, 0)
   const completedSets = done.reduce((s, row) => s + row.filter(Boolean).length, 0)
-  const allDone = totalSets > 0 && completedSets === totalSets
-
   return (
     <section className="rounded-[24px] border border-lime-500/25 bg-lime-500/[0.06] p-4 space-y-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -59,12 +57,6 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
           />
         ))}
       </div>
-
-      {allDone && (
-        <p className="text-[10px] font-bold text-lime-600 dark:text-lime-400 text-center">
-          Plyo gotowe — przejdź do siłowni poniżej
-        </p>
-      )}
     </section>
   )
 }

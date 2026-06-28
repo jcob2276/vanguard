@@ -1000,14 +1000,29 @@ export type Database = {
           result: string | null
           tags: string[] | null
           task_1: string | null
+          task_1_checkpoint_id: string | null
+          task_1_pin_id: string | null
+          task_1_project_id: string | null
           task_1_todo_id: string | null
           task_2: string | null
+          task_2_checkpoint_id: string | null
+          task_2_pin_id: string | null
+          task_2_project_id: string | null
           task_2_todo_id: string | null
           task_3: string | null
+          task_3_checkpoint_id: string | null
+          task_3_pin_id: string | null
+          task_3_project_id: string | null
           task_3_todo_id: string | null
           task_4: string | null
+          task_4_checkpoint_id: string | null
+          task_4_pin_id: string | null
+          task_4_project_id: string | null
           task_4_todo_id: string | null
           task_5: string | null
+          task_5_checkpoint_id: string | null
+          task_5_pin_id: string | null
+          task_5_project_id: string | null
           task_5_todo_id: string | null
           user_id: string | null
         }
@@ -1041,14 +1056,29 @@ export type Database = {
           result?: string | null
           tags?: string[] | null
           task_1?: string | null
+          task_1_checkpoint_id?: string | null
+          task_1_pin_id?: string | null
+          task_1_project_id?: string | null
           task_1_todo_id?: string | null
           task_2?: string | null
+          task_2_checkpoint_id?: string | null
+          task_2_pin_id?: string | null
+          task_2_project_id?: string | null
           task_2_todo_id?: string | null
           task_3?: string | null
+          task_3_checkpoint_id?: string | null
+          task_3_pin_id?: string | null
+          task_3_project_id?: string | null
           task_3_todo_id?: string | null
           task_4?: string | null
+          task_4_checkpoint_id?: string | null
+          task_4_pin_id?: string | null
+          task_4_project_id?: string | null
           task_4_todo_id?: string | null
           task_5?: string | null
+          task_5_checkpoint_id?: string | null
+          task_5_pin_id?: string | null
+          task_5_project_id?: string | null
           task_5_todo_id?: string | null
           user_id?: string | null
         }
@@ -1082,14 +1112,29 @@ export type Database = {
           result?: string | null
           tags?: string[] | null
           task_1?: string | null
+          task_1_checkpoint_id?: string | null
+          task_1_pin_id?: string | null
+          task_1_project_id?: string | null
           task_1_todo_id?: string | null
           task_2?: string | null
+          task_2_checkpoint_id?: string | null
+          task_2_pin_id?: string | null
+          task_2_project_id?: string | null
           task_2_todo_id?: string | null
           task_3?: string | null
+          task_3_checkpoint_id?: string | null
+          task_3_pin_id?: string | null
+          task_3_project_id?: string | null
           task_3_todo_id?: string | null
           task_4?: string | null
+          task_4_checkpoint_id?: string | null
+          task_4_pin_id?: string | null
+          task_4_project_id?: string | null
           task_4_todo_id?: string | null
           task_5?: string | null
+          task_5_checkpoint_id?: string | null
+          task_5_pin_id?: string | null
+          task_5_project_id?: string | null
           task_5_todo_id?: string | null
           user_id?: string | null
         }
@@ -1951,6 +1996,7 @@ export type Database = {
           id: string
           manual_resource_type: string | null
           manual_title: string | null
+          project_id: string | null
           skill_id: string | null
           slot: string
           sort_order: number
@@ -1966,6 +2012,7 @@ export type Database = {
           id?: string
           manual_resource_type?: string | null
           manual_title?: string | null
+          project_id?: string | null
           skill_id?: string | null
           slot: string
           sort_order?: number
@@ -1981,6 +2028,7 @@ export type Database = {
           id?: string
           manual_resource_type?: string | null
           manual_title?: string | null
+          project_id?: string | null
           skill_id?: string | null
           slot?: string
           sort_order?: number
@@ -1988,6 +2036,13 @@ export type Database = {
           week_start?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "learning_week_pins_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "learning_week_pins_skill_id_fkey"
             columns: ["skill_id"]
@@ -3014,6 +3069,7 @@ export type Database = {
           goal_id: string | null
           id: string
           name: string
+          primary_skill_id: string | null
           retrospective_good: string | null
           retrospective_improve: string | null
           retrospective_rating: number | null
@@ -3029,6 +3085,7 @@ export type Database = {
           goal_id?: string | null
           id?: string
           name: string
+          primary_skill_id?: string | null
           retrospective_good?: string | null
           retrospective_improve?: string | null
           retrospective_rating?: number | null
@@ -3044,6 +3101,7 @@ export type Database = {
           goal_id?: string | null
           id?: string
           name?: string
+          primary_skill_id?: string | null
           retrospective_good?: string | null
           retrospective_improve?: string | null
           retrospective_rating?: number | null

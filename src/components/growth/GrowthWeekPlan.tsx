@@ -1,5 +1,5 @@
-import { Check, ExternalLink, Plus, Trash2 } from 'lucide-react';
-import type { GrowthLinkRow, GrowthTodoRow } from '../../hooks/useGrowthData';
+import { Check, ExternalLink, FolderKanban, Plus, Trash2 } from 'lucide-react';
+import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from '../../hooks/useGrowthData';
 import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth';
 import { MAX_ACTIVE, MAX_MUST, RESOURCE_TYPE_META } from '../../lib/growth';
 import type { TheoryPracticeBalance } from '../../lib/growthMastery';
@@ -13,6 +13,7 @@ function SlotSection({
   skillsById,
   linksById,
   todosById,
+  projectsById,
   focusSkillId,
   focusTargetLevel,
   onAdd,
@@ -29,6 +30,7 @@ function SlotSection({
   skillsById: Map<string, LearningSkill>;
   linksById: Map<string, GrowthLinkRow>;
   todosById: Map<string, GrowthTodoRow>;
+  projectsById: Map<string, GrowthProjectSummary>;
   focusSkillId: string | null;
   focusTargetLevel: number | null;
   onAdd: () => void;
@@ -59,6 +61,7 @@ function SlotSection({
           const rt = pinResourceType(pin, linksById);
           const meta = RESOURCE_TYPE_META[rt];
           const skill = pin.skill_id ? skillsById.get(pin.skill_id) : null;
+          const project = pin.project_id ? projectsById.get(pin.project_id) : null;
           const titleText = pinTitle(pin, linksById, todosById);
           const link = pin.entity_type === 'link' && pin.entity_id ? linksById.get(pin.entity_id) : null;
 
@@ -92,6 +95,11 @@ function SlotSection({
                     {skill && (
                       <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
                         {skill.label}
+                      </span>
+                    )}
+                    {project && (
+                      <span className="inline-flex items-center gap-0.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <FolderKanban size={9} /> {project.name}
                       </span>
                     )}
                     {isFocusPin && (
@@ -165,6 +173,7 @@ export default function GrowthWeekPlan({
   skills,
   links,
   todos,
+  projects = [],
   focusSkillId,
   focusTargetLevel,
   readOnly,
@@ -181,6 +190,7 @@ export default function GrowthWeekPlan({
   skills: LearningSkill[];
   links: GrowthLinkRow[];
   todos: GrowthTodoRow[];
+  projects?: GrowthProjectSummary[];
   focusSkillId: string | null;
   focusTargetLevel: number | null;
   readOnly: boolean;
@@ -196,6 +206,7 @@ export default function GrowthWeekPlan({
   const skillsById = new Map(skills.map((s) => [s.id, s]));
   const linksById = new Map(links.map((l) => [l.id, l]));
   const todosById = new Map(todos.map((t) => [t.id, t]));
+  const projectsById = new Map(projects.map((p) => [p.id, p]));
 
   const doneCount = pins.filter((p) => p.done).length;
 
@@ -206,7 +217,7 @@ export default function GrowthWeekPlan({
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">Reps tygodnia</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">Plan tygodnia</p>
           <p className="text-[13px] font-bold text-text-primary mt-1">
             {doneCount}/{pins.length} zamknięte
             <span className="text-text-muted font-semibold ml-2">
@@ -237,6 +248,7 @@ export default function GrowthWeekPlan({
           skillsById={skillsById}
           linksById={linksById}
           todosById={todosById}
+          projectsById={projectsById}
           onAdd={() => onAddPin('must')}
           onDone={onDonePin}
           onRemove={onRemovePin}
@@ -251,7 +263,7 @@ export default function GrowthWeekPlan({
       {!readOnly && mustOpen > 0 && (suggestedTodos.length > 0 || suggestedLinks.length > 0) && (
         <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-3 space-y-2">
           <p className="text-[9px] font-black uppercase tracking-wider text-primary">
-            Szybki rep (praktyka &gt; teoria)
+            Szybka akcja (praktyka &gt; teoria)
           </p>
           <div className="flex flex-wrap gap-2">
             {suggestedTodos.slice(0, 3).map((todo) =>
@@ -281,7 +293,7 @@ export default function GrowthWeekPlan({
           </div>
           {balance && balance.theory > balance.practice && (
             <p className="text-[10px] text-amber-700 dark:text-amber-400">
-              Masz więcej teorii niż repów — priorytet: todo / ćwiczenie, nie kolejne wideo.
+              Masz więcej teorii niż praktyki — priorytet: zadanie / ćwiczenie, nie kolejne wideo.
             </p>
           )}
         </div>
@@ -295,6 +307,7 @@ export default function GrowthWeekPlan({
         skillsById={skillsById}
         linksById={linksById}
         todosById={todosById}
+        projectsById={projectsById}
         onAdd={() => onAddPin('active')}
         onDone={onDonePin}
         onRemove={onRemovePin}

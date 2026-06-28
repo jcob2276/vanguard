@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Target } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Target } from 'lucide-react';
 import type { SkillInventoryRow } from '../../lib/growthOverview';
 
 function scoreBar(val: number) {
@@ -13,14 +13,35 @@ function scoreBar(val: number) {
   );
 }
 
+function matchLinkToSkill(link: any, skillKey: string): boolean {
+  const t = `${link.title || ''} ${link.description || ''} ${link.domain || ''} ${link.category || ''}`.toLowerCase();
+  const keywords: Record<string, string[]> = {
+    storytelling: ['storytelling', 'histori', 'opowiad', 'pitch', 'narrac'],
+    setting: ['setting', 'rozmowa', 'słuchan', 'mirroring', 'pytań', 'mówien', 'pauz'],
+    closing: ['closing', 'sprzedaż', 'cena', 'ceny', 'decyzj', 'handlow', 'klient', 'sales'],
+    negotiation: ['negocjac', 'ustępstw', 'granic', 'negotiat', 'anchor'],
+    voice_presence: ['dykcj', 'artykulac', 'głos', 'wymow', 'intonac', 'oddech', 'tempo', 'korek'],
+    social_exposure: ['relacj', 'kontakt', 'poznaw', 'randk', 'kobie', 'dziewczyn', 'social', 'ludzi', 'semen', 'manifesting'],
+    deep_work: ['deep work', 'produktyw', 'skup', 'egzekuc', 'prokrastyn', 'czas', 'organizac', 'wasting'],
+    body_base: ['sen', 'trening', 'siłown', 'biega', 'ruch', 'diet', 'calories', 'kalori', 'regenerac', 'oura', 'health', 'sleep'],
+  };
+  const list = keywords[skillKey];
+  if (!list) return false;
+  return list.some(kw => t.includes(kw));
+}
+
 export default function GrowthSkillsList({
   rows,
   onEditScores,
   readOnly,
+  unreadLinks = [],
+  onQuickPinLink,
 }: {
   rows: SkillInventoryRow[];
   onEditScores?: () => void;
   readOnly: boolean;
+  unreadLinks?: any[];
+  onQuickPinLink?: (linkId: string, slot: any) => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
@@ -64,6 +85,8 @@ export default function GrowthSkillsList({
         {rows.map((row) => {
           const open = expanded.has(row.parent.id);
           const hasSubs = row.subskills.length > 0;
+          const matchedLinks = unreadLinks.filter(l => matchLinkToSkill(l, row.parent.key));
+          
           return (
             <li
               key={row.parent.id}
@@ -73,10 +96,10 @@ export default function GrowthSkillsList({
             >
               <button
                 type="button"
-                onClick={() => hasSubs && toggle(row.parent.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left ${hasSubs ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => (hasSubs || matchedLinks.length > 0) && toggle(row.parent.id)}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left ${(hasSubs || matchedLinks.length > 0) ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                {hasSubs ? (
+                {(hasSubs || matchedLinks.length > 0) ? (
                   open ? (
                     <ChevronDown size={14} className="text-text-muted shrink-0" />
                   ) : (
@@ -95,20 +118,58 @@ export default function GrowthSkillsList({
                 </span>
                 {scoreBar(row.parentScore)}
               </button>
-              {open && hasSubs && (
-                <ul className="border-t border-border-custom/60 pb-2">
-                  {row.subskills.map((sub) => (
-                    <li
-                      key={sub.skill.id}
-                      className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-border-custom/30 last:border-0"
-                    >
-                      <span className="flex-1 text-[11px] font-semibold text-text-secondary truncate">
-                        {sub.skill.label}
-                      </span>
-                      {scoreBar(sub.score)}
-                    </li>
-                  ))}
-                </ul>
+              {open && (
+                <div className="border-t border-border-custom/60 pb-2">
+                  {hasSubs && (
+                    <ul className="mb-2">
+                      {row.subskills.map((sub) => (
+                        <li
+                          key={sub.skill.id}
+                          className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-border-custom/30 last:border-0"
+                        >
+                          <span className="flex-1 text-[11px] font-semibold text-text-secondary truncate">
+                            {sub.skill.label}
+                          </span>
+                          {scoreBar(sub.score)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {matchedLinks.length > 0 && (
+                    <div className="mt-2 px-3 pt-2 border-t border-border-custom/30">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-1 flex items-center gap-1">
+                        <span>📚 Materiały z Keep</span>
+                        <span className="rounded-full bg-primary/10 px-1 py-0.2 text-[8px] font-bold text-primary">{matchedLinks.length}</span>
+                      </p>
+                      <ul className="space-y-1">
+                        {matchedLinks.map((link) => (
+                          <li key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-border-custom bg-background/20 px-2 py-1">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-semibold text-text-primary truncate" title={link.title}>
+                                {link.title || link.domain}
+                              </p>
+                              <p className="text-[8px] text-text-muted">{link.domain}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <a href={link.url} target="_blank" rel="noopener noreferrer" className="p-1 text-text-muted hover:text-text-primary">
+                                <ExternalLink size={10} />
+                              </a>
+                              {!readOnly && onQuickPinLink && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); onQuickPinLink(link.id, 'active'); }}
+                                  className="rounded bg-primary/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase text-primary hover:bg-primary/20"
+                                >
+                                  Przypnij
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
             </li>
           );

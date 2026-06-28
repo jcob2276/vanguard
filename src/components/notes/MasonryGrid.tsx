@@ -14,6 +14,7 @@ export default function MasonryGrid({
   onOpenCard,
   onClickTag,
   onConvertToTodo,
+  search = '',
 }: {
   notes: Note[];
   onDelete: (id: string) => void;
@@ -26,6 +27,7 @@ export default function MasonryGrid({
   onOpenCard: (id: string) => void;
   onClickTag?: (tag: string) => void;
   onConvertToTodo?: (note: Note) => void;
+  search?: string;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export default function MasonryGrid({
               isDragOver={overId === note.id && dragId !== note.id}
               onClickTag={onClickTag}
               onConvertToTodo={onConvertToTodo}
+              search={search}
             />
           ))}
         </div>

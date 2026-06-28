@@ -67,6 +67,13 @@ export default function EditNoteModal({
     return count;
   })();
 
+  const { wordCount, charCount } = (() => {
+    const text = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const chars = text.length;
+    const words = text ? text.split(' ').length : 0;
+    return { wordCount: words, charCount: chars };
+  })();
+
   return (
     <>
       <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
@@ -216,6 +223,12 @@ export default function EditNoteModal({
             style={{ color: c.textSub }}
             showStaticBar
           />
+          <div className="flex items-center justify-between px-5 py-2.5 border-t border-border-custom/20 text-[10px] text-text-muted/50 mt-auto bg-surface-solid/5 select-none" style={{ borderColor: c.border }}>
+            <span>{wordCount} słów / {charCount} znaków</span>
+            {uncheckedCount > 0 && (
+              <span className="font-semibold text-primary">{uncheckedCount} otwartych podpunktów</span>
+            )}
+          </div>
         </div>
       </div>
     </>

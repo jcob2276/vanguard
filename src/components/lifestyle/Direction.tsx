@@ -22,6 +22,9 @@ import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
+import { useLifeGoals } from '../../hooks/useLifeGoals';
+import { useDirectionContext } from '../../hooks/useDirectionContext';
+import WeekLoopSummary from '../shared/WeekLoopSummary';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
@@ -34,7 +37,6 @@ type Phase2Recap = {
 type PillarScores = { cialo: number | null; duch: number | null; konto: number | null };
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
 type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
-type LifeGoalRow = Pick<Tables<'life_goals'>, 'goal_cialo' | 'date_cialo' | 'goal_duch' | 'date_duch' | 'goal_konto' | 'date_konto'>;
 
 const todayWarsaw = () => getTodayWarsaw();
 const APP_LAUNCH_DATE = '2026-05-03';
@@ -62,9 +64,10 @@ export default function Direction({ session }: { session: Session }) {
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<CalendarRow[]>([]);
   const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
-  const [weekGoals, setWeekGoals] = useState<LifeGoalRow | null>(null);
+  const { displayRows: lifeGoalRows } = useLifeGoals(userId);
 
   const currentWeekStart = format(startOfWeek(new Date(todayWarsaw() + 'T12:00:00'), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const direction = useDirectionContext(userId, currentWeekStart);
 
   // Persisted — multi-paragraph weekly review answers, filled in over a session;
   // a backgrounded-tab kill (Android reclaiming memory) must not erase them before submit.
@@ -136,7 +139,6 @@ export default function Direction({ session }: { session: Session }) {
         { data: historyData },
         { data: reviewData },
         { data: calData },
-        { data: goalsData },
         { data: prevReviewData },
         { data: ouraData },
         { data: runsData },
@@ -148,7 +150,6 @@ export default function Direction({ session }: { session: Session }) {
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
-        supabase.from('life_goals').select('goal_cialo, date_cialo, goal_duch, date_duch, goal_konto, date_konto').eq('user_id', userId).maybeSingle(),
         supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
         supabase.from('oura_daily_summary').select('total_sleep_hours, readiness_score').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
         supabase.from('strava_activities').select('distance').eq('user_id', userId).gte('start_date', warsawDayBoundsISO(currentWeekStart).fromISO).lte('start_date', warsawDayBoundsISO(weekEnd).toISO),
@@ -159,7 +160,6 @@ export default function Direction({ session }: { session: Session }) {
 
       setHistory(historyData || []);
       setAllCalEvents(calData || []);
-      setWeekGoals(goalsData || null);
       setPrevWeekReview(prevReviewData || null);
       setWeekOura(ouraData || []);
       setWeekRuns(runsData || []);
@@ -477,18 +477,35 @@ export default function Direction({ session }: { session: Session }) {
             reflectionSaved={reflectionSaved}
           />
         ) : (
-          <DirectionRadarMode
-            stats={stats}
-            history={history}
-            prevWeekReview={prevWeekReview}
-            planWeekStart={planWeekStart}
-            allCalEvents={allCalEvents}
-            togglePowerListTask={togglePowerListTask}
-            focusTasks={focusTasks}
-            focusGoalMappings={focusGoalMappings}
-            currentReview={currentReview}
-            weekGoals={weekGoals}
-          />
+          <div className="space-y-4">
+            {direction.weekStart && (
+              <WeekLoopSummary
+                ctx={{
+                  weekGoals: direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
+                  powerListStats: direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
+                  mustPins: direction.mustPins ?? [],
+                  openMustPins: direction.openMustPins ?? [],
+                  focus: direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
+                  weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
+                  weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
+                  sprintGoal: direction.sprintGoal ?? null,
+                  sprintLabel: direction.sprintLabel ?? null,
+                }}
+              />
+            )}
+            <DirectionRadarMode
+              stats={stats}
+              history={history}
+              prevWeekReview={prevWeekReview}
+              planWeekStart={planWeekStart}
+              allCalEvents={allCalEvents}
+              togglePowerListTask={togglePowerListTask}
+              focusTasks={focusTasks}
+              focusGoalMappings={focusGoalMappings}
+              currentReview={currentReview}
+              lifeGoalRows={lifeGoalRows}
+            />
+          </div>
         )}
       </section>
 

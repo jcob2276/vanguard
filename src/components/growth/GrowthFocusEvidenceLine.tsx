@@ -40,7 +40,7 @@ export default function GrowthFocusEvidenceLine({
   }
 
   if (repTarget != null && repTarget > 0) {
-    parts.push(`reps ${repDone}/${repTarget}`);
+    parts.push(`praktyka ${repDone}/${repTarget}`);
   }
 
   if (notesCount > 0) {

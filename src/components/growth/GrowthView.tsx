@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Save, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { notify } from '../../lib/notify';
@@ -33,14 +33,35 @@ import { pinTitle } from './PinPickerModal';
 import SkillTreePanel from './SkillTreePanel';
 import PinPickerModal from './PinPickerModal';
 import FocusEditorModal from './FocusEditorModal';
-import GrowthOverview from './GrowthOverview';
+import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
+import WeekLoopSummary from '../shared/WeekLoopSummary';
+import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { computeTheoryPracticeBalance } from '../../lib/growthMastery';
 import type { GrowthPinSlot } from '../../lib/growth';
+
+function matchLinkToSkill(link: any, skillKey: string): boolean {
+  const t = `${link.title || ''} ${link.description || ''} ${link.domain || ''} ${link.category || ''}`.toLowerCase();
+  const keywords: Record<string, string[]> = {
+    storytelling: ['storytelling', 'histori', 'opowiad', 'pitch', 'narrac'],
+    setting: ['setting', 'rozmowa', 'słuchan', 'mirroring', 'pytań', 'mówien', 'pauz'],
+    closing: ['closing', 'sprzedaż', 'cena', 'ceny', 'decyzj', 'handlow', 'klient', 'sales'],
+    negotiation: ['negocjac', 'ustępstw', 'granic', 'negotiat', 'anchor'],
+    voice_presence: ['dykcj', 'artykulac', 'głos', 'wymow', 'intonac', 'oddech', 'tempo', 'korek'],
+    social_exposure: ['relacj', 'kontakt', 'poznaw', 'randk', 'kobie', 'dziewczyn', 'social', 'ludzi', 'semen', 'manifesting'],
+    deep_work: ['deep work', 'produktyw', 'skup', 'egzekuc', 'prokrastyn', 'czas', 'organizac', 'wasting'],
+    body_base: ['sen', 'trening', 'siłown', 'biega', 'ruch', 'diet', 'calories', 'kalori', 'regenerac', 'oura', 'health', 'sleep'],
+  };
+  const list = keywords[skillKey];
+  if (!list) return false;
+  return list.some(kw => t.includes(kw));
+}
 
 export default function GrowthView({ session }: { session: Session }) {
   const userId = session.user.id;
   const [weekStart, setWeekStart] = useState(() => getWeekStartWarsaw(getTodayWarsaw()));
+  const [showMore, setShowMore] = useState(false);
+  const direction = useDirectionContext(userId, weekStart);
   const {
     skills,
     snapshots,
@@ -62,6 +83,7 @@ export default function GrowthView({ session }: { session: Session }) {
   const [showScores, setShowScores] = useState(false);
   const [editingScores, setEditingScores] = useState(false);
   const [pickerSlot, setPickerSlot] = useState<GrowthPinSlot | null>(null);
+  const [pickerDefaultProjectId, setPickerDefaultProjectId] = useState<string | null>(null);
   const [showFocusEditor, setShowFocusEditor] = useState(false);
   const [draftScores, setDraftScores] = useState<Record<string, number>>({});
   const [savingScores, setSavingScores] = useState(false);
@@ -107,6 +129,41 @@ export default function GrowthView({ session }: { session: Session }) {
 
   const { fromISO: weekFromISO } = useMemo(() => warsawDayBoundsISO(weekStart), [weekStart]);
   const weekEnd = useMemo(() => getWeekEndExclusive(weekStart), [weekStart]);
+  
+  const focusSkillKey = focusParentId ? skillsById.get(focusParentId)?.key : null;
+  
+  // Derive which project best matches the focus skill (heuristic by name/goal keywords)
+  const focusProjectId = useMemo(() => {
+    if (activeProjects.length === 0) return null;
+    const focusSkillId = focusParentId;
+    if (focusSkillId) {
+      const bySkill = activeProjects.find((p) => p.primarySkillId === focusSkillId);
+      if (bySkill) return bySkill.id;
+    }
+    if (!focusSkillKey) return activeProjects[0]?.id ?? null;
+    const skillKws: Record<string, string[]> = {
+      storytelling: ['pewnosc', 'charyzma', 'komunikacja', 'sprzedaz', 'perswazja', 'storytelling'],
+      voice_presence: ['pewnosc', 'charyzma', 'dykcja', 'glos'],
+      closing: ['sprzedaz', 'dochod', 'klient', 'business'],
+      social_exposure: ['poznawanie', 'zwiazek', 'relacj', 'ludzi'],
+      body_base: ['cialo', 'tluszcz', 'trening', 'redukcja'],
+      deep_work: ['praca', 'egzekucja', 'dyscyplina'],
+      negotiation: ['sprzedaz', 'negocjacja'],
+      setting: ['komunikacja', 'sprzedaz', 'rozmowa'],
+    };
+    const kws = skillKws[focusSkillKey] ?? [];
+    const match = activeProjects.find(p => {
+      const text = (p.name + ' ' + (p.goal ?? '')).toLowerCase();
+      return kws.some(kw => text.includes(kw));
+    });
+    return match?.id ?? activeProjects[0]?.id ?? null;
+  }, [focusSkillKey, activeProjects]);
+
+  const focusLinks = useMemo(() => {
+    if (!focusSkillKey) return [];
+    return unreadLinks.filter(l => matchLinkToSkill(l, focusSkillKey));
+  }, [unreadLinks, focusSkillKey]);
+
   const readLinksThisWeek = useMemo(
     () => filterReadLinksInWeek(readLinks, weekFromISO),
     [readLinks, weekFromISO],
@@ -176,7 +233,7 @@ export default function GrowthView({ session }: { session: Session }) {
         await supabase.from('todo_items').update({ status: 'done' }).eq('id', pin.entity_id);
       }
 
-      notify('Zrealizowano repa!', 'success');
+      notify('Gotowe!', 'success');
       await refresh();
     } catch (e) {
       notify(e instanceof Error ? e.message : 'Błąd', 'error');
@@ -194,6 +251,21 @@ export default function GrowthView({ session }: { session: Session }) {
     }
   };
 
+  const handleAddMustForProject = (projectId: string) => {
+    setPickerDefaultProjectId(projectId);
+    setPickerSlot('must');
+  };
+
+  const openPicker = (slot: GrowthPinSlot) => {
+    setPickerDefaultProjectId(focusProjectId);
+    setPickerSlot(slot);
+  };
+
+  const closePicker = () => {
+    setPickerSlot(null);
+    setPickerDefaultProjectId(null);
+  };
+
   const handleQuickPinLink = async (linkId: string, slot: GrowthPinSlot) => {
     try {
       const { error } = await supabase.from('learning_week_pins').insert({
@@ -202,6 +274,7 @@ export default function GrowthView({ session }: { session: Session }) {
         slot,
         entity_type: 'link',
         entity_id: linkId,
+        project_id: focusProjectId,
         sort_order: pins.filter((p) => p.slot === slot).length,
       });
       if (error) throw error;
@@ -220,6 +293,7 @@ export default function GrowthView({ session }: { session: Session }) {
         slot,
         entity_type: 'todo',
         entity_id: todoId,
+        project_id: focusProjectId,
         sort_order: pins.filter((p) => p.slot === slot).length,
       });
       if (error) throw error;
@@ -271,16 +345,11 @@ export default function GrowthView({ session }: { session: Session }) {
     }
   };
 
-  const directionLine =
-    context.weekGoals.intention ||
-    context.weekGoals.commitment ||
-    context.sprintGoal ||
-    null;
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
       <header className="sticky top-0 z-30 w-full border-b border-border-custom bg-background/95 backdrop-blur-md">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-4">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
           <Link
             to="/"
             className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
@@ -288,32 +357,21 @@ export default function GrowthView({ session }: { session: Session }) {
             <ArrowLeft size={18} />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black font-display uppercase tracking-tight">Rozwój</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => setWeekStart((w) => shiftWeekStart(w, -1))}
-                className="p-1 text-text-muted hover:text-primary cursor-pointer"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-[12px] font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
-              <button
-                type="button"
-                onClick={() => setWeekStart((w) => shiftWeekStart(w, 1))}
-                disabled={isCurrentWeek(weekStart)}
-                className="p-1 text-text-muted hover:text-primary disabled:opacity-30 cursor-pointer"
-              >
-                <ChevronRight size={16} />
-              </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-black font-display uppercase tracking-tight">Rozwój</h1>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setWeekStart((w) => shiftWeekStart(w, -1))} className="p-1 text-text-muted hover:text-primary cursor-pointer">
+                  <ChevronLeft size={15} />
+                </button>
+                <span className="text-[11px] font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
+                <button type="button" onClick={() => setWeekStart((w) => shiftWeekStart(w, 1))} disabled={isCurrentWeek(weekStart)} className="p-1 text-text-muted hover:text-primary disabled:opacity-30 cursor-pointer">
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
           {!readOnly && (
-            <button
-              type="button"
-              onClick={startEditScores}
-              className="rounded-xl border border-border-custom px-3 py-2 text-[10px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer shrink-0"
-            >
+            <button type="button" onClick={startEditScores} className="rounded-xl border border-border-custom px-3 py-2 text-[10px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer shrink-0">
               Oceń skilli
             </button>
           )}
@@ -321,87 +379,104 @@ export default function GrowthView({ session }: { session: Session }) {
       </header>
 
       <div className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-6">
-
-
         {loading ? (
           <div className="h-64 animate-pulse rounded-2xl bg-surface border border-border-custom" />
         ) : (
-          <>
+          <div className="space-y-6">
+            {direction.weekStart && (
+              <WeekLoopSummary
+                compact
+                ctx={{
+                  weekGoals: direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
+                  powerListStats: direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
+                  mustPins: direction.mustPins ?? [],
+                  openMustPins: direction.openMustPins ?? [],
+                  focus: direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
+                  weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
+                  weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
+                  sprintGoal: direction.sprintGoal ?? null,
+                  sprintLabel: direction.sprintLabel ?? null,
+                }}
+              />
+            )}
+            <GrowthCockpit
+              context={context}
+              powerListStats={powerListStats}
+              focusProposal={focusProposal}
+              pins={pins}
+              linksById={linksById}
+              prevWeek={prevWeek}
+              mustDone={mustDone}
+              mustTotal={mustTotal}
+              weekFocusScore={weekFocusScore}
+              focusTarget={focus?.target_level ?? null}
+              readOnly={readOnly}
+              onSetFocus={() => setShowFocusEditor(true)}
+            />
+
+            <GrowthWeekPlan
+              pins={pins}
+              skills={skills}
+              links={allLinks}
+              todos={openTodos}
+              projects={activeProjects}
+              focusSkillId={focusParentId}
+              focusTargetLevel={focus?.target_level ?? null}
+              readOnly={readOnly}
+              suggestedLinks={focusLinks.length > 0 ? focusLinks : unreadLinks.slice(0, 6)}
+              suggestedTodos={openTodos}
+              balance={balance}
+              onAddPin={openPicker}
+              onQuickPinLink={handleQuickPinLink}
+              onQuickPinTodo={handleQuickPinTodo}
+              onDonePin={handleDonePin}
+              onRemovePin={handleRemovePin}
+            />
+
             <GrowthProjectsPanel
               projects={activeProjects}
+              pins={pins}
               userId={userId}
               sprintGoal={context.sprintGoal}
               sprintLabel={context.sprintLabel}
+              focusProjectId={focusProjectId}
+              onAddMust={handleAddMustForProject}
+              onKpiChange={() => void refresh()}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              <div className="lg:col-span-8 flex flex-col justify-between">
-                <GrowthWeekPlan
-                  pins={pins}
-                  skills={skills}
-                  links={allLinks}
-                  todos={openTodos}
-                  focusSkillId={focusParentId}
-                  focusTargetLevel={focus?.target_level ?? null}
-                  readOnly={readOnly}
-                  suggestedLinks={unreadLinks}
-                  suggestedTodos={openTodos}
-                  balance={balance}
-                  onAddPin={(slot) => setPickerSlot(slot)}
-                  onQuickPinLink={handleQuickPinLink}
-                  onQuickPinTodo={handleQuickPinTodo}
-                  onDonePin={handleDonePin}
-                  onRemovePin={handleRemovePin}
-                />
-              </div>
-              <div className="lg:col-span-4 flex flex-col justify-between h-full">
-                <GrowthOverview
-                  context={context}
-                  powerListStats={powerListStats}
-                  focusProposal={focusProposal}
-                  pins={pins}
-                  linksById={linksById}
-                  prevWeek={prevWeek}
-                  mustDone={mustDone}
-                  mustTotal={mustTotal}
-                  weekFocusScore={weekFocusScore}
-                  focusTarget={focus?.target_level ?? null}
-                  readOnly={readOnly}
-                />
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => setShowFocusEditor(true)}
-                    className="w-full mt-3 rounded-xl border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 py-2.5 text-[11px] font-black uppercase text-primary transition-all cursor-pointer shrink-0"
-                  >
-                    🎯 Ustaw focus tygodnia
-                  </button>
-                )}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowMore((v) => !v)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-custom py-2.5 text-[10px] font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
+            >
+              {showMore ? 'Mniej' : 'Więcej — skille i Keep'}
+              <ChevronDown size={14} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />
+            </button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              <div className="lg:col-span-4">
+            {showMore && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <GrowthSkillsList
                   rows={skillInventory}
                   onEditScores={startEditScores}
                   readOnly={readOnly}
+                  unreadLinks={unreadLinks}
+                  onQuickPinLink={handleQuickPinLink}
                 />
-              </div>
-              <div className="lg:col-span-4">
                 <GrowthLearningPanel
                   primary={learningNeed.primary}
                   alsoWeak={learningNeed.alsoWeak}
                   drill={learningNeed.drill}
                   weekItems={weekLearningLog}
                   readOnly={readOnly}
+                  focusLinks={focusLinks}
+                  onQuickPinLink={handleQuickPinLink}
                 />
+                <div className="lg:col-span-2">
+                  <GrowthMediaQueue links={mediaQueue} />
+                </div>
               </div>
-              <div className="lg:col-span-4">
-                <GrowthMediaQueue links={mediaQueue} />
-              </div>
-            </div>
-          </>
+            )}
+          </div>
         )}
       </div>
 
@@ -409,13 +484,15 @@ export default function GrowthView({ session }: { session: Session }) {
         <PinPickerModal
           slot={pickerSlot}
           skills={skills}
+          projects={activeProjects}
           focusSkillId={focusParentId}
+          defaultProjectId={pickerDefaultProjectId ?? focusProjectId}
           unreadLinks={unreadLinks}
           openTodos={openTodos}
           pinnedLinkIds={new Set(pins.filter((p) => p.entity_type === 'link').map((p) => p.entity_id).filter(Boolean) as string[])}
           pinnedTodoIds={new Set(pins.filter((p) => p.entity_type === 'todo').map((p) => p.entity_id).filter(Boolean) as string[])}
-          onClose={() => setPickerSlot(null)}
-          onPickLink={async (linkId, skillId) => {
+          onClose={closePicker}
+          onPickLink={async (linkId, skillId, projectId) => {
             try {
               const { error } = await supabase.from('learning_week_pins').insert({
                 user_id: userId,
@@ -424,17 +501,18 @@ export default function GrowthView({ session }: { session: Session }) {
                 entity_type: 'link',
                 entity_id: linkId,
                 skill_id: skillId,
+                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
                 sort_order: pins.filter((p) => p.slot === pickerSlot).length,
               });
               if (error) throw error;
               notify('Przypięto link', 'success');
-              setPickerSlot(null);
+              closePicker();
               await refresh();
             } catch (e) {
               notify(e instanceof Error ? e.message : 'Błąd', 'error');
             }
           }}
-          onPickTodo={async (todoId, skillId) => {
+          onPickTodo={async (todoId, skillId, projectId) => {
             try {
               const { error } = await supabase.from('learning_week_pins').insert({
                 user_id: userId,
@@ -443,17 +521,18 @@ export default function GrowthView({ session }: { session: Session }) {
                 entity_type: 'todo',
                 entity_id: todoId,
                 skill_id: skillId,
+                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
                 sort_order: pins.filter((p) => p.slot === pickerSlot).length,
               });
               if (error) throw error;
               notify('Przypięto zadanie', 'success');
-              setPickerSlot(null);
+              closePicker();
               await refresh();
             } catch (e) {
               notify(e instanceof Error ? e.message : 'Błąd', 'error');
             }
           }}
-          onPickManual={async (title, type, skillId) => {
+          onPickManual={async (title, type, skillId, projectId) => {
             try {
               const { error } = await supabase.from('learning_week_pins').insert({
                 user_id: userId,
@@ -463,11 +542,12 @@ export default function GrowthView({ session }: { session: Session }) {
                 manual_title: title,
                 manual_resource_type: type,
                 skill_id: skillId,
+                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
                 sort_order: pins.filter((p) => p.slot === pickerSlot).length,
               });
               if (error) throw error;
               notify('Dodano element do planu', 'success');
-              setPickerSlot(null);
+              closePicker();
               await refresh();
             } catch (e) {
               notify(e instanceof Error ? e.message : 'Błąd', 'error');

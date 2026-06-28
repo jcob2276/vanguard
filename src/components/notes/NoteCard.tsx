@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Archive, ListTodo, Pin, Trash2 } from 'lucide-react';
-import { getColor, relativeDate, sanitizeHtml, Note } from './keepUtils';
+import { getColor, relativeDate, sanitizeHtml, Note, highlightHtml } from './keepUtils';
 
 export default function NoteCard({
   note,
@@ -17,6 +17,7 @@ export default function NoteCard({
   isDragOver,
   onClickTag,
   onConvertToTodo,
+  search = '',
 }: {
   note: Note;
   onDelete: (id: string) => void;
@@ -32,6 +33,7 @@ export default function NoteCard({
   isDragOver: boolean;
   onClickTag?: (tag: string) => void;
   onConvertToTodo?: (note: Note) => void;
+  search?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const c = getColor(note.color);
@@ -67,13 +69,17 @@ export default function NoteCard({
       </div>
 
       {note.title && (
-        <h3 className="keep-card-title" style={{ color: c.text }}>{note.title}</h3>
+        <h3
+          className="keep-card-title"
+          style={{ color: c.text }}
+          dangerouslySetInnerHTML={{ __html: highlightHtml(note.title, search) }}
+        />
       )}
       {note.content && (
         <div
           className="keep-card-content"
           style={{ color: c.textSub }}
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
+          dangerouslySetInnerHTML={{ __html: highlightHtml(sanitizeHtml(note.content), search) }}
           onClick={(e) => {
             const target = e.target as HTMLElement;
             if (target.classList.contains('keep-todo-checkbox')) {

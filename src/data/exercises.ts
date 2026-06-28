@@ -13,14 +13,14 @@ export const EXERCISES = [
   { name: 'Wyciskanie skośne', tags: ['klatka', 'barki'] },
   { name: 'Rozpiętki', tags: ['klatka'] },
   { name: 'Pompki', tags: ['klatka', 'triceps'] },
-  { name: 'Dips', tags: ['klatka', 'triceps'] },
+  { name: 'Dipy', tags: ['triceps', 'klatka'] },
   { name: 'Cable crossover', tags: ['klatka'] },
   // Plecy
   { name: 'Martwy ciąg', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   { name: 'Martwy ciąg rumuński', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
   { name: 'RDL', tags: ['dwugłowe ud', 'pośladki', 'plecy'] },
-  { name: 'Podciąganie', tags: ['plecy', 'biceps'] },
-  { name: 'Pull-up', tags: ['plecy', 'biceps'] },
+  { name: 'Podciąganie nachwytem', tags: ['plecy', 'biceps'] },
+  { name: 'Podciąganie podchwytem', tags: ['biceps', 'plecy'] },
   { name: 'Lat Pulldown', tags: ['plecy', 'biceps'] },
   { name: 'Wiosłowanie sztangą', tags: ['plecy', 'biceps'] },
   { name: 'Wiosłowanie hantlem', tags: ['plecy', 'biceps'] },
@@ -155,8 +155,9 @@ const STIMULUS_PROFILES: Array<{ patterns: string[]; stimulus: Record<string, { 
   {
     patterns: ['dips', 'dipy'],
     stimulus: {
-      klatka: { direct: 0.8 },
-      triceps: { indirect: 0.6 },
+      triceps: { direct: 1 },
+      klatka: { indirect: 0.45 },
+      barki: { indirect: 0.15 },
     },
   },
   {
@@ -178,6 +179,13 @@ const STIMULUS_PROFILES: Array<{ patterns: string[]; stimulus: Record<string, { 
     patterns: ['pushdown', 'french press', 'skull crusher', 'overhead triceps', 'overh triceps', 'triceps ext', 'prostowanie lokci'],
     stimulus: {
       triceps: { direct: 1 },
+    },
+  },
+  {
+    patterns: ['podciaganie podchwytem', 'chin-up', 'chin up', 'chin ups', 'chinup'],
+    stimulus: {
+      biceps: { direct: 1 },
+      plecy: { indirect: 0.5 },
     },
   },
   {
@@ -301,6 +309,20 @@ export function stimulusForExercise(name: string, fallbackTags: string[] = []): 
     else acc[tag] = { indirect: TAG_SET_WEIGHTS[index] ?? 0.25 };
     return acc;
   }, {});
+}
+
+/**
+ * Effective-reps decay: a set far from failure (high RIR) stimulates muscle
+ * less than one taken close to failure, even at identical kg×reps. No RIR
+ * logged → assume the set counted (don't punish missing data).
+ */
+export function rirEffectiveness(rir: number | null | undefined): number {
+  if (rir == null || Number.isNaN(rir)) return 1;
+  if (rir <= 1) return 1;
+  if (rir <= 2) return 0.9;
+  if (rir <= 4) return 0.7;
+  if (rir <= 6) return 0.45;
+  return 0.25;
 }
 
 export const TAG_COLOR: Record<string, string> = {

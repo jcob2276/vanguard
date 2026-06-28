@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Plus, Trophy, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Plus, Trophy } from 'lucide-react';
 import {
   WorkoutExercise,
   useExerciseHistory,
@@ -19,7 +19,6 @@ interface ExerciseCardProps {
   onChange: (ex: WorkoutExercise) => void;
   onRemove: () => void;
   userId: string | undefined;
-  onSetDone?: () => void;
 }
 
 export default function ExerciseCard({
@@ -27,7 +26,6 @@ export default function ExerciseCard({
   onChange,
   onRemove,
   userId,
-  onSetDone,
 }: ExerciseCardProps) {
   const [collapsed, setCollapsed] = useState(false);
   const haptics = useHaptics();
@@ -68,15 +66,6 @@ export default function ExerciseCard({
 
   function updateSet(id: number, field: string, value: any) {
     onChange({ ...exercise, sets: sets.map((s) => (s.id === id ? { ...s, [field]: value } : s)) });
-  }
-
-  function toggleSetDone(id: number) {
-    const set = sets.find((s) => s.id === id);
-    if (!set) return;
-    const nowDone = !set.done;
-    haptics.success();
-    updateSet(id, 'done', nowDone);
-    if (nowDone) onSetDone?.();
   }
 
   const current1RM = sets.reduce((best, s) => {
@@ -161,7 +150,7 @@ export default function ExerciseCard({
                   }
                 };
                 return (
-                  <div key={set.id} className={`grid grid-cols-[20px_1fr_1fr_56px] gap-1.5 items-center rounded-xl transition-colors ${set.done ? 'bg-emerald-500/[0.04]' : ''}`}>
+                  <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_56px] gap-1.5 items-center rounded-xl">
                     <span className="text-[10px] font-black text-text-secondary text-center">{idx + 1}</span>
                     {/* Minuty */}
                     <div className="flex flex-col gap-1">
@@ -215,25 +204,12 @@ export default function ExerciseCard({
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => toggleSetDone(set.id)}
-                        title="Seria zrobiona — uruchamia odpoczynek"
-                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all active:scale-90 cursor-pointer ${
-                          set.done
-                            ? 'border-dayC bg-dayC text-white'
-                            : 'border-border-custom text-text-muted/60 hover:border-dayC/50 hover:text-dayC'
-                        }`}
-                      >
-                        <Check size={13} strokeWidth={3} />
-                      </button>
-                      <button
-                        onClick={() => removeSet(set.id)}
-                        className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => removeSet(set.id)}
+                      className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 );
               })}
@@ -273,7 +249,7 @@ export default function ExerciseCard({
                 };
 
                 return (
-                  <div key={set.id} className={`grid grid-cols-[20px_1fr_1fr_1fr_60px] gap-1.5 items-center rounded-xl transition-colors ${set.done ? 'bg-emerald-500/[0.04]' : ''}`}>
+                  <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_1fr_60px] gap-1.5 items-center rounded-xl">
                     <button
                       onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
                       title="Oznacz jako MSP (kluczowy set)"
@@ -373,25 +349,12 @@ export default function ExerciseCard({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => toggleSetDone(set.id)}
-                        title="Seria zrobiona — uruchamia odpoczynek"
-                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all active:scale-90 cursor-pointer ${
-                          set.done
-                            ? 'border-dayC bg-dayC text-white'
-                            : 'border-border-custom text-text-muted/60 hover:border-dayC/50 hover:text-dayC'
-                        }`}
-                      >
-                        <Check size={13} strokeWidth={3} />
-                      </button>
-                      <button
-                        onClick={() => removeSet(set.id)}
-                        className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => removeSet(set.id)}
+                      className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 );
               })}

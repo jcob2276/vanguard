@@ -311,9 +311,29 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     }
   }, [autoNewNote, handleNewNote]);
 
-  // Ctrl+N shortcut — new note
+  // Ctrl+N and Ctrl+F keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) || e.key === '/') {
+        const active = document.activeElement as HTMLElement;
+        if (
+          active &&
+          (active.tagName === 'INPUT' ||
+            active.tagName === 'TEXTAREA' ||
+            active.tagName === 'SELECT' ||
+            active.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
+        }
+        e.preventDefault();
+        const searchInput = document.querySelector('.keep-search') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !editingId) {
         e.preventDefault();
         handleNewNote();
@@ -401,6 +421,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     onOpenCard: handleOpenCard,
     onClickTag: handleTagClick,
     onConvertToTodo: sidebarTab === 'notes' ? handleConvertToTodo : undefined,
+    search,
   };
 
 
@@ -562,6 +583,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           isDragOver={false}
                           onClickTag={handleTagClick}
                           onConvertToTodo={sidebarTab === 'notes' ? handleConvertToTodo : undefined}
+                          search={search}
                         />
                       ))}
                     </div>
@@ -596,6 +618,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           isDragOver={false}
                           onClickTag={handleTagClick}
                           onConvertToTodo={sidebarTab === 'notes' ? handleConvertToTodo : undefined}
+                          search={search}
                         />
                       ))}
 

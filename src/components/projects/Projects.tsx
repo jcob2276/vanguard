@@ -79,7 +79,8 @@ export default function Projects({
   const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
   const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo' });
+  const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', primary_skill_id: '' });
+  const [parentSkills, setParentSkills] = useState<{ id: string; label: string }[]>([]);
   const [newCheckpoint, setNewCheckpoint] = useState<{ projectId: string; title: string; due_date: string } | null>(null);
   const [retroProject, setRetroProject] = useState<any | null>(null);
   const [retroForm, setRetroForm] = useState({ good: '', improve: '', rating: 0 });
@@ -91,7 +92,7 @@ export default function Projects({
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, dreamsRes, lgRes, kpiRes] = await Promise.all([
+      const [p, s, i, c, dreamsRes, lgRes, kpiRes, skillsRes] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
@@ -99,10 +100,12 @@ export default function Projects({
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
         supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
+        supabase.from('learning_skills').select('id, label').eq('user_id', userId).eq('active', true).is('parent_id', null).order('sort_order'),
       ]);
       if (dreamsRes.error) throw new Error(dreamsRes.error.message);
       if (lgRes.error) throw new Error(lgRes.error.message);
       if (kpiRes.error) throw new Error(kpiRes.error.message);
+      if (skillsRes.error) throw new Error(skillsRes.error.message);
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
@@ -110,6 +113,7 @@ export default function Projects({
       setDreams(dreamsRes.data ?? []);
       setLifeGoals(lgRes.data ?? null);
       setKpis(kpiRes.data ?? []);
+      setParentSkills((skillsRes.data ?? []).map((sk) => ({ id: sk.id, label: sk.label })));
     } catch (err: any) { setError(err.message); }
   }, [userId]);
 
@@ -245,6 +249,7 @@ export default function Projects({
       goal: project.goal || '',
       deadline: project.deadline || '',
       color: project.color || 'indigo',
+      primary_skill_id: project.primary_skill_id || '',
     });
   };
 
@@ -256,6 +261,7 @@ export default function Projects({
         goal: editForm.goal.trim() || null,
         deadline: editForm.deadline || null,
         color: editForm.color,
+        primary_skill_id: editForm.primary_skill_id || null,
       });
       setEditingProjectId(null);
     });
@@ -470,6 +476,7 @@ export default function Projects({
         updateProjectStatus={updateProjectStatus}
         handleDelete={handleDelete}
         userId={userId}
+        parentSkills={parentSkills}
       />
     );
   };

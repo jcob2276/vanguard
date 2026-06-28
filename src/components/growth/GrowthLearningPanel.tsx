@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, FileText, Link2, TrendingUp } from 'lucide-react';
+import { BookOpen, CheckCircle2, ExternalLink, FileText, Link2, TrendingUp } from 'lucide-react';
 import type { LearningNeedItem, WeekLearningItem } from '../../lib/growthOverview';
 
 const KIND_ICON = {
@@ -30,12 +30,16 @@ export default function GrowthLearningPanel({
   drill,
   weekItems,
   readOnly,
+  focusLinks = [],
+  onQuickPinLink,
 }: {
   primary: LearningNeedItem | null;
   alsoWeak: LearningNeedItem[];
   drill: string | null;
   weekItems: WeekLearningItem[];
   readOnly: boolean;
+  focusLinks?: any[];
+  onQuickPinLink?: (linkId: string, slot: any) => void;
 }) {
   return (
     <div className="space-y-4 h-full flex flex-col">
@@ -59,6 +63,45 @@ export default function GrowthLearningPanel({
           <div className="mt-3 rounded-lg border border-border-custom bg-background/40 px-3 py-2">
             <p className="text-[8px] font-black uppercase text-text-muted">Drill / ćwiczenie</p>
             <p className="text-[11px] text-text-secondary mt-0.5 leading-relaxed">{drill}</p>
+          </div>
+        )}
+
+        {focusLinks && focusLinks.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[8px] font-black uppercase text-text-muted mb-1.5">Materiały z Keep dla focusu</p>
+            <ul className="space-y-1.5">
+              {focusLinks.map((link) => (
+                <li key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-border-custom bg-background/40 px-2.5 py-1.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-text-primary truncate" title={link.title}>
+                      {link.title || link.domain}
+                    </p>
+                    <p className="text-[9px] text-text-muted">{link.domain}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 text-text-muted hover:text-primary"
+                      title="Otwórz"
+                    >
+                      <ExternalLink size={12} />
+                    </a>
+                    {!readOnly && onQuickPinLink && (
+                      <button
+                        type="button"
+                        onClick={() => onQuickPinLink(link.id, 'must')}
+                        className="rounded bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[9px] font-black uppercase text-primary transition-all cursor-pointer"
+                        title="Dodaj jako MUST"
+                      >
+                        Przypnij
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

@@ -1,22 +1,21 @@
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useLifeGoals } from '../../hooks/useLifeGoals';
+import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { supabase } from '../../lib/supabase';
-import { Check, Link2, Search, Shield, Target, Upload, Wallet, X, Zap, Sparkles } from 'lucide-react';
+import { BookOpen, Check, Link2, Search, Shield, Sparkles, Target, Upload, Wallet, Wand2, X, Zap } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
-import { getPlanForDate, upsertPlanForDate } from '../../lib/dailyPlan';
 import type { TablesUpdate } from '../../lib/database.types';
 import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
+import { markCheckpointDone } from '../../lib/checkpoints';
+import { buildDailyPlanProposal, type DirectionContextData } from '../../lib/dailyPlanProposal';
+import LifeGoalsPanel from './LifeGoalsPanel';
+import PlanningCheckpointsStrip from '../shared/PlanningCheckpointsStrip';
 
-const ENERGY_META = [
-  { score: 1, label: 'Bardzo nisko', color: 'bg-rose-500' },
-  { score: 2, label: 'Nisko', color: 'bg-amber-500' },
-  { score: 3, label: 'Normalnie', color: 'bg-yellow-400' },
-  { score: 4, label: 'Dobrze', color: 'bg-emerald-400' },
-  { score: 5, label: 'Świetnie', color: 'bg-emerald-500' },
-];
+const LIFE_GOALS_EMPTY_HINT = 'Brak celów — dodaj aktywny projekt z celem i terminem w Projekty.';
 
 const SPHERE_SLOTS = [
   { category: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', placeholder: 'Priorytet Ciało — co dziś?' },
@@ -45,43 +44,21 @@ function powerListDraftKey(userId: string, date: string) {
   return `vanguard_powerlist_draft_${userId}_${date}`;
 }
 
+interface TaskSlot {
+  task: string;
+  todoId: string | null;
+  checkpointId: string | null;
+  projectId: string | null;
+  pinId: string | null;
+}
+
 interface PowerListDraft {
-  tasks: Array<{ task: string; todoId: string | null }>;
+  tasks: TaskSlot[];
   yesterdayNote: string;
-  energyLevel: number | null;
   savedAt: number;
 }
 
-function EnergyPicker({
-  value,
-  onChange,
-  compact = false,
-}: {
-  value: number | null;
-  onChange: (v: number) => void;
-  compact?: boolean;
-}) {
-  return (
-    <div className={`flex items-center gap-1.5 ${compact ? '' : 'rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2.5'}`}>
-      <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mr-0.5">Energia</span>
-      {ENERGY_META.map((e) => (
-        <button
-          key={e.score}
-          type="button"
-          onClick={() => onChange(e.score)}
-          title={e.label}
-          className={`${compact ? 'h-6 w-6 text-[10px]' : 'h-7 w-7 text-[11px]'} rounded-full flex items-center justify-center font-black transition-all ${
-            value === e.score
-              ? `${e.color} text-white scale-110 shadow-md`
-              : 'bg-surface-solid text-text-muted hover:scale-105'
-          }`}
-        >
-          {e.score}
-        </button>
-      ))}
-    </div>
-  );
-}
+const EMPTY_SLOT: TaskSlot = { task: '', todoId: null, checkpointId: null, projectId: null, pinId: null };
 
 interface TodoPickerProps {
   items: any[];
@@ -114,11 +91,17 @@ function TodoPicker({ items, onSelect, onClose }: TodoPickerProps) {
         ) : (
           filtered.slice(0, 20).map((item) => (
             <button
-              key={item.id}
+              key={item.key}
               onClick={() => { onSelect(item); onClose(); }}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[0.98]"
             >
-              <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[item.priority] || 'bg-blue-500'}`} />
+              {item.badge ? (
+                <span className="flex shrink-0 items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
+                  <BookOpen size={8} /> {item.badge}
+                </span>
+              ) : (
+                <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[item.priority] || 'bg-blue-500'}`} />
+              )}
               <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{item.title}</span>
               {item.due_date && (
                 <span className="shrink-0 text-[9px] font-bold text-text-muted">{item.due_date}</span>
@@ -131,26 +114,40 @@ function TodoPicker({ items, onSelect, onClose }: TodoPickerProps) {
   );
 }
 
-export default function PowerList({ session, todayWin, onUpdate }: { session: any; todayWin: any; onUpdate?: (data: any) => void }) {
+export default function PowerList({
+  session,
+  todayWin,
+  onUpdate,
+}: {
+  session: any;
+  todayWin: any;
+  onUpdate?: (data: any) => void;
+}) {
   const userId = session.user.id;
+  const { displayRows: lifeGoalRows, refresh: refreshLifeGoals } = useLifeGoals(userId);
+  const direction = useDirectionContext(userId);
   const today = getTodayWarsaw();
   const haptics = useHaptics();
+  const weekGoals = direction.weekGoals ?? null;
+
+  useEffect(() => {
+    if (!todayWin) void refreshLifeGoals();
+  }, [todayWin, refreshLifeGoals]);
 
   const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
-  const [weekGoals, setWeekGoals] = useState<{ cialo: string | null; duch: string | null; konto: string | null; intention: string | null } | null>(null);
-
+  const [checkpointPrompt, setCheckpointPrompt] = useState<{ index: number; checkpointId: string; title: string } | null>(null);
+  const [markingCheckpoint, setMarkingCheckpoint] = useState(false);
   // Wczorajszy dzień — wymagana refleksja przed odblokowaniem dzisiejszych 5 zwycięstw
   const [yesterdayWin, setYesterdayWin] = useState<any>(null);
   const [yesterdayNote, setYesterdayNote] = useState('');
-  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
   const yesterdayNoteRequired = !!yesterdayWin && !yesterdayWin.day_note;
 
-  const [newTaskForm, setNewTaskForm] = useState<Array<{ task: string; todoId: string | null }>>([
-    { task: '', todoId: null },
-    { task: '', todoId: null },
-    { task: '', todoId: null },
-    { task: '', todoId: null },
-    { task: '', todoId: null },
+  const [newTaskForm, setNewTaskForm] = useState<TaskSlot[]>([
+    { ...EMPTY_SLOT },
+    { ...EMPTY_SLOT },
+    { ...EMPTY_SLOT },
+    { ...EMPTY_SLOT },
+    { ...EMPTY_SLOT },
   ]);
   const [todoItems, setTodoItems] = useState<any[]>([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
@@ -158,44 +155,94 @@ export default function PowerList({ session, todayWin, onUpdate }: { session: an
   const pickerRef = useRef<HTMLDivElement>(null);
   const draftLoaded = useRef(false);
 
+  const fillSlotFromCheckpoint = (
+    payload: { title: string; checkpointId: string; projectId: string },
+    slotIndex?: number,
+  ) => {
+    const idx = slotIndex ?? newTaskForm.findIndex((s) => !s.task.trim());
+    if (idx < 0 || idx > 4) return;
+    setNewTaskForm((prev) => {
+      const next = [...prev];
+      next[idx] = {
+        task: payload.title,
+        todoId: null,
+        checkpointId: payload.checkpointId,
+        projectId: payload.projectId,
+        pinId: null,
+      };
+      return next;
+    });
+    haptics.light();
+  };
+
+  const applyProposal = () => {
+    if (direction.loading) return;
+    const ctx: DirectionContextData = {
+      weekStart: direction.weekStart ?? today,
+      weekGoals: direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
+      checkpoints: direction.checkpoints,
+      mustPins: direction.mustPins ?? [],
+      openMustPins: direction.openMustPins ?? [],
+      urgentTodos: direction.urgentTodos ?? [],
+      activeProjects: direction.activeProjects ?? [],
+      powerListStats: direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
+      sprintGoal: direction.sprintGoal ?? null,
+      sprintLabel: direction.sprintLabel ?? null,
+      focus: direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
+      weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
+      weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
+      skills: direction.skills ?? [],
+    };
+    if (ctx.checkpoints.all.length === 0 && ctx.openMustPins.length === 0 && !ctx.weekGoals.cialo && !ctx.weekGoals.duch && !ctx.weekGoals.konto) {
+      notify('Brak danych do propozycji — uzupełnij tydzień lub checkpointy.', 'error');
+      return;
+    }
+    const proposal = buildDailyPlanProposal(ctx);
+    setNewTaskForm(
+      proposal.map((p) => ({
+        task: p.task,
+        todoId: p.todoId,
+        checkpointId: p.checkpointId,
+        projectId: p.projectId,
+        pinId: p.pinId,
+      })),
+    );
+    haptics.success();
+    notify('Wypełniono propozycją — popraw i zacznij dzień.', 'success');
+  };
+
+  const confirmCheckpointDone = async () => {
+    if (!checkpointPrompt) return;
+    setMarkingCheckpoint(true);
+    try {
+      await markCheckpointDone(checkpointPrompt.checkpointId);
+      notify('Checkpoint zamknięty', 'success');
+      setCheckpointPrompt(null);
+      void direction.reload();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } finally {
+      setMarkingCheckpoint(false);
+    }
+  };
+
+  const occupiedSlots = newTaskForm.map((s) => !!s.task.trim());
+
   // AI assistant states
   const [aiQuestions, setAiQuestions] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Fetch weekly goals from current week's review
-  useEffect(() => {
-    const weekStart = (() => {
-      const d = new Date(today + 'T12:00:00');
-      const day = d.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      d.setDate(d.getDate() + diff);
-      return d.toISOString().split('T')[0];
-    })();
-    supabase
-      .from('weekly_reviews')
-      .select('week_goal_cialo, week_goal_duch, week_goal_konto, week_intention')
-      .eq('user_id', userId)
-      .eq('week_start', weekStart)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data && ((data as any).week_goal_cialo || (data as any).week_goal_duch || (data as any).week_goal_konto)) {
-          setWeekGoals({
-            cialo: (data as any).week_goal_cialo ?? null,
-            duch: (data as any).week_goal_duch ?? null,
-            konto: (data as any).week_goal_konto ?? null,
-            intention: (data as any).week_intention ?? null,
-          });
-        }
-      }, () => {});
-  }, [userId, today, todayWin]);
+  // Fetch weekly goals — from useDirectionContext (weekGoals)
 
   async function generateQuestions() {
     setAiLoading(true);
     try {
       const stateVector = await gatherUserContext(session);
-      const query = `Zanalizuj mój kontekst życiowy, kalendarz i zadania. Zadaj mi 3-4 krótkie, bezpośrednie i bardzo trafne pytania, które pomogą mi samodzielnie zdefiniować 5 zwycięstw na dziś (Ciało, Duch, Konto + 2 ogólne).
-Pytania muszą celować w moje najważniejsze wyzwania i to, co dzisiaj próbuję odwlekać lub czego unikać (zwłaszcza w obszarze Konto/sprzedaż/outreach).
-Nie sugeruj mi gotowych zadań ani planów do wdrożenia. Zadaj mi tylko pytania, które zmuszą mnie do myślenia i samodzielnego wpisania zadań.
+      const query = `Zanalizuj mój kontekst życiowy, cele z projektów (goal_chain), kalendarz i otwarte zadania. 
+Zadaj mi 3-4 krótkie, bezpośrednie i bardzo trafne pytania po polsku, które pomogą mi spójnie zdefiniować dzisiejsze 5 zwycięstw (Ciało, Duch, Konto + 2 ogólne).
+Kontekst celów tygodniowych i ich KPI (widoczne w goal_chain) jest kluczowy. Jeśli widać zaległości w tym tygodniu (np. 0/20 setów sprzedażowych, 0/3 treningi siłowe), Twoje pytania muszą bezpośrednio punktować te liczby i pytać, jak dzisiejsze zwycięstwa przełożą się na ich postęp.
+Wskaż bezlitośnie wszelkie próby ucieczki (np. robienie bezpiecznych "ćwiczeń na sucho" zamiast realnego outreachu/telefonów, lub załatwianie drobnych spraw zamiast poznawania nowych ludzi).
+Nie sugeruj mi gotowych zadań. Zadaj mi tylko pytania, które zmuszą mnie do myślenia i zdefiniowania konkretnych, mierzalnych zwycięstw.
 Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", bez żadnego wstępu, powitań czy komentarzy.`;
 
       const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
@@ -267,12 +314,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
   }, [userId, todayWin]);
 
   useEffect(() => {
-    getPlanForDate(userId, today)
-      .then((plan) => { if (plan?.energy_level) setEnergyLevel(plan.energy_level); })
-      .catch(() => {});
-  }, [userId, today]);
-
-  useEffect(() => {
     if (todayWin || draftLoaded.current) return;
     try {
       const raw = localStorage.getItem(powerListDraftKey(userId, today));
@@ -283,9 +324,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       }
       if (typeof draft.yesterdayNote === 'string') {
         setYesterdayNote(draft.yesterdayNote);
-      }
-      if (draft.energyLevel != null) {
-        setEnergyLevel(draft.energyLevel);
       }
     } catch {
       /* ignore corrupt draft */
@@ -304,13 +342,12 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       const draft: PowerListDraft = {
         tasks: newTaskForm,
         yesterdayNote,
-        energyLevel,
         savedAt: Date.now(),
       };
       try { localStorage.setItem(powerListDraftKey(userId, today), JSON.stringify(draft)); } catch { /* ignore */ }
     }, 800);
     return () => window.clearTimeout(t);
-  }, [userId, today, todayWin, newTaskForm, yesterdayNote, energyLevel]);
+  }, [userId, today, todayWin, newTaskForm, yesterdayNote]);
 
   useEffect(() => {
     if (todayWin) return;
@@ -340,46 +377,17 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     return () => document.removeEventListener('mousedown', handler);
   }, [pickerSlot]);
 
-  const suggestedTodos = useMemo(() => {
-    if (todayWin) return [];
-    const usedIds = new Set(newTaskForm.map((s) => s.todoId).filter(Boolean));
-    return todoItems
-      .filter((item) => !usedIds.has(item.id))
-      .sort((a, b) => {
-        const aToday = a.due_date === today;
-        const bToday = b.due_date === today;
-        if (aToday !== bToday) return aToday ? -1 : 1;
-        return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
-      })
-      .slice(0, 4);
-  }, [todayWin, newTaskForm, todoItems, today]);
-
-  const updateSlot = (i: number, patch: Partial<{ task: string; todoId: string | null }>) => {
+  const updateSlot = (i: number, patch: Partial<TaskSlot>) => {
     setNewTaskForm((prev) => {
       const n = [...prev];
       n[i] = { ...n[i], ...patch };
+      if (patch.task !== undefined && !patch.task.trim()) {
+        n[i].checkpointId = null;
+        n[i].projectId = null;
+        n[i].pinId = null;
+      }
       return n;
     });
-  };
-
-  const applyFromTodo = (item: { id: string; title: string }) => {
-    const idx = newTaskForm.findIndex((s) => !s.task.trim() && !s.todoId);
-    if (idx === -1) {
-      notify('Wszystkie sloty zajęte', 'error');
-      return;
-    }
-    updateSlot(idx, { task: item.title, todoId: item.id });
-    haptics.light();
-  };
-
-  const saveEnergy = async (score: number) => {
-    setEnergyLevel(score);
-    haptics.light();
-    try {
-      await upsertPlanForDate(userId, today, { energy_level: score });
-    } catch (e) {
-      console.warn('[PowerList] energy save failed', e);
-    }
   };
 
   async function toggleTask(index: number) {
@@ -387,6 +395,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
     const todoIdField = `task_${index + 1}_todo_id`;
+    const checkpointIdField = `task_${index + 1}_checkpoint_id`;
     const newValue = !todayWin[field];
     const timestamp = newValue ? new Date().toISOString() : null;
 
@@ -418,14 +427,30 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       if (newValue) {
         const taskText = todayWin[`task_${index + 1}`];
         const category = todayWin[`category_${index + 1}`] ?? 'general';
+        const checkpointId = todayWin[checkpointIdField];
+        if (checkpointId) {
+          setCheckpointPrompt({
+            index,
+            checkpointId: checkpointId as string,
+            title: taskText as string,
+          });
+        }
         if (taskText) {
           void supabase.from('vanguard_stream').insert({
             user_id: userId,
             source: 'powerlist',
             content: `Powerlist ✓ [${category}]: ${taskText}`,
-            metadata: { category, index: index + 1, todo_id: todayWin[todoIdField] ?? null },
+            metadata: {
+              category,
+              index: index + 1,
+              todo_id: todayWin[todoIdField] ?? null,
+              checkpoint_id: checkpointId ?? null,
+              project_id: todayWin[`task_${index + 1}_project_id`] ?? null,
+            },
           });
         }
+      } else {
+        setCheckpointPrompt((p) => (p?.index === index ? null : p));
       }
     }
 
@@ -461,19 +486,26 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       const entry = {
         user_id: userId,
         date: today,
-        task_1: newTaskForm[0].task, category_1: 'cialo', task_1_todo_id: newTaskForm[0].todoId,
-        task_2: newTaskForm[1].task, category_2: 'duch',  task_2_todo_id: newTaskForm[1].todoId,
-        task_3: newTaskForm[2].task, category_3: 'konto', task_3_todo_id: newTaskForm[2].todoId,
-        task_4: newTaskForm[3].task, category_4: 'general', task_4_todo_id: newTaskForm[3].todoId,
-        task_5: newTaskForm[4].task, category_5: 'general', task_5_todo_id: newTaskForm[4].todoId,
+        task_1: newTaskForm[0].task, category_1: 'cialo',
+        task_1_todo_id: newTaskForm[0].todoId, task_1_checkpoint_id: newTaskForm[0].checkpointId,
+        task_1_project_id: newTaskForm[0].projectId, task_1_pin_id: newTaskForm[0].pinId,
+        task_2: newTaskForm[1].task, category_2: 'duch',
+        task_2_todo_id: newTaskForm[1].todoId, task_2_checkpoint_id: newTaskForm[1].checkpointId,
+        task_2_project_id: newTaskForm[1].projectId, task_2_pin_id: newTaskForm[1].pinId,
+        task_3: newTaskForm[2].task, category_3: 'konto',
+        task_3_todo_id: newTaskForm[2].todoId, task_3_checkpoint_id: newTaskForm[2].checkpointId,
+        task_3_project_id: newTaskForm[2].projectId, task_3_pin_id: newTaskForm[2].pinId,
+        task_4: newTaskForm[3].task, category_4: 'general',
+        task_4_todo_id: newTaskForm[3].todoId, task_4_checkpoint_id: newTaskForm[3].checkpointId,
+        task_4_project_id: newTaskForm[3].projectId, task_4_pin_id: newTaskForm[3].pinId,
+        task_5: newTaskForm[4].task, category_5: 'general',
+        task_5_todo_id: newTaskForm[4].todoId, task_5_checkpoint_id: newTaskForm[4].checkpointId,
+        task_5_project_id: newTaskForm[4].projectId, task_5_pin_id: newTaskForm[4].pinId,
         result: null,
       };
 
       const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
       if (error) throw error;
-      if (energyLevel != null) {
-        await upsertPlanForDate(userId, today, { energy_level: energyLevel });
-      }
       try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);
@@ -544,12 +576,34 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             </div>
           )}
 
-          <EnergyPicker value={energyLevel} onChange={saveEnergy} />
+          <LifeGoalsPanel
+            rows={lifeGoalRows}
+            compact
+            emptyHint={LIFE_GOALS_EMPTY_HINT}
+            fromProjects={lifeGoalRows.some((r) => r.source === 'project')}
+          />
+
+          <PlanningCheckpointsStrip
+            checkpoints={[...direction.checkpoints.overdue, ...direction.checkpoints.upcoming]}
+            loading={direction.loading}
+            onFillSlot={fillSlotFromCheckpoint}
+            occupiedSlots={occupiedSlots}
+          />
 
           <div>
-            <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
-              Zdefiniuj 5 zwycięstw
-            </h3>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
+                Zdefiniuj 5 zwycięstw
+              </h3>
+              <button
+                type="button"
+                onClick={applyProposal}
+                disabled={direction.loading}
+                className="flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[9px] font-black uppercase text-primary hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Wand2 size={11} /> Wypełnij propozycją
+              </button>
+            </div>
             <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary">
               Wpisz ręcznie lub wybierz z{' '}
               <span className="inline-flex items-center gap-1 font-bold text-primary">
@@ -608,23 +662,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             )}
           </div>
 
-          {suggestedTodos.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[9px] font-black uppercase tracking-wider text-text-muted shrink-0">Z todo</span>
-              {suggestedTodos.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => applyFromTodo(item)}
-                  className="max-w-[160px] truncate rounded-full border border-border-custom bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-text-secondary hover:border-primary/30 hover:text-primary"
-                  title={item.title}
-                >
-                  {item.title}
-                </button>
-              ))}
-            </div>
-          )}
-
           <div className="space-y-2.5" ref={pickerRef}>
             {newTaskForm.map((slot, i) => {
               const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
@@ -674,7 +711,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                   {pickerSlot === i && (
                     <TodoPicker
                       items={todoItems.filter(item => !newTaskForm.some((slot, idx) => idx !== i && slot.todoId === item.id))}
-                      onSelect={(item) => updateSlot(i, { task: item.title, todoId: item.id })}
+                      onSelect={(item) => updateSlot(i, { task: item.title, todoId: item.id, checkpointId: null, pinId: null })}
                       onClose={() => setPickerSlot(-1)}
                     />
                   )}
@@ -693,7 +730,30 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         </div>
       ) : (
         <div className="space-y-2.5">
-          <EnergyPicker value={energyLevel} onChange={saveEnergy} compact />
+          {checkpointPrompt && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3.5 py-2.5 animate-fadeIn">
+              <p className="text-[11px] font-semibold text-text-primary leading-snug min-w-0">
+                Checkpoint: <span className="font-bold">{checkpointPrompt.title}</span> — oznaczyć jako done?
+              </p>
+              <div className="flex shrink-0 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void confirmCheckpointDone()}
+                  disabled={markingCheckpoint}
+                  className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[9px] font-black uppercase text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                >
+                  Tak
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCheckpointPrompt(null)}
+                  className="rounded-lg border border-border-custom px-2.5 py-1 text-[9px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer"
+                >
+                  Nie
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Cele tygodnia w widoku aktywnego dnia */}
           {weekGoals && (

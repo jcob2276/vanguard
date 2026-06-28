@@ -119,7 +119,7 @@ export default function GrowthOverview({
         )}
         {balance.total > 0 && (
           <span>
-            Rep vs teoria{' '}
+            Praktyka vs teoria{' '}
             <span className="font-bold text-text-secondary">{balance.practiceShare}%</span>
           </span>
         )}

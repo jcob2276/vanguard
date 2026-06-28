@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Check, ListTodo, Plus, X } from 'lucide-react';
-import type { GrowthLinkRow, GrowthTodoRow } from '../../hooks/useGrowthData';
+import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from '../../hooks/useGrowthData';
 import type { GrowthPinSlot, GrowthResourceType, LearningSkill } from '../../lib/growth';
 import {
   MAX_ACTIVE,
@@ -12,7 +12,9 @@ import {
 export default function PinPickerModal({
   slot,
   skills,
+  projects,
   focusSkillId,
+  defaultProjectId,
   unreadLinks,
   openTodos,
   pinnedLinkIds,
@@ -24,18 +26,21 @@ export default function PinPickerModal({
 }: {
   slot: GrowthPinSlot;
   skills: LearningSkill[];
+  projects: GrowthProjectSummary[];
   focusSkillId: string | null;
+  defaultProjectId?: string | null;
   unreadLinks: GrowthLinkRow[];
   openTodos: GrowthTodoRow[];
   pinnedLinkIds: Set<string>;
   pinnedTodoIds: Set<string>;
   onClose: () => void;
-  onPickLink: (linkId: string, skillId: string | null) => void;
-  onPickTodo: (todoId: string, skillId: string | null) => void;
-  onPickManual: (title: string, resourceType: GrowthResourceType, skillId: string | null) => void;
+  onPickLink: (linkId: string, skillId: string | null, projectId: string | null) => void;
+  onPickTodo: (todoId: string, skillId: string | null, projectId: string | null) => void;
+  onPickManual: (title: string, resourceType: GrowthResourceType, skillId: string | null, projectId: string | null) => void;
 }) {
   const [tab, setTab] = useState<'pocket' | 'todo' | 'manual'>('pocket');
   const [skillId, setSkillId] = useState(focusSkillId ?? skills[0]?.id ?? '');
+  const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '');
   const [manualTitle, setManualTitle] = useState('');
   const [manualType, setManualType] = useState<GrowthResourceType>('book');
 
@@ -59,17 +64,32 @@ export default function PinPickerModal({
           </button>
         </div>
 
-        <div className="px-4 pt-3">
-          <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Skill</label>
-          <select
-            value={skillId}
-            onChange={(e) => setSkillId(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px]"
-          >
-            {skills.map((s) => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
+        <div className="px-4 pt-3 grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Skill</label>
+            <select
+              value={skillId}
+              onChange={(e) => setSkillId(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px]"
+            >
+              {skills.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Projekt</label>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px]"
+            >
+              <option value="">— bez projektu —</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex gap-1 px-4 pt-3">
@@ -100,7 +120,7 @@ export default function PinPickerModal({
                 <button
                   key={link.id}
                   type="button"
-                  onClick={() => onPickLink(link.id, skillId || null)}
+                  onClick={() => onPickLink(link.id, skillId || null, projectId || null)}
                   className="w-full text-left rounded-xl border border-border-custom p-3 hover:border-primary/30 cursor-pointer"
                 >
                   <p className="text-[12px] font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
@@ -117,7 +137,7 @@ export default function PinPickerModal({
                 <button
                   key={todo.id}
                   type="button"
-                  onClick={() => onPickTodo(todo.id, skillId || null)}
+                  onClick={() => onPickTodo(todo.id, skillId || null, projectId || null)}
                   className="w-full text-left rounded-xl border border-border-custom p-3 hover:border-primary/30 cursor-pointer"
                 >
                   <p className="text-[12px] font-bold text-text-primary">{todo.title}</p>
@@ -151,7 +171,7 @@ export default function PinPickerModal({
                 type="button"
                 disabled={!manualTitle.trim()}
                 onClick={() => {
-                  onPickManual(manualTitle.trim(), manualType, skillId || null);
+                  onPickManual(manualTitle.trim(), manualType, skillId || null, projectId || null);
                   onClose();
                 }}
                 className="w-full rounded-xl bg-primary py-2.5 text-[11px] font-black uppercase text-white disabled:opacity-40 cursor-pointer"
