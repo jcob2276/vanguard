@@ -114,10 +114,6 @@ export function computeScoreDeltas(
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 }
 
-export function formatSnapshotDate(dateStr: string): string {
-  return format(parseISO(`${dateStr.slice(0, 10)}T12:00:00`), 'd MMM yyyy', { locale: pl });
-}
-
 export function getWeekStartWarsaw(from?: string | Date): string {
   const base =
     typeof from === 'string'
@@ -177,8 +173,4 @@ export function scoresFromSnapshot(
     out[s.key] = snapshot?.scores?.[s.key] ?? 0;
   }
   return out;
-}
-
-export function countPinsBySlot(pins: LearningWeekPin[], slot: GrowthPinSlot, done?: boolean) {
-  return pins.filter((p) => p.slot === slot && (done === undefined || p.done === done)).length;
 }

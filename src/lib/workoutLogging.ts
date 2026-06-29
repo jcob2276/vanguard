@@ -93,13 +93,9 @@ const INSIGHT_KEY = (userId: string, date: string) => `vanguard_training_insight
 
 const loadTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
-function draftKey(userId: string) {
-  return DRAFT_KEY(userId)
-}
-
 function readWorkoutDraftRaw(userId: string): WorkoutDraft | null {
   try {
-    const raw = localStorage.getItem(draftKey(userId))
+    const raw = localStorage.getItem(DRAFT_KEY(userId))
     if (!raw) return null
     return JSON.parse(raw) as WorkoutDraft
   } catch {
@@ -204,7 +200,7 @@ export function endWorkoutSession(userId: string): void {
 
 export function saveWorkoutDraft(userId: string, draft: WorkoutDraft): void {
   try {
-    localStorage.setItem(draftKey(userId), JSON.stringify({ ...draft, savedAt: Date.now() }))
+    localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({ ...draft, savedAt: Date.now() }))
   } catch {
     /* quota */
   }
@@ -212,7 +208,7 @@ export function saveWorkoutDraft(userId: string, draft: WorkoutDraft): void {
 
 export function clearWorkoutDraft(userId: string): void {
   try {
-    localStorage.removeItem(draftKey(userId))
+    localStorage.removeItem(DRAFT_KEY(userId))
   } catch {
     /* ignore */
   }
@@ -368,45 +364,6 @@ export function computeVolumeKg(exercises: WorkoutExercise[]): number {
     if ((ex.tags ?? []).includes('wellness')) return sum
     return sum + (ex.sets ?? []).reduce((s, set) => s + (parseFloat(set.kg) || 0) * (parseInt(set.reps, 10) || 0), 0)
   }, 0)
-}
-
-export function needsWorkoutReview(parsed: ParsedWorkout): boolean {
-  return parsed.exercises.some((e) => (e.confidence ?? 'medium') === 'low')
-}
-
-export function parsedToLoggerState(parsed: ParsedWorkout): WorkoutLoggerInitial {
-  const exercises: WorkoutExercise[] = parsed.exercises.map((ex) => {
-    const sets = ex.sets.flatMap((s) => {
-      const count = Math.max(1, (s as any).count ?? 1)
-      return Array.from({ length: count }, () => ({
-        ...newSet(),
-        kg: String(s.kg),
-        reps: String(s.reps),
-        rir: s.rir != null ? String(s.rir) : '',
-      }))
-    })
-    return {
-      ...newExercise(),
-      name: ex.name,
-      tags: ex.tags ?? [],
-      sets: sets.length ? sets : [newSet()],
-    }
-  })
-
-  const activities = (parsed.activities ?? []).map((a) => ({
-    ...newActivity(),
-    name: a.name,
-    min: String(a.minutes),
-    note: a.note ?? '',
-  }))
-
-  return {
-    workoutName: parsed.workout_name?.trim() ?? '',
-    exercises: exercises.length ? exercises : [newExercise()],
-    activities,
-    notes: '',
-    sessionRpe: null,
-  }
 }
 
 export async function parseWorkoutNL(text: string, userId: string, accessToken: string): Promise<ParsedWorkout> {

@@ -27,40 +27,6 @@ export const DAVE_PROTOCOL_STEPS = [
   { key: 'space', label: 'Spacing', hint: 'Ten sam rep jutro, nie za tydzień' },
 ] as const;
 
-/** Justin Sung — path to mastery (co mierzyć na danym poziomie). */
-export const MASTERY_PATH_STAGES = [
-  {
-    level: 1,
-    name: 'Accuracy',
-    metric: 'Self-awareness',
-    hint: 'Pierwszy raz poprawnie. Błędy = dane, nie porażka.',
-  },
-  {
-    level: 2,
-    name: 'Consistency',
-    metric: 'Success rate (N prób)',
-    hint: 'Mierz % udanych repów w serii 10+, nie pojedynczą próbę.',
-  },
-  {
-    level: 3,
-    name: 'Effort ↓',
-    metric: 'Mniej wysiłku przy tej samej jakości',
-    hint: 'Skill staje się nawykiem — nie gonić jeszcze speedu.',
-  },
-  {
-    level: 4,
-    name: 'Speed',
-    metric: 'Tempo rośnie samo',
-    hint: 'Nie forsuj szybkości — spada consistency.',
-  },
-  {
-    level: 5,
-    name: 'Fluency',
-    metric: 'Accuracy + consistency + speed',
-    hint: 'Mastery — interleaving lateral/vertical non-stop.',
-  },
-] as const;
-
 /** Deep end practice (Improvement Pill). */
 export const DEEP_END_SPLIT = {
   warm: 10,
@@ -79,14 +45,6 @@ export type TheoryPracticeBalance = {
   meetsPractitionerRule: boolean;
   total: number;
 };
-
-export function getMasteryStageAdvice(currentScore: number, targetLevel: number) {
-  const stageLevel = Math.min(Math.max(currentScore + 1, 1), 5);
-  const targetStage = Math.min(Math.max(targetLevel, 1), 5);
-  const stage =
-    MASTERY_PATH_STAGES.find((s) => s.level === stageLevel) ?? MASTERY_PATH_STAGES[0];
-  return { stage, targetStage, stageLevel };
-}
 
 export function pinResourceKind(
   pin: LearningWeekPin,
@@ -167,8 +125,3 @@ export function suggestWeakestSubskillId(
   return weakest.id;
 }
 
-export function formatSessionTime(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}

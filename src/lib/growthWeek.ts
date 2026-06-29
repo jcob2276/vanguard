@@ -1,4 +1,3 @@
-import { addDays, format, parseISO } from 'date-fns';
 import type { LearningSkill, LearningWeekFocus, LearningWeekPin } from './growth';
 import { shiftWeekStart } from './growth';
 
@@ -99,10 +98,4 @@ export function summarizePins(pins: Array<{ slot: string; done: boolean }>) {
     activeDone: pins.filter((p) => p.slot === 'active' && p.done).length,
     activeTotal: pins.filter((p) => p.slot === 'active').length,
   };
-}
-
-export function formatShortWeek(weekStart: string): string {
-  const start = parseISO(`${weekStart.slice(0, 10)}T12:00:00`);
-  const end = addDays(start, 6);
-  return `${format(start, 'd MMM')} – ${format(end, 'd MMM')}`;
 }

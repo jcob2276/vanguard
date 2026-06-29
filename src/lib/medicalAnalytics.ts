@@ -195,13 +195,6 @@ export function groupRowsByDate(rows: MedicalLabRow[]): Map<string, MedicalLabRo
   return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])));
 }
 
-export function flagTone(flag: string | null): 'neutral' | 'warn' | 'alert' {
-  if (!flag) return 'neutral';
-  const f = flag.toLowerCase();
-  if (f.includes('high') || f.includes('low') || f.includes('above') || f.includes('below')) return 'warn';
-  return 'neutral';
-}
-
 export const PRIORITY_CHART_MARKERS = [
   'testosterone_total',
   'ferritin',
