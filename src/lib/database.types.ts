@@ -573,6 +573,7 @@ export type Database = {
           meal_group_id: string | null
           meal_type: string | null
           name: string
+          parse_meta: Json | null
           protein: number | null
           quality_reason: string | null
           salt: number | null
@@ -596,6 +597,7 @@ export type Database = {
           meal_group_id?: string | null
           meal_type?: string | null
           name: string
+          parse_meta?: Json | null
           protein?: number | null
           quality_reason?: string | null
           salt?: number | null
@@ -619,6 +621,7 @@ export type Database = {
           meal_group_id?: string | null
           meal_type?: string | null
           name?: string
+          parse_meta?: Json | null
           protein?: number | null
           quality_reason?: string | null
           salt?: number | null
@@ -1568,6 +1571,69 @@ export type Database = {
           source?: string
           sugar?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      food_parse_pending: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          log_date: string
+          meal_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items: Json
+          log_date: string
+          meal_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          log_date?: string
+          meal_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      food_reference_pl: {
+        Row: {
+          calories: number
+          carbs: number
+          fat: number
+          fiber: number | null
+          id: string
+          name: string
+          protein: number
+          source_label: string
+          sugar: number | null
+        }
+        Insert: {
+          calories: number
+          carbs: number
+          fat: number
+          fiber?: number | null
+          id?: string
+          name: string
+          protein: number
+          source_label?: string
+          sugar?: number | null
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          fat?: number
+          fiber?: number | null
+          id?: string
+          name?: string
+          protein?: number
+          source_label?: string
+          sugar?: number | null
         }
         Relationships: []
       }
@@ -2568,33 +2634,6 @@ export type Database = {
         }
         Relationships: []
       }
-      oura_activity_met_timeline: {
-        Row: {
-          created_at: string
-          day: string
-          id: string
-          met: number | null
-          ts: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          day: string
-          id?: string
-          met?: number | null
-          ts: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          day?: string
-          id?: string
-          met?: number | null
-          ts?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       oura_daily_summary: {
         Row: {
           active_calories: number | null
@@ -2856,54 +2895,6 @@ export type Database = {
         }
         Relationships: []
       }
-      oura_sessions: {
-        Row: {
-          avg_heart_rate: number | null
-          avg_hrv: number | null
-          created_at: string
-          day: string | null
-          end_datetime: string | null
-          id: string
-          mood: string | null
-          motion_count: Json | null
-          oura_id: string
-          raw: Json | null
-          start_datetime: string | null
-          type: string | null
-          user_id: string
-        }
-        Insert: {
-          avg_heart_rate?: number | null
-          avg_hrv?: number | null
-          created_at?: string
-          day?: string | null
-          end_datetime?: string | null
-          id?: string
-          mood?: string | null
-          motion_count?: Json | null
-          oura_id: string
-          raw?: Json | null
-          start_datetime?: string | null
-          type?: string | null
-          user_id: string
-        }
-        Update: {
-          avg_heart_rate?: number | null
-          avg_hrv?: number | null
-          created_at?: string
-          day?: string | null
-          end_datetime?: string | null
-          id?: string
-          mood?: string | null
-          motion_count?: Json | null
-          oura_id?: string
-          raw?: Json | null
-          start_datetime?: string | null
-          type?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       oura_sleep_hr_timeline: {
         Row: {
           bpm: number | null
@@ -2993,54 +2984,6 @@ export type Database = {
           phase_code?: number | null
           sleep_id?: string
           ts?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      oura_workouts: {
-        Row: {
-          activity: string | null
-          calories: number | null
-          created_at: string
-          day: string | null
-          distance: number | null
-          end_datetime: string | null
-          id: string
-          intensity: string | null
-          label: string | null
-          oura_id: string
-          source: string | null
-          start_datetime: string | null
-          user_id: string
-        }
-        Insert: {
-          activity?: string | null
-          calories?: number | null
-          created_at?: string
-          day?: string | null
-          distance?: number | null
-          end_datetime?: string | null
-          id?: string
-          intensity?: string | null
-          label?: string | null
-          oura_id: string
-          source?: string | null
-          start_datetime?: string | null
-          user_id: string
-        }
-        Update: {
-          activity?: string | null
-          calories?: number | null
-          created_at?: string
-          day?: string | null
-          distance?: number | null
-          end_datetime?: string | null
-          id?: string
-          intensity?: string | null
-          label?: string | null
-          oura_id?: string
-          source?: string | null
-          start_datetime?: string | null
           user_id?: string
         }
         Relationships: []
@@ -3741,6 +3684,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_portions: {
+        Row: {
+          created_at: string | null
+          grams: number
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          grams: number
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          grams?: number
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           disciplined_streak: number | null
@@ -4308,39 +4275,6 @@ export type Database = {
           payload?: Json
           timestamp?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      vanguard_goal_alignment: {
-        Row: {
-          alignment_score: number
-          created_at: string | null
-          date: string
-          drift_score: number
-          id: string
-          primary_leak: string | null
-          user_id: string | null
-          wasted_time_min: number | null
-        }
-        Insert: {
-          alignment_score: number
-          created_at?: string | null
-          date: string
-          drift_score: number
-          id?: string
-          primary_leak?: string | null
-          user_id?: string | null
-          wasted_time_min?: number | null
-        }
-        Update: {
-          alignment_score?: number
-          created_at?: string | null
-          date?: string
-          drift_score?: number
-          id?: string
-          primary_leak?: string | null
-          user_id?: string | null
-          wasted_time_min?: number | null
         }
         Relationships: []
       }
@@ -5378,52 +5312,6 @@ export type Database = {
           },
         ]
       }
-      oura_correlations: {
-        Row: {
-          bialko_vs_sen: number | null
-          kalorie_vs_jutro_hrv: number | null
-          kroki_vs_sen: number | null
-          n_dni: number | null
-          sen_vs_jutro_readiness: number | null
-          sen_vs_jutro_stres: number | null
-          siedzenie_vs_sen: number | null
-          stres_vs_hrv_tej_nocy: number | null
-          temp_vs_hrv: number | null
-          trening_vs_jutro_hrv: number | null
-          trening_vs_jutro_min_tetno: number | null
-          trening_vs_jutro_readiness: number | null
-          trening_vs_jutro_stres: number | null
-          user_id: string | null
-          wybudzenia_vs_readiness: number | null
-        }
-        Relationships: []
-      }
-      oura_derived_daily: {
-        Row: {
-          awakenings: number | null
-          day: string | null
-          deep_blocks: number | null
-          hr_avg_day: number | null
-          hr_max_day: number | null
-          hr_min_day: number | null
-          light_min: number | null
-          met_avg: number | null
-          met_peak: number | null
-          moderate_min: number | null
-          sleep_hr_avg: number | null
-          sleep_hr_max: number | null
-          sleep_hr_min: number | null
-          sleep_hrv_avg: number | null
-          sleep_hrv_min: number | null
-          sleep_hrv_peak: number | null
-          user_id: string | null
-          vigorous_min: number | null
-          workout_calories: number | null
-          workout_count: number | null
-          workout_minutes: number | null
-        }
-        Relationships: []
-      }
       oura_hr_zones_daily: {
         Row: {
           day: string | null
@@ -5643,19 +5531,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      canonicalize_vanguard_entity: {
-        Args: { p_name: string; p_user_id: string }
-        Returns: string
-      }
-      clean_old_vanguard_logs: { Args: never; Returns: undefined }
-      compute_lag_correlations: {
-        Args: { p_user_id: string }
-        Returns: {
-          correlation_coefficient: number
-          lag_days: number
-          signal_name: string
-        }[]
-      }
       deprecate_superseded_facts: {
         Args: {
           p_new_confidence: number
@@ -5735,10 +5610,6 @@ export type Database = {
           table_name: string
         }[]
       }
-      normalize_relation: {
-        Args: { new_relation: string; old_relation: string }
-        Returns: undefined
-      }
       remove_food_entry: {
         Args: { p_entry_id: string; p_user_id: string }
         Returns: undefined
@@ -5755,10 +5626,6 @@ export type Database = {
           p_start: string
           p_user_id: string
         }
-        Returns: undefined
-      }
-      replace_daily_food_entries: {
-        Args: { p_date: string; p_entries: Json; p_user_id: string }
         Returns: undefined
       }
       save_food_correction: {
@@ -5821,10 +5688,6 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
-      trigger_daily_snapshots: {
-        Args: { secret_key: string }
-        Returns: undefined
-      }
       update_food_entry: {
         Args: { p_entry: Json; p_entry_id: string; p_user_id: string }
         Returns: undefined
@@ -5846,7 +5709,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      vanguard_graph_cleanup: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
