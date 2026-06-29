@@ -17,7 +17,7 @@ export const ANALYSIS_ACTION_CALLBACKS = [
   'analysis_action_tension', 'analysis_action_finish'
 ];
 
-export async function checkAntiAnalysis(text: string, deepseekApiKey: string): Promise<boolean> {
+async function checkAntiAnalysis(text: string, deepseekApiKey: string): Promise<boolean> {
   try {
     const { content: answerRaw } = await deepseekChat({
       apiKey: deepseekApiKey,
