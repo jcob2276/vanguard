@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -1140,10 +1140,52 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "daily_wins_task_1_checkpoint_id_fkey"
+            columns: ["task_1_checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "project_checkpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_1_pin_id_fkey"
+            columns: ["task_1_pin_id"]
+            isOneToOne: false
+            referencedRelation: "learning_week_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_1_project_id_fkey"
+            columns: ["task_1_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "daily_wins_task_1_todo_id_fkey"
             columns: ["task_1_todo_id"]
             isOneToOne: false
             referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_2_checkpoint_id_fkey"
+            columns: ["task_2_checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "project_checkpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_2_pin_id_fkey"
+            columns: ["task_2_pin_id"]
+            isOneToOne: false
+            referencedRelation: "learning_week_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_2_project_id_fkey"
+            columns: ["task_2_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -1154,6 +1196,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "daily_wins_task_3_checkpoint_id_fkey"
+            columns: ["task_3_checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "project_checkpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_3_pin_id_fkey"
+            columns: ["task_3_pin_id"]
+            isOneToOne: false
+            referencedRelation: "learning_week_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_3_project_id_fkey"
+            columns: ["task_3_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "daily_wins_task_3_todo_id_fkey"
             columns: ["task_3_todo_id"]
             isOneToOne: false
@@ -1161,10 +1224,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "daily_wins_task_4_checkpoint_id_fkey"
+            columns: ["task_4_checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "project_checkpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_4_pin_id_fkey"
+            columns: ["task_4_pin_id"]
+            isOneToOne: false
+            referencedRelation: "learning_week_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_4_project_id_fkey"
+            columns: ["task_4_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "daily_wins_task_4_todo_id_fkey"
             columns: ["task_4_todo_id"]
             isOneToOne: false
             referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_5_checkpoint_id_fkey"
+            columns: ["task_5_checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "project_checkpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_5_pin_id_fkey"
+            columns: ["task_5_pin_id"]
+            isOneToOne: false
+            referencedRelation: "learning_week_pins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_wins_task_5_project_id_fkey"
+            columns: ["task_5_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -3121,6 +3226,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_primary_skill_id_fkey"
+            columns: ["primary_skill_id"]
+            isOneToOne: false
+            referencedRelation: "learning_skills"
             referencedColumns: ["id"]
           },
         ]
