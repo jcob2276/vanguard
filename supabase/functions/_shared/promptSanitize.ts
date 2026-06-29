@@ -22,7 +22,7 @@ export function sanitizeUserQuery(raw: unknown): string {
 const STATE_VECTOR_KEYS = new Set([
   'state', 'stability_score', 'confidence', 'now', 'metrics', 'last_14_days',
   'goal_alignment', 'today_plan', 'open_todos', 'upcoming_checkpoints', 'readiness',
-  'goal_chain', 'strategic_gaps', 'weekly_protocol', 'active_signature',
+  'goal_spine', 'strategic_gaps', 'weekly_protocol', 'active_signature',
   'desktop_footprint', 'lag_correlations', 'identity_vault',
 ]);
 

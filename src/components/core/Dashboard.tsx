@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Calendar,
   FolderKanban,
@@ -21,6 +21,9 @@ import { useNudgeData } from '../../hooks/useNudgeData';
 import { useSyncActions } from '../../hooks/useSyncActions';
 import PowerList from '../lifestyle/PowerList';
 import OrientationFooter from './OrientationFooter';
+import { SpineGuideStrip } from './SpineGuideStrip';
+import { useSpineGuidance } from '../../hooks/useSpineGuidance';
+import type { SpineGuideTarget } from '../../lib/goalSpineGuide';
 import NutritionCard from './NutritionCard';
 import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
@@ -184,6 +187,8 @@ export default function Dashboard({ session }: { session: Session }) {
   }, []);
 
   const { reviewOverdueDays, urgentTodoCount, unreadLinkCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
+  const routerNavigate = useNavigate();
+  const [planDaySignal, setPlanDaySignal] = useState(0);
 
   const navigateTo = useCallback((newView: string) => {
     if (newView === view) return;
@@ -200,6 +205,19 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, [view, haptics]);
 
+  const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
+    try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
+    if (target === 'dashboard') {
+      routerNavigate('/dashboard');
+      return;
+    }
+    if (target === 'weekly-review') {
+      setView('weekly-review');
+      return;
+    }
+    navigateTo(target);
+  }, [view, routerNavigate, navigateTo]);
+
   const goBack = useCallback(() => {
     const prev = localStorage.getItem('vanguard_previous_view');
     if (prev) {
@@ -210,7 +228,18 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
+  const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
   const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
+
+  const handlePlanDay = useCallback(() => {
+    haptics.light();
+    setPlanDaySignal((n) => n + 1);
+  }, [haptics]);
+
+  const handleFocusPlan = useCallback(() => {
+    haptics.light();
+    document.getElementById('day-plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [haptics]);
 
   const showLock = !todayWin;
 
@@ -409,7 +438,14 @@ export default function Dashboard({ session }: { session: Session }) {
           {showLock ? (
             <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
               <OrientationFooter session={session} />
-              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+              <SpineGuideStrip
+                guidance={spineGuidance}
+                loading={spineGuidanceLoading}
+                onNavigate={handleSpineGuideNavigate}
+                onPlanDay={handlePlanDay}
+                onFocusPlan={handleFocusPlan}
+              />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
             </div>
           ) : (
             <>
@@ -419,6 +455,13 @@ export default function Dashboard({ session }: { session: Session }) {
               <div className={`p-5 pb-8 ${view === 'dzis' ? '' : 'hidden'}`}>
                 <div className="space-y-5">
               <OrientationFooter session={session} />
+              <SpineGuideStrip
+                guidance={spineGuidance}
+                loading={spineGuidanceLoading}
+                onNavigate={handleSpineGuideNavigate}
+                onPlanDay={handlePlanDay}
+                onFocusPlan={handleFocusPlan}
+              />
 
               <Suspense fallback={<ViewFallback />}>
                 <DailyStrainCard session={session} refreshSignal={nutritionKey + workoutKey} />
@@ -446,26 +489,11 @@ export default function Dashboard({ session }: { session: Session }) {
                 onOpenSauna={() => setShowSaunaLogger(true)}
               />
 
-              <CaptureQueueCard
-                session={session}
-                onNavigate={(dest) => {
-                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
-                  setView(dest);
-                }}
-                onQueueChange={refreshNudge}
-              />
-
-              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} />
+              <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
 
               <Suspense fallback={<ViewFallback />}>
                 <DailySnapshotCard session={session} />
               </Suspense>
-
-              {todayWin && (
-                <Suspense fallback={<ViewFallback />}>
-                  <CheckpointsCard session={session} onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} navigateTo(dest); }} />
-                </Suspense>
-              )}
             </div>
           </div>
           )}

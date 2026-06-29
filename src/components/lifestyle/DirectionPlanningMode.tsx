@@ -8,7 +8,7 @@ type Phase2Recap = {
   block5_material?: { cialo: string; duch: string; konto: string };
 };
 
-export type WeekFacts = {
+type WeekFacts = {
   doneCount: number;
   totalCount: number;
   doneTasks: string[];

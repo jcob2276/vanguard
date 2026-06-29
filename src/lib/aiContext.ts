@@ -1,6 +1,14 @@
 import { supabase } from './supabase';
 import { VanguardCore, computeSignals } from './vanguardCore';
 import { getTodayWarsaw, getDaysAgoWarsaw } from './date';
+import {
+  currentWeekStart,
+  fetchGoalSpine,
+  fetchWeeklyReviewBundle,
+  goalSpineAiSnapshot,
+  previousWeekStart,
+  strategicGapsFromSpine,
+} from './goalSpine';
 
 type FootprintPayload = {
   window?: {
@@ -18,14 +26,6 @@ type FootprintPayload = {
 const contextCache = new Map<string, { data: unknown; ts: number }>();
 const CACHE_TTL_MS = 60_000;
 
-function warsawWeekStart(dateStr: string): string {
-  const d = new Date(`${dateStr}T12:00:00Z`);
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setUTCDate(d.getUTCDate() + diff);
-  return d.toISOString().split('T')[0];
-}
-
 export async function gatherUserContext(session: any) {
   if (!session?.user?.id) return "Brak sesji użytkownika.";
 
@@ -39,17 +39,16 @@ export async function gatherUserContext(session: any) {
   const core = new VanguardCore(userId, supabase);
 
   try {
-    const currentWeekStart = warsawWeekStart(today);
-    const lastWeekStart = warsawWeekStart(getDaysAgoWarsaw(7));
+    const weekStart = currentWeekStart();
+    const lastWeekStart = previousWeekStart(weekStart);
     const fourteenDaysAgo = getDaysAgoWarsaw(13);
     
     const settled = await Promise.allSettled([
       supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).order('date', { ascending: true }),
-      supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
-      supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', lastWeekStart).maybeSingle(),
-      supabase.from('weekly_reviews').select('*').eq('user_id', userId).order('week_start', { ascending: false }).limit(1).maybeSingle(),
+      fetchWeeklyReviewBundle(userId, weekStart, lastWeekStart),
+      fetchGoalSpine(userId, weekStart),
       supabase.from('vanguard_footprint').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(20),
       supabase.from('daily_nutrition').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
@@ -63,21 +62,25 @@ export async function gatherUserContext(session: any) {
         .eq('user_id', userId)
         .gte('date', fourteenDaysAgo)
         .order('date', { ascending: false }),
-      // Goal chain queries
-      supabase.from('goals').select('id, title, pillar, dream_id, target_date, status').eq('user_id', userId).eq('status', 'active'),
-      supabase.from('projects').select('id, name, status, goal_id, deadline').eq('user_id', userId).not('goal_id', 'is', null),
-      supabase.from('goal_kpis').select('id, name, pillar, goal_id, target, higher_is_better').eq('user_id', userId).not('goal_id', 'is', null),
-      supabase.from('kpi_entries').select('kpi_id, value').eq('user_id', userId).eq('week_start', currentWeekStart),
       supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId).eq('is_done', false),
+      supabase.from('projects').select('dream_id').eq('user_id', userId).eq('status', 'active').not('dream_id', 'is', null),
       // Daily context
       supabase.from('daily_reconciliations').select('planning_summary, midday_status, midday_blocker, day_score').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('todo_items').select('title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('priority', { ascending: false }).limit(30),
       supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', getDaysAgoWarsaw(-14)).order('due_date', { ascending: true }).limit(5),
       supabase.from('daily_strain').select('date, strain_score, recovery_score, readiness_level, components').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const [latestOuraRes, powerListRes, historyRes, currentReviewRes, lastWeekReviewRes, lastReviewRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, goalsRes, goalProjectsRes, goalKpisRes, kpiEntriesRes, dreamsRes, todayRecRes, todosRes, checkpointsRes, dailyStrainRes] = settled.map(r =>
+    const [latestOuraRes, powerListRes, historyRes, reviewBundleRes, goalSpineRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, dreamsRes, activeDreamProjectsRes, todayRecRes, todosRes, checkpointsRes, dailyStrainRes] = settled.map(r =>
       r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
     ) as any[];
+
+    const reviewBundle = reviewBundleRes?.current !== undefined
+      ? reviewBundleRes
+      : { current: null, previous: null, latest: null };
+    const currentReviewRes = { data: reviewBundle.current };
+    const lastWeekReviewRes = { data: reviewBundle.previous };
+    const lastReviewRes = { data: reviewBundle.latest };
+    const goalSpine = goalSpineRes?.week !== undefined ? goalSpineRes : null;
 
     const currentMetrics = computeSignals(
       latestOuraRes.data, 
@@ -95,54 +98,15 @@ export async function gatherUserContext(session: any) {
     };
     const oura14d = oura14dRes.data || [];
     const nutrition14d = nutrition14dRes.data || [];
-
-    // ── Goal chain ──────────────────────────────────────────────────────────
-    const goalsData: any[]        = goalsRes.data || [];
-    const goalProjectsData: any[] = goalProjectsRes.data || [];
-    const goalKpisData: any[]     = goalKpisRes.data || [];
-    const kpiEntriesData: any[]   = kpiEntriesRes.data || [];
-    const dreamsData: any[]       = dreamsRes.data || [];
-
-    const dreamById: Record<string, any> = Object.fromEntries(dreamsData.map(d => [d.id, d]));
-    const kpiCurrentByKpiId: Record<string, number | null> = Object.fromEntries(
-      kpiEntriesData.map(e => [e.kpi_id, e.value])
+    const dreamsData: any[] = dreamsRes.data || [];
+    const activeDreamIds = new Set(
+      (activeDreamProjectsRes.data ?? [])
+        .map((p: { dream_id?: string | null }) => p.dream_id)
+        .filter(Boolean) as string[],
     );
-
-    const goal_chain = goalsData.map(goal => {
-      const dream = goal.dream_id ? dreamById[goal.dream_id] : null;
-      const linkedProjects = goalProjectsData.filter(p => p.goal_id === goal.id);
-      const linkedKpis = goalKpisData.filter(k => k.goal_id === goal.id);
-      return {
-        dream: dream?.title ?? null,
-        pillar: goal.pillar ?? dream?.life_goal ?? null,
-        goal: goal.title,
-        target_date: goal.target_date ?? null,
-        projects: linkedProjects.map(p => ({
-          name: p.name,
-          status: p.status,
-          deadline: p.deadline ?? null,
-        })),
-        kpis: linkedKpis.map(k => ({
-          name: k.name,
-          target: k.target ?? null,
-          current_week: kpiCurrentByKpiId[k.id] ?? null,
-          higher_is_better: k.higher_is_better,
-        })),
-        coverage: {
-          has_active_project: linkedProjects.some(p => p.status === 'active'),
-          has_kpi: linkedKpis.length > 0,
-        },
-      };
-    });
-
-    const strategic_gaps = {
-      goals_without_active_project: goal_chain.filter(g => !g.coverage.has_active_project).map(g => g.goal),
-      goals_without_kpi: goal_chain.filter(g => !g.coverage.has_kpi).map(g => g.goal),
-      dreams_without_goal: dreamsData
-        .filter(d => !goalsData.some(g => g.dream_id === d.id))
-        .map(d => d.title),
-    };
-    // ────────────────────────────────────────────────────────────────────────
+    const strategic_gaps = goalSpine
+      ? strategicGapsFromSpine(goalSpine, dreamsData, activeDreamIds)
+      : null;
 
     const stateVector = {
       state: vanguardState,
@@ -197,7 +161,7 @@ export async function gatherUserContext(session: any) {
           improvements: lastReviewRes.data.do_differently
         } : null
       },
-      goal_chain,
+      goal_spine: goalSpine ? goalSpineAiSnapshot(goalSpine) : null,
       strategic_gaps,
       today_plan: todayRecRes.data ? {
         mode: (todayRecRes.data.planning_summary as any)?.mode ?? null,

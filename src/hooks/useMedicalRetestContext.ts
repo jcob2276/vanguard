@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
+import { fetchSprintContext } from '../lib/goalSpine';
 import { supabase } from '../lib/supabase';
-import { getSprintInfo } from '../components/desktop/desktopUtils';
 import { groupRowsByDate, type MarkerSeries, type MedicalLabRow } from '../lib/medicalAnalytics';
 import { findLatestFullPanel } from '../lib/medicalRetestContext';
 import {
@@ -26,17 +26,10 @@ export function useMedicalUserContext(userId: string | undefined) {
     (async () => {
       setLoading(true);
       try {
-        const sprint = getSprintInfo();
-        const [profileRes, projectsRes, sprintRes, strainRes] = await Promise.all([
+        const [profileRes, projectsRes, sprintCtx, strainRes] = await Promise.all([
           supabase.from('nutrition_profile').select('birth_date, sex').eq('user_id', userId).maybeSingle(),
           supabase.from('projects').select('name').eq('user_id', userId).eq('status', 'active').limit(5),
-          supabase
-            .from('sprint_goals')
-            .select('goal_text')
-            .eq('user_id', userId)
-            .eq('personal_year', sprint.personalYear)
-            .eq('sprint_number', sprint.sprintNumber)
-            .maybeSingle(),
+          fetchSprintContext(userId),
           supabase
             .from('daily_strain')
             .select('strain_score, recovery_score')
@@ -57,7 +50,7 @@ export function useMedicalUserContext(userId: string | undefined) {
           age: computeAgeFromBirthDate(profileRes.data?.birth_date),
           sex: profileRes.data?.sex ?? null,
           activeProjectNames: (projectsRes.data ?? []).map((p) => p.name),
-          sprintGoal: sprintRes.data?.goal_text ?? null,
+          sprintGoal: sprintCtx.goalText,
           trainingHint,
         });
       } finally {

@@ -3276,6 +3276,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sprint_reviews: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          personal_year: number
+          reflection: string | null
+          sprint_number: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          personal_year: number
+          reflection?: string | null
+          sprint_number: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          personal_year?: number
+          reflection?: string | null
+          sprint_number?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       strava_activities: {
         Row: {
           average_heartrate: number | null

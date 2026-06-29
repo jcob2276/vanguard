@@ -18,6 +18,13 @@ import {
 import { pl } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import type { Tables, TablesUpdate } from '../../lib/database.types';
+import {
+  currentWeekStart as getCurrentWeekStart,
+  completeWeeklyReview,
+  fetchWeeklyReviewFull,
+  previousWeekStart,
+  saveWeeklyReviewReflection,
+} from '../../lib/goalSpine';
 import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -71,7 +78,7 @@ export default function Direction({
   const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
   const { displayRows: lifeGoalRows } = useLifeGoals(userId);
 
-  const currentWeekStart = format(startOfWeek(new Date(todayWarsaw() + 'T12:00:00'), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const currentWeekStart = getCurrentWeekStart();
 
   // Persisted — multi-paragraph weekly review answers, filled in over a session;
   // a backgrounded-tab kill (Android reclaiming memory) must not erase them before submit.
@@ -134,16 +141,16 @@ export default function Direction({
 
     const calFrom = subDays(startOfWeek(now, { weekStartsOn: 1 }), 1).toISOString();
     const calTo = addDays(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 1).toISOString();
-    const prevWeekStart = format(subDays(startOfWeek(now, { weekStartsOn: 1 }), 7), 'yyyy-MM-dd');
+    const prevWeekStart = previousWeekStart(currentWeekStart);
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
     try {
       const [
         ,
         { data: historyData },
-        { data: reviewData },
+        reviewData,
         { data: calData },
-        { data: prevReviewData },
+        prevReviewData,
         { data: ouraData },
         { data: runsData },
         { data: nutritionData },
@@ -152,9 +159,9 @@ export default function Direction({
       ] = await Promise.all([
         supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
-        supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', currentWeekStart).maybeSingle(),
+        fetchWeeklyReviewFull(userId, currentWeekStart),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
-        supabase.from('weekly_reviews').select('*').eq('user_id', userId).eq('week_start', prevWeekStart).maybeSingle(),
+        fetchWeeklyReviewFull(userId, prevWeekStart),
         supabase.from('oura_daily_summary').select('total_sleep_hours, readiness_score').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
         supabase.from('strava_activities').select('distance').eq('user_id', userId).gte('start_date', warsawDayBoundsISO(currentWeekStart).fromISO).lte('start_date', warsawDayBoundsISO(weekEnd).toISO),
         supabase.from('daily_nutrition').select('calories').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
@@ -355,29 +362,17 @@ export default function Direction({
   async function saveReflection() {
     if (savingReflection) return;
     setSavingReflection(true);
-    const { data } = await supabase
-      .from('weekly_reviews')
-      .upsert(
-        {
-          user_id: session.user.id,
-          week_start: currentWeekStart,
-          proud_of: proudOf || null,
-          do_differently: doDifferently || null,
-          sabotage: sabotage || null,
-          obligation: obligation || null,
-          week_highlight: weekHighlight || null,
-          week_regret: weekRegret || null,
-          new_belief: newBelief || null,
-          pillar_scores: pillarScores,
-          // Surfaced next week as "Lekcja z poprzedniego tygodnia" in the radar
-          // view — "where did I take the easy way out" is the most direct
-          // forward-looking lesson of the three reflection prompts.
-          bottleneck: doDifferently || null,
-        } as any,
-        { onConflict: 'user_id,week_start' }
-      )
-      .select()
-      .maybeSingle();
+    const data = await saveWeeklyReviewReflection(session.user.id, currentWeekStart, {
+      proud_of: proudOf || null,
+      do_differently: doDifferently || null,
+      sabotage: sabotage || null,
+      obligation: obligation || null,
+      week_highlight: weekHighlight || null,
+      week_regret: weekRegret || null,
+      new_belief: newBelief || null,
+      pillar_scores: pillarScores,
+      bottleneck: doDifferently || null,
+    });
     if (data) setCurrentReview(data);
     setSavingReflection(false);
 
@@ -397,24 +392,14 @@ export default function Direction({
   async function completeReview() {
     if (completing) return;
     setCompleting(true);
-    const { data } = await supabase
-      .from('weekly_reviews')
-      .upsert(
-        {
-          user_id: session.user.id,
-          week_start: currentWeekStart,
-          deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
-          week_intention: weekIntention || null,
-          week_commitment: weekCommitment || null,
-          week_goal_cialo: weekGoalCialo || null,
-          week_goal_duch: weekGoalDuch || null,
-          week_goal_konto: weekGoalKonto || null,
-          review_completed_at: new Date().toISOString(),
-        } as any,
-        { onConflict: 'user_id,week_start' }
-      )
-      .select()
-      .maybeSingle();
+    const data = await completeWeeklyReview(session.user.id, currentWeekStart, {
+      deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
+      week_intention: weekIntention || null,
+      week_commitment: weekCommitment || null,
+      week_goal_cialo: weekGoalCialo || null,
+      week_goal_duch: weekGoalDuch || null,
+      week_goal_konto: weekGoalKonto || null,
+    });
     if (data) setCurrentReview(data);
     setCompleting(false);
   }

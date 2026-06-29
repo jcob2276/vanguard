@@ -21,6 +21,12 @@ import { useNudgeData } from '../../hooks/useNudgeData';
 import { createProject } from '../../lib/projects';
 import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { notify, confirmDialog } from '../../lib/notify';
+import {
+  fetchSprintReview,
+  saveSprintGoal as persistSprintGoal,
+  saveSprintReview,
+  type SprintReview,
+} from '../../lib/goalSpine';
 
 // Subcomponents and hooks
 import { useDesktopData } from './useDesktopData';
@@ -111,6 +117,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const [editDreamLifeGoal, setEditDreamLifeGoal] = useState<string | null>(null);
   const [newDreamLifeGoal, setNewDreamLifeGoal] = useState<string | null>(null);
   const [savingDream, setSavingDream] = useState(false);
+  const [sprintReview, setSprintReview] = useState<SprintReview | null>(null);
 
   const [visionItems, setVisionItems] = useState<any[]>([]);
   const [newVisionContent, setNewVisionContent] = useState('');
@@ -357,16 +364,27 @@ export default function DesktopDashboard({ session }: { session: any }) {
   };
 
   const saveSprintGoal = useCallback(async (text: string) => {
-    const { error } = await supabase.from('sprint_goals').upsert({
-      user_id: userId,
-      personal_year: sprint.personalYear,
-      sprint_number: sprint.sprintNumber,
-      goal_text: text,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,personal_year,sprint_number' });
-    if (error) { console.warn('[saveSprintGoal]', error.message); return; }
-    refresh();
-  }, [userId, sprint.personalYear, sprint.sprintNumber, refresh]);
+    try {
+      await persistSprintGoal(userId, text);
+      refresh();
+    } catch (e) {
+      console.warn('[saveSprintGoal]', e);
+    }
+  }, [userId, refresh]);
+
+  const saveSprintReviewHandler = useCallback(async (reflection: string, complete: boolean) => {
+    try {
+      await saveSprintReview(userId, reflection, { complete });
+      setSprintReview(await fetchSprintReview(userId));
+    } catch (e) {
+      console.warn('[saveSprintReview]', e);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void fetchSprintReview(userId).then(setSprintReview);
+  }, [userId, loading]);
 
   const sleepData = oura14.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Sen: r.total_sleep_hours ? +r.total_sleep_hours.toFixed(1) : null, HRV: r.hrv_avg || null }));
   const nutrData  = nutrition.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Kcal: r.calories || 0, Białko: r.protein || 0 }));
@@ -452,7 +470,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
           oura={oura14}
           sprint={sprint}
           sprintGoal={sprintGoal}
+          sprintReview={sprintReview}
           onSave={saveSprintGoal}
+          onSaveReview={saveSprintReviewHandler}
           metrics={currMetrics}
           prevMetrics={prevMetrics}
           projectMetrics={projectMetrics}

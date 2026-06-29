@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
+import { fetchSprintContext } from '../../lib/goalSpine';
+import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
 import { getSprintInfo, SPRINT_SEASON } from '../desktop/desktopUtils';
 
 const BORN = new Date('2002-07-06');
@@ -25,17 +26,18 @@ export default function OrientationFooter({ session }: { session: Session }) {
   const quote = FUEL[lived % FUEL.length];
   const sprint = getSprintInfo();
   const [sprintGoal, setSprintGoal] = useState<string | null>(null);
+  const loadRef = useRef(() => {
+    void fetchSprintContext(session.user.id).then((ctx) => setSprintGoal(ctx.goalText));
+  });
 
   useEffect(() => {
-    supabase
-      .from('sprint_goals')
-      .select('goal_text')
-      .eq('user_id', session.user.id)
-      .eq('personal_year', sprint.personalYear)
-      .eq('sprint_number', sprint.sprintNumber)
-      .maybeSingle()
-      .then(({ data }) => setSprintGoal(data?.goal_text ?? null));
+    loadRef.current = () => {
+      void fetchSprintContext(session.user.id).then((ctx) => setSprintGoal(ctx.goalText));
+    };
+    loadRef.current();
   }, [session.user.id, sprint.personalYear, sprint.sprintNumber]);
+
+  useGoalSpineInvalidation(() => loadRef.current());
 
   return (
     <footer className="animate-fadeIn mt-4 rounded-[24px] border border-primary/10 bg-primary/[0.02] dark:bg-primary/[0.04] overflow-hidden">

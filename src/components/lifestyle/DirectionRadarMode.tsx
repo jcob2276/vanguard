@@ -300,7 +300,7 @@ export default function DirectionRadarMode({
         </div>
       )}
 
-      {/* 6. Sentyment + Cele kierunkowe */}
+      {/* 6. Sentyment */}
       <div className="space-y-3">
         {currentReview?.week_sentiment && (
           <div className="rounded-[24px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
@@ -313,11 +313,6 @@ export default function DirectionRadarMode({
             }`}>
               {SENTIMENTS.find((s) => s.value === currentReview.week_sentiment)?.label}
             </span>
-          </div>
-        )}
-        {lifeGoalRows.length > 0 && (
-          <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
-            <LifeGoalsPanel rows={lifeGoalRows} fromProjects />
           </div>
         )}
       </div>

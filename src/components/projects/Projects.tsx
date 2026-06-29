@@ -23,6 +23,8 @@ import {
 } from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import { supabase } from '../../lib/supabase';
+import { fetchLongTermGoals } from '../../lib/goalSpine';
+import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
 import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
 import DataStateNotice from '../core/DataStateNotice';
 
@@ -92,18 +94,17 @@ export default function Projects({
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, dreamsRes, lgRes, kpiRes, skillsRes] = await Promise.all([
+      const [p, s, i, c, dreamsRes, longTerm, kpiRes, skillsRes] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
         listProjectCheckpoints(userId),
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
-        supabase.from('life_goals').select('*').eq('user_id', userId).maybeSingle(),
+        fetchLongTermGoals(userId),
         supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
         supabase.from('learning_skills').select('id, label').eq('user_id', userId).eq('active', true).is('parent_id', null).order('sort_order'),
       ]);
       if (dreamsRes.error) throw new Error(dreamsRes.error.message);
-      if (lgRes.error) throw new Error(lgRes.error.message);
       if (kpiRes.error) throw new Error(kpiRes.error.message);
       if (skillsRes.error) throw new Error(skillsRes.error.message);
       setProjects(p ?? []);
@@ -111,7 +112,7 @@ export default function Projects({
       setItems(i ?? []);
       setCheckpoints(c ?? []);
       setDreams(dreamsRes.data ?? []);
-      setLifeGoals(lgRes.data ?? null);
+      setLifeGoals(longTerm.declarations ?? null);
       setKpis(kpiRes.data ?? []);
       setParentSkills((skillsRes.data ?? []).map((sk) => ({ id: sk.id, label: sk.label })));
     } catch (err: any) { setError(err.message); }
@@ -120,6 +121,8 @@ export default function Projects({
   useEffect(() => {
     (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
   }, [fetchAll]);
+
+  useGoalSpineInvalidation(fetchAll);
 
   const run = async (fn: () => Promise<any>) => {
     setBusy(true);

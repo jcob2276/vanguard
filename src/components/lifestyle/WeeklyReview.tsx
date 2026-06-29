@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Check, ChevronLeft, Settings, Sparkles, Archive, ListTodo } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { fetchWeeklyKpiReview, invalidateGoalSpineCache, saveWeeklyKpiReview } from '../../lib/goalSpine';
 import { notify } from '../../lib/notify';
 import {
   PILLARS,
@@ -54,11 +55,11 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
   const loadAll = useCallback(async () => {
     try {
       const histWeeks = getPastWeekStarts(weekStart, 8);
-      const [{ data: k }, { data: thisEntries }, { data: prevEntries }, { data: rev }, { data: histEntries }] = await Promise.all([
+      const [{ data: k }, { data: thisEntries }, { data: prevEntries }, kpiRev, { data: histEntries }] = await Promise.all([
         db.from('goal_kpis').select('*').eq('user_id', uid).order('sort_order').order('created_at'),
         db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', weekStart),
         db.from('kpi_entries').select('kpi_id, value').eq('user_id', uid).eq('week_start', prevWeek),
-        db.from('weekly_kpi_reviews').select('what_worked, what_didnt_work, ai_brief').eq('user_id', uid).eq('week_start', weekStart).maybeSingle(),
+        fetchWeeklyKpiReview(uid, weekStart),
         db.from('kpi_entries').select('kpi_id, week_start, value').eq('user_id', uid).in('week_start', histWeeks),
       ]);
 
@@ -91,9 +92,9 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
       }
       setHistory(histValues);
 
-      if (rev) {
-        setReview({ what_worked: rev.what_worked ?? '', what_didnt_work: rev.what_didnt_work ?? '' });
-        if (rev.ai_brief) setBrief(rev.ai_brief);
+      if (kpiRev) {
+        setReview({ what_worked: kpiRev.what_worked ?? '', what_didnt_work: kpiRev.what_didnt_work ?? '' });
+        if (kpiRev.ai_brief) setBrief(kpiRev.ai_brief);
       }
     } catch (e) {
       console.error('loadAll failed', e);
@@ -219,12 +220,10 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
       if (upserts.length > 0) {
         await db.from('kpi_entries').upsert(upserts, { onConflict: 'kpi_id,week_start' });
       }
-      await db.from('weekly_kpi_reviews').upsert({
-        user_id: uid,
-        week_start: weekStart,
+      await saveWeeklyKpiReview(uid, weekStart, {
         what_worked: review.what_worked || null,
         what_didnt_work: review.what_didnt_work || null,
-      }, { onConflict: 'user_id,week_start' });
+      });
       setAutoSaved(new Set());
       setSaved(true);
     } finally {
@@ -244,7 +243,10 @@ export default function WeeklyReview({ session, onBack }: { session: Session; on
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Błąd generowania');
-      if (data.brief) setBrief(data.brief);
+      if (data.brief) {
+        setBrief(data.brief);
+        invalidateGoalSpineCache(uid);
+      }
     } catch (e: any) {
       setGenError(e.message);
     } finally {

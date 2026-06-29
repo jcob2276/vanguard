@@ -37,6 +37,11 @@ export type DirectionFocus = {
 export type DirectionContextData = {
   weekStart: string;
   weekGoals: WeekDirectionGoals;
+  /** Canonical week-goal resolution (goalSpine); optional for legacy test fixtures */
+  weekGoalsMeta?: {
+    source: 'week' | 'fallback' | 'empty';
+    fallbackWeekStart: string | null;
+  };
   checkpoints: {
     all: EnrichedCheckpoint[];
     overdue: EnrichedCheckpoint[];

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { StrainData, OuraData } from './CockpitBanner';
-import { SPRINT_SEASON } from './desktopUtils';
+import { isSprintClosingWeek } from '../../lib/goalSpine';
+import type { SprintReview } from '../../lib/goalSpine';
 import type { SprintPanelProps } from './SprintPanel';
+import { SPRINT_SEASON } from './desktopUtils';
 import SprintMetricsGrid from './SprintMetricsGrid';
 
 const LIMITER_PL: Record<string, string> = {
@@ -33,7 +35,9 @@ export interface DesktopHeroProps {
   oura: OuraData[];
   sprint: SprintPanelProps['sprint'];
   sprintGoal: SprintPanelProps['sprintGoal'];
+  sprintReview?: SprintReview | null;
   onSave: SprintPanelProps['onSave'];
+  onSaveReview?: (reflection: string, complete: boolean) => Promise<void>;
   metrics: SprintPanelProps['metrics'];
   prevMetrics: SprintPanelProps['prevMetrics'];
   projectMetrics: SprintPanelProps['projectMetrics'];
@@ -47,7 +51,9 @@ export default function DesktopHero({
   oura,
   sprint,
   sprintGoal,
+  sprintReview = null,
   onSave,
+  onSaveReview,
   metrics,
   prevMetrics,
   projectMetrics,
@@ -58,17 +64,31 @@ export default function DesktopHero({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(sprintGoal?.goal_text || '');
   const [saving, setSaving] = useState(false);
+  const [reviewDraft, setReviewDraft] = useState(sprintReview?.reflection || '');
+  const [reviewSaving, setReviewSaving] = useState(false);
   const latest = oura[oura.length - 1];
+  const closingWeek = isSprintClosingWeek(sprint);
 
   useEffect(() => {
     setDraft(sprintGoal?.goal_text || '');
   }, [sprintGoal?.goal_text]);
+
+  useEffect(() => {
+    setReviewDraft(sprintReview?.reflection || '');
+  }, [sprintReview?.reflection]);
 
   const handleSave = async () => {
     setSaving(true);
     await onSave(draft.trim());
     setSaving(false);
     setEditing(false);
+  };
+
+  const handleSaveReview = async (complete: boolean) => {
+    if (!onSaveReview) return;
+    setReviewSaving(true);
+    await onSaveReview(reviewDraft, complete);
+    setReviewSaving(false);
   };
 
   const status = strain?.daily_status || 'unknown';
@@ -199,6 +219,44 @@ export default function DesktopHero({
         <div className="h-1.5 mt-3 bg-border-custom rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${sprint.pct}%` }} />
         </div>
+
+        {closingWeek && onSaveReview && (
+          <div className="mt-4 pt-4 border-t border-primary/10 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[8px] font-black uppercase tracking-widest text-amber-500">
+                Zamknięcie sprintu
+              </p>
+              {sprintReview?.completed_at && (
+                <span className="text-[9px] font-bold text-emerald-500">zamknięty</span>
+              )}
+            </div>
+            <textarea
+              value={reviewDraft}
+              onChange={(e) => setReviewDraft(e.target.value)}
+              placeholder="Co wyszło w tym sprincie? Jedna refleksja na zamknięcie."
+              rows={2}
+              className="w-full bg-surface border border-border-custom rounded-[12px] p-3 text-[13px] text-text-primary outline-none resize-none focus:border-primary/40"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void handleSaveReview(false)}
+                disabled={reviewSaving}
+                className="rounded-[10px] border border-border-custom text-[9px] font-black uppercase px-3 py-2 text-text-muted cursor-pointer disabled:opacity-50"
+              >
+                Szkic
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSaveReview(true)}
+                disabled={reviewSaving || !reviewDraft.trim()}
+                className="rounded-[10px] bg-primary text-white text-[9px] font-black uppercase px-3 py-2 cursor-pointer disabled:opacity-50"
+              >
+                {reviewSaving ? '…' : 'Zamknij sprint'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <SprintMetricsGrid
           metrics={metrics}

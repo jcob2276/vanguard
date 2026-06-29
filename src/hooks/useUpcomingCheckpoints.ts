@@ -9,14 +9,14 @@ export function useUpcomingCheckpoints(userId: string | undefined, horizonDays =
   useEffect(() => {
     const all = ctx.checkpoints.all;
     setItems(horizonDays >= 14 ? all : all.filter((cp) => cp.daysLeft <= horizonDays || cp.isOverdue));
-  }, [ctx.checkpoints.all, horizonDays]);
+  }, [ctx.checkpoints, horizonDays]);
 
   const overdue = items.filter((cp) => cp.isOverdue);
   const upcoming = items.filter((cp) => !cp.isOverdue);
 
   const reload = useCallback(async () => {
     await ctx.reload();
-  }, [ctx]);
+  }, [ctx.reload]);
 
   return { items, overdue, upcoming, loading: ctx.loading, reload };
 }

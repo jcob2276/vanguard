@@ -576,13 +576,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             </div>
           )}
 
-          <LifeGoalsPanel
-            rows={lifeGoalRows}
-            compact
-            emptyHint={LIFE_GOALS_EMPTY_HINT}
-            fromProjects={lifeGoalRows.some((r) => r.source === 'project')}
-          />
-
           <PlanningCheckpointsStrip
             checkpoints={[...direction.checkpoints.overdue, ...direction.checkpoints.upcoming]}
             loading={direction.loading}
@@ -612,28 +605,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
               .
             </p>
           </div>
-
-          {/* Cele tygodnia jako kontekst */}
-          {weekGoals && (
-            <div className="rounded-xl border border-border-custom bg-surface p-3 space-y-2">
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cele tego tygodnia</p>
-              {weekGoals.intention && (
-                <p className="text-[10px] text-text-secondary italic">„{weekGoals.intention}"</p>
-              )}
-              <div className="space-y-1.5">
-                {[
-                  { key: 'cialo' as const, label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { key: 'duch'  as const, label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-                  { key: 'konto' as const, label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
-                ].filter(g => weekGoals[g.key]).map(g => (
-                  <div key={g.key} className="flex items-start gap-2">
-                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
-                    <span className="text-[11px] font-semibold text-text-primary leading-snug">{weekGoals[g.key]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* AI Helper Section */}
           <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3.5 space-y-3">
@@ -751,25 +722,6 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                 >
                   Nie
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* Cele tygodnia w widoku aktywnego dnia */}
-          {weekGoals && (
-            <div className="rounded-xl border border-border-custom bg-surface px-3 py-2.5 space-y-1.5">
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cele tego tygodnia</p>
-              <div className="space-y-1">
-                {[
-                  { key: 'cialo' as const, label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { key: 'duch'  as const, label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-                  { key: 'konto' as const, label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
-                ].filter(g => weekGoals[g.key]).map(g => (
-                  <div key={g.key} className="flex items-start gap-2">
-                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
-                    <span className="text-[11px] font-semibold text-text-primary leading-snug">{weekGoals[g.key]}</span>
-                  </div>
-                ))}
               </div>
             </div>
           )}

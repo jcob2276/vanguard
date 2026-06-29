@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
+import { invalidateGoalSpineCache } from './goalSpine';
 import { unwrap } from './supabaseUtils';
 
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
@@ -18,17 +19,19 @@ export async function listProjects(userId: string) {
 }
 
 export async function createProject(userId: string, fields: Omit<ProjectInsert, 'user_id'>) {
-  return unwrap(
+  const row = unwrap(
     await supabase
       .from('projects')
       .insert({ user_id: userId, ...fields })
       .select()
       .single(),
   );
+  invalidateGoalSpineCache(userId);
+  return row;
 }
 
 export async function updateProject(id: string, patch: ProjectUpdate) {
-  return unwrap(
+  const row = unwrap(
     await supabase
       .from('projects')
       .update(patch)
@@ -36,12 +39,15 @@ export async function updateProject(id: string, patch: ProjectUpdate) {
       .select()
       .single(),
   );
+  if (row.user_id) invalidateGoalSpineCache(row.user_id);
+  return row;
 }
 
 export async function deleteProject(id: string) {
-  return unwrap(
-    await supabase.from('projects').delete().eq('id', id),
-  );
+  const { data } = await supabase.from('projects').select('user_id').eq('id', id).maybeSingle();
+  const result = unwrap(await supabase.from('projects').delete().eq('id', id));
+  if (data?.user_id) invalidateGoalSpineCache(data.user_id);
+  return result;
 }
 
 export async function linkSectionToProject(sectionId: string, projectId: string | null) {

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   getWeekStartWarsaw,
-  isCurrentWeek,
   partitionSkillTree,
   type LearningSkill,
   type LearningSkillSnapshot,
@@ -10,7 +9,8 @@ import {
   type LearningWeekPin,
 } from '../lib/growth';
 import { insertDefaultSkillTree } from '../lib/growthSeed';
-import { getSprintInfo } from '../components/desktop/desktopUtils';
+import { fetchGoalSpine } from '../lib/goalSpine';
+import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 import { warsawDayBoundsISO } from '../lib/date';
 import {
   computePowerListWeekStats,
@@ -131,7 +131,6 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
     try {
       await ensureDefaultSkills();
 
-      const sprint = getSprintInfo();
       const { fromISO: weekFromISO } = warsawDayBoundsISO(weekStart);
 
       const weekEnd = getWeekEndExclusive(weekStart);
@@ -144,8 +143,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         unreadRes,
         readRes,
         todosRes,
-        reviewRes,
-        sprintRes,
+        spine,
         projectsRes,
         kpisRes,
         rozwojNotesRes,
@@ -201,19 +199,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .neq('status', 'done')
           .order('created_at', { ascending: false })
           .limit(40),
-        supabase
-          .from('weekly_reviews')
-          .select('week_intention, week_commitment, week_goal_cialo, week_goal_duch, week_goal_konto')
-          .eq('user_id', userId)
-          .eq('week_start', weekStart)
-          .maybeSingle(),
-        supabase
-          .from('sprint_goals')
-          .select('goal_text')
-          .eq('user_id', userId)
-          .eq('personal_year', sprint.personalYear)
-          .eq('sprint_number', sprint.sprintNumber)
-          .maybeSingle(),
+        fetchGoalSpine(userId, weekStart),
         supabase
           .from('projects')
           .select('id, name, goal, status, primary_skill_id')
@@ -317,35 +303,23 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
       const projectKpis = allKpis.filter((k) => k.project_id === activeProject?.id);
       const firstKpi = projectKpis[0];
 
-      let review = reviewRes.data;
-      if (isCurrentWeek(weekStart) && (!review || (!review.week_intention && !review.week_goal_cialo && !review.week_goal_duch && !review.week_goal_konto))) {
-        const { data: fallbackReview } = await supabase
-          .from('weekly_reviews')
-          .select('week_intention, week_commitment, week_goal_cialo, week_goal_duch, week_goal_konto')
-          .eq('user_id', userId)
-          .not('week_intention', 'is', null)
-          .order('week_start', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (fallbackReview) {
-          review = fallbackReview as any;
-        }
-      }
+      const weekResolved = spine.week;
+      const sprint = spine.sprint;
 
       const weekGoals: WeekDirectionGoals = {
-        intention: review?.week_intention ?? null,
-        commitment: review?.week_commitment ?? null,
-        cialo: review?.week_goal_cialo ?? null,
-        duch: review?.week_goal_duch ?? null,
-        konto: review?.week_goal_konto ?? null,
+        intention: weekResolved.intention,
+        commitment: weekResolved.commitment,
+        cialo: weekResolved.cialo,
+        duch: weekResolved.duch,
+        konto: weekResolved.konto,
       };
 
       setContext({
         weekIntention: weekGoals.intention || weekGoals.commitment || null,
         weekCommitment: weekGoals.commitment,
         weekGoals,
-        sprintGoal: sprintRes.data?.goal_text ?? null,
-        sprintLabel: `Sprint ${sprint.sprintNumber}`,
+        sprintGoal: sprint.goalText,
+        sprintLabel: sprint.label,
         activeProjectName: activeProject?.name ?? null,
         kpiName: firstKpi?.name || null,
         kpiValue: firstKpi?.current_value ?? null,
@@ -377,6 +351,8 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useGoalSpineInvalidation(refresh);
 
   return {
     skills,
