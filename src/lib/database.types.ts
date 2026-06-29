@@ -2634,6 +2634,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_proposals: {
+        Row: {
+          id: string
+          user_id: string
+          proposal_type: string
+          status: string
+          dedupe_key: string
+          title: string
+          body: string
+          payload: Json
+          created_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          proposal_type: string
+          status?: string
+          dedupe_key: string
+          title: string
+          body: string
+          payload?: Json
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          proposal_type?: string
+          status?: string
+          dedupe_key?: string
+          title?: string
+          body?: string
+          payload?: Json
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Relationships: []
+      }
       oura_daily_summary: {
         Row: {
           active_calories: number | null
@@ -5649,6 +5688,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      sync_friction_proposals: {
+        Args: { p_user_id: string }
+        Returns: number
       }
       search_entity_links: {
         Args: {

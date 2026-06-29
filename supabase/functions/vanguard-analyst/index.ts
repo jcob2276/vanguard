@@ -14,6 +14,9 @@ Deno.serve(async (req) => {
 
     console.log(`[analyst] start for user: ${user_id}`)
 
+    const { error: syncPropErr } = await supabase.rpc('sync_friction_proposals', { p_user_id: user_id })
+    if (syncPropErr) console.warn('[analyst] sync_friction_proposals:', syncPropErr.message)
+
     const now = new Date()
     const cut72h = new Date(now.getTime() - 72  * 60 * 60 * 1000).toISOString()
     const cut14d = new Date(now.getTime() - 14  * 24 * 60 * 60 * 1000).toISOString()

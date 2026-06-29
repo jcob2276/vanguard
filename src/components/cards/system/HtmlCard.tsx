@@ -1,9 +1,9 @@
-import React from 'react';
+import { resolveHtmlTemplate } from '../../../lib/htmlCardTemplates';
 
 export interface HtmlCardProps {
   data: {
     html_template: string;
-    widget_data?: Record<string, any>;
+    widget_data?: Record<string, unknown>;
   };
 }
 
@@ -16,7 +16,7 @@ function sanitizeHtml(html: string): string {
 }
 
 export function HtmlCard({ data }: HtmlCardProps) {
-  let template = data.html_template || '';
+  let template = resolveHtmlTemplate(data.html_template || '');
   const widgetData = data.widget_data || {};
 
   // Replace {{key}} with widgetData[key]

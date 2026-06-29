@@ -45,6 +45,7 @@ const Keep = lazy(() => import('../notes/Keep'));
 const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
+import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
@@ -97,6 +98,8 @@ export default function Dashboard({ session }: { session: Session }) {
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set([normalizeView(localStorage.getItem('vanguard_view')) || 'dzis']));
+  const [actionCenterOpen, setActionCenterOpen] = useState(false);
+  const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -345,6 +348,8 @@ export default function Dashboard({ session }: { session: Session }) {
             {session?.user?.id && (
               <PersonaAvatarButton
                 userId={session.user.id}
+                unreadCount={pendingActionCount}
+                onLongPress={() => setActionCenterOpen(true)}
                 onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('fundament'); }}
               />
             )}
@@ -477,7 +482,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   session={session}
                   refreshSignal={nutritionKey}
                 />
-                <Direction session={session} />
+                <Direction session={session} onOpenActionCenter={() => setActionCenterOpen(true)} />
               </div>
             </Suspense>
           </div>
@@ -561,6 +566,15 @@ export default function Dashboard({ session }: { session: Session }) {
           onClose={() => { setShowQuickFoodEntry(false); setFoodEditEntry(null); }}
           onSaved={() => { refresh(); setNutritionKey(k => k + 1); }}
           initialEditEntry={foodEditEntry ?? undefined}
+        />
+      )}
+
+      {session && (
+        <ActionCenterSheet
+          session={session}
+          open={actionCenterOpen}
+          onClose={() => setActionCenterOpen(false)}
+          onUpdated={() => void reloadPendingActions()}
         />
       )}
     </div>

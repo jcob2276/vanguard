@@ -19,7 +19,19 @@ interface FoodResult {
 }
 
 function toFoodResult(f: typeof GENERIC_FOODS[number], source: FoodResult['source']): FoodResult {
-  return { ...f, barcode: null, brand: null, defaultGrams: null, source }
+  return {
+    name: f.name,
+    calories: f.calories,
+    protein: f.protein,
+    carbs: f.carbs,
+    fat: f.fat,
+    fiber: f.fiber ?? null,
+    sugar: f.sugar ?? null,
+    barcode: null,
+    brand: null,
+    defaultGrams: null,
+    source
+  }
 }
 
 function searchGeneric(query: string): FoodResult[] {

@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import { Pin, SortAsc, Trash2, X, Loader2 } from 'lucide-react';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
+import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
 
 export interface InsightCardData {
   id: string;
   templateId: string;
   title: string;
   insight?: string;
+  widgetType?: string;
   widgetData: Record<string, unknown>;
   isPinned: boolean;
   sortOrder: number;
@@ -17,14 +19,20 @@ interface InsightCardProps {
   onPin?: (id: string) => void;
   onSort?: (id: string) => void;
   onDelete?: (id: string) => Promise<void>;
+  expanded?: boolean;
 }
 
-export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps) {
+export function InsightCard({ card, onPin, onSort, onDelete, expanded }: InsightCardProps) {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const widgetType =
+    card.widgetType ||
+    (typeof card.widgetData.widget_type === 'string' ? card.widgetData.widget_type : undefined);
+
   const startLongPress = () => {
+    if (expanded) return;
     longPressTimer.current = setTimeout(() => setOverlayOpen(true), 550);
   };
   const cancelLongPress = () => {
@@ -36,6 +44,16 @@ export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps)
     setDeleting(true);
     try { await onDelete(card.id); } finally { setDeleting(false); setOverlayOpen(false); }
   };
+
+  const body = widgetType ? (
+    <WidgetFactory type={widgetType as WidgetType} data={card.widgetData} />
+  ) : (
+    <CardFactory
+      templateId={card.templateId as CardTemplateId}
+      data={card.widgetData}
+      title={card.title}
+    />
+  );
 
   return (
     <div className="relative">
@@ -54,17 +72,15 @@ export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps)
             <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#5B6CFF' }}>Przypięte</span>
           </div>
         )}
-        <CardFactory
-          templateId={card.templateId as CardTemplateId}
-          data={card.widgetData}
-          title={card.title}
-        />
+        {!widgetType && card.title && expanded && (
+          <p className="text-[15px] font-bold text-text-primary mb-2">{card.title}</p>
+        )}
+        {body}
         {card.insight && (
           <p className="mt-1.5 px-1 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>{card.insight}</p>
         )}
       </div>
 
-      {/* Long-press overlay */}
       {overlayOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center pb-12"
@@ -74,6 +90,7 @@ export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps)
           <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
             {onSort && (
               <button
+                type="button"
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: '#F59E0B', boxShadow: '0 0 20px rgba(245,158,11,0.4)' }}
@@ -83,6 +100,7 @@ export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps)
             )}
             {onDelete && (
               <button
+                type="button"
                 onClick={handleDelete}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: '#F43F5E', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
@@ -91,6 +109,7 @@ export function InsightCard({ card, onPin, onSort, onDelete }: InsightCardProps)
               </button>
             )}
             <button
+              type="button"
               onClick={() => setOverlayOpen(false)}
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{ background: 'white' }}

@@ -16,12 +16,13 @@ export async function runLibrarian() {
   cutoff.setDate(cutoff.getDate() - 7)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
-  const { data: entries, error } = await db
+  const { data: rawEntries, error } = await db
     .from('daily_food_entries')
-    .select('name')
+    .select('name, user_id')
     .gte('date', cutoffStr)
     .filter('parse_meta->>macroSource', 'eq', 'llm_estimate')
 
+  const entries = rawEntries as any[] | null
   if (error || !entries || entries.length === 0) {
     return { count: 0, items: [] }
   }

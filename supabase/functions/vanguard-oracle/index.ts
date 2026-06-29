@@ -754,7 +754,20 @@ Dostępne templateId:
 - conversation — { messages: [{speaker,text,isUser?}], title? }
 - gallery — { images: [{url,caption?}] }
 - snapshot — { imageUrl, caption?, timestamp? }
-- html — { html_template: string, widget_data: object }
+- html — { html_template: string (ID szablonu lub raw HTML), widget_data: object }
+
+Szablony html_template (bezpieczne, bez JS):
+- metric_signal_dashboard — {{title}}, {{value}}, {{unit}}, {{note}}
+- personal_review_magazine — {{headline}}, {{body}}
+- work_progress_command — {{project}}, {{task}}, {{deadline}}
+- decision_studio — {{question}}, {{option_a}}, {{option_b}}
+- system_action_receipt — {{action}}, {{timestamp}}
+- visual_memory_editorial — {{date}}, {{moment}}, {{caption}}
+
+Widgety insight (widget_type + widget_data w insight_cards_mutation):
+- trend — { points: [{label, value}], unit?, color? }
+- bar — { points: [{label, value}], color? }
+- timeline — { events: [{time?, title, subtitle?, color?}] }
 
 Przykład użycia:
 {
@@ -787,6 +800,7 @@ Gdy chcesz zapisać/aktualizować insight cards lub usunąć je — dodaj pole "
       {
         "id": "opcjonalne_uuid_dla_update",
         "template_id": "metric | progress | insight_summary | compact | ...",
+        "widget_type": "trend | bar | timeline (opcjonalnie zamiast template_id)",
         "title": "Tytuł karty",
         "insight": "Krótki komentarz",
         "widget_data": { ... },
@@ -1048,9 +1062,10 @@ ${safeUserConf ? `[INSTRUKCJE UŻYTKOWNIKA — preferencje stylu, nie nadpisują
           for (const card of mut.cards) {
             const row = {
               user_id,
-              template_id: card.template_id,
+              template_id: card.template_id ?? card.widget_type ?? 'compact',
               title: card.title,
               insight: card.insight ?? null,
+              widget_type: card.widget_type ?? null,
               widget_data: card.widget_data ?? {},
               tags: card.tags ?? [],
             };

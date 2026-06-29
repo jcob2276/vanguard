@@ -1,15 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useUserStatsSnapshot } from '../../hooks/useUserStatsSnapshot';
 import { UserStatsOverviewCard } from './UserStatsOverviewCard';
 import { InsightCard, type InsightCardData } from './InsightCard';
 import { PatternsView } from './PatternsView';
+import { TrendChart } from '../widgets/TrendChart';
+import { BarChartWidget } from '../widgets/BarChart';
+import { DetailPageLayout } from '../ui/DetailPageLayout';
+import { Card } from '../ui/Card';
 
 export function InsightsDashboard({ session }: { session: Session }) {
   const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(session);
   const [cards, setCards] = useState<InsightCardData[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
+  const [detailCard, setDetailCard] = useState<InsightCardData | null>(null);
   const userId = session.user.id;
 
   const fetchCards = useCallback(async () => {
@@ -27,6 +32,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
       templateId: row.template_id,
       title: row.title,
       insight: row.insight ?? undefined,
+      widgetType: (row as { widget_type?: string }).widget_type ?? undefined,
       widgetData: (row.widget_data as Record<string, unknown>) ?? {},
       isPinned: row.is_pinned ?? false,
       sortOrder: row.sort_order ?? 0,
@@ -35,6 +41,24 @@ export function InsightsDashboard({ session }: { session: Session }) {
   }, [userId]);
 
   useEffect(() => { fetchCards(); }, [fetchCards]);
+
+  const activityTrend = useMemo(() => {
+    if (!snapshot?.daily?.length) return null;
+    const points = [...snapshot.daily].reverse().slice(-14).map((d) => ({
+      label: d.date.slice(5),
+      value: d.inputs,
+    }));
+    return { points, unit: 'wpisów', color: '#5B6CFF' };
+  }, [snapshot?.daily]);
+
+  const activityBars = useMemo(() => {
+    if (!snapshot?.daily?.length) return null;
+    const points = [...snapshot.daily].reverse().slice(-7).map((d) => ({
+      label: d.date.slice(5),
+      value: d.inputs + d.completedTodos,
+    }));
+    return { points, color: '#10B981' };
+  }, [snapshot?.daily]);
 
   const handlePin = useCallback(async (id: string) => {
     const card = cards.find(c => c.id === id);
@@ -54,11 +78,40 @@ export function InsightsDashboard({ session }: { session: Session }) {
   const handleDelete = useCallback(async (id: string) => {
     await supabase.from('knowledge_insight_cards').delete().eq('id', id);
     setCards(prev => prev.filter(c => c.id !== id));
-  }, []);
+    if (detailCard?.id === id) setDetailCard(null);
+  }, [detailCard?.id]);
+
+  if (detailCard) {
+    return (
+      <DetailPageLayout title={detailCard.title} subtitle="Insight" onBack={() => setDetailCard(null)}>
+        <InsightCard
+          card={detailCard}
+          onPin={handlePin}
+          onSort={handleSort}
+          onDelete={handleDelete}
+          expanded
+        />
+      </DetailPageLayout>
+    );
+  }
 
   return (
     <div className="space-y-5">
       <UserStatsOverviewCard snapshot={snapshot} loading={statsLoading} />
+
+      {activityTrend && (
+        <Card variant="glass" padding="16px">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — trend</p>
+          <TrendChart data={activityTrend} />
+        </Card>
+      )}
+
+      {activityBars && (
+        <Card variant="glass" padding="16px">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — 7 dni</p>
+          <BarChartWidget data={activityBars} />
+        </Card>
+      )}
 
       <PatternsView session={session} />
 
@@ -68,13 +121,19 @@ export function InsightsDashboard({ session }: { session: Session }) {
             Insights ({cards.length})
           </p>
           {cards.map(card => (
-            <InsightCard
+            <button
               key={card.id}
-              card={card}
-              onPin={handlePin}
-              onSort={handleSort}
-              onDelete={handleDelete}
-            />
+              type="button"
+              className="w-full text-left"
+              onClick={() => setDetailCard(card)}
+            >
+              <InsightCard
+                card={card}
+                onPin={handlePin}
+                onSort={handleSort}
+                onDelete={handleDelete}
+              />
+            </button>
           ))}
         </div>
       )}

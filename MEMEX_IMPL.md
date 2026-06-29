@@ -32,7 +32,7 @@
 - Po `insert/update` bez `.select()` — sprawdzaj `{ error }` ręcznie, NIE używaj `unwrap()`
 - `unwrap()` / `unwrapList()` tylko dla zapytań z `.select()`
 
-**Źródło wzorców:** `C:\Users\jakub\Desktop\memex-explore\VANGUARD_MEMEX_STEAL.md`
+**Źródło wzorców:** `docs/MEMEX_PATTERNS.md`
 — 64 wzorce z aplikacji Memex (Flutter/Dart), przetłumaczone na React/TS/Supabase.
 Czytaj ten plik po szczegóły implementacyjne (interfejsy, CSS, logika).
 

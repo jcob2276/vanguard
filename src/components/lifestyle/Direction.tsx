@@ -23,8 +23,7 @@ import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 import { useLifeGoals } from '../../hooks/useLifeGoals';
-import { useDirectionContext } from '../../hooks/useDirectionContext';
-import WeekLoopSummary from '../shared/WeekLoopSummary';
+import WeekHub from './WeekHub';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
@@ -55,7 +54,13 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
   );
 }
 
-export default function Direction({ session }: { session: Session }) {
+export default function Direction({
+  session,
+  onOpenActionCenter,
+}: {
+  session: Session;
+  onOpenActionCenter?: () => void;
+}) {
   const haptics = useHaptics();
   const userId = session.user.id;
   const [loading, setLoading] = useState(true);
@@ -67,7 +72,6 @@ export default function Direction({ session }: { session: Session }) {
   const { displayRows: lifeGoalRows } = useLifeGoals(userId);
 
   const currentWeekStart = format(startOfWeek(new Date(todayWarsaw() + 'T12:00:00'), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const direction = useDirectionContext(userId, currentWeekStart);
 
   // Persisted — multi-paragraph weekly review answers, filled in over a session;
   // a backgrounded-tab kill (Android reclaiming memory) must not erase them before submit.
@@ -281,8 +285,6 @@ export default function Direction({ session }: { session: Session }) {
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
     haptics.light();
-    // Re-fetch the row fresh to avoid acting on a stale render-time snapshot
-    // when two checkboxes are toggled in quick succession (race on `allDone`).
     const { data: fresh } = await supabase.from('daily_wins').select('*').eq('id', dayWinStale.id).single();
     const dayWin = fresh ?? dayWinStale;
     const dayWinAny = dayWin as any;
@@ -477,34 +479,27 @@ export default function Direction({ session }: { session: Session }) {
             reflectionSaved={reflectionSaved}
           />
         ) : (
-          <div className="space-y-4">
-            {direction.weekStart && (
-              <WeekLoopSummary
-                ctx={{
-                  weekGoals: direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
-                  powerListStats: direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
-                  mustPins: direction.mustPins ?? [],
-                  openMustPins: direction.openMustPins ?? [],
-                  focus: direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
-                  weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
-                  weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
-                  sprintGoal: direction.sprintGoal ?? null,
-                  sprintLabel: direction.sprintLabel ?? null,
-                }}
-              />
-            )}
-            <DirectionRadarMode
-              stats={stats}
-              history={history}
-              prevWeekReview={prevWeekReview}
-              planWeekStart={planWeekStart}
-              allCalEvents={allCalEvents}
-              togglePowerListTask={togglePowerListTask}
-              focusTasks={focusTasks}
-              focusGoalMappings={focusGoalMappings}
-              currentReview={currentReview}
-              lifeGoalRows={lifeGoalRows}
-            />
+          <div className="space-y-6">
+            <WeekHub session={session} onOpenActionCenter={onOpenActionCenter} />
+            <details className="group rounded-2xl border border-border-custom bg-surface/30 open:bg-surface/50">
+              <summary className="cursor-pointer list-none px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
+                Radar szczegóły
+              </summary>
+              <div className="px-1 pb-4 pt-1">
+                <DirectionRadarMode
+                  stats={stats}
+                  history={history}
+                  prevWeekReview={prevWeekReview}
+                  planWeekStart={planWeekStart}
+                  allCalEvents={allCalEvents}
+                  togglePowerListTask={togglePowerListTask}
+                  focusTasks={focusTasks}
+                  focusGoalMappings={focusGoalMappings}
+                  currentReview={currentReview}
+                  lifeGoalRows={lifeGoalRows}
+                />
+              </div>
+            </details>
           </div>
         )}
       </section>
