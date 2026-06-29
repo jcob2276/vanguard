@@ -22,10 +22,6 @@ export function inferVaultCategory(text: string): string {
   return "telegram_vault";
 }
 
-export function getWarsawDateStr(date: Date = new Date()): string {
-  return date.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
-}
-
 const TG_LIMIT = 4000; // leave 96 chars margin below Telegram's 4096
 
 function chunkText(text: string): string[] {

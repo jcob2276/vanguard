@@ -117,7 +117,7 @@ export function isInterestingCorrelationClient(item: CorrelationResult): boolean
   return item.r_abs >= 0.22 && item.n >= 12;
 }
 
-export const BEHAVIOR_LABELS: Record<string, string> = {
+const BEHAVIOR_LABELS: Record<string, string> = {
   alcohol: 'Alkohol',
   alkohol: 'Alkohol',
   alcohol_units: 'Alkohol',
@@ -137,7 +137,7 @@ export function behaviorLabel(key: string): string {
   return key.replace(/_/g, ' ');
 }
 
-export const SLEEP_STAGE_OUTCOMES = ['deep_sleep_h', 'rem_sleep_h'] as const;
+const SLEEP_STAGE_OUTCOMES = ['deep_sleep_h', 'rem_sleep_h'] as const;
 
 export function isSleepStageDriver(item: CorrelationResult): boolean {
   return (SLEEP_STAGE_OUTCOMES as readonly string[]).includes(item.y_metric);

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ListChecks, Target, TrendingUp } from 'lucide-react';
-import type { DirectionContextData } from '../lib/dailyPlanProposal';
+import type { DirectionContextData } from '../../lib/dailyPlanProposal';
 
 export default function WeekLoopSummary({
   ctx,

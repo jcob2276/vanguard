@@ -3,9 +3,7 @@ import { createTodoItem } from './todo';
 import { unwrap } from './supabaseUtils';
 import type { Note } from '../components/notes/keepUtils';
 
-export const POCKET_CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'] as const;
-
-export interface LinkCaptureFields {
+interface LinkCaptureFields {
   id?: string;
   url: string;
   title: string;
@@ -28,7 +26,7 @@ function htmlToPlainText(html: string): string {
   return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
 }
 
-export function formatLinkTodoNotes(link: LinkCaptureFields): string {
+function formatLinkTodoNotes(link: LinkCaptureFields): string {
   const lines = [link.url];
   if (link.takeaways?.length) {
     lines.push('', 'Wnioski:', ...link.takeaways.map((t) => `• ${t}`));
@@ -39,7 +37,7 @@ export function formatLinkTodoNotes(link: LinkCaptureFields): string {
   return lines.join('\n').trim();
 }
 
-export function buildLinkNoteContent(link: LinkCaptureFields): string {
+function buildLinkNoteContent(link: LinkCaptureFields): string {
   const parts = [
     `<p><a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.title || link.url)}</a></p>`,
   ];
@@ -115,7 +113,7 @@ export async function convertLinkToKeepNote(userId: string, link: LinkCaptureFie
   return note;
 }
 
-export function extractUncheckedKeepItems(html: string): string[] {
+function extractUncheckedKeepItems(html: string): string[] {
   if (!html) return [];
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const items: string[] = [];

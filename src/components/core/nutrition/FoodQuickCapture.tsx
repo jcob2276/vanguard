@@ -2,14 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { notify } from '../../../lib/notify'
-import { getTodayWarsaw } from '../../../lib/date'
+import { getTodayWarsaw, getYesterdayWarsaw } from '../../../lib/date'
 import { fetchNutritionDayContext } from '../../../lib/nutritionContext'
 import {
   MEAL_TYPES,
   defaultMealType,
   ensureFoodStaples,
   fetchQuickFavorites,
-  getYesterdayWarsaw,
   needsReview,
   parseFoodNL,
   quickAddFavorite,

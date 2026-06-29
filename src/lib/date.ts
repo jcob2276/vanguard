@@ -11,13 +11,6 @@ export function getYesterdayWarsaw(): string {
   return d.toISOString().split('T')[0];
 }
 
-export function getTomorrowWarsaw(): string {
-  const today = getTodayWarsaw();
-  const d = new Date(`${today}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().split('T')[0];
-}
-
 export function getDaysAgoWarsaw(days: number): string {
   const today = getTodayWarsaw();
   const d = new Date(`${today}T12:00:00Z`);

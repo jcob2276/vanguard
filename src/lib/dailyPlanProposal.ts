@@ -148,11 +148,3 @@ function pillarToCategory(pillar: string | null): 'cialo' | 'duch' | 'konto' | '
   if (pillar === 'cialo' || pillar === 'duch' || pillar === 'konto') return pillar;
   return 'general';
 }
-
-/** Map proposal / slot to PowerList categories for slots 0-4 */
-export function categoryForSlotIndex(index: number, category: ProposedTaskSlot['category']): string {
-  if (index === 0) return 'cialo';
-  if (index === 1) return 'duch';
-  if (index === 2) return 'konto';
-  return category === 'general' ? 'general' : category;
-}
