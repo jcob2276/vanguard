@@ -57,7 +57,8 @@ const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
 
 const normalizeView = (view: string | null | undefined) => {
-  if (!view || view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
+  if (!view) return 'tydzien';
+  if (view === 'workout' || view === 'mentor' || view === 'mirror' || view === 'body') return 'dzis';
   if (view === 'stream' || view === 'plan' || view === 'progress' || view === 'direction') return 'tydzien';
   if (view === 'stats' || view === 'photos') return 'historia';
   if (view === 'kariera') return 'projekty';
@@ -97,7 +98,7 @@ export default function Dashboard({ session }: { session: Session }) {
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set([normalizeView(localStorage.getItem('vanguard_view')) || 'dzis']));
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set([normalizeView(localStorage.getItem('vanguard_view')) || 'tydzien']));
   const [actionCenterOpen, setActionCenterOpen] = useState(false);
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
 

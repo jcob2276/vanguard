@@ -27,7 +27,9 @@ Noon: vanguard-eval-interview -> reflective interview / thread-connecting questi
 Evening: vanguard-daily-reconciliation -> 24h voice/stream reflection prompt
 Morning: autonomous brief/ping removed; planning is user-initiated in app/Oracle, not Telegram.
 
+Nightly: vanguard-analyst -> RPC sync_friction_proposals -> system_proposals (confirmed friction N>=3 / 7d Warsaw)
 Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confirmed_friction_events VIEW + derived vanguard_wiki_pages
+Frontend: Week Hub + Action Center resolve pending system_proposals (Istotne / Olej)
 ```
 
 ---
@@ -58,7 +60,7 @@ Read: vanguard-oracle, briefing, synthesis, analyst -> stream 72h first + confir
 
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
-| `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue` | 387 | 2026-06-11 |
+| `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC; RPC `sync_friction_proposals` at start | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue`, `system_proposals` (via RPC) | 390 | 2026-06-29 |
 | `vanguard-briefing` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
 | `vanguard-weekly-brief` | **active** | Frontend Weekly Review trigger | true | `weekly_kpi_reviews`, `goal_kpis`, `kpi_entries`, `projects`, `daily_wins` | 191 | 2026-06-20 |
