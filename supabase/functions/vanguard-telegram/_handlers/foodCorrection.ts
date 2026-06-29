@@ -196,7 +196,7 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
 
     await safeSendTelegram(chatId, confirmationMsg, telegramToken, { parse_mode: 'Markdown' })
     return true
-  } catch (err) {
+  } catch (err: any) {
     console.error('[foodCorrection] Error updating entry:', err)
     await safeSendTelegram(chatId, `❌ Wystąpił błąd podczas zapisywania poprawki: ${err.message}`, telegramToken)
     return true

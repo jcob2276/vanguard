@@ -150,7 +150,7 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
       `Produkt został dodany do Twojej \`food_library\`. Możesz go teraz logować podając jego nazwę!`;
 
     await safeSendTelegram(chatId, confirmationMsg, telegramToken, { parse_mode: "Markdown" });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[photoLabel] Exception:", err);
     await safeSendTelegram(chatId, `❌ Wystąpił błąd podczas analizy zdjęcia: ${err.message}`, telegramToken);
   }
