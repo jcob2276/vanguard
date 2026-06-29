@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
-import { getTodayWarsaw, formatWarsawDate } from './date'
+import { unwrapList } from './supabaseUtils'
+import { getTodayWarsaw, getYesterdayWarsaw, formatWarsawDate } from './date'
 import { scheduleStrainRecompute } from './strainRefresh'
 
 export const MEAL_TYPES = [
@@ -80,13 +81,6 @@ export function defaultMealType(): MealTypeId {
   if (hour < 16) return 'lunch'
   if (hour < 21) return 'dinner'
   return 'snack'
-}
-
-export function getYesterdayWarsaw(): string {
-  const today = getTodayWarsaw()
-  const d = new Date(`${today}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() - 1)
-  return formatWarsawDate(d)
 }
 
 export async function fetchTodayNutrition(userId: string, date = getTodayWarsaw()): Promise<TodayNutritionSnapshot> {
@@ -283,15 +277,13 @@ export async function ensureFoodStaples(userId: string): Promise<void> {
 }
 
 export async function fetchQuickFavorites(userId: string, limit = 8): Promise<FoodFavoriteRow[]> {
-  const { data, error } = await supabase
+  return unwrapList<FoodFavoriteRow>(await supabase
     .from('food_favorites')
     .select('id, name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams, is_pinned')
     .eq('user_id', userId)
     .order('is_pinned', { ascending: false })
     .order('use_count', { ascending: false })
-    .limit(limit)
-  if (error) throw error
-  return (data as FoodFavoriteRow[]) ?? []
+    .limit(limit))
 }
 
 export async function quickAddFavorite(

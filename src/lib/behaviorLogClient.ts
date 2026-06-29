@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { unwrapList } from './supabaseUtils';
 import { getTodayWarsaw } from './date';
 import type { BehaviorConfounderKey } from './behaviorCapture';
 
@@ -14,14 +15,12 @@ export async function fetchBehaviorLogsSince(
   userId: string,
   sinceDate: string,
 ): Promise<BehaviorLogRow[]> {
-  const { data, error } = await supabase
+  return unwrapList(await supabase
     .from('behavior_log')
     .select('id, date, behavior_key, value, note')
     .eq('user_id', userId)
     .gte('date', sinceDate)
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+    .order('date', { ascending: false }));
 }
 
 export async function setBehaviorConfounder(

@@ -2,6 +2,7 @@
 // Multi-signal anomaly (RHR↑, skin temp↑, HRV↓, resp↑) z confounder suppression —
 // alert wycisza się jeśli behavior_log/exercise_logs (sauna) wyjaśnia anomalię tego dnia.
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 // Ten samy EWMA port jak compute-daily-strain (Baselines.swift) — duplikat świadomy,
 // żeby ta funkcja była niezależna i nie zależała od wewnętrznej struktury components innej funkcji.
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     if (uErr) throw uErr
 
     const now = new Date()
-    const toWarsaw = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const toWarsaw = getWarsawDateString
     const endStr = toWarsaw(now)
     const startStr = toWarsaw(new Date(now.getTime() - days * 86400000))
     const start90 = toWarsaw(new Date(now.getTime() - 90 * 86400000))

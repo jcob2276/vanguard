@@ -1,5 +1,6 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
+import { getWarsawDateString } from '../_shared/time.ts'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -175,7 +176,7 @@ Deno.serve(async (req) => {
 
     // ── Date windows (28 dni = 4 pełne tygodnie) ─────────────────────────────
     const now = new Date()
-    const warsaw = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const warsaw = getWarsawDateString
     const today = warsaw(now)
     const todayDow = isoDow(today)
     const todayDowLabel = DOW_PL[todayDow]

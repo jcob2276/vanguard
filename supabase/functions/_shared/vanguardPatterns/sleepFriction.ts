@@ -9,6 +9,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectSleepFrictionLink(
@@ -19,7 +20,7 @@ export async function detectSleepFrictionLink(
   const lookback = options.lookbackDays ?? 30;
 
   // Warsaw-calendar cutoff, not the UTC date of (now - N days) — see narrativeMismatch.ts.
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cutoff = getWarsawDateString(new Date(Date.now() - lookback * 24 * 3600 * 1000));
 
   // Pobierz aggregates z sleep_hours
   const aggregates = await safeExecute(

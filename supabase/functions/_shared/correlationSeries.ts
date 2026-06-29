@@ -1,5 +1,6 @@
 import type { SeriesPoint } from './correlationEngine.ts'
 import { estimateCaffeineMg } from './caffeineEstimate.ts'
+import { getWarsawDateString } from './time.ts'
 
 function warsawHour(iso: string): number {
   return parseInt(
@@ -251,7 +252,7 @@ export function buildMetricSeries(input: SeriesBuildInput): Record<string, Serie
   }
   for (const row of input.frictionRows) {
     if (!row.occurred_at) continue
-    const dateStr = new Date(row.occurred_at).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const dateStr = getWarsawDateString(new Date(row.occurred_at))
     if (dailyFriction[dateStr]) {
       dailyFriction[dateStr].total++
       if (row.friction_type === 'avoidance') dailyFriction[dateStr].avoidance++
@@ -276,7 +277,7 @@ export function aggregateStravaRuns(
   for (const r of rows) {
     const start = r.start_date as string | null
     if (!start) continue
-    const day = new Date(start).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const day = getWarsawDateString(new Date(start))
     if (day < start90 || day > todayWarsaw) continue
     if (r.is_oura === true) continue
     const sport = String(r.sport_type ?? '').toLowerCase()

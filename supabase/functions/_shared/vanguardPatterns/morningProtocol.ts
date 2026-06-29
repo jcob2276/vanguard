@@ -8,6 +8,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectMorningProtocolImpact(
@@ -18,7 +19,7 @@ export async function detectMorningProtocolImpact(
   const lookback = options.lookbackDays ?? 25;
 
   // Warsaw-calendar cutoff, not the UTC date of (now - N days) — see narrativeMismatch.ts.
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cutoff = getWarsawDateString(new Date(Date.now() - lookback * 24 * 3600 * 1000));
 
   // Pobierz reconciliations z first_90_protected + operational_facts (phone_first)
   const recs = await safeExecute(

@@ -6,6 +6,7 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
 import { studentTPValue } from "../_shared/stats.ts"
 import { isInterestingBehaviorEffect } from "../_shared/correlationInterest.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 function erfApprox(x: number): number {
   const sign = x < 0 ? -1 : 1
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
-    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = getWarsawDateString(now)
     const start90 = shiftDay(todayWarsaw, -90)
 
     const [behaviorR, strainR] = await Promise.all([

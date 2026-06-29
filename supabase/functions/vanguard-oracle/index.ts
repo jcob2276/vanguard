@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     const localTimeString = now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
     const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000)).toISOString();
     const fourteenDaysAgoDate = getWarsawDateString(new Date(now.getTime() - (13 * 24 * 60 * 60 * 1000)));
-    const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const todayDate = getWarsawDateString(now);
 
     // === PLAN QUALITY AWARENESS (added for weak plan visibility) ===
     let recentPlanQuality: any = null;

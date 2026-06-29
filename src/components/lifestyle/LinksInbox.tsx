@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { unwrapList } from '../../lib/supabaseUtils';
 import { notify, confirmDialog } from '../../lib/notify';
 import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/captureBridge';
 import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
@@ -98,13 +99,12 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const fetchLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const data = unwrapList(await supabase
         .from('vanguard_links')
         .select('*')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setLinks((data as any) || []);
+        .order('created_at', { ascending: false }));
+      setLinks(data as any);
     } catch (err) {
       console.error('[LinksInbox] Error fetching links:', err);
     } finally {

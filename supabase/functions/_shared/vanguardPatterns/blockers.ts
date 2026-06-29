@@ -6,7 +6,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
-import { getWarsawDayBoundaries } from '../time.ts';
+import { getWarsawDayBoundaries, getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectRecurringBlockers(
@@ -24,7 +24,7 @@ export async function detectRecurringBlockers(
 
   // Warsaw-calendar cutoff, not the UTC date of (now - N days) — `date` is a Warsaw
   // calendar column, and near midnight the UTC date can lag a full day behind Warsaw's.
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cutoff = getWarsawDateString(new Date(Date.now() - lookback * 24 * 3600 * 1000));
 
   // 1. Pobierz p2_parsed z ostatnich dni (z blockerami)
   const reconciliations = await safeExecute(

@@ -5,6 +5,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectNarrativeBiometricMismatch(
@@ -15,7 +16,7 @@ export async function detectNarrativeBiometricMismatch(
   const lookback = options.lookbackDays ?? 14;
   // Warsaw-calendar cutoff, not the UTC date of (now - N days) — `date` columns here hold
   // Warsaw calendar dates, and near midnight the UTC date can lag a full day behind Warsaw's.
-  const cutoff = new Date(Date.now() - lookback * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cutoff = getWarsawDateString(new Date(Date.now() - lookback * 24 * 3600 * 1000));
 
   // 1. Pobierz daily_reconciliations z ostatnich N dni
   const recs = await safeExecute(

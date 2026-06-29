@@ -3,6 +3,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight, BehavioralPattern } from './types.ts';
 
 /**
@@ -25,7 +26,7 @@ export async function recordBehavioralPattern(
   insight: PatternInsight
 ): Promise<string | null> {
   try {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getWarsawDateString();
 
     // Prosty signature dla deduplikacji
     const signature = `${insight.type}:${insight.title.toLowerCase().replace(/\s+/g, '_').substring(0, 80)}`;
@@ -198,7 +199,7 @@ export async function updatePatternFeedback(
 export async function markPatternAsShown(
   supabase: any,
   patternId: string,
-  date: string = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+  date: string = getWarsawDateString()
 ): Promise<void> {
   try {
     const { data: current } = await supabase

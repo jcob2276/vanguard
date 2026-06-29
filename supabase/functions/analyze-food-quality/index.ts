@@ -1,11 +1,8 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
+import { getWarsawDateString as warsaw } from '../_shared/time.ts'
 
 const ACTIVITY_KW = /saun|rower|spacer|stretch|masaż|foam|mobility/i
-
-function warsaw(d: Date): string {
-  return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-}
 
 // Computes the Warsaw UTC offset for a SPECIFIC date (defaults to now), not always "now" —
 // Warsaw is +01:00 in winter and +02:00 in summer, so a query for a past date must use that

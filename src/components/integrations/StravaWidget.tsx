@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { unwrapList } from '../../lib/supabaseUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -95,16 +96,15 @@ export default function StravaWidget({ session }: { session: any }) {
     if (!session?.user?.id) return;
 
     try {
-      const { data, error: err } = await supabase
+      const data = unwrapList(await supabase
         .from('strava_activities_clean')
         .select('strava_id,name,sport_type,start_date,distance,moving_time,pace_sec_per_km,hr_avg,perceived_exertion,total_elevation_gain,has_pr,is_oura')
         .eq('user_id', session.user.id)
         .eq('is_oura', false)
         .order('start_date', { ascending: false })
-        .limit(20);
+        .limit(20));
 
-      if (err) throw err;
-      setActivities((data || []).filter(isRun).slice(0, 3));
+      setActivities(data.filter(isRun).slice(0, 3));
     } catch (e) {
       console.error('[StravaWidget] fetch error:', e);
       setError(e instanceof Error ? e.message : String(e));

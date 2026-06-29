@@ -1,6 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { answerCallbackQuery } from "../../_shared/telegram.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_router/commands.ts";
+import { getWarsawDateString } from "../../_shared/time.ts";
 
 const SUPPLEMENTS = [
   { slug: 'd3k2',      label: '☀️ D3+K2',       skipQty: false },
@@ -103,7 +104,7 @@ async function logSupplement(
   slug: string,
   quantity: number,
 ): Promise<void> {
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const today = getWarsawDateString();
 
   const { data: supl, error: fetchErr } = await supabase
     .from('supplements')

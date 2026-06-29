@@ -2,6 +2,7 @@
 // ComparisonEngine (SeriesStat/PeriodComparison). Deterministyczny przegląd tydzień-do-
 // tygodnia — inny mechanizm niż vanguard-week-recap (jakościowa narracja LLM), patrz 6a.
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 const mean = (xs: number[]): number | null => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
 const median = (xs: number[]): number | null => {
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
-    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = getWarsawDateString(now)
     const thisMonday = mondayOf(todayWarsaw)
     const lastMonday = addDays(thisMonday, -7)
     const lastSunday = addDays(thisMonday, -1)

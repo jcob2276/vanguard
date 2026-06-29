@@ -4,6 +4,7 @@ import type { IMuscleStats, Muscle } from 'react-body-highlighter';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
 import { notify } from '../../lib/notify';
+import { unwrapList } from '../../lib/supabaseUtils';
 import { MUSCLE_TAGS, rirEffectiveness, stimulusForExercise, tagsForExercise } from '../../data/exercises';
 import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/muscleMapData';
 
@@ -83,13 +84,11 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
 
     const fetchLogs = async () => {
       try {
-        const { data, error } = await supabase
+        const exerciseLogs = unwrapList(await supabase
           .from('exercise_logs')
           .select('*, workout_sessions!inner(date)')
           .eq('user_id', userId)
-          .gte('workout_sessions.date', dateLimit);
-
-        if (error) throw error;
+          .gte('workout_sessions.date', dateLimit));
 
         const directSets: Record<string, number> = {};
         const indirectSets: Record<string, number> = {};
@@ -102,7 +101,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
           exerciseSets[t] = new Set();
         });
 
-        (data ?? []).forEach((log) => {
+        exerciseLogs.forEach((log) => {
           const tags = tagsForLog(log);
           const stimulus = stimulusForExercise(log.exercise_name, tags);
           const exerciseName = (log.exercise_name || 'Ćwiczenie').trim();

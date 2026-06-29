@@ -12,6 +12,7 @@ import { safeSendTelegram } from "../_utils/helpers.ts";
 import { sendFoodParseResult } from "../_handlers/foodMeal.ts";
 import type { ParsedFoodItem } from "../../_shared/foodParseCore.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { getWarsawDateString } from "../../_shared/time.ts";
 
 export const DEFAULT_REPLY_KEYBOARD = {
   keyboard: [
@@ -230,7 +231,7 @@ export async function handleTodoCommand(
       return;
     }
 
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const todayStr = getWarsawDateString();
     const dayName = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw', weekday: 'long' });
     // Anchor on todayStr (already Warsaw-correct) and step in pure UTC-date-string space —
     // new Date().setDate(new Date().getDate()+1) round-trips through the real "now" instant
@@ -355,7 +356,7 @@ export async function handlePostCommand(
   vanguardUserId: string,
 ): Promise<void> {
   try {
-    let dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    let dateStr = getWarsawDateString();
     let note = text.slice('/post'.length).trim() || null;
 
     if (note) {
@@ -442,7 +443,7 @@ export async function handlePosilekCommand(
       return;
     }
 
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getWarsawDateString();
     const mealType = defaultMealTypeWarsaw();
 
     await sendFoodParseResult(items, {
@@ -468,7 +469,7 @@ export async function handleLenieCommand(
   vanguardUserId: string,
 ): Promise<void> {
   try {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const today = getWarsawDateString();
     const rest = text.slice('/lenie'.length).trim();
     // Format: "bodziec | kontekst" or just "opis"
     const [finalStimulus, contextNote] = rest.includes('|')

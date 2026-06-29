@@ -1,6 +1,7 @@
 // Etap 6 (docs/PLAN_READINESS_NOOP.md, sekcja 4.10): NOOP port RecoveryForecast.
 // Wieczorna projekcja recovery na jutro rano: strain debt + sleep adequacy + mean reversion.
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 const mean = (xs: number[]): number | null => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     const needSleepHours: number = body.needSleepHours ?? 8.0 // brak dedykowanego pola "sleep need" w schemacie — 8h jako rozsądny default
 
     const now = new Date()
-    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = getWarsawDateString(now)
     const start14 = (() => { const d = new Date(todayWarsaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 13); return d.toISOString().slice(0, 10) })()
 
     const { data: rows, error } = await supabase.from('daily_strain')

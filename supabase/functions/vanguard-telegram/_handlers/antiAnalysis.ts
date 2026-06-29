@@ -9,6 +9,7 @@
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
 import { deepseekChat } from '../../_shared/deepseek.ts';
+import { getWarsawDateString } from '../../_shared/time.ts';
 
 
 export const ANALYSIS_ACTION_CALLBACKS = [
@@ -80,7 +81,7 @@ export async function runAntiAnalysisGuard(
     if (!isAnalysis) return false;
 
     console.log('[telegram] anti-analysis triggered');
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    const todayStr = getWarsawDateString();
     const { data: reconRows } = await supabase
       .from('daily_reconciliations')
       .select('id')

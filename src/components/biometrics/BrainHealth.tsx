@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { unwrapList } from '../../lib/supabaseUtils';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 
@@ -17,11 +18,10 @@ export default function BrainHealth({ session }: { session: Session }) {
   const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_brain_health_report', { 
-        user_id_param: session.user.id 
-      });
-      if (error) throw error;
-      setReport(data || []);
+      const data = unwrapList(await supabase.rpc('get_brain_health_report', {
+        user_id_param: session.user.id
+      }));
+      setReport(data);
     } catch (err) {
       console.error('Error fetching brain health:', err);
     } finally {

@@ -1,6 +1,7 @@
 import { createServiceClient } from "../_shared/supabase.ts"
 import { resolveUserScope } from "../_shared/supabase.ts"
 import { estimateCaffeineMg } from "../_shared/caffeineEstimate.ts"
+import { getWarsawDateString } from "../_shared/time.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,7 @@ const corsHeaders = {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
-const warsawDate = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+const warsawDate = (iso: string) => getWarsawDateString(new Date(iso))
 
 // Klasyfikacja ćwiczeń
 const LEG_KW = ['przysiad', 'martwy', 'rdl', 'nog', 'leg', 'łydk', 'lydk', 'hip thrust', 'wykrok', 'lunge', 'calf', 'udo']
@@ -170,8 +171,8 @@ Deno.serve(async (req) => {
     if (uErr) throw uErr
 
     const now = new Date()
-    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-    const toWarsaw = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = getWarsawDateString(now)
+    const toWarsaw = getWarsawDateString
     const endStr = toWarsaw(now)
     const startStr = toWarsaw(new Date(now.getTime() - days * 864e5))
     const start90 = toWarsaw(new Date(now.getTime() - 90 * 864e5))

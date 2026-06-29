@@ -9,6 +9,7 @@ import {
 } from '../_shared/correlationDiscovery.ts'
 import { aggregateStravaRuns, buildMetricSeries } from '../_shared/correlationSeries.ts'
 import { correlationInterestScore, isInterestingCorrelation } from '../_shared/correlationInterest.ts'
+import { getWarsawDateString } from '../_shared/time.ts'
 
 interface CorrelationResult {
   id: string
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
-    const todayWarsaw = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const todayWarsaw = getWarsawDateString(now)
     const start90 = (() => {
       const d = new Date(todayWarsaw + 'T12:00:00Z')
       d.setUTCDate(d.getUTCDate() - 90)

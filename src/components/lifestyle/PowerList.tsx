@@ -4,6 +4,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import { useLifeGoals } from '../../hooks/useLifeGoals';
 import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { supabase } from '../../lib/supabase';
+import { unwrap } from '../../lib/supabaseUtils';
 import { BookOpen, Check, Link2, Search, Shield, Sparkles, Target, Upload, Wallet, Wand2, X, Zap } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
@@ -504,8 +505,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         result: null,
       };
 
-      const { data, error } = await supabase.from('daily_wins').insert(entry).select().single();
-      if (error) throw error;
+      const data = unwrap(await supabase.from('daily_wins').insert(entry).select().single());
       try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);

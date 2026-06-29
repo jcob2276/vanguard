@@ -8,6 +8,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
 // Wartość cooldownu dla Early Warning przed fazą testów.
@@ -24,10 +25,9 @@ export async function detectEarlyWarningSignals(
   // Bierzemy ostatnie 5-7 dni danych
   // Warsaw-calendar cutoff — `date` columns hold Warsaw calendar dates, and near midnight
   // the UTC date of (now - N days) can lag a full day behind Warsaw's.
-  const cutoff = new Date(Date.now() - 8 * 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cutoff = getWarsawDateString(new Date(Date.now() - 8 * 24 * 3600 * 1000));
 
-  const cooldownCutoff = new Date(Date.now() - cooldownDays * 24 * 3600 * 1000)
-    .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const cooldownCutoff = getWarsawDateString(new Date(Date.now() - cooldownDays * 24 * 3600 * 1000));
 
   // 1. Sprawdź ostatnie reconciliation pod kątem porannego dryfu (S2 sygnały)
   const recentRecs = await safeExecute(

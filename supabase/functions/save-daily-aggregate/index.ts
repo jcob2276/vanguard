@@ -1,6 +1,6 @@
 import { VanguardCore, computeSignals } from '../_shared/vanguardCore.ts'
 import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
-import { getWarsawDayBoundaries } from '../_shared/time.ts'
+import { getWarsawDayBoundaries, getWarsawDateString } from '../_shared/time.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       // the DST transitions (verified: a daily aggregate would be saved under yesterday's date
       // when it should be today's, or vice versa, exactly when this cron runs near midnight on
       // 2026-03-29 or 2026-10-25).
-      const todayWarsaw = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+      const todayWarsaw = getWarsawDateString()
       const d = new Date(todayWarsaw + 'T12:00:00Z')
       d.setUTCDate(d.getUTCDate() - 1)
       today = d.toISOString().split('T')[0]

@@ -1,5 +1,6 @@
 import { deepseekChat, parseJsonFromContent } from '../../_shared/deepseek.ts'
 import { safeSendTelegram } from '../_utils/helpers.ts'
+import { getWarsawDateString } from '../../_shared/time.ts'
 
 export async function handleMealCorrection(
   replyToText: string,
@@ -51,8 +52,8 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
     }
 
     const target = parsed.target_name.trim()
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const today = getWarsawDateString()
+    const yesterday = getWarsawDateString(new Date(Date.now() - 86400000))
 
     // Find the entry in daily_food_entries matching today or yesterday
     let { data: entries, error: fetchErr } = await supabase
