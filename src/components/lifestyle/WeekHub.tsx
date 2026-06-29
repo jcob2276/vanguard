@@ -12,7 +12,8 @@ import {
   syncFrictionProposals,
   type SystemProposal,
 } from '../../lib/systemProposals';
-import { getWeekStartWarsaw, getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth';
 
 export default function WeekHub({
   session,
