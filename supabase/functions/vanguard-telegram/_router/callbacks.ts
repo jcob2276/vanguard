@@ -1,10 +1,9 @@
 import type { TelegramRouterContext } from "./config.ts";
-import { answerCallbackQuery, clearInlineKeyboard } from "../../_shared/telegram.ts";
+import { answerCallbackQuery } from "../../_shared/telegram.ts";
 import {
   ANALYSIS_ACTION_CALLBACKS,
   handleAnalysisActionCallback,
 } from "../_handlers/antiAnalysis.ts";
-import { handlePlanningCallback } from "../_handlers/planning.ts";
 import {
   handleFeedbackCallback,
   isFeedbackCallback,
@@ -44,12 +43,7 @@ export async function handleCallbackQuery(
   const { id: callbackId, data, message } = callbackQuery;
   const chatId = message.chat.id;
   const messageId = message.message_id;
-  const {
-    supabase,
-    telegramToken,
-    deepseekApiKey,
-    vanguardUserId,
-  } = ctx;
+  const { supabase, telegramToken, vanguardUserId } = ctx;
 
   if (isFoodMealCallback(data)) {
     await handleFoodMealCallback(
@@ -91,21 +85,6 @@ export async function handleCallbackQuery(
     return;
   }
 
-
-  if (data.startsWith("planning_")) {
-    await handlePlanningCallback(
-      data,
-      chatId,
-      messageId,
-      callbackId,
-      supabase,
-      telegramToken,
-      deepseekApiKey,
-      vanguardUserId,
-    );
-    return;
-  }
-
   if (isFeedbackCallback(data)) {
     await handleFeedbackCallback(
       data,
@@ -126,12 +105,6 @@ export async function handleCallbackQuery(
       supabase,
       telegramToken,
     );
-    return;
-  }
-
-  if (data === 'briefing_ok') {
-    await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zapisane' });
-    await clearInlineKeyboard(telegramToken, chatId, messageId);
     return;
   }
 

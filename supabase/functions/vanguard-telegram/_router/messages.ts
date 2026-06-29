@@ -2,13 +2,12 @@ import { sendChatAction, transcribeAudio } from "../../_shared/telegram.ts";
 import type { TelegramRouterContext } from "./config.ts";
 import { getEmbedding } from "../../_shared/openai.ts";
 import { inferVaultCategory, safeSendTelegram } from "../_utils/helpers.ts";
-import { PLANNING_END_PHRASES, getActivePlanningSession, closePlanningSession, applyMinimumVersionToPlan } from "../_handlers/planning.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { runAntiAnalysisGuard } from "../_handlers/antiAnalysis.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
-import { getWarsawDayBoundaries } from "../../_shared/time.ts";
+import { getWarsawDayBoundaries, getWarsawDateString } from "../../_shared/time.ts";
 import {
   DEFAULT_REPLY_KEYBOARD,
   handleStartMenuCommand,
@@ -95,7 +94,6 @@ async function tryResumeStuckReconciliationVoice(
     supabaseServiceRoleKey,
     vanguardUserId,
     recon.date,
-    { telegramFastPath: true },
   );
   return true;
 }
@@ -178,8 +176,6 @@ export async function handleIncomingMessage(
     }
   }
 
-  const originalText = text;
-
   try {
     let streamRecordId: string | null = null;
       let deferredVaultIngest: { text: string; category: string } | null = null;
@@ -189,11 +185,6 @@ export async function handleIncomingMessage(
         mode?: string;
         parsed_response?: { mode?: string; [key: string]: unknown };
       } | null = null;
-      let activePlanningSession: { id: string; history: any[] } | null = null;
-      let planningEnded = false;
-      // Reused by the mode-routing check below so a voice message doesn't hit
-      // getActivePlanningSession twice for the same request.
-      let activePlanningFromVoiceCheck: Awaited<ReturnType<typeof getActivePlanningSession>> = null;
 
       // --- Voice transcription ---
       if (isVoice) {
@@ -204,24 +195,18 @@ export async function handleIncomingMessage(
           return;
         }
 
-        // Check if we are handling a pending reconciliation response or active planning.
-        const activePlanning = await getActivePlanningSession(supabase, vanguardUserId);
-        activePlanningFromVoiceCheck = activePlanning;
-
         pendingReconciliation = null;
-        if (!activePlanning) {
-          const { data: reconciliation } = await supabase
-            .from('daily_reconciliations')
-            .select('id, date, created_at')
-            .eq('user_id', vanguardUserId)
-            .eq('status', 'sent')
-            .order('created_at', { ascending: false })
-            .limit(1).maybeSingle();
-          if (reconciliation) {
-            const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
-            if (ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000) {
-              pendingReconciliation = reconciliation;
-            }
+        const { data: reconciliation } = await supabase
+          .from('daily_reconciliations')
+          .select('id, date, created_at')
+          .eq('user_id', vanguardUserId)
+          .eq('status', 'sent')
+          .order('created_at', { ascending: false })
+          .limit(1).maybeSingle();
+        if (reconciliation) {
+          const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
+          if (ageMs >= 0 && ageMs <= 6 * 60 * 60 * 1000) {
+            pendingReconciliation = reconciliation;
           }
         }
 
@@ -296,9 +281,6 @@ export async function handleIncomingMessage(
       let shouldRespond = false;
       let mode = 'stream';
       let cleanText = text;
-
-      // commandSource reserved for future voice/command routing
-      const explicitVoiceCommand = isVoice && hasCommandPrefix;
 
       if (text.startsWith('?'))       { shouldRespond = true; mode = 'chat';      cleanText = text.substring(1).trim(); }
       else if (text.startsWith('!!')) { shouldRespond = true; mode = 'deep';      cleanText = text.substring(2).trim(); }
@@ -391,71 +373,18 @@ export async function handleIncomingMessage(
       }
 
       if (!hasCommandPrefix && mode === 'stream') {
-        // Check active planning session — reuse the voice-check fetch above when this is a
-        // voice message, instead of querying daily_reconciliations a second time.
-        const activePlanning = isVoice
-          ? activePlanningFromVoiceCheck
-          : await getActivePlanningSession(supabase, vanguardUserId);
-        if (activePlanning) {
-          const cleanLower = cleanText.trim().toLowerCase();
-          const isEnd = PLANNING_END_PHRASES.test(cleanLower) || cleanLower === 'tak';
-          const isMin = cleanLower === 'minimum' || cleanLower === 'mvd' || cleanLower === 'min';
-
-          if (isEnd || isMin) {
-            let finalHistory = activePlanning.history;
-
-            if (isMin) {
-              // Same minimum mutation as the planning_show_minimum callback — see
-              // applyMinimumVersionToPlan in planning.ts (single source of truth).
-              const lastAssistantMsg = [...activePlanning.history].reverse().find(h => h.role === 'assistant');
-              if (lastAssistantMsg) {
-                try {
-                  const parsed = applyMinimumVersionToPlan(JSON.parse(lastAssistantMsg.content));
-
-                  finalHistory = activePlanning.history.map(h => {
-                    if (h === lastAssistantMsg) return { role: 'assistant', content: JSON.stringify(parsed) };
-                    return h;
-                  });
-                } catch (e) {
-                  console.warn('[messages] failed to apply minimum version', e);
-                }
-              }
-            }
-
-            planningEnded = true;
-            shouldRespond = false;
-            mode = 'stream';
-
-            await closePlanningSession(
-              finalHistory,
-              activePlanning.id,
-              activePlanning.date,
-              chatId,
-              supabase,
-              telegramToken,
-              deepseekApiKey
-            ).catch((err) => {
-              console.error("[telegram] closePlanningSession error:", err);
-            });
-          } else {
-            activePlanningSession = { id: activePlanning.id, history: activePlanning.history };
-            shouldRespond = true;
-            mode = 'planning';
-          }
-        }
-
         // Check pending reconciliation
-        const { data: reconciliation } = !activePlanningSession && !planningEnded ? await supabase
+        const { data: reconciliation } = await supabase
           .from('daily_reconciliations')
           .select('id, date, created_at, mode, parsed_response')
           .eq('user_id', vanguardUserId)
           .eq('status', 'sent')
           .order('created_at', { ascending: false })
-          .limit(1).maybeSingle() : { data: null };
+          .limit(1).maybeSingle();
 
         if (reconciliation) {
           const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
-          if (ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000) {
+          if (ageMs >= 0 && ageMs <= 6 * 60 * 60 * 1000) {
             pendingReconciliation = {
               id: reconciliation.id,
               date: reconciliation.date,
@@ -469,29 +398,20 @@ export async function handleIncomingMessage(
         }
       }
 
-      if (isVoice && !explicitVoiceCommand && mode !== 'daily_reconciliation_response' && mode !== 'planning') {
+      if (isVoice) {
         const transcriptWordCount = text.trim().split(/\s+/).filter(Boolean).length;
-        shouldRespond = false;
-        cleanText = text.trim();
-
-        // Check if user is responding to a briefing sent in the last 2h.
-        // If so, force stream regardless of word count — this is a reaction,
-        // not a knowledge update.
-        const twoHoursAgo = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
-        const { data: pendingBriefing } = await supabase
-          .from('daily_reconciliations')
-          .select('id')
-          .eq('user_id', vanguardUserId)
-          .eq('mode', 'briefing_response')
-          .eq('status', 'sent')
-          .gte('morning_sent_at', twoHoursAgo)
-          .maybeSingle();
-
-        if (pendingBriefing) {
-          // All voice notes within the 2h window go to stream.
-          // Window stays open until it expires naturally — no early close.
-          mode = 'stream';
+        const transcriptStartsChat = /^(pytanie|wyrocznia|\?)/i.test(text.trim());
+        if (transcriptStartsChat) {
+          pendingReconciliation = null;
+          shouldRespond = true;
+          mode = 'chat';
+          cleanText = text.replace(/^(pytanie|wyrocznia)\s*[:,-]?\s*/i, '').trim();
         } else {
+          shouldRespond = false;
+          cleanText = text.trim();
+          if (mode === 'daily_reconciliation_response') {
+            cleanText = text.trim();
+          }
           mode = transcriptWordCount > 200 ? 'knowledge' : 'stream';
         }
       }
@@ -575,41 +495,23 @@ export async function handleIncomingMessage(
       }
 
       // --- Anti-analysis guard ---
-      if (mode === 'stream' && !hasCommandPrefix && !pendingReconciliation && !activePlanningSession && cleanText.length >= 120) {
+      if (mode === 'stream' && !hasCommandPrefix && !pendingReconciliation && cleanText.length >= 120) {
         const intercepted = await runAntiAnalysisGuard(cleanText, chatId, supabase, telegramToken, deepseekApiKey, vanguardUserId);
         if (intercepted) return;
       }
 
       // --- Reconciliation response ---
-      // All three handlers below send their own Telegram messages via safeSendTelegram.
+      // Handlers below send their own Telegram messages via safeSendTelegram.
       // Set handlerResponded=true so the final responseText send at the bottom is skipped.
       let handlerResponded = false;
       if (pendingReconciliation) {
-        if (pendingReconciliation.parsed_response?.mode === 'saturday_checkin') {
-          const { handleSaturdayCheckin } = await import('../_handlers/saturdayCheckin.ts');
-          await handleSaturdayCheckin(
-            pendingReconciliation.id, cleanText, streamRecordId, chatId,
-            supabase, telegramToken, deepseekApiKey, vanguardUserId,
-            pendingReconciliation.parsed_response
-          );
-          handlerResponded = true;
-        } else if (pendingReconciliation.mode === 'morning_rescue') {
-          const { handleMorningRescue } = await import('../_handlers/morningRescue.ts');
-          await handleMorningRescue(
-            pendingReconciliation.id, cleanText, chatId,
-            supabase, telegramToken, deepseekApiKey,
-          );
-          handlerResponded = true;
-        } else {
           await handleReconciliation(
             pendingReconciliation.id, cleanText, streamRecordId, chatId,
             supabase, telegramToken, deepseekApiKey,
             supabaseUrl, supabaseServiceRoleKey, vanguardUserId,
             pendingReconciliation.date,
-            { telegramFastPath: true },
           );
           handlerResponded = true;
-        }
       }
 
       // --- Knowledge mode ---
@@ -661,12 +563,8 @@ export async function handleIncomingMessage(
         responseText = mode === 'knowledge'
           ? '📖 Zapisano w wiedzy (przez kontrolowany ingest).'
           : mode === 'daily_reconciliation_response'
-            ? pendingReconciliation?.mode === 'morning_rescue'
-              ? '⏳ Analizuję plan...'
-              : '✅ Reconciliation zapisane.'
-            : planningEnded
-              ? '⏳ Zaraz generuję plan na jutro...'
-              : streamSaveFailed ? '❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie.' : '💭 Zapisano w Strumieniu.';
+            ? '✅ Refleksja zapisana.'
+            : streamSaveFailed ? '❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie.' : '💭 Zapisano w Strumieniu.';
       } else {
         await sendChatAction(telegramToken, chatId, "typing");
 
@@ -674,34 +572,22 @@ export async function handleIncomingMessage(
           .select('role, content').eq('user_id', vanguardUserId)
           .order('created_at', { ascending: false }).limit(10);
 
-        const formattedHistory = (historyData || []).reverse();
-        const oracleHistory = mode === 'planning' && activePlanningSession
-          ? activePlanningSession.history
-          : formattedHistory;
+        const oracleHistory = (historyData || []).reverse();
 
         // Extended state vector
-        const todayWarsawDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const todayWarsawDate = getWarsawDateString();
         // Warsaw-aware "7 days ago" — anchoring on noon UTC keeps this inside the same Warsaw
         // calendar day regardless of DST, instead of a flat 7*86400000ms offset that can drift
         // an hour across a DST transition and miss notes written on that day.
-        const sevenDaysAgoDate = new Date(new Date(`${todayWarsawDate}T12:00:00Z`).getTime() - 7 * 86400000)
-          .toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+        const sevenDaysAgoDate = getWarsawDateString(new Date(new Date(`${todayWarsawDate}T12:00:00Z`).getTime() - 7 * 86400000));
         const sevenDaysAgo = getWarsawDayBoundaries(sevenDaysAgoDate).start;
-        const [aggregateRes, workoutRes, winRes, planRows, ouraRes, notesRes] = await Promise.all([
+        const [aggregateRes, workoutRes, winRes, ouraRes, notesRes] = await Promise.all([
           supabase.from('vanguard_daily_aggregates').select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('workout_sessions').select('created_at, workout_day').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('daily_wins').select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result').eq('user_id', vanguardUserId).eq('date', todayWarsawDate).maybeSingle(),
-          supabase.from('daily_reconciliations').select('planning_summary, answered_at').eq('user_id', vanguardUserId).not('planning_summary', 'is', null).order('created_at', { ascending: false }).limit(5),
           supabase.from('oura_daily_summary').select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(3),
           supabase.from('vanguard_notes').select('title, content, created_at').eq('user_id', vanguardUserId).eq('is_archived', false).gte('created_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(5)
         ]);
-
-        if (planRows.error) console.error('[telegram] planning_summary query failed:', planRows.error.message);
-        const todayPlan = (planRows.data || []).find((r: any) =>
-          r.planning_summary?.target_date === todayWarsawDate
-          && !r.planning_summary?.parse_error
-          && !r.planning_summary?.plan_fallback
-        )?.planning_summary || null;
 
         const stateVector = {
           biometrics: {
@@ -720,7 +606,6 @@ export async function handleIncomingMessage(
           nutrition: { calories_today: 0 },
           physical: { last_workout: workoutRes.data || 'Brak danych' },
           discipline: { today_wins: winRes.data || 'Nie ustawiono celów' },
-          ...(todayPlan ? { today_plan: todayPlan } : {}),
           ...(notesRes.data?.length ? { recent_keep_notes: notesRes.data } : {})
         };
 
@@ -735,7 +620,7 @@ export async function handleIncomingMessage(
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceRoleKey}`, 'apikey': supabaseServiceRoleKey },
             body: JSON.stringify({
               current_query: cleanText, user_id: vanguardUserId, state_vector: stateVector,
-              mode: mode === 'planning' ? 'planning' : mode === 'report' ? 'mirror' : 'chat',
+              mode: mode === 'report' ? 'mirror' : 'chat',
               thinking: mode === 'deep', history: oracleHistory
             }),
             signal: controller.signal
@@ -764,11 +649,7 @@ export async function handleIncomingMessage(
             responseText = raw;
           }
 
-          if (mode === 'planning' && activePlanningSession && raw) {
-            const updatedHistory = [...activePlanningSession.history, { role: 'user', content: cleanText }, { role: 'assistant', content: raw }];
-            await supabase.from('daily_reconciliations').update({ planning_history: updatedHistory }).eq('id', activePlanningSession.id)
-              .then(({ error: e }: any) => { if (e) console.error('[telegram] planning history update error:', e); });
-          } else if (raw) {
+          if (raw) {
             const chatInsertRes = await supabase.from('ai_chat_messages').insert([
               { user_id: vanguardUserId, role: 'user', content: cleanText },
               { user_id: vanguardUserId, role: 'assistant', content: raw }
@@ -792,11 +673,11 @@ export async function handleIncomingMessage(
         return;
       }
 
-      const hasButtons = shouldRespond && !responseText.startsWith('⚠️') && mode !== 'planning';
+      const hasButtons = shouldRespond && !responseText.startsWith('⚠️');
       const telegramPayload = {
         chat_id: chatId,
         text: responseText,
-        disable_notification: planningEnded ? false : !shouldRespond,
+        disable_notification: !shouldRespond,
         reply_markup: hasButtons ? {
           inline_keyboard: [[
             { text: '👍 Dobra odpowiedź', callback_data: `fb_ok_${Date.now()}` },

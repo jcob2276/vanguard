@@ -95,14 +95,10 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 |------|------|------|
 | Webhook entry | `index.ts` | Parse payload, auth `chat_id`, dispatch |
 | Callback router | `_router/callbacks.ts` | Button clicks -> handlers |
-| Message pipeline | `_router/messages.ts` | Stream, voice, Oracle, planning/recon routing |
+| Message pipeline | `_router/messages.ts` | Stream, voice, Oracle, reconciliation routing |
 | Config | `_router/config.ts` | `createTelegramContext()` |
-| Planning | `_handlers/planning.ts` | Oracle planning mode, `planning_summary` |
-| Reconciliation | `_handlers/reconciliation.ts` | Evening reply, open planning |
+| Reconciliation | `_handlers/reconciliation.ts` | Evening reflection reply (Telegram fast path) |
 | Feedback buttons | `_handlers/feedback.ts` | `fb_ok` / `fb_err` |
-| Morning callbacks | `_handlers/morning.ts` | Start 90 / minimum buttons |
-| Midday callbacks | `_handlers/midday.ts` | legacy callbacks for old buttons only; no new midday messages |
-| Saturday check-in | `_handlers/saturdayCheckin.ts` | Weekly integration flow |
 | Anti-analysis guard | `_handlers/antiAnalysis.ts` | Analysis drift buttons |
 | Telegram API | `_shared/telegram.ts` | send, callbacks, getFile (no raw `fetch` in handlers) |
 

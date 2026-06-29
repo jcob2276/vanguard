@@ -89,6 +89,6 @@ Edge function gotchas:
 
 ## Current system state
 
-- Evening reconciliation → planning sessions → plan jutra: **ACTIVE**
+- Evening reconciliation (reflection-only in Telegram) + planning in app/Oracle: **ACTIVE**
 - Morning brief/ping + legacy midday check crons: **REMOVED** (functions return 410 stubs); noon interview + evening reflection: **ACTIVE**
 - Observation-only mode: **DEPRECATED**
