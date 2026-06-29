@@ -1,10 +1,8 @@
 import { addWeeks, format, parseISO, startOfWeek, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw, nowWarsaw } from './date';
-import { DEFAULT_SKILL_TREE, MAX_PARENT_SKILLS } from './growthSkills';
 
 export type { DefaultSkillTreeNode, DefaultSubSkill } from './growthSkills';
-export { DEFAULT_SKILL_TREE, MAX_PARENT_SKILLS } from './growthSkills';
 
 export type GrowthResourceType =
   | 'book'
@@ -61,10 +59,6 @@ export interface LearningWeekPin {
   done_at: string | null;
 }
 
-/** @deprecated Użyj DEFAULT_SKILL_TREE — płaska lista tylko parentów (kompat). */
-export const DEFAULT_SKILLS = DEFAULT_SKILL_TREE.map(({ key, label }) => ({ key, label }));
-
-export const MAX_SKILLS = MAX_PARENT_SKILLS;
 export const MAX_MUST = 3;
 export const MAX_ACTIVE = 2;
 

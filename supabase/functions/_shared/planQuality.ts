@@ -59,14 +59,3 @@ export function getPlanQualitySignal(plan: any): PlanQualitySignal {
     parseError,
   };
 }
-
-/**
- * Helper for quick checks in briefs/pings/etc.
- */
-export function isLowQualityPlan(plan: any): boolean {
-  return getPlanQualitySignal(plan).isLowQuality;
-}
-
-export function isVeryWeakPlan(plan: any): boolean {
-  return getPlanQualitySignal(plan).isVeryWeak;
-}

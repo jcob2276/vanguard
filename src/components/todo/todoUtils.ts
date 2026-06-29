@@ -7,8 +7,6 @@ export const RECURRENCE_LABELS: Record<string, string> = {
   monthly: 'Co miesiąc'
 };
 
-export const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
-
 export function nextOccurrenceDate(baseDateStr: string | null, recurrence: string, today: string): string {
   const base = baseDateStr || today;
   const [y, m, day] = base.split('-').map(Number);

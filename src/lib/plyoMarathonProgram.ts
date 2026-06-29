@@ -1,7 +1,6 @@
 /** Maraton Gdańsk 04.10.2026 — autopilot plyo przed siłownią */
 
 export const PLYO_PROGRAM_START = '2026-06-30'
-export const PLYO_RACE_DATE = '2026-10-04'
 
 export type PlyoSlotId = 'A' | 'B' | 'C' | 'D'
 

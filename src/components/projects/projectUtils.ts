@@ -25,12 +25,6 @@ export const GOAL_QUESTIONS = [
   { key: 'weekly_actions', q: 'Co robisz co tydzień żeby to osiągnąć?', hint: 'Konkretne powtarzalne działania — to będą Twoje KPI' },
 ] as const;
 
-export const STATUS_TABS = [
-  { id: 'active', label: 'Aktywne' },
-  { id: 'paused', label: 'Pauza' },
-  { id: 'done',   label: 'Gotowe' },
-] as const;
-
 export const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
 export const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
 

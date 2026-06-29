@@ -318,13 +318,3 @@ export default function GrowthWeekPlan({
     </section>
   );
 }
-
-export function GrowthWeekStats({ pins }: { pins: LearningWeekPin[] }) {
-  const done = pins.filter((p) => p.done).length;
-  return (
-    <p className="text-[10px] font-bold text-text-muted">
-      {done}/{pins.length} slotów · {pins.filter((p) => p.slot === 'must' && p.done).length}/
-      {pins.filter((p) => p.slot === 'must').length} MUST
-    </p>
-  );
-}

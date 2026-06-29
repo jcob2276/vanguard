@@ -74,29 +74,6 @@ export function weeklyRunKm(strava: any[]) {
     .map(([k, v]) => ({ week: format(dates[k], 'dd.MM'), km: Math.round(v / 100) / 10 }));
 }
 
-export function computeDigest(sessions: any[], oura: any[], strava: any[]) {
-  const ws = weekStartDate();
-  const weekSess = sessions.filter((s: any) => s.date >= ws);
-  const wellnessSess = weekSess.filter(
-    (s: any) => (s.exercise_logs || []).length > 0 && (s.exercise_logs || []).every((l: any) => isLogWellness(l))
-  );
-  const trainSess = weekSess.filter((s: any) => !wellnessSess.includes(s));
-  const weekRuns = strava.filter(
-    (a: any) => ['Run', 'TrailRun', 'VirtualRun'].includes(a.sport_type) && a.start_date.slice(0, 10) >= ws
-  );
-  const weekOura = oura.filter((o: any) => o.date >= ws);
-  return {
-    sessions: trainSess.length + weekRuns.length,
-    gym: trainSess.length,
-    runs: weekRuns.length,
-    wellness: wellnessSess.length,
-    kmRun: weekRuns.reduce((sum: number, a: any) => sum + (parseFloat(a.distance) || 0), 0) / 1000,
-    avgSleep: avg(weekOura.map((o: any) => o.total_sleep_hours).filter(Boolean)),
-    avgReadiness: avg(weekOura.map((o: any) => o.readiness_score).filter(Boolean)),
-    totalVol: trainSess.reduce((sum: number, sess: any) => sum + sessionVol(sess), 0)
-  };
-}
-
 export function computeAlerts(oura: any[], _sessions: any[], _nutrition: any[]) {
   const alerts: any[] = [];
   const lat = oura[oura.length - 1];
@@ -315,22 +292,6 @@ export function sprintMetrics(oura: any[], sessions: any[], strava: any[], start
     trainDays: s.filter((sess: any) => sessionVol(sess) > 0).length,
     kmRun: runs.reduce((sum: number, a: any) => sum + (parseFloat(a.distance) || 0), 0) / 1000
   };
-}
-
-// ── Streak helper ────────────────────────────────────────────────────────────
-export function computeWeekStreak(sessions: any[]) {
-  const ws = weekStartDate();
-  let streak = 0;
-  const cursor = new Date(ws + 'T12:00:00');
-  for (let i = 0; i < 52; i++) {
-    const wStart = formatWarsawDate(cursor);
-    const wEnd = (() => { const d = new Date(cursor); d.setUTCDate(d.getUTCDate() + 6); return formatWarsawDate(d); })();
-    const hasTrain = sessions.some((s: any) => s.date >= wStart && s.date <= wEnd && sessionVol(s) > 0);
-    if (!hasTrain) break;
-    streak++;
-    cursor.setDate(cursor.getDate() - 7);
-  }
-  return streak;
 }
 
 // ── Intelligence Panel config ─────────────────────────────────────────────────

@@ -9,12 +9,6 @@ import {
   type WorkoutExercise,
 } from '../components/biometrics/workout/workoutUtils'
 
-export interface WorkoutDayChip {
-  workout_day: string
-  count: number
-  last_date: string
-}
-
 export interface WorkoutLoggerInitial {
   workoutName: string
   exercises: WorkoutExercise[]
@@ -30,61 +24,6 @@ export interface WorkoutDraft extends WorkoutLoggerInitial {
   startTimeManual: string
   endTimeManual: string
   savedAt: number
-}
-
-export interface TodayWorkoutSession {
-  id: string
-  workout_day: string
-  duration_minutes: number | null
-  session_rpe: number | null
-  hr_strain_score: number | null
-  hr_avg_bpm: number | null
-  volume_kg: number
-  exercise_count: number
-}
-
-export interface TodayStravaActivity {
-  id: string
-  name: string | null
-  sport_type: string | null
-  distance: number | null
-  moving_time: number | null
-}
-
-export interface TodayWorkoutSnapshot {
-  sessions: TodayWorkoutSession[]
-  strava: TodayStravaActivity[]
-  totalVolumeKg: number
-  strainScore: number | null
-  strengthLoad: number | null
-  cardioLoad: number | null
-  trainingInsight: string | null
-}
-
-export interface ParsedWorkoutSet {
-  kg: number
-  reps: number
-  rir?: number | null
-}
-
-export interface ParsedWorkoutExercise {
-  name: string
-  tags?: string[]
-  sets: ParsedWorkoutSet[]
-  confidence?: 'high' | 'medium' | 'low'
-  assumptions?: string[]
-}
-
-export interface ParsedWorkoutActivity {
-  name: string
-  minutes: number
-  note?: string
-}
-
-export interface ParsedWorkout {
-  workout_name?: string
-  exercises: ParsedWorkoutExercise[]
-  activities?: ParsedWorkoutActivity[]
 }
 
 const DRAFT_KEY = (userId: string) => `vanguard_workout_draft_${userId}`
@@ -214,49 +153,12 @@ export function clearWorkoutDraft(userId: string): void {
   }
 }
 
-export function readTrainingInsight(userId: string, date: string): string | null {
-  try {
-    const raw = localStorage.getItem(INSIGHT_KEY(userId, date))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as { line?: string }
-    return parsed.line ?? null
-  } catch {
-    return null
-  }
-}
-
 function storeTrainingInsight(userId: string, date: string, line: string): void {
   try {
     localStorage.setItem(INSIGHT_KEY(userId, date), JSON.stringify({ line, at: Date.now() }))
   } catch {
     /* ignore */
   }
-}
-
-export async function fetchRecentWorkoutDays(userId: string, limit = 4): Promise<WorkoutDayChip[]> {
-  const cutoff = new Date()
-  cutoff.setUTCDate(cutoff.getUTCDate() - 120)
-  const { data } = await supabase
-    .from('workout_sessions')
-    .select('workout_day, date')
-    .eq('user_id', userId)
-    .gte('date', cutoff.toISOString().slice(0, 10))
-    .order('date', { ascending: false })
-    .limit(200)
-
-  const map = new Map<string, { count: number; last_date: string }>()
-  for (const row of data ?? []) {
-    const day = row.workout_day?.trim()
-    if (!day) continue
-    const prev = map.get(day)
-    if (!prev) map.set(day, { count: 1, last_date: row.date ?? '' })
-    else map.set(day, { count: prev.count + 1, last_date: prev.last_date || row.date || '' })
-  }
-
-  return [...map.entries()]
-    .map(([workout_day, v]) => ({ workout_day, count: v.count, last_date: v.last_date }))
-    .sort((a, b) => b.last_date.localeCompare(a.last_date) || b.count - a.count)
-    .slice(0, limit)
 }
 
 function logsToExercises(logs: Array<{
@@ -357,28 +259,6 @@ export async function loadWorkoutTemplate(userId: string, workoutDay?: string): 
     notes: session.session_notes ?? '',
     sessionRpe: session.session_rpe ?? null,
   }
-}
-
-export function computeVolumeKg(exercises: WorkoutExercise[]): number {
-  return exercises.reduce((sum, ex) => {
-    if ((ex.tags ?? []).includes('wellness')) return sum
-    return sum + (ex.sets ?? []).reduce((s, set) => s + (parseFloat(set.kg) || 0) * (parseInt(set.reps, 10) || 0), 0)
-  }, 0)
-}
-
-export async function parseWorkoutNL(text: string, userId: string, accessToken: string): Promise<ParsedWorkout> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-workout-nl`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text: text.trim(), userId }),
-    signal: AbortSignal.timeout(35000),
-  })
-  const json = await res.json()
-  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
-  return json as ParsedWorkout
 }
 
 export type PlyoSetLog = {
@@ -621,72 +501,6 @@ export async function deleteSaunaSession(userId: string, sessionId: string): Pro
   await supabase.from('exercise_logs').delete().eq('session_id', sessionId).eq('user_id', userId)
   const { error } = await supabase.from('workout_sessions').delete().eq('id', sessionId).eq('user_id', userId)
   if (error) throw error
-}
-
-export async function fetchTodayWorkoutSnapshot(userId: string, date = getTodayWarsaw()): Promise<TodayWorkoutSnapshot> {
-  const [{ data: sessions }, { data: strain }, { data: strava }] = await Promise.all([
-    supabase
-      .from('workout_sessions')
-      .select('id, workout_day, duration_minutes, session_rpe, hr_strain_score, hr_avg_bpm')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .order('start_time', { ascending: true }),
-    supabase
-      .from('daily_strain')
-      .select('strain_score, strength_load, cardio_load')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle(),
-    supabase
-      .from('strava_activities_clean')
-      .select('id, name, sport_type, distance, moving_time')
-      .eq('user_id', userId)
-      .gte('start_date', `${date}T00:00:00`)
-      .lte('start_date', `${date}T23:59:59`)
-      .order('start_date', { ascending: false }),
-  ])
-
-  const sessionIds = (sessions ?? []).map((s) => s.id)
-  let volumeBySession: Record<string, number> = {}
-  let countBySession: Record<string, number> = {}
-
-  if (sessionIds.length) {
-    const { data: logs } = await supabase
-      .from('exercise_logs')
-      .select('session_id, weight, reps, muscle_tags')
-      .eq('user_id', userId)
-      .in('session_id', sessionIds)
-
-    for (const log of logs ?? []) {
-      if ((log.muscle_tags ?? []).includes('wellness')) continue
-      const vol = (Number(log.weight) || 0) * (Number(log.reps) || 0)
-      volumeBySession[log.session_id!] = (volumeBySession[log.session_id!] ?? 0) + vol
-      countBySession[log.session_id!] = (countBySession[log.session_id!] ?? 0) + 1
-    }
-  }
-
-  const mappedSessions: TodayWorkoutSession[] = (sessions ?? [])
-    .filter((s) => (s.workout_day || '').toLowerCase() !== 'sauna')
-    .map((s) => ({
-    id: s.id,
-    workout_day: s.workout_day,
-    duration_minutes: s.duration_minutes,
-    session_rpe: s.session_rpe,
-    hr_strain_score: s.hr_strain_score,
-    hr_avg_bpm: s.hr_avg_bpm,
-    volume_kg: Math.round(volumeBySession[s.id] ?? 0),
-    exercise_count: countBySession[s.id] ?? 0,
-  }))
-
-  return {
-    sessions: mappedSessions,
-    strava: (strava ?? []) as TodayStravaActivity[],
-    totalVolumeKg: mappedSessions.reduce((s, x) => s + x.volume_kg, 0),
-    strainScore: strain?.strain_score ?? null,
-    strengthLoad: strain?.strength_load ?? null,
-    cardioLoad: strain?.cardio_load ?? null,
-    trainingInsight: readTrainingInsight(userId, date),
-  }
 }
 
 async function runTrainingLoadAnalysis(userId: string, date: string): Promise<void> {

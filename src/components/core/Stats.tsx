@@ -14,7 +14,7 @@ import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
 import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { DataExportSection } from './stats/DataExportSection';
-import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
+import { FoodAnalysisSection, type FoodQualityItem, type ProteinDistribution, type FoodAnalysisDay, type FoodAnalysisResult } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
 
 type BodyMetricRow = Tables<'body_metrics'>;
@@ -29,39 +29,6 @@ type TrendsState = Partial<Record<'weight' | 'waist' | 'readiness' | 'sleep' | '
 type ProjectionResult = { value: string; change: string } | null;
 type ProjectionState = Partial<Record<'weight' | 'waist', ProjectionResult>>;
 type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
-type FoodQualityItem = { food_quality_score: number; name: string; quality_reason: string };
-type ProteinDistribution = { meal: string; protein_g: number; mps?: boolean; note?: string };
-type FoodAnalysisDay = { date?: string; incomplete?: boolean; fasting?: boolean; score?: number };
-type FoodAnalysisResult =
-  | {
-      success?: boolean;
-      mode: 'single';
-      fasting?: boolean;
-      date?: string;
-      day_quality_analysis?: string;
-      day_quality_score?: number;
-      items: FoodQualityItem[];
-      protein_distribution?: ProteinDistribution[];
-    }
-  | {
-      success?: boolean;
-      mode: 'range';
-      dateFrom?: string;
-      dateTo?: string;
-      avg_score?: number;
-      days: FoodAnalysisDay[];
-      pattern_analysis?: string;
-      top_issues?: string[];
-      strengths?: string[];
-      action_steps?: string[];
-      nutrition_profile?: string;
-      trend?: string;
-      trend_note?: string;
-      best_day?: string;
-      worst_day?: string;
-      chronic_gaps?: string[];
-      training_nutrition_note?: string;
-    };
 type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
 export default function Stats({ session, topSlot = null, runningSlot = null }: { session: any; topSlot?: any; runningSlot?: any }) {

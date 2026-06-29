@@ -30,10 +30,6 @@ export { detectEarlyWarningSignals } from './vanguardPatterns/earlyWarning.ts';
 export { detectNarrativeBiometricMismatch } from './vanguardPatterns/narrativeMismatch.ts';
 
 export {
-  shouldSurfaceInsight,
-  recordBehavioralPattern,
   getRecentStrongBehavioralPatterns,
   updatePatternFeedback,
-  markPatternAsShown,
-  getRecentEarlyWarnings,
 } from './vanguardPatterns/store.ts';

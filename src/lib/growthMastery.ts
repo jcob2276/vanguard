@@ -3,36 +3,7 @@ import type { LearningSkill, LearningWeekPin } from './growth';
 import { inferResourceType } from './growth';
 
 /** Collin / learning pyramid — practitioner rule. */
-export const PRACTITIONER_PRACTICE_TARGET = 80;
-
-/** YanSculpts focus block · Huberman session density. */
-export const FOCUS_BLOCK_MINUTES = 25;
-export const SESSION_PRESETS_MIN = [25, 45, 90] as const;
-export const IDLE_AFTER_SESSION_MIN = 5;
-
-/** 5-krokowa pętla (lazy loop / GRIT WISE) — jedna sesja. */
-export const MASTERY_LOOP_STEPS = [
-  { key: 'curate', label: 'Curate', hint: 'Max 1–3 materiały — reszta to szum' },
-  { key: 'chunk', label: 'Chunk', hint: 'Jedna micro-misja na 45–90 min' },
-  { key: 'do', label: 'Do', hint: 'Najpierw próba, potem tutorial' },
-  { key: 'explain', label: 'Explain', hint: 'Powiedz na głos — widać luki' },
-  { key: 'repeat', label: 'Repeat', hint: 'Jutro ten sam rep, nie nowy kurs' },
-] as const;
-
-/** YanSculpts Dave protocol — po drillu. */
-export const DAVE_PROTOCOL_STEPS = [
-  { key: 'deconstruct', label: 'Dekonstrukcja', hint: 'Jak to działa pod spodem?' },
-  { key: 'recall', label: 'Recall', hint: 'Powtórz bez materiału / referencji' },
-  { key: 'critique', label: 'Self-critique', hint: 'Porównaj z celem — co pominąłeś?' },
-  { key: 'space', label: 'Spacing', hint: 'Ten sam rep jutro, nie za tydzień' },
-] as const;
-
-/** Deep end practice (Improvement Pill). */
-export const DEEP_END_SPLIT = {
-  warm: 10,
-  edge: 70,
-  polish: 20,
-} as const;
+const PRACTITIONER_PRACTICE_TARGET = 80;
 
 export type TheoryPracticeBalance = {
   theory: number;

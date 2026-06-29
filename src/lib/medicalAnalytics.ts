@@ -73,14 +73,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
   other: 'Inne',
 };
 
-export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
-  laboratory_report: 'Wynik laboratoryjny',
-  hematology_referral: 'Skierowanie',
-  non_clinical_analysis_report: 'Raport poza lab (niska wiarygodność)',
-  clinical_document: 'Dokument kliniczny',
-  clinical_lab: 'Badanie kliniczne',
-};
-
 export function categoryLabel(key: string | null | undefined): string {
   if (!key) return CATEGORY_LABELS.other;
   return CATEGORY_LABELS[key] ?? key.replace(/_/g, ' ');

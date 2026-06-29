@@ -268,20 +268,3 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
     reload,
   };
 }
-
-export function useUpcomingCheckpointsFromContext(userId: string | undefined, horizonDays = 14) {
-  const ctx = useDirectionContext(userId);
-  const items = useMemo(() => {
-    const all = ctx.checkpoints.all;
-    if (horizonDays >= 14) return all;
-    return all.filter((cp) => cp.daysLeft <= horizonDays || cp.isOverdue);
-  }, [ctx.checkpoints.all, horizonDays]);
-
-  return {
-    items,
-    overdue: items.filter((cp) => cp.isOverdue),
-    upcoming: items.filter((cp) => !cp.isOverdue),
-    loading: ctx.loading,
-    reload: ctx.reload,
-  };
-}

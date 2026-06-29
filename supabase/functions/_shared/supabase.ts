@@ -6,12 +6,6 @@ export function createServiceClient(): SupabaseClient {
   return createClient(url, key);
 }
 
-export function requireEnv(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`Missing required env: ${name}`);
-  return value;
-}
-
 export async function resolveUserScope(
   req: Request,
   requestedUserId: string | null = null,

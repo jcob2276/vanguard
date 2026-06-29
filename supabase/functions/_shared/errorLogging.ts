@@ -52,22 +52,3 @@ export async function logCriticalError(params: {
     console.error(`[${params.area}] Failed to write audit log for critical error:`, auditErr);
   }
 }
-
-/**
- * Wrapper for async operations in cron/handler contexts.
- * Logs failures properly instead of silent continue.
- */
-export async function safeCritical<T>(
-  area: string,
-  fn: () => Promise<T>,
-  options?: { fallback?: T; logOnError?: boolean }
-): Promise<T | undefined> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (options?.logOnError !== false) {
-      await logCriticalError({ area, error: err });
-    }
-    return options?.fallback;
-  }
-}

@@ -9,9 +9,3 @@ export function getAgentRunMode(): AgentRunMode {
   } catch {}
   return 'auto';
 }
-
-export function setAgentRunMode(mode: AgentRunMode): void {
-  try {
-    localStorage.setItem(KEY, mode);
-  } catch {}
-}

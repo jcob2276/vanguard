@@ -65,10 +65,6 @@ export async function sendChatAction(
   });
 }
 
-export function escapeMd(text: string): string {
-  return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, (c) => "\\" + c);
-}
-
 export async function answerCallbackQuery(
   token: string,
   callbackQueryId: string,
@@ -87,7 +83,7 @@ export async function answerCallbackQuery(
   });
 }
 
-export async function editMessageReplyMarkup(
+async function editMessageReplyMarkup(
   token: string,
   chatId: number,
   messageId: number,

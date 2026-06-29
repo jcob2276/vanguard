@@ -110,8 +110,6 @@ export const EXERCISE_MAP = new Map(
   EXERCISES.map(e => [normalize(e.name), e.tags])
 );
 
-export const ALL_TAGS = [...new Set(EXERCISES.flatMap(e => e.tags))].sort();
-
 export const MUSCLE_TAGS = [
   'klatka',
   'plecy',

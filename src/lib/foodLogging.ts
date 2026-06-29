@@ -83,23 +83,6 @@ export function defaultMealType(): MealTypeId {
   return 'snack'
 }
 
-export async function fetchTodayNutrition(userId: string, date = getTodayWarsaw()): Promise<TodayNutritionSnapshot> {
-  const [{ data: dayRow }, { data: targetRow }, { data: latestTarget }] = await Promise.all([
-    supabase.from('daily_nutrition').select('calories, protein, avg_food_quality, food_quality_analysis').eq('user_id', userId).eq('date', date).maybeSingle(),
-    supabase.from('nutrition_targets').select('target_kcal, protein_floor_g').eq('user_id', userId).eq('date', date).maybeSingle(),
-    supabase.from('nutrition_targets').select('target_kcal, protein_floor_g').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
-  ])
-  const target = targetRow ?? latestTarget
-  return {
-    calories: dayRow?.calories ?? 0,
-    protein: dayRow?.protein ?? 0,
-    targetKcal: target?.target_kcal ?? null,
-    targetProtein: target?.protein_floor_g ?? null,
-    avgFoodQuality: dayRow?.avg_food_quality ?? null,
-    foodQualityAnalysis: dayRow?.food_quality_analysis ?? null,
-  }
-}
-
 export async function parseFoodNL(text: string, userId: string, accessToken: string): Promise<ParsedFoodItem[]> {
   let res: Response
   try {
