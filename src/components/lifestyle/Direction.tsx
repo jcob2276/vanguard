@@ -19,22 +19,40 @@ import { pl } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import type { Tables, TablesUpdate } from '../../lib/database.types';
 import {
-  currentWeekStart as getCurrentWeekStart,
+  closingMonthStartForReview,
+  completeMonthlyReview,
+  completeSprintClose,
   completeWeeklyReview,
+  currentWeekStart as getCurrentWeekStart,
+  fetchMonthlyReview,
+  fetchSprintReview,
   fetchWeeklyReviewFull,
+  gatherMonthFacts,
+  gatherSprintFacts,
+  nextWeekStart,
   previousWeekStart,
   saveWeeklyReviewReflection,
+  type SprintReview,
 } from '../../lib/goalSpine';
+import type { MonthFacts } from '../../lib/monthReview';
+import { monthCarryToWeekPlan } from '../../lib/monthCarry';
+import { monthThemeSourceStart } from '../../lib/monthReview';
+import type { SprintFacts, SprintProjectDecision } from '../../lib/sprintReview';
+import { getSprintInfo } from '../desktop/desktopUtils';
+import DirectionMonthlyMode from './DirectionMonthlyMode';
+import DirectionSprintMode from './DirectionSprintMode';
 import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
+import { useWarsawDayChange } from '../../hooks/useWarsawDayChange';
 import { useLifeGoals } from '../../hooks/useLifeGoals';
 import WeekHub from './WeekHub';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
+type MonthRecap = Phase1Recap;
 type Phase2Recap = {
   narrative_check: string;
   deepening_questions?: string[];
@@ -80,22 +98,36 @@ export default function Direction({
 
   const currentWeekStart = getCurrentWeekStart();
 
+  const todayNoon = new Date(todayWarsaw() + 'T12:00:00');
+  const isSunday = todayNoon.getDay() === 0;
+
+  // Sunday → plan next week; otherwise → current week
+  const planRef = isSunday ? addDays(todayNoon, 7) : todayNoon;
+  const planWeekStart = startOfWeek(planRef, { weekStartsOn: 1 });
+  const planWeekEnd = endOfWeek(planRef, { weekStartsOn: 1 });
+  const planWeekLabel = `${format(planWeekStart, 'd MMM', { locale: pl })} – ${format(planWeekEnd, 'd MMM', { locale: pl })}`;
+  const closingWeekStart = currentWeekStart;
+  const planTargetWeekStart = isSunday ? format(planWeekStart, 'yyyy-MM-dd') : currentWeekStart;
+
   // Persisted — multi-paragraph weekly review answers, filled in over a session;
   // a backgrounded-tab kill (Android reclaiming memory) must not erase them before submit.
-  // Keyed by week_start so a stale draft never bleeds into next week's blank review.
-  const draftKey = (field: string) => `vanguard_review_draft_${field}_${userId}_${currentWeekStart}`;
-  const [proudOf, setProudOf] = usePersistentDraft(draftKey('proudOf'), '');
-  const [doDifferently, setDoDifferently] = usePersistentDraft(draftKey('doDifferently'), '');
-  const [sabotage, setSabotage] = usePersistentDraft(draftKey('sabotage'), '');
-  const [obligation, setObligation] = usePersistentDraft(draftKey('obligation'), '');
-  const [weekHighlight, setWeekHighlight] = usePersistentDraft(draftKey('weekHighlight'), '');
-  const [weekRegret, setWeekRegret] = usePersistentDraft(draftKey('weekRegret'), '');
-  const [newBelief, setNewBelief] = usePersistentDraft(draftKey('newBelief'), '');
-  const [weekIntention, setWeekIntention] = usePersistentDraft(draftKey('weekIntention'), '');
-  const [weekCommitment, setWeekCommitment] = usePersistentDraft(draftKey('weekCommitment'), '');
-  const [weekGoalCialo, setWeekGoalCialo] = usePersistentDraft(draftKey('weekGoalCialo'), '');
-  const [weekGoalDuch, setWeekGoalDuch] = usePersistentDraft(draftKey('weekGoalDuch'), '');
-  const [weekGoalKonto, setWeekGoalKonto] = usePersistentDraft(draftKey('weekGoalKonto'), '');
+  // Reflection drafts keyed to closing week; plan drafts keyed to target plan week.
+  const reflectionDraftKey = (field: string) =>
+    `vanguard_review_draft_${field}_${userId}_${closingWeekStart}`;
+  const planDraftKey = (field: string) =>
+    `vanguard_review_draft_${field}_${userId}_${planTargetWeekStart}`;
+  const [proudOf, setProudOf] = usePersistentDraft(reflectionDraftKey('proudOf'), '');
+  const [doDifferently, setDoDifferently] = usePersistentDraft(reflectionDraftKey('doDifferently'), '');
+  const [sabotage, setSabotage] = usePersistentDraft(reflectionDraftKey('sabotage'), '');
+  const [obligation, setObligation] = usePersistentDraft(reflectionDraftKey('obligation'), '');
+  const [weekHighlight, setWeekHighlight] = usePersistentDraft(reflectionDraftKey('weekHighlight'), '');
+  const [weekRegret, setWeekRegret] = usePersistentDraft(reflectionDraftKey('weekRegret'), '');
+  const [newBelief, setNewBelief] = usePersistentDraft(reflectionDraftKey('newBelief'), '');
+  const [weekIntention, setWeekIntention] = usePersistentDraft(planDraftKey('weekIntention'), '');
+  const [weekCommitment, setWeekCommitment] = usePersistentDraft(planDraftKey('weekCommitment'), '');
+  const [weekGoalCialo, setWeekGoalCialo] = usePersistentDraft(planDraftKey('weekGoalCialo'), '');
+  const [weekGoalDuch, setWeekGoalDuch] = usePersistentDraft(planDraftKey('weekGoalDuch'), '');
+  const [weekGoalKonto, setWeekGoalKonto] = usePersistentDraft(planDraftKey('weekGoalKonto'), '');
   const [pillarScores, setPillarScores] = useState<PillarScores>({ cialo: null, duch: null, konto: null });
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
   const [focusGoalMappings, setFocusGoalMappings] = useState<Record<string, string>>({});
@@ -111,21 +143,55 @@ export default function Direction({
   const [phase2Loading, setPhase2Loading] = useState(false);
 
   const [savingReflection, setSavingReflection] = useState(false);
-  const [deepeningAnswers, setDeepeningAnswers] = usePersistentDraft<Record<string, string>>(draftKey('deepeningAnswers'), {});
+  const [reflectionPersisted, setReflectionPersisted] = useState(false);
+  const [deepeningAnswers, setDeepeningAnswers] = usePersistentDraft<Record<string, string>>(
+    reflectionDraftKey('deepeningAnswers'),
+    {},
+  );
   const [completing, setCompleting] = useState(false);
+  const [ritualClosed, setRitualClosed] = useState(false);
+  const [forceWeeklyReview, setForceWeeklyReview] = useState(false);
 
-
-  const todayNoon = new Date(todayWarsaw() + 'T12:00:00');
-  const isSunday = todayNoon.getDay() === 0;
-
-  // Sunday → plan next week; otherwise → current week
-  const planRef = isSunday ? addDays(todayNoon, 7) : todayNoon;
-  const planWeekStart = startOfWeek(planRef, { weekStartsOn: 1 });
-  const planWeekEnd = endOfWeek(planRef, { weekStartsOn: 1 });
-  const planWeekLabel = `${format(planWeekStart, 'd MMM', { locale: pl })} – ${format(planWeekEnd, 'd MMM', { locale: pl })}`;
-
-  const planSaved = !!currentReview?.review_completed_at;
+  const planSaved = ritualClosed || !!currentReview?.review_completed_at;
   const showPlanningMode = isSunday && !planSaved;
+
+  const closingMonthStart = closingMonthStartForReview(todayWarsaw());
+  const [monthReview, setMonthReview] = useState<Tables<'monthly_reviews'> | null>(null);
+  const [monthFacts, setMonthFacts] = useState<MonthFacts | null>(null);
+  const [monthRecap, setMonthRecap] = useState<MonthRecap | null>(null);
+  const [monthRecapLoading, setMonthRecapLoading] = useState(false);
+  const [monthCompleting, setMonthCompleting] = useState(false);
+  const monthDraftKey = (field: string) =>
+    `vanguard_month_draft_${field}_${userId}_${closingMonthStart ?? 'none'}`;
+  const [patternNote, setPatternNote] = usePersistentDraft(monthDraftKey('pattern'), '');
+  const [leverageNote, setLeverageNote] = usePersistentDraft(monthDraftKey('leverage'), '');
+  const [correctionNote, setCorrectionNote] = usePersistentDraft(monthDraftKey('correction'), '');
+  const [monthTheme, setMonthTheme] = usePersistentDraft(monthDraftKey('theme'), '');
+
+  const sprintInfo = useMemo(() => getSprintInfo(), []);
+  const sprintClosingWeek = sprintInfo.weekInSprint === 12;
+  const [sprintReview, setSprintReview] = useState<SprintReview | null>(null);
+  const [sprintFacts, setSprintFacts] = useState<SprintFacts | null>(null);
+  const [sprintCompleting, setSprintCompleting] = useState(false);
+  const sprintDraftKey = (field: string) =>
+    `vanguard_sprint_draft_${field}_${userId}_${sprintInfo.personalYear}_${sprintInfo.sprintNumber}`;
+  const [sprintReflection, setSprintReflection] = usePersistentDraft(sprintDraftKey('reflection'), '');
+  const [nextSprintGoal, setNextSprintGoal] = usePersistentDraft(sprintDraftKey('nextGoal'), '');
+  const [projectDecisions, setProjectDecisions] = usePersistentDraft<Record<string, SprintProjectDecision>>(
+    sprintDraftKey('projects'),
+    {},
+  );
+  const [intentionFromMonth, setIntentionFromMonth] = useState(false);
+  const [carryMonthTheme, setCarryMonthTheme] = useState<string | null>(null);
+  const [planCarriedFromMonth, setPlanCarriedFromMonth] = useState(false);
+
+  const sprintCloseDue = sprintClosingWeek && !sprintReview?.completed_at;
+  const showSprintMode = sprintCloseDue;
+  const monthlyDue = Boolean(closingMonthStart && !monthReview?.completed_at);
+  const monthlyComplete = Boolean(monthReview?.completed_at);
+  const showMonthlyMode = monthlyDue && !showSprintMode;
+  const showWeeklyPlanning =
+    ((showPlanningMode && (!showMonthlyMode || monthlyComplete) && !showSprintMode) || forceWeeklyReview);
 
   const planCalEvents = allCalEvents.filter((e) => {
     if (!e.start_time) return false;
@@ -135,22 +201,26 @@ export default function Direction({
 
   const [activeProjects, setActiveProjects] = useState<{ id: string; name: string }[]>([]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     const today = todayWarsaw();
     const userId = session.user.id;
     const now = new Date(today + 'T12:00:00');
+    const isSundayFetch = now.getDay() === 0;
+    const planWeekStartStr = isSundayFetch ? nextWeekStart(currentWeekStart) : null;
 
     const calFrom = subDays(startOfWeek(now, { weekStartsOn: 1 }), 1).toISOString();
     const calTo = addDays(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 1).toISOString();
     const prevWeekStart = previousWeekStart(currentWeekStart);
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const monthStart = closingMonthStartForReview(today);
 
     try {
       const [
         ,
         { data: historyData },
         reviewData,
+        planReviewData,
         { data: calData },
         prevReviewData,
         { data: ouraData },
@@ -159,10 +229,16 @@ export default function Direction({
         { data: nutritionTargetData },
         { data: doneTasksData },
         { data: projectsData },
+        monthReviewData,
+        monthFactsData,
+        sprintReviewData,
+        sprintFactsData,
+        activeThemeReviewData,
       ] = await Promise.all([
         supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
         fetchWeeklyReviewFull(userId, currentWeekStart),
+        planWeekStartStr ? fetchWeeklyReviewFull(userId, planWeekStartStr) : Promise.resolve(null),
         supabase.from('vanguard_calendar').select('summary, start_time, end_time').eq('user_id', userId).gte('start_time', calFrom).lt('start_time', calTo).order('start_time'),
         fetchWeeklyReviewFull(userId, prevWeekStart),
         supabase.from('oura_daily_summary').select('total_sleep_hours, readiness_score').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
@@ -171,6 +247,11 @@ export default function Direction({
         supabase.from('nutrition_targets').select('target_kcal').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('todo_items').select('title, status').eq('user_id', userId).in('status', ['done', 'dropped']).gte('updated_at', warsawDayBoundsISO(currentWeekStart).fromISO).lte('updated_at', warsawDayBoundsISO(weekEnd).toISO),
         supabase.from('projects').select('id, name').eq('user_id', userId).eq('status', 'active'),
+        monthStart ? fetchMonthlyReview(userId, monthStart) : Promise.resolve(null),
+        monthStart ? gatherMonthFacts(userId, monthStart) : Promise.resolve(null),
+        sprintClosingWeek ? fetchSprintReview(userId) : Promise.resolve(null),
+        sprintClosingWeek ? gatherSprintFacts(userId) : Promise.resolve(null),
+        isSundayFetch ? fetchMonthlyReview(userId, monthThemeSourceStart(today)) : Promise.resolve(null),
       ]);
 
       setHistory(historyData || []);
@@ -183,8 +264,32 @@ export default function Direction({
       setWeekDoneTasks((doneTasksData || []).map((t: any) => ({ title: t.title, status: t.status })));
       setActiveProjects((projectsData || []).map((p: any) => ({ id: p.id, name: p.name })));
 
+      if (monthReviewData) {
+        setMonthReview(monthReviewData);
+        if (monthReviewData.pattern_note) setPatternNote(monthReviewData.pattern_note);
+        if (monthReviewData.leverage_note) setLeverageNote(monthReviewData.leverage_note);
+        if (monthReviewData.correction_note) setCorrectionNote(monthReviewData.correction_note);
+        if (monthReviewData.month_theme) setMonthTheme(monthReviewData.month_theme);
+        const mRecap = monthReviewData.ai_recap as { phase1?: MonthRecap } | null;
+        if (mRecap?.phase1) setMonthRecap(mRecap.phase1);
+      } else {
+        setMonthReview(null);
+        setMonthRecap(null);
+      }
+      setMonthFacts(monthFactsData);
+
+      if (sprintReviewData) {
+        setSprintReview(sprintReviewData);
+        if (sprintReviewData.reflection) setSprintReflection(sprintReviewData.reflection);
+      } else {
+        setSprintReview(null);
+      }
+      setSprintFacts(sprintFactsData);
+      setCarryMonthTheme(activeThemeReviewData?.month_theme?.trim() || null);
+
       if (reviewData) {
         setCurrentReview(reviewData);
+        if (reviewData.review_completed_at) setRitualClosed(false);
         if (reviewData.proud_of) setProudOf(reviewData.proud_of);
         if (reviewData.do_differently) setDoDifferently(reviewData.do_differently);
         if (reviewData.sabotage) setSabotage(reviewData.sabotage);
@@ -192,11 +297,6 @@ export default function Direction({
         if ((reviewData as any).week_highlight) setWeekHighlight((reviewData as any).week_highlight);
         if ((reviewData as any).week_regret) setWeekRegret((reviewData as any).week_regret);
         if ((reviewData as any).new_belief) setNewBelief((reviewData as any).new_belief);
-        if ((reviewData as any).week_intention) setWeekIntention((reviewData as any).week_intention);
-        if ((reviewData as any).week_commitment) setWeekCommitment((reviewData as any).week_commitment);
-        if ((reviewData as any).week_goal_cialo) setWeekGoalCialo((reviewData as any).week_goal_cialo);
-        if ((reviewData as any).week_goal_duch) setWeekGoalDuch((reviewData as any).week_goal_duch);
-        if ((reviewData as any).week_goal_konto) setWeekGoalKonto((reviewData as any).week_goal_konto);
         if (reviewData.pillar_scores && typeof reviewData.pillar_scores === 'object' && !Array.isArray(reviewData.pillar_scores)) {
           setPillarScores((prev) => ({ ...prev, ...(reviewData.pillar_scores as Partial<PillarScores>) }));
         }
@@ -210,6 +310,21 @@ export default function Direction({
         if (reviewData.deepening_answers && typeof reviewData.deepening_answers === 'object' && !Array.isArray(reviewData.deepening_answers)) {
           setDeepeningAnswers(reviewData.deepening_answers as Record<string, string>);
         }
+        const hasReflection =
+          Boolean(reviewData.proud_of?.trim()) ||
+          Boolean(reviewData.obligation?.trim()) ||
+          Boolean(reviewData.do_differently?.trim()) ||
+          Boolean(reviewData.sabotage?.trim());
+        if (hasReflection) setReflectionPersisted(true);
+      }
+
+      const planSource = planReviewData ?? (isSundayFetch ? null : reviewData);
+      if (planSource) {
+        if ((planSource as any).week_intention) setWeekIntention((planSource as any).week_intention);
+        if ((planSource as any).week_commitment) setWeekCommitment((planSource as any).week_commitment);
+        if ((planSource as any).week_goal_cialo) setWeekGoalCialo((planSource as any).week_goal_cialo);
+        if ((planSource as any).week_goal_duch) setWeekGoalDuch((planSource as any).week_goal_duch);
+        if ((planSource as any).week_goal_konto) setWeekGoalKonto((planSource as any).week_goal_konto);
       }
 
       if (reviewData?.focus_task_ids && reviewData.focus_task_ids.length > 0) {
@@ -232,37 +347,95 @@ export default function Direction({
     } catch (err) {
       console.error('Direction fetch error:', err);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, [session, currentWeekStart]);
+  }, [session, currentWeekStart, sprintClosingWeek]);
+
+  const applyMonthCarry = useCallback(
+    (review: { month_theme?: string | null; correction_note?: string | null; leverage_note?: string | null } | null, facts: MonthFacts | null) => {
+      const carry = monthCarryToWeekPlan(review, facts);
+      let applied = false;
+      if (carry.intention && !weekIntention.trim()) {
+        setWeekIntention(carry.intention);
+        setIntentionFromMonth(true);
+        applied = true;
+      }
+      if (carry.commitment && !weekCommitment.trim()) {
+        setWeekCommitment(carry.commitment);
+        applied = true;
+      }
+      for (const pillar of ['cialo', 'duch', 'konto'] as const) {
+        const val = carry[pillar];
+        const setter = pillar === 'cialo' ? setWeekGoalCialo : pillar === 'duch' ? setWeekGoalDuch : setWeekGoalKonto;
+        const current = pillar === 'cialo' ? weekGoalCialo : pillar === 'duch' ? weekGoalDuch : weekGoalKonto;
+        if (val && !current.trim()) {
+          setter(val);
+          applied = true;
+        }
+      }
+      if (applied) setPlanCarriedFromMonth(true);
+    },
+    [weekIntention, weekCommitment, weekGoalCialo, weekGoalDuch, weekGoalKonto, setWeekIntention, setWeekCommitment, setWeekGoalCialo, setWeekGoalDuch, setWeekGoalKonto],
+  );
 
   useEffect(() => {
-    const t = setTimeout(() => { if (session?.user?.id) fetchData(); }, 0);
+    if (!showWeeklyPlanning || planCarriedFromMonth) return;
+    const review = monthReview ?? (carryMonthTheme ? { month_theme: carryMonthTheme } : null);
+    applyMonthCarry(review, monthFacts);
+  }, [showWeeklyPlanning, planCarriedFromMonth, monthReview, monthFacts, carryMonthTheme, applyMonthCarry]);
+
+  useEffect(() => {
+    const t = setTimeout(() => { if (session?.user?.id) void fetchData(); }, 0);
     return () => clearTimeout(t);
   }, [session?.user?.id, fetchData]);
+
+  useWarsawDayChange(() => {
+    if (session?.user?.id) void fetchData({ silent: true });
+  });
 
   const callWeekRecap = useCallback(async (phase: 'before' | 'after') => {
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-week-recap`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ weekStart: currentWeekStart, phase }),
+      body: JSON.stringify({ weekStart: closingWeekStart, phase }),
       signal: AbortSignal.timeout(45000),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Błąd generowania przeglądu tygodnia');
     return data;
-  }, [session, currentWeekStart]);
+  }, [session, closingWeekStart]);
 
-  // Warstwa 1 jest automatyczna — odpala się raz, gdy wchodzimy w niedzielny rytuał
-  // i jeszcze nie ma wygenerowanego wzorca dla tego tygodnia.
+  const callMonthRecap = useCallback(async () => {
+    if (!closingMonthStart) return null;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-week-recap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ monthStart: closingMonthStart, phase: 'month' }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Błąd generowania przeglądu miesiąca');
+    return data;
+  }, [session, closingMonthStart]);
+
+  // Warstwa 1 tygodnia — po monthly (jeśli due)
   useEffect(() => {
-    if (!showPlanningMode || loading || phase1 || phase1Loading) return;
+    if (!showWeeklyPlanning || loading || phase1 || phase1Loading) return;
     setPhase1Loading(true);
     callWeekRecap('before')
       .then((data) => setPhase1(data.phase1))
       .catch((err) => console.error('Layer 1 (before) failed:', err))
       .finally(() => setPhase1Loading(false));
-  }, [showPlanningMode, loading, phase1, phase1Loading, callWeekRecap]);
+  }, [showWeeklyPlanning, loading, phase1, phase1Loading, callWeekRecap]);
+
+  useEffect(() => {
+    if (!showMonthlyMode || loading || monthRecap || monthRecapLoading) return;
+    setMonthRecapLoading(true);
+    callMonthRecap()
+      .then((data) => { if (data?.phase1) setMonthRecap(data.phase1); })
+      .catch((err) => console.error('Month recap failed:', err))
+      .finally(() => setMonthRecapLoading(false));
+  }, [showMonthlyMode, loading, monthRecap, monthRecapLoading, callMonthRecap]);
 
   const stats = useMemo(() => {
     if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] };
@@ -336,7 +509,7 @@ export default function Direction({
     }
   }
 
-  const reflectionSaved = phase2Loading || (phase2 !== null && Array.isArray(phase2.deepening_questions));
+  const reflectionSaved = reflectionPersisted;
 
   const prevWeekScores = useMemo(() => {
     const ps = prevWeekReview?.pillar_scores;
@@ -367,7 +540,7 @@ export default function Direction({
   async function saveReflection() {
     if (savingReflection) return;
     setSavingReflection(true);
-    const data = await saveWeeklyReviewReflection(session.user.id, currentWeekStart, {
+    const data = await saveWeeklyReviewReflection(session.user.id, closingWeekStart, {
       proud_of: proudOf || null,
       do_differently: doDifferently || null,
       sabotage: sabotage || null,
@@ -378,7 +551,10 @@ export default function Direction({
       pillar_scores: pillarScores,
       bottleneck: doDifferently || null,
     });
-    if (data) setCurrentReview(data);
+    if (data) {
+      setCurrentReview(data);
+      setReflectionPersisted(true);
+    }
     setSavingReflection(false);
 
     setPhase2Loading(true);
@@ -394,21 +570,81 @@ export default function Direction({
     }
   }
 
+  async function completeMonthly() {
+    if (!closingMonthStart || monthCompleting) return;
+    setMonthCompleting(true);
+    try {
+      const data = await completeMonthlyReview(
+        session.user.id,
+        closingMonthStart,
+        {
+          pattern_note: patternNote || null,
+          leverage_note: leverageNote || null,
+          correction_note: correctionNote || null,
+          month_theme: monthTheme || null,
+          ai_recap: monthRecap ? { phase1: monthRecap } : null,
+          ritual_stats: monthFacts ? (monthFacts as unknown as Tables<'monthly_reviews'>['ritual_stats']) : null,
+        },
+      );
+      if (data) {
+        setMonthReview(data);
+        applyMonthCarry(
+          {
+            month_theme: monthTheme,
+            correction_note: correctionNote,
+            leverage_note: leverageNote,
+          },
+          monthFacts,
+        );
+        void fetchData({ silent: true });
+      }
+    } catch (e) {
+      console.error('completeMonthly failed:', e);
+    } finally {
+      setMonthCompleting(false);
+    }
+  }
+
+  async function completeSprint() {
+    if (sprintCompleting || !nextSprintGoal.trim()) return;
+    setSprintCompleting(true);
+    try {
+      await completeSprintClose(session.user.id, {
+        reflection: sprintReflection || null,
+        nextSprintGoal: nextSprintGoal.trim(),
+        projectDecisions,
+      });
+      setSprintReview(await fetchSprintReview(session.user.id));
+      void fetchData({ silent: true });
+    } catch (e) {
+      console.error('completeSprint failed:', e);
+    } finally {
+      setSprintCompleting(false);
+    }
+  }
+
   async function completeReview() {
     if (completing) return;
     setCompleting(true);
     try {
-      const data = await completeWeeklyReview(session.user.id, currentWeekStart, {
-        deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
-        week_intention: weekIntention || null,
-        week_commitment: weekCommitment || null,
-        week_goal_cialo: weekGoalCialo || null,
-        week_goal_duch: weekGoalDuch || null,
-        week_goal_konto: weekGoalKonto || null,
-      });
+      const data = await completeWeeklyReview(
+        session.user.id,
+        closingWeekStart,
+        {
+          deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
+          week_intention: weekIntention || null,
+          week_commitment: weekCommitment || null,
+          week_goal_cialo: weekGoalCialo || null,
+          week_goal_duch: weekGoalDuch || null,
+          week_goal_konto: weekGoalKonto || null,
+        },
+        isSunday ? { planWeekStart: planTargetWeekStart } : undefined,
+      );
       if (data) {
         setCurrentReview(data);
-        await fetchData();
+        setRitualClosed(true);
+        setForceWeeklyReview(false);
+        void fetchData({ silent: true });
       }
     } catch (e) {
       console.error('completeReview failed:', e);
@@ -428,14 +664,75 @@ export default function Direction({
       <section className="space-y-3">
         <SectionTitle
           icon={Calendar}
-          title={showPlanningMode ? 'Plan następnego tygodnia' : 'Radar tygodnia'}
-          detail={planWeekLabel}
+          title={
+            showSprintMode
+              ? 'Zamknięcie sprintu'
+              : showMonthlyMode && !monthlyComplete
+                ? 'Przegląd miesiąca'
+                : showWeeklyPlanning
+                  ? 'Plan następnego tygodnia'
+                  : 'Radar tygodnia'
+          }
+          detail={
+            showSprintMode && sprintFacts
+              ? `${sprintFacts.sprintLabel} · 12/12`
+              : showMonthlyMode && !monthlyComplete && monthFacts
+                ? monthFacts.monthLabel
+                : planWeekLabel
+          }
         />
 
-        {showPlanningMode ? (
+        {showSprintMode && !sprintFacts && (
+          <div className="py-6 text-center text-sm text-text-muted animate-pulse">
+            Zbieram dane sprintu…
+          </div>
+        )}
+
+        {showSprintMode && sprintFacts && (
+          <DirectionSprintMode
+            sprintFacts={sprintFacts}
+            reflection={sprintReflection}
+            setReflection={setSprintReflection}
+            nextSprintGoal={nextSprintGoal}
+            setNextSprintGoal={setNextSprintGoal}
+            projectDecisions={projectDecisions}
+            setProjectDecisions={setProjectDecisions}
+            onComplete={completeSprint}
+            completing={sprintCompleting}
+          />
+        )}
+
+        {showMonthlyMode && closingMonthStart && !monthFacts && (
+          <div className="py-6 text-center text-sm text-text-muted animate-pulse">
+            Zbieram dane miesiąca…
+          </div>
+        )}
+
+        {showMonthlyMode && closingMonthStart && monthFacts && (
+          <DirectionMonthlyMode
+            session={session}
+            monthStart={closingMonthStart}
+            monthFacts={monthFacts}
+            recap={monthRecap}
+            recapLoading={monthRecapLoading}
+            patternNote={patternNote}
+            setPatternNote={setPatternNote}
+            leverageNote={leverageNote}
+            setLeverageNote={setLeverageNote}
+            correctionNote={correctionNote}
+            setCorrectionNote={setCorrectionNote}
+            monthTheme={monthTheme}
+            setMonthTheme={setMonthTheme}
+            onComplete={completeMonthly}
+            completing={monthCompleting}
+          />
+        )}
+
+        {showWeeklyPlanning ? (
           <DirectionPlanningMode
             session={session}
-            weekStart={currentWeekStart}
+            weekStart={closingWeekStart}
+            planWeekStart={planTargetWeekStart}
             weekFacts={weekFacts}
             phase1={phase1}
             phase1Loading={phase1Loading}
@@ -462,6 +759,8 @@ export default function Direction({
             setDeepeningAnswers={setDeepeningAnswers}
             weekIntention={weekIntention}
             setWeekIntention={setWeekIntention}
+            intentionFromMonth={intentionFromMonth}
+            planCarriedFromMonth={planCarriedFromMonth}
             weekCommitment={weekCommitment}
             setWeekCommitment={setWeekCommitment}
             weekGoalCialo={weekGoalCialo}
@@ -477,9 +776,13 @@ export default function Direction({
             reflectionSaved={reflectionSaved}
             activeProjects={activeProjects}
           />
-        ) : (
+        ) : (!showMonthlyMode || monthlyComplete) ? (
           <div className="space-y-6">
-            <WeekHub session={session} onOpenActionCenter={onOpenActionCenter} />
+            <WeekHub
+              session={session}
+              onOpenActionCenter={onOpenActionCenter}
+              onStartWeeklyReview={() => setForceWeeklyReview(true)}
+            />
             <details className="group rounded-2xl border border-border-custom bg-surface/30 open:bg-surface/50">
               <summary className="cursor-pointer list-none px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
                 Radar szczegóły
@@ -500,7 +803,7 @@ export default function Direction({
               </div>
             </details>
           </div>
-        )}
+        ) : null}
       </section>
 
     </div>

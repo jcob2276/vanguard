@@ -9,7 +9,9 @@ import {
 } from 'recharts';
 import { Panel, Tip } from './Panel';
 import { C } from './desktopUtils';
-import { FRICTION_COLOR } from '../../../supabase/functions/_shared/domain.ts';
+import { FRICTION_COLOR as FRICTION_COLOR_TYPED } from '../../../supabase/functions/_shared/domain.ts';
+
+const FRICTION_COLOR: Record<string, string> = FRICTION_COLOR_TYPED;
 
 const READINESS_COLOR: Record<string, string> = {
   primed: '#10b981',

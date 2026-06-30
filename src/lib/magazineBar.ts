@@ -4,6 +4,8 @@ import type { DirectionContextData } from './dailyPlanProposal';
 import type { ScheduleViewData, ScheduleItem } from '../types/schedule';
 import { getTodayWarsaw } from './date';
 import { sweepPastEventsInState } from '../types/schedule';
+import { formatSprintWeekBridge } from './goalSpine';
+import { formatSprintFromLongTerm } from './longTermBridge';
 
 export const SCHEDULE_STORAGE_KEY = 'vanguard_schedule_view';
 
@@ -31,6 +33,9 @@ export function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleV
     ctx.weekGoals.intention?.trim() ||
     ctx.weekGoals.commitment?.trim() ||
     '';
+  const weekStep = ctx.weekGoals.intention?.trim() || ctx.weekGoals.commitment?.trim() || null;
+  const sprintWeekBridge = formatSprintWeekBridge(ctx.sprintGoal, weekStep);
+  const longTermBridge = formatSprintFromLongTerm(ctx.bhagLine ?? null, ctx.sprintGoal);
 
   const heroPin = ctx.openMustPins[0] ?? ctx.mustPins.find((p) => !p.done);
   const heroTodo = ctx.urgentTodos[0];
@@ -112,6 +117,10 @@ export function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleV
     generatedAt: new Date().toISOString(),
     hero,
     editorialIntro,
+    monthTheme: ctx.monthTheme ?? undefined,
+    monthThemeLabel: ctx.monthLabel ?? undefined,
+    sprintWeekBridge: sprintWeekBridge ?? undefined,
+    longTermBridge: longTermBridge ?? undefined,
     quoteBlocks: quoteBlocks.slice(0, 2),
     timeline,
     completed: [],

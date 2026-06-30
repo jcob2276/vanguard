@@ -220,42 +220,21 @@ export default function DesktopHero({
           <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${sprint.pct}%` }} />
         </div>
 
-        {closingWeek && onSaveReview && (
+        {closingWeek && onSaveReview && !sprintReview?.completed_at && (
           <div className="mt-4 pt-4 border-t border-primary/10 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[8px] font-black uppercase tracking-widest text-amber-500">
-                Zamknięcie sprintu
-              </p>
-              {sprintReview?.completed_at && (
-                <span className="text-[9px] font-bold text-emerald-500">zamknięty</span>
-              )}
-            </div>
-            <textarea
-              value={reviewDraft}
-              onChange={(e) => setReviewDraft(e.target.value)}
-              placeholder="Co wyszło w tym sprincie? Jedna refleksja na zamknięcie."
-              rows={2}
-              className="w-full bg-surface border border-border-custom rounded-[12px] p-3 text-[13px] text-text-primary outline-none resize-none focus:border-primary/40"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => void handleSaveReview(false)}
-                disabled={reviewSaving}
-                className="rounded-[10px] border border-border-custom text-[9px] font-black uppercase px-3 py-2 text-text-muted cursor-pointer disabled:opacity-50"
-              >
-                Szkic
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSaveReview(true)}
-                disabled={reviewSaving || !reviewDraft.trim()}
-                className="rounded-[10px] bg-primary text-white text-[9px] font-black uppercase px-3 py-2 cursor-pointer disabled:opacity-50"
-              >
-                {reviewSaving ? '…' : 'Zamknij sprint'}
-              </button>
-            </div>
+            <p className="text-[11px] text-text-secondary leading-relaxed">
+              Zamknięcie sprintu jest w zakładce <span className="font-bold text-primary">Tydzień</span> — agregat 12 tyg. + cel następnego sprintu.
+            </p>
+            <a
+              href="/?view=tydzien"
+              className="inline-flex rounded-[10px] bg-primary/10 px-3 py-2 text-[10px] font-black uppercase text-primary"
+            >
+              Otwórz Tydzień → zamknij sprint
+            </a>
           </div>
+        )}
+        {closingWeek && sprintReview?.completed_at && (
+          <p className="mt-3 text-[10px] font-bold text-emerald-500">Sprint zamknięty w Tygodniu</p>
         )}
 
         <SprintMetricsGrid

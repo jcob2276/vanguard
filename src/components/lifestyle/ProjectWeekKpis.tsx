@@ -19,10 +19,14 @@ export default function ProjectWeekKpis({
   userId,
   projects,
   weekStart,
+  readOnly = false,
+  focusProjectIds = [],
 }: {
   userId: string;
   projects: ProjectLite[];
   weekStart: string;
+  readOnly?: boolean;
+  focusProjectIds?: string[];
 }) {
   const [byProject, setByProject] = useState<Record<string, ProjectWeekKpi[]>>({});
   const [loaded, setLoaded] = useState(false);
@@ -82,7 +86,14 @@ export default function ProjectWeekKpis({
           const kpis = byProject[project.id] ?? [];
           return (
             <div key={project.id} className="rounded-xl border border-border-custom bg-surface px-3.5 py-3 space-y-2">
-              <p className="text-[13px] font-bold text-text-primary">{project.name}</p>
+              <p className="text-[13px] font-bold text-text-primary flex items-center gap-2 flex-wrap">
+                {project.name}
+                {focusProjectIds.includes(project.id) && (
+                  <span className="text-[8px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                    Focus sprintu
+                  </span>
+                )}
+              </p>
 
               {kpis.map(({ kpi, thisWeekValue }) => {
                 const pct = kpi.target ? Math.min(100, Math.round(((thisWeekValue ?? 0) / kpi.target) * 100)) : null;
@@ -92,15 +103,19 @@ export default function ProjectWeekKpis({
                       <span className="text-[11px] font-semibold text-text-secondary">{kpi.name}</span>
                       <span className="text-[11px] font-bold text-text-primary">
                         {thisWeekValue ?? 0}
-                        {kpi.unit ? ` ${kpi.unit}` : ''} / {' '}
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          defaultValue={kpi.target ?? ''}
-                          placeholder="cel?"
-                          onBlur={(e) => saveTarget(kpi.id, e.target.value)}
-                          className="w-14 rounded-md border border-border-custom bg-surface-solid px-1.5 py-0.5 text-[11px] font-bold text-text-primary outline-none focus:border-primary/40"
-                        />
+                        {kpi.unit ? ` ${kpi.unit}` : ''} /{' '}
+                        {readOnly ? (
+                          <span>{kpi.target ?? '—'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            defaultValue={kpi.target ?? ''}
+                            placeholder="cel?"
+                            onBlur={(e) => saveTarget(kpi.id, e.target.value)}
+                            className="w-14 rounded-md border border-border-custom bg-surface-solid px-1.5 py-0.5 text-[11px] font-bold text-text-primary outline-none focus:border-primary/40"
+                          />
+                        )}
                       </span>
                     </div>
                     {pct !== null && (
@@ -112,7 +127,7 @@ export default function ProjectWeekKpis({
                 );
               })}
 
-              {kpis.length === 0 && addingFor !== project.id && (
+              {kpis.length === 0 && !readOnly && addingFor !== project.id && (
                 <button
                   type="button"
                   onClick={() => setAddingFor(project.id)}
@@ -122,7 +137,7 @@ export default function ProjectWeekKpis({
                 </button>
               )}
 
-              {addingFor === project.id && (
+              {addingFor === project.id && !readOnly && (
                 <div className="space-y-1.5 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5">
                   <input
                     autoFocus

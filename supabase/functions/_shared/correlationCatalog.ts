@@ -56,7 +56,6 @@ export const METRIC_LABELS: Record<string, string> = {
   strength: 'Siłownia load',
   mood_score: 'Nastrój (1–10)',
   daily_rpe: 'RPE dnia',
-  energy_level: 'Energia rano (1–5)',
   plan_done_pct: 'Wykonanie planu (%)',
   day_score: 'Ocena dnia (reconciliation)',
   phone_drift: 'Scroll rano',

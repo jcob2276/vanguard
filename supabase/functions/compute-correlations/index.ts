@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
 
     const [
       strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, workoutR,
-      winsR, planR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
+      winsR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
     ] = await Promise.all([
       supabase.from('daily_strain')
         .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, cns_load, leg_load, mental_load_score, illness_score, components')
@@ -157,9 +157,6 @@ Deno.serve(async (req) => {
       supabase.from('daily_wins')
         .select('date, mood_score, daily_rpe, done_1, done_2, done_3, done_4, done_5, task_1, task_2, task_3, task_4, task_5')
         .eq('user_id', userId).gte('date', start90).order('date'),
-      supabase.from('daily_plan')
-        .select('plan_date, energy_level')
-        .eq('user_id', userId).gte('plan_date', start90),
       supabase.from('daily_reconciliations')
         .select('date, day_score, phone_drift_morning')
         .eq('user_id', userId).gte('date', start90),
@@ -209,7 +206,6 @@ Deno.serve(async (req) => {
       foodRows: foodR.data ?? [],
       workoutRows: workoutR.data ?? [],
       winsRows: winsR.data ?? [],
-      planRows: (planR.data ?? []).map(r => ({ plan_date: r.plan_date, energy_level: r.energy_level })),
       reconRows: (reconR.data ?? []).map(r => ({ date: r.date, day_score: r.day_score, phone_drift_morning: r.phone_drift_morning })),
       behaviorRows,
       supplementRows,

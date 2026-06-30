@@ -31,7 +31,7 @@ export async function createProject(userId: string, fields: Omit<ProjectInsert, 
 }
 
 export async function updateProject(id: string, patch: ProjectUpdate) {
-  const row = unwrap(
+  const row = unwrap<Database['public']['Tables']['projects']['Row']>(
     await supabase
       .from('projects')
       .update(patch)
@@ -129,7 +129,7 @@ export async function createProjectCheckpoint(
   userId: string,
   fields: { project_id: string; title: string; due_date?: string | null },
 ): Promise<ProjectCheckpoint> {
-  const row = unwrap(
+  const row = unwrap<Database['public']['Tables']['todo_items']['Row']>(
     await supabase
       .from('todo_items')
       .insert({

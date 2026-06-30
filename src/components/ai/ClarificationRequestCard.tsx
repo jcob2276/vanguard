@@ -14,6 +14,7 @@ interface ClarificationRequest {
   response_type: 'confirm' | 'single_choice' | 'multi_choice' | 'short_text';
   options: Option[];
   proposed_memory?: string;
+  confidence?: number | null;
 }
 
 interface Props {

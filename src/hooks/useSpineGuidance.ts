@@ -17,6 +17,7 @@ import {
   type WeeklyReviewRow,
 
 } from '../lib/goalSpine';
+import { useWarsawDayChange } from './useWarsawDayChange';
 
 import {
 
@@ -54,7 +55,7 @@ export function useSpineGuidance(
 
 ) {
 
-  const weekStart = useMemo(() => currentWeekStart(), []);
+  const [weekStart, setWeekStart] = useState(() => currentWeekStart());
 
   const [spine, setSpine] = useState<GoalSpine | null>(null);
 
@@ -94,7 +95,7 @@ export function useSpineGuidance(
 
       const [spineData, review, lastReflectionAt] = await Promise.all([
 
-        fetchGoalSpine(userId, weekStart),
+        fetchGoalSpine(userId, weekStart, today),
 
         fetchWeeklyReviewFull(userId, weekStart),
 
@@ -130,7 +131,7 @@ export function useSpineGuidance(
 
   }, [reload]);
 
-
+  useWarsawDayChange(() => setWeekStart(currentWeekStart()));
 
   useGoalSpineInvalidation(reload);
 

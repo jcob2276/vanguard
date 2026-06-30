@@ -27,6 +27,10 @@ export interface ScheduleViewData {
     priority: number;
   };
   editorialIntro: string;
+  monthTheme?: string;
+  monthThemeLabel?: string;
+  sprintWeekBridge?: string;
+  longTermBridge?: string;
   quoteBlocks: Array<{
     title: string;
     content: string;

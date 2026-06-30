@@ -110,8 +110,8 @@ export default function Projects({
       // Resolve KPIs with their current values mapped inside longTerm goals (from kpi_entries)
       const kpiMap = new Map<string, number | null>();
       for (const proj of longTerm.projects) {
-        for (const k of proj.kpis) {
-          kpiMap.set(k.id, k.current_value);
+        for (const k of proj.kpis ?? []) {
+          kpiMap.set(k.id, k.current);
         }
       }
 

@@ -37,13 +37,43 @@ export function MagazineHeroCard({
 }
 
 export function MagazineBar({ view }: { view: ScheduleViewData }) {
-  if (!view.hero && !view.editorialIntro && view.timeline.length === 0 && view.quoteBlocks.length === 0) {
+  if (
+    !view.hero &&
+    !view.editorialIntro &&
+    !view.monthTheme &&
+    !view.sprintWeekBridge &&
+    !view.longTermBridge &&
+    view.timeline.length === 0 &&
+    view.quoteBlocks.length === 0
+  ) {
     return null;
   }
 
   return (
     <section className="space-y-4">
       {view.hero && <MagazineHeroCard hero={view.hero} />}
+
+      {view.monthTheme && (
+        <p className="text-[12px] leading-relaxed text-text-secondary px-0.5">
+          <span className="font-black uppercase tracking-wider text-indigo-600 text-[10px]">
+            Temat miesiąca{view.monthThemeLabel ? ` · ${view.monthThemeLabel}` : ''}
+          </span>
+          <br />
+          {view.monthTheme}
+        </p>
+      )}
+
+      {view.longTermBridge && (
+        <p className="text-[12px] leading-relaxed text-text-secondary px-0.5 font-medium">
+          {view.longTermBridge}
+        </p>
+      )}
+
+      {view.sprintWeekBridge && (
+        <p className="text-[12px] font-semibold leading-relaxed text-text-primary px-0.5">
+          {view.sprintWeekBridge}
+        </p>
+      )}
 
       {view.editorialIntro && (
         <p className="text-[13px] leading-relaxed text-text-secondary px-0.5">{view.editorialIntro}</p>

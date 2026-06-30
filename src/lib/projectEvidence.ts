@@ -48,7 +48,6 @@ export async function fetchProjectEvidence(
   const kpiIds = (kpisRes.data ?? []).map((k) => k.id);
   let snapshots: { recorded_at: string; value: number; kpi_id: string }[] = [];
   if (kpiIds.length > 0) {
-    // 1. Load from kpi_entries
     const { data: entries, error: entriesErr } = await supabase
       .from('kpi_entries')
       .select('week_start, value, kpi_id')
@@ -57,24 +56,12 @@ export async function fetchProjectEvidence(
       .gte('week_start', since)
       .order('week_start', { ascending: false });
 
-    if (!entriesErr && entries && entries.length > 0) {
-      snapshots = entries.map((e) => ({
-        recorded_at: e.week_start,
-        value: Number(e.value ?? 0),
-        kpi_id: e.kpi_id,
-      }));
-    } else {
-      // 2. Fallback to goal_kpi_snapshots
-      const { data } = await supabase
-        .from('goal_kpi_snapshots')
-        .select('recorded_at, value, kpi_id')
-        .eq('user_id', userId)
-        .in('kpi_id', kpiIds)
-        .gte('recorded_at', `${since}T00:00:00`)
-        .order('recorded_at', { ascending: false })
-        .limit(20);
-      snapshots = (data as typeof snapshots) ?? [];
-    }
+    if (entriesErr) throw entriesErr;
+    snapshots = (entries ?? []).map((e) => ({
+      recorded_at: e.week_start,
+      value: Number(e.value ?? 0),
+      kpi_id: e.kpi_id,
+    }));
   }
 
   const kpiNameById = new Map((kpisRes.data ?? []).map((k) => [k.id, k.name ?? 'KPI']));

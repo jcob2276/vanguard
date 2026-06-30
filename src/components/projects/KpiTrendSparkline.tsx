@@ -61,31 +61,12 @@ export function KpiTrendSparkline({
         return;
       }
 
-      // 2. Fallback to goal_kpi_snapshots if no weekly entries found
-      if (!entries || entries.length === 0) {
-        const { data: snapshots, error: snapErr } = await supabase
-          .from('goal_kpi_snapshots')
-          .select('recorded_at, value')
-          .eq('user_id', userId)
-          .eq('kpi_id', kpiId)
-          .order('recorded_at', { ascending: true })
-          .limit(30);
-
-        if (snapErr) {
-          // Table might already be dropped or errored; ignore or handle gracefully
-          console.warn('[KpiTrendSparkline] fallback snapshots error', snapErr);
-          setPoints([]);
-        } else if (snapshots) {
-          setPoints(snapshots as Snapshot[]);
-        }
-      } else {
-        // Map weekly entries to Snapshot shape for charting
-        const mappedPoints = entries.map((e) => ({
+      setPoints(
+        (entries ?? []).map((e) => ({
           recorded_at: e.week_start,
           value: Number(e.value ?? 0),
-        }));
-        setPoints(mappedPoints);
-      }
+        })),
+      );
     }
 
     void loadKpiHistory();

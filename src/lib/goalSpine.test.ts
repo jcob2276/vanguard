@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatSprintWeekBridge,
   isSprintClosingWeek,
   resolveWeekGoals,
   rollupTaskCompletion,
@@ -35,8 +36,11 @@ describe('rollupTaskCompletion', () => {
     expect(rollupTaskCompletion('80', undefined, 1)).toBeNull();
   });
 
-  it('skips when the project has more than one KPI (ambiguous)', () => {
-    expect(rollupTaskCompletion('80', [fakeKpi('kpi-1'), fakeKpi('kpi-2')], 1)).toBeNull();
+  it('rolls up with preferred kpi when project has multiple', () => {
+    expect(rollupTaskCompletion('80', [fakeKpi('kpi-1'), fakeKpi('kpi-2')], 1, 'kpi-2')).toEqual({
+      kpiId: 'kpi-2',
+      delta: 80,
+    });
   });
 
   it('skips empty or zero values', () => {
@@ -62,6 +66,31 @@ describe('goalSpine week goals', () => {
     expect(result.source).toBe('week');
     expect(result.cialo).toBe('Siłka');
     expect(result.fallbackWeekStart).toBeNull();
+  });
+
+  it('falls back only from immediate previous week', () => {
+    const result = resolveWeekGoals(
+      '2026-06-30',
+      {
+        week_start: '2026-06-30',
+        week_intention: null,
+        week_commitment: null,
+        week_goal_cialo: null,
+        week_goal_duch: null,
+        week_goal_konto: null,
+      },
+      {
+        week_start: '2026-06-23',
+        week_intention: null,
+        week_commitment: null,
+        week_goal_cialo: 'Ten tydzień',
+        week_goal_duch: null,
+        week_goal_konto: null,
+      },
+    );
+    expect(result.source).toBe('fallback');
+    expect(result.cialo).toBe('Ten tydzień');
+    expect(result.fallbackWeekStart).toBe('2026-06-23');
   });
 
   it('falls back when current week empty and fallback provided', () => {
@@ -101,8 +130,8 @@ describe('goalSpine week goals', () => {
       weekStart: '2026-06-23',
       sprint: { weekInSprint: 3, isClosingWeek: false } as GoalSpine['sprint'],
       week: { intention: null, commitment: null, cialo: null, duch: null, konto: null, weekStart: '2026-06-23', source: 'empty', fallbackWeekStart: null },
-      kpiReview: null,
       sprintReview: null,
+      month: { closingMonthStart: null, review: null, due: false, activeTheme: null, activeMonthLabel: null },
       longTerm: {
         declarations: { goal_cialo: 'BHAG ciało', goal_duch: null, goal_konto: null, date_cialo: null, date_duch: null, date_konto: null, bhag_pillar: null },
         projects: [
@@ -119,6 +148,7 @@ describe('goalSpine week goals', () => {
             source: 'project',
             projectId: 'p1',
             kpis: [],
+            days: null,
           },
         ],
       },
@@ -136,5 +166,12 @@ describe('goalSpine week goals', () => {
   it('detects sprint closing week', () => {
     expect(isSprintClosingWeek({ weekInSprint: 12 })).toBe(true);
     expect(isSprintClosingWeek({ weekInSprint: 11 })).toBe(false);
+  });
+
+  it('formats sprint-week bridge line', () => {
+    expect(formatSprintWeekBridge('Zbudować pipeline', '3 rozmowy sprzedażowe')).toBe(
+      'Sprint: Zbudować pipeline — ten tydzień jeden krok: 3 rozmowy sprzedażowe',
+    );
+    expect(formatSprintWeekBridge(null, 'krok')).toBeNull();
   });
 });

@@ -46,6 +46,8 @@ const baseSpine = (): GoalSpine => ({
 
     isClosingWeek: false,
 
+    focusProjectIds: [],
+
   },
 
   week: {
@@ -68,11 +70,22 @@ const baseSpine = (): GoalSpine => ({
 
   },
 
-  longTerm: { declarations: null, projects: [] },
-
-  kpiReview: null,
+  longTerm: {
+    declarations: {
+      goal_cialo: 'Zdrowe ciało do 40',
+      goal_duch: null,
+      goal_konto: null,
+      date_cialo: null,
+      date_duch: null,
+      date_konto: null,
+      bhag_pillar: 'cialo',
+    },
+    projects: [],
+  },
 
   sprintReview: null,
+
+  month: { closingMonthStart: null, review: null, due: false, activeTheme: null, activeMonthLabel: null },
 
 });
 
@@ -108,7 +121,7 @@ describe('deriveSpineGuidance', () => {
 
       type: 'navigate',
 
-      target: 'dashboard',
+      target: 'tydzien',
 
       label: 'Ustaw cel sprintu',
 
@@ -158,6 +171,36 @@ describe('deriveSpineGuidance', () => {
 
 
 
+  it('prompts monthly before week when due (hard gate)', () => {
+    const spine = baseSpine();
+    spine.month = {
+      closingMonthStart: '2026-05-01',
+      review: null,
+      due: true,
+      activeTheme: null,
+      activeMonthLabel: 'czerwiec 2026',
+    };
+    const g = deriveSpineGuidance(spine, { ...readyCtx(), today: '2026-06-03' });
+    expect(g.primaryAction).toMatchObject({ type: 'navigate', target: 'tydzien' });
+    expect(g.steps.some((s) => s.id === 'month' && s.status === 'now')).toBe(true);
+    expect(g.readyForDay).toBe(false);
+  });
+
+  it('soft cue for monthly after day 7 without blocking day', () => {
+    const spine = baseSpine();
+    spine.month = {
+      closingMonthStart: '2026-05-01',
+      review: null,
+      due: true,
+      activeTheme: null,
+      activeMonthLabel: 'czerwiec 2026',
+    };
+    const g = deriveSpineGuidance(spine, { ...readyCtx(), today: '2026-06-10' });
+    expect(g.readyForDay).toBe(true);
+    expect(g.primaryCue).toContain('Przegląd');
+    expect(g.steps.some((s) => s.id === 'month' && s.status === 'now')).toBe(true);
+  });
+
   it('prompts sprint close on week 12', () => {
 
     const spine = baseSpine();
@@ -168,7 +211,7 @@ describe('deriveSpineGuidance', () => {
 
     const g = deriveSpineGuidance(spine, readyCtx());
 
-    expect(g.primaryAction).toMatchObject({ type: 'navigate', target: 'dashboard' });
+    expect(g.primaryAction).toMatchObject({ type: 'navigate', target: 'tydzien' });
 
     expect(g.steps.some((s) => s.id === 'sprint_close' && s.status === 'now')).toBe(true);
 

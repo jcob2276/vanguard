@@ -1,10 +1,10 @@
 /**
  * Goal spine — canonical read path for the goal hierarchy (background layer).
  *
- * Zoom: longTerm → sprint (12w) → week → day.
+ * Zoom: longTerm → sprint (12w) → month → week → day.
  * Week layers (intentional satellites, not merged):
+ *   - monthly_reviews — month reflection (Direction, first Sundays)
  *   - weekly_reviews — reflection + week goals (Direction)
- *   - weekly_kpi_reviews — KPI numbers + brief (Growth WeeklyReview)
  * All reads go through here; writes call invalidateGoalSpineCache().
  */
 import { getSprintInfo } from '../components/desktop/desktopUtils';
@@ -17,7 +17,21 @@ import {
 } from './lifeGoals';
 import type { WeekDirectionGoals } from './growthWeek';
 import { supabase } from './supabase';
-import type { Tables } from './database.types';
+import type { Json, Tables } from './database.types';
+import type { MonthlyReviewFields, MonthlyReviewRow } from './monthReview';
+import type { SprintProjectDecision } from './sprintReview';
+import { primaryBhagLine } from './longTermBridge';
+import {
+  calendarMonthStart,
+  closingMonthStartForReview,
+  isMonthlyReviewDue,
+  monthLabel,
+  monthThemeSourceStart,
+} from './monthReview';
+
+export type { MonthlyReviewRow, MonthlyReviewFields } from './monthReview';
+export { closingMonthStartForReview, isMonthlyReviewDue, gatherMonthFacts, monthLabel, isMonthlyHardGate, isMonthlySoftCue } from './monthReview';
+export type { MonthFacts } from './monthReview';
 
 const CACHE_TTL_MS = 30_000;
 
@@ -46,12 +60,9 @@ export type SprintContext = ReturnType<typeof getSprintInfo> & {
   goalText: string | null;
   label: string;
   isClosingWeek: boolean;
+  /** Active projects chosen at prior sprint close. */
+  focusProjectIds: string[];
 };
-
-export type WeeklyKpiReview = Pick<
-  Tables<'weekly_kpi_reviews'>,
-  'week_start' | 'what_worked' | 'what_didnt_work' | 'ai_brief'
->;
 
 export type SprintReview = Pick<
   Tables<'sprint_reviews'>,
@@ -72,10 +83,19 @@ export type LongTermGoals = {
 export type GoalSpine = {
   weekStart: string;
   sprint: SprintContext;
+  month: MonthlySpineSlice;
   week: ResolvedWeekGoals;
   longTerm: LongTermGoals;
-  kpiReview: WeeklyKpiReview | null;
   sprintReview: SprintReview | null;
+};
+
+export type MonthlySpineSlice = {
+  closingMonthStart: string | null;
+  review: MonthlyReviewRow | null;
+  due: boolean;
+  /** Theme for the live calendar month (from prior month's review). */
+  activeTheme: string | null;
+  activeMonthLabel: string | null;
 };
 
 export type WeeklyReviewBundle = {
@@ -104,12 +124,8 @@ export type GoalSpineAiSnapshot = {
     pct: number;
     is_closing_week: boolean;
     review_completed: boolean;
+    focus_project_ids: string[];
   };
-  kpi_review: {
-    what_worked: string | null;
-    what_didnt_work: string | null;
-    has_ai_brief: boolean;
-  } | null;
   sprint_review: {
     reflection: string | null;
     completed: boolean;
@@ -118,7 +134,23 @@ export type GoalSpineAiSnapshot = {
     declarations: LifeGoalDeclarations | null;
     projects: { title: string; pillar: string; project_id: string | null; kpis: { name: string; current: number | null; target: number | null; unit?: string | null }[] }[];
   };
+  month: {
+    label: string;
+    theme: string | null;
+    review_due: boolean;
+  };
+  long_term_bhag: string | null;
 };
+
+export function formatSprintWeekBridge(
+  sprintGoal: string | null | undefined,
+  weekStep: string | null | undefined,
+): string | null {
+  const goal = sprintGoal?.trim();
+  if (!goal) return null;
+  const step = weekStep?.trim() || '—';
+  return `Sprint: ${goal} — ten tydzień jeden krok: ${step}`;
+}
 
 type ProjectRow = Pick<
   Tables<'projects'>,
@@ -240,6 +272,11 @@ export function previousWeekStart(fromWeekStart?: string): string {
   return shiftWeekStart(base, -1);
 }
 
+export function nextWeekStart(fromWeekStart?: string): string {
+  const base = fromWeekStart ?? currentWeekStart();
+  return shiftWeekStart(base, 1);
+}
+
 export function isSprintClosingWeek(sprint: Pick<SprintContext, 'weekInSprint'>): boolean {
   return sprint.weekInSprint === 12;
 }
@@ -265,14 +302,8 @@ export function goalSpineAiSnapshot(spine: GoalSpine): GoalSpineAiSnapshot {
       pct: spine.sprint.pct,
       is_closing_week: spine.sprint.isClosingWeek,
       review_completed: Boolean(spine.sprintReview?.completed_at),
+      focus_project_ids: spine.sprint.focusProjectIds,
     },
-    kpi_review: spine.kpiReview
-      ? {
-          what_worked: spine.kpiReview.what_worked,
-          what_didnt_work: spine.kpiReview.what_didnt_work,
-          has_ai_brief: spine.kpiReview.ai_brief != null,
-        }
-      : null,
     sprint_review: spine.sprintReview
       ? {
           reflection: spine.sprintReview.reflection,
@@ -293,6 +324,12 @@ export function goalSpineAiSnapshot(spine: GoalSpine): GoalSpineAiSnapshot {
         })),
       })),
     },
+    month: {
+      label: spine.month.activeMonthLabel ?? monthLabel(calendarMonthStart()),
+      theme: spine.month.activeTheme,
+      review_due: spine.month.due,
+    },
+    long_term_bhag: primaryBhagLine(spine.longTerm),
   };
 }
 
@@ -339,14 +376,12 @@ async function loadWeekGoals(userId: string, weekStart: string): Promise<Resolve
   const needsFallback = weekGoalsAreEmpty(currentGoals) && isCurrentWeek(weekStart);
 
   if (needsFallback) {
+    const prevStart = previousWeekStart(weekStart);
     const { data, error: fbErr } = await supabase
       .from('weekly_reviews')
       .select(WEEK_GOAL_COLUMNS)
       .eq('user_id', userId)
-      .neq('week_start', weekStart)
-      .or('week_intention.not.is.null,week_goal_cialo.not.is.null,week_goal_duch.not.is.null,week_goal_konto.not.is.null')
-      .order('week_start', { ascending: false })
-      .limit(1)
+      .eq('week_start', prevStart)
       .maybeSingle();
     if (fbErr) throw fbErr;
     fallbackRow = data;
@@ -359,7 +394,7 @@ async function loadSprintContext(userId: string): Promise<SprintContext> {
   const sprint = getSprintInfo();
   const { data, error } = await supabase
     .from('sprint_goals')
-    .select('goal_text')
+    .select('goal_text, focus_project_ids')
     .eq('user_id', userId)
     .eq('personal_year', sprint.personalYear)
     .eq('sprint_number', sprint.sprintNumber)
@@ -372,15 +407,38 @@ async function loadSprintContext(userId: string): Promise<SprintContext> {
     goalText: data?.goal_text ?? null,
     label: `Sprint ${sprint.sprintNumber}`,
     isClosingWeek: isSprintClosingWeek(sprint),
+    focusProjectIds: (data?.focus_project_ids ?? []).filter(Boolean),
   };
 }
 
-async function loadWeeklyKpiReview(userId: string, weekStart: string): Promise<WeeklyKpiReview | null> {
+async function loadMonthlySlice(userId: string, today?: string): Promise<MonthlySpineSlice> {
+  const t = today ?? getTodayWarsaw();
+  const closingMonthStart = closingMonthStartForReview(t);
+  const currentMonthStart = calendarMonthStart(t);
+  const themeSourceStart = monthThemeSourceStart(t);
+
+  const [closingReview, themeReview] = await Promise.all([
+    closingMonthStart ? fetchMonthlyReview(userId, closingMonthStart) : Promise.resolve(null),
+    fetchMonthlyReview(userId, themeSourceStart),
+  ]);
+
+  const activeTheme = themeReview?.month_theme?.trim() || null;
+
+  return {
+    closingMonthStart,
+    review: closingReview,
+    due: closingMonthStart ? isMonthlyReviewDue(t, closingReview) : false,
+    activeTheme,
+    activeMonthLabel: monthLabel(currentMonthStart),
+  };
+}
+
+async function loadMonthlyReview(userId: string, monthStart: string): Promise<MonthlyReviewRow | null> {
   const { data, error } = await supabase
-    .from('weekly_kpi_reviews')
-    .select('week_start, what_worked, what_didnt_work, ai_brief')
+    .from('monthly_reviews')
+    .select('*')
     .eq('user_id', userId)
-    .eq('week_start', weekStart)
+    .eq('month_start', monthStart)
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -395,11 +453,7 @@ async function loadSprintReview(userId: string): Promise<SprintReview | null> {
     .eq('personal_year', sprint.personalYear)
     .eq('sprint_number', sprint.sprintNumber)
     .maybeSingle();
-  // Table may not exist until migration 20260629180000 is applied.
-  if (error) {
-    if (error.code === '42P01' || error.message?.includes('sprint_reviews')) return null;
-    throw error;
-  }
+  if (error) throw error;
   return data;
 }
 
@@ -453,27 +507,6 @@ export async function fetchSprintContext(userId: string): Promise<SprintContext>
 
 export async function fetchLongTermGoals(userId: string): Promise<LongTermGoals> {
   return withCache(spineKey('longTerm', userId), () => loadLongTermGoals(userId));
-}
-
-export async function fetchWeeklyKpiReview(
-  userId: string,
-  weekStart: string,
-): Promise<WeeklyKpiReview | null> {
-  return withCache(spineKey('kpiReview', userId, weekStart), () => loadWeeklyKpiReview(userId, weekStart));
-}
-
-export async function fetchLatestWeeklyKpiWeekStart(userId: string): Promise<string | null> {
-  return withCache(spineKey('kpiReviewLatestWeek', userId), async () => {
-    const { data, error } = await supabase
-      .from('weekly_kpi_reviews')
-      .select('week_start')
-      .eq('user_id', userId)
-      .order('week_start', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw error;
-    return data?.week_start ?? null;
-  });
 }
 
 export async function fetchSprintReview(userId: string): Promise<SprintReview | null> {
@@ -547,32 +580,47 @@ export async function fetchWeeklyReviewBundle(
   );
 }
 
+export async function fetchMonthlyReview(
+  userId: string,
+  monthStart: string,
+): Promise<MonthlyReviewRow | null> {
+  return withCache(spineKey('monthReview', userId, monthStart), () => loadMonthlyReview(userId, monthStart));
+}
+
 export async function fetchGoalSpine(
   userId: string,
   weekStart: string = currentWeekStart(),
+  today?: string,
 ): Promise<GoalSpine> {
-  return withCache(spineKey('full', userId, weekStart), async () => {
-    const [week, sprint, longTerm, kpiReview, sprintReview] = await Promise.all([
+  return withCache(spineKey('full', userId, weekStart, today ?? getTodayWarsaw()), async () => {
+    const [week, sprint, longTerm, sprintReview, month] = await Promise.all([
       fetchWeekGoals(userId, weekStart),
       fetchSprintContext(userId),
       fetchLongTermGoals(userId),
-      fetchWeeklyKpiReview(userId, weekStart),
       fetchSprintReview(userId),
+      loadMonthlySlice(userId, today),
     ]);
-    return { weekStart, sprint, week, longTerm, kpiReview, sprintReview };
+    return { weekStart, sprint, month, week, longTerm, sprintReview };
   });
 }
 
 // ── Write path (invalidate cache after every mutation) ─────────────────────
 
-export async function saveSprintGoal(userId: string, goalText: string): Promise<void> {
+export async function saveSprintGoal(
+  userId: string,
+  goalText: string,
+  opts?: { personalYear?: number; sprintNumber?: number; focusProjectIds?: string[] },
+): Promise<void> {
   const sprint = getSprintInfo();
+  const personalYear = opts?.personalYear ?? sprint.personalYear;
+  const sprintNumber = opts?.sprintNumber ?? sprint.sprintNumber;
   const { error } = await supabase.from('sprint_goals').upsert(
     {
       user_id: userId,
-      personal_year: sprint.personalYear,
-      sprint_number: sprint.sprintNumber,
+      personal_year: personalYear,
+      sprint_number: sprintNumber,
       goal_text: goalText,
+      focus_project_ids: opts?.focusProjectIds ?? [],
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id,personal_year,sprint_number' },
@@ -602,6 +650,46 @@ export async function saveSprintReview(
   invalidateGoalSpineCache(userId);
 }
 
+export type { SprintFacts, SprintProjectDecision } from './sprintReview';
+export { gatherSprintFacts, weekStartsInSprint } from './sprintReview';
+
+export async function completeSprintClose(
+  userId: string,
+  opts: {
+    reflection?: string | null;
+    nextSprintGoal: string;
+    projectDecisions?: Record<string, SprintProjectDecision>;
+  },
+): Promise<void> {
+  const sprint = getSprintInfo();
+  await saveSprintReview(userId, opts.reflection?.trim() ?? '', { complete: true });
+  const continuingIds = opts.projectDecisions
+    ? Object.entries(opts.projectDecisions)
+        .filter(([, d]) => d === 'continue')
+        .map(([id]) => id)
+    : [];
+  await saveSprintGoal(userId, opts.nextSprintGoal.trim(), {
+    personalYear: sprint.personalYear,
+    sprintNumber: sprint.sprintNumber + 1,
+    focusProjectIds: continuingIds,
+  });
+
+  if (opts.projectDecisions) {
+    const deferIds = Object.entries(opts.projectDecisions)
+      .filter(([, d]) => d === 'defer')
+      .map(([id]) => id);
+    if (deferIds.length > 0) {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'paused' })
+        .eq('user_id', userId)
+        .in('id', deferIds);
+      if (error) throw error;
+    }
+  }
+  invalidateGoalSpineCache(userId);
+}
+
 
 export type WeeklyReflectionFields = {
   proud_of?: string | null;
@@ -611,7 +699,7 @@ export type WeeklyReflectionFields = {
   week_highlight?: string | null;
   week_regret?: string | null;
   new_belief?: string | null;
-  pillar_scores?: unknown;
+  pillar_scores?: Json;
   bottleneck?: string | null;
 };
 
@@ -629,6 +717,9 @@ export async function saveWeeklyReviewReflection(
   weekStart: string,
   fields: WeeklyReflectionFields,
 ): Promise<WeeklyReviewRow | null> {
+  if (weekStart > currentWeekStart()) {
+    throw new Error(`Cannot save weekly reflection for a future week: ${weekStart}`);
+  }
   const { data, error } = await supabase
     .from('weekly_reviews')
     .upsert({ user_id: userId, week_start: weekStart, ...fields }, { onConflict: 'user_id,week_start' })
@@ -732,20 +823,39 @@ export async function setProjectKpiTarget(userId: string, kpiId: string, target:
 
 export type RollupDecision = { kpiId: string; delta: number } | null;
 
-/** Pure decision: does this daily task completion roll up into a project KPI?
- *  Only when target_value is a plain number and the project has exactly one KPI
- *  (ambiguous otherwise — user resolves manually in Weekly Review). */
+/** Pure decision: does this daily task completion roll up into a project KPI? */
 export function rollupTaskCompletion(
   targetValue: string | null | undefined,
   projectKpis: GoalKpiRow[] | null | undefined,
   sign: 1 | -1,
+  preferredKpiId?: string | null,
 ): RollupDecision {
   const trimmed = targetValue?.trim();
   if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return null;
-  if (!projectKpis || projectKpis.length !== 1) return null;
+  if (!projectKpis?.length) return null;
+
+  const picked = pickRollupKpi(projectKpis, preferredKpiId);
+  if (!picked) return null;
+
   const amount = parseFloat(trimmed);
   if (!Number.isFinite(amount) || amount === 0) return null;
-  return { kpiId: projectKpis[0].id, delta: amount * sign };
+  return { kpiId: picked.id, delta: amount * sign };
+}
+
+function pickRollupKpi(
+  kpis: GoalKpiRow[],
+  preferredKpiId?: string | null,
+): GoalKpiRow | null {
+  if (!kpis.length) return null;
+  if (preferredKpiId) {
+    const hit = kpis.find((k) => k.id === preferredKpiId);
+    if (hit) return hit;
+  }
+  if (kpis.length === 1) return kpis[0];
+  const scored = kpis
+    .filter((k) => k.target != null && Number.isFinite(k.target) && k.target > 0)
+    .sort((a, b) => (b.target ?? 0) - (a.target ?? 0));
+  return scored[0] ?? kpis[0];
 }
 
 export async function applyKpiRollup(
@@ -808,21 +918,119 @@ export async function setKpiValueForWeek(
   invalidateGoalSpineCache(userId);
 }
 
+export type CompleteWeeklyReviewOptions = {
+  /** Sunday ritual: plan fields go on the upcoming week, reflection stays on closing week. */
+  planWeekStart?: string | null;
+};
+
 export async function completeWeeklyReview(
   userId: string,
-  weekStart: string,
+  closingWeekStart: string,
   fields: WeeklyPlanFields,
+  options?: CompleteWeeklyReviewOptions,
 ): Promise<WeeklyReviewRow | null> {
+  const completedAt = new Date().toISOString();
+  const planWeekStart = options?.planWeekStart ?? closingWeekStart;
+  const planFields = {
+    week_intention: fields.week_intention ?? null,
+    week_commitment: fields.week_commitment ?? null,
+    week_goal_cialo: fields.week_goal_cialo ?? null,
+    week_goal_duch: fields.week_goal_duch ?? null,
+    week_goal_konto: fields.week_goal_konto ?? null,
+  };
+
+  if (planWeekStart === closingWeekStart) {
+    const { data, error } = await supabase
+      .from('weekly_reviews')
+      .upsert(
+        {
+          user_id: userId,
+          week_start: closingWeekStart,
+          ...planFields,
+          deepening_answers: fields.deepening_answers ?? null,
+          review_completed_at: completedAt,
+        },
+        { onConflict: 'user_id,week_start' },
+      )
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    invalidateGoalSpineCache(userId);
+    return data;
+  }
+
+  const [closingRes, planRes] = await Promise.all([
+    supabase
+      .from('weekly_reviews')
+      .upsert(
+        {
+          user_id: userId,
+          week_start: closingWeekStart,
+          deepening_answers: fields.deepening_answers ?? null,
+          review_completed_at: completedAt,
+        },
+        { onConflict: 'user_id,week_start' },
+      )
+      .select()
+      .maybeSingle(),
+    supabase
+      .from('weekly_reviews')
+      .upsert(
+        { user_id: userId, week_start: planWeekStart, ...planFields },
+        { onConflict: 'user_id,week_start' },
+      )
+      .select()
+      .maybeSingle(),
+  ]);
+
+  if (closingRes.error) throw closingRes.error;
+  if (planRes.error) throw planRes.error;
+  invalidateGoalSpineCache(userId);
+  return closingRes.data;
+}
+
+export async function saveMonthlyReviewDraft(
+  userId: string,
+  monthStart: string,
+  fields: MonthlyReviewFields,
+  today?: string,
+): Promise<MonthlyReviewRow | null> {
+  const closing = closingMonthStartForReview(today ?? getTodayWarsaw());
+  if (closing && monthStart !== closing) {
+    throw new Error(`Monthly review only writable for closing month: ${closing}`);
+  }
   const { data, error } = await supabase
-    .from('weekly_reviews')
+    .from('monthly_reviews')
+    .upsert(
+      { user_id: userId, month_start: monthStart, ...fields, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,month_start' },
+    )
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  invalidateGoalSpineCache(userId);
+  return data;
+}
+
+export async function completeMonthlyReview(
+  userId: string,
+  monthStart: string,
+  fields: MonthlyReviewFields,
+  ritualStats?: Json | null,
+): Promise<MonthlyReviewRow | null> {
+  const completedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('monthly_reviews')
     .upsert(
       {
         user_id: userId,
-        week_start: weekStart,
+        month_start: monthStart,
         ...fields,
-        review_completed_at: new Date().toISOString(),
+        ritual_stats: ritualStats ?? fields.ritual_stats ?? null,
+        completed_at: completedAt,
+        updated_at: completedAt,
       },
-      { onConflict: 'user_id,week_start' },
+      { onConflict: 'user_id,month_start' },
     )
     .select()
     .maybeSingle();

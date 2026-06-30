@@ -56,7 +56,7 @@ interface ProjectCardProps {
 
   editingProjectId: string | null;
   editForm: { name: string; goal: string; deadline: string; color: string; primary_skill_id: string };
-  setEditForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string }>>;
+  setEditForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string; primary_skill_id: string }>>;
   startEditProject: (project: any) => void;
   setEditingProjectId: (id: string | null) => void;
   handleSaveProject: (project: any) => void;

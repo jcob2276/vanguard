@@ -1,4 +1,5 @@
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth';
 import { format, startOfWeek } from 'date-fns';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -27,14 +28,6 @@ export const daysBefore = (n: number) => {
 
 export const avg = (arr: number[]) =>
   arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
-
-export function weekStartDate() {
-  const ds = getTodayWarsaw();
-  const d = new Date(ds + 'T12:00:00Z');
-  const dow = d.getDay();
-  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-  return formatWarsawDate(d);
-}
 
 export function sessionVol(s: any) {
   return (s.exercise_logs || []).reduce((sum: number, l: any) => {
@@ -205,7 +198,7 @@ export function computeNarrativeInsights(oura: any[], sessions: any[], nutrition
     });
 
   // Training gap
-  const ws = weekStartDate();
+  const ws = getWeekStartWarsaw(getTodayWarsaw());
   const thisWeek = sessions.filter((s: any) => s.date >= ws).length;
   const prev3wk = [7, 14, 21].map(
     off => sessions.filter((s: any) => s.date >= daysBefore(off + 7) && s.date < daysBefore(off)).length
@@ -246,8 +239,8 @@ export const SPRINT_DAYS = 84; // 12 × 7
 
 export function getSprintInfo() {
   const ds = getTodayWarsaw();
-  const d = new Date(ds + 'T12:00:00');
-  const yr = d.getFullYear();
+  const d = new Date(ds + 'T12:00:00Z');
+  const yr = d.getUTCFullYear();
   let anchor = new Date(`${yr}-03-01T12:00:00Z`);
   if (d.getTime() < anchor.getTime()) anchor = new Date(`${yr - 1}-03-01T12:00:00Z`);
   const personalYear = anchor.getFullYear();

@@ -396,6 +396,9 @@ export default function GrowthView({ session }: { session: Session }) {
                   weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
                   sprintGoal: direction.sprintGoal ?? null,
                   sprintLabel: direction.sprintLabel ?? null,
+                  monthTheme: direction.monthTheme ?? null,
+                  monthLabel: direction.monthLabel ?? null,
+                  bhagLine: direction.bhagLine ?? null,
                 }}
               />
             )}

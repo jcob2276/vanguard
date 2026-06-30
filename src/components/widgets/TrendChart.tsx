@@ -33,7 +33,7 @@ export function TrendChart({ data }: { data: TrendChartData }) {
           <YAxis tick={{ fontSize: 10, fill: 'var(--color-text-tertiary)' }} axisLine={false} tickLine={false} width={28} />
           <Tooltip
             contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--color-border-custom)' }}
-            formatter={(v: number) => [`${v}${data.unit ? ` ${data.unit}` : ''}`, '']}
+            formatter={(v) => [`${v}${data.unit ? ` ${data.unit}` : ''}`, '']}
           />
           <Area type="monotone" dataKey="value" stroke={color} fill="url(#trendFill)" strokeWidth={2} dot={false} />
         </AreaChart>

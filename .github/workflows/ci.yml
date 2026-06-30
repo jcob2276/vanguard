@@ -30,6 +30,12 @@ jobs:
       - name: Registry audit
         run: npm run audit:registry
 
+      - name: Migration drift check
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npm run db:check-drift
+
       - name: Typecheck edge functions
         run: npm run typecheck
 
@@ -41,6 +47,9 @@ jobs:
 
       - name: Test
         run: npm run test
+
+      - name: Test edge function logic (Deno)
+        run: npm run test:edge
 
       - name: UI smoke
         run: npm run smoke:ui

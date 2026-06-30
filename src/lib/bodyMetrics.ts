@@ -109,7 +109,7 @@ export function mergeBodyMetricSavePayload(
   today: string,
   userId: string,
   existingToday: BodyMetricRow | null | undefined,
-  input: Record<string, string>,
+  input: Record<'weight' | 'waist' | 'neck' | 'chest' | 'belly' | 'hips' | 'thigh' | 'biceps_l' | 'calf', string>,
 ): Record<string, unknown> | null {
   const fields = ['weight', 'waist', 'neck', 'chest', 'belly', 'hips', 'thigh', 'biceps_l', 'calf'] as const
   const out: Record<string, unknown> = { user_id: userId, date: today }

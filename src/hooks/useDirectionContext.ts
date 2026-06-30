@@ -15,6 +15,7 @@ import {
 } from '../lib/growthWeek';
 
 import { fetchGoalSpine, fetchLatestKpiValues } from '../lib/goalSpine';
+import { primaryBhagLine } from '../lib/longTermBridge';
 
 import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 
@@ -413,8 +414,6 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
       }));
 
-
-
       const skills = (skillsRes.data ?? []).map((s) => ({ id: s.id, label: s.label, key: s.key }));
 
       const skillsById = new Map(skills.map((s) => [s.id, s]));
@@ -451,7 +450,14 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
       const sprint = spine.sprint;
 
-
+      const focusIds = sprint.focusProjectIds;
+      if (focusIds.length > 0) {
+        activeProjects.sort((a, b) => {
+          const af = focusIds.includes(a.id) ? 0 : 1;
+          const bf = focusIds.includes(b.id) ? 0 : 1;
+          return af - bf;
+        });
+      }
 
       const weekGoals = {
 
@@ -502,6 +508,14 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
         sprintGoal: sprint.goalText,
 
         sprintLabel: sprint.label,
+
+        sprintFocusProjectIds: sprint.focusProjectIds,
+
+        monthTheme: spine.month.activeTheme,
+
+        monthLabel: spine.month.activeMonthLabel,
+
+        bhagLine: primaryBhagLine(spine.longTerm),
 
         focus,
 
@@ -568,6 +582,14 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
       sprintGoal: data?.sprintGoal,
 
       sprintLabel: data?.sprintLabel,
+
+      sprintFocusProjectIds: data?.sprintFocusProjectIds ?? [],
+
+      monthTheme: data?.monthTheme,
+
+      monthLabel: data?.monthLabel,
+
+      bhagLine: data?.bhagLine,
 
       focus: data?.focus,
 

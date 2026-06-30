@@ -22,6 +22,7 @@ function createBodyMetric(date: string, weight: number | null, waist: number | n
     forearm: null,
     hips: null,
     muscle_mass: null,
+    neck: null,
     thigh: null,
     weight_italia: null,
   };
@@ -67,6 +68,7 @@ function createOuraSummary(date: string, totalSleepHours: number): Tables<'oura_
     rem_sleep_hours: null,
     rhr_avg: null,
     sleep_efficiency: null,
+    sleep_score: null,
     steps: null,
     stress_score: null,
     temp_deviation: null,

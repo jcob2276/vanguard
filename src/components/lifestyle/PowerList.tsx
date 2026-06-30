@@ -1,5 +1,5 @@
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useLifeGoals } from '../../hooks/useLifeGoals';
 import { useDirectionContext } from '../../hooks/useDirectionContext';
@@ -12,7 +12,7 @@ import type { TablesUpdate } from '../../lib/database.types';
 import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import { markCheckpointDone } from '../../lib/checkpoints';
-import { buildDailyPlanProposal, type DirectionContextData } from '../../lib/dailyPlanProposal';
+import { buildDailyPlanProposal, suggestDailyKpiTarget, kpiSlotHint, defaultPillarProject, pickRollupKpi, type DirectionContextData, type PillarProjectBinding } from '../../lib/dailyPlanProposal';
 import { applyKpiRollup, currentWeekStart, fetchKpisForProject, rollupTaskCompletion } from '../../lib/goalSpine';
 import LifeGoalsPanel from './LifeGoalsPanel';
 import PlanningCheckpointsStrip from '../shared/PlanningCheckpointsStrip';
@@ -46,13 +46,18 @@ function powerListDraftKey(userId: string, date: string) {
   return `vanguard_powerlist_draft_${userId}_${date}`;
 }
 
+function powerListKpiKey(userId: string, date: string) {
+  return `vanguard_powerlist_kpi_${userId}_${date}`;
+}
+
 interface TaskSlot {
   task: string;
   todoId: string | null;
   checkpointId: string | null;
   projectId: string | null;
   pinId: string | null;
-  targetValue?: string; // e.g. "20", "3"
+  kpiId?: string | null;
+  targetValue?: string;
   timeSlot?: 'morning' | 'noon' | 'afternoon' | 'evening';
 }
 
@@ -129,10 +134,12 @@ export default function PowerList({
   session,
   todayWin,
   onUpdate,
+  planDaySignal,
 }: {
   session: any;
   todayWin: any;
   onUpdate?: (data: any) => void;
+  planDaySignal?: number;
 }) {
   const userId = session.user.id;
   const { displayRows: lifeGoalRows, refresh: refreshLifeGoals } = useLifeGoals(userId);
@@ -140,6 +147,29 @@ export default function PowerList({
   const today = getTodayWarsaw();
   const haptics = useHaptics();
   const weekGoals = direction.weekGoals ?? null;
+
+  const pillarProjects = useMemo<PillarProjectBinding[]>(
+    () =>
+      lifeGoalRows
+        .filter((r) => r.projectId)
+        .map((r) => ({
+          pillar: r.id as 'cialo' | 'duch' | 'konto',
+          projectId: r.projectId!,
+          name: r.subtitle || r.title,
+          kpis: (r.kpis ?? []).map((k) => ({
+            id: k.id,
+            name: k.name,
+            current: k.current,
+            target: k.target,
+          })),
+        })),
+    [lifeGoalRows],
+  );
+
+  const allProjectOptions = useMemo(
+    () => direction.activeProjects?.map((p) => ({ id: p.id, name: p.name, kpis: p.kpis ?? [] })) ?? [],
+    [direction.activeProjects],
+  );
 
   useEffect(() => {
     if (!todayWin) void refreshLifeGoals();
@@ -163,8 +193,25 @@ export default function PowerList({
   const [todoItems, setTodoItems] = useState<any[]>([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
+  const [eveningNote, setEveningNote] = useState('');
+  const [savingEvening, setSavingEvening] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const draftLoaded = useRef(false);
+  const [todaySlotKpis, setTodaySlotKpis] = useState<Record<number, string>>(() => {
+    try {
+      const raw = localStorage.getItem(powerListKpiKey(userId, today));
+      return raw ? (JSON.parse(raw) as Record<number, string>) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (Object.keys(todaySlotKpis).length === 0) localStorage.removeItem(powerListKpiKey(userId, today));
+      else localStorage.setItem(powerListKpiKey(userId, today), JSON.stringify(todaySlotKpis));
+    } catch { /* ignore */ }
+  }, [todaySlotKpis, userId, today]);
 
   const fillSlotFromCheckpoint = (
     payload: { title: string; checkpointId: string; projectId: string },
@@ -201,6 +248,10 @@ export default function PowerList({
       powerListStats: direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
       sprintGoal: direction.sprintGoal ?? null,
       sprintLabel: direction.sprintLabel ?? null,
+      sprintFocusProjectIds: direction.sprintFocusProjectIds ?? [],
+      monthTheme: direction.monthTheme ?? null,
+      monthLabel: direction.monthLabel ?? null,
+      bhagLine: direction.bhagLine ?? null,
       focus: direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
       weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
       weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
@@ -210,7 +261,7 @@ export default function PowerList({
       notify('Brak danych do propozycji — uzupełnij tydzień lub checkpointy.', 'error');
       return;
     }
-    const proposal = buildDailyPlanProposal(ctx);
+    const proposal = buildDailyPlanProposal(ctx, pillarProjects);
     setNewTaskForm(
       proposal.map((p, i) => ({
         task: p.task,
@@ -218,13 +269,26 @@ export default function PowerList({
         checkpointId: p.checkpointId,
         projectId: p.projectId,
         pinId: p.pinId,
-        targetValue: newTaskForm[i]?.targetValue ?? '',
+        targetValue: p.targetValue ?? newTaskForm[i]?.targetValue ?? '',
         timeSlot: newTaskForm[i]?.timeSlot ?? 'morning',
       })),
     );
     haptics.success();
     notify('Wypełniono propozycją — popraw i zacznij dzień.', 'success');
   };
+
+  // "Zaplanuj dzień" CTA w SpineGuideStrip bumpuje planDaySignal — odpal tę samą
+  // propozycję co przycisk "Wypełnij propozycją", pomijając pierwsze zamontowanie.
+  const planDaySignalMounted = useRef(false);
+  useEffect(() => {
+    if (!planDaySignalMounted.current) {
+      planDaySignalMounted.current = true;
+      return;
+    }
+    if (direction.loading) return;
+    applyProposal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planDaySignal]);
 
   const confirmCheckpointDone = async () => {
     if (!checkpointPrompt) return;
@@ -281,20 +345,25 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     }
   }
 
-  // Resolve projects for today's linked todo items
+  // Resolve projects for today's linked todos and direct project_id on tasks
   useEffect(() => {
-    const ids = [
+    const todoIds = [
       todayWin?.task_1_todo_id,
       todayWin?.task_2_todo_id,
       todayWin?.task_3_todo_id,
       todayWin?.task_4_todo_id,
       todayWin?.task_5_todo_id,
     ].filter((id): id is string => !!id);
-    if (ids.length === 0) return;
+    const directProjectIds = [1, 2, 3, 4, 5]
+      .map((i) => todayWin?.[`task_${i}_project_id`] as string | null)
+      .filter((id): id is string => !!id);
+    if (todoIds.length === 0 && directProjectIds.length === 0) return;
     (async () => {
       try {
         const [{ data: items }, sections, projects] = await Promise.all([
-          supabase.from('todo_items').select('id, section_id').in('id', ids),
+          todoIds.length > 0
+            ? supabase.from('todo_items').select('id, section_id').in('id', todoIds)
+            : Promise.resolve({ data: [] }),
           listTodoSections(userId),
           listProjects(userId),
         ]);
@@ -306,10 +375,23 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
           const project = section?.project_id ? projectData.get(section.project_id) as any : null;
           if (project) result[item.id] = { name: project.name, color: project.color };
         }
+        for (let i = 1; i <= 5; i++) {
+          const pid = todayWin?.[`task_${i}_project_id`] as string | null;
+          if (pid && projectData.has(pid)) {
+            const project = projectData.get(pid) as any;
+            result[`task_project_${i}`] = { name: project.name, color: project.color };
+          }
+        }
         setProjectMap(result);
       } catch { /* project lookup is decorative, ignore */ }
     })();
-  }, [todayWin?.task_1_todo_id, todayWin?.task_2_todo_id, todayWin?.task_3_todo_id, todayWin?.task_4_todo_id, todayWin?.task_5_todo_id, userId]);
+  }, [
+    todayWin?.task_1_todo_id, todayWin?.task_2_todo_id, todayWin?.task_3_todo_id,
+    todayWin?.task_4_todo_id, todayWin?.task_5_todo_id,
+    todayWin?.task_1_project_id, todayWin?.task_2_project_id, todayWin?.task_3_project_id,
+    todayWin?.task_4_project_id, todayWin?.task_5_project_id,
+    userId,
+  ]);
 
   // Fetch yesterday's daily_wins to require a reflection before unlocking today
   useEffect(() => {
@@ -401,10 +483,115 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         n[i].projectId = null;
         n[i].pinId = null;
         n[i].targetValue = '';
+        n[i].kpiId = null;
+      }
+      const taskText = patch.task !== undefined ? patch.task : n[i].task;
+      if (taskText.trim() && i < 3 && !n[i].projectId && !patch.projectId) {
+        const pillar = SPHERE_SLOTS[i].category as 'cialo' | 'duch' | 'konto';
+        const binding = defaultPillarProject(pillar, pillarProjects, direction.sprintFocusProjectIds ?? []);
+        if (binding) {
+          n[i].projectId = binding.projectId;
+          const picked = pickRollupKpi(binding.kpis);
+          n[i].kpiId = picked?.id ?? null;
+          const hint = kpiSlotHint(binding.kpis, n[i].kpiId);
+          if (hint.autoTarget && !n[i].targetValue?.trim()) n[i].targetValue = hint.autoTarget;
+        }
+      }
+      if (patch.kpiId !== undefined) {
+        n[i].kpiId = patch.kpiId;
+        setTodaySlotKpis((prev) => {
+          const next = { ...prev };
+          if (patch.kpiId) next[i] = patch.kpiId;
+          else delete next[i];
+          return next;
+        });
+      }
+      if (patch.projectId !== undefined) {
+        const proj =
+          allProjectOptions.find((p) => p.id === patch.projectId) ??
+          pillarProjects.find((p) => p.projectId === patch.projectId);
+        const kpis = proj?.kpis ?? [];
+        const picked = pickRollupKpi(kpis, n[i].kpiId);
+        n[i].kpiId = picked?.id ?? null;
+        const kpiRow = kpis.find((k) => k.id === n[i].kpiId);
+        const suggested = suggestDailyKpiTarget(kpiRow ? [kpiRow] : kpis);
+        if (suggested && !n[i].targetValue?.trim()) n[i].targetValue = suggested;
+        if (!patch.projectId) n[i].kpiId = null;
       }
       return n;
     });
   };
+
+  const projectOptionsForSlot = (slotIndex: number) => {
+    if (slotIndex < 3) {
+      const pillar = SPHERE_SLOTS[slotIndex].category as 'cialo' | 'duch' | 'konto';
+      const pillarOpts = pillarProjects.filter((p) => p.pillar === pillar);
+      if (pillarOpts.length > 0) {
+        return pillarOpts.map((p) => ({ id: p.projectId, name: p.name ?? 'Projekt', kpis: p.kpis }));
+      }
+    }
+    return allProjectOptions;
+  };
+
+  const kpiHintForSlot = (slotIndex: number, projectId: string | null, kpiId?: string | null) => {
+    if (!projectId) return null;
+    const proj =
+      allProjectOptions.find((p) => p.id === projectId) ??
+      pillarProjects.find((p) => p.projectId === projectId);
+    return kpiSlotHint(proj?.kpis ?? [], kpiId);
+  };
+
+  const kpisForProject = (projectId: string | null) => {
+    if (!projectId) return [];
+    const proj =
+      allProjectOptions.find((p) => p.id === projectId) ??
+      pillarProjects.find((p) => p.projectId === projectId);
+    return proj?.kpis ?? [];
+  };
+
+  const eveningCloseDue = useMemo(() => {
+    if (!todayWin) return false;
+    if (todayWin.day_note?.trim()) return false;
+    if (!todayWin.task_1?.trim()) return false;
+    if (todayWin.result === 'Z' || todayWin.result === 'P') return true;
+    const h = parseInt(
+      new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }),
+      10,
+    );
+    return h >= 20;
+  }, [todayWin]);
+
+  useEffect(() => {
+    setEveningNote(todayWin?.day_note ?? '');
+  }, [todayWin?.id, todayWin?.day_note]);
+
+  async function saveEveningClose() {
+    if (!todayWin || !eveningNote.trim() || savingEvening) return;
+    setSavingEvening(true);
+    try {
+      const note = eveningNote.trim();
+      const { data, error } = await supabase
+        .from('daily_wins')
+        .update({ day_note: note })
+        .eq('id', todayWin.id)
+        .select()
+        .single();
+      if (error) throw error;
+      void supabase.from('vanguard_stream').insert({
+        user_id: userId,
+        source: 'powerlist',
+        content: `Domknięcie dnia: ${note}`,
+        metadata: { kind: 'day_close', date: today },
+      });
+      haptics.light();
+      if (onUpdate) onUpdate(data);
+    } catch (e) {
+      console.error('[saveEveningClose]', e);
+      notify('Nie udało się zapisać domknięcia dnia.', 'error');
+    } finally {
+      setSavingEvening(false);
+    }
+  }
 
   async function toggleTask(index: number) {
     if (!todayWin) return;
@@ -475,7 +662,14 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         (async () => {
           try {
             const kpis = await fetchKpisForProject(userId, projectId);
-            const decision = rollupTaskCompletion(targetValue, kpis, newValue ? 1 : -1);
+            const preferredKpi =
+              newTaskForm[index]?.kpiId ?? todaySlotKpis[index] ?? undefined;
+            const decision = rollupTaskCompletion(
+              targetValue,
+              kpis,
+              newValue ? 1 : -1,
+              preferredKpi,
+            );
             if (decision) {
               await applyKpiRollup(userId, decision.kpiId, currentWeekStart(), decision.delta);
             }
@@ -724,24 +918,62 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                   )}
 
                   {slot.task.trim() && (
-                    <div className="mt-1 flex items-center gap-1.5 px-1">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="ile?"
-                        value={slot.targetValue ?? ''}
-                        onChange={(e) => updateSlot(i, { targetValue: e.target.value })}
-                        className="w-14 shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/40"
-                      />
-                      <select
-                        value={slot.timeSlot ?? 'morning'}
-                        onChange={(e) => updateSlot(i, { timeSlot: e.target.value as TaskSlot['timeSlot'] })}
-                        className="shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none focus:border-primary/40"
-                      >
-                        {(Object.keys(TIME_SLOT_LABELS) as Array<keyof typeof TIME_SLOT_LABELS>).map((key) => (
-                          <option key={key} value={key}>{TIME_SLOT_LABELS[key]}</option>
-                        ))}
-                      </select>
+                    <div className="mt-1 space-y-1 px-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <select
+                          value={slot.projectId ?? ''}
+                          onChange={(e) => updateSlot(i, { projectId: e.target.value || null })}
+                          className="max-w-[48%] shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                        >
+                          <option value="">
+                            {i < 3 && pillarProjects.some((p) => p.pillar === SPHERE_SLOTS[i].category)
+                              ? `Projekt (${SPHERE_SLOTS[i].label})…`
+                              : 'Projekt (KPI)…'}
+                          </option>
+                          {projectOptionsForSlot(i).map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        {kpisForProject(slot.projectId).length > 1 && (
+                          <select
+                            value={slot.kpiId ?? ''}
+                            onChange={(e) => updateSlot(i, { kpiId: e.target.value || null })}
+                            className="max-w-[40%] shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                          >
+                            <option value="">KPI…</option>
+                            {kpisForProject(slot.projectId).map((k) => (
+                              <option key={k.id} value={k.id}>{k.name}</option>
+                            ))}
+                          </select>
+                        )}
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="ile?"
+                          title="Liczba dla KPI (rollup przy odhaczeniu)"
+                          value={slot.targetValue ?? ''}
+                          onChange={(e) => updateSlot(i, { targetValue: e.target.value })}
+                          className="w-14 shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/40"
+                        />
+                        <select
+                          value={slot.timeSlot ?? 'morning'}
+                          onChange={(e) => updateSlot(i, { timeSlot: e.target.value as TaskSlot['timeSlot'] })}
+                          className="shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                        >
+                          {(Object.keys(TIME_SLOT_LABELS) as Array<keyof typeof TIME_SLOT_LABELS>).map((key) => (
+                            <option key={key} value={key}>{TIME_SLOT_LABELS[key]}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {(() => {
+                        const hint = kpiHintForSlot(i, slot.projectId, slot.kpiId);
+                        if (!hint?.message) return null;
+                        return (
+                          <p className={`text-[10px] leading-snug ${hint.rollupReady ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                            {hint.message}
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -789,6 +1021,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             const done = todayWin[`done_${i + 1}`];
             const completedAt = todayWin[`completed_at_${i + 1}`];
             const linkedTodoId = todayWin[`task_${i + 1}_todo_id`];
+            const linkedProjectId = todayWin[`task_${i + 1}_project_id`] as string | null;
             if (!task) return null;
 
             const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
@@ -854,9 +1087,49 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                     </span>
                   ) : null;
                 })()}
+                {!linkedTodoId && linkedProjectId && projectMap[`task_project_${i + 1}`] && (
+                  <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+                    <span className={`h-1.5 w-1.5 rounded-full ${COLOR_DOT[projectMap[`task_project_${i + 1}`].color || ''] || 'bg-primary'}`} />
+                    {projectMap[`task_project_${i + 1}`].name}
+                  </span>
+                )}
               </button>
             );
           })}
+
+          {eveningCloseDue && (
+            <div className="space-y-2 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] p-3.5 animate-fadeIn">
+              <p className="text-[8px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                Domknięcie dnia
+              </p>
+              <p className="text-[11px] text-text-secondary leading-relaxed">
+                Co jedno poszło inaczej niż plan — i dlaczego? (30 sek., trafia do podsumowania tygodnia)
+              </p>
+              <textarea
+                value={eveningNote}
+                onChange={(e) => setEveningNote(e.target.value)}
+                placeholder="Np. „Odhaczyłem outreach, ale unikałem cold calli — strach przed odmową.”"
+                rows={2}
+                className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
+                  text-text-primary placeholder-text-muted resize-y min-h-[56px]
+                  focus:outline-none focus:border-primary/50 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => void saveEveningClose()}
+                disabled={!eveningNote.trim() || savingEvening}
+                className="w-full rounded-lg border border-indigo-500/30 bg-indigo-500/10 py-2 text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300 disabled:opacity-40"
+              >
+                {savingEvening ? 'Zapisuję…' : 'Zapisz domknięcie'}
+              </button>
+            </div>
+          )}
+
+          {todayWin?.day_note?.trim() && !eveningCloseDue && (
+            <p className="text-[10px] text-text-muted px-1">
+              Domknięcie: „{todayWin.day_note.trim().slice(0, 80)}{todayWin.day_note.trim().length > 80 ? '…' : ''}"
+            </p>
+          )}
         </div>
       )}
     </section>

@@ -1,6 +1,10 @@
 import React from "react";
 import type { Session } from "@supabase/supabase-js";
 import ProjectWeekKpis from "./ProjectWeekKpis";
+import WeekPlanningRecap from "./WeekPlanningRecap";
+import { useDirectionContext } from "../../hooks/useDirectionContext";
+import { formatSprintWeekBridge } from "../../lib/goalSpine";
+import { formatSprintFromLongTerm } from "../../lib/longTermBridge";
 
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
 type Phase2Recap = {
@@ -24,6 +28,7 @@ type WeekFacts = {
 interface Props {
   session: Session;
   weekStart: string;
+  planWeekStart: string;
   weekFacts: WeekFacts;
   phase1: Phase1Recap | null;
   phase1Loading: boolean;
@@ -64,6 +69,8 @@ interface Props {
   completing: boolean;
   reflectionSaved: boolean;
   activeProjects: { id: string; name: string }[];
+  intentionFromMonth?: boolean;
+  planCarriedFromMonth?: boolean;
 }
 
 function ScoreButton({
@@ -158,6 +165,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
 export default function DirectionPlanningMode({
   session,
   weekStart,
+  planWeekStart,
   weekFacts,
   phase1, phase1Loading,
   phase2, phase2Loading,
@@ -180,16 +188,26 @@ export default function DirectionPlanningMode({
   onComplete, completing,
   reflectionSaved,
   activeProjects,
+  intentionFromMonth = false,
+  planCarriedFromMonth = false,
 }: Props) {
+  const direction = useDirectionContext(session.user.id, weekStart);
   const deepeningQuestions = phase2?.deepening_questions ?? [];
   const deepeningComplete =
-    deepeningQuestions.length > 0 &&
-    deepeningQuestions.every((_, i) => (deepeningAnswers[String(i)] ?? "").trim().length > 0);
+    !phase2Loading &&
+    (deepeningQuestions.length === 0
+      ? reflectionSaved
+      : deepeningQuestions.every((_, i) => (deepeningAnswers[String(i)] ?? '').trim().length > 0));
 
   const block5material = phase2?.block5_material;
+  const weekStepDraft = weekIntention.trim() || weekCommitment.trim() || null;
+  const sprintBridge = formatSprintWeekBridge(direction.sprintGoal, weekStepDraft);
+  const longTermBridge = formatSprintFromLongTerm(direction.bhagLine ?? null, direction.sprintGoal);
 
   return (
     <div className="space-y-6 pb-8">
+
+      <WeekPlanningRecap userId={session.user.id} weekStart={weekStart} />
 
       {/* ── BLOK 1: AI NARRACJA ─────────────────────────────────── */}
       <div className="space-y-3">
@@ -242,6 +260,7 @@ export default function DirectionPlanningMode({
               userId={session.user.id}
               projects={activeProjects}
               weekStart={weekStart}
+              focusProjectIds={direction.sprintFocusProjectIds ?? []}
             />
           </div>
         )}
@@ -402,11 +421,35 @@ export default function DirectionPlanningMode({
         <div className={`space-y-4 transition-opacity duration-300 ${deepeningComplete ? "" : "opacity-30 pointer-events-none"}`}>
           <Divider title="Plan tygodnia" />
 
+          {planWeekStart !== weekStart && (
+            <p className="text-[10px] font-semibold text-text-muted">
+              Cele zapiszą się na tydzień od {planWeekStart}
+            </p>
+          )}
+
           {block5material && (
             <div className="space-y-2">
               <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">
                 Sugestie AI
               </p>
+              {(direction.monthTheme || sprintBridge || longTermBridge) && (
+                <div className="rounded-xl border border-primary/15 bg-primary/[0.03] px-3 py-2.5 space-y-1.5">
+                  {longTermBridge && (
+                    <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>
+                  )}
+                  {direction.monthTheme && (
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
+                      <span className="font-black uppercase tracking-wider text-indigo-600 text-[9px]">
+                        Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}
+                      </span>
+                      {direction.monthTheme}
+                    </p>
+                  )}
+                  {sprintBridge && (
+                    <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>
+                  )}
+                </div>
+              )}
               {(["cialo", "duch", "konto"] as const).map((p) =>
                 block5material[p] ? (
                   <div key={p} className="bg-surface border border-border-custom rounded-xl px-3 py-2.5">
@@ -421,13 +464,41 @@ export default function DirectionPlanningMode({
           )}
 
           <div className="space-y-4">
+            {(direction.monthTheme || direction.sprintGoal || direction.bhagLine) && (
+              <div className="rounded-xl border border-border-custom bg-surface/50 px-3 py-2.5 space-y-1.5">
+                {longTermBridge && (
+                  <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>
+                )}
+                {direction.monthTheme && (
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    <span className="font-black uppercase tracking-wider text-indigo-600 text-[9px]">
+                      Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}
+                    </span>
+                    {direction.monthTheme}
+                  </p>
+                )}
+                {sprintBridge && (
+                  <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>
+                )}
+              </div>
+            )}
             <div className="space-y-1">
               <p className="text-xs text-text-muted font-medium">Intencja tygodnia — jaki chcę być?</p>
+              {intentionFromMonth && weekIntention.trim() && (
+                <p className="text-[10px] font-semibold text-indigo-600">
+                  Wstępnie z tematu miesiąca — doprecyzuj pod ten tydzień.
+                </p>
+              )}
               <Textarea value={weekIntention} onChange={setWeekIntention}
                 placeholder="Np. konsekwentny, spokojny, zdecydowany…" rows={2} />
             </div>
             <div className="space-y-1">
               <p className="text-xs text-text-muted font-medium">Zobowiązanie — co jest bezwzględne?</p>
+              {planCarriedFromMonth && weekCommitment.trim() && (
+                <p className="text-[10px] font-semibold text-indigo-600">
+                  Z korekty miesiąca — jedna rzecz do poprawy w tym tygodniu.
+                </p>
+              )}
               <Textarea value={weekCommitment} onChange={setWeekCommitment}
                 placeholder="Jedna rzecz której nie odpuszczę bez względu na wszystko…" rows={2} />
             </div>
@@ -436,6 +507,11 @@ export default function DirectionPlanningMode({
               <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">
                 3 duże cele na ten tydzień
               </p>
+              {planCarriedFromMonth && (
+                <p className="text-[10px] font-semibold text-indigo-600">
+                  Cele filarów wstępnie z przeglądu miesiąca (korekta / dźwignia).
+                </p>
+              )}
               <div className="space-y-1">
                 <p className="text-xs text-text-muted font-medium">Ciało</p>
                 <Textarea value={weekGoalCialo} onChange={setWeekGoalCialo}

@@ -17,6 +17,24 @@ function addDaysStr(dateStr: string, days: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function monthThemeSourceForWeek(weekStart: string): string {
+  const [y, m] = weekStart.split("-").map(Number);
+  if (m === 1) return `${y - 1}-12-01`;
+  return `${y}-${String(m - 1).padStart(2, "0")}-01`;
+}
+
+function getSprintInfoForDate(dateStr: string) {
+  const d = new Date(dateStr + "T12:00:00Z");
+  const yr = d.getUTCFullYear();
+  let anchor = new Date(`${yr}-03-01T12:00:00Z`);
+  if (d.getTime() < anchor.getTime()) anchor = new Date(`${yr - 1}-03-01T12:00:00Z`);
+  const personalYear = anchor.getFullYear();
+  const daysSince = Math.floor((d.getTime() - anchor.getTime()) / 86400000);
+  const weeksSince = Math.floor(daysSince / 7);
+  const sprintNumber = Math.floor(weeksSince / 12) + 1;
+  return { personalYear, sprintNumber };
+}
+
 function mean(xs: number[]): number | null {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 }
@@ -52,7 +70,7 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
     kpisRes, kpiEntriesRes, reconciliationsRes,
   ] = await Promise.all([
     db.from("daily_wins")
-      .select("date, task_1, task_2, task_3, task_4, task_5, category_1, category_2, category_3, category_4, category_5, done_1, done_2, done_3, done_4, done_5, day_note")
+      .select("date, result, task_1, task_2, task_3, task_4, task_5, category_1, category_2, category_3, category_4, category_5, done_1, done_2, done_3, done_4, done_5, day_note, task_1_project_id, task_2_project_id, task_3_project_id, task_4_project_id, task_5_project_id, task_1_target_value, task_2_target_value, task_3_target_value, task_4_target_value, task_5_target_value")
       .eq("user_id", userId).gte("date", weekStart).lte("date", weekEnd).order("date"),
     db.from("oura_daily_summary").select("date, total_sleep_hours, bedtime_timestamp, readiness_score")
       .eq("user_id", userId).gte("date", weekStart).lte("date", weekEnd),
@@ -89,6 +107,25 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
       .eq("user_id", userId).gte("date", weekStart).lte("date", weekEnd).order("date"),
   ]);
 
+  const sprintInfo = getSprintInfoForDate(weekEnd);
+  const themeSourceStart = monthThemeSourceForWeek(weekStart);
+  const [sprintGoalRes, monthThemeRes] = await Promise.all([
+    db.from("sprint_goals")
+      .select("goal_text")
+      .eq("user_id", userId)
+      .eq("personal_year", sprintInfo.personalYear)
+      .eq("sprint_number", sprintInfo.sprintNumber)
+      .maybeSingle(),
+    db.from("monthly_reviews")
+      .select("month_theme")
+      .eq("user_id", userId)
+      .eq("month_start", themeSourceStart)
+      .maybeSingle(),
+  ]);
+
+  const sprintGoal = sprintGoalRes.data?.goal_text?.trim() || null;
+  const monthTheme = monthThemeRes.data?.month_theme?.trim() || null;
+
   // PowerList
   const wins = winsRes.data ?? [];
   const pillarTally: Record<string, { done: number; total: number }> = {
@@ -109,8 +146,9 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
       }
     }
     if (parts.length) {
+      const resultTag = w.result ? ` [${w.result}]` : "";
       const note = w.day_note ? ` [nota: ${String(w.day_note).slice(0, 120)}]` : "";
-      dayLines.push(`${w.date}: ${parts.join(" · ")}${note}`);
+      dayLines.push(`${w.date}${resultTag}: ${parts.join(" · ")}${note}`);
     }
   }
 
@@ -192,6 +230,7 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
     unreadLinksCount: (linksRes.data ?? []).length,
     thisWeekVoice, thisWeekShortMsgs, doneTasks, activeProjects,
     kpiValuesList, reconciliationList,
+    sprintGoal, monthTheme,
   };
 }
 
@@ -259,6 +298,7 @@ function factsToPrompt(f: Awaited<ReturnType<typeof gatherWeekFacts>>): string {
 
   return `Tydzień: ${f.weekStart} – ${f.weekEnd}
 
+${f.monthTheme ? `TEMAT MIESIĄCA (horyzont 4 tyg.): ${f.monthTheme}\n` : ""}${f.sprintGoal ? `CEL SPRINTU (12 tyg.): ${f.sprintGoal}\n` : ""}
 POWERLIST per dzień:
 ${f.dayLines.join("\n") || "(brak)"}
 
@@ -304,14 +344,82 @@ Deno.serve(async (req) => {
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
     const userId = scopedUserId;
     if (!userId) throw new Error("userId required");
-    const weekStart: string = body.weekStart;
-    if (!weekStart) throw new Error("weekStart required");
     const phase: string = body.phase;
-    if (phase !== "before" && phase !== "after") throw new Error("phase must be 'before' or 'after'");
+    if (phase !== "before" && phase !== "after" && phase !== "month") {
+      throw new Error("phase must be 'before', 'after', or 'month'");
+    }
 
     const db = createServiceClient();
     const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
     if (!apiKey) throw new Error("DEEPSEEK_API_KEY not set");
+
+    // ── PHASE MONTH ─────────────────────────────────────────────────────────
+    if (phase === "month") {
+      const monthStart: string = body.monthStart;
+      if (!monthStart) throw new Error("monthStart required for phase month");
+      const monthEndDate = new Date(monthStart + "T12:00:00Z");
+      monthEndDate.setUTCMonth(monthEndDate.getUTCMonth() + 1);
+      monthEndDate.setUTCDate(0);
+      const monthEndStr = monthEndDate.toISOString().split("T")[0];
+
+      const [reviewsRes, winsRes, kpiRes] = await Promise.all([
+        db.from("weekly_reviews")
+          .select("week_start, review_completed_at, pillar_scores, week_intention, proud_of, week_regret")
+          .eq("user_id", userId).gte("week_start", addDaysStr(monthStart, -6)).lte("week_start", monthEndStr),
+        db.from("daily_wins")
+          .select("date, result, task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5")
+          .eq("user_id", userId).gte("date", monthStart).lte("date", monthEndStr),
+        db.from("kpi_entries").select("week_start, value").eq("user_id", userId)
+          .gte("week_start", addDaysStr(monthStart, -6)).lte("week_start", monthEndStr),
+      ]);
+
+      const reviews = reviewsRes.data ?? [];
+      const wins = winsRes.data ?? [];
+      const kpis = kpiRes.data ?? [];
+      const weeksReviewed = reviews.filter((r: any) => r.review_completed_at).length;
+      const zDays = wins.filter((w: any) => w.result === "Z").length;
+      const pDays = wins.filter((w: any) => w.result === "P").length;
+
+      const factsBlock = `MIESIĄC ${monthStart} – ${monthEndStr}
+Tygodnie z refleksją: ${weeksReviewed}
+Dni Z/P: ${zDays}/${pDays}
+Wpisy KPI (tygodnie): ${new Set(kpis.map((k: any) => k.week_start)).size}
+Tygodniowe refleksje (skrót): ${reviews.slice(-4).map((r: any) => `${r.week_start}: ${r.week_intention || r.proud_of || "(brak)"}`).join(" | ") || "(brak)"}`;
+
+      const systemPrompt = `Jesteś Antigravity — prywatny coach Jakuba. Piszesz PO POLSKU, bezpośrednio, na "Ty".
+Napisz narrację MIESIĄCA — wzorce, sprzeczności, energia. Nie listę statystyk.
+6-8 zdań. "longterm_motif" tylko jeśli motyw wracał wielokrotnie. "question" — jedno ostre pytanie z konkretu.
+Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "question": "..."}`;
+
+      const { content } = await deepseekChat({
+        apiKey, model: "deepseek-v4-flash", maxTokens: 2000, temperature: 0.3,
+        responseFormat: { type: "json_object" },
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: factsBlock }],
+      });
+
+      const parsed = parseJsonFromContent(content);
+      if (!parsed || typeof parsed.narrative !== "string" || typeof parsed.question !== "string") {
+        throw new Error(`Invalid AI JSON month: ${content.slice(0, 300)}`);
+      }
+
+      const phase1 = {
+        narrative: parsed.narrative,
+        longterm_motif: typeof parsed.longterm_motif === "string" ? parsed.longterm_motif : null,
+        question: parsed.question,
+      };
+
+      const { data: existing } = await db.from("monthly_reviews").select("ai_recap").eq("user_id", userId).eq("month_start", monthStart).maybeSingle();
+      const mergedRecap = { ...(existing?.ai_recap ?? {}), phase1 };
+      await db.from("monthly_reviews").upsert(
+        { user_id: userId, month_start: monthStart, ai_recap: mergedRecap },
+        { onConflict: "user_id,month_start" },
+      );
+
+      return new Response(JSON.stringify({ phase1 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const weekStart: string = body.weekStart;
+    if (!weekStart) throw new Error("weekStart required");
 
     const facts = await gatherWeekFacts(db, userId, weekStart);
     const factsBlock = factsToPrompt(facts);
@@ -425,11 +533,17 @@ ${historicalVoice.join("\n\n") || "(brak)"}`;
 
     // ── PHASE AFTER ─────────────────────────────────────────────────────────
     const { data: review } = await db.from("weekly_reviews")
-      .select("proud_of, do_differently, sabotage, obligation, week_highlight, week_regret, new_belief, pillar_scores, ai_recap")
+      .select("proud_of, do_differently, sabotage, obligation, week_highlight, week_regret, new_belief, pillar_scores, ai_recap, week_intention, week_goal_cialo, week_goal_duch, week_goal_konto")
       .eq("user_id", userId).eq("week_start", weekStart).maybeSingle();
     if (!review) throw new Error("Brak zapisanej refleksji — zapisz ją najpierw.");
 
     const scores = review.pillar_scores ?? {};
+    const weekPlanLines = [
+      review.week_intention && `Intencja: ${review.week_intention}`,
+      review.week_goal_cialo && `Cel Ciało: ${review.week_goal_cialo}`,
+      review.week_goal_duch && `Cel Duch: ${review.week_goal_duch}`,
+      review.week_goal_konto && `Cel Konto: ${review.week_goal_konto}`,
+    ].filter(Boolean).join(" · ") || "(brak planu na ten tydzień)";
 
     const systemPrompt = `Jesteś Antigravity — prywatny coach Jakuba. Piszesz PO POLSKU, bezpośrednio, na "Ty".
 
@@ -438,12 +552,25 @@ ZADANIA:
 
 2. "deepening_questions": dokładnie 3 pytania. ZAKAZ pytań ogólnych. Każde musi nawiązywać do KONKRETU z jego odpowiedzi lub głosówek — coś czego NIE POWIEDZIAŁ WPROST, co wynika z tego co napisał, co jest między wierszami. Pytania które wywołują dyskomfort bo trafiają w coś prawdziwego.
 
-3. "block5_material": dla każdego filaru — JEDNA konkretna obserwacja z tego tygodnia która może pomóc Jakubowi zdecydować co zaplanować. Nie plan — surowy materiał. Fakty + kontekst z głosówek. Max 2 zdania per filar.
+3. "block5_material": dla każdego filaru (cialo, duch, konto) — JEDNA konkretna obserwacja do planowania NASTĘPNEGO tygodnia. OBOWIĄZKOWO oprzyj na:
+   - KPI z sekcji "KPI PROJEKTÓW" (podaj liczby: wartość/cel, luka, trend)
+   - PowerList (ile dni Z/P, co odhaczone w filarze)
+   - plan tego tygodnia vs wykonanie
+   - TEMAT MIESIĄCA i CEL SPRINTU — każda sugestia musi być krokiem w stronę sprintu, w ramach tematu miesiąca
+   Nie pisz ogólników typu "więcej dyscypliny". Max 2 zdania per filar. Jeśli KPI = 0 przy celu > 0 — powiedz wprost.
 
 Zwróć TYLKO JSON:
 {"narrative_check": "...", "deepening_questions": ["...", "...", "..."], "block5_material": {"cialo": "...", "duch": "...", "konto": "..."}}`;
 
+    const weekStep = review.week_intention?.trim() || null;
+    const sprintBridge = facts.sprintGoal
+      ? `Sprint: ${facts.sprintGoal} — ten tydzień jeden krok: ${weekStep || "—"}`
+      : null;
+
     const userPrompt = `${factsBlock}
+
+${facts.monthTheme ? `TEMAT MIESIĄCA: ${facts.monthTheme}\n` : ""}${sprintBridge ? `MOST SPRINT→TYDZIEŃ: ${sprintBridge}\n` : ""}
+PLAN TEGO TYGODNIA (co Jakub miał zrobić): ${weekPlanLines}
 
 OCENY WŁASNE JAKUBA (1-10): Ciało ${scores.cialo ?? "?"}, Duch ${scores.duch ?? "?"}, Konto ${scores.konto ?? "?"}
 

@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ListChecks, Target, TrendingUp } from 'lucide-react';
 import type { DirectionContextData } from '../../lib/dailyPlanProposal';
+import { formatSprintWeekBridge } from '../../lib/goalSpine';
+import { formatSprintFromLongTerm } from '../../lib/longTermBridge';
 
 export default function WeekLoopSummary({
   ctx,
@@ -10,6 +12,7 @@ export default function WeekLoopSummary({
   ctx: Pick<
     DirectionContextData,
     | 'weekGoals'
+    | 'weekGoalsMeta'
     | 'powerListStats'
     | 'mustPins'
     | 'openMustPins'
@@ -18,19 +21,51 @@ export default function WeekLoopSummary({
     | 'weekCheckpointsDue'
     | 'sprintGoal'
     | 'sprintLabel'
+    | 'monthTheme'
+    | 'monthLabel'
+    | 'bhagLine'
   >;
   compact?: boolean;
 }) {
   const mustDone = ctx.mustPins.filter((p) => p.slot === 'must' && p.done).length;
   const mustTotal = ctx.mustPins.filter((p) => p.slot === 'must').length;
   const intention = ctx.weekGoals.intention || ctx.weekGoals.commitment;
+  const sprintBridge = formatSprintWeekBridge(ctx.sprintGoal, intention);
+  const longTermBridge = formatSprintFromLongTerm(ctx.bhagLine ?? null, ctx.sprintGoal);
 
   return (
     <section className={`rounded-2xl border border-border-custom bg-surface/40 ${compact ? 'p-3.5 space-y-2' : 'p-5 space-y-3'}`}>
       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Pętla tygodnia</p>
 
+      {longTermBridge && (
+        <p className={`text-text-secondary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+          {longTermBridge}
+        </p>
+      )}
+
+      {ctx.monthTheme && (
+        <p className={`text-text-secondary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+          <span className="font-black uppercase tracking-wider text-indigo-600">
+            Temat miesiąca{ctx.monthLabel ? ` · ${ctx.monthLabel}` : ''}:{' '}
+          </span>
+          {ctx.monthTheme}
+        </p>
+      )}
+
+      {sprintBridge && (
+        <p className={`font-semibold text-text-primary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+          {sprintBridge}
+        </p>
+      )}
       {intention ? (
-        <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-[12px]' : 'text-[13px]'}`}>{intention}</p>
+        <div className="space-y-1">
+          <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-[12px]' : 'text-[13px]'}`}>{intention}</p>
+          {ctx.weekGoalsMeta?.source === 'fallback' && (
+            <p className="text-[10px] font-semibold text-amber-600">
+              Plan z poprzedniego tygodnia — uzupełnij w niedzielnym przeglądzie.
+            </p>
+          )}
+        </div>
       ) : (
         <p className="text-[11px] text-text-muted">
           Brak intencji —{' '}
@@ -62,7 +97,7 @@ export default function WeekLoopSummary({
         <MiniStat
           icon={<TrendingUp size={10} />}
           label={ctx.sprintLabel ?? 'Sprint'}
-          value={ctx.sprintGoal?.slice(0, 28) || '—'}
+          value={`tyg. ${ctx.sprintLabel?.replace('Sprint ', '') ?? '—'}`}
         />
       </div>
 

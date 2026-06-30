@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { fetchLatestWeeklyKpiWeekStart } from '../lib/goalSpine';
+import { fetchLatestCompletedWeeklyReviewDate } from '../lib/goalSpine';
 import { getTodayWarsaw } from '../lib/date';
 import { getWeekStartWarsaw } from '../lib/growth';
 
@@ -20,13 +20,13 @@ export function useNudgeData(userId: string | undefined) {
         const weekStart = getWeekStartWarsaw(today);
         const staleCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
         const [
-          lastKpiWeek,
+          lastReviewCompletedAt,
           { count: urgentCount },
           { count: unreadCount },
           { count: staleCount },
           { count: growthMustCount },
         ] = await Promise.all([
-          fetchLatestWeeklyKpiWeekStart(userId),
+          fetchLatestCompletedWeeklyReviewDate(userId),
           supabase.from('todo_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'open').or(`priority.eq.urgent,and(due_date.lte.${today},due_date.not.is.null)`),
           supabase.from('vanguard_links').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'unread'),
           supabase.from('vanguard_notes').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_archived', false).lt('updated_at', staleCutoff),
@@ -38,9 +38,9 @@ export function useNudgeData(userId: string | undefined) {
             .eq('slot', 'must')
             .eq('done', false),
         ]);
-        if (lastKpiWeek) {
+        if (lastReviewCompletedAt) {
           const d1 = new Date(today + 'T12:00:00Z');
-          const d2 = new Date(lastKpiWeek + 'T12:00:00Z');
+          const d2 = new Date(lastReviewCompletedAt);
           setReviewOverdueDays(Math.round((d1.getTime() - d2.getTime()) / 86400000));
         } else {
           setReviewOverdueDays(999);

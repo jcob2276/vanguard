@@ -20,7 +20,7 @@ function emptySeries(): Record<string, SeriesPoint[]> {
     steps: [], caffeine_mg: [], caffeine_late_mg: [], last_coffee_hour: [], last_meal_hour: [], calories_late: [],
     workout_hr_peak: [], workout_hr_avg: [], workout_strain: [],
     run_hr: [], run_rpe: [], run_cadence: [], run_suffer: [], run_distance_km: [],
-    mood_score: [], daily_rpe: [], energy_level: [], plan_done_pct: [], day_score: [], phone_drift: [],
+    mood_score: [], daily_rpe: [], plan_done_pct: [], day_score: [], phone_drift: [],
     execution_score: [], identity_score: [], dopamine_load_index: [],
     screen_time_min: [], fragmentation_index: [], productivity_ratio: [], phone_active_h: [],
     friction_count: [], avoidance_count: [], procrastination_count: [],
@@ -41,7 +41,6 @@ export interface SeriesBuildInput {
   foodRows: { date: string; name: string | null; logged_at: string | null; calories: number | null }[]
   workoutRows: { workout_day: string | null; hr_avg_bpm: number | null; hr_peak_bpm: number | null; hr_strain_score: number | null }[]
   winsRows: Record<string, unknown>[]
-  planRows: { plan_date: string; energy_level: number | null }[]
   reconRows: { date: string; day_score: number | null; phone_drift_morning: boolean | null }[]
   behaviorRows: { date: string; behavior_key: string; value: number | null }[]
   supplementRows: { date: string; slug: string }[]
@@ -188,10 +187,6 @@ export function buildMetricSeries(input: SeriesBuildInput): Record<string, Serie
       if (w[`task_${i}`]) { total++; if (w[`done_${i}`]) done++ }
     }
     if (total > 0) series.plan_done_pct.push({ day: date, value: Math.round((done / total) * 100) })
-  }
-
-  for (const p of input.planRows) {
-    if (p.energy_level != null) series.energy_level.push({ day: p.plan_date, value: Number(p.energy_level) })
   }
 
   for (const r of input.reconRows) {

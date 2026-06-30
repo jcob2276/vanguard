@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { Panel } from './Panel';
-import { daysBefore, isLogWellness, weekStartDate } from './desktopUtils';
+import { daysBefore, isLogWellness } from './desktopUtils';
 import { getSaunaStats, isWellnessOnlySession, sessionDateKey } from '../../lib/workoutLogging';
 import { getTodayWarsaw } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth';
 import {
   bodyCompositionBonus,
   cooperBestKm,
@@ -81,7 +82,7 @@ function computeFitnessProfile(input: {
   const { oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today } = input;
   const since7 = daysBefore(7);
   const since14 = daysBefore(14);
-  const weekStart = weekStartDate();
+  const weekStart = getWeekStartWarsaw(getTodayWarsaw());
 
   const trainingSessions7d = sessions.filter(
     (s) => sessionDateKey(s.date) >= since7 && !isWellnessOnlySession(s),
