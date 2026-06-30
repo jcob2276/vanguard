@@ -1,4 +1,4 @@
-import { Plus, X, Star, ArrowRight, Check, Trash2 } from 'lucide-react';
+import { Plus, X, Star, Check, Trash2 } from 'lucide-react';
 import { Panel } from './Panel';
 
 interface DreamsPanelProps {
@@ -20,8 +20,6 @@ interface DreamsPanelProps {
   openDreamModal: (dream: any) => void;
   toggleDream: (dream: any) => void;
   deleteDream: (id: string) => void;
-  dreamToProject: (dream: any) => void;
-  projectByDreamId: Record<string, any>;
   DREAM_CATEGORIES: string[];
   DREAM_CAT_LABEL: Record<string, string>;
   DREAM_CAT_COLOR: Record<string, string>;
@@ -46,8 +44,6 @@ export default function DreamsPanel({
   openDreamModal,
   toggleDream,
   deleteDream,
-  dreamToProject,
-  projectByDreamId,
   DREAM_CATEGORIES,
   DREAM_CAT_LABEL,
   DREAM_CAT_COLOR,
@@ -129,18 +125,6 @@ export default function DreamsPanel({
                   </button>
                   {dream.description && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary/40" title="Ma wizję" />}
                   <span className={`text-[7px] font-black uppercase tracking-widest shrink-0 ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>{dream.category}</span>
-                  {projectByDreamId[dream.id] ? (
-                    <span className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/[0.04] px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary/70">
-                      <ArrowRight size={9} /> {projectByDreamId[dream.id].name}
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => dreamToProject(dream)}
-                      className="shrink-0 flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                    >
-                      <ArrowRight size={9} /> Projekt
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -203,11 +187,6 @@ export default function DreamsPanel({
                 <div className="flex items-center gap-1 shrink-0">
                   {dream.is_top5 && !dream.is_done && <Star size={8} className="text-amber-500" fill="currentColor" />}
                   {dream.description && <span className="w-1 h-1 rounded-full bg-primary/40" />}
-                  {projectByDreamId[dream.id] && (
-                    <span className="text-[7px] font-black uppercase tracking-widest text-primary/60 border border-primary/20 rounded px-1 py-0.5">
-                      proj
-                    </span>
-                  )}
                   <span className={`text-[7px] font-black uppercase tracking-widest ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>
                     {dream.category}
                   </span>

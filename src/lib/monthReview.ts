@@ -37,7 +37,6 @@ export type MonthlyReviewFields = {
   leverage_note?: string | null;
   correction_note?: string | null;
   month_theme?: string | null;
-  carry_over?: string | null;
   ritual_stats?: Json | null;
   ai_recap?: Json | null;
 };

@@ -22,8 +22,9 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Strava/Calendar sync | Active | Keep function registry, deploy list, and smoke manifest in sync. |
 | Yazio sync | Dropped | Removed 2026-06-26. Nutrition is logged in-app (`daily_nutrition`, `daily_food_entries`, `parse-food-nl`, `lookup-food`). Do not revive `sync-yazio` or store Yazio credentials in settings. |
 | Projects | Active | `projects` is the canonical app model for the Projekty section. `todo_sections.project_id` is an optional bridge for project-scoped tasks; projects are not defined by Todo. |
+| `project_checkpoints` table | Dropped | Migrated 2026-06-30 (`backfill_project_checkpoints_to_todo_items`, 15/15 rows, then `drop_legacy_project_checkpoints`). Checkpoints are exclusively `todo_items` rows with `is_milestone=true` now — no fallback paths remain in `checkpoints.ts`/`projects.ts`/`projectEvidence.ts`. `daily_wins.task_N_checkpoint_id` now FKs to `todo_items(id)` instead of the dropped table. |
 | Todo | Active | `todo_sections` / `todo_items` power the separate Zadania section and quick task surfaces. |
-| Career module | Deprecated | `career_projects`, `career_moves`, `career_evidence`, and `career_decisions` are legacy from the removed Kariera section. Do not build new reads/writes here; keep only compatibility until data can be archived or removed deliberately. |
+| Career module | Dropped | `career_projects`, `career_moves`, `career_evidence`, and `career_decisions` (legacy from the removed Kariera section) dropped 2026-06-30 (migration `20260630164658_drop_dead_career_and_goals_schema`). `career_projects` rows archived to `docs/archive/career_projects_export_2026-06-30.json` before drop. |
 | Todoist sync | Dropped | Removed 2026-06-13. Vanguard owns tasks/projects natively through `todo_*` and `projects` instead of importing an external todo model. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
@@ -36,6 +37,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Declared intentions table | Dropped | `vanguard_intentions` dropped 2026-06-11: no writer, 0 rows, and Oracle read path removed. Rebuild only with explicit user-controlled write/status flow. |
 | Morning briefing & RAG diagnostics | Dropped | `vanguard-briefing`, `vanguard-backfill`, and `vanguard-debug-retrieval` Edge Functions dropped 2026-06-20 after being identified as unused or legacy. |
 | Legacy WeeklyReview & WeeklyBrief | Dropped | Consolidated into Direction ritual 2026-06-30. `vanguard-weekly-brief` stubbed to 410, `WeeklyReview.tsx` removed. kpi_entries is the single source of truth. |
+| `goals` table | Dropped | 0 rows, 0 reads/writes in `src/`. Dropped 2026-06-30 (migration `20260630164658_drop_dead_career_and_goals_schema`) along with its always-NULL FK columns' constraints on `projects.goal_id` / `goal_kpis.goal_id`. |
 
 
 ## Audit Rule

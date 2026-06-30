@@ -16,7 +16,7 @@ export async function fetchProjectEvidence(
   const since = getDaysAgoWarsaw(days);
   const items: ProjectEvidenceItem[] = [];
 
-  const [winsRes, newCpsRes, legacyCpsRes, kpisRes] = await Promise.all([
+  const [winsRes, cpsRes, kpisRes] = await Promise.all([
     supabase
       .from('daily_wins')
       .select('*')
@@ -32,18 +32,10 @@ export async function fetchProjectEvidence(
       .eq('status', 'done')
       .gte('completed_at', `${since}T00:00:00`)
       .order('completed_at', { ascending: false }),
-    supabase
-      .from('project_checkpoints')
-      .select('title, completed_at, status')
-      .eq('user_id', userId)
-      .eq('project_id', projectId)
-      .eq('status', 'done')
-      .gte('completed_at', `${since}T00:00:00`)
-      .order('completed_at', { ascending: false }),
     supabase.from('goal_kpis').select('id, name').eq('user_id', userId).eq('project_id', projectId),
   ]);
 
-  const cps = [...(newCpsRes.data ?? []), ...(legacyCpsRes.data ?? [])];
+  const cps = cpsRes.data ?? [];
 
   const kpiIds = (kpisRes.data ?? []).map((k) => k.id);
   let snapshots: { recorded_at: string; value: number; kpi_id: string }[] = [];

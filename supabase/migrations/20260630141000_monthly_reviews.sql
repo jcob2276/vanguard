@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.monthly_reviews (
 
 ALTER TABLE public.monthly_reviews ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS monthly_reviews_owner ON public.monthly_reviews;
 CREATE POLICY monthly_reviews_owner ON public.monthly_reviews
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());

@@ -36,11 +36,6 @@ export function PatternCard({ pattern, userId, onFeedback }: PatternCardProps) {
     if (done || loading) return;
     setLoading(feedback);
     try {
-      await supabase.from('vanguard_pattern_feedback').insert({
-        user_id: userId,
-        pattern_id: pattern.id,
-        feedback,
-      });
       const newStatus = feedback === 'confirmed' ? 'user_confirmed' : feedback === 'rejected' ? 'user_rejected' : pattern.status;
       await supabase.from('vanguard_behavioral_patterns').update({ status: newStatus }).eq('id', pattern.id);
       setDone(feedback);

@@ -2,6 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
 
+function mapTodoToMove(row: {
+  id: string;
+  title: string;
+  status: string;
+  completed_at: string | null;
+  due_date: string | null;
+  project_id: string | null;
+}) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status === 'open' ? 'todo' : row.status,
+    completed_at: row.completed_at,
+    planned_for: row.due_date,
+    project_id: row.project_id,
+  };
+}
+
 async function fetchDashboardFallback(userId: string) {
   const today = getTodayWarsaw();
   const d60 = new Date(today + 'T12:00:00Z');
@@ -21,6 +39,10 @@ async function fetchDashboardFallback(userId: string) {
     habits,
     habitLogs,
     profile,
+    projectsRes,
+    movesRes,
+    goalsRes,
+    sprintGoalsRes,
   ] = await Promise.all([
     supabase.from('oura_daily_summary').select('date, hrv_avg, rhr_avg, total_sleep_hours, readiness_score, sleep_score')
       .eq('user_id', userId).gte('date', since60).order('date', { ascending: true }),
@@ -37,6 +59,15 @@ async function fetchDashboardFallback(userId: string) {
     supabase.from('habits').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
     supabase.from('habit_logs').select('*').eq('user_id', userId).gte('date', since60),
     supabase.from('nutrition_profile').select('height_cm').eq('user_id', userId).maybeSingle(),
+    supabase.from('projects').select('id, name, status, goal, color, deadline')
+      .eq('user_id', userId).in('status', ['active', 'paused']).order('created_at', { ascending: false }),
+    supabase.from('todo_items').select('id, title, status, completed_at, due_date, project_id')
+      .eq('user_id', userId).neq('status', 'dropped').eq('is_milestone', false)
+      .order('updated_at', { ascending: false }).limit(80),
+    supabase.from('life_goals').select('goal_cialo, goal_duch, goal_konto, date_cialo, date_duch, date_konto')
+      .eq('user_id', userId).maybeSingle(),
+    supabase.from('sprint_goals').select('id, personal_year, sprint_number, goal_text')
+      .eq('user_id', userId).order('personal_year', { ascending: true }).order('sprint_number', { ascending: true }),
   ]);
 
   return {
@@ -49,6 +80,10 @@ async function fetchDashboardFallback(userId: string) {
     strava: strava.data || [],
     habits: habits.data || [],
     habitLogs: habitLogs.data || [],
+    projects: projectsRes.data || [],
+    moves: (movesRes.data || []).map(mapTodoToMove),
+    goals: goalsRes.data || null,
+    sprintGoals: sprintGoalsRes.data || [],
   };
 }
 
@@ -124,7 +159,7 @@ export function useDesktopData(userId: string | undefined) {
       .maybeSingle();
       
     if (error) {
-      console.error('Error loading dashboard data (RPC):', error);
+      console.warn('[useDesktopData] RPC failed, using direct fallback:', error.message);
       const fallback = await fetchDashboardFallback(userId);
       const fallbackData = {
         oura: fallback.oura,
@@ -134,10 +169,10 @@ export function useDesktopData(userId: string | undefined) {
         heightCm: fallback.heightCm,
         strain: fallback.strain,
         strava: fallback.strava,
-        projects: [],
-        moves: [],
-        goals: null,
-        sprintGoals: [],
+        projects: fallback.projects,
+        moves: fallback.moves,
+        goals: fallback.goals,
+        sprintGoals: fallback.sprintGoals,
         stream: [],
         patterns: [],
         wins: [],

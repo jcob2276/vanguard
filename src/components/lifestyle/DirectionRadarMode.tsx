@@ -4,14 +4,11 @@ import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw, formatWarsawDate , nowWarsaw } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
-import type { LifeGoalDisplayRow } from '../../lib/lifeGoals';
-import LifeGoalsPanel from './LifeGoalsPanel';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
 type DailyWinRow = Tables<'daily_wins'>;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
-type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
 
 const APP_LAUNCH_DATE = '2026-05-03';
 const todayWarsaw = () => getTodayWarsaw();
@@ -23,10 +20,7 @@ interface DirectionRadarModeProps {
   planWeekStart: Date;
   allCalEvents: CalendarRow[];
   togglePowerListTask: (dayWin: DailyWinRow, index: number) => void;
-  focusTasks: TodoItemRow[];
-  focusGoalMappings: Record<string, string>;
   currentReview: WeeklyReviewRow | null;
-  lifeGoalRows: LifeGoalDisplayRow[];
 }
 
 export default function DirectionRadarMode({
@@ -36,10 +30,7 @@ export default function DirectionRadarMode({
   planWeekStart,
   allCalEvents,
   togglePowerListTask,
-  focusTasks,
-  focusGoalMappings,
   currentReview,
-  lifeGoalRows,
 }: DirectionRadarModeProps) {
   const todayCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -239,44 +230,6 @@ export default function DirectionRadarMode({
         })}
         </div>
       </div>
-
-      {/* 4. Fokus tygodnia — tylko jeśli zatwierdzony */}
-      {focusTasks.length > 0 && (
-        <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
-          <p className="mb-3 text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Fokus tygodnia</p>
-          <div className="space-y-3.5">
-            {[
-              { key: 'goal_cialo', label: 'Ciało', color: 'text-emerald-500' },
-              { key: 'goal_duch', label: 'Duch', color: 'text-indigo-400' },
-              { key: 'goal_konto', label: 'Konto', color: 'text-amber-400' },
-              { key: 'other', label: 'Inne', color: 'text-text-muted' },
-            ].map((category) => {
-              const tasksInCategory = focusTasks.filter(
-                (todo) => (focusGoalMappings[todo.id] || 'other') === category.key
-              );
-              if (tasksInCategory.length === 0) return null;
-              return (
-                <div key={category.key} className="space-y-1.5">
-                  <p className={`text-[9px] font-black uppercase tracking-wider ${category.color} font-display`}>{category.label}</p>
-                  <div className="space-y-1.5 pl-2 border-l border-border-custom/60">
-                    {tasksInCategory.map((todo) => {
-                      const done = todo.status === 'done';
-                      return (
-                        <div key={todo.id} className="flex items-center gap-2.5">
-                          <div className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500' : 'border-border-custom'}`}>
-                            {done && <Check size={9} className="text-white" />}
-                          </div>
-                          <span className={`flex-1 truncate text-[12px] font-semibold ${done ? 'line-through text-text-muted' : 'text-text-primary'}`}>{todo.title}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* 5. Cele tygodnia (z przeglądu niedzielnego) */}
       {currentReview && ((currentReview as any).week_goal_cialo || (currentReview as any).week_goal_duch || (currentReview as any).week_goal_konto) && (

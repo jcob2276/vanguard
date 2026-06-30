@@ -17,7 +17,7 @@ import {
 } from './lifeGoals';
 import type { WeekDirectionGoals } from './growthWeek';
 import { supabase } from './supabase';
-import type { Json, Tables } from './database.types';
+import type { Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 import type { MonthlyReviewFields, MonthlyReviewRow } from './monthReview';
 import type { SprintProjectDecision } from './sprintReview';
 import { primaryBhagLine } from './longTermBridge';
@@ -548,7 +548,7 @@ export async function fetchLatestCompletedWeeklyReviewDate(userId: string): Prom
   });
 }
 
-export async function fetchLatestWeeklyReview(userId: string): Promise<WeeklyReviewRow | null> {
+async function fetchLatestWeeklyReview(userId: string): Promise<WeeklyReviewRow | null> {
   return withCache(spineKey('reviewLatest', userId), async () => {
     const { data, error } = await supabase
       .from('weekly_reviews')
@@ -901,23 +901,6 @@ export async function fetchLatestKpiValues(
   );
 }
 
-/** Manual edit (e.g. typing a new weight in Projects) — overwrites this week's
- *  value. Distinct verb from applyKpiRollup (additive, daily-task rollup) over
- *  the same table — not a duplicate, just SET vs INCREMENT on one source. */
-export async function setKpiValueForWeek(
-  userId: string,
-  kpiId: string,
-  weekStart: string,
-  value: number,
-): Promise<void> {
-  const { error } = await supabase.from('kpi_entries').upsert(
-    { user_id: userId, kpi_id: kpiId, week_start: weekStart, value },
-    { onConflict: 'kpi_id,week_start' },
-  );
-  if (error) throw error;
-  invalidateGoalSpineCache(userId);
-}
-
 export type CompleteWeeklyReviewOptions = {
   /** Sunday ritual: plan fields go on the upcoming week, reflection stays on closing week. */
   planWeekStart?: string | null;
@@ -989,29 +972,6 @@ export async function completeWeeklyReview(
   return closingRes.data;
 }
 
-export async function saveMonthlyReviewDraft(
-  userId: string,
-  monthStart: string,
-  fields: MonthlyReviewFields,
-  today?: string,
-): Promise<MonthlyReviewRow | null> {
-  const closing = closingMonthStartForReview(today ?? getTodayWarsaw());
-  if (closing && monthStart !== closing) {
-    throw new Error(`Monthly review only writable for closing month: ${closing}`);
-  }
-  const { data, error } = await supabase
-    .from('monthly_reviews')
-    .upsert(
-      { user_id: userId, month_start: monthStart, ...fields, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,month_start' },
-    )
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  invalidateGoalSpineCache(userId);
-  return data;
-}
-
 export async function completeMonthlyReview(
   userId: string,
   monthStart: string,
@@ -1037,5 +997,48 @@ export async function completeMonthlyReview(
   if (error) throw error;
   invalidateGoalSpineCache(userId);
   return data;
+}
+
+export type DailyWinRow = Tables<'daily_wins'>;
+export type DailyWinUpdate = TablesUpdate<'daily_wins'>;
+export type DailyWinInsert = TablesInsert<'daily_wins'>;
+
+/** Canonical write path for daily_wins — invalidates spine cache for SpineGuideStrip / dashboard. */
+export async function updateDailyWin(
+  userId: string,
+  id: string,
+  patch: DailyWinUpdate,
+): Promise<DailyWinRow> {
+  const { data, error } = await supabase
+    .from('daily_wins')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  invalidateGoalSpineCache(userId);
+  return data;
+}
+
+export async function insertDailyWin(
+  userId: string,
+  entry: DailyWinInsert,
+): Promise<DailyWinRow> {
+  const { data, error } = await supabase
+    .from('daily_wins')
+    .insert({ ...entry, user_id: userId })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  invalidateGoalSpineCache(userId);
+  return data;
+}
+
+/** Auto-mark past unfinished days as partial (result = P). */
+export async function markDailyWinsPartial(userId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('daily_wins').update({ result: 'P' }).in('id', ids);
+  if (error) throw new Error(error.message);
+  invalidateGoalSpineCache(userId);
 }
 

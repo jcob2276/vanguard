@@ -4,7 +4,6 @@ import { useHaptics } from '../../hooks/useHaptics';
 import { useLifeGoals } from '../../hooks/useLifeGoals';
 import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { supabase } from '../../lib/supabase';
-import { unwrap } from '../../lib/supabaseUtils';
 import { BookOpen, Check, Link2, Search, Shield, Sparkles, Target, Upload, Wallet, Wand2, X, Zap } from 'lucide-react';
 import { listTodoItems, listTodoSections, updateTodoItem } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
@@ -13,11 +12,8 @@ import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import { markCheckpointDone } from '../../lib/checkpoints';
 import { buildDailyPlanProposal, suggestDailyKpiTarget, kpiSlotHint, defaultPillarProject, pickRollupKpi, type DirectionContextData, type PillarProjectBinding } from '../../lib/dailyPlanProposal';
-import { applyKpiRollup, currentWeekStart, fetchKpisForProject, rollupTaskCompletion } from '../../lib/goalSpine';
-import LifeGoalsPanel from './LifeGoalsPanel';
+import { applyKpiRollup, currentWeekStart, fetchKpisForProject, insertDailyWin, rollupTaskCompletion, updateDailyWin } from '../../lib/goalSpine';
 import PlanningCheckpointsStrip from '../shared/PlanningCheckpointsStrip';
-
-const LIFE_GOALS_EMPTY_HINT = 'Brak celów — dodaj aktywny projekt z celem i terminem w Projekty.';
 
 const SPHERE_SLOTS = [
   { category: 'cialo', label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', placeholder: 'Priorytet Ciało — co dziś?' },
@@ -570,13 +566,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     setSavingEvening(true);
     try {
       const note = eveningNote.trim();
-      const { data, error } = await supabase
-        .from('daily_wins')
-        .update({ day_note: note })
-        .eq('id', todayWin.id)
-        .select()
-        .single();
-      if (error) throw error;
+      const data = await updateDailyWin(userId, todayWin.id, { day_note: note });
       void supabase.from('vanguard_stream').insert({
         user_id: userId,
         source: 'powerlist',
@@ -616,14 +606,9 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       if (warsawHour >= 23 && !allDone) updates.result = 'P';
     }
 
-    const { data, error } = await supabase
-      .from('daily_wins')
-      .update(updates)
-      .eq('id', todayWin.id)
-      .select()
-      .single();
+    try {
+      const data = await updateDailyWin(userId, todayWin.id, updates);
 
-    if (!error) {
       if (newValue) haptics.success(); else haptics.light();
       if (onUpdate) onUpdate(data);
 
@@ -678,17 +663,20 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
           }
         })();
       }
-    }
 
-    const linkedTodoId = todayWin[todoIdField];
-    if (linkedTodoId) {
-      updateTodoItem(linkedTodoId, {
-        status: newValue ? 'done' : 'open',
-        completed_at: newValue ? new Date().toISOString() : null,
-      }).catch((e: Error) => {
-        console.error('[PowerList] todo sync failed for', linkedTodoId, e.message);
-        notify('Błąd synchronizacji z Todo — odśwież stronę.', 'error');
-      });
+      const linkedTodoId = todayWin[todoIdField];
+      if (linkedTodoId) {
+        updateTodoItem(linkedTodoId, {
+          status: newValue ? 'done' : 'open',
+          completed_at: newValue ? new Date().toISOString() : null,
+        }).catch((e: Error) => {
+          console.error('[PowerList] todo sync failed for', linkedTodoId, e.message);
+          notify('Błąd synchronizacji z Todo — odśwież stronę.', 'error');
+        });
+      }
+    } catch (e) {
+      console.error('[PowerList] toggleTask failed', e);
+      notify('Nie udało się zapisać zadania.', 'error');
     }
   }
 
@@ -698,15 +686,15 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       notify('Najpierw odpowiedz, dlaczego zrealizowałeś / nie zrealizowałeś zadania z wczoraj.', 'error');
       return;
     }
-    if (!newTaskForm.some((t) => t.task.trim())) {
-      notify('Wypełnij przynajmniej 1 zadanie!', 'error');
+    if (!newTaskForm.every((t) => t.task.trim())) {
+      notify('Wypełnij wszystkie 5 zadań, żeby zacząć dzień.', 'error');
       return;
     }
 
     setSubmitting(true);
     try {
       if (yesterdayWin?.id && yesterdayNote.trim() && yesterdayNote.trim() !== (yesterdayWin.day_note ?? '')) {
-        await supabase.from('daily_wins').update({ day_note: yesterdayNote.trim() }).eq('id', yesterdayWin.id);
+        await updateDailyWin(userId, yesterdayWin.id, { day_note: yesterdayNote.trim() });
       }
 
       const entry = {
@@ -735,7 +723,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         result: null,
       };
 
-      const data = unwrap(await supabase.from('daily_wins').insert(entry).select().single());
+      const data = await insertDailyWin(userId, entry);
       try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);
@@ -981,13 +969,26 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             })}
           </div>
 
-          <button
-            onClick={startNewDay}
-            disabled={submitting || (yesterdayNoteRequired && !yesterdayNote.trim())}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
-          </button>
+          {(() => {
+            const filledCount = newTaskForm.filter((t) => t.task.trim()).length;
+            const allFilled = filledCount === 5;
+            return (
+              <>
+                {!allFilled && (
+                  <p className="text-center text-[10px] font-bold text-text-muted">
+                    Wypełnione {filledCount}/5 — uzupełnij wszystkie, żeby zacząć dzień
+                  </p>
+                )}
+                <button
+                  onClick={startNewDay}
+                  disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
+                </button>
+              </>
+            );
+          })()}
         </div>
       ) : (
         <div className="space-y-2.5">

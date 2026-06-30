@@ -31,7 +31,9 @@ import {
   gatherSprintFacts,
   nextWeekStart,
   previousWeekStart,
+  markDailyWinsPartial,
   saveWeeklyReviewReflection,
+  updateDailyWin,
   type SprintReview,
 } from '../../lib/goalSpine';
 import type { MonthFacts } from '../../lib/monthReview';
@@ -46,7 +48,6 @@ import DirectionRadarMode from './DirectionRadarMode';
 import { useHaptics } from '../../hooks/useHaptics';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 import { useWarsawDayChange } from '../../hooks/useWarsawDayChange';
-import { useLifeGoals } from '../../hooks/useLifeGoals';
 import WeekHub from './WeekHub';
 
 type DailyWinRow = Tables<'daily_wins'>;
@@ -60,7 +61,6 @@ type Phase2Recap = {
 };
 type PillarScores = { cialo: number | null; duch: number | null; konto: number | null };
 type CalendarRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
-type TodoItemRow = Pick<Tables<'todo_items'>, 'id' | 'title' | 'status' | 'priority' | 'ai_bucket' | 'due_date' | 'section_id'>;
 
 const todayWarsaw = () => getTodayWarsaw();
 const APP_LAUNCH_DATE = '2026-05-03';
@@ -93,8 +93,6 @@ export default function Direction({
 
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<CalendarRow[]>([]);
-  const [focusTasks, setFocusTasks] = useState<TodoItemRow[]>([]);
-  const { displayRows: lifeGoalRows } = useLifeGoals(userId);
 
   const currentWeekStart = getCurrentWeekStart();
 
@@ -130,7 +128,6 @@ export default function Direction({
   const [weekGoalKonto, setWeekGoalKonto] = usePersistentDraft(planDraftKey('weekGoalKonto'), '');
   const [pillarScores, setPillarScores] = useState<PillarScores>({ cialo: null, duch: null, konto: null });
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
-  const [focusGoalMappings, setFocusGoalMappings] = useState<Record<string, string>>({});
   const [weekDoneTasks, setWeekDoneTasks] = useState<{ title: string; status: string }[]>([]);
   const [weekOura, setWeekOura] = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
   const [weekRuns, setWeekRuns] = useState<{ distance: number | null }[]>([]);
@@ -304,9 +301,6 @@ export default function Direction({
         if (recap?.phase1) setPhase1(recap.phase1);
         // Only restore phase2 from DB if it's the new format (has deepening_questions)
         if (recap?.phase2 && Array.isArray(recap.phase2.deepening_questions)) setPhase2(recap.phase2);
-        if (reviewData.focus_goal_mappings && typeof reviewData.focus_goal_mappings === 'object' && !Array.isArray(reviewData.focus_goal_mappings)) {
-          setFocusGoalMappings(reviewData.focus_goal_mappings as Record<string, string>);
-        }
         if (reviewData.deepening_answers && typeof reviewData.deepening_answers === 'object' && !Array.isArray(reviewData.deepening_answers)) {
           setDeepeningAnswers(reviewData.deepening_answers as Record<string, string>);
         }
@@ -327,21 +321,14 @@ export default function Direction({
         if ((planSource as any).week_goal_konto) setWeekGoalKonto((planSource as any).week_goal_konto);
       }
 
-      if (reviewData?.focus_task_ids && reviewData.focus_task_ids.length > 0) {
-        const { data: ft } = await supabase.from('todo_items').select('*').in('id', reviewData.focus_task_ids).eq('user_id', userId);
-        setFocusTasks(
-          reviewData.focus_task_ids.map((id) => (ft || []).find((t) => t.id === id)).filter(Boolean) as any[]
-        );
-      }
-
       const pastUnfinished = historyData?.filter((d) => d.date && d.date < today && d.result === null) || [];
       if (pastUnfinished.length > 0) {
-        const { error } = await supabase.from('daily_wins').update({ result: 'P' }).in('id', pastUnfinished.map((d) => d.id));
-        if (!error) {
+        try {
+          await markDailyWinsPartial(userId, pastUnfinished.map((d) => d.id));
           const { data: updated } = await supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60);
           setHistory(updated || []);
-        } else {
-          console.error('Failed to mark past unfinished days as P:', error);
+        } catch (err) {
+          console.error('Failed to mark past unfinished days as P:', err);
         }
       }
     } catch (err) {
@@ -496,16 +483,12 @@ export default function Direction({
       if (isPastDeadline && !allDone) updates.result = 'P';
     }
 
-    const { data, error } = await supabase
-      .from('daily_wins')
-      .update(updates)
-      .eq('id', dayWin.id)
-      .select()
-      .single();
-
-    if (!error && data) {
+    try {
+      const data = await updateDailyWin(session.user.id, dayWin.id, updates);
       setHistory((prev) => prev.map((d) => d.id === data.id ? data : d));
       if (allDone) haptics.success();
+    } catch (e) {
+      console.error('[Direction] togglePowerListTask failed', e);
     }
   }
 
@@ -783,10 +766,10 @@ export default function Direction({
               onOpenActionCenter={onOpenActionCenter}
               onStartWeeklyReview={() => setForceWeeklyReview(true)}
             />
-            <details className="group rounded-2xl border border-border-custom bg-surface/30 open:bg-surface/50">
-              <summary className="cursor-pointer list-none px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
+            <div className="rounded-2xl border border-border-custom bg-surface/30">
+              <p className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
                 Radar szczegóły
-              </summary>
+              </p>
               <div className="px-1 pb-4 pt-1">
                 <DirectionRadarMode
                   stats={stats}
@@ -795,13 +778,11 @@ export default function Direction({
                   planWeekStart={planWeekStart}
                   allCalEvents={allCalEvents}
                   togglePowerListTask={togglePowerListTask}
-                  focusTasks={focusTasks}
-                  focusGoalMappings={focusGoalMappings}
                   currentReview={currentReview}
-                  lifeGoalRows={lifeGoalRows}
+
                 />
               </div>
-            </details>
+            </div>
           </div>
         ) : null}
       </section>

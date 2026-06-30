@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { StrainData, OuraData } from './CockpitBanner';
 import { isSprintClosingWeek } from '../../lib/goalSpine';
 import type { SprintReview } from '../../lib/goalSpine';
@@ -36,8 +35,6 @@ export interface DesktopHeroProps {
   sprint: SprintPanelProps['sprint'];
   sprintGoal: SprintPanelProps['sprintGoal'];
   sprintReview?: SprintReview | null;
-  onSave: SprintPanelProps['onSave'];
-  onSaveReview?: (reflection: string, complete: boolean) => Promise<void>;
   metrics: SprintPanelProps['metrics'];
   prevMetrics: SprintPanelProps['prevMetrics'];
   projectMetrics: SprintPanelProps['projectMetrics'];
@@ -52,8 +49,6 @@ export default function DesktopHero({
   sprint,
   sprintGoal,
   sprintReview = null,
-  onSave,
-  onSaveReview,
   metrics,
   prevMetrics,
   projectMetrics,
@@ -61,35 +56,8 @@ export default function DesktopHero({
   currentWeight,
   weight30ago,
 }: DesktopHeroProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(sprintGoal?.goal_text || '');
-  const [saving, setSaving] = useState(false);
-  const [reviewDraft, setReviewDraft] = useState(sprintReview?.reflection || '');
-  const [reviewSaving, setReviewSaving] = useState(false);
   const latest = oura[oura.length - 1];
   const closingWeek = isSprintClosingWeek(sprint);
-
-  useEffect(() => {
-    setDraft(sprintGoal?.goal_text || '');
-  }, [sprintGoal?.goal_text]);
-
-  useEffect(() => {
-    setReviewDraft(sprintReview?.reflection || '');
-  }, [sprintReview?.reflection]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    await onSave(draft.trim());
-    setSaving(false);
-    setEditing(false);
-  };
-
-  const handleSaveReview = async (complete: boolean) => {
-    if (!onSaveReview) return;
-    setReviewSaving(true);
-    await onSaveReview(reviewDraft, complete);
-    setReviewSaving(false);
-  };
 
   const status = strain?.daily_status || 'unknown';
   const cfg = {
@@ -166,61 +134,24 @@ export default function DesktopHero({
           </span>
         </div>
 
-        {editing ? (
-          <div className="flex gap-3 items-start">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.metaKey) void handleSave();
-                if (e.key === 'Escape') setEditing(false);
-              }}
-              placeholder="Cel sprintu — horyzont 12 tygodni"
-              className="flex-1 bg-surface border border-primary/30 rounded-[14px] p-3 text-[14px] font-semibold text-text-primary outline-none resize-none focus:border-primary/60 leading-snug"
-              rows={2}
-              autoFocus
-            />
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <button
-                onClick={() => void handleSave()}
-                disabled={saving}
-                className="rounded-[10px] bg-primary text-white text-[9px] font-black uppercase px-3 py-2 cursor-pointer hover:bg-primary-hover disabled:opacity-50"
-              >
-                {saving ? '…' : 'Zapisz'}
-              </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="rounded-[10px] border border-border-custom text-[9px] font-black uppercase px-3 py-2 text-text-muted cursor-pointer"
-              >
-                Anuluj
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              setDraft(sprintGoal?.goal_text || '');
-              setEditing(true);
-            }}
-            className="text-left group cursor-pointer w-full"
-          >
-            {sprintGoal?.goal_text ? (
-              <p className="text-[17px] font-black text-text-primary leading-snug group-hover:text-primary transition-colors">
-                {sprintGoal.goal_text}
-              </p>
-            ) : (
-              <p className="text-[13px] font-semibold text-text-muted italic group-hover:text-primary transition-colors">
-                + Dodaj cel sprintu
-              </p>
-            )}
-          </button>
-        )}
+        <div>
+          {sprintGoal?.goal_text ? (
+            <p className="text-[17px] font-black text-text-primary leading-snug">
+              {sprintGoal.goal_text}
+            </p>
+          ) : (
+            <p className="text-[13px] font-semibold text-text-muted italic">Brak celu sprintu</p>
+          )}
+          <a href="/?view=tydzien" className="text-[10px] font-black uppercase text-primary hover:underline">
+            Edytuj w Tygodniu →
+          </a>
+        </div>
 
         <div className="h-1.5 mt-3 bg-border-custom rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${sprint.pct}%` }} />
         </div>
 
-        {closingWeek && onSaveReview && !sprintReview?.completed_at && (
+        {closingWeek && !sprintReview?.completed_at && (
           <div className="mt-4 pt-4 border-t border-primary/10 space-y-2">
             <p className="text-[11px] text-text-secondary leading-relaxed">
               Zamknięcie sprintu jest w zakładce <span className="font-bold text-primary">Tydzień</span> — agregat 12 tyg. + cel następnego sprintu.

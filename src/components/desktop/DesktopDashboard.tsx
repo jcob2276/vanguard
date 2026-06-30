@@ -18,13 +18,10 @@ import {
 } from 'lucide-react';
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
 import { useNudgeData } from '../../hooks/useNudgeData';
-import { createProject } from '../../lib/projects';
 import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { notify, confirmDialog } from '../../lib/notify';
 import {
   fetchSprintReview,
-  saveSprintGoal as persistSprintGoal,
-  saveSprintReview,
   type SprintReview,
 } from '../../lib/goalSpine';
 
@@ -187,19 +184,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
     setSavingDream(false);
   }
 
-  async function dreamToProject(dream: any) {
-    try {
-      const project = (await createProject(userId!, { name: dream.title, goal: dream.description || undefined })) as any;
-      if (project) {
-        const { error: linkErr } = await supabase.from('projects').update({ dream_id: dream.id }).eq('id', project.id);
-        if (linkErr) console.warn('[dreamToProject] link failed:', linkErr.message);
-        notify(`Projekt "${dream.title}" utworzony!`, 'success');
-      }
-    } catch (e: any) {
-      notify('Błąd: ' + e.message, 'error');
-    }
-  }
-
   async function addVisionItem() {
     if (!newVisionContent.trim()) return;
     const { data, error } = await supabase.from('vision_board_items')
@@ -230,10 +214,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const filteredDreams = dreamFilter === 'all' ? dreams : dreams.filter(d => d.category === dreamFilter);
   const doneDreams = dreams.filter(d => d.is_done).length;
   const top5Dreams = dreams.filter(d => d.is_top5 && !d.is_done).slice(0, 5);
-  const projectByDreamId = useMemo(() =>
-    Object.fromEntries((projects || []).filter((p: any) => p.dream_id).map((p: any) => [p.dream_id, p])),
-    [projects],
-  );
 
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
@@ -355,31 +335,21 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const currMetrics = sprintMetrics(oura, sessions, strava, sprint.sprintStart, sprint.sprintEnd);
   const prevMetrics = sprint.prevStart ? sprintMetrics(oura, sessions, strava, sprint.prevStart, sprint.prevEnd) : null;
 
-  // Project metrics
+  // Project metrics — canonical projects + todo_items (RPC maps open → todo)
   const projectMetrics   = {
-    doneInSprint:   (moves||[]).filter(m => m.status === 'done' && (m.completed_at||'').slice(0,10) >= sprint.sprintStart).length,
-    inProgress:     (moves||[]).filter(m => m.status === 'todo').length,
-    blocked:        (moves||[]).filter(m => m.status === 'blocked').length,
-    activeProjects: (projects||[]).filter(p => p.sense_status !== 'cut' && p.sense_status !== 'completed').length,
+    doneInSprint: (moves || []).filter(
+      (m) => m.status === 'done' && (m.completed_at || '').slice(0, 10) >= sprint.sprintStart,
+    ).length,
+    inProgress: (moves || []).filter((m) => m.status === 'todo' || m.status === 'open').length,
+    blocked: (moves || []).filter(
+      (m) =>
+        m.status === 'blocked'
+        || ((m.status === 'todo' || m.status === 'open') && m.planned_for && m.planned_for < getTodayWarsaw()),
+    ).length,
+    activeProjects: (projects || []).filter(
+      (p) => p.status === 'active' || (p.sense_status && p.sense_status !== 'cut' && p.sense_status !== 'completed'),
+    ).length,
   };
-
-  const saveSprintGoal = useCallback(async (text: string) => {
-    try {
-      await persistSprintGoal(userId, text);
-      refresh();
-    } catch (e) {
-      console.warn('[saveSprintGoal]', e);
-    }
-  }, [userId, refresh]);
-
-  const saveSprintReviewHandler = useCallback(async (reflection: string, complete: boolean) => {
-    try {
-      await saveSprintReview(userId, reflection, { complete });
-      setSprintReview(await fetchSprintReview(userId));
-    } catch (e) {
-      console.warn('[saveSprintReview]', e);
-    }
-  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -471,8 +441,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
           sprint={sprint}
           sprintGoal={sprintGoal}
           sprintReview={sprintReview}
-          onSave={saveSprintGoal}
-          onSaveReview={saveSprintReviewHandler}
           metrics={currMetrics}
           prevMetrics={prevMetrics}
           projectMetrics={projectMetrics}
@@ -636,8 +604,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
           openDreamModal={openDreamModal}
           toggleDream={toggleDream}
           deleteDream={deleteDream}
-          dreamToProject={dreamToProject}
-          projectByDreamId={projectByDreamId}
           DREAM_CATEGORIES={DREAM_CATEGORIES}
           DREAM_CAT_LABEL={DREAM_CAT_LABEL}
           DREAM_CAT_COLOR={DREAM_CAT_COLOR}

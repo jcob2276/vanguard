@@ -6,7 +6,18 @@ import { unwrap } from './supabaseUtils';
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
 
-export type ProjectCheckpoint = Database['public']['Tables']['project_checkpoints']['Row'];
+export type ProjectCheckpoint = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  title: string;
+  due_date: string | null;
+  status: string;
+  completed_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
 
 export async function listProjects(userId: string) {
   return unwrap(
@@ -62,51 +73,25 @@ export async function linkSectionToProject(sectionId: string, projectId: string 
 }
 
 export async function listProjectCheckpoints(userId: string): Promise<ProjectCheckpoint[]> {
-  const [todosRes, legacyRes] = await Promise.all([
-    supabase
-      .from('todo_items')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_milestone', true)
-      .neq('status', 'dropped'),
-    supabase
-      .from('project_checkpoints')
-      .select('*')
-      .eq('user_id', userId)
-      .neq('status', 'dropped'),
-  ]);
+  const { data: todos } = await supabase
+    .from('todo_items')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_milestone', true)
+    .neq('status', 'dropped');
 
-  const todos = todosRes.data;
-  const legacyCps = legacyRes.data;
-
-  const merged: ProjectCheckpoint[] = [];
-  const seenIds = new Set<string>();
-
-  if (todos) {
-    for (const t of todos) {
-      merged.push({
-        id: t.id,
-        user_id: t.user_id,
-        project_id: t.project_id || '',
-        title: t.title,
-        due_date: t.due_date,
-        status: t.status === 'done' ? 'done' : 'pending',
-        completed_at: t.completed_at,
-        sort_order: t.sort_order,
-        created_at: t.created_at,
-        updated_at: t.updated_at,
-      });
-      seenIds.add(t.id);
-    }
-  }
-
-  if (legacyCps) {
-    for (const l of legacyCps) {
-      if (!seenIds.has(l.id)) {
-        merged.push(l);
-      }
-    }
-  }
+  const merged: ProjectCheckpoint[] = (todos ?? []).map((t) => ({
+    id: t.id,
+    user_id: t.user_id,
+    project_id: t.project_id || '',
+    title: t.title,
+    due_date: t.due_date,
+    status: t.status === 'done' ? 'done' : 'pending',
+    completed_at: t.completed_at,
+    sort_order: t.sort_order,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+  }));
 
   merged.sort((a, b) => {
     if (a.due_date && b.due_date) {
@@ -162,77 +147,55 @@ export async function updateProjectCheckpoint(
   id: string,
   patch: Partial<Pick<ProjectCheckpoint, 'title' | 'due_date' | 'status' | 'completed_at' | 'sort_order'>>,
 ): Promise<ProjectCheckpoint> {
-  const { data: todoRow, error: todoError } = await supabase
-    .from('todo_items')
-    .update({
-      title: patch.title !== undefined ? patch.title.trim() : undefined,
-      due_date: patch.due_date,
-      status: patch.status === 'done' ? 'done' : (patch.status === 'pending' || patch.status === 'open') ? 'open' : undefined,
-      completed_at: patch.completed_at,
-      sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
-    })
-    .eq('id', id)
-    .select()
-    .maybeSingle();
-
-  if (todoError) throw todoError;
-
-  if (todoRow) {
-    return {
-      id: todoRow.id,
-      user_id: todoRow.user_id,
-      project_id: todoRow.project_id || '',
-      title: todoRow.title,
-      due_date: todoRow.due_date,
-      status: todoRow.status === 'done' ? 'done' : 'pending',
-      completed_at: todoRow.completed_at,
-      sort_order: todoRow.sort_order,
-      created_at: todoRow.created_at,
-      updated_at: todoRow.updated_at,
-    };
-  }
-
-  return unwrap(
+  const todoRow = unwrap<Database['public']['Tables']['todo_items']['Row']>(
     await supabase
-      .from('project_checkpoints')
-      .update(patch)
+      .from('todo_items')
+      .update({
+        title: patch.title !== undefined ? patch.title.trim() : undefined,
+        due_date: patch.due_date,
+        status: patch.status === 'done' ? 'done' : (patch.status === 'pending' || patch.status === 'open') ? 'open' : undefined,
+        completed_at: patch.completed_at,
+        sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
+      })
       .eq('id', id)
       .select()
       .single(),
   );
+
+  return {
+    id: todoRow.id,
+    user_id: todoRow.user_id,
+    project_id: todoRow.project_id || '',
+    title: todoRow.title,
+    due_date: todoRow.due_date,
+    status: todoRow.status === 'done' ? 'done' : 'pending',
+    completed_at: todoRow.completed_at,
+    sort_order: todoRow.sort_order,
+    created_at: todoRow.created_at,
+    updated_at: todoRow.updated_at,
+  };
 }
 
 export async function deleteProjectCheckpoint(id: string): Promise<ProjectCheckpoint> {
-  const { data: todoRow, error: todoError } = await supabase
-    .from('todo_items')
-    .delete()
-    .eq('id', id)
-    .select()
-    .maybeSingle();
-
-  if (todoError) throw todoError;
-
-  if (todoRow) {
-    return {
-      id: todoRow.id,
-      user_id: todoRow.user_id,
-      project_id: todoRow.project_id || '',
-      title: todoRow.title,
-      due_date: todoRow.due_date,
-      status: todoRow.status === 'done' ? 'done' : 'pending',
-      completed_at: todoRow.completed_at,
-      sort_order: todoRow.sort_order,
-      created_at: todoRow.created_at,
-      updated_at: todoRow.updated_at,
-    };
-  }
-
-  return unwrap(
+  const todoRow = unwrap<Database['public']['Tables']['todo_items']['Row']>(
     await supabase
-      .from('project_checkpoints')
+      .from('todo_items')
       .delete()
       .eq('id', id)
       .select()
       .single(),
   );
+
+  return {
+    id: todoRow.id,
+    user_id: todoRow.user_id,
+    project_id: todoRow.project_id || '',
+    title: todoRow.title,
+    due_date: todoRow.due_date,
+    status: todoRow.status === 'done' ? 'done' : 'pending',
+    completed_at: todoRow.completed_at,
+    sort_order: todoRow.sort_order,
+    created_at: todoRow.created_at,
+    updated_at: todoRow.updated_at,
+  };
 }

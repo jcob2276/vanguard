@@ -49,7 +49,6 @@ import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
-const BlockTimer = lazy(() => import('../lifestyle/BlockTimer'));
 const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const MorningBriefCard = lazy(() => import('./MorningBriefCard'));

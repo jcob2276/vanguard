@@ -189,7 +189,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
 
 
-      const [spine, checkpoints, pinsRes, projectsData, kpisRes, dailyWinsRes, focusRes, skillsRes, linksRes, todosRes, sectionsRes, doneNewCpsRes, doneLegacyCpsRes, dueCpsRes] =
+      const [spine, checkpoints, pinsRes, projectsData, kpisRes, dailyWinsRes, focusRes, skillsRes, linksRes, todosRes, sectionsRes, doneCpsRes, dueCpsRes] =
 
         await Promise.all([
 
@@ -282,18 +282,6 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
           .eq('user_id', userId)
 
           .eq('is_milestone', true)
-
-          .eq('status', 'done')
-
-          .gte('completed_at', weekFromISO),
-
-        supabase
-
-          .from('project_checkpoints')
-
-          .select('id', { count: 'exact', head: true })
-
-          .eq('user_id', userId)
 
           .eq('status', 'done')
 
@@ -519,7 +507,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
         focus,
 
-        weekCheckpointsDone: (doneNewCpsRes.count ?? 0) + (doneLegacyCpsRes.count ?? 0),
+        weekCheckpointsDone: doneCpsRes.count ?? 0,
 
         weekCheckpointsDue: dueCpsRes.count ?? 0,
 

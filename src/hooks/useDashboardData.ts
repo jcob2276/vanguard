@@ -1,10 +1,11 @@
 import { getTodayWarsaw, formatWarsawDate } from '../lib/date';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import type { Tables } from '../lib/database.types';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
+import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 
 type DashboardData = {
   weeklyCalories: number;
@@ -30,7 +31,7 @@ export function useDashboardData() {
 
   const mountedRef = useRef(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       if (mountedRef.current) setData((prev) => ({ ...prev, loading: false }));
@@ -106,7 +107,9 @@ export function useDashboardData() {
       console.error('Error fetching dashboard data:', err);
       setData(prev => ({ ...prev, loading: false, error: err instanceof Error ? err.message : 'Unknown error' }));
     }
-  };
+  }, []);
+
+  useGoalSpineInvalidation(fetchData);
 
   const autoSyncCalendar = async (session: any) => {
     try {
@@ -140,12 +143,12 @@ export function useDashboardData() {
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchData();
+    void fetchData();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) autoSyncCalendar(session);
     });
     return () => { mountedRef.current = false; };
-  }, []);
+  }, [fetchData]);
 
   return { ...data, refresh: fetchData };
 }

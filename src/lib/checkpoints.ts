@@ -81,22 +81,10 @@ export async function fetchUpcomingCheckpoints(
 }
 
 export async function markCheckpointDone(checkpointId: string): Promise<void> {
-  // Try to update todo_items first
-  const { data: todoUpdated, error: todoError } = await supabase
+  const { error } = await supabase
     .from('todo_items')
     .update({ status: 'done', completed_at: nowWarsaw().toISOString() })
-    .eq('id', checkpointId)
-    .select('id')
-    .maybeSingle();
+    .eq('id', checkpointId);
 
-  if (todoError) throw new Error(todoError.message);
-
-  // Fallback to legacy project_checkpoints if not found in todo_items
-  if (!todoUpdated) {
-    const { error: cpError } = await supabase
-      .from('project_checkpoints')
-      .update({ status: 'done', completed_at: nowWarsaw().toISOString() })
-      .eq('id', checkpointId);
-    if (cpError) throw new Error(cpError.message);
-  }
+  if (error) throw new Error(error.message);
 }

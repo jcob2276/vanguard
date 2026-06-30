@@ -278,6 +278,22 @@ export function buildDailyPlanProposal(
     });
   }
 
+  const upcomingSorted = [...ctx.checkpoints.upcoming].sort((a, b) => a.daysLeft - b.daysLeft);
+  for (const cp of upcomingSorted.slice(0, 2)) {
+    if (out.length >= 5) break;
+    if (out.some((s) => s.checkpointId === cp.id || s.task === cp.title)) continue;
+    out.push({
+      task: cp.title,
+      category: pillarToCategory(cp.project.pillar),
+      checkpointId: cp.id,
+      projectId: cp.project_id,
+      pinId: null,
+      todoId: null,
+      targetValue: null,
+      source: 'checkpoint_nadchodzacy',
+    });
+  }
+
   for (const todo of ctx.urgentTodos) {
     if (out.length >= 5) break;
     if (out.some((s) => s.todoId === todo.id)) continue;

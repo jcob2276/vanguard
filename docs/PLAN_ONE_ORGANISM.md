@@ -32,12 +32,14 @@ i każdy poziom karmi się danymi z poziomu niżej, nie wymaga ręcznego przepis
 
 ### ❌ Główne dziury (w kolejności wpływu na "1 organizm")
 
-1. **Tydzień to wciąż DWA ekrany.** `WeekHub.tsx` (`view='tydzien'`: intencja, friction
-   proposals, projekty+KPI) i `WeeklyReview.tsx` (`view='weekly-review'`: KPI per pillar,
-   what_worked/didn't, AI brief) to osobne nawigacje, osobne tabele
-   (`weekly_reviews` vs `weekly_kpi_reviews`), zadeklarowane w kodzie wprost jako
-   *"intentional satellites, not merged"* (`goalSpine.ts:5-8`). To jest **najwyższy priorytet
-   do naprawy** — dokładnie to, co Jakub nazywa brakiem spójności.
+> **Update 2026-06-30 (sesja sprzątania P0–P2):** Punkt 1 poniżej jest już nieaktualny —
+> `WeeklyReview.tsx` i `weekly_kpi_reviews` zostały usunięte tego samego dnia (zob.
+> `docs/FEATURE_LIFECYCLE.md` → "Legacy WeeklyReview & WeeklyBrief: Dropped"), Tydzień to
+> teraz jeden ekran (`WeekHub`/Direction). Punkt 5 (`goals`) został zrealizowany — tabela
+> dropnięta migracją `20260630164658_drop_dead_career_and_goals_schema`.
+
+1. ~~**Tydzień to wciąż DWA ekrany.**~~ ROZWIĄZANE 2026-06-30 — `WeeklyReview.tsx` usunięty,
+   `weekly_kpi_reviews` dropnięte, Tydzień skonsolidowany do jednego ekranu (Direction ritual).
 2. **Brak wieczornego domykacza dnia.** Jedyna refleksja dnia to wolne pole
    `daily_plan.shutdown_note` / `daily_wins.day_note`, bez UI, bez połączenia z resztą
    pipeline'u friction (`confirmed_friction_events`, `system_proposals`).
@@ -46,8 +48,8 @@ i każdy poziom karmi się danymi z poziomu niżej, nie wymaga ręcznego przepis
    Zero: agregacji KPI/projektów z całego sprintu, zero carry-over niedokończonych
    projektów/KPI do kolejnego sprintu, `sprint_goals.goal_text` to wolny tekst niepowiązany
    z `goal_kpis`/`projects`.
-5. **Martwa tabela `goals`** — istnieje w schemacie, zero odwołań w froncie i edge
-   functions. Do usunięcia albo do zignorowania (nie wciągać do tego planu).
+5. ~~**Martwa tabela `goals`**~~ ROZWIĄZANE 2026-06-30 — dropnięta migracją
+   `20260630164658_drop_dead_career_and_goals_schema`.
 
 ## 3. Docelowa architektura — jedna struktura na każdym poziomie
 
