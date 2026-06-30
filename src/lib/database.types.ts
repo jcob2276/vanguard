@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -1006,26 +1006,36 @@ export type Database = {
           task_1_checkpoint_id: string | null
           task_1_pin_id: string | null
           task_1_project_id: string | null
+          task_1_target_value: string | null
+          task_1_time_slot: string | null
           task_1_todo_id: string | null
           task_2: string | null
           task_2_checkpoint_id: string | null
           task_2_pin_id: string | null
           task_2_project_id: string | null
+          task_2_target_value: string | null
+          task_2_time_slot: string | null
           task_2_todo_id: string | null
           task_3: string | null
           task_3_checkpoint_id: string | null
           task_3_pin_id: string | null
           task_3_project_id: string | null
+          task_3_target_value: string | null
+          task_3_time_slot: string | null
           task_3_todo_id: string | null
           task_4: string | null
           task_4_checkpoint_id: string | null
           task_4_pin_id: string | null
           task_4_project_id: string | null
+          task_4_target_value: string | null
+          task_4_time_slot: string | null
           task_4_todo_id: string | null
           task_5: string | null
           task_5_checkpoint_id: string | null
           task_5_pin_id: string | null
           task_5_project_id: string | null
+          task_5_target_value: string | null
+          task_5_time_slot: string | null
           task_5_todo_id: string | null
           user_id: string | null
         }
@@ -1062,26 +1072,36 @@ export type Database = {
           task_1_checkpoint_id?: string | null
           task_1_pin_id?: string | null
           task_1_project_id?: string | null
+          task_1_target_value?: string | null
+          task_1_time_slot?: string | null
           task_1_todo_id?: string | null
           task_2?: string | null
           task_2_checkpoint_id?: string | null
           task_2_pin_id?: string | null
           task_2_project_id?: string | null
+          task_2_target_value?: string | null
+          task_2_time_slot?: string | null
           task_2_todo_id?: string | null
           task_3?: string | null
           task_3_checkpoint_id?: string | null
           task_3_pin_id?: string | null
           task_3_project_id?: string | null
+          task_3_target_value?: string | null
+          task_3_time_slot?: string | null
           task_3_todo_id?: string | null
           task_4?: string | null
           task_4_checkpoint_id?: string | null
           task_4_pin_id?: string | null
           task_4_project_id?: string | null
+          task_4_target_value?: string | null
+          task_4_time_slot?: string | null
           task_4_todo_id?: string | null
           task_5?: string | null
           task_5_checkpoint_id?: string | null
           task_5_pin_id?: string | null
           task_5_project_id?: string | null
+          task_5_target_value?: string | null
+          task_5_time_slot?: string | null
           task_5_todo_id?: string | null
           user_id?: string | null
         }
@@ -1118,26 +1138,36 @@ export type Database = {
           task_1_checkpoint_id?: string | null
           task_1_pin_id?: string | null
           task_1_project_id?: string | null
+          task_1_target_value?: string | null
+          task_1_time_slot?: string | null
           task_1_todo_id?: string | null
           task_2?: string | null
           task_2_checkpoint_id?: string | null
           task_2_pin_id?: string | null
           task_2_project_id?: string | null
+          task_2_target_value?: string | null
+          task_2_time_slot?: string | null
           task_2_todo_id?: string | null
           task_3?: string | null
           task_3_checkpoint_id?: string | null
           task_3_pin_id?: string | null
           task_3_project_id?: string | null
+          task_3_target_value?: string | null
+          task_3_time_slot?: string | null
           task_3_todo_id?: string | null
           task_4?: string | null
           task_4_checkpoint_id?: string | null
           task_4_pin_id?: string | null
           task_4_project_id?: string | null
+          task_4_target_value?: string | null
+          task_4_time_slot?: string | null
           task_4_todo_id?: string | null
           task_5?: string | null
           task_5_checkpoint_id?: string | null
           task_5_pin_id?: string | null
           task_5_project_id?: string | null
+          task_5_target_value?: string | null
+          task_5_time_slot?: string | null
           task_5_todo_id?: string | null
           user_id?: string | null
         }
@@ -3532,8 +3562,10 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          is_milestone: boolean
           notes: string | null
           priority: string
+          project_id: string | null
           recurrence: string | null
           reminder_at: string | null
           reminder_sent: boolean
@@ -3552,8 +3584,10 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_milestone?: boolean
           notes?: string | null
           priority?: string
+          project_id?: string | null
           recurrence?: string | null
           reminder_at?: string | null
           reminder_sent?: boolean
@@ -3572,8 +3606,10 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_milestone?: boolean
           notes?: string | null
           priority?: string
+          project_id?: string | null
           recurrence?: string | null
           reminder_at?: string | null
           reminder_sent?: boolean
@@ -3591,6 +3627,13 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "todo_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -5663,6 +5706,10 @@ export type Database = {
           status: string
           target_entity: string
         }[]
+      }
+      increment_kpi_entry_for_week: {
+        Args: { p_delta: number; p_kpi_id: string; p_week_start: string }
+        Returns: undefined
       }
       match_vanguard_content: {
         Args: {

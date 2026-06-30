@@ -2,11 +2,48 @@ import { describe, expect, it } from 'vitest';
 import {
   isSprintClosingWeek,
   resolveWeekGoals,
+  rollupTaskCompletion,
   strategicGapsFromSpine,
   weekGoalsAreEmpty,
   weekGoalsFromReview,
+  type GoalKpiRow,
   type GoalSpine,
 } from './goalSpine';
+
+function fakeKpi(id: string): GoalKpiRow {
+  return { id } as GoalKpiRow;
+}
+
+describe('rollupTaskCompletion', () => {
+  it('rolls up a plain numeric value when the project has exactly one KPI', () => {
+    const result = rollupTaskCompletion('80', [fakeKpi('kpi-1')], 1);
+    expect(result).toEqual({ kpiId: 'kpi-1', delta: 80 });
+  });
+
+  it('negates the delta when un-completing a task', () => {
+    const result = rollupTaskCompletion('80', [fakeKpi('kpi-1')], -1);
+    expect(result).toEqual({ kpiId: 'kpi-1', delta: -80 });
+  });
+
+  it('skips non-numeric target values', () => {
+    expect(rollupTaskCompletion('30 min', [fakeKpi('kpi-1')], 1)).toBeNull();
+    expect(rollupTaskCompletion('pół strony', [fakeKpi('kpi-1')], 1)).toBeNull();
+  });
+
+  it('skips when the project has no KPI', () => {
+    expect(rollupTaskCompletion('80', [], 1)).toBeNull();
+    expect(rollupTaskCompletion('80', undefined, 1)).toBeNull();
+  });
+
+  it('skips when the project has more than one KPI (ambiguous)', () => {
+    expect(rollupTaskCompletion('80', [fakeKpi('kpi-1'), fakeKpi('kpi-2')], 1)).toBeNull();
+  });
+
+  it('skips empty or zero values', () => {
+    expect(rollupTaskCompletion('', [fakeKpi('kpi-1')], 1)).toBeNull();
+    expect(rollupTaskCompletion('0', [fakeKpi('kpi-1')], 1)).toBeNull();
+  });
+});
 
 describe('goalSpine week goals', () => {
   it('uses current week row when populated', () => {

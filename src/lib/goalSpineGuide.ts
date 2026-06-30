@@ -5,7 +5,7 @@ import {
   type WeeklyReviewRow,
 } from './goalSpine';
 
-export type SpineGuideTarget = 'dzis' | 'tydzien' | 'weekly-review' | 'projekty' | 'dashboard';
+export type SpineGuideTarget = 'dzis' | 'tydzien' | 'projekty' | 'dashboard';
 
 type SpineGuideAction =
   | { type: 'navigate'; target: SpineGuideTarget; label: string }
@@ -38,7 +38,7 @@ export type SpineGuidance = {
 
 export type SpineGuideContext = {
   weeklyReview: WeeklyReviewRow | null;
-  kpiOverdueDays: number | null;
+  weekReflectionOverdueDays: number | null;
   today?: string;
   day?: DayWinState;
 };
@@ -187,7 +187,6 @@ export function deriveSpineGuidance(
   const sprintCloseOk = Boolean(spine.sprintReview?.completed_at);
   const weekGoalsOk = !weekGoalsAreEmpty(spine.week);
   const weekReflectionOk = Boolean(ctx.weeklyReview?.review_completed_at);
-  const kpiOk = ctx.kpiOverdueDays !== null && ctx.kpiOverdueDays <= 7;
 
   const baseSteps: SpineGuideStep[] = [
     { id: 'sprint', label: 'Cel sprintu (12 tyg.)', status: sprintGoalOk ? 'done' : 'pending' },
@@ -196,7 +195,6 @@ export function deriveSpineGuidance(
       : []),
     { id: 'week', label: 'Cele tygodnia', status: weekGoalsOk ? 'done' : 'pending' },
     { id: 'week_reflection', label: 'Refleksja tygodnia', status: weekReflectionOk ? 'done' : 'pending' },
-    { id: 'kpi', label: 'KPI tygodnia', status: kpiOk ? 'done' : 'pending' },
     { id: 'day', label: '5 zwycięstw dziś', status: dayStepStatus(day) },
   ];
 
@@ -243,21 +241,11 @@ export function deriveSpineGuidance(
     };
   }
 
-  if (!weekReflectionOk && ctx.kpiOverdueDays !== null && ctx.kpiOverdueDays > 14) {
+  if (!weekReflectionOk && ctx.weekReflectionOverdueDays !== null && ctx.weekReflectionOverdueDays > 14) {
     return {
       primaryCue: 'Dawno nie było refleksji tygodnia — 10 minut w zakładce Tydzień.',
       primaryAction: { type: 'navigate', target: 'tydzien', label: 'Otwórz Tydzień' },
       steps: withSteps(baseSteps, 'week_reflection'),
-      readyForDay: false,
-      dayProgress: null,
-    };
-  }
-
-  if (ctx.kpiOverdueDays === null || ctx.kpiOverdueDays > 7) {
-    return {
-      primaryCue: 'Uzupełnij KPI za ten tydzień — liczby, nie odczucia (5 min).',
-      primaryAction: { type: 'navigate', target: 'weekly-review', label: 'Review KPI' },
-      steps: withSteps(baseSteps, 'kpi'),
       readyForDay: false,
       dayProgress: null,
     };

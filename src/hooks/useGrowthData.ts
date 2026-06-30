@@ -9,7 +9,7 @@ import {
   type LearningWeekPin,
 } from '../lib/growth';
 import { insertDefaultSkillTree } from '../lib/growthSeed';
-import { fetchGoalSpine } from '../lib/goalSpine';
+import { fetchGoalSpine, fetchLatestKpiValues } from '../lib/goalSpine';
 import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 import { warsawDayBoundsISO } from '../lib/date';
 import {
@@ -223,9 +223,10 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .gte('date', weekStart)
           .lt('date', weekEnd),
         supabase
-          .from('project_checkpoints')
+          .from('todo_items')
           .select('id, project_id, title, due_date, status')
           .eq('user_id', userId)
+          .eq('is_milestone', true)
           .in('status', ['pending', 'open'])
           .order('due_date', { ascending: true })
           .limit(10),
@@ -256,9 +257,9 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         id: string;
         project_id?: string | null;
         name?: string;
-        current_value?: number | null;
         target?: number | null;
       }[];
+      const latestKpiValues = await fetchLatestKpiValues(userId, allKpis.map((k) => k.id));
 
       const projectSummaries: GrowthProjectSummary[] = activeProjectRows.map((p) => ({
         id: p.id,
@@ -271,7 +272,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .map((k) => ({
             id: k.id,
             name: k.name ?? 'KPI',
-            current: k.current_value ?? null,
+            current: latestKpiValues.get(k.id) ?? null,
             target: k.target ?? null,
           })),
       }));
@@ -279,7 +280,11 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
 
       // Build upcoming/overdue checkpoints
       const todayStr = weekStart; // use current date context
-      const checkpointRows = (checkpointsRes.data ?? []) as { id: string; project_id: string; title: string; due_date: string; status: string }[];
+      const checkpointRowsRaw = (checkpointsRes.data ?? []) as { id: string; project_id: string | null; title: string; due_date: string | null; status: string }[];
+      const checkpointRows = checkpointRowsRaw.filter(
+        (cp): cp is typeof cp & { project_id: string; due_date: string } =>
+          cp.project_id != null && cp.due_date != null
+      );
       const projNameMap = new Map(activeProjectRows.map((p) => [p.id, p.name]));
       const checkpoints: GrowthCheckpoint[] = checkpointRows
         .filter((cp) => projNameMap.has(cp.project_id))
@@ -322,7 +327,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         sprintLabel: sprint.label,
         activeProjectName: activeProject?.name ?? null,
         kpiName: firstKpi?.name || null,
-        kpiValue: firstKpi?.current_value ?? null,
+        kpiValue: firstKpi ? latestKpiValues.get(firstKpi.id) ?? null : null,
         kpiTarget: firstKpi?.target ?? null,
         kpiId: firstKpi?.id ?? null,
       });

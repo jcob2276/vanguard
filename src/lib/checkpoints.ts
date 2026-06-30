@@ -30,9 +30,10 @@ export async function fetchUpcomingCheckpoints(
 
   const [{ data: cps }, { data: projs }, { data: dreams }] = await Promise.all([
     supabase
-      .from('project_checkpoints')
+      .from('todo_items')
       .select('id, project_id, title, due_date, status')
       .eq('user_id', userId)
+      .eq('is_milestone', true)
       .in('status', ['pending', 'open'])
       .lte('due_date', horizonStr)
       .order('due_date', { ascending: true }),
@@ -59,6 +60,7 @@ export async function fetchUpcomingCheckpoints(
 
   return cps
     .map((cp) => {
+      if (!cp.project_id) return null;
       const project = projMap[cp.project_id];
       if (!project || !cp.due_date) return null;
       const daysLeft = differenceInDays(new Date(cp.due_date), new Date(todayStr));
@@ -79,9 +81,22 @@ export async function fetchUpcomingCheckpoints(
 }
 
 export async function markCheckpointDone(checkpointId: string): Promise<void> {
-  const { error } = await supabase
-    .from('project_checkpoints')
+  // Try to update todo_items first
+  const { data: todoUpdated, error: todoError } = await supabase
+    .from('todo_items')
     .update({ status: 'done', completed_at: nowWarsaw().toISOString() })
-    .eq('id', checkpointId);
-  if (error) throw new Error(error.message);
+    .eq('id', checkpointId)
+    .select('id')
+    .maybeSingle();
+
+  if (todoError) throw new Error(todoError.message);
+
+  // Fallback to legacy project_checkpoints if not found in todo_items
+  if (!todoUpdated) {
+    const { error: cpError } = await supabase
+      .from('project_checkpoints')
+      .update({ status: 'done', completed_at: nowWarsaw().toISOString() })
+      .eq('id', checkpointId);
+    if (cpError) throw new Error(cpError.message);
+  }
 }

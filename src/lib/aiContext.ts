@@ -67,7 +67,7 @@ export async function gatherUserContext(session: any) {
       // Daily context
       supabase.from('daily_reconciliations').select('planning_summary, midday_status, midday_blocker, day_score').eq('user_id', userId).eq('date', today).maybeSingle(),
       supabase.from('todo_items').select('title, priority, ai_bucket, due_date, section_id').eq('user_id', userId).eq('status', 'open').order('priority', { ascending: false }).limit(30),
-      supabase.from('project_checkpoints').select('title, due_date, status').eq('user_id', userId).in('status', ['pending', 'open']).lte('due_date', getDaysAgoWarsaw(-14)).order('due_date', { ascending: true }).limit(5),
+      supabase.from('todo_items').select('title, due_date, status').eq('user_id', userId).eq('is_milestone', true).in('status', ['pending', 'open']).lte('due_date', getDaysAgoWarsaw(-14)).order('due_date', { ascending: true }).limit(5),
       supabase.from('daily_strain').select('date, strain_score, recovery_score, readiness_level, components').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
     const [latestOuraRes, powerListRes, historyRes, reviewBundleRes, goalSpineRes, footprintRes, nutritionRes, lastWorkoutRes, oura14dRes, nutrition14dRes, dreamsRes, activeDreamProjectsRes, todayRecRes, todosRes, checkpointsRes, dailyStrainRes] = settled.map(r =>

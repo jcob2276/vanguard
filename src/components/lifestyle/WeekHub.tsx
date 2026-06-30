@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { Target, AlertCircle } from 'lucide-react';
 import { MagazineBar } from '../shared/MagazineBar';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
+import ProjectWeekKpis from './ProjectWeekKpis';
 import { SystemProposalCard } from '../shared/SystemProposalCard';
 import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { mergeMagazineView, loadOracleScheduleOverride } from '../../lib/magazineBar';
@@ -89,6 +90,10 @@ export default function WeekHub({
       )}
 
       {magazineView && <MagazineBar view={magazineView} />}
+
+      {direction.weekStart && (direction.activeProjects?.length ?? 0) > 0 && (
+        <ProjectWeekKpis userId={userId} projects={direction.activeProjects!} weekStart={direction.weekStart} />
+      )}
 
       {direction.weekStart && (
         <WeekLoopSummary

@@ -62,40 +62,136 @@ export async function linkSectionToProject(sectionId: string, projectId: string 
 }
 
 export async function listProjectCheckpoints(userId: string): Promise<ProjectCheckpoint[]> {
-  return unwrap(
-    await supabase
+  const [todosRes, legacyRes] = await Promise.all([
+    supabase
+      .from('todo_items')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_milestone', true)
+      .neq('status', 'dropped'),
+    supabase
       .from('project_checkpoints')
       .select('*')
       .eq('user_id', userId)
-      .neq('status', 'dropped')
-      .order('due_date', { ascending: true, nullsFirst: false })
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true }),
-  );
+      .neq('status', 'dropped'),
+  ]);
+
+  const todos = todosRes.data;
+  const legacyCps = legacyRes.data;
+
+  const merged: ProjectCheckpoint[] = [];
+  const seenIds = new Set<string>();
+
+  if (todos) {
+    for (const t of todos) {
+      merged.push({
+        id: t.id,
+        user_id: t.user_id,
+        project_id: t.project_id || '',
+        title: t.title,
+        due_date: t.due_date,
+        status: t.status === 'done' ? 'done' : 'pending',
+        completed_at: t.completed_at,
+        sort_order: t.sort_order,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+      });
+      seenIds.add(t.id);
+    }
+  }
+
+  if (legacyCps) {
+    for (const l of legacyCps) {
+      if (!seenIds.has(l.id)) {
+        merged.push(l);
+      }
+    }
+  }
+
+  merged.sort((a, b) => {
+    if (a.due_date && b.due_date) {
+      return a.due_date.localeCompare(b.due_date);
+    }
+    if (a.due_date) return 1;
+    if (b.due_date) return -1;
+
+    const sortA = a.sort_order ?? 0;
+    const sortB = b.sort_order ?? 0;
+    if (sortA !== sortB) return sortA - sortB;
+
+    return a.created_at.localeCompare(b.created_at);
+  });
+
+  return merged;
 }
 
 export async function createProjectCheckpoint(
   userId: string,
   fields: { project_id: string; title: string; due_date?: string | null },
 ): Promise<ProjectCheckpoint> {
-  return unwrap(
+  const row = unwrap(
     await supabase
-      .from('project_checkpoints')
+      .from('todo_items')
       .insert({
         user_id: userId,
         project_id: fields.project_id,
         title: fields.title.trim(),
         due_date: fields.due_date || null,
+        is_milestone: true,
+        priority: 'high',
       })
       .select()
       .single(),
   );
+
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    project_id: row.project_id || '',
+    title: row.title,
+    due_date: row.due_date,
+    status: row.status === 'done' ? 'done' : 'pending',
+    completed_at: row.completed_at,
+    sort_order: row.sort_order,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
 export async function updateProjectCheckpoint(
   id: string,
   patch: Partial<Pick<ProjectCheckpoint, 'title' | 'due_date' | 'status' | 'completed_at' | 'sort_order'>>,
 ): Promise<ProjectCheckpoint> {
+  const { data: todoRow, error: todoError } = await supabase
+    .from('todo_items')
+    .update({
+      title: patch.title !== undefined ? patch.title.trim() : undefined,
+      due_date: patch.due_date,
+      status: patch.status === 'done' ? 'done' : patch.status === 'pending' ? 'pending' : undefined,
+      completed_at: patch.completed_at,
+      sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
+    })
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+
+  if (todoError) throw todoError;
+
+  if (todoRow) {
+    return {
+      id: todoRow.id,
+      user_id: todoRow.user_id,
+      project_id: todoRow.project_id || '',
+      title: todoRow.title,
+      due_date: todoRow.due_date,
+      status: todoRow.status === 'done' ? 'done' : 'pending',
+      completed_at: todoRow.completed_at,
+      sort_order: todoRow.sort_order,
+      created_at: todoRow.created_at,
+      updated_at: todoRow.updated_at,
+    };
+  }
+
   return unwrap(
     await supabase
       .from('project_checkpoints')
@@ -107,6 +203,30 @@ export async function updateProjectCheckpoint(
 }
 
 export async function deleteProjectCheckpoint(id: string): Promise<ProjectCheckpoint> {
+  const { data: todoRow, error: todoError } = await supabase
+    .from('todo_items')
+    .delete()
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+
+  if (todoError) throw todoError;
+
+  if (todoRow) {
+    return {
+      id: todoRow.id,
+      user_id: todoRow.user_id,
+      project_id: todoRow.project_id || '',
+      title: todoRow.title,
+      due_date: todoRow.due_date,
+      status: todoRow.status === 'done' ? 'done' : 'pending',
+      completed_at: todoRow.completed_at,
+      sort_order: todoRow.sort_order,
+      created_at: todoRow.created_at,
+      updated_at: todoRow.updated_at,
+    };
+  }
+
   return unwrap(
     await supabase
       .from('project_checkpoints')

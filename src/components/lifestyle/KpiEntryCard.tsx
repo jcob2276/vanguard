@@ -1,6 +1,14 @@
 import { Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import Sparkline from './Sparkline';
-import { Kpi } from './weeklyReviewUtils';
+
+export type Kpi = {
+  id: string;
+  name: string;
+  unit: string;
+  higher_is_better: boolean;
+  target: number | null;
+  pillar: string | null;
+};
 
 export interface KpiEntryCardProps {
   kpi: Kpi;

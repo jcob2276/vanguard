@@ -409,7 +409,7 @@ async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
     supabase.from('dreams').select('id, life_goal').eq('user_id', userId),
     supabase
       .from('goal_kpis')
-      .select('id, project_id, name, current_value, target, unit')
+      .select('id, project_id, name, target, unit')
       .eq('user_id', userId),
     supabase
       .from('life_goals')
@@ -422,10 +422,16 @@ async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
   if (kpisRes.error) throw kpisRes.error;
   if (lifeGoalsRes.error) throw lifeGoalsRes.error;
 
+  const latestKpiValues = await fetchLatestKpiValues(userId, (kpisRes.data ?? []).map((k) => k.id));
+  const kpisWithCurrent = (kpisRes.data ?? []).map((k) => ({
+    ...k,
+    current_value: latestKpiValues.get(k.id) ?? null,
+  }));
+
   const projectsDisplay = lifeGoalDisplayRowsFromProjects(
     (projects ?? []) as ProjectRow[],
     (dreamsRes.data ?? []) as DreamRow[],
-    kpisRes.data ?? [],
+    kpisWithCurrent,
   );
 
   return {
@@ -491,6 +497,21 @@ export async function fetchWeeklyReviewFull(
       .maybeSingle();
     if (error) throw error;
     return data;
+  });
+}
+
+export async function fetchLatestCompletedWeeklyReviewDate(userId: string): Promise<string | null> {
+  return withCache(spineKey('reviewLatestCompletedDate', userId), async () => {
+    const { data, error } = await supabase
+      .from('weekly_reviews')
+      .select('review_completed_at')
+      .eq('user_id', userId)
+      .not('review_completed_at', 'is', null)
+      .order('review_completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.review_completed_at ?? null;
   });
 }
 
@@ -581,23 +602,6 @@ export async function saveSprintReview(
   invalidateGoalSpineCache(userId);
 }
 
-export async function saveWeeklyKpiReview(
-  userId: string,
-  weekStart: string,
-  fields: { what_worked?: string | null; what_didnt_work?: string | null },
-): Promise<void> {
-  const { error } = await supabase.from('weekly_kpi_reviews').upsert(
-    {
-      user_id: userId,
-      week_start: weekStart,
-      what_worked: fields.what_worked ?? null,
-      what_didnt_work: fields.what_didnt_work ?? null,
-    },
-    { onConflict: 'user_id,week_start' },
-  );
-  if (error) throw error;
-  invalidateGoalSpineCache(userId);
-}
 
 export type WeeklyReflectionFields = {
   proud_of?: string | null;
@@ -633,6 +637,175 @@ export async function saveWeeklyReviewReflection(
   if (error) throw error;
   invalidateGoalSpineCache(userId);
   return data;
+}
+
+// ── Project KPIs (week rollup) ──────────────────────────────────────────────
+
+export type GoalKpiRow = Tables<'goal_kpis'>;
+
+export type ProjectWeekKpi = {
+  kpi: GoalKpiRow;
+  thisWeekValue: number | null;
+};
+
+export async function fetchProjectWeekKpis(
+  userId: string,
+  projectIds: string[],
+  weekStart: string,
+): Promise<Record<string, ProjectWeekKpi[]>> {
+  if (projectIds.length === 0) return {};
+  return withCache(
+    spineKey('projectKpis', userId, weekStart, projectIds.slice().sort().join(',')),
+    async () => {
+      const { data: kpis, error: kpiErr } = await supabase
+        .from('goal_kpis')
+        .select('*')
+        .eq('user_id', userId)
+        .in('project_id', projectIds);
+      if (kpiErr) throw kpiErr;
+
+      const kpiIds = (kpis ?? []).map((k) => k.id);
+      let entries: { kpi_id: string; value: number | null }[] = [];
+      if (kpiIds.length > 0) {
+        const { data, error } = await supabase
+          .from('kpi_entries')
+          .select('kpi_id, value')
+          .eq('user_id', userId)
+          .eq('week_start', weekStart)
+          .in('kpi_id', kpiIds);
+        if (error) throw error;
+        entries = data ?? [];
+      }
+      const valueByKpi = new Map(entries.map((e) => [e.kpi_id, e.value]));
+
+      const byProject: Record<string, ProjectWeekKpi[]> = {};
+      for (const kpi of (kpis ?? []) as GoalKpiRow[]) {
+        if (!kpi.project_id) continue;
+        (byProject[kpi.project_id] ??= []).push({ kpi, thisWeekValue: valueByKpi.get(kpi.id) ?? null });
+      }
+      return byProject;
+    },
+  );
+}
+
+export async function fetchKpisForProject(userId: string, projectId: string): Promise<GoalKpiRow[]> {
+  return withCache(spineKey('projectKpisFor', userId, projectId), async () => {
+    const { data, error } = await supabase
+      .from('goal_kpis')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('project_id', projectId);
+    if (error) throw error;
+    return (data ?? []) as GoalKpiRow[];
+  });
+}
+
+export async function addProjectKpi(
+  userId: string,
+  projectId: string,
+  pillar: string,
+  fields: { name: string; unit: string; target?: number | null },
+): Promise<GoalKpiRow> {
+  const { data, error } = await supabase
+    .from('goal_kpis')
+    .insert({
+      user_id: userId,
+      project_id: projectId,
+      pillar,
+      name: fields.name.trim(),
+      unit: fields.unit.trim(),
+      target: fields.target ?? null,
+      higher_is_better: true,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  invalidateGoalSpineCache(userId);
+  return data;
+}
+
+export async function setProjectKpiTarget(userId: string, kpiId: string, target: number | null): Promise<void> {
+  const { error } = await supabase.from('goal_kpis').update({ target }).eq('id', kpiId);
+  if (error) throw error;
+  invalidateGoalSpineCache(userId);
+}
+
+export type RollupDecision = { kpiId: string; delta: number } | null;
+
+/** Pure decision: does this daily task completion roll up into a project KPI?
+ *  Only when target_value is a plain number and the project has exactly one KPI
+ *  (ambiguous otherwise — user resolves manually in Weekly Review). */
+export function rollupTaskCompletion(
+  targetValue: string | null | undefined,
+  projectKpis: GoalKpiRow[] | null | undefined,
+  sign: 1 | -1,
+): RollupDecision {
+  const trimmed = targetValue?.trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  if (!projectKpis || projectKpis.length !== 1) return null;
+  const amount = parseFloat(trimmed);
+  if (!Number.isFinite(amount) || amount === 0) return null;
+  return { kpiId: projectKpis[0].id, delta: amount * sign };
+}
+
+export async function applyKpiRollup(
+  userId: string,
+  kpiId: string,
+  weekStart: string,
+  delta: number,
+): Promise<void> {
+  const { error } = await supabase.rpc('increment_kpi_entry_for_week', {
+    p_kpi_id: kpiId,
+    p_week_start: weekStart,
+    p_delta: delta,
+  });
+  if (error) throw error;
+  invalidateGoalSpineCache(userId);
+}
+
+/** Single source of truth for "current" KPI value: most recent kpi_entries row
+ *  per kpi_id (this week's if logged, else the latest prior week's). Replaces
+ *  the old goal_kpis.current_value column (dropped — was a disconnected,
+ *  never-synced duplicate of this same data). */
+export async function fetchLatestKpiValues(
+  userId: string,
+  kpiIds: string[],
+): Promise<Map<string, number | null>> {
+  if (kpiIds.length === 0) return new Map();
+  return withCache(
+    spineKey('latestKpiValues', userId, kpiIds.slice().sort().join(',')),
+    async () => {
+      const { data, error } = await supabase
+        .from('kpi_entries')
+        .select('kpi_id, week_start, value')
+        .eq('user_id', userId)
+        .in('kpi_id', kpiIds)
+        .order('week_start', { ascending: false });
+      if (error) throw error;
+      const map = new Map<string, number | null>();
+      for (const row of data ?? []) {
+        if (!map.has(row.kpi_id)) map.set(row.kpi_id, row.value);
+      }
+      return map;
+    },
+  );
+}
+
+/** Manual edit (e.g. typing a new weight in Projects) — overwrites this week's
+ *  value. Distinct verb from applyKpiRollup (additive, daily-task rollup) over
+ *  the same table — not a duplicate, just SET vs INCREMENT on one source. */
+export async function setKpiValueForWeek(
+  userId: string,
+  kpiId: string,
+  weekStart: string,
+  value: number,
+): Promise<void> {
+  const { error } = await supabase.from('kpi_entries').upsert(
+    { user_id: userId, kpi_id: kpiId, week_start: weekStart, value },
+    { onConflict: 'kpi_id,week_start' },
+  );
+  if (error) throw error;
+  invalidateGoalSpineCache(userId);
 }
 
 export async function completeWeeklyReview(

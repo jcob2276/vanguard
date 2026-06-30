@@ -227,6 +227,7 @@ export default function ProjectCard({
                       userId={userId}
                       unit={kpi.unit}
                       target={kpi.target}
+                      currentValue={kpi.current_value}
                     />
                   )}
                   {pct !== null && (

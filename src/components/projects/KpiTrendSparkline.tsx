@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { formatWarsawDate, nowWarsaw, getPastWeekStarts } from '../../lib/date';
 
 interface Snapshot {
   recorded_at: string;
@@ -31,32 +32,102 @@ export function KpiTrendSparkline({
   const [points, setPoints] = useState<Snapshot[]>([]);
   const [logging, setLogging] = useState(false);
 
+  // Helper to determine the current week start (Warsaw)
+  const getWeekStartString = (): string => {
+    const now = nowWarsaw();
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const mon = new Date(now);
+    mon.setDate(now.getDate() + diff);
+    return formatWarsawDate(mon);
+  };
+
+  const currentWeekStart = getWeekStartString();
+
   useEffect(() => {
-    supabase
-      .from('goal_kpi_snapshots')
-      .select('recorded_at, value')
-      .eq('user_id', userId)
-      .eq('kpi_id', kpiId)
-      .order('recorded_at', { ascending: true })
-      .limit(30)
-      .then(({ data }) => setPoints((data as Snapshot[]) ?? []));
-  }, [kpiId, userId]);
+    async function loadKpiHistory() {
+      // 1. Fetch kpi_entries from the last 8 weeks
+      const lastWeeks = getPastWeekStarts(currentWeekStart, 8);
+      const { data: entries, error: entriesErr } = await supabase
+        .from('kpi_entries')
+        .select('week_start, value')
+        .eq('user_id', userId)
+        .eq('kpi_id', kpiId)
+        .in('week_start', lastWeeks)
+        .order('week_start', { ascending: true });
+
+      if (entriesErr) {
+        console.error('[KpiTrendSparkline] failed to fetch entries', entriesErr);
+        return;
+      }
+
+      // 2. Fallback to goal_kpi_snapshots if no weekly entries found
+      if (!entries || entries.length === 0) {
+        const { data: snapshots, error: snapErr } = await supabase
+          .from('goal_kpi_snapshots')
+          .select('recorded_at, value')
+          .eq('user_id', userId)
+          .eq('kpi_id', kpiId)
+          .order('recorded_at', { ascending: true })
+          .limit(30);
+
+        if (snapErr) {
+          // Table might already be dropped or errored; ignore or handle gracefully
+          console.warn('[KpiTrendSparkline] fallback snapshots error', snapErr);
+          setPoints([]);
+        } else if (snapshots) {
+          setPoints(snapshots as Snapshot[]);
+        }
+      } else {
+        // Map weekly entries to Snapshot shape for charting
+        const mappedPoints = entries.map((e) => ({
+          recorded_at: e.week_start,
+          value: Number(e.value ?? 0),
+        }));
+        setPoints(mappedPoints);
+      }
+    }
+
+    void loadKpiHistory();
+  }, [kpiId, userId, currentWeekStart]);
 
   const latestFromHistory = points.length > 0 ? points[points.length - 1].value : null;
-  const displayValue = latestFromHistory ?? currentValue ?? null;
+  const displayValue = latestFromHistory ?? currentValue ?? 0;
 
   const handleIncrement = async () => {
-    if (displayValue == null || !onValueChange) return;
+    if (!onValueChange) return;
     setLogging(true);
     try {
       const next = displayValue + 1;
-      const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: next }).eq('id', kpiId);
-      if (updErr) throw updErr;
-      const { error: snapErr } = await supabase
-        .from('goal_kpi_snapshots')
-        .insert({ kpi_id: kpiId, user_id: userId, value: next });
-      if (snapErr) throw snapErr;
-      setPoints((prev) => [...prev, { recorded_at: new Date().toISOString(), value: next }]);
+      
+      // Atomic increment in kpi_entries for current week_start
+      const { error: incErr } = await supabase.rpc('increment_kpi_entry_for_week', {
+        p_kpi_id: kpiId,
+        p_week_start: currentWeekStart,
+        p_delta: 1,
+      });
+
+      if (incErr) {
+        // Fallback directly to direct upsert into kpi_entries if RPC fails
+        const { error: upsertErr } = await supabase
+          .from('kpi_entries')
+          .upsert(
+            { user_id: userId, kpi_id: kpiId, week_start: currentWeekStart, value: next },
+            { onConflict: 'kpi_id,week_start' }
+          );
+        if (upsertErr) throw upsertErr;
+      }
+
+      // Update local state points
+      setPoints((prev) => {
+        const copy = [...prev];
+        if (copy.length > 0 && copy[copy.length - 1].recorded_at === currentWeekStart) {
+          copy[copy.length - 1].value = next;
+          return copy;
+        }
+        return [...prev, { recorded_at: currentWeekStart, value: next }];
+      });
+
       onValueChange(next);
     } catch (e) {
       console.warn('[KpiTrendSparkline] increment failed', e);
@@ -64,10 +135,6 @@ export function KpiTrendSparkline({
       setLogging(false);
     }
   };
-
-  if (displayValue == null) {
-    return null;
-  }
 
   if (points.length < 2 || compact) {
     return (

@@ -78,3 +78,14 @@ export function formatWarsawDate(date: Date | string | number): string {
     return '';
   }
 }
+
+export function getPastWeekStarts(current: string, n: number): string[] {
+  const result: string[] = [];
+  const d = new Date(current + 'T12:00:00Z');
+  for (let i = 0; i < n; i++) {
+    result.unshift(formatWarsawDate(d));
+    d.setDate(d.getDate() - 7);
+  }
+  return result;
+}
+

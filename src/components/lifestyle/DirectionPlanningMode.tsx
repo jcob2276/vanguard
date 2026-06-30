@@ -1,5 +1,6 @@
 import React from "react";
 import type { Session } from "@supabase/supabase-js";
+import ProjectWeekKpis from "./ProjectWeekKpis";
 
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
 type Phase2Recap = {
@@ -62,6 +63,7 @@ interface Props {
   onComplete: () => void;
   completing: boolean;
   reflectionSaved: boolean;
+  activeProjects: { id: string; name: string }[];
 }
 
 function ScoreButton({
@@ -154,6 +156,8 @@ function StatCard({ value, label }: { value: string; label: string }) {
 }
 
 export default function DirectionPlanningMode({
+  session,
+  weekStart,
   weekFacts,
   phase1, phase1Loading,
   phase2, phase2Loading,
@@ -175,6 +179,7 @@ export default function DirectionPlanningMode({
   saveReflection, savingReflection,
   onComplete, completing,
   reflectionSaved,
+  activeProjects,
 }: Props) {
   const deepeningQuestions = phase2?.deepening_questions ?? [];
   const deepeningComplete =
@@ -227,8 +232,20 @@ export default function DirectionPlanningMode({
       </div>
 
       {/* ── BLOK 2: TYDZIEŃ W LICZBACH ──────────────────────────── */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Divider title="Tydzień w liczbach" />
+        
+        {/* Unified Project KPIs edit block */}
+        {activeProjects.length > 0 && (
+          <div className="border border-border-custom bg-surface/30 rounded-xl p-3.5 space-y-2">
+            <ProjectWeekKpis
+              userId={session.user.id}
+              projects={activeProjects}
+              weekStart={weekStart}
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <StatCard value={String(weekFacts.doneCount)} label="zadań zrobionych" />
           <StatCard

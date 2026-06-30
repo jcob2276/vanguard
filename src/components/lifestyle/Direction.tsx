@@ -133,6 +133,8 @@ export default function Direction({
     return eDay >= format(planWeekStart, 'yyyy-MM-dd') && eDay <= format(planWeekEnd, 'yyyy-MM-dd');
   });
 
+  const [activeProjects, setActiveProjects] = useState<{ id: string; name: string }[]>([]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     const today = todayWarsaw();
@@ -156,6 +158,7 @@ export default function Direction({
         { data: nutritionData },
         { data: nutritionTargetData },
         { data: doneTasksData },
+        { data: projectsData },
       ] = await Promise.all([
         supabase.from('daily_wins').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
         supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
@@ -167,6 +170,7 @@ export default function Direction({
         supabase.from('daily_nutrition').select('calories').eq('user_id', userId).gte('date', currentWeekStart).lte('date', weekEnd),
         supabase.from('nutrition_targets').select('target_kcal').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('todo_items').select('title, status').eq('user_id', userId).in('status', ['done', 'dropped']).gte('updated_at', warsawDayBoundsISO(currentWeekStart).fromISO).lte('updated_at', warsawDayBoundsISO(weekEnd).toISO),
+        supabase.from('projects').select('id, name').eq('user_id', userId).eq('status', 'active'),
       ]);
 
       setHistory(historyData || []);
@@ -177,6 +181,7 @@ export default function Direction({
       setWeekNutrition(nutritionData || []);
       setNutritionTarget((nutritionTargetData as any)?.target_kcal ?? null);
       setWeekDoneTasks((doneTasksData || []).map((t: any) => ({ title: t.title, status: t.status })));
+      setActiveProjects((projectsData || []).map((p: any) => ({ id: p.id, name: p.name })));
 
       if (reviewData) {
         setCurrentReview(reviewData);
@@ -462,6 +467,7 @@ export default function Direction({
             onComplete={completeReview}
             completing={completing}
             reflectionSaved={reflectionSaved}
+            activeProjects={activeProjects}
           />
         ) : (
           <div className="space-y-6">

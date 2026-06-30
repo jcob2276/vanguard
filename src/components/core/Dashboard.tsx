@@ -45,7 +45,6 @@ const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
 
-const WeeklyReview = lazy(() => import('../lifestyle/WeeklyReview'));
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
@@ -211,10 +210,6 @@ export default function Dashboard({ session }: { session: Session }) {
       routerNavigate('/dashboard');
       return;
     }
-    if (target === 'weekly-review') {
-      setView('weekly-review');
-      return;
-    }
     navigateTo(target);
   }, [view, routerNavigate, navigateTo]);
 
@@ -293,19 +288,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
 
 
-  if (view === 'weekly-review') {
-    return (
-      <Suspense fallback={<ViewFallback />}>
-        <WeeklyReview
-          session={session}
-          onBack={() => {
-            refreshNudge();
-            setView(normalizeView(localStorage.getItem('vanguard_previous_view')) || 'dzis');
-          }}
-        />
-      </Suspense>
-    );
-  }
+
 
   if (showSaunaLogger) {
     return (

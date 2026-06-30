@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls use **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 33 function folders (+ `_shared/`) · Last registry pass: **2026-06-14**
+**Inventory:** 40 function folders (+ `_shared/`) · Last registry pass: **2026-06-30**
 
 LOC is a navigation hint, not an invariant. Regenerate before relying on it for refactor sizing.
 
@@ -63,7 +63,7 @@ Frontend: Week Hub + Action Center resolve pending system_proposals (Istotne / O
 | `vanguard-analyst` | **active** | pg_cron `vanguard-daily-analyst` `0 3 * * *` UTC; RPC `sync_friction_proposals` at start | **false** | `vanguard_stream`, `friction_events`, `vanguard_curiosity_queue`, `system_proposals` (via RPC) | 390 | 2026-06-29 |
 | `vanguard-briefing` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-weekly-synthesis` | **active** | pg_cron Sunday ~17:00 UTC (confirm `cron.job`) | **false** | `friction_events`, `vanguard_daily_aggregates`, `vanguard_curiosity_queue`, `vanguard_stream` | 223 | 2026-06-11 |
-| `vanguard-weekly-brief` | **active** | Frontend Weekly Review trigger | true | `weekly_kpi_reviews`, `goal_kpis`, `kpi_entries`, `projects`, `daily_wins` | 191 | 2026-06-20 |
+| `vanguard-weekly-brief` | **deprecated** | Stubbed 410 — frontend trigger removed 2026-06-30; was WeeklyReview AI summary | true | none | — | 2026-06-30 |
 | `vanguard-friction-qa` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 
 > **Noon note:** the useful 12:00 Telegram flow is `vanguard-eval-interview` ("Wywiad"), not the legacy `vanguard-midday-check`.
@@ -84,9 +84,10 @@ Frontend: Week Hub + Action Center resolve pending system_proposals (Istotne / O
 | `parse-workout-nl` | **active** | Frontend `WorkoutQuickCapture` NL parser | true | `exercise_logs` (read history) | ~75 | 2026-06-26 |
 | `lookup-food` | **active** | Frontend `FoodEntryModal` food/barcode search | true | none (external food DB lookup) | 217 | 2026-06-26 |
 | `vanguard-detect-patterns` | **active** | Frontend `PatternsView` on-demand | true | `friction_events`, `vanguard_stream` (read) | 453 | 2026-06-26 |
-| `vanguard-keep-triage` | **active** | Frontend `WeeklyReview` | true | `vanguard_notes`, `vanguard_stream` (read/write) | 105 | 2026-06-26 |
-| `vanguard-kpi-suggest` | **active** | Frontend `WeeklyReview` | true | `life_goals`, `projects`, `goal_kpis` (read) | 85 | 2026-06-26 |
+| `vanguard-keep-triage` | **active** | Frontend weekly ritual (Direction tab) | true | `vanguard_notes`, `vanguard_stream` (read/write) | 105 | 2026-06-26 |
+| `vanguard-kpi-suggest` | **active** | Frontend weekly ritual (Direction tab) | true | `life_goals`, `projects`, `goal_kpis` (read) | 85 | 2026-06-26 |
 | `vanguard-week-recap` | **active** | Frontend `Direction` weekly recap | true | `daily_wins`, `friction_events`, `vanguard_stream` (read) | 430 | 2026-06-26 |
+| `vanguard-librarian` | **active** | Manual / cron — resolves `llm_estimate` food entries to `food_library`, notifies via Telegram | **false** | `daily_food_entries`, `food_library`, `food_corrections` | 137 | 2026-06-30 |
 
 
 ## `vanguard-telegram` Handler Map

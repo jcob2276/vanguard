@@ -14,7 +14,7 @@ import {
 
 } from '../lib/growthWeek';
 
-import { fetchGoalSpine } from '../lib/goalSpine';
+import { fetchGoalSpine, fetchLatestKpiValues } from '../lib/goalSpine';
 
 import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 
@@ -188,7 +188,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
 
 
-      const [spine, checkpoints, pinsRes, projectsData, kpisRes, dailyWinsRes, focusRes, skillsRes, linksRes, todosRes, sectionsRes, doneCpsRes, dueCpsRes] =
+      const [spine, checkpoints, pinsRes, projectsData, kpisRes, dailyWinsRes, focusRes, skillsRes, linksRes, todosRes, sectionsRes, doneNewCpsRes, doneLegacyCpsRes, dueCpsRes] =
 
         await Promise.all([
 
@@ -210,7 +210,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
         fetchActiveProjects(userId),
 
-        supabase.from('goal_kpis').select('id, project_id, name, current_value, target').eq('user_id', userId),
+        supabase.from('goal_kpis').select('id, project_id, name, target').eq('user_id', userId),
 
         supabase
 
@@ -274,11 +274,13 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
         supabase
 
-          .from('project_checkpoints')
+          .from('todo_items')
 
           .select('id', { count: 'exact', head: true })
 
           .eq('user_id', userId)
+
+          .eq('is_milestone', true)
 
           .eq('status', 'done')
 
@@ -291,6 +293,20 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
           .select('id', { count: 'exact', head: true })
 
           .eq('user_id', userId)
+
+          .eq('status', 'done')
+
+          .gte('completed_at', weekFromISO),
+
+        supabase
+
+          .from('todo_items')
+
+          .select('id', { count: 'exact', head: true })
+
+          .eq('user_id', userId)
+
+          .eq('is_milestone', true)
 
           .in('status', ['pending', 'open'])
 
@@ -367,6 +383,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
 
       const allKpis = kpisRes.data ?? [];
+      const latestKpiValues = await fetchLatestKpiValues(userId, allKpis.map((k) => k.id));
 
       const activeProjects: DirectionProjectSummary[] = projectsData.map((p) => ({
 
@@ -388,7 +405,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
             name: k.name ?? 'KPI',
 
-            current: k.current_value ?? null,
+            current: latestKpiValues.get(k.id) ?? null,
 
             target: k.target ?? null,
 
@@ -488,7 +505,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
         focus,
 
-        weekCheckpointsDone: doneCpsRes.count ?? 0,
+        weekCheckpointsDone: (doneNewCpsRes.count ?? 0) + (doneLegacyCpsRes.count ?? 0),
 
         weekCheckpointsDue: dueCpsRes.count ?? 0,
 

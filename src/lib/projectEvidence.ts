@@ -16,13 +16,22 @@ export async function fetchProjectEvidence(
   const since = getDaysAgoWarsaw(days);
   const items: ProjectEvidenceItem[] = [];
 
-  const [winsRes, cpsRes, kpisRes] = await Promise.all([
+  const [winsRes, newCpsRes, legacyCpsRes, kpisRes] = await Promise.all([
     supabase
       .from('daily_wins')
       .select('*')
       .eq('user_id', userId)
       .gte('date', since)
       .order('date', { ascending: false }),
+    supabase
+      .from('todo_items')
+      .select('title, completed_at, status')
+      .eq('user_id', userId)
+      .eq('project_id', projectId)
+      .eq('is_milestone', true)
+      .eq('status', 'done')
+      .gte('completed_at', `${since}T00:00:00`)
+      .order('completed_at', { ascending: false }),
     supabase
       .from('project_checkpoints')
       .select('title, completed_at, status')
@@ -34,18 +43,38 @@ export async function fetchProjectEvidence(
     supabase.from('goal_kpis').select('id, name').eq('user_id', userId).eq('project_id', projectId),
   ]);
 
+  const cps = [...(newCpsRes.data ?? []), ...(legacyCpsRes.data ?? [])];
+
   const kpiIds = (kpisRes.data ?? []).map((k) => k.id);
   let snapshots: { recorded_at: string; value: number; kpi_id: string }[] = [];
   if (kpiIds.length > 0) {
-    const { data } = await supabase
-      .from('goal_kpi_snapshots')
-      .select('recorded_at, value, kpi_id')
+    // 1. Load from kpi_entries
+    const { data: entries, error: entriesErr } = await supabase
+      .from('kpi_entries')
+      .select('week_start, value, kpi_id')
       .eq('user_id', userId)
       .in('kpi_id', kpiIds)
-      .gte('recorded_at', `${since}T00:00:00`)
-      .order('recorded_at', { ascending: false })
-      .limit(20);
-    snapshots = (data as typeof snapshots) ?? [];
+      .gte('week_start', since)
+      .order('week_start', { ascending: false });
+
+    if (!entriesErr && entries && entries.length > 0) {
+      snapshots = entries.map((e) => ({
+        recorded_at: e.week_start,
+        value: Number(e.value ?? 0),
+        kpi_id: e.kpi_id,
+      }));
+    } else {
+      // 2. Fallback to goal_kpi_snapshots
+      const { data } = await supabase
+        .from('goal_kpi_snapshots')
+        .select('recorded_at, value, kpi_id')
+        .eq('user_id', userId)
+        .in('kpi_id', kpiIds)
+        .gte('recorded_at', `${since}T00:00:00`)
+        .order('recorded_at', { ascending: false })
+        .limit(20);
+      snapshots = (data as typeof snapshots) ?? [];
+    }
   }
 
   const kpiNameById = new Map((kpisRes.data ?? []).map((k) => [k.id, k.name ?? 'KPI']));
@@ -67,7 +96,7 @@ export async function fetchProjectEvidence(
     }
   }
 
-  for (const cp of cpsRes.data ?? []) {
+  for (const cp of cps) {
     if (!cp.completed_at) continue;
     items.push({
       kind: 'checkpoint',

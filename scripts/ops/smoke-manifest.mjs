@@ -49,7 +49,7 @@ export const SMOKE_TARGETS = [
   { name: "compute-correlations", post: "skip", sideEffects: "Read-only correlation scan; requires authenticated user scope" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
   { name: "vanguard-nutrition-coach", post: "skip", sideEffects: "Calls DeepSeek + writes nutrition target — OPTIONS only" },
-  { name: "vanguard-weekly-brief", post: "skip", sideEffects: "Calls DeepSeek + writes weekly KPI review brief" },
+  { name: "vanguard-librarian", post: "skip", sideEffects: "Calls DeepSeek + writes food_library entries — OPTIONS only" },
   { name: "vanguard-goal-create", post: "skip", sideEffects: "Calls DeepSeek for Goal AI templates" },
   { name: "vanguard-push-reminder", post: "skip", sideEffects: "Sends web push notifications for reminders" },
 ];

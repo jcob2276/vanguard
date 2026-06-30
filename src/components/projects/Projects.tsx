@@ -23,9 +23,10 @@ import {
 } from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import { supabase } from '../../lib/supabase';
+import { nowWarsaw, formatWarsawDate } from '../../lib/date';
 import { fetchLongTermGoals } from '../../lib/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
 import DataStateNotice from '../core/DataStateNotice';
 
 // Subcomponents and utilities
@@ -94,26 +95,46 @@ export default function Projects({
 
   const fetchAll = useCallback(async () => {
     try {
-      const [p, s, i, c, dreamsRes, longTerm, kpiRes, skillsRes] = await Promise.all([
+      const [p, s, i, c, dreamsRes, longTerm, skillsRes] = await Promise.all([
         listProjects(userId),
         listTodoSections(userId),
         listTodoItems(userId),
         listProjectCheckpoints(userId),
         supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
         fetchLongTermGoals(userId),
-        supabase.from('goal_kpis').select('*').eq('user_id', userId).order('sort_order'),
         supabase.from('learning_skills').select('id, label').eq('user_id', userId).eq('active', true).is('parent_id', null).order('sort_order'),
       ]);
       if (dreamsRes.error) throw new Error(dreamsRes.error.message);
-      if (kpiRes.error) throw new Error(kpiRes.error.message);
       if (skillsRes.error) throw new Error(skillsRes.error.message);
+      
+      // Resolve KPIs with their current values mapped inside longTerm goals (from kpi_entries)
+      const kpiMap = new Map<string, number | null>();
+      for (const proj of longTerm.projects) {
+        for (const k of proj.kpis) {
+          kpiMap.set(k.id, k.current_value);
+        }
+      }
+
+      // Fetch base goal_kpis and overlay the resolved current values
+      const { data: rawKpis, error: kpiErr } = await supabase
+        .from('goal_kpis')
+        .select('*')
+        .eq('user_id', userId)
+        .order('sort_order');
+      if (kpiErr) throw new Error(kpiErr.message);
+
+      const kpisWithCurrent = (rawKpis ?? []).map((k) => ({
+        ...k,
+        current_value: kpiMap.get(k.id) ?? null,
+      }));
+
       setProjects(p ?? []);
       setSections(s ?? []);
       setItems(i ?? []);
       setCheckpoints(c ?? []);
       setDreams(dreamsRes.data ?? []);
       setLifeGoals(longTerm.declarations ?? null);
-      setKpis(kpiRes.data ?? []);
+      setKpis(kpisWithCurrent);
       setParentSkills((skillsRes.data ?? []).map((sk) => ({ id: sk.id, label: sk.label })));
     } catch (err: any) { setError(err.message); }
   }, [userId]);
@@ -331,12 +352,24 @@ export default function Projects({
     const num = parseFloat(raw);
     if (isNaN(num)) { setEditingKpiId(null); return; }
     savingKpiRef.current = kpiId;
+
+    // Calculate current week_start (Warsaw time)
+    const now = nowWarsaw();
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const mon = new Date(now);
+    mon.setDate(now.getDate() + diff);
+    const weekStart = formatWarsawDate(mon);
+
     run(async () => {
       try {
-        const { error: updErr } = await supabase.from('goal_kpis').update({ current_value: num } as any).eq('id', kpiId);
-        if (updErr) throw new Error(updErr.message);
-        const { error: snapErr } = await supabase.from('goal_kpi_snapshots').insert({ kpi_id: kpiId, user_id: userId, value: num });
-        if (snapErr) throw new Error(snapErr.message);
+        const { error: upsertErr } = await supabase
+          .from('kpi_entries')
+          .upsert(
+            { user_id: userId, kpi_id: kpiId, week_start: weekStart, value: num },
+            { onConflict: 'kpi_id,week_start' }
+          );
+        if (upsertErr) throw new Error(upsertErr.message);
         setEditingKpiId(null);
       } finally {
         savingKpiRef.current = null;
@@ -501,10 +534,10 @@ export default function Projects({
         <div className="flex items-center gap-2">
           {onNavigateTo && !(reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
             <button
-              onClick={() => onNavigateTo('weekly-review')}
+              onClick={() => onNavigateTo('tydzien')}
               className="rounded-full border border-border-custom bg-surface/50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
             >
-              Weekly Review
+              Podsumowanie
             </button>
           )}
           <button

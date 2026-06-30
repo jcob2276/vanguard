@@ -13,6 +13,7 @@ import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import { markCheckpointDone } from '../../lib/checkpoints';
 import { buildDailyPlanProposal, type DirectionContextData } from '../../lib/dailyPlanProposal';
+import { applyKpiRollup, currentWeekStart, fetchKpisForProject, rollupTaskCompletion } from '../../lib/goalSpine';
 import LifeGoalsPanel from './LifeGoalsPanel';
 import PlanningCheckpointsStrip from '../shared/PlanningCheckpointsStrip';
 
@@ -51,7 +52,16 @@ interface TaskSlot {
   checkpointId: string | null;
   projectId: string | null;
   pinId: string | null;
+  targetValue?: string; // e.g. "20", "3"
+  timeSlot?: 'morning' | 'noon' | 'afternoon' | 'evening';
 }
+
+const TIME_SLOT_LABELS = {
+  morning: '🌅 Rano',
+  noon: '☀️ Południe',
+  afternoon: '🌆 Popołudnie',
+  evening: '🌙 Wieczór',
+};
 
 interface PowerListDraft {
   tasks: TaskSlot[];
@@ -59,7 +69,7 @@ interface PowerListDraft {
   savedAt: number;
 }
 
-const EMPTY_SLOT: TaskSlot = { task: '', todoId: null, checkpointId: null, projectId: null, pinId: null };
+const EMPTY_SLOT: TaskSlot = { task: '', todoId: null, checkpointId: null, projectId: null, pinId: null, targetValue: '', timeSlot: 'morning' };
 
 interface TodoPickerProps {
   items: any[];
@@ -170,6 +180,8 @@ export default function PowerList({
         checkpointId: payload.checkpointId,
         projectId: payload.projectId,
         pinId: null,
+        targetValue: next[idx].targetValue ?? '',
+        timeSlot: next[idx].timeSlot ?? 'morning',
       };
       return next;
     });
@@ -200,12 +212,14 @@ export default function PowerList({
     }
     const proposal = buildDailyPlanProposal(ctx);
     setNewTaskForm(
-      proposal.map((p) => ({
+      proposal.map((p, i) => ({
         task: p.task,
         todoId: p.todoId,
         checkpointId: p.checkpointId,
         projectId: p.projectId,
         pinId: p.pinId,
+        targetValue: newTaskForm[i]?.targetValue ?? '',
+        timeSlot: newTaskForm[i]?.timeSlot ?? 'morning',
       })),
     );
     haptics.success();
@@ -386,6 +400,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         n[i].checkpointId = null;
         n[i].projectId = null;
         n[i].pinId = null;
+        n[i].targetValue = '';
       }
       return n;
     });
@@ -453,6 +468,22 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       } else {
         setCheckpointPrompt((p) => (p?.index === index ? null : p));
       }
+
+      const projectId = todayWin[`task_${index + 1}_project_id`] as string | null;
+      const targetValue = todayWin[`task_${index + 1}_target_value`] as string | null;
+      if (projectId && targetValue) {
+        (async () => {
+          try {
+            const kpis = await fetchKpisForProject(userId, projectId);
+            const decision = rollupTaskCompletion(targetValue, kpis, newValue ? 1 : -1);
+            if (decision) {
+              await applyKpiRollup(userId, decision.kpiId, currentWeekStart(), decision.delta);
+            }
+          } catch (e) {
+            console.error('[PowerList] KPI rollup failed', e);
+          }
+        })();
+      }
     }
 
     const linkedTodoId = todayWin[todoIdField];
@@ -490,18 +521,23 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         task_1: newTaskForm[0].task, category_1: 'cialo',
         task_1_todo_id: newTaskForm[0].todoId, task_1_checkpoint_id: newTaskForm[0].checkpointId,
         task_1_project_id: newTaskForm[0].projectId, task_1_pin_id: newTaskForm[0].pinId,
+        task_1_target_value: newTaskForm[0].targetValue?.trim() || null, task_1_time_slot: newTaskForm[0].timeSlot ?? null,
         task_2: newTaskForm[1].task, category_2: 'duch',
         task_2_todo_id: newTaskForm[1].todoId, task_2_checkpoint_id: newTaskForm[1].checkpointId,
         task_2_project_id: newTaskForm[1].projectId, task_2_pin_id: newTaskForm[1].pinId,
+        task_2_target_value: newTaskForm[1].targetValue?.trim() || null, task_2_time_slot: newTaskForm[1].timeSlot ?? null,
         task_3: newTaskForm[2].task, category_3: 'konto',
         task_3_todo_id: newTaskForm[2].todoId, task_3_checkpoint_id: newTaskForm[2].checkpointId,
         task_3_project_id: newTaskForm[2].projectId, task_3_pin_id: newTaskForm[2].pinId,
+        task_3_target_value: newTaskForm[2].targetValue?.trim() || null, task_3_time_slot: newTaskForm[2].timeSlot ?? null,
         task_4: newTaskForm[3].task, category_4: 'general',
         task_4_todo_id: newTaskForm[3].todoId, task_4_checkpoint_id: newTaskForm[3].checkpointId,
         task_4_project_id: newTaskForm[3].projectId, task_4_pin_id: newTaskForm[3].pinId,
+        task_4_target_value: newTaskForm[3].targetValue?.trim() || null, task_4_time_slot: newTaskForm[3].timeSlot ?? null,
         task_5: newTaskForm[4].task, category_5: 'general',
         task_5_todo_id: newTaskForm[4].todoId, task_5_checkpoint_id: newTaskForm[4].checkpointId,
         task_5_project_id: newTaskForm[4].projectId, task_5_pin_id: newTaskForm[4].pinId,
+        task_5_target_value: newTaskForm[4].targetValue?.trim() || null, task_5_time_slot: newTaskForm[4].timeSlot ?? null,
         result: null,
       };
 
@@ -686,6 +722,28 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                       onClose={() => setPickerSlot(-1)}
                     />
                   )}
+
+                  {slot.task.trim() && (
+                    <div className="mt-1 flex items-center gap-1.5 px-1">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="ile?"
+                        value={slot.targetValue ?? ''}
+                        onChange={(e) => updateSlot(i, { targetValue: e.target.value })}
+                        className="w-14 shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/40"
+                      />
+                      <select
+                        value={slot.timeSlot ?? 'morning'}
+                        onChange={(e) => updateSlot(i, { timeSlot: e.target.value as TaskSlot['timeSlot'] })}
+                        className="shrink-0 rounded-lg border border-border-custom bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                      >
+                        {(Object.keys(TIME_SLOT_LABELS) as Array<keyof typeof TIME_SLOT_LABELS>).map((key) => (
+                          <option key={key} value={key}>{TIME_SLOT_LABELS[key]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -735,6 +793,9 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
 
             const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
             const SphereIcon = sphere?.icon;
+            const targetValue = todayWin[`task_${i + 1}_target_value`] as string | null;
+            const targetValueLabel = targetValue ? (/^\d+$/.test(targetValue.trim()) ? `${targetValue.trim()}×` : targetValue.trim()) : null;
+            const timeSlot = todayWin[`task_${i + 1}_time_slot`] as keyof typeof TIME_SLOT_LABELS | null;
 
             return (
               <button
@@ -766,6 +827,11 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
                       <p className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
                         {task}
                       </p>
+                      {(targetValueLabel || timeSlot) && (
+                        <span className="flex shrink-0 items-center gap-0.5 rounded border border-border-custom bg-surface-solid px-1 py-0.5 text-[7px] font-black uppercase tracking-widest text-text-muted">
+                          {targetValueLabel && `${targetValueLabel} `}{timeSlot && TIME_SLOT_LABELS[timeSlot]}
+                        </span>
+                      )}
                     </div>
                     {done && completedAt && (
                       <p className="mt-0.5 text-[9px] font-semibold text-dayC/80">
