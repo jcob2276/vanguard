@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical } from 'lucide-react';
 import {
   GOAL_ICON,
-  GOAL_COLOR,
   PRIORITY,
   PRIORITY_ORDER,
   splitEmoji,

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Plus, Settings2, X } from 'lucide-react';
 import { PRIORITY } from './todoUtils';
-import { formatWarsawDate } from '../../lib/date';
 
 interface TodoFormState {
   title: string;

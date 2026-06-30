@@ -16,7 +16,7 @@ export function useUpcomingCheckpoints(userId: string | undefined, horizonDays =
 
   const reload = useCallback(async () => {
     await ctx.reload();
-  }, [ctx.reload]);
+  }, [ctx]);
 
   return { items, overdue, upcoming, loading: ctx.loading, reload };
 }

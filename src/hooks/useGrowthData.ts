@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-  getWeekStartWarsaw,
   partitionSkillTree,
   type LearningSkill,
   type LearningSkillSnapshot,

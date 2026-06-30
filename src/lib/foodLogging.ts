@@ -98,7 +98,7 @@ export async function parseFoodNL(text: string, userId: string, accessToken: str
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     if (/timed out|timeout|abort/i.test(msg)) {
-      throw new Error('Parsowanie trwało za długo — spróbuj ponownie za chwilę.')
+      throw new Error('Parsowanie trwało za długo — spróbuj ponownie za chwilę.', { cause: e })
     }
     throw e
   }
