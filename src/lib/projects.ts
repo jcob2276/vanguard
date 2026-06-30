@@ -167,7 +167,7 @@ export async function updateProjectCheckpoint(
     .update({
       title: patch.title !== undefined ? patch.title.trim() : undefined,
       due_date: patch.due_date,
-      status: patch.status === 'done' ? 'done' : patch.status === 'pending' ? 'pending' : undefined,
+      status: patch.status === 'done' ? 'done' : (patch.status === 'pending' || patch.status === 'open') ? 'open' : undefined,
       completed_at: patch.completed_at,
       sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
     })

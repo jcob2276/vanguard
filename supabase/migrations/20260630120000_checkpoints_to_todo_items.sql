@@ -25,7 +25,7 @@ insert into public.todo_items (
 select
   title,
   due_date,
-  'pending' as status,
+  'open' as status,
   project_id,
   user_id,
   true as is_milestone,
