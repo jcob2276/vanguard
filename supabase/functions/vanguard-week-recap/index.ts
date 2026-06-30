@@ -49,6 +49,7 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
   const [
     winsRes, ouraRes, nutrRes, targetRes, runsRes, habitLogsRes,
     staleHighRes, linksRes, thisWeekStreamRes, sectionsRes, doneTasksRes, projectsRes,
+    kpisRes, kpiEntriesRes, reconciliationsRes,
   ] = await Promise.all([
     db.from("daily_wins")
       .select("date, task_1, task_2, task_3, task_4, task_5, category_1, category_2, category_3, category_4, category_5, done_1, done_2, done_3, done_4, done_5, day_note")
@@ -81,6 +82,11 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
       .gte("updated_at", weekStart + "T00:00:00")
       .lte("updated_at", weekEnd + "T23:59:59"),
     db.from("projects").select("id, name, goal, status").eq("user_id", userId).eq("status", "active"),
+    db.from("goal_kpis").select("id, name, unit, target, project_id, higher_is_better").eq("user_id", userId),
+    db.from("kpi_entries").select("kpi_id, value").eq("user_id", userId).eq("week_start", weekStart),
+    db.from("daily_reconciliations")
+      .select("date, day_score, mode, morning_action, midday_status, midday_blocker, planning_summary, user_response")
+      .eq("user_id", userId).gte("date", weekStart).lte("date", weekEnd).order("date"),
   ]);
 
   // PowerList
@@ -147,6 +153,35 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
 
   const activeProjects = (projectsRes.data ?? []) as any[];
 
+  // Map KPIs
+  const projectMap: Record<string, string> = {};
+  for (const p of activeProjects) projectMap[p.id] = p.name;
+
+  const kpis = kpisRes.data ?? [];
+  const kpiEntries = kpiEntriesRes.data ?? [];
+  const valueByKpi = new Map(kpiEntries.map((e: any) => [e.kpi_id, e.value]));
+  const kpiValuesList = kpis.map((k: any) => ({
+    name: k.name,
+    unit: k.unit,
+    value: valueByKpi.get(k.id) ?? null,
+    target: k.target,
+    projectName: k.project_id ? (projectMap[k.project_id] ?? null) : null,
+    higherIsBetter: k.higher_is_better,
+  }));
+
+  // Map Reconciliations
+  const reconciliations = reconciliationsRes.data ?? [];
+  const reconciliationList = reconciliations.map((r: any) => ({
+    date: r.date,
+    score: r.day_score,
+    mode: r.mode,
+    morningAction: r.morning_action,
+    middayStatus: r.midday_status,
+    middayBlocker: r.midday_blocker,
+    summary: r.planning_summary,
+    userResponse: r.user_response,
+  }));
+
   return {
     weekStart, weekEnd, pillarTally, dayLines,
     sleepHrs, bedtime, readiness,
@@ -156,6 +191,7 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
     habitLines, staleHighLines,
     unreadLinksCount: (linksRes.data ?? []).length,
     thisWeekVoice, thisWeekShortMsgs, doneTasks, activeProjects,
+    kpiValuesList, reconciliationList,
   };
 }
 
@@ -193,6 +229,34 @@ function factsToPrompt(f: Awaited<ReturnType<typeof gatherWeekFacts>>): string {
     ? f.activeProjects.map((p) => `- ${p.name}${p.goal ? ` (cel: ${p.goal})` : ""}`).join("\n")
     : "(brak)";
 
+  const kpisBlock = f.kpiValuesList.length
+    ? f.kpiValuesList.map((k: any) => {
+        const valStr = k.value !== null ? String(k.value) : "niezalogowane";
+        const tgtStr = k.target !== null ? ` / cel: ${k.target}` : "";
+        const unitStr = k.unit ? ` ${k.unit}` : "";
+        const projStr = k.projectName ? ` [Projekt: ${k.projectName}]` : "";
+        return `- ${k.name}: ${valStr}${tgtStr}${unitStr}${projStr}`;
+      }).join("\n")
+    : "(brak)";
+
+  const reconBlock = f.reconciliationList.length
+    ? f.reconciliationList.map((r: any) => {
+        const parts = [
+          `- Samopoczucie/Ocena: ${r.score != null ? `${r.score}/10` : "brak oceny"} [Tryb: ${r.mode ?? "brak"}]`,
+        ];
+        if (r.morningAction) parts.push(`  Intencja poranna: ${r.morningAction}`);
+        if (r.middayStatus || r.middayBlocker) {
+          parts.push(`  Midday Check-in: Status=${r.middayStatus ?? "brak"}${r.middayBlocker ? `, Blocker=${r.middayBlocker}` : ""}`);
+        }
+        if (r.summary) {
+          const textSummary = typeof r.summary === "object" ? JSON.stringify(r.summary) : String(r.summary);
+          parts.push(`  Podsumowanie wieczorne AI: ${textSummary}`);
+        }
+        if (r.userResponse) parts.push(`  Tekst wieczorny Jakuba (raw): ${r.userResponse}`);
+        return `--- ${r.date} ---\n${parts.join("\n")}`;
+      }).join("\n\n")
+    : "(brak)";
+
   return `Tydzień: ${f.weekStart} – ${f.weekEnd}
 
 POWERLIST per dzień:
@@ -219,6 +283,12 @@ ${f.staleHighLines.join("\n") || "(brak)"}
 
 AKTYWNE PROJEKTY:
 ${projectsBlock}
+
+KPI PROJEKTÓW / CELÓW (zalogowane wartości tygodniowe):
+${kpisBlock}
+
+PODSUMOWANIA DZIENNE (Tryb dnia + Refleksja wieczorna):
+${reconBlock}
 
 POCKET: ${f.unreadLinksCount} niezaczytanych linków
 

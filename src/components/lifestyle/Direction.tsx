@@ -397,16 +397,24 @@ export default function Direction({
   async function completeReview() {
     if (completing) return;
     setCompleting(true);
-    const data = await completeWeeklyReview(session.user.id, currentWeekStart, {
-      deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
-      week_intention: weekIntention || null,
-      week_commitment: weekCommitment || null,
-      week_goal_cialo: weekGoalCialo || null,
-      week_goal_duch: weekGoalDuch || null,
-      week_goal_konto: weekGoalKonto || null,
-    });
-    if (data) setCurrentReview(data);
-    setCompleting(false);
+    try {
+      const data = await completeWeeklyReview(session.user.id, currentWeekStart, {
+        deepening_answers: Object.keys(deepeningAnswers).length > 0 ? deepeningAnswers : null,
+        week_intention: weekIntention || null,
+        week_commitment: weekCommitment || null,
+        week_goal_cialo: weekGoalCialo || null,
+        week_goal_duch: weekGoalDuch || null,
+        week_goal_konto: weekGoalKonto || null,
+      });
+      if (data) {
+        setCurrentReview(data);
+        await fetchData();
+      }
+    } catch (e) {
+      console.error('completeReview failed:', e);
+    } finally {
+      setCompleting(false);
+    }
   }
 
   if (loading) {
