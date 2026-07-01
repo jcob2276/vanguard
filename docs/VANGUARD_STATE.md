@@ -302,6 +302,7 @@ Note: `project_checkpoints` zostało usunięte — milestone'y to teraz `todo_it
 | `user_fundament` | Biografia tożsamości (MBTI, filozofia, miasto) |
 | `identity_photos` | Zdjęcia progresji |
 | `dreams` | Sny |
+| `vision_board_items` | Vision board (aktywny w DesktopDashboard) |
 
 ### Inne
 
@@ -437,7 +438,6 @@ Wyjście: `daily_strain`
 - `project_checkpoints` — usunięte 2026-06-30 (milestone'y to `todo_items.is_milestone`)
 - `goals` — usunięte 2026-06-30
 - `focus_sessions` — usunięte 2026-06-30
-- `vision_board_items` — zero odwołań
 - `vanguard_pattern_feedback` — zero odwołań
 - `vanguard_intentions` — usunięte 2026-06-11
 - `vanguard_correlations`, `vanguard_temporal_links` — usunięte 2026-06-11
