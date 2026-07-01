@@ -1,34 +1,79 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useFaceDistance } from '../../hooks/useFaceDistance';
 import { supabase } from '../../lib/supabase';
-import {
-  ScanFace, Check, ArrowLeft, Ruler, ZoomIn, ZoomOut,
-  AlertCircle, Eye, Camera, Lock, RotateCcw
-} from 'lucide-react';
+import { Check, ArrowLeft, Ruler, ZoomIn, ZoomOut, AlertCircle, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
 
-const SNELLEN_ROWS = ['E', 'F P', 'T O Z', 'L P E D', 'P E C F D', 'E D F C Z P'];
+// True Snellen proportions: each row ~1.26x smaller than the one above
+const SNELLEN_ROWS = [
+  { letters: 'E',           size: 4.8 },
+  { letters: 'F P',         size: 3.6 },
+  { letters: 'T O Z',       size: 2.7 },
+  { letters: 'L P E D',     size: 2.0 },
+  { letters: 'P E C F D',   size: 1.5 },
+  { letters: 'E D F C Z P', size: 1.1 },
+];
 
-type MeasureState = 'live' | 'frozen' | 'saved';
 type Eye = 'left' | 'right';
+type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
+
+// SVG stability ring
+function StabilityRing({ progress, size = 64 }: { progress: number; size?: number }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * progress;
+  const color = progress === 1 ? '#22c55e' : progress > 0.5 ? '#f59e0b' : '#3b82f6';
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={4} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={4}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 0.1s linear, stroke 0.3s' }}
+      />
+    </svg>
+  );
+}
 
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { distance, isReady, calibrationFactor, calibrate, resetCalibration } = useFaceDistance(videoRef);
+  const { distance, stability, isReady, calibrationFactor, calibrate, resetCalibration, resetStability } = useFaceDistance(videoRef);
 
+  const [phase, setPhase] = useState<Phase>('calibrate');
   const [selectedEye, setSelectedEye] = useState<Eye>('left');
-  const [measureState, setMeasureState] = useState<MeasureState>('live');
-  const [frozenDistance, setFrozenDistance] = useState<number | null>(null);
+  const [capturedDistance, setCapturedDistance] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [textSize, setTextSize] = useState(3);
+  const [snellenRows, setSnellenRows] = useState(4); // how many rows to show
 
   const faceDetected = distance !== null;
-  const activeDistance = measureState === 'frozen' ? frozenDistance : distance;
-  const activeDiopters = activeDistance ? (-100 / activeDistance) : null;
+  const capturedDiopters = capturedDistance ? (-100 / capturedDistance) : null;
+
+  // Skip calibrate phase if already calibrated
+  useEffect(() => {
+    if (calibrationFactor && phase === 'calibrate') {
+      setPhase('select-eye');
+    }
+  }, [calibrationFactor]);
+
+  // Auto-capture when stability reaches 1
+  useEffect(() => {
+    if (phase === 'measure' && stability >= 1 && distance !== null) {
+      // Haptic feedback
+      if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
+      setCapturedDistance(distance);
+      setPhase('captured');
+      resetStability();
+    }
+  }, [stability, phase, distance]);
 
   // Camera setup
   useEffect(() => {
@@ -45,42 +90,40 @@ export default function EndMyopiaCalculator() {
     return () => { stream?.getTracks().forEach(t => t.stop()); };
   }, []);
 
-  // Reset freeze when face leaves frame
-  useEffect(() => {
-    if (!faceDetected && measureState === 'live') {
-      setFrozenDistance(null);
-    }
-  }, [faceDetected, measureState]);
-
-  const handleFreeze = () => {
-    if (!distance) return;
-    setFrozenDistance(distance);
-    setMeasureState('frozen');
+  const handleCalibrate = () => {
+    calibrate(40);
+    setPhase('select-eye');
   };
 
-  const handleUnfreeze = () => {
-    setMeasureState('live');
-    setFrozenDistance(null);
+  const startMeasure = (eye: Eye) => {
+    setSelectedEye(eye);
+    setCapturedDistance(null);
     setSaveError(false);
+    resetStability();
+    setPhase('measure');
+  };
+
+  const handleRetry = () => {
+    setCapturedDistance(null);
+    setSaveError(false);
+    resetStability();
+    setPhase('measure');
   };
 
   const handleSave = async () => {
-    if (!frozenDistance || !activeDiopters) return;
+    if (!capturedDistance || !capturedDiopters) return;
     setIsSaving(true);
     setSaveError(false);
     try {
       const { error } = await supabase.from('endmyopia_measurements').insert({
         eye_measured: selectedEye,
-        blur_distance_cm: parseFloat(frozenDistance.toFixed(2)),
-        diopters: parseFloat(activeDiopters.toFixed(2)),
+        blur_distance_cm: parseFloat(capturedDistance.toFixed(2)),
+        diopters: parseFloat(capturedDiopters.toFixed(2)),
       });
       if (error) throw error;
-      setMeasureState('saved');
+      setPhase('saved');
       setRefreshTrigger(prev => prev + 1);
-      setTimeout(() => {
-        setMeasureState('live');
-        setFrozenDistance(null);
-      }, 2000);
+      setTimeout(() => setPhase('select-eye'), 2000);
     } catch {
       setSaveError(true);
     } finally {
@@ -91,244 +134,234 @@ export default function EndMyopiaCalculator() {
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col">
 
-      {/* PIP Camera */}
-      <div className="fixed bottom-24 right-4 z-50 w-20 h-28 rounded-2xl overflow-hidden shadow-xl border-2 border-border-custom ring-2 ring-background">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover -scale-x-100" />
-        <div className={`absolute bottom-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-black/30 transition-colors ${
-          faceDetected ? 'bg-emerald-400' : isReady ? 'bg-red-400 animate-pulse' : 'bg-yellow-400 animate-pulse'
-        }`} />
-      </div>
+      {/* Hidden video (PIP only in measure phase) */}
+      <video ref={videoRef} autoPlay playsInline muted className="hidden" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full px-4 py-3 flex items-center justify-between border-b border-border-custom bg-background/90 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link to="/medical" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary bg-surface transition-colors">
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-base font-black uppercase tracking-tight leading-none">Vanguard Optics</h1>
-            <p className="text-[10px] text-text-muted mt-0.5">
-              {!calibrationFactor ? 'Kalibracja wymagana' : measureState === 'live' ? 'Pomiar aktywny' : measureState === 'frozen' ? 'Odczyt zamrożony' : 'Zapisano!'}
-            </p>
+      {/* ══════════════════════════════════════════════
+          MEASURE PHASE — full-screen, immersive
+      ══════════════════════════════════════════════ */}
+      {phase === 'measure' && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+
+          {/* PIP Camera - top right corner */}
+          <div className="absolute top-4 right-4 w-16 h-20 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
+            <video ref={undefined} autoPlay playsInline muted className="w-full h-full object-cover -scale-x-100" style={{ objectFit: 'cover' }} />
           </div>
-        </div>
-        {isReady && (
-          <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-            faceDetected
-              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-              : 'text-red-400 bg-red-500/10 border-red-500/20'
-          }`}>
-            {faceDetected ? <Eye size={11} /> : <AlertCircle size={11} />}
-            {faceDetected ? 'Twarz OK' : 'Brak twarzy'}
-          </div>
-        )}
-        {!isReady && (
-          <span className="text-[11px] text-amber-400 animate-pulse font-medium flex items-center gap-1">
-            <ScanFace size={13} /> AI...
-          </span>
-        )}
-      </header>
 
-      <main className="flex-1 flex flex-col items-center px-4 pt-6 pb-32 gap-5">
-
-        {/* ── CALIBRATION STEP ── */}
-        {!calibrationFactor && (
-          <div className="w-full max-w-sm bg-surface border border-border-custom rounded-3xl p-6 text-center shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
-              <Ruler className="text-amber-400" size={22} />
-            </div>
-            <h2 className="text-lg font-black mb-1">Kalibracja</h2>
-            <p className="text-sm text-text-muted mb-5 leading-relaxed">
-              Trzymaj telefon w odległości <span className="text-text-primary font-bold">40 cm</span> od twarzy, twarz skierowana prosto w kamerę.
-            </p>
-            {isReady && !faceDetected && (
-              <div className="flex items-center gap-2 text-xs text-amber-400/80 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                <Camera size={13} />
-                Skieruj twarz na kamerę (zielona kropka)
-              </div>
-            )}
+          {/* Back + status bar */}
+          <div className="absolute top-4 left-4 flex items-center gap-3 z-10">
             <button
-              onClick={() => calibrate(40)}
-              disabled={!isReady || !faceDetected}
-              className="w-full bg-primary text-background font-bold py-4 rounded-2xl disabled:opacity-35 active:scale-95 transition-all"
+              onClick={() => setPhase('select-eye')}
+              className="p-2 rounded-xl bg-black/5 text-gray-500 hover:bg-black/10 transition-colors"
             >
-              {!isReady ? 'Ładowanie AI...' : !faceDetected ? 'Pokaż twarz kamerze' : '✓  Skalibruj na 40 cm'}
+              <ArrowLeft size={18} />
+            </button>
+            <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
+              faceDetected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-emerald-500' : 'bg-red-400 animate-pulse'}`} />
+              {faceDetected ? `${distance!.toFixed(1)} cm` : 'Brak twarzy'}
+            </div>
+          </div>
+
+          {/* Stability ring — top center */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10">
+            <StabilityRing progress={stability} size={52} />
+          </div>
+
+          {/* Snellen letters — centered, full-screen feel */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-24">
+            {SNELLEN_ROWS.slice(0, snellenRows).map((row, i) => (
+              <p
+                key={i}
+                className="text-black font-black tracking-[0.3em] text-center leading-none mb-1"
+                style={{ fontSize: `${row.size}rem` }}
+              >
+                {row.letters}
+              </p>
+            ))}
+          </div>
+
+          {/* Bottom controls */}
+          <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-6 px-8">
+            <button
+              onClick={() => setSnellenRows(r => Math.max(1, r - 1))}
+              className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+            >
+              <ZoomOut size={20} />
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <p className="text-xs text-gray-400 font-medium">Stój nieruchomo na krawędzi rozmycia</p>
+              <p className="text-[10px] text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
+            </div>
+            <button
+              onClick={() => setSnellenRows(r => Math.min(6, r + 1))}
+              className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+            >
+              <ZoomIn size={20} />
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── MEASUREMENT FLOW ── */}
-        {calibrationFactor && (
-          <>
-            {/* Eye selector — top, before Snellen */}
-            <div className="w-full max-w-sm bg-surface border border-border-custom rounded-2xl p-1.5 flex gap-1">
-              {(['left', 'right'] as const).map(eye => (
-                <button
-                  key={eye}
-                  onClick={() => { setSelectedEye(eye); if (measureState !== 'live') handleUnfreeze(); }}
-                  className={`flex-1 py-3 text-sm font-black rounded-xl transition-all active:scale-95 ${
-                    selectedEye === eye
-                      ? 'bg-primary text-background shadow-sm'
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  {eye === 'left' ? '👁 Lewe' : 'Prawe 👁'}
-                </button>
-              ))}
+      {/* ══════════════════════════════════════════════
+          CAPTURED PHASE — result screen
+      ══════════════════════════════════════════════ */}
+      {phase === 'captured' && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6 gap-8">
+          <div className="w-full max-w-xs rounded-3xl bg-surface border-2 border-primary/30 p-8 text-center shadow-2xl">
+            <p className="text-[10px] uppercase tracking-widest text-text-muted mb-5 font-bold">
+              {selectedEye === 'left' ? '👁 Lewe oko' : 'Prawe oko 👁'}
+            </p>
+            <div className="flex items-end justify-center gap-4">
+              <div>
+                <p className="text-6xl font-black font-display tabular-nums">{capturedDistance?.toFixed(1)}</p>
+                <p className="text-sm text-text-muted font-bold mt-1">cm</p>
+              </div>
+              <p className="text-3xl font-black text-text-muted mb-3">=</p>
+              <div>
+                <p className="text-6xl font-black font-display text-primary tabular-nums">{capturedDiopters?.toFixed(2)}</p>
+                <p className="text-sm text-text-muted font-bold mt-1">D</p>
+              </div>
             </div>
+          </div>
 
-            {/* Snellen Box */}
-            <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          {saveError && (
+            <div className="w-full max-w-xs flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+              <AlertCircle size={14} className="shrink-0" />
+              Błąd zapisu. Spróbuj ponownie.
+            </div>
+          )}
+
+          <div className="w-full max-w-xs flex flex-col gap-3">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full py-5 bg-primary text-background font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <Check size={18} />
+              {isSaving ? 'Zapisywanie...' : 'Zapisz pomiar'}
+            </button>
+            <button
+              onClick={handleRetry}
+              className="w-full py-3 text-sm text-text-muted flex items-center justify-center gap-1.5 hover:text-text-primary transition-colors"
+            >
+              <RotateCcw size={14} />
+              Zmierz ponownie
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════
+          SAVED PHASE — success flash
+      ══════════════════════════════════════════════ */}
+      {phase === 'saved' && (
+        <div className="fixed inset-0 z-50 bg-emerald-950 flex flex-col items-center justify-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
+            <Check size={36} className="text-emerald-400" />
+          </div>
+          <p className="text-2xl font-black text-emerald-400">Zapisano!</p>
+          <p className="text-sm text-emerald-700">Wracam do wyboru oka...</p>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════
+          NORMAL PHASES (calibrate / select-eye)
+      ══════════════════════════════════════════════ */}
+      {(phase === 'calibrate' || phase === 'select-eye') && (
+        <>
+          <header className="sticky top-0 z-40 w-full px-4 py-3 flex items-center gap-3 border-b border-border-custom bg-background/90 backdrop-blur-md">
+            <Link to="/medical" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary bg-surface transition-colors">
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="text-base font-black uppercase tracking-tight leading-none">Vanguard Optics</h1>
+              <p className="text-[10px] text-text-muted mt-0.5">
+                {phase === 'calibrate' ? 'Kalibracja wymagana' : 'Wybierz oko do pomiaru'}
+              </p>
+            </div>
+          </header>
+
+          <main className="flex-1 flex flex-col items-center px-4 pt-10 pb-32 gap-6">
+
+            {/* Calibration */}
+            {phase === 'calibrate' && (
+              <div className="w-full max-w-sm bg-surface border border-border-custom rounded-3xl p-7 text-center shadow-xl">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-5">
+                  <Ruler className="text-amber-400" size={24} />
+                </div>
+                <h2 className="text-xl font-black mb-2">Kalibracja jednorazowa</h2>
+                <p className="text-sm text-text-muted mb-6 leading-relaxed">
+                  Wyciągnij rękę, trzymaj telefon dokładnie <span className="text-text-primary font-bold">40 cm</span> od twarzy. Twarz prosto w kamerę.
+                </p>
+                {isReady && !faceDetected && (
+                  <div className="flex items-center gap-2 text-xs text-amber-400/80 mb-5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
+                    <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                    Skieruj twarz na kamerę
+                  </div>
+                )}
+                {isReady && faceDetected && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 mb-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                    Twarz wykryta — gotowy do kalibracji
+                  </div>
+                )}
                 <button
-                  onClick={() => setTextSize(s => Math.max(1, s - 1))}
-                  className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors active:scale-90"
+                  onClick={handleCalibrate}
+                  disabled={!isReady || !faceDetected}
+                  className="w-full bg-primary text-background font-bold py-4 rounded-2xl disabled:opacity-30 active:scale-95 transition-all"
                 >
-                  <ZoomOut size={17} />
-                </button>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-gray-300">Skup wzrok tu</p>
-                <button
-                  onClick={() => setTextSize(s => Math.min(6, s + 1))}
-                  className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors active:scale-90"
-                >
-                  <ZoomIn size={17} />
+                  {!isReady ? 'Ładowanie AI...' : 'Skalibruj na 40 cm'}
                 </button>
               </div>
-              <div className="flex flex-col items-center py-6 px-4 gap-0.5 select-none">
-                {SNELLEN_ROWS.slice(0, textSize).map((row, i) => (
-                  <p
-                    key={i}
-                    className="text-black font-black tracking-[0.25em] text-center font-mono leading-tight"
-                    style={{ fontSize: `${Math.max(0.65, (textSize - i) * 0.72)}rem` }}
+            )}
+
+            {/* Eye selection */}
+            {phase === 'select-eye' && (
+              <>
+                <div className="w-full max-w-sm text-center mb-2">
+                  <h2 className="text-2xl font-black mb-1">Które oko?</h2>
+                  <p className="text-sm text-text-muted">Zasłoń drugie oko i dotknij odpowiedniego</p>
+                </div>
+
+                <div className="w-full max-w-sm grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => startMeasure('left')}
+                    className="aspect-square bg-surface border border-border-custom rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all hover:border-primary/50 hover:bg-primary/5"
                   >
-                    {row}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            {/* ── LIVE readings ── */}
-            {measureState === 'live' && (
-              <>
-                <div className="w-full max-w-sm grid grid-cols-2 gap-3">
-                  <div className={`rounded-2xl p-4 flex flex-col items-center border transition-all ${faceDetected ? 'bg-surface border-border-custom' : 'bg-surface/30 border-border-custom/30'}`}>
-                    <span className="text-[10px] uppercase font-bold text-text-muted mb-1">Odległość</span>
-                    <span className={`text-3xl font-black font-display ${faceDetected ? '' : 'text-text-muted/30'}`}>
-                      {distance ? distance.toFixed(1) : '--'}
-                      <span className="text-sm font-medium text-text-muted ml-1">cm</span>
-                    </span>
-                  </div>
-                  <div className={`rounded-2xl p-4 flex flex-col items-center border transition-all ${faceDetected ? 'bg-surface border-border-custom' : 'bg-surface/30 border-border-custom/30'}`}>
-                    <span className="text-[10px] uppercase font-bold text-text-muted mb-1">Dioptrie</span>
-                    <span className={`text-3xl font-black font-display ${faceDetected ? 'text-primary' : 'text-text-muted/30'}`}>
-                      {activeDiopters ? activeDiopters.toFixed(2) : '--'}
-                      <span className="text-sm font-medium text-text-muted ml-1">D</span>
-                    </span>
-                  </div>
+                    <span className="text-5xl">👁</span>
+                    <span className="font-black text-lg">Lewe</span>
+                  </button>
+                  <button
+                    onClick={() => startMeasure('right')}
+                    className="aspect-square bg-surface border border-border-custom rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all hover:border-primary/50 hover:bg-primary/5"
+                  >
+                    <span className="text-5xl">👁</span>
+                    <span className="font-black text-lg">Prawe</span>
+                  </button>
                 </div>
 
-                {!faceDetected && (
-                  <p className="text-xs text-text-muted flex items-center gap-1.5">
-                    <AlertCircle size={13} className="text-amber-400" />
-                    Wróć do kadru kamery (prawy dolny róg)
-                  </p>
-                )}
-
                 <button
-                  onClick={handleFreeze}
-                  disabled={!faceDetected}
-                  className="w-full max-w-sm py-5 bg-primary text-background font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30"
+                  onClick={resetCalibration}
+                  className="text-xs text-text-muted/50 hover:text-text-muted transition-colors underline underline-offset-4 mt-2"
                 >
-                  <Lock size={18} />
-                  Zatrzymaj odczyt
+                  Powtórz kalibrację
                 </button>
               </>
             )}
+          </main>
 
-            {/* ── FROZEN reading ── */}
-            {(measureState === 'frozen' || measureState === 'saved') && (
-              <>
-                {/* Big frozen readout */}
-                <div className={`w-full max-w-sm rounded-3xl p-6 text-center border-2 transition-all ${
-                  measureState === 'saved'
-                    ? 'bg-emerald-500/10 border-emerald-500/40'
-                    : 'bg-surface border-primary/40'
-                }`}>
-                  {measureState === 'saved' ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <Check size={32} className="text-emerald-400" />
-                      <p className="text-emerald-400 font-black text-lg">Zapisano!</p>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-[10px] uppercase tracking-widest text-text-muted mb-3 font-bold flex items-center justify-center gap-1.5">
-                        <Lock size={10} /> Odczyt zamrożony
-                      </p>
-                      <div className="flex items-end justify-center gap-6">
-                        <div>
-                          <p className="text-5xl font-black font-display">{frozenDistance?.toFixed(1)}</p>
-                          <p className="text-xs text-text-muted font-bold mt-1">cm</p>
-                        </div>
-                        <div className="text-text-muted text-2xl font-black mb-1">=</div>
-                        <div>
-                          <p className="text-5xl font-black font-display text-primary">{activeDiopters?.toFixed(2)}</p>
-                          <p className="text-xs text-text-muted font-bold mt-1">dioptrie</p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-text-muted mt-3">
-                        {selectedEye === 'left' ? '👁 Lewe oko' : 'Prawe oko 👁'}
-                      </p>
-                    </>
-                  )}
-                </div>
-
-                {saveError && (
-                  <div className="w-full max-w-sm flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">
-                    <AlertCircle size={14} />
-                    Błąd zapisu — sprawdź połączenie
-                  </div>
-                )}
-
-                {measureState === 'frozen' && (
-                  <div className="w-full max-w-sm flex flex-col gap-2">
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="w-full py-5 bg-primary text-background font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      <Check size={18} />
-                      {isSaving ? 'Zapisywanie...' : 'Zapisz pomiar'}
-                    </button>
-                    <button
-                      onClick={handleUnfreeze}
-                      className="w-full py-3 text-sm text-text-muted font-semibold flex items-center justify-center gap-1.5 hover:text-text-primary transition-colors"
-                    >
-                      <RotateCcw size={14} />
-                      Zmierz ponownie
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-
-            <button
-              onClick={resetCalibration}
-              className="text-xs text-text-muted/50 hover:text-text-muted transition-colors underline underline-offset-4 mt-2"
-            >
-              Powtórz kalibrację
-            </button>
-          </>
-        )}
-      </main>
-
-      {/* Glasses Cabinet + History */}
-      <div className="w-full max-w-4xl mx-auto px-4 pb-24 space-y-10">
-        <GlassesCabinet />
-        <div>
-          <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
-          <VisionJournal refreshTrigger={refreshTrigger} />
-        </div>
-      </div>
+          {/* Glasses Cabinet + History */}
+          <div className="w-full max-w-4xl mx-auto px-4 pb-24 space-y-10">
+            <GlassesCabinet />
+            <div>
+              <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
+              <VisionJournal refreshTrigger={refreshTrigger} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

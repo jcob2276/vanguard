@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-const SMOOTHING_FRAMES = 8; // rolling average window
+const SMOOTHING_FRAMES = 10;
+const AUTO_CAPTURE_THRESHOLD_CM = 1.0;  // max jitter to consider "stable"
+const AUTO_CAPTURE_DURATION_MS = 1500;  // hold still for 1.5s to auto-capture
 
 export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | null>) {
   const [distance, setDistance] = useState<number | null>(null);
+  const [stability, setStability] = useState(0); // 0–1, how close to auto-capture
   const [calibrationFactor, setCalibrationFactor] = useState<number | null>(() => {
     const saved = localStorage.getItem('endmyopia_calibration');
     return saved ? parseFloat(saved) : null;
@@ -12,12 +15,13 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
   const [isReady, setIsReady] = useState(false);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
   const requestRef = useRef<number | null>(null);
-  // Rolling buffer for smoothing
   const bufferRef = useRef<number[]>([]);
+  // For auto-capture: track when the reading became stable
+  const stableStartRef = useRef<number | null>(null);
+  const lastStableValueRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
-
     async function init() {
       try {
         const vision = await FilesetResolver.forVisionTasks(
@@ -40,34 +44,31 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
         console.error('Failed to init MediaPipe Face Landmarker:', error);
       }
     }
-
     init();
-
     return () => {
       active = false;
-      if (landmarkerRef.current) {
-        landmarkerRef.current.close();
-      }
+      if (landmarkerRef.current) landmarkerRef.current.close();
     };
   }, []);
 
   function measurePixelDist(landmarks: { x: number; y: number }[]) {
     const pt1 = landmarks[33];
     const pt2 = landmarks[263];
-    return Math.sqrt(Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2));
+    return Math.sqrt((pt2.x - pt1.x) ** 2 + (pt2.y - pt1.y) ** 2);
   }
 
   const calibrate = useCallback(
     (knownDistanceCm: number) => {
       if (!landmarkerRef.current || !videoRef.current) return;
       const results = landmarkerRef.current.detectForVideo(videoRef.current, performance.now());
-      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+      if (results.faceLandmarks?.length > 0) {
         const pixelDist = measurePixelDist(results.faceLandmarks[0]);
         const factor = knownDistanceCm * pixelDist;
         setCalibrationFactor(factor);
         localStorage.setItem('endmyopia_calibration', factor.toString());
-        // Reset smoothing buffer on calibrate
         bufferRef.current = [];
+        stableStartRef.current = null;
+        lastStableValueRef.current = null;
       }
     },
     [videoRef]
@@ -77,32 +78,55 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
     setCalibrationFactor(null);
     localStorage.removeItem('endmyopia_calibration');
     bufferRef.current = [];
+    stableStartRef.current = null;
+    lastStableValueRef.current = null;
     setDistance(null);
+    setStability(0);
+  }, []);
+
+  const resetStability = useCallback(() => {
+    stableStartRef.current = null;
+    lastStableValueRef.current = null;
+    setStability(0);
   }, []);
 
   useEffect(() => {
     if (!isReady || !videoRef.current) return;
-
     const video = videoRef.current;
 
     function processFrame() {
       if (video.readyState >= 2 && landmarkerRef.current) {
         try {
           const results = landmarkerRef.current.detectForVideo(video, performance.now());
-          if (results.faceLandmarks && results.faceLandmarks.length > 0 && calibrationFactor) {
+          if (results.faceLandmarks?.length > 0 && calibrationFactor) {
             const pixelDist = measurePixelDist(results.faceLandmarks[0]);
-            const rawDistance = calibrationFactor / pixelDist;
+            const raw = calibrationFactor / pixelDist;
 
-            // Rolling average
-            bufferRef.current.push(rawDistance);
-            if (bufferRef.current.length > SMOOTHING_FRAMES) {
-              bufferRef.current.shift();
-            }
+            // Smoothing
+            bufferRef.current.push(raw);
+            if (bufferRef.current.length > SMOOTHING_FRAMES) bufferRef.current.shift();
             const avg = bufferRef.current.reduce((a, b) => a + b, 0) / bufferRef.current.length;
             setDistance(avg);
-          } else if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
+
+            // Stability tracking
+            const now = performance.now();
+            if (lastStableValueRef.current !== null && Math.abs(avg - lastStableValueRef.current) < AUTO_CAPTURE_THRESHOLD_CM) {
+              // Still within threshold — accumulate stable time
+              if (stableStartRef.current === null) stableStartRef.current = now;
+              const elapsed = now - stableStartRef.current;
+              setStability(Math.min(1, elapsed / AUTO_CAPTURE_DURATION_MS));
+            } else {
+              // Moved — reset stability
+              lastStableValueRef.current = avg;
+              stableStartRef.current = now;
+              setStability(0);
+            }
+          } else if (!results.faceLandmarks?.length) {
             bufferRef.current = [];
+            stableStartRef.current = null;
+            lastStableValueRef.current = null;
             setDistance(null);
+            setStability(0);
           }
         } catch (e) {
           console.debug('MediaPipe detection skipped during unmount');
@@ -111,10 +135,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
       requestRef.current = requestAnimationFrame(processFrame);
     }
 
-    const onPlay = () => {
-      requestRef.current = requestAnimationFrame(processFrame);
-    };
-
+    const onPlay = () => { requestRef.current = requestAnimationFrame(processFrame); };
     video.addEventListener('play', onPlay);
     if (!video.paused) onPlay();
 
@@ -124,5 +145,5 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
     };
   }, [isReady, videoRef, calibrationFactor]);
 
-  return { distance, isReady, calibrationFactor, calibrate, resetCalibration };
+  return { distance, stability, isReady, calibrationFactor, calibrate, resetCalibration, resetStability };
 }
