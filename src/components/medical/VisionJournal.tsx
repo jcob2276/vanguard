@@ -38,7 +38,7 @@ function getMonthYear(dateStr: string) {
   return `${months[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}`;
 }
 
-export default function VisionJournal() {
+export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function VisionJournal() {
       setLoading(false);
     }
     loadData();
-  }, []);
+  }, [refreshTrigger]);
 
   // Process data for charts
   // We want to group by Month/Year and show Rano-L, Południe-L, Wieczór-L, etc.

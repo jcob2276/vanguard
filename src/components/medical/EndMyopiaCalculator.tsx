@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useFaceDistance } from '../../hooks/useFaceDistance';
 import { supabase } from '../../lib/supabase';
-import { Camera, ScanFace, Check, ArrowLeft, Ruler } from 'lucide-react';
+import { Camera, ScanFace, Check, ArrowLeft, Ruler, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
@@ -14,6 +14,8 @@ export default function EndMyopiaCalculator() {
   const [selectedEye, setSelectedEye] = useState<'left' | 'right' | 'both'>('left');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [textSize, setTextSize] = useState(3); // 1 to 5 scale
 
   useEffect(() => {
     async function setupCamera() {
@@ -54,6 +56,7 @@ export default function EndMyopiaCalculator() {
       if (error) throw error;
       
       setSaveSuccess(true);
+      setRefreshTrigger(prev => prev + 1);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
       console.error('Error saving measurement', err);
@@ -64,8 +67,8 @@ export default function EndMyopiaCalculator() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col relative overflow-hidden">
-      {/* Background Video */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+      {/* PIP Video */}
+      <div className="fixed bottom-6 right-6 z-50 w-24 h-32 md:w-32 md:h-48 bg-black rounded-2xl overflow-hidden shadow-2xl border-2 border-border-custom ring-4 ring-background">
         <video
           ref={videoRef}
           autoPlay
@@ -73,6 +76,11 @@ export default function EndMyopiaCalculator() {
           muted
           className="w-full h-full object-cover transform -scale-x-100"
         />
+        {!isReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <ScanFace className="text-white/50 animate-pulse" size={24} />
+          </div>
+        )}
       </div>
 
       <header className="relative z-10 w-full p-4 flex items-center justify-between border-b border-border-custom bg-background/80 backdrop-blur-md">
@@ -111,18 +119,32 @@ export default function EndMyopiaCalculator() {
           </div>
         ) : (
           <div className="w-full max-w-md flex flex-col items-center">
-            {/* The Text to focus on */}
-            <div className="bg-surface/80 backdrop-blur-xl border border-border-custom p-8 rounded-3xl mb-8 w-full shadow-2xl flex flex-col items-center text-center">
-              <span className="text-[9px] uppercase font-bold tracking-widest text-text-muted mb-6">Skup wzrok na tekście (Edge of blur)</span>
-              <p className="font-serif text-3xl font-medium tracking-wide mb-2 transition-all duration-100">
-                A E Z O
-              </p>
-              <p className="font-serif text-xl font-medium tracking-wide mb-2 opacity-80">
-                P L F T
-              </p>
-              <p className="font-serif text-sm opacity-60">
-                VANGUARD MEDICAL
-              </p>
+            {/* The Text to focus on - Snellen Box */}
+            <div className="bg-white p-8 rounded-[2rem] mb-8 w-full shadow-2xl flex flex-col items-center text-center border-4 border-white">
+              <div className="w-full flex justify-between items-center mb-6">
+                <button 
+                  onClick={() => setTextSize(Math.max(1, textSize - 1))}
+                  className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <ZoomOut size={20} />
+                </button>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Snellen Box</span>
+                <button 
+                  onClick={() => setTextSize(Math.min(5, textSize + 1))}
+                  className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <ZoomIn size={20} />
+                </button>
+              </div>
+
+              <div className="text-black font-sans font-black tracking-tight" style={{ fontSize: `${textSize * 1.5}rem`, lineHeight: 1.1 }}>
+                <p>E</p>
+                <p>F P</p>
+                <p>T O Z</p>
+                {textSize > 2 && <p>L P E D</p>}
+                {textSize > 3 && <p>P E C F D</p>}
+                {textSize > 4 && <p>E D F C Z P</p>}
+              </div>
             </div>
 
             {/* Readouts */}
@@ -198,7 +220,7 @@ export default function EndMyopiaCalculator() {
         
         <div>
           <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
-          <VisionJournal />
+          <VisionJournal refreshTrigger={refreshTrigger} />
         </div>
       </div>
     </div>
