@@ -257,4 +257,4 @@ Przed zamknięciem — szybki checklist:
 
 ---
 
-*Ostatnia aktualizacja: 2026-05-23*
+*Ostatnia aktualizacja: 2026-07-01*

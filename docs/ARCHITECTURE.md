@@ -84,6 +84,8 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 | `vanguard-sync-strava` | `30 20 * * *` | `sync-strava` |
 | `vanguard-eval-interview` | `0 10 * * 1-5` | `vanguard-eval-interview` |
 | `vanguard-nutrition-coach` | `0 6 * * *` | `vanguard-nutrition-coach` |
+| `rescore-workout-sessions` | `20 11 * * *` | `rescore-workout-sessions` |
+| `compute-illness-signal` | `25 11 * * *` | `compute-illness-signal` |
 
 **Documented in README / ops, confirm in dashboard:**
 
@@ -91,7 +93,6 @@ Verify live: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) or `S
 |----------|-----------------|
 | `vanguard-daily-reconciliation` | pg_cron (~evening Warsaw) |
 | `vanguard-weekly-synthesis` | pg_cron Sunday ~17:00 UTC |
-| `vanguard-friction-qa` | deprecated stub; cron removed |
 
 Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midday-check`, `vanguard-daily-briefing`, `vanguard-friction-qa-daily`, `vanguard-daily-shadow-analysis`, legacy intentions cleanup/reset prompt jobs.
 
@@ -112,9 +113,14 @@ Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midd
 | `vanguard_oracle_runs` | Oracle audit log (read-only telemetry) |
 | `user_fundament` | Identity / philosophy (context, not live truth) |
 | `projects` | Canonical project model for the Projekty section |
-| `todo_sections`, `todo_items` | Separate task model; `todo_sections.project_id` is only an optional project bridge |
+| `todo_sections`, `todo_items` | Separate task model; `todo_sections.project_id` is only an optional project bridge; milestones = `is_milestone=true` |
+| `kpi_entries` | KPI per project per week (auto-rollup from daily_wins via RPC) |
+| `sprint_goals`, `sprint_reviews` | Sprint planning and reviews |
+| `monthly_reviews` | Monthly close-outs (pattern, leverage, correction) |
+| `life_goals` | Long-term goals / BHAG |
+| `daily_wins` | PowerList: task_1..5, done_1..5, daily_rpe |
 
-Deprecated legacy tables: `career_projects`, `career_moves`, `career_evidence`, `career_decisions`. These belonged to the removed Kariera module and must not be used for new product reads/writes.
+Deprecated/dropped tables (do not use): `career_projects`, `career_moves`, `career_evidence`, `career_decisions` (removed 2026-06-30), `project_checkpoints` (milestones now in `todo_items.is_milestone`), `goals`, `focus_sessions`, `vanguard_intentions`, `vanguard_correlations`, `vanguard_temporal_links`.
 
 **Behavior logging (do not duplicate):**
 
@@ -148,7 +154,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **32 functions**, last pass 2026-06-12.
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **40 functions**, last pass 2026-06-30.
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 

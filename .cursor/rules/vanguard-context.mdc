@@ -52,18 +52,11 @@ Najprostsza definicja: **pamiętnik z backendem analitycznym.**
 
 ## Edge Functions
 
-Pełna mapa 27 funkcji (JWT, triggery, tabele): **`supabase/functions/README.md`**
+Pełna mapa 40 funkcji (JWT, triggery, tabele): **`supabase/functions/README.md`**
 
 Reguły deployu i constraintów DB: **`.cursor/rules/vanguard-ops.mdc`** i **`AGENTS.md`**
 
 Nie trzymaj numerów wersji w rules — szybko się dezaktualizują.
-
----
-
-
-30-dniowy trening głosu via Telegram. **Nie jest częścią Vanguard Core.**
-
-
 
 ---
 
@@ -144,23 +137,25 @@ Nie pytaj "dlaczego tego nie ma" bez przeczytania tego:
 
 ---
 
-## Obecny stan (2026)
+## Obecny stan (2026-07)
 
 **Live — daily loop:**
-- `vanguard-morning-brief` → plan jutra rano
-- `vanguard-midday-check` → inline buttons (done/stuck)
-- `vanguard-daily-reconciliation` → wieczorny review
-- `vanguard-telegram` → stream + reconciliation routing + **planning sessions** (Oracle)
-- Planning zapisuje `planning_summary` z tension_action na jutro
+- `vanguard-eval-interview` (12:00 pn-pt) → refleksyjny wywiad przez Telegram
+- `vanguard-daily-reconciliation` (~21:30) → wieczorna refleksja
+- `vanguard-telegram` → stream + reconciliation routing
+- Planning w app/Oracle (nie przez Telegram wieczorem)
 
 **Live — evidence layer:**
 - friction_events + confirmed_friction_events VIEW
 - vanguard-auto-classify, vanguard-architect, vanguard-analyst
 - vanguard-oracle z full state vector (Oura, wins, plan)
+- system_proposals (N>=3 friction) → Action Center
 
-- Osobny Telegram bot, Day 0 baseline + Day 1+ eval
+**Live — planning spine:**
+- goalSpine.ts jako SSOT (dzień → tydzień → sprint → cel)
+- kpi_entries, sprint_goals, monthly_reviews, life_goals
 
-~~Observation mode~~ — **deprecated**. System jest w pełnym daily loop, nie w trybie zbierania danych.
+**40 edge functions** (pełna mapa w `supabase/functions/README.md`)
 
 Runbooki incydentów: **`docs/runbooks/`**
 

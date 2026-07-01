@@ -107,8 +107,7 @@ Budujemy:
 ---
 
 **Powiązane dokumenty:**
-- `docs/ROADMAP_V10.md` — realistyczna droga dojścia do tego kierunku
-- `docs/VISION_10_10.md` — ta sama wizja w formie dokumentu
 - `docs/PRODUCT_PRINCIPLES.md` — guardrails, które muszą być przestrzegane po drodze
+- `docs/FEATURE_LIFECYCLE.md` — co jest aktywne, co deprecated
 
 Ten plik jest ważniejszy niż wszystkie inne.

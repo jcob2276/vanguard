@@ -1,7 +1,7 @@
 # Vanguard OS — Product Principles
 
 > Guardrail document for feature decisions, architecture reviews, and AI behavior.
-> Last updated: 2026-05-18
+> Last updated: 2026-07-01
 
 > **Stan projektu:** system przestał być naiwny wobec własnych błędów. To nie jest to samo co dojrzałość.
 >
@@ -303,7 +303,7 @@ To jest docelowa nisza Vanguarda. Nie reasoning. **Longitudinal behavioral memor
 
 Pełna wersja tej wizji opisana jest tutaj:
 
-→ [docs/VISION_10_10.md](./VISION_10_10.md)
+→ [docs/direction/KIERUNEK.md](./direction/KIERUNEK.md)
 
 W skrócie: Vanguard staje się w pełni zintegrowanym kokpitem samoobserwacji i logowania. System nie próbuje przewidywać przyszłości ani być cyfrowym bliźniakiem, lecz zapewnia bezbłędną, zunifikowaną i wolną od szumu pamięć behawioralną (Evidence), która pozwala użytkownikowi wyeliminować samooszukiwanie.
 

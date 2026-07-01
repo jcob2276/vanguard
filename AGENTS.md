@@ -22,13 +22,13 @@ Entry point for AI agents working in this repository.
 
 Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
-**Wizja długoterminowa (10/10):** [`docs/VISION_10_10.md`](docs/VISION_10_10.md) — zunifikowany, prywatny kokpit samoobserwacji i logowania.
+**Wizja długoterminowa (10/10):** [`docs/direction/KIERUNEK.md`](docs/direction/KIERUNEK.md) — North Star / Wersja 10/10.
 
 ## What this repo is
 
 Monorepo for **Vanguard** (personal OS) on a Supabase project configured through environment variables.
 
-Local/Supabase sync: **32** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-12**.
+Local/Supabase sync: **40** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-30**.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -41,14 +41,14 @@ Local/Supabase sync: **32** edge functions (+ `_shared/`). Registry: [`supabase/
 ```
 Deploy:
 - Cron/webhook functions MUST deploy with verify_jwt: false (--no-verify-jwt)
-- Affected: vanguard-midday-check,
-  vanguard-daily-reconciliation,
+- Affected: vanguard-daily-reconciliation,
   vanguard-oracle, vanguard-auto-classify, vanguard-architect,
   vanguard-wiki-compiler,
   ingest-vault-log,
   vanguard-analyst, save-daily-aggregate, vanguard-weekly-synthesis,
   vanguard-eval-interview, vanguard-nutrition-coach,
-  sync-strava, analyze-training-load
+  sync-strava, rescore-workout-sessions, compute-illness-signal,
+  vanguard-librarian, analyze-training-load
 - After deploy: `npm run smoke` (or `node scripts/ops/smoke-vanguard.mjs --with-service-role`) + edge logs — no 401
 
 Telegram:
@@ -78,6 +78,7 @@ Edge function gotchas:
 10. `docs/runbooks/` — incident fixes
 11. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
 12. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
+13. [`docs/VANGUARD_STATE.md`](docs/VANGUARD_STATE.md) — current state: every tab/component/table that exists
 
 ## Models (current)
 

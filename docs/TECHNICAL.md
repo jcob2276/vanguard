@@ -649,4 +649,35 @@ if (embedRes.ok) {
 
 ---
 
-*Ostatnia aktualizacja: 2026-06-01 | P2 adoption + BACKLOG-01 event_kind taxonomy (prompt sharpening + monitoring mode) + doc refresh*
+## 7. Graph Temporal Status — Dev Invariant
+
+The core distinction in `vanguard_entity_links`:
+
+```
+status = 'active'           → row is not deprecated (technical flag)
+temporal_status = 'current' → row represents current evidence (semantic flag)
+```
+
+These are orthogonal. A row can be `status=active` AND `temporal_status=unknown`.
+The majority of the graph: legacy edges with `status=active`, `temporal_status=unknown`.
+
+### Rule
+
+> Graph is evidence memory, not current truth.
+
+Current retrieval (Oracle, Briefing, Analyst) must filter:
+
+```sql
+AND temporal_status IN ('current', 'declared')
+```
+
+Archive/historical retrieval (explicit only) may use:
+
+```sql
+AND temporal_status IN ('current', 'declared', 'hypothesis', 'unknown', 'stale', 'historical')
+-- or pass p_include_historical = true to RPCs
+```
+
+---
+
+*Ostatnia aktualizacja: 2026-07-01 | GRAPH_TEMPORAL_STATUS folded in, resolved issues marked clearly*

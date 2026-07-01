@@ -27,20 +27,15 @@ Lean operational docs + links to existing deep context.
 
 ## Goals / direction
 
-- [direction/](./direction/) — North Star (`KIERUNEK.md`) + ETAP 0/1 planning docs
-- [PLAN_READINESS_NOOP.md](./PLAN_READINESS_NOOP.md) — własny recovery/readiness/strain engine inspirowany Noop/Strand (status: planning done, implementacja nie rozpoczęta)
-- [ROADMAP_V10.md](./ROADMAP_V10.md) — canonical roadmap
-- [VISION_10_10.md](./VISION_10_10.md) — canonical 10/10 vision
-- [VANGUARD_MANIFESTO.md](./VANGUARD_MANIFESTO.md) — system philosophy (PL)
+- [direction/KIERUNEK.md](./direction/KIERUNEK.md) — North Star / Wersja 10/10
 
 ## Deep context (verify against current state)
 
-- [VANGUARD_STATE.md](./VANGUARD_STATE.md) — current state: every tab/component/table that exists (most up to date)
+- [VANGUARD_STATE.md](./VANGUARD_STATE.md) — current state: every tab/component/table that exists (SSOT for app state)
 - [PRODUCT_PRINCIPLES.md](./PRODUCT_PRINCIPLES.md) — full epistemic guardrails
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — architecture in docs/
-- [TECHNICAL.md](./TECHNICAL.md) — technical reference (may be stale)
-- [VANGUARD_OS_CANONICAL_SPEC.md](./VANGUARD_OS_CANONICAL_SPEC.md) — product philosophy/vision (2026-05-15, runtime sections stale — see banner in file)
-- [GRAPH_TEMPORAL_STATUS.md](./GRAPH_TEMPORAL_STATUS.md) — graph temporal-status dev invariant
+- [TECHNICAL.md](./TECHNICAL.md) — technical reference + graph temporal-status invariant
+- [FEATURE_LIFECYCLE.md](./FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
 
 ## Cursor rules
 

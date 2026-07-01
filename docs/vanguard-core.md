@@ -38,24 +38,29 @@ During pending reconciliation (`status = sent`): response saved as day review.
 | `vanguard-telegram` | Webhook hub - stream, oracle, planning, callbacks |
 | `vanguard-oracle` | LLM with retrieval + state vector |
 | `vanguard-architect` | Stream -> entity links / graph |
-| `vanguard-auto-classify` | Auto-tag stream entries |
+| `vanguard-auto-classify` | Auto-tag stream entries + friction detection |
 | `vanguard-eval-interview` | Cron: noon reflective interview |
 | `vanguard-daily-reconciliation` | Cron/manual `/koniec`: send 24h reflection prompt |
-| `vanguard-morning-brief` | Deprecated stub; no Telegram |
-| `vanguard-midday-check` | Deprecated stub; no Telegram |
+| `vanguard-analyst` | Nightly: friction pattern analysis + system_proposals |
+| `vanguard-wiki-compiler` | Cron: derived compiled memory pages |
+| `ingest-vault-log` | Long-form voice/vault ingestion |
 
 ## Key tables
 
 | Table | Purpose |
 |---|---|
 | `vanguard_stream` | All captured messages/thoughts |
-| `vanguard_knowledge` | Verified facts and lessons |
-| `vanguard_entity_links` | Knowledge graph edges |
-| `daily_reconciliations` | Evening review + planning session + plan jutra |
+| `vanguard_entity_links` | Knowledge graph edges (temporal) |
+| `daily_reconciliations` | Evening review + planning session |
 | `friction_events` | Detected behavioral friction |
+| `confirmed_friction_events` | VIEW — reviewed/good only |
 | `vanguard_oracle_runs` | Oracle audit log |
 | `vanguard_daily_aggregates` | Daily computed state |
+| `daily_wins` | PowerList: task_1..5, done_1..5 |
+| `kpi_entries` | KPI per project per week |
 | `oura_daily_summary` | Sleep/readiness biometrics |
+| `daily_strain` | Computed body strain/recovery |
+| `system_proposals` | N>=3 friction proposals for user review |
 
 ## State vector (Oracle input)
 
