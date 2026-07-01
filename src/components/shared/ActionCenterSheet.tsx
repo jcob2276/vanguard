@@ -20,6 +20,7 @@ interface PendingClarification {
   confidence?: number | null;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePendingActionCount(session: Session | null) {
   const [count, setCount] = useState(0);
 

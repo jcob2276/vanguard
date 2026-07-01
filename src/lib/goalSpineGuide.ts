@@ -182,7 +182,7 @@ export function deriveSpineGuidance(
   ctx: SpineGuideContext,
 ): SpineGuidance {
   const today = ctx.today ?? getTodayWarsaw();
-  const isSunday = new Date(`${today}T12:00:00`).getDay() === 0;
+  const isSunday = new Date(`${today}T12:00:00Z`).getUTCDay() === 0;
   const day = ctx.day ?? dayWinStateFromRow(null);
 
   const sprintGoalOk = Boolean(spine.sprint.goalText?.trim());

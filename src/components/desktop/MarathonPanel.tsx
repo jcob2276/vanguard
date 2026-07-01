@@ -3,7 +3,6 @@ import { differenceInDays } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RACE_DATE, C, weeklyRunKm, avg } from './desktopUtils';
 import { Panel, Tip } from './Panel';
-import { nowWarsaw } from '../../lib/date';
 
 export interface MarathonPanelProps {
   strava: any[];
@@ -12,7 +11,7 @@ export interface MarathonPanelProps {
 }
 
 export default function MarathonPanel({ strava, grid, tick }: MarathonPanelProps) {
-  const daysLeft = differenceInDays(RACE_DATE, nowWarsaw());
+  const daysLeft = differenceInDays(RACE_DATE, new Date());
   const weeksLeft = Math.ceil(daysLeft / 7);
   const kmData = weeklyRunKm(strava);
   const recent4 = kmData.slice(-4);

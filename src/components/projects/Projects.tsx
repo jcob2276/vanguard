@@ -23,10 +23,10 @@ import {
 } from '../../lib/projects';
 import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
 import { supabase } from '../../lib/supabase';
-import { nowWarsaw, formatWarsawDate } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth';
 import { fetchLongTermGoals } from '../../lib/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
-import { getTodayWarsaw } from '../../lib/date';
 import DataStateNotice from '../core/DataStateNotice';
 
 // Subcomponents and utilities
@@ -354,12 +354,7 @@ export default function Projects({
     savingKpiRef.current = kpiId;
 
     // Calculate current week_start (Warsaw time)
-    const now = nowWarsaw();
-    const day = now.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    const mon = new Date(now);
-    mon.setDate(now.getDate() + diff);
-    const weekStart = formatWarsawDate(mon);
+    const weekStart = getWeekStartWarsaw(getTodayWarsaw());
 
     run(async () => {
       try {

@@ -17,8 +17,15 @@ export async function sendMessageParsed(
   text: string,
   options: SendMessageOptions = {},
 ): Promise<TelegramSendResult> {
-  const res = await sendMessage(token, chatId, text, options);
-  const data = await res.json().catch(() => ({}));
+  let res = await sendMessage(token, chatId, text, options);
+  let data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    if (options.parseMode) {
+      console.warn("[telegram] send failed with parseMode, retrying as plain text...");
+      res = await sendMessage(token, chatId, text, { ...options, parseMode: undefined });
+      data = await res.json().catch(() => ({}));
+    }
+  }
   if (!res.ok || !data.ok) {
     const description = data.description || `HTTP ${res.status}`;
     console.error("[telegram] send failed:", description, data);
@@ -111,8 +118,26 @@ export async function clearInlineKeyboard(
   await editMessageReplyMarkup(token, chatId, messageId);
 }
 
+/** Edit a message's text (and optionally its inline keyboard). */
+export async function editMessageText(
+  token: string,
+  chatId: number,
+  messageId: number,
+  text: string,
+  inlineKeyboard?: object[][],
+): Promise<void> {
+  const body: Record<string, unknown> = { chat_id: chatId, message_id: messageId, text };
+  body.reply_markup = { inline_keyboard: inlineKeyboard ?? [] };
+  await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10000),
+  });
+}
+
 /** Telegram Bot API getFile — for voice / file download in webhook handlers. */
-async function getTelegramFilePath(
+export async function getTelegramFilePath(
   token: string,
   fileId: string,
 ): Promise<string> {
@@ -126,7 +151,7 @@ async function getTelegramFilePath(
   return fileData.result.file_path as string;
 }
 
-function telegramFileUrl(token: string, filePath: string): string {
+export function telegramFileUrl(token: string, filePath: string): string {
   return `https://api.telegram.org/file/bot${token}/${filePath}`;
 }
 

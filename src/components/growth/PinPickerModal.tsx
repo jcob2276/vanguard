@@ -186,6 +186,7 @@ export default function PinPickerModal({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function pinTitle(
   pin: {
     entity_type: string;
@@ -206,6 +207,7 @@ export function pinTitle(
   return '—';
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function pinResourceType(
   pin: {
     entity_type: string;

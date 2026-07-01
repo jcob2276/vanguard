@@ -73,7 +73,7 @@ function derivePer100(entry: RecentEntry) {
   };
 }
 
-interface NLItem extends NLFoodItem {}
+type NLItem = NLFoodItem;
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },

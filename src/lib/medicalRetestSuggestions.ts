@@ -1,7 +1,6 @@
 import { formatMedicalDate, type MarkerSeries } from './medicalAnalytics';
 import { optimalStatus } from './getBased/markerBridge';
 import {
-  findLatestFullPanel,
   SCORE_MARKER_KEYS,
   scoreHasEvidence,
   type FullPanelInfo,
@@ -24,7 +23,7 @@ export type MedicalUserContext = {
 
 export function computeAgeFromBirthDate(birthDate: string | null | undefined): number | null {
   if (!birthDate) return null;
-  const born = new Date(`${birthDate.slice(0, 10)}T12:00:00`);
+  const born = new Date(`${birthDate.slice(0, 10)}T12:00:00Z`);
   if (!Number.isFinite(born.getTime())) return null;
   const now = new Date();
   let age = now.getFullYear() - born.getFullYear();

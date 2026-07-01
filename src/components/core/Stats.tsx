@@ -15,7 +15,7 @@ import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSect
 import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection, type FoodQualityItem, type ProteinDistribution, type FoodAnalysisDay, type FoodAnalysisResult } from './stats/FoodAnalysisSection';
-import { getTodayWarsaw , nowWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 
 type BodyMetricRow = Tables<'body_metrics'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
@@ -39,8 +39,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [newMetric, setNewMetric] = useState<NewMetricState>({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
   const [heightCm, setHeightCm] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
-    from: format(subDays(nowWarsaw(), 7), 'yyyy-MM-dd'),
-    to: format(nowWarsaw(), 'yyyy-MM-dd')
+    from: (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 7); return formatWarsawDate(d); })(),
+    to: getTodayWarsaw()
   });
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingOura, setIsExportingOura] = useState(false);

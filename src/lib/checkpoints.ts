@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { formatWarsawDate, getTodayWarsaw, nowWarsaw } from './date';
+import { formatWarsawDate, getTodayWarsaw } from './date';
 import { supabase } from './supabase';
 
 export type EnrichedCheckpoint = {
@@ -24,9 +24,9 @@ export async function fetchUpcomingCheckpoints(
   horizonDays = 14,
 ): Promise<EnrichedCheckpoint[]> {
   const todayStr = getTodayWarsaw();
-  const horizon = nowWarsaw();
-  horizon.setDate(horizon.getDate() + horizonDays);
-  const horizonStr = formatWarsawDate(horizon);
+  const d = new Date(todayStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + horizonDays);
+  const horizonStr = formatWarsawDate(d);
 
   const [{ data: cps }, { data: projs }, { data: dreams }] = await Promise.all([
     supabase
@@ -83,7 +83,7 @@ export async function fetchUpcomingCheckpoints(
 export async function markCheckpointDone(checkpointId: string): Promise<void> {
   const { error } = await supabase
     .from('todo_items')
-    .update({ status: 'done', completed_at: nowWarsaw().toISOString() })
+    .update({ status: 'done', completed_at: new Date().toISOString() })
     .eq('id', checkpointId);
 
   if (error) throw new Error(error.message);

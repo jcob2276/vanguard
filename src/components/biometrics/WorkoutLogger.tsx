@@ -127,19 +127,21 @@ export default function WorkoutLogger({
   }, [userId]);
 
   const draftSnapshotRef = useRef<WorkoutDraft | null>(null);
-  draftSnapshotRef.current = {
-    workoutName,
-    exercises,
-    activities,
-    notes,
-    sessionRpe,
-    workoutDate,
-    timerStart,
-    manualTime,
-    startTimeManual,
-    endTimeManual,
-    savedAt: Date.now(),
-  };
+  useEffect(() => {
+    draftSnapshotRef.current = {
+      workoutName,
+      exercises,
+      activities,
+      notes,
+      sessionRpe,
+      workoutDate,
+      timerStart,
+      manualTime,
+      startTimeManual,
+      endTimeManual,
+      savedAt: Date.now(),
+    };
+  });
 
   useEffect(() => {
     if (!userId) return;

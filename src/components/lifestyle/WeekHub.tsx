@@ -29,7 +29,7 @@ export default function WeekHub({
   const userId = session.user.id;
   const weekStart = getWeekStartWarsaw(getTodayWarsaw());
   const today = getTodayWarsaw();
-  const isSunday = new Date(`${today}T12:00:00`).getDay() === 0;
+  const isSunday = new Date(`${today}T12:00:00Z`).getUTCDay() === 0;
   const direction = useDirectionContext(userId, weekStart);
   const { guidance } = useSpineGuidance(userId);
   const [proposals, setProposals] = useState<SystemProposal[]>([]);

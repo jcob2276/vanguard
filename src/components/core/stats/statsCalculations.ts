@@ -1,4 +1,3 @@
-import { nowWarsaw } from '../../../lib/date';
 import type { Tables } from '../../../lib/database.types';
 
 export function calculateProjection(
@@ -13,7 +12,7 @@ export function calculateProjection(
     .map((d) => ({
       ...d,
       value: Number(d[field]),
-      time: d.date ? new Date(`${d.date}T12:00:00`).getTime() : NaN
+      time: d.date ? new Date(`${d.date}T12:00:00Z`).getTime() : NaN
     }))
     .filter((d) => !isNaN(d.value) && d.value !== 0 && !isNaN(d.time));
   if (validData.length < 2) return null;

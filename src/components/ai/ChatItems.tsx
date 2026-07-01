@@ -19,7 +19,7 @@ export type ChatItem =
   | { type: 'action'; text: string; timestamp: Date }
   | { type: 'system_reminder'; text: string; timestamp: Date };
 
-export function formatTimestamp(date: Date, referenceDate = new Date()): string {
+function formatTimestamp(date: Date, referenceDate = new Date()): string {
   const diff = referenceDate.getTime() - date.getTime();
   const refDay = new Date(referenceDate);
   refDay.setHours(0, 0, 0, 0);
@@ -38,6 +38,7 @@ export function formatTimestamp(date: Date, referenceDate = new Date()): string 
   return `${dateStr} ${timeStr}`;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function shouldShowTimeDivider(prev: ChatItem, current: ChatItem): boolean {
   const diff = current.timestamp.getTime() - prev.timestamp.getTime();
   return diff > 5 * 60 * 1000; // show divider if >5 min apart

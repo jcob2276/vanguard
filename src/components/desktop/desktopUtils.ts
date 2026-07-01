@@ -393,7 +393,7 @@ export function computeLenieInsight(logs: any[]) {
   // Day-of-week peak
   const dowCount: Record<number, number> = {};
   for (const l of recent) {
-    const d = new Date(l.date + 'T12:00:00').getDay();
+    const d = new Date(l.date + 'T12:00:00Z').getUTCDay();
     dowCount[d] = (dowCount[d] || 0) + 1;
   }
   const sorted = Object.entries(dowCount).sort((a, b) => b[1] - a[1]);

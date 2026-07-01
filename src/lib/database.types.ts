@@ -5094,6 +5094,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vanguard_consolidated_activities: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          details: string | null
+          event_date: string | null
+          id: string | null
+          label: string | null
+          metadata: Json | null
+          metric_value: number | null
+          source_type: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _recompute_daily_nutrition: {

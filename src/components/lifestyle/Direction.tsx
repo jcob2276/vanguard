@@ -1,4 +1,4 @@
-import { formatWarsawDate, getTodayWarsaw, nowWarsaw, warsawDayBoundsISO } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -429,7 +429,11 @@ export default function Direction({
     let streak = 0;
     const sorted = [...history].sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
     const today = todayWarsaw();
-    const yesterday = format(subDays(nowWarsaw(), 1), 'yyyy-MM-dd');
+    const yesterday = (() => {
+      const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() - 1);
+      return formatWarsawDate(d);
+    })();
     if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
       for (const day of sorted) {
         if (day.result === 'Z') streak++;
@@ -438,15 +442,25 @@ export default function Direction({
     }
     const weeks = [];
     for (let i = 0; i < 4; i++) {
-      const start = startOfWeek(subDays(nowWarsaw(), i * 7), { weekStartsOn: 1 });
+      const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() - i * 7);
+      const start = startOfWeek(d, { weekStartsOn: 1 });
       const end = endOfWeek(start, { weekStartsOn: 1 });
-      const weekDays = history.filter((d) => d.date && parseISO(d.date) >= start && parseISO(d.date) <= end);
-      const now = startOfDay(nowWarsaw());
+      const weekDays = history.filter((dh) => {
+        if (!dh.date) return false;
+        const dhTime = new Date(dh.date + 'T12:00:00Z').getTime();
+        return dhTime >= start.getTime() && dhTime <= end.getTime();
+      });
+      const now = new Date(getTodayWarsaw() + 'T12:00:00Z');
       const expectedPastDays = isWithinInterval(now, { start, end }) ? differenceInDays(now, start) : 7;
       const explicitP = weekDays.filter((d) => d.result === 'P').length;
       let missing = 0;
       for (let day = 0; day < expectedPastDays; day++) {
-        const checkDate = format(subDays(now, expectedPastDays - day), 'yyyy-MM-dd');
+        const checkDate = (() => {
+          const dSub = new Date(now);
+          dSub.setUTCDate(dSub.getUTCDate() - (expectedPastDays - day));
+          return formatWarsawDate(dSub);
+        })();
         if (!weekDays.some((e) => e.date === checkDate) && checkDate >= APP_LAUNCH_DATE) missing++;
       }
       const pCount = explicitP + missing;
@@ -463,7 +477,7 @@ export default function Direction({
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
     const newValue = !dayWinAny[field];
-    const timestamp = newValue ? nowWarsaw().toISOString() : null;
+    const timestamp = newValue ? new Date().toISOString() : null;
 
     const allDone = [1, 2, 3, 4, 5].every(i => {
       if (!dayWinAny[`task_${i}`]) return true;
@@ -479,7 +493,7 @@ export default function Direction({
     if (allDone) updates.result = 'Z';
     else {
       if (dayWin.result === 'Z') updates.result = null;
-      const isPastDeadline = nowWarsaw().getHours() >= 23;
+      const isPastDeadline = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).getHours() >= 23;
       if (isPastDeadline && !allDone) updates.result = 'P';
     }
 

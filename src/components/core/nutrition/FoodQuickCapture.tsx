@@ -19,7 +19,7 @@ import {
   confidenceLabel,
 } from '../../../lib/foodLogging'
 
-interface FavoriteChip extends FoodFavoriteRow {}
+type FavoriteChip = FoodFavoriteRow;
 
 export default function FoodQuickCapture({
   session,

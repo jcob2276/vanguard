@@ -45,11 +45,6 @@ export function warsawDayBoundsISO(dateStr: string): { fromISO: string; toISO: s
   };
 }
 
-export function nowWarsaw(): Date {
-  // Shift wall-clock so getHours/getDate match Europe/Warsaw on any system TZ (see date.test.ts).
-  return new Date(new Date().toLocaleString('en-US', { timeZone: WARSAW_TZ }));
-}
-
 export function formatWarsawDate(date: Date | string | number): string {
   try {
     const d = new Date(date);
@@ -84,7 +79,7 @@ export function getPastWeekStarts(current: string, n: number): string[] {
   const d = new Date(current + 'T12:00:00Z');
   for (let i = 0; i < n; i++) {
     result.unshift(formatWarsawDate(d));
-    d.setDate(d.getDate() - 7);
+    d.setUTCDate(d.getUTCDate() - 7);
   }
   return result;
 }

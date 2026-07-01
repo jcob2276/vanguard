@@ -121,7 +121,6 @@ Następujące tabele istnieją w bazie ale nie mają DDL w `/supabase/migrations
 | `daily_wins` | id, user_id, date, done_1..5, completed_at_1..5, daily_rpe, journal_entry, gratitude_entry, mood_score, tags, result | ENABLED (mig. 008) |
 | `daily_nutrition` | user_id, date, calories, protein | nieznane |
 | `user_fundament` | user_id, identity, philosophy, vision | nieznane |
-| `stayfree_usage` | user_id, date, app_name, device_name, duration_seconds, unlocks | DEPRECATED / no active caller |
 | `oura_daily_summary` | user_id, date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes, bedtime_timestamp, steps, active_calories, total_calories, temp_deviation | nieznane |
 | `body_metrics` | id, weight_italia | nieznane (pre-existing) |
 
@@ -307,7 +306,7 @@ Brak user_id — tabela referencyjna.
 
 ### 2.3 Widoki
 
-**`confirmed_friction_events`** — referenced in `docs/PRODUCT_PRINCIPLES.md` jako bramka do analizy wzorców. **Widok nie istnieje w migracjach.** Brak `review_status` kolumny w DDL `friction_events`. Status: **PENDING**.
+**`confirmed_friction_events`** — referenced in `docs/PRODUCT_PRINCIPLES.md` jako bramka do analizy wzorców. **Widok istnieje i jest aktywny** — utworzony `20260525170000`, przebudowany na filtr `review_status` `20260529160000`, `security_invoker=true` + filtr `event_kind` dodane `20260621120000`. Realni konsumenci: `vanguard-wiki-compiler`, `vanguard-eval-interview`. Definicja: `WHERE review_status IN ('good','user_confirmed','user_corrected') AND (event_kind IS NULL OR event_kind IN ('friction_event','positive_micro_action'))`. Status: **ACTIVE**.
 
 ### 2.4 RLS — status wszystkich tabel
 
@@ -337,7 +336,7 @@ Brak user_id — tabela referencyjna.
 | daily_wins | ✅ | mig. 20260527000001 |
 | daily_nutrition | ✅ | mig. 20260527000001 |
 | user_fundament | ✅ | mig. 20260527000001 |
-| stayfree_usage | deprecated | no active ingestion path |
+| stayfree_usage | dropped 2026-06-04 | `20260604162300_drop_stayfree.sql` — DROP TABLE CASCADE |
 | oura_daily_summary | ✅ | mig. 20260527000001 |
 
 ---
@@ -530,7 +529,7 @@ Faza 3 — re-ranking z temporal penalty:
 
 **Koncepcja:** Widok/bramka która filtruje `friction_events` do tych z `review_status IN ('good','user_confirmed','user_corrected')` — żeby analityka (analyst, raport) operowała tylko na zweryfikowanych zdarzeniach, nie na surowym output LLM.
 
-**Status:** PENDING. Widok nie istnieje. Kolumna `review_status` nie istnieje w DDL. Niezaimplementowane.
+**Status:** ACTIVE. Widok istnieje od `20260525170000` (patrz §2.3 dla pełnej historii migracji i realnych konsumentów).
 
 ### 4.5 Closure proposals pattern
 

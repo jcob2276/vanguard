@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Calendar, Check, Target } from 'lucide-react';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw, formatWarsawDate , nowWarsaw } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
@@ -70,11 +70,13 @@ export default function DirectionRadarMode({
       <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
         <div className="grid grid-cols-7 gap-2">
           {Array.from({ length: 28 }).map((_, index) => {
-            const gridStart = startOfWeek(subDays(nowWarsaw(), 21), { weekStartsOn: 1 });
+            const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
+            d.setUTCDate(d.getUTCDate() - 21);
+            const gridStart = startOfWeek(d, { weekStartsOn: 1 });
             const dateObj = subDays(gridStart, -index);
             const date = format(dateObj, 'yyyy-MM-dd');
             const dayData = history.find((d) => d.date === date);
-            const isFuture = dateObj > nowWarsaw();
+            const isFuture = dateObj > new Date(getTodayWarsaw() + 'T12:00:00Z');
             const isMissingLoss = date < todayWarsaw() && !dayData && date >= APP_LAUNCH_DATE;
             const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
             return (

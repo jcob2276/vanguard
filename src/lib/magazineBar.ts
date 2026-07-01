@@ -2,7 +2,7 @@ import { addDays, format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { DirectionContextData } from './dailyPlanProposal';
 import type { ScheduleViewData, ScheduleItem } from '../types/schedule';
-import { getTodayWarsaw } from './date';
+import { getTodayWarsaw, formatWarsawDate } from './date';
 import { sweepPastEventsInState } from '../types/schedule';
 import { formatSprintWeekBridge } from './goalSpine';
 import { formatSprintFromLongTerm } from './longTermBridge';
@@ -24,7 +24,7 @@ function dayLabel(dayDate: string, today: string): string {
   const tomorrow = format(addDays(parseISO(today), 1), 'yyyy-MM-dd');
   if (dayDate === today) return 'DZIŚ';
   if (dayDate === tomorrow) return 'JUTRO';
-  return format(parseISO(dayDate + 'T12:00:00'), 'EEE d MMM', { locale: pl }).toUpperCase();
+  return format(new Date(dayDate + 'T12:00:00Z'), 'EEE d MMM', { locale: pl }).toUpperCase();
 }
 
 export function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleViewData {
@@ -98,7 +98,9 @@ export function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleV
   }
 
   for (let i = 0; i < 7; i++) {
-    const d = format(addDays(parseISO(today + 'T12:00:00'), i), 'yyyy-MM-dd');
+    const base = new Date(today + 'T12:00:00Z');
+    base.setUTCDate(base.getUTCDate() + i);
+    const d = formatWarsawDate(base);
     if (!itemsByDay.has(d)) itemsByDay.set(d, []);
   }
 

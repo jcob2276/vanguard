@@ -1,6 +1,6 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { answerCallbackQuery } from "../../_shared/telegram.ts";
-import { DEFAULT_REPLY_KEYBOARD } from "../_router/commands.ts";
+import { answerCallbackQuery, editMessageText } from "../../_shared/telegram.ts";
+import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 
 const SUPPLEMENTS = [
@@ -61,7 +61,7 @@ export async function handleSupplementCallback(
         return;
       }
       await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
-      await editMessage(telegramToken, chatId, messageId, `✅ ${supl.label} — 1 porcja (5g)`);
+      await editMessageText(telegramToken, chatId, messageId, `✅ ${supl.label} — 1 porcja (5g)`);
       return;
     }
 
@@ -71,7 +71,7 @@ export async function handleSupplementCallback(
     }));
 
     await answerCallbackQuery(telegramToken, callbackId);
-    await editMessage(telegramToken, chatId, messageId, `${supl.label} — ile?`, [qtyRow]);
+    await editMessageText(telegramToken, chatId, messageId, `${supl.label} — ile?`, [qtyRow]);
     return;
   }
 
@@ -94,7 +94,7 @@ export async function handleSupplementCallback(
       return;
     }
     await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
-    await editMessage(telegramToken, chatId, messageId, `✅ ${supl.label} — ${qty}x`);
+    await editMessageText(telegramToken, chatId, messageId, `✅ ${supl.label} — ${qty}x`);
   }
 }
 
@@ -129,25 +129,4 @@ async function logSupplement(
     console.error('[supplements] insert failed:', error.message);
     throw new Error('Insert failed');
   }
-}
-
-async function editMessage(
-  token: string,
-  chatId: number,
-  messageId: number,
-  text: string,
-  inlineKeyboard?: object[][],
-): Promise<void> {
-  const body: Record<string, unknown> = { chat_id: chatId, message_id: messageId, text };
-  if (inlineKeyboard) {
-    body.reply_markup = { inline_keyboard: inlineKeyboard };
-  } else {
-    body.reply_markup = { inline_keyboard: [] };
-  }
-  await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10000),
-  });
 }

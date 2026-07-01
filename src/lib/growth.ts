@@ -1,6 +1,6 @@
-import { addWeeks, format, parseISO, startOfWeek, subWeeks } from 'date-fns';
+import { addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw, nowWarsaw } from './date';
+import { getTodayWarsaw, formatWarsawDate } from './date';
 
 export type { DefaultSkillTreeNode, DefaultSubSkill } from './growthSkills';
 
@@ -109,23 +109,24 @@ export function computeScoreDeltas(
 }
 
 export function getWeekStartWarsaw(from?: string | Date): string {
-  const base =
+  const todayStr =
     typeof from === 'string'
-      ? parseISO(`${from.slice(0, 10)}T12:00:00`)
-      : from ?? nowWarsaw();
-  return format(startOfWeek(base, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      ? from.slice(0, 10)
+      : formatWarsawDate(from ?? new Date());
+  const d = new Date(todayStr + 'T12:00:00Z');
+  return format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 }
 
 export function shiftWeekStart(weekStart: string, deltaWeeks: number): string {
-  const d = parseISO(`${weekStart}T12:00:00`);
+  const d = new Date(`${weekStart.slice(0, 10)}T12:00:00Z`);
   const next = deltaWeeks >= 0 ? addWeeks(d, deltaWeeks) : subWeeks(d, Math.abs(deltaWeeks));
   return format(startOfWeek(next, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 }
 
 export function formatWeekRange(weekStart: string): string {
-  const start = parseISO(`${weekStart}T12:00:00`);
-  const end = addWeeks(start, 1);
-  end.setDate(end.getDate() - 1);
+  const start = new Date(`${weekStart.slice(0, 10)}T12:00:00Z`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
   const a = format(start, 'd MMM', { locale: pl });
   const b = format(end, 'd MMM', { locale: pl });
   return `${a} – ${b}`;

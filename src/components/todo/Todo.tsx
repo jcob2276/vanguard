@@ -1,4 +1,4 @@
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
@@ -61,7 +61,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const [linkedPlanIds, setLinkedPlanIds] = useState<Set<string>>(new Set());
 
   // Filters
-  const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
+  const [activeFilterTag, _setActiveFilterTag] = useState<string | null>(null);
   const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
 
 
@@ -105,11 +105,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   }, [dragTarget, collapsedSections, draggingItem]);
 
   const today = getTodayWarsaw();
-  const nextWeek = (() => {
-    const d = new Date(today + 'T00:00:00');
-    d.setDate(d.getDate() + 7);
-    return formatWarsawDate(d);
-  })();
 
   const fetchAll = useCallback(async () => {
     const todayDate = getTodayWarsaw();
@@ -291,7 +286,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   const openItems = useMemo(() => items.filter((i) => i.status === 'open'), [items]);
   const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
 
-  const allUniqueTags = useMemo(() => Array.from(new Set(openItems.flatMap(i => i.tags || []))).sort(), [openItems]);
+
 
   const applyFilter = useCallback((arr: any[]) => arr.filter(i => {
     if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
@@ -340,14 +335,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     finally { setBusy(false); }
   };
 
-  // Optimistic mutation — updates local state immediately, reverts on error
-  const mutate = (patch: (prev: any[]) => any[], apiFn: () => Promise<any>) => {
-    setItems(patch);
-    apiFn().catch((err) => {
-      setError(err instanceof Error ? err.message : String(err));
-      fetchAll();
-    });
-  };
+
 
   const classifyInBackground = useCallback((item: any) => {
     const base = import.meta.env.VITE_SUPABASE_URL;
@@ -582,7 +570,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           onClose={() => setContextMenu(null)}
           onComplete={() => {
             const cm = contextMenu;
-            const newStatus = cm.item.status === 'done' ? 'open' : 'done';
             setContextMenu(null);
             handleComplete(cm.item);
           }}

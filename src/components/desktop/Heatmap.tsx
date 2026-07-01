@@ -50,7 +50,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   } | null>(null);
 
   const todayStr = getTodayWarsaw();
-  const today = new Date(todayStr + 'T12:00:00');
+  const today = new Date(todayStr + 'T12:00:00Z');
 
   const dateMap: Record<string, { vol: number; wellness: boolean; name: string; exercises: string[]; rpe: number | null }> = {};
   for (const s of sessions) {
@@ -69,13 +69,12 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     runMap[d] = (runMap[d] || 0) + (Number(a.distance) || 0) / 1000;
   }
 
-  const dow = today.getDay();
+  const dow = today.getUTCDay();
   const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
-  thisMonday.setHours(0, 0, 0, 0);
+  thisMonday.setUTCDate(today.getUTCDate() - (dow === 0 ? 6 : dow - 1));
 
   const start = new Date(thisMonday);
-  start.setDate(thisMonday.getDate() - 12 * 7);
+  start.setUTCDate(thisMonday.getUTCDate() - 12 * 7);
 
   const weeks: Array<Array<{ date: string; future: boolean; data: any }>> = [];
   const cur = new Date(start);
@@ -84,7 +83,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     for (let d = 0; d < 7; d++) {
       const ds = formatWarsawDate(cur);
       week.push({ date: ds, future: ds > todayStr, data: dateMap[ds] || null });
-      cur.setDate(cur.getDate() + 1);
+      cur.setUTCDate(cur.getUTCDate() + 1);
     }
     weeks.push(week);
   }

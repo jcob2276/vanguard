@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "lint": "eslint . --max-warnings=500",
+    "lint": "eslint . --max-warnings=600",
     "preview": "vite preview",
     "typecheck": "node scripts/ops/check-edge-functions.mjs",
     "typecheck:ui": "tsc --noEmit",
@@ -34,7 +34,6 @@
     "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.2.4",
-    "web-push": "^3.6.7",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

@@ -127,8 +127,8 @@ Deno.serve(async (req) => {
     })()
 
     const [
-      strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, workoutR,
-      winsR, reconR, behaviorR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
+      strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, consolidatedR,
+      winsR, reconR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
     ] = await Promise.all([
       supabase.from('daily_strain')
         .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, cns_load, leg_load, mental_load_score, illness_score, components')
@@ -151,17 +151,14 @@ Deno.serve(async (req) => {
       supabase.from('daily_food_entries')
         .select('date, name, logged_at, calories')
         .eq('user_id', userId).gte('date', start90).order('date'),
-      supabase.from('workout_sessions')
-        .select('workout_day, hr_avg_bpm, hr_peak_bpm, hr_strain_score')
-        .eq('user_id', userId).gte('workout_day', start90),
+      supabase.from('vanguard_consolidated_activities')
+        .select('event_date, source_type, category, label, metric_value, metadata')
+        .eq('user_id', userId).gte('event_date', start90),
       supabase.from('daily_wins')
         .select('date, mood_score, daily_rpe, done_1, done_2, done_3, done_4, done_5, task_1, task_2, task_3, task_4, task_5')
         .eq('user_id', userId).gte('date', start90).order('date'),
       supabase.from('daily_reconciliations')
         .select('date, day_score, phone_drift_morning')
-        .eq('user_id', userId).gte('date', start90),
-      supabase.from('behavior_log')
-        .select('date, behavior_key, value')
         .eq('user_id', userId).gte('date', start90),
       supabase.from('supplement_logs')
         .select('date, supplement_id')
@@ -186,6 +183,24 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).gte('date', start90),
     ])
 
+    const consolidatedRows = consolidatedR.data ?? []
+    const workoutRows = consolidatedRows
+      .filter((r: any) => r.source_type === 'workout_sessions')
+      .map((r: any) => ({
+        workout_day: r.event_date,
+        hr_avg_bpm: r.metadata?.hr_avg_bpm ? Number(r.metadata.hr_avg_bpm) : null,
+        hr_peak_bpm: r.metadata?.hr_peak_bpm ? Number(r.metadata.hr_peak_bpm) : null,
+        hr_strain_score: r.metadata?.hr_strain_score ? Number(r.metadata.hr_strain_score) : null,
+      }))
+    const behaviorRows = consolidatedRows
+      .filter((r: any) => r.source_type === 'behavior_log')
+      .map((r: any) => ({
+        date: r.event_date,
+        behavior_key: r.category,
+        value: r.metric_value ? Number(r.metric_value) : null,
+      }))
+
+
     const slugMap = new Map((suppR.data ?? []).map(s => [s.id, s.slug]))
     const supplementRows = (suppLogR.data ?? []).map(row => ({
       date: row.date,
@@ -193,7 +208,6 @@ Deno.serve(async (req) => {
     }))
 
     const stravaRows = aggregateStravaRuns(stravaR.data ?? [], todayWarsaw, start90)
-    const behaviorRows = behaviorR.data ?? []
 
     const series = buildMetricSeries({
       todayWarsaw,
@@ -204,7 +218,7 @@ Deno.serve(async (req) => {
       aggregateRows: aggregatesR.data ?? [],
       frictionRows: frictionR.data ?? [],
       foodRows: foodR.data ?? [],
-      workoutRows: workoutR.data ?? [],
+      workoutRows: workoutRows,
       winsRows: winsR.data ?? [],
       reconRows: (reconR.data ?? []).map(r => ({ date: r.date, day_score: r.day_score, phone_drift_morning: r.phone_drift_morning })),
       behaviorRows,

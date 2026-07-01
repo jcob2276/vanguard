@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { formatWarsawDate, nowWarsaw, getPastWeekStarts } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, getPastWeekStarts } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth';
 
 interface Snapshot {
   recorded_at: string;
@@ -32,17 +33,7 @@ export function KpiTrendSparkline({
   const [points, setPoints] = useState<Snapshot[]>([]);
   const [logging, setLogging] = useState(false);
 
-  // Helper to determine the current week start (Warsaw)
-  const getWeekStartString = (): string => {
-    const now = nowWarsaw();
-    const day = now.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    const mon = new Date(now);
-    mon.setDate(now.getDate() + diff);
-    return formatWarsawDate(mon);
-  };
-
-  const currentWeekStart = getWeekStartString();
+  const currentWeekStart = getWeekStartWarsaw(getTodayWarsaw());
 
   useEffect(() => {
     async function loadKpiHistory() {

@@ -1,4 +1,4 @@
-import type { LearningSkill, LearningWeekFocus, LearningWeekPin } from './growth';
+import type { LearningSkill, LearningWeekFocus } from './growth';
 import { shiftWeekStart } from './growth';
 
 export interface WeekDirectionGoals {

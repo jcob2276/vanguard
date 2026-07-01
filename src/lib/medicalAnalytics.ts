@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw } from './date';
 
@@ -80,8 +80,8 @@ export function categoryLabel(key: string | null | undefined): string {
 
 export function diffDaysFromToday(dateStr: string): number | null {
   const today = getTodayWarsaw();
-  const d = new Date(`${dateStr.slice(0, 10)}T12:00:00`).getTime();
-  const t = new Date(`${today}T12:00:00`).getTime();
+  const d = new Date(`${dateStr.slice(0, 10)}T12:00:00Z`).getTime();
+  const t = new Date(`${today}T12:00:00Z`).getTime();
   if (!Number.isFinite(d) || !Number.isFinite(t)) return null;
   return Math.round((t - d) / 86400000);
 }
@@ -111,7 +111,7 @@ export function freshnessLabel(f: LabFreshness): string {
 
 export function formatMedicalDate(dateStr: string): string {
   try {
-    return format(parseISO(`${dateStr.slice(0, 10)}T12:00:00`), 'd MMM yyyy', { locale: pl });
+    return format(new Date(`${dateStr.slice(0, 10)}T12:00:00Z`), 'd MMM yyyy', { locale: pl });
   } catch {
     return dateStr.slice(0, 10);
   }
@@ -233,7 +233,7 @@ export function buildTrendChartPoints(s: MarkerSeries): TrendChartPoint[] {
   return [...s.history]
     .reverse()
     .map((h) => ({
-      label: format(parseISO(`${h.result_date.slice(0, 10)}T12:00:00`), 'd MMM yy', { locale: pl }),
+      label: format(new Date(`${h.result_date.slice(0, 10)}T12:00:00Z`), 'd MMM yy', { locale: pl }),
       value: h.value,
       date: h.result_date,
     }));

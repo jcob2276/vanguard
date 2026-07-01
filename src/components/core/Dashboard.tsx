@@ -29,7 +29,6 @@ import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
-import CaptureQueueCard from './CaptureQueueCard';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
@@ -49,9 +48,7 @@ import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
-const CheckpointsCard = lazy(() => import('../projects/CheckpointsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
-const MorningBriefCard = lazy(() => import('./MorningBriefCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];

@@ -69,7 +69,7 @@ export const getColor = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[
 
 export function highlightHtml(html: string, query: string): string {
   if (!query.trim()) return html;
-  const esc = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const esc = query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   const regex = new RegExp(`(<[^>]+>)|(${esc})`, 'gi');
   return html.replace(regex, (match, p1, p2) => {
     if (p1) return p1;

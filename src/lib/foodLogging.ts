@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrapList } from './supabaseUtils'
-import { getTodayWarsaw, getYesterdayWarsaw, formatWarsawDate } from './date'
+import { getYesterdayWarsaw } from './date'
 import { scheduleStrainRecompute } from './strainRefresh'
 
 export const MEAL_TYPES = [

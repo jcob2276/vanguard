@@ -1,4 +1,4 @@
-import type { IExerciseData, IMuscleStats, Muscle } from 'react-body-highlighter';
+import type { IExerciseData, Muscle } from 'react-body-highlighter';
 
 /** Mapowanie tagów Vanguard → mięśnie react-body-highlighter (widok przód/tył). */
 const ANTERIOR: Record<string, Muscle[]> = {

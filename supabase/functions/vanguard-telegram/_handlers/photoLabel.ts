@@ -1,5 +1,6 @@
 import { encodeBase64 } from "https://deno.land/std@0.223.0/encoding/base64.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
+import { getTelegramFilePath, telegramFileUrl } from "../../_shared/telegram.ts";
 
 export async function handlePhotoLabel(
   photoArray: any[],
@@ -22,18 +23,10 @@ export async function handlePhotoLabel(
     const fileId = largestPhoto.file_id;
 
     // Get file path from Telegram
-    const getFileRes = await fetch(`https://api.telegram.org/bot${telegramToken}/getFile?file_id=${fileId}`);
-    if (!getFileRes.ok) {
-      throw new Error(`Telegram getFile failed: HTTP ${getFileRes.status}`);
-    }
-    const getFileData = await getFileRes.json();
-    const filePath = getFileData.result?.file_path;
-    if (!filePath) {
-      throw new Error("Telegram returned no file_path");
-    }
+    const filePath = await getTelegramFilePath(telegramToken, fileId);
 
     // Download file
-    const downloadRes = await fetch(`https://api.telegram.org/file/bot${telegramToken}/${filePath}`);
+    const downloadRes = await fetch(telegramFileUrl(telegramToken, filePath));
     if (!downloadRes.ok) {
       throw new Error(`Telegram file download failed: HTTP ${downloadRes.status}`);
     }

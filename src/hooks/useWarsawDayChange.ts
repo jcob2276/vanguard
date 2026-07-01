@@ -4,7 +4,9 @@ import { getTodayWarsaw } from '../lib/date';
 /** Re-run callback when Warsaw calendar date changes (midnight or tab return). */
 export function useWarsawDayChange(onChange: () => void): void {
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     let lastDate = getTodayWarsaw();

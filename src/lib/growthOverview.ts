@@ -1,7 +1,7 @@
 import type { GrowthLinkRow, GrowthWeekNote } from '../hooks/useGrowthData';
 import type { LearningSkill, LearningWeekFocus, LearningWeekPin } from './growth';
 import { computeScoreDeltas, inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from './growth';
-import { computeTheoryPracticeBalance, suggestWeakestSubskillId } from './growthMastery';
+import { suggestWeakestSubskillId } from './growthMastery';
 export type GrowthSuggestion = {
   id: string;
   tone: 'neutral' | 'warn' | 'action';

@@ -7,7 +7,6 @@
  */
 
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { logCriticalError } from "../../_shared/errorLogging.ts";
 import type { P2ParsedResponse } from "../../_shared/reconciliationParser.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
