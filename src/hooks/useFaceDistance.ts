@@ -78,16 +78,21 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
     
     function processFrame() {
       if (video.readyState >= 2 && landmarkerRef.current) {
-        const results = landmarkerRef.current.detectForVideo(video, performance.now());
-        if (results.faceLandmarks && results.faceLandmarks.length > 0 && calibrationFactor) {
-          const landmarks = results.faceLandmarks[0];
-          const pt1 = landmarks[33];
-          const pt2 = landmarks[263];
-          const pixelDist = Math.sqrt(Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2));
-          const estDistance = calibrationFactor / pixelDist;
-          setDistance(estDistance);
-        } else if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
-          setDistance(null);
+        try {
+          const results = landmarkerRef.current.detectForVideo(video, performance.now());
+          if (results.faceLandmarks && results.faceLandmarks.length > 0 && calibrationFactor) {
+            const landmarks = results.faceLandmarks[0];
+            const pt1 = landmarks[33];
+            const pt2 = landmarks[263];
+            const pixelDist = Math.sqrt(Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2));
+            const estDistance = calibrationFactor / pixelDist;
+            setDistance(estDistance);
+          } else if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
+            setDistance(null);
+          }
+        } catch (e) {
+          // Ignore errors during unmount when landmarker is closed
+          console.debug('MediaPipe detection skipped during unmount');
         }
       }
       requestRef.current = requestAnimationFrame(processFrame);
