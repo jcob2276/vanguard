@@ -42,7 +42,7 @@ export type MonthlyReviewFields = {
 };
 
 const MONTHLY_GRACE_DAYS = 14;
-const MONTHLY_HARD_GATE_DAYS = 7;
+const MONTHLY_HARD_GATE_DAYS = 0; // Never hard-block — monthly review is soft cue only
 
 export function monthEndDate(monthStart: string): string {
   return format(endOfMonth(parseISO(`${monthStart}T12:00:00`)), 'yyyy-MM-dd');
