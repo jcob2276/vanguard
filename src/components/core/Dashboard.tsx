@@ -14,6 +14,7 @@ import {
   Bookmark,
   Sparkles,
   Activity,
+  Eye,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -405,6 +406,13 @@ export default function Dashboard({ session }: { session: Session }) {
                   )}
                 </button>
                 <Link
+                  to="/optics"
+                  className="rounded-full border border-border-custom bg-emerald-500/[0.08] p-2.5 text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 cursor-pointer"
+                  title="Wzrok (EndMyopia)"
+                >
+                  <Eye size={15} />
+                </Link>
+                <Link
                   to="/dashboard"
                   className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Desktop dashboard"
@@ -470,6 +478,14 @@ export default function Dashboard({ session }: { session: Session }) {
                 }}
                 onOpenSauna={() => setShowSaunaLogger(true)}
               />
+
+              <Link
+                to="/optics"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold uppercase tracking-wider text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 shadow-sm"
+              >
+                <Eye size={18} />
+                Zaloguj Wzrok
+              </Link>
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
 
