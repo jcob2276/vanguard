@@ -483,7 +483,6 @@ export default function Dashboard({ session }: { session: Session }) {
                 to="/optics"
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold uppercase tracking-wider text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 shadow-sm"
               >
-                <Eye size={18} />
                 Zaloguj Wzrok
               </Link>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Glasses, Plus, Pencil, Trash, X, Calendar, Edit2, Info } from 'lucide-react';
+import { Plus, Pencil, Trash, X, Calendar, Edit2, Info } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
 type Prescription = {
@@ -87,10 +87,7 @@ export default function GlassesCabinet() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold flex items-center gap-2">
-          <Glasses className="text-primary" />
-          Twoja Szafka ze Szkłami
-        </h3>
+        <h3 className="text-xl font-bold">Twoja Szafka ze Szkłami</h3>
         <button
           onClick={() => setShowAddForm(true)}
           className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover transition-colors"
