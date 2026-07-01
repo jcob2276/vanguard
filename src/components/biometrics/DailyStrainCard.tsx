@@ -31,6 +31,13 @@ const CONF_PILL = {
   building:    'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   calibrating: 'bg-surface-solid text-text-muted border border-border-custom',
 };
+
+const SIGNAL_PILL: Record<string, string> = {
+  good:    'border-emerald-500/30 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400',
+  neutral: 'border-border-custom bg-surface-solid text-text-muted',
+  watch:   'border-amber-500/30 bg-amber-500/8 text-amber-600 dark:text-amber-400',
+  bad:     'border-rose-500/30 bg-rose-500/8 text-rose-600 dark:text-rose-400',
+};
 const CONF_LABEL = { solid: 'Solid', building: 'Building', calibrating: 'Calibrating' };
 
 const STATUS_RING = {
@@ -227,7 +234,7 @@ export default function DailyStrainCard({
   const sleepScoreToday = comp.sleep_score_today   as number  | null | undefined;
   const sleepZ          = comp.sleep_z             as number  | null | undefined;
   const fuelingScore      = comp.fueling_score     as number  | null | undefined;
-  const readinessSignals = comp.readiness_signals as Record<string, unknown> | null | undefined;
+  const readinessSignals = comp.readiness_signals as Array<{ key: string; flag: string; detail: string }> | null | undefined;
   const wellnessLoad      = comp.wellness_load     as number  | null | undefined;
   const strainExplanation = comp.explanation       as string  | null | undefined;
   const readinessLevel  = (row as any).readiness_level as string | null | undefined;
@@ -273,11 +280,11 @@ export default function DailyStrainCard({
           </p>
         )}
 
-        {readinessSignals && Object.keys(readinessSignals).length > 0 && (
+        {readinessSignals && readinessSignals.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {Object.entries(readinessSignals).map(([k, v]) => (
-              <span key={k} className="inline-flex rounded-lg border border-border-custom bg-surface-solid px-2 py-0.5 text-[9px] font-bold text-text-muted">
-                {k}: {String(v)}
+            {readinessSignals.map((s) => (
+              <span key={s.key} className={`inline-flex rounded-lg border px-2 py-0.5 text-[9px] font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
+                {s.detail}
               </span>
             ))}
           </div>
