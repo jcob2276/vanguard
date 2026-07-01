@@ -82,9 +82,10 @@ Edge function gotchas:
 
 ## Models (current)
 
-- Oracle (default): `deepseek-v4-flash`
+- Default (most functions): `deepseek-v4-flash` — auto-classify, oracle, architect, wiki-compiler, reconciliation, nutrition-coach, etc.
 - Oracle deep mode (`!!`): `deepseek-reasoner`
-- Telegram adversary/planning/emotion inline calls: `deepseek-v4-flash` (in `vanguard-telegram`)
+- Analyst nightly: `deepseek-reasoner` (pattern analysis)
+- JSON parsing tasks: `deepseek-chat` — food parsing, workout parsing, food quality, training load, librarian, eval-interview classification. Used where `responseFormat: json_object` is needed (v4-flash uses `reasoning_content` field, not suitable for structured JSON).
 - Transcription: OpenAI Whisper (`whisper-1`)
 - Embeddings: OpenAI `text-embedding-3-small`
 

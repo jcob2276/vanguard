@@ -165,8 +165,9 @@ wip                               ← nie commituj WIP na main
 
 | Gdzie | Model | Dlaczego |
 |---|---|---|
-| Wszystkie Vanguard functions | `deepseek-v4-flash` | Szybki, tani, wystarczający |
-| Oracle tryb `!!` | `deepseek-reasoner` | Deep analysis na żądanie |
+| Wszystkie Vanguard functions (default) | `deepseek-v4-flash` | Szybki, tani, wystarczający |
+| JSON parsing (food, workout, quality, training load, librarian, eval) | `deepseek-chat` | `responseFormat: json_object` — v4-flash używa `reasoning_content` |
+| Oracle tryb `!!` + Analyst nightly | `deepseek-reasoner` | Deep analysis na żądanie |
 | Embeddings | `text-embedding-3-small` | Kompatybilność wektorów w DB |
 | Whisper | `whisper-1` | Jedyna opcja |
 

@@ -26,7 +26,7 @@ Zintegrowany, osobisty kokpit samoobserwacji i logowania Jakuba. System który:
 | Zakładka | Ikona | Zawartość |
 |---|---|---|
 | **DZIŚ** | Sun | PowerList, DailyStrainCard, StravaWidget, NutritionTrainingBarCard, FoodQuickCapture, TrainingSaunaQuickBar, SpineGuideStrip, ActionCenterSheet |
-| **TYDZIEŃ** | Calendar | Direction (review/refleksja, KPI, sprint), WeekHub, NutritionCard, LifeGoalsPanel |
+| **TYDZIEŃ** | Calendar | Direction (review/refleksja, KPI, sprint), WeekHub, NutritionCard |
 | **PROJEKTY** | FolderKanban | Projects (lista + KPI + milestone), GoalCreateModal |
 | **HISTORIA** | Clock | Stats (ciało, treningi, dieta), Photos, MuscleHeatmap, InsightsDashboard |
 
@@ -146,11 +146,18 @@ SSOT: [`supabase/functions/README.md`](../supabase/functions/README.md) — osta
 | Webhook entry | `index.ts` | Parse payload, auth `chat_id`, dispatch |
 | Callback router | `_router/callbacks.ts` | Button clicks → handlers |
 | Message pipeline | `_router/messages.ts` | Stream, voice, Oracle, reconciliation routing |
+| Commands | `_router/commands.ts` | Slash commands: /start, /koniec, /pytanie, /dieta, /posilek, /lenie, /todo, /keep, /post, /sup |
 | Config | `_router/config.ts` | `createTelegramContext()` |
 | Reconciliation | `_handlers/reconciliation.ts` | Evening reflection reply |
 | Feedback buttons | `_handlers/feedback.ts` | `fb_ok` / `fb_err` |
 | Anti-analysis guard | `_handlers/antiAnalysis.ts` | Analysis drift buttons |
 | Closure proposals | `_handlers/closureProposal.ts` | Stream closure ✅/❌ buttons |
+| Food correction | `_handlers/foodCorrection.ts` | Meal correction via Telegram |
+| Food meal | `_handlers/foodMeal.ts` | Food parse result + send |
+| Pattern feedback | `_handlers/patternFeedback.ts` | Friction pattern feedback buttons |
+| Photo label | `_handlers/photoLabel.ts` | Photo → AI label |
+| Saved links | `_handlers/savedLinks.ts` | Share target / PWA link save |
+| Supplements | `_handlers/supplements.ts` | `/sup` command handler |
 
 ---
 

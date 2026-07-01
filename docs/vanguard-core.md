@@ -71,7 +71,6 @@ Oracle receives `state_vector` with:
 
 ## What not to touch without reason
 
-- Reality Adversary forbidden phrase filter
 - Planning tension_action guardrail (reverts to active if missing)
 - Stream dedup by `telegram_message_id`
 - Confirmed gate / epistemic guardrails in oracle prompts
