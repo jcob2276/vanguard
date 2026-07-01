@@ -10,7 +10,7 @@
  *   5. vanguard_daily_aggregates → DB row exists
  *   6. planning_summary      → DB row exists (last 7 days)
  *   7. daily_reconciliations → DB row exists (last 7 days)
- *   8. vanguard-morning-brief → reachable (OPTIONS, no POST side-effect)
+ *   8. vanguard-telegram      → reachable (OPTIONS, no POST side-effect)
  *
  * Does NOT call cron functions with POST — avoids Telegram sends.
  * compute-daily-strain and save-daily-aggregate are safe to call any time.
@@ -218,9 +218,9 @@ await step('daily_reconciliations — row exists (last 7 days)', async () => {
   return `date=${data.date} planning_status=${data.planning_status}`
 })
 
-// 8. vanguard-morning-brief reachability (OPTIONS only — no Telegram side-effect)
-await step('vanguard-morning-brief — reachable (OPTIONS)', async () => {
-  await optionsFn('vanguard-morning-brief')
+// 8. vanguard-telegram reachability (OPTIONS only — no Telegram side-effect)
+await step('vanguard-telegram — reachable (OPTIONS)', async () => {
+  await optionsFn('vanguard-telegram')
   return 'CORS preflight OK'
 })
 

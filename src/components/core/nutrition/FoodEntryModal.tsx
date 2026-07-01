@@ -1,106 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Keyboard, PenLine, Sparkles, Trash2, Check } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
-import { useHaptics } from '../../../hooks/useHaptics';
+import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, PenLine, Sparkles, Trash2, Check } from 'lucide-react';
+import { confidenceLabel } from '../../../lib/foodLogging';
+import BarcodeScanner from './BarcodeScanner';
+import FoodRow from './FoodRow';
 import {
-  parseFoodNL,
-  saveParsedFoodItems,
-  saveFoodCorrection,
-  confidenceLabel,
-  needsReview,
-  scheduleFoodQualityAnalysis,
-  type ParsedFoodItem as NLFoodItem,
-} from '../../../lib/foodLogging';
-import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
-import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
-
-declare global {
-  interface Window {
-    BarcodeDetector?: new (opts: { formats: string[] }) => {
-      detect: (source: CanvasImageSource) => Promise<{ rawValue: string }[]>;
-    };
-  }
-}
-
-interface FoodBase {
-  barcode: string | null;
-  name: string;
-  brand: string | null;
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  fiber: number | null;
-  sugar: number | null;
-  defaultGrams?: number | null;
-}
-
-interface Favorite extends FoodBase {
-  id: string;
-  use_count: number;
-  default_grams: number;
-}
-
-interface RecentEntry {
-  id: string;
-  name: string;
-  brand: string | null;
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  amount: string | null;
-  date: string;
-  meal_type?: string | null;
-}
-
-function parseGrams(amount: string | null): number {
-  if (!amount) return 100;
-  const m = amount.match(/(\d+(?:[.,]\d+)?)/);
-  if (!m) return 100;
-  return Math.round(parseFloat(m[1].replace(',', '.')));
-}
-
-function derivePer100(entry: RecentEntry) {
-  const g = Math.max(1, parseGrams(entry.amount));
-  return {
-    calories: (entry.calories ?? 0) * 100 / g,
-    protein: (entry.protein ?? 0) * 100 / g,
-    carbs: entry.carbs != null ? entry.carbs * 100 / g : null,
-    fat: entry.fat != null ? entry.fat * 100 / g : null,
-  };
-}
-
-type NLItem = NLFoodItem;
-
-const MEAL_TYPES = [
-  { id: 'breakfast', label: 'Śniadanie' },
-  { id: 'lunch', label: 'Obiad' },
-  { id: 'dinner', label: 'Kolacja' },
-  { id: 'snack', label: 'Przekąska' },
-];
-
-function defaultMealType(): string {
-  const hour = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).getHours();
-  if (hour < 11) return 'breakfast';
-  if (hour < 16) return 'lunch';
-  if (hour < 21) return 'dinner';
-  return 'snack';
-}
-
-function scale(value: number | null, grams: number): number | null {
-  if (value == null) return null;
-  return Math.round((value * grams) / 100 * 10) / 10;
-}
-
-function dayLabel(dateStr: string, todayStr: string, yesterdayStr: string): string {
-  if (dateStr === todayStr) return 'Dzisiaj';
-  if (dateStr === yesterdayStr) return 'Wczoraj';
-  const [, m, d] = dateStr.split('-');
-  return `${d}.${m}`;
-}
+  useFoodEntryData,
+  parseGrams,
+  scale,
+  dayLabel,
+  type RecentEntry,
+} from './useFoodEntryData';
 
 export interface FoodEntryModalProps {
   session: any;
@@ -110,13 +20,69 @@ export interface FoodEntryModalProps {
   initialMealType?: string;
 }
 
-type Screen = 'browse' | 'portion' | 'edit' | 'manual' | 'nl';
+const MEAL_TYPES = [
+  { id: 'breakfast', label: 'Śniadanie' },
+  { id: 'lunch', label: 'Obiad' },
+  { id: 'dinner', label: 'Kolacja' },
+  { id: 'snack', label: 'Przekąska' },
+];
 
 export default function FoodEntryModal({ session, onClose, onSaved, initialEditEntry, initialMealType }: FoodEntryModalProps) {
-  const userId = session?.user?.id;
-  const haptics = useHaptics();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  const {
+    activeTab, setActiveTab,
+    favorites,
+    recent,
+    loadingList,
+    query, setQuery,
+    searchResults,
+    searching,
+    selected, setSelected,
+    grams, setGrams,
+    mealType, setMealType,
+    saving,
+    quickAddingId,
+    savedFlash,
+    error, setError,
+    scannerOpen, setScannerOpen,
+    scanLookingUp,
+    editingEntry, setEditingEntry,
+    editGrams, setEditGrams,
+    editMealType, setEditMealType,
+    editSaving,
+    editDeleting,
+    todayTotals,
+    targets,
+    manualMode, setManualMode,
+    manualName, setManualName,
+    manualKcal, setManualKcal,
+    manualProtein, setManualProtein,
+    manualCarbs, setManualCarbs,
+    manualFat, setManualFat,
+    nlMode, setNlMode,
+    nlText, setNlText,
+    nlParsing,
+    nlItems,
+    nlSaving,
+    nlRemovedIdx, setNlRemovedIdx,
+    preview,
+    editPreview,
+    openEditEntry,
+    save,
+    quickAddSearchResult,
+    quickAddFavorite,
+    quickRepeatEntry,
+    saveManual,
+    parseNL,
+    saveNLItems,
+    saveEntryEdit,
+    deleteEntry,
+    todayStr,
+    yesterdayStr,
+    lookupBarcode
+  } = useFoodEntryData({ session, onClose, onSaved, initialEditEntry, initialMealType, searchInputRef });
 
   // Keep the bottom sheet above the virtual keyboard on mobile
   useEffect(() => {
@@ -134,51 +100,8 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     update();
     return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
   }, []);
-  const [activeTab, setActiveTab] = useState<'favorites' | 'recent'>('favorites');
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [recent, setRecent] = useState<RecentEntry[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<FoodBase[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<FoodBase | null>(null);
-  const [grams, setGrams] = useState('100');
-  const [mealType, setMealType] = useState(initialMealType ?? defaultMealType());
-  const [saving, setSaving] = useState(false);
-  const [quickAddingId, setQuickAddingId] = useState<string | null>(null);
-  const [savedFlash, setSavedFlash] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanLookingUp, setScanLookingUp] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<RecentEntry | null>(initialEditEntry ?? null);
-  const [editGrams, setEditGrams] = useState(initialEditEntry ? String(parseGrams(initialEditEntry.amount)) : '100');
-  const [editMealType, setEditMealType] = useState(initialEditEntry?.meal_type ?? defaultMealType());
-  const [editPer100, setEditPer100] = useState<{ calories: number; protein: number; carbs: number | null; fat: number | null } | null>(
-    initialEditEntry ? derivePer100(initialEditEntry) : null,
-  );
-  const [editSaving, setEditSaving] = useState(false);
-  const [editDeleting, setEditDeleting] = useState(false);
 
-  const [todayTotals, setTodayTotals] = useState<{ calories: number; protein: number } | null>(null);
-  const [targets, setTargets] = useState<{ target_kcal: number | null; protein_floor_g: number | null } | null>(null);
-
-  // Manual entry — persisted so a backgrounded-tab kill mid-typing doesn't wipe it.
-  const manualDraftKey = (field: string) => userId ? `vanguard_food_manual_${field}_${userId}` : null;
-  const [manualMode, setManualMode] = useState(false);
-  const [manualName, setManualName] = usePersistentDraft(manualDraftKey('name'), '');
-  const [manualKcal, setManualKcal] = usePersistentDraft(manualDraftKey('kcal'), '');
-  const [manualProtein, setManualProtein] = usePersistentDraft(manualDraftKey('protein'), '');
-  const [manualCarbs, setManualCarbs] = usePersistentDraft(manualDraftKey('carbs'), '');
-  const [manualFat, setManualFat] = usePersistentDraft(manualDraftKey('fat'), '');
-
-  // NL mode
-  const [nlMode, setNlMode] = useState(false);
-  const [nlText, setNlText] = usePersistentDraft(userId ? `vanguard_food_nl_draft_${userId}` : null, '');
-  const [nlParsing, setNlParsing] = useState(false);
-  const [nlItems, setNlItems] = useState<NLItem[] | null>(null);
-  const [nlSaving, setNlSaving] = useState(false);
-  const [nlRemovedIdx, setNlRemovedIdx] = useState<Set<number>>(new Set());
-
+  // Escape key handler
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -190,12 +113,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editingEntry, nlMode, manualMode, selected, onClose]);
+  }, [editingEntry, nlMode, manualMode, selected, onClose, setEditingEntry, setNlMode, setManualMode, setSelected]);
 
-  const todayStr = getTodayWarsaw();
-  const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
-
-  const screen: Screen = editingEntry
+  const screen = editingEntry
     ? 'edit'
     : nlMode
     ? 'nl'
@@ -204,444 +124,6 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     : selected
     ? 'portion'
     : 'browse';
-
-  const loadLists = useCallback(async () => {
-    if (!userId) return;
-    setLoadingList(true);
-    const [favRes, recentRes, todayRes, targetRes] = await Promise.all([
-      supabase
-        .from('food_favorites')
-        .select('id, barcode, name, brand, calories, protein, carbs, fat, fiber, sugar, use_count, default_grams')
-        .eq('user_id', userId)
-        .order('use_count', { ascending: false })
-        .order('last_used', { ascending: false })
-        .limit(20),
-      supabase
-        .from('daily_food_entries')
-        .select('id, name, brand, calories, protein, carbs, fat, amount, date')
-        .eq('user_id', userId)
-        .order('logged_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(15),
-      supabase
-        .from('daily_nutrition')
-        .select('calories, protein')
-        .eq('user_id', userId)
-        .eq('date', getTodayWarsaw())
-        .maybeSingle(),
-      supabase
-        .from('nutrition_targets')
-        .select('target_kcal, protein_floor_g')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-    if (favRes.error) console.error('[FoodEntryModal] favorites fetch failed', favRes.error);
-    if (recentRes.error) console.error('[FoodEntryModal] recent fetch failed', recentRes.error);
-    setFavorites(favRes.data || []);
-    setRecent(recentRes.data || []);
-    setTodayTotals(todayRes.data ? { calories: todayRes.data.calories ?? 0, protein: todayRes.data.protein ?? 0 } : { calories: 0, protein: 0 });
-    setTargets(targetRes.data ?? null);
-    setLoadingList(false);
-  }, [userId]);
-
-  useEffect(() => { loadLists(); }, [loadLists]);
-
-  useEffect(() => {
-    if (query.trim().length < 2 || !userId) { setSearchResults([]); return; }
-    const t = setTimeout(async () => {
-      setSearching(true);
-      setError(null);
-      try {
-        // food_library is the personal product cache (seeded from past diet
-        // history) — check it first since it's instant and already has the
-        // user's own product/serving data, then layer on generic+OFF results
-        // for anything not seen before. Dedup by name so a product already
-        // resolved locally doesn't also show a noisier OFF duplicate.
-        const libraryPromise = supabase
-          .from('food_library')
-          .select('name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams')
-          .eq('user_id', userId)
-          .ilike('name', `%${query.trim()}%`)
-          .limit(10);
-
-        const { data: { session: authSession } } = await supabase.auth.getSession();
-        const offPromise = fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?q=${encodeURIComponent(query.trim())}`,
-          { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) }
-        ).then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); });
-
-        const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
-        if (libraryRes.error) console.error('[FoodEntryModal] food_library search failed', libraryRes.error);
-
-        const libraryResults: FoodBase[] = (libraryRes.data || []).map((r) => ({
-          name: r.name, brand: r.brand, barcode: r.barcode,
-          calories: r.calories, protein: r.protein, carbs: r.carbs, fat: r.fat,
-          fiber: r.fiber, sugar: r.sugar, defaultGrams: r.default_grams,
-        }));
-        const seen = new Set(libraryResults.map((r) => r.name.toLowerCase()));
-        const offResults: FoodBase[] = (offJson.results || []).filter((r: FoodBase) => !seen.has(r.name.toLowerCase()));
-        setSearchResults([...libraryResults, ...offResults]);
-      } catch (err) {
-        console.error('[FoodEntryModal] search failed', err);
-        setError('Wyszukiwanie nie powiodło się');
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
-    return () => clearTimeout(t);
-  }, [query, userId]);
-
-  const lookupBarcode = useCallback(async (code: string) => {
-    setScanLookingUp(true);
-    setError(null);
-    try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?barcode=${encodeURIComponent(code)}`,
-        { headers: { Authorization: `Bearer ${authSession?.access_token}` }, signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const result = (json.results || [])[0];
-      if (result) {
-        setScannerOpen(false);
-        setSelected(result);
-        setGrams(String(result.defaultGrams ?? 100));
-      } else {
-        // OFF's barcode coverage has real gaps (regional SKUs, recently
-        // changed packaging) — don't leave the user stuck on the scanner.
-        // Drop them straight into name search, which usually finds it.
-        setScannerOpen(false);
-        haptics.error();
-        setError(`Nie znaleziono kodu — wpisz nazwę produktu`);
-        setTimeout(() => { searchInputRef.current?.focus(); }, 50);
-        setTimeout(() => setError(null), 3000);
-      }
-    } catch (err) {
-      console.error('[FoodEntryModal] barcode lookup failed', err);
-      haptics.error();
-      setError('Wyszukiwanie po kodzie nie powiodło się');
-    } finally {
-      setScanLookingUp(false);
-    }
-  }, [haptics]);
-
-  const preview = useMemo(() => {
-    const gramsNum = parseInt(grams, 10) || 0;
-    if (!selected) return null;
-    return {
-      calories: scale(selected.calories, gramsNum),
-      protein: scale(selected.protein, gramsNum),
-      carbs: scale(selected.carbs, gramsNum),
-      fat: scale(selected.fat, gramsNum),
-    };
-  }, [selected, grams]);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  const flashSaved = useCallback(() => {
-    haptics.success();
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 1200);
-  }, [haptics]);
-
-  const afterFoodLog = useCallback(() => {
-    if (userId) scheduleFoodQualityAnalysis(userId, getTodayWarsaw());
-  }, [userId]);
-
-  // Grows the personal product cache so the next search for the same item
-  // resolves instantly without depending on OFF. Fire-and-forget — never
-  // blocks or fails the actual food-log save.
-  const cacheToLibrary = useCallback((food: FoodBase, defaultGrams: number) => {
-    if (!userId) return;
-    supabase
-      .rpc('cache_food_to_library', {
-        p_user_id: userId, p_name: food.name, p_brand: food.brand, p_barcode: food.barcode,
-        p_calories: food.calories, p_protein: food.protein, p_carbs: food.carbs,
-        p_fat: food.fat, p_fiber: food.fiber, p_sugar: food.sugar, p_default_grams: defaultGrams,
-      } as any)
-      .then(({ error }) => { if (error) console.error('[FoodEntryModal] cacheToLibrary failed', error); });
-  }, [userId]);
-
-  // ── Save from portion selector ────────────────────────────────────────────────
-  const save = useCallback(async () => {
-    if (!selected || !userId || saving) return;
-    const gramsNum = parseInt(grams, 10) || 100;
-    setSaving(true);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: gramsNum,
-        p_entry: {
-          name: selected.name, brand: selected.brand, barcode: selected.barcode,
-          calories: selected.calories, protein: selected.protein, carbs: selected.carbs,
-          fat: selected.fat, fiber: selected.fiber, sugar: selected.sugar, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary(selected, gramsNum);
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      setSelected(null); setQuery(''); setGrams('100');
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setSaving(false);
-    }
-  }, [selected, userId, grams, mealType, saving, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
-
-  // ── Quick-add from search results (1 tap, product's own serving size if known) ──
-  const quickAddSearchResult = useCallback(async (food: FoodBase) => {
-    if (!userId || quickAddingId) return;
-    const key = `srch:${food.name}`;
-    setQuickAddingId(key);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: food.defaultGrams ?? 100,
-        p_entry: {
-          name: food.name, brand: food.brand, barcode: food.barcode,
-          calories: food.calories, protein: food.protein, carbs: food.carbs,
-          fat: food.fat, fiber: food.fiber, sugar: food.sugar, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary(food, food.defaultGrams ?? 100);
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setQuickAddingId(null);
-    }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
-
-  // ── Quick-add favorite ────────────────────────────────────────────────────────
-  const quickAddFavorite = useCallback(async (fav: Favorite) => {
-    if (!userId || quickAddingId) return;
-    setQuickAddingId(fav.id);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: fav.default_grams,
-        p_entry: {
-          name: fav.name, brand: fav.brand, barcode: fav.barcode,
-          calories: fav.calories, protein: fav.protein, carbs: fav.carbs,
-          fat: fav.fat, fiber: fav.fiber, sugar: fav.sugar, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setQuickAddingId(null);
-    }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, afterFoodLog]);
-
-  // ── Repeat recent entry — uses current mealType, not the source entry's meal ──
-  const quickRepeatEntry = useCallback(async (entry: RecentEntry) => {
-    if (!userId || quickAddingId) return;
-    setQuickAddingId(entry.id);
-    setError(null);
-    try {
-      const grams = Math.max(1, parseGrams(entry.amount));
-      const per100 = derivePer100(entry);
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: grams,
-        p_entry: {
-          name: entry.name, brand: entry.brand, barcode: null,
-          calories: Math.round(per100.calories),
-          protein: Math.round(per100.protein * 10) / 10,
-          carbs: per100.carbs != null ? Math.round(per100.carbs * 10) / 10 : null,
-          fat: per100.fat != null ? Math.round(per100.fat * 10) / 10 : null,
-          fiber: null, sugar: null, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setQuickAddingId(null);
-    }
-  }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, afterFoodLog]);
-
-  // ── Manual entry ──────────────────────────────────────────────────────────────
-  const saveManual = useCallback(async () => {
-    if (!userId || saving || !manualName.trim() || !manualKcal.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: 100,
-        p_entry: {
-          name: manualName.trim(), brand: null, barcode: null,
-          calories: Number(manualKcal) || 0,
-          protein: manualProtein.trim() ? Number(manualProtein) : null,
-          carbs: manualCarbs.trim() ? Number(manualCarbs) : null,
-          fat: manualFat.trim() ? Number(manualFat) : null,
-          fiber: null, sugar: null, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary({
-        name: manualName.trim(), brand: null, barcode: null,
-        calories: Number(manualKcal) || 0,
-        protein: manualProtein.trim() ? Number(manualProtein) : null,
-        carbs: manualCarbs.trim() ? Number(manualCarbs) : null,
-        fat: manualFat.trim() ? Number(manualFat) : null,
-        fiber: null, sugar: null,
-      }, 100);
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      setManualName(''); setManualKcal(''); setManualProtein(''); setManualCarbs(''); setManualFat('');
-      setManualMode(false);
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setSaving(false);
-    }
-  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog]);
-
-  // ── NL parse ──────────────────────────────────────────────────────────────────
-  const parseNL = useCallback(async () => {
-    if (!nlText.trim() || nlParsing || !userId) return;
-    setNlParsing(true);
-    setError(null);
-    setNlItems(null);
-    setNlRemovedIdx(new Set());
-    try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      const items = await parseFoodNL(nlText.trim(), userId, authSession?.access_token ?? session.access_token);
-      if (!items.length) {
-        setError('Nie rozpoznano produktów');
-        return;
-      }
-      if (!needsReview(items)) {
-        await saveParsedFoodItems(userId, items, { date: getTodayWarsaw(), mealType });
-        flashSaved();
-        onSaved?.();
-        setNlText(''); setNlItems(null); setNlRemovedIdx(new Set()); setNlMode(false);
-        loadLists();
-        return;
-      }
-      setNlItems(items);
-    } catch (err) {
-      console.error('[FoodEntryModal] NL parse failed', err);
-      setError('Parsowanie nie powiodło się — spróbuj ponownie');
-    } finally {
-      setNlParsing(false);
-    }
-  }, [nlText, nlParsing, userId, session.access_token, mealType, onSaved, loadLists, flashSaved]);
-
-  // ── NL bulk save ──────────────────────────────────────────────────────────────
-  const saveNLItems = useCallback(async () => {
-    if (!userId || !nlItems || nlSaving) return;
-    const toSave = nlItems.filter((_, i) => !nlRemovedIdx.has(i));
-    if (!toSave.length) return;
-    setNlSaving(true);
-    setError(null);
-    try {
-      await saveParsedFoodItems(userId, toSave, { date: getTodayWarsaw(), mealType });
-      flashSaved();
-      onSaved?.();
-      setNlText(''); setNlItems(null); setNlRemovedIdx(new Set()); setNlMode(false);
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setNlSaving(false);
-    }
-  }, [userId, nlItems, nlRemovedIdx, nlSaving, mealType, onSaved, loadLists, flashSaved]);
-
-  // ── Edit existing entry ───────────────────────────────────────────────────────
-  const editPreview = useMemo(() => {
-    if (!editPer100) return null;
-    const g = parseInt(editGrams, 10) || 0;
-    return {
-      calories: Math.round(editPer100.calories * g / 100),
-      protein: Math.round(editPer100.protein * g / 100 * 10) / 10,
-      carbs: editPer100.carbs != null ? Math.round(editPer100.carbs * g / 100 * 10) / 10 : null,
-      fat: editPer100.fat != null ? Math.round(editPer100.fat * g / 100 * 10) / 10 : null,
-    };
-  }, [editGrams, editPer100]);
-
-  const openEditEntry = useCallback((entry: RecentEntry) => {
-    setEditingEntry(entry);
-    setEditGrams(String(parseGrams(entry.amount)));
-    setEditMealType(entry.meal_type ?? defaultMealType());
-    setEditPer100(derivePer100(entry));
-    setError(null);
-  }, []);
-
-  // Updates the row in place via update_food_entry — keeps the same id and logged_at
-  // (so the entry doesn't jump to the bottom of today's/recent list), unlike the old
-  // remove+add approach which also pointlessly bumped the favorites cache.
-  const saveEntryEdit = useCallback(async () => {
-    if (!editingEntry || !userId || editSaving || !editPreview) return;
-    setEditSaving(true);
-    setError(null);
-    try {
-      const newGrams = parseInt(editGrams, 10) || 100;
-      const { error: updErr } = await supabase.rpc('update_food_entry', {
-        p_user_id: userId,
-        p_entry_id: editingEntry.id,
-        p_entry: {
-          calories: editPreview.calories, protein: editPreview.protein,
-          carbs: editPreview.carbs, fat: editPreview.fat,
-          meal_type: editMealType, amount: `${newGrams} g`,
-        },
-      });
-      if (updErr) throw updErr;
-      const origGrams = parseGrams(editingEntry.amount);
-      if (Math.abs(newGrams - origGrams) >= 5) {
-        saveFoodCorrection(userId, editingEntry.name, newGrams).catch((e) =>
-          console.warn('[FoodEntryModal] saveFoodCorrection failed', e),
-        );
-      }
-      setEditingEntry(null);
-      onSaved?.();
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Aktualizacja nie powiodła się');
-    } finally {
-      setEditSaving(false);
-    }
-  }, [editingEntry, userId, editGrams, editMealType, editPreview, editSaving, onSaved, loadLists]);
-
-  const deleteEntry = useCallback(async () => {
-    if (!editingEntry || !userId || editDeleting) return;
-    haptics.light();
-    setEditDeleting(true);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('remove_food_entry', {
-        p_user_id: userId, p_entry_id: editingEntry.id,
-      });
-      if (rpcError) throw rpcError;
-      setEditingEntry(null);
-      onSaved?.();
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Usunięcie nie powiodło się');
-    } finally {
-      setEditDeleting(false);
-    }
-  }, [editingEntry, userId, editDeleting, onSaved, loadLists, haptics]);
 
   const nlActiveCount = nlItems ? nlItems.filter((_, i) => !nlRemovedIdx.has(i)).length : 0;
 
@@ -687,7 +169,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
           </button>
         </div>
 
-        {/* Running total — so you know how today's looking before adding more */}
+        {/* Running total */}
         {todayTotals && (
           <div className="px-5 py-2.5 border-b border-border-custom/60 bg-surface-solid/20 shrink-0">
             <div className="flex items-center justify-between text-[10px] font-bold text-text-muted mb-1.5">
@@ -757,7 +239,14 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
               </div>
               {editPreview && (
                 <div className="rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3 grid grid-cols-4 gap-2 text-center">
-                  {([['kcal', editPreview.calories], ['B', editPreview.protein], ['W', editPreview.carbs], ['T', editPreview.fat]] as [string, number | null][]).map(([label, val]) => (
+                  {(
+                    [
+                      ['kcal', editPreview.calories],
+                      ['B', editPreview.protein],
+                      ['W', editPreview.carbs],
+                      ['T', editPreview.fat],
+                    ] as [string, number | null][]
+                  ).map(([label, val]) => (
                     <div key={label}>
                       <p className="text-[13px] font-black text-text-primary">{val ?? '–'}</p>
                       <p className="text-[8px] uppercase text-text-muted">{label}</p>
@@ -782,7 +271,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
           {/* ── NL screen ─────────────────────────────────────────── */}
           {screen === 'nl' && (
             <div className="space-y-4">
-              <button onClick={() => { setNlMode(false); setNlItems(null); setError(null); }}
+              <button onClick={() => { setNlMode(false); setError(null); }}
                 className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
 
               <div className="flex gap-1.5 flex-wrap mb-1">
@@ -798,7 +287,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                 <textarea
                   autoFocus
                   value={nlText}
-                  onChange={(e) => { setNlText(e.target.value); if (nlItems) { setNlItems(null); setNlRemovedIdx(new Set()); } }}
+                  onChange={(e) => { setNlText(e.target.value); }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); parseNL(); } }}
                   placeholder={'Opisz co zjadłeś, np.:\n"2 jajka ugotowane, twaróg 150g, kawa z mlekiem"\n"miseczka owsianki z bananem i jogurtem"'}
                   rows={4}
@@ -1032,7 +521,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
               {scannerOpen ? (
                 <BarcodeScanner onDetected={lookupBarcode} onClose={() => setScannerOpen(false)} loading={scanLookingUp} />
               ) : query.trim().length >= 2 ? (
-                /* Search results — + adds at the product's own serving size (or 100g if unknown), text tap = portion selector */
+                /* Search results */
                 <div className="space-y-1.5">
                   <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
                     Wyniki — ✚ dodaje w sugerowanej porcji, nazwa otwiera porcję
@@ -1123,7 +612,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                                     subtitle={[e.brand, e.amount].filter(Boolean).join(' · ')}
                                     calories={e.calories}
                                     loading={quickAddingId === e.id}
-                                    onTap={() => quickRepeatEntry(e)}
+                                    onTap={() => openEditEntry(e)}
                                     onQuickAdd={() => quickRepeatEntry(e)}
                                     quickAddIcon={<RotateCcw size={12} />}
                                   />
@@ -1141,82 +630,5 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       </div>
     </div>,
     document.body
-  );
-}
-
-function BarcodeScanner({ onDetected, onClose, loading }: { onDetected: (code: string) => void; onClose: () => void; loading: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [manualCode, setManualCode] = useState('');
-  const detectorSupported = typeof window !== 'undefined' && !!window.BarcodeDetector;
-
-  useEffect(() => {
-    if (!detectorSupported) return;
-    let stream: MediaStream | null = null;
-    let stopped = false;
-    let rafId: number;
-    (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (stopped) { stream.getTracks().forEach((t) => t.stop()); return; }
-        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-        const detector = new window.BarcodeDetector!({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-        const scan = async () => {
-          if (stopped || !videoRef.current) return;
-          try { const codes = await detector.detect(videoRef.current); if (codes.length > 0) { onDetected(codes[0].rawValue); return; } } catch { /* ignore mid-frame decode errors */ }
-          rafId = requestAnimationFrame(() => { scan(); });
-        };
-        scan();
-      } catch (err) {
-        console.error('[BarcodeScanner] camera failed', err);
-        setCameraError('Brak dostępu do kamery — wpisz kod ręcznie');
-      }
-    })();
-    return () => { stopped = true; if (rafId) cancelAnimationFrame(rafId); stream?.getTracks().forEach((t) => t.stop()); };
-  }, [detectorSupported, onDetected]);
-
-  return (
-    <div className="space-y-3">
-      <button onClick={onClose} className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
-      {detectorSupported && !cameraError ? (
-        <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
-          <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
-          <div className="absolute inset-8 border-2 border-primary/70 rounded-xl pointer-events-none" />
-          {loading && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Loader2 size={24} className="text-white animate-spin" /></div>}
-        </div>
-      ) : (
-        <p className="text-[11px] text-text-muted text-center py-2">{cameraError || 'Skaner kamery niedostępny — wpisz kod ręcznie'}</p>
-      )}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Keyboard size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={manualCode} onChange={(e) => setManualCode(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && manualCode.trim()) onDetected(manualCode.trim()); }}
-            inputMode="numeric" placeholder="Wpisz kod kreskowy..."
-            className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-2 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
-        </div>
-        <button onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading}
-          className="rounded-xl bg-primary px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40 cursor-pointer">Szukaj</button>
-      </div>
-    </div>
-  );
-}
-
-function FoodRow({ name, subtitle, calories, loading, onTap, onQuickAdd, quickAddIcon }: {
-  name: string; subtitle?: string | null; calories: number | null;
-  loading?: boolean; onTap: () => void; onQuickAdd: () => void; quickAddIcon: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-border-custom bg-surface-solid/30 px-3 py-2 hover:bg-surface-solid/60 transition-all">
-      <button onClick={onTap} className="flex-1 min-w-0 text-left cursor-pointer">
-        <p className="text-[13px] font-bold text-text-primary truncate">{name}</p>
-        {subtitle && <p className="text-[10px] text-text-muted truncate">{subtitle}</p>}
-      </button>
-      <span className="text-[11px] font-black text-primary shrink-0">{calories ?? '?'} kcal</span>
-      <button onClick={onQuickAdd} disabled={loading}
-        className="shrink-0 rounded-full bg-primary p-1.5 text-white active:scale-90 transition-all cursor-pointer disabled:opacity-50">
-        {loading ? <Loader2 size={13} className="animate-spin" /> : quickAddIcon}
-      </button>
-    </div>
   );
 }

@@ -45,7 +45,7 @@ import {
 import GoalCreateModal from './GoalCreateModal';
 import RetroModal from './RetroModal';
 import ProjectCard from './ProjectCard';
-import { confirmDialog } from '../../lib/notify';
+import { notify, confirmDialog } from '../../lib/notify';
 
 type PillarFilter = PillarId | 'all';
 
@@ -92,6 +92,30 @@ export default function Projects({
   const [kpis, setKpis] = useState<any[]>([]);
   const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
   const [goalCreateOpen, setGoalCreateOpen] = useState(false);
+
+  const importantTasks = useMemo(() => {
+    const todayStr = getTodayWarsaw();
+    return items.filter((item: any) => {
+      if (item.status !== 'open') return false;
+      const isUrgentOrHigh = item.priority === 'high' || item.priority === 'urgent';
+      const isDueToday = item.due_date === todayStr;
+      return isUrgentOrHigh || isDueToday;
+    });
+  }, [items]);
+
+  const handleToggleTaskDone = useCallback(async (task: any) => {
+    setBusy(true);
+    try {
+      setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: 'done', completed_at: new Date().toISOString() } : i));
+      await setTodoStatus(task, 'done');
+      notify('Zadanie ukończone', 'success');
+    } catch (e: any) {
+      setError(e.message || 'Nie udało się ukończyć zadania');
+      setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: task.status, completed_at: task.completed_at } : i));
+    } finally {
+      setBusy(false);
+    }
+  }, [items]);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -544,7 +568,32 @@ export default function Projects({
         </div>
       </div>
 
-
+      {/* ── Priorytetowe Zadania ── */}
+      {importantTasks.length > 0 && (
+        <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm space-y-3">
+          <h3 className="flex items-center gap-2 font-display text-[10px] font-black uppercase tracking-wider text-text-muted">
+            <Zap size={12} className="text-amber-500" /> Priorytetowe Zadania
+          </h3>
+          <div className="space-y-2">
+            {importantTasks.slice(0, 3).map((task) => (
+              <div
+                key={task.id}
+                onClick={() => void handleToggleTaskDone(task)}
+                className="flex items-center gap-2.5 rounded-xl border border-border-custom bg-background/30 px-3.5 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                title="Kliknij, aby oznaczyć jako wykonane"
+              >
+                <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-rose-500' : 'bg-indigo-500'}`} />
+                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary hover:line-through">
+                  {task.title}
+                </span>
+                {task.due_date && (
+                  <span className="shrink-0 text-[9px] font-bold text-text-muted">{task.due_date}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Pillar filter tabs ── */}
       <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">

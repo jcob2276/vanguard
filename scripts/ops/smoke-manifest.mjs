@@ -10,6 +10,7 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",
   "vanguard-telegram",
+  "vanguard-telegram-worker",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
@@ -23,6 +24,10 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "analyze-training-load",
   "vanguard-eval-interview",
   "vanguard-nutrition-coach",
+  "vanguard-librarian",
+  "vanguard-push-reminder",
+  "compute-illness-signal",
+  "rescore-workout-sessions",
 ];
 
 
@@ -37,6 +42,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
   { name: "save-daily-aggregate", post: "cron_secret", sideEffects: "Writes daily aggregate" },
   { name: "vanguard-telegram", post: "webhook", body: { update_id: 0 }, sideEffects: "OPTIONS preferred" },
+  { name: "vanguard-telegram-worker", post: "skip", sideEffects: "DB trigger only — no direct HTTP invocation; OPTIONS for health check" },
   { name: "vanguard-oracle", post: "safe", body: { current_query: "smoke", user_id: "__USER__", mode: "chat" }, sideEffects: "Calls DeepSeek — use only with --invoke-safe" },
   { name: "vanguard-auto-classify", post: "safe", body: {}, sideEffects: "Returns 200, no classify" },
   { name: "vanguard-architect", post: "safe", body: { limit: 0 }, sideEffects: "DB read only" },
@@ -52,6 +58,8 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-librarian", post: "skip", sideEffects: "Calls DeepSeek + writes food_library entries — OPTIONS only" },
   { name: "vanguard-goal-create", post: "skip", sideEffects: "Calls DeepSeek for Goal AI templates" },
   { name: "vanguard-push-reminder", post: "skip", sideEffects: "Sends web push notifications for reminders" },
+  { name: "compute-illness-signal", post: "skip", sideEffects: "Reads daily_strain and updates illness flags" },
+  { name: "rescore-workout-sessions", post: "skip", sideEffects: "Rescores workouts based on Oura heartrate data" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */

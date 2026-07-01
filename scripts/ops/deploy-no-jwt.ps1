@@ -9,6 +9,7 @@ $all = @(
   "vanguard-daily-reconciliation",
   "vanguard-weekly-synthesis",
   "vanguard-telegram",
+  "vanguard-telegram-worker",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
@@ -22,7 +23,10 @@ $all = @(
   "sync-strava",
   "analyze-training-load",
   "vanguard-nutrition-coach",
-  "vanguard-librarian"
+  "vanguard-librarian",
+  "compute-illness-signal",
+  "rescore-workout-sessions",
+  "vanguard-push-reminder"
 )
 
 $targets = if ($args.Count -gt 0) { $args } else { $all }

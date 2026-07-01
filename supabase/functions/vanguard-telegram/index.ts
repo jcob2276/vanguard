@@ -2,7 +2,7 @@ import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
-import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope, createServiceClient } from "../_shared/supabase.ts";
 
 function verifyTelegramSecret(req: Request): boolean | "missing_config" {
   const expected = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
@@ -148,9 +148,13 @@ Deno.serve(async (req) => {
     }
 
     if (payload.callback_query) {
-      await handleCallbackQuery(payload.callback_query as never, ctx).catch((err) => {
-        console.error("[telegram] callback error:", err);
-      });
+      const supabase = createServiceClient();
+      const { error } = await supabase
+        .from("vanguard_telegram_inbox")
+        .insert({ payload });
+      if (error) {
+        console.error("[telegram] failed to queue callback_query:", error);
+      }
       return new Response("OK", { status: 200 });
     }
 
@@ -173,7 +177,13 @@ Deno.serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
-    await handleIncomingMessage(message as never, ctx);
+    const supabase = createServiceClient();
+    const { error } = await supabase
+      .from("vanguard_telegram_inbox")
+      .insert({ payload });
+    if (error) {
+      console.error("[telegram] failed to queue message:", error);
+    }
     return new Response("OK", { status: 200 });
   } catch (err) {
     await logCriticalError({

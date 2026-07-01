@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Plus, RefreshCw, X, Loader2, Sparkles, Zap, Flame, Droplet } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import FoodEntryModal from './nutrition/FoodEntryModal';
-import { useHaptics } from '../../hooks/useHaptics';
+import { useNutritionData, type TodayEntry } from './useNutritionData';
+import NutritionChart from './NutritionChart';
 
 interface NutritionCardProps {
   weeklyCalories: number;
@@ -11,44 +10,10 @@ interface NutritionCardProps {
   refreshSignal?: number;
 }
 
-interface TodayEntry {
-  id: string;
-  name: string;
-  brand: string | null;
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  amount: string | null;
-  date: string;
-  meal_type: string | null;
-}
-
-const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-const MEAL_LABEL: Record<string, string> = {
-  breakfast: 'Śniadanie',
-  lunch: 'Obiad',
-  dinner: 'Kolacja',
-  snack: 'Przekąska',
-};
-
 function qualityColor(score: number): string {
   if (score >= 75) return 'text-emerald-400 border-emerald-500/25 bg-emerald-500/10';
   if (score >= 55) return 'text-amber-400 border-amber-500/25 bg-amber-500/10';
   return 'text-rose-400 border-rose-500/25 bg-rose-500/10';
-}
-
-function getWeekdayAbbr(dateStr: string): string {
-  try {
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr.slice(8);
-    const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    const day = date.getDay();
-    const days = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
-    return days[day] || dateStr.slice(8);
-  } catch {
-    return dateStr.slice(8);
-  }
 }
 
 export default function NutritionCard({
@@ -56,232 +21,57 @@ export default function NutritionCard({
   session,
   refreshSignal,
 }: NutritionCardProps) {
-  const userId = session?.user?.id;
-  const todayRaw = getTodayWarsaw();
-  const haptics = useHaptics();
+  const {
+    todayRaw,
+    haptics,
+    proteinGoal,
+    kcalTarget,
+    weeklyBudget,
+    todayEntries,
+    deletingId,
+    aiSuggestions,
+    forecast,
+    forecastNote,
+    isExpanded, setIsExpanded,
+    selectedMealType, setSelectedMealType,
+    activeChartTab, setActiveChartTab,
+    fetchRows,
+    fetchTodayEntries,
+    handleSaved,
+    deleteEntry,
+    caloriesProgress,
+    chart,
+    avgProtein7d,
+    todayProtein,
+    todayKcal,
+    todayInsulinLoad,
+    proteinPct,
+    todayMissingData,
+    remainingKcalToday,
+    todayMacros,
+    pPct,
+    cPct,
+    fPct,
+    todayQualityScore,
+    todayAnalysis,
+    todayAnalysisIsStale,
+    todayAnalysisRow,
+    mealGroups,
+    mealGroupsWithEntries,
+  } = useNutritionData({ session, weeklyCalories, refreshSignal });
 
-  const [proteinGoal, setProteinGoal] = useState(150);
-  const [kcalTarget, setKcalTarget] = useState(1800);
-  const [weeklyBudget, setWeeklyBudget] = useState(12600);
-  const [rows, setRows] = useState<{
-    date: string;
-    protein: number | null;
-    calories: number | null;
-    food_quality_analysis: string | null;
-    insulin_load: number | null;
-    avg_food_quality: number | null;
-  }[]>([]);
   const [showEntryModal, setShowEntryModal] = useState(false);
-  const [todayEntries, setTodayEntries] = useState<TodayEntry[]>([]);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editEntry, setEditEntry] = useState<TodayEntry | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [forecast, setForecast] = useState<{
-    forecast_30d_weight_kg: number | null;
-    forecast_60d_weight_kg: number | null;
-    forecast_90d_weight_kg: number | null;
-    forecast_30d_bf_pct: number | null;
-    forecast_60d_bf_pct: number | null;
-    forecast_90d_bf_pct: number | null;
-    days_to_goal_est: number | null;
-    adaptive_correction_kcal: number | null;
-  } | null>(null);
-  const [forecastNote, setForecastNote] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined);
-  const [activeChartTab, setActiveChartTab] = useState<'calories' | 'protein'>('calories');
 
-  const fetchRows = useCallback(async () => {
-    if (!userId) return;
-    try {
-      // Fetch by calendar date range, not row count — daily_nutrition only has
-      // a row for days with logged entries, so .limit(7) on sparse-logging
-      // weeks silently reaches back further than 7 calendar days.
-      const since = (() => { const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 6); return formatWarsawDate(d); })();
-      const { data } = await supabase
-        .from('daily_nutrition')
-        .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
-        .eq('user_id', userId)
-        .gte('date', since)
-        .order('date', { ascending: true });
-      if (data) setRows(data);
-    } catch (e) {
-      console.error('daily_nutrition fetch failed', e);
-    }
-  }, [userId, todayRaw]);
-
-  const fetchTodayEntries = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const { data } = await supabase
-        .from('daily_food_entries')
-        .select('id, name, brand, calories, protein, carbs, fat, amount, date, meal_type')
-        .eq('user_id', userId)
-        .eq('date', todayRaw)
-        .order('logged_at', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true });
-      if (data) setTodayEntries(data);
-    } catch (e) {
-      console.error('daily_food_entries fetch failed', e);
-    }
-  }, [userId, todayRaw]);
-
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const { data: targetRow } = await supabase
-          .from('nutrition_targets')
-          .select('target_kcal, protein_floor_g, verdict, forecast_30d_weight_kg, forecast_60d_weight_kg, forecast_90d_weight_kg, forecast_30d_bf_pct, forecast_60d_bf_pct, forecast_90d_bf_pct, days_to_goal_est, adaptive_correction_kcal')
-          .eq('user_id', userId)
-          .order('date', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (targetRow?.target_kcal) {
-          setKcalTarget(targetRow.target_kcal);
-          setWeeklyBudget(targetRow.target_kcal * 7);
-        }
-        if (targetRow?.protein_floor_g) setProteinGoal(targetRow.protein_floor_g);
-        if (targetRow) {
-          setForecast({
-            forecast_30d_weight_kg: targetRow.forecast_30d_weight_kg,
-            forecast_60d_weight_kg: targetRow.forecast_60d_weight_kg,
-            forecast_90d_weight_kg: targetRow.forecast_90d_weight_kg,
-            forecast_30d_bf_pct: targetRow.forecast_30d_bf_pct,
-            forecast_60d_bf_pct: targetRow.forecast_60d_bf_pct,
-            forecast_90d_bf_pct: targetRow.forecast_90d_bf_pct,
-            days_to_goal_est: targetRow.days_to_goal_est,
-            adaptive_correction_kcal: targetRow.adaptive_correction_kcal,
-          });
-        }
-        const verdict = targetRow?.verdict;
-        const verdictObj = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
-          ? (verdict as Record<string, unknown>)
-          : undefined;
-        const suggestions = verdictObj?.food_suggestions;
-        if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
-        if (typeof verdictObj?.forecast_note === 'string') setForecastNote(verdictObj.forecast_note);
-      } catch (e) {
-        console.error('nutrition_targets fetch failed', e);
-      }
-    })();
-    fetchRows();
-    fetchTodayEntries();
-  }, [userId, fetchRows, fetchTodayEntries, refreshSignal]);
-
-  const handleSaved = useCallback(() => {
-    fetchRows();
-    fetchTodayEntries();
-  }, [fetchRows, fetchTodayEntries]);
-
-  const deleteEntry = useCallback(async (id: string) => {
-    if (!userId || deletingId) return;
-    haptics.light();
-    setDeletingId(id);
-    try {
-      const { error } = await supabase.rpc('remove_food_entry', { p_user_id: userId, p_entry_id: id });
-      if (error) throw new Error(error.message);
-      await Promise.all([fetchRows(), fetchTodayEntries()]);
-    } catch (e) {
-      console.error('[NutritionCard] delete entry failed', e);
-    } finally {
-      setDeletingId(null);
-    }
-  }, [userId, deletingId, fetchRows, fetchTodayEntries, haptics]);
-
-  const caloriesProgress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
-
-  const chart = useMemo(() => {
-    const byDate = new Map(rows.map((r) => [r.date, r]));
-    const days: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - i);
-      days.push(formatWarsawDate(d));
-    }
-    return days.map((key) => {
-      const r = byDate.get(key);
-      return {
-        key, label: key.slice(8),
-        protein: Number(r?.protein || 0), calories: Number(r?.calories || 0),
-        analysis: r?.food_quality_analysis ?? null,
-        insulin_load: r?.insulin_load != null ? Number(r.insulin_load) : null,
-      };
-    });
-  }, [rows, todayRaw]);
-
-  const avgProtein7d = useMemo(() => {
-    const vals = chart.filter((r) => r.protein > 0).map((r) => r.protein);
-    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-  }, [chart]);
-
-  const todayRow = chart.find((r) => r.key === todayRaw);
-  const todayProtein = todayRow?.protein ?? 0;
-  const todayKcalFromEntries = todayEntries.reduce((s, e) => s + (e.calories ?? 0), 0);
-  const todayKcal = todayEntries.length > 0 ? Math.round(todayKcalFromEntries) : (todayRow?.calories ?? 0);
-  const todayInsulinLoad = todayRow?.insulin_load ?? null;
-  const proteinPct = Math.min((todayProtein / proteinGoal) * 100, 100);
-  const todayMissingData = todayKcal === 0 && todayProtein === 0;
-  const remainingKcalToday = kcalTarget - todayKcal;
-
-  const todayMacros = useMemo(() => {
-    let p = 0, c = 0, f = 0;
-    for (const e of todayEntries) {
-      p += e.protein ?? 0;
-      c += e.carbs ?? 0;
-      f += e.fat ?? 0;
-    }
-    return {
-      protein: Math.round(p * 10) / 10,
-      carbs: Math.round(c * 10) / 10,
-      fat: Math.round(f * 10) / 10,
-    };
-  }, [todayEntries]);
-
-  const totalGrams = todayMacros.protein + todayMacros.carbs + todayMacros.fat;
-  const pPct = totalGrams > 0 ? (todayMacros.protein / totalGrams) * 100 : 0;
-  const cPct = totalGrams > 0 ? (todayMacros.carbs / totalGrams) * 100 : 0;
-  const fPct = totalGrams > 0 ? (todayMacros.fat / totalGrams) * 100 : 0;
-
-  const todayQualityScore = useMemo(
-    () => rows.find((r) => r.date === todayRaw)?.avg_food_quality ?? null,
-    [rows, todayRaw],
-  );
-
-  const todayAnalysisRow = chart.find((r) => r.key === todayRaw)?.analysis
-    ? chart.find((r) => r.key === todayRaw)
-    : chart.findLast((r) => r.analysis);
-  const todayAnalysis = todayAnalysisRow?.analysis ?? null;
-  const todayAnalysisIsStale = !!todayAnalysisRow && todayAnalysisRow.key !== todayRaw;
-
-  const kcalBarColor = (v: number) => {
-    if (!v) return 'bg-border-custom';
-    const pct = v / kcalTarget;
-    if (pct > 1.1) return 'bg-rose-400';
-    if (pct >= 0.85) return 'bg-emerald-400';
-    return 'bg-amber-400';
+  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+  const MEAL_LABEL: Record<string, string> = {
+    breakfast: 'Śniadanie',
+    lunch: 'Obiad',
+    dinner: 'Kolacja',
+    snack: 'Przekąska',
   };
 
-  // Group today's entries by meal type, preserving insertion order within each group
-  const mealGroups = useMemo(() => {
-    const map: Record<string, TodayEntry[]> = {};
-    for (const e of todayEntries) {
-      const key = e.meal_type || 'snack';
-      (map[key] ||= []).push(e);
-    }
-    return MEAL_ORDER.map((k) => ({
-      key: k,
-      label: MEAL_LABEL[k],
-      entries: map[k] || [],
-      totalKcal: (map[k] || []).reduce((s, e) => s + (e.calories ?? 0), 0),
-      totalProtein: Math.round((map[k] || []).reduce((s, e) => s + (e.protein ?? 0), 0) * 10) / 10,
-      totalCarbs: Math.round((map[k] || []).reduce((s, e) => s + (e.carbs ?? 0), 0) * 10) / 10,
-      totalFat: Math.round((map[k] || []).reduce((s, e) => s + (e.fat ?? 0), 0) * 10) / 10,
-    }));
-  }, [todayEntries]);
-
-  const mealGroupsWithEntries = useMemo(() => {
-    return mealGroups.filter((g) => g.entries.length > 0);
-  }, [mealGroups]);  return (
+  return (
     <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
@@ -317,7 +107,7 @@ export default function NutritionCard({
         {/* Protein Box */}
         {(() => {
           const protPct = proteinGoal > 0 ? Math.round((todayMacros.protein / proteinGoal) * 100) : 100;
-          const protLow = protPct < 50 && todayMacros.protein > 0;
+          const protLow = protPct < 55 && todayMacros.protein > 0;
           return (
             <div className={`rounded-2xl border-l-4 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between ${protLow ? 'border-l-rose-500/80 bg-rose-500/5' : 'border-l-primary/70'}`}>
               <div>
@@ -385,7 +175,7 @@ export default function NutritionCard({
       </div>
 
       {/* Dynamic Macro Balance split progress bar */}
-      {totalGrams > 0 && (
+      {todayMacros.protein + todayMacros.carbs + todayMacros.fat > 0 && (
         <div className="mb-4 bg-surface-solid/10 border border-border-custom/30 rounded-xl p-2">
           <div className="h-2 w-full rounded-full bg-border-custom overflow-hidden flex">
             <div className="bg-primary h-full transition-all duration-700" style={{ width: `${pPct}%` }} title={`Białko: ${Math.round(pPct)}%`} />
@@ -401,125 +191,15 @@ export default function NutritionCard({
       )}
 
       {/* Unified 7-Day Chart Widget */}
-      <div className="mt-4 border-t border-border-custom/50 pt-4">
-        {/* Chart switcher tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-solid/15 border border-border-custom/50 mb-3">
-          <button
-            onClick={() => { haptics.light(); setActiveChartTab('calories'); }}
-            className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeChartTab === 'calories'
-                ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            Kalorie (7d)
-          </button>
-          <button
-            onClick={() => { haptics.light(); setActiveChartTab('protein'); }}
-            className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeChartTab === 'protein'
-                ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            Białko (7d)
-          </button>
-        </div>
-
-        {activeChartTab === 'calories' ? (
-          <div className="mt-2">
-            <div className="relative h-24 border-b border-border-custom/50 flex items-end justify-between px-2 pb-1">
-              {/* Target baseline */}
-              {kcalTarget > 0 && (
-                <div 
-                  className="absolute left-0 right-0 border-t border-dashed border-amber-500/40 z-0 pointer-events-none"
-                  style={{ bottom: `${(kcalTarget / Math.max(...chart.map(c => c.calories), kcalTarget, 1)) * 100}%` }}
-                />
-              )}
-              {chart.map((d) => {
-                const maxVal = Math.max(...chart.map(c => c.calories), kcalTarget, 1);
-                const pct = (d.calories / maxVal) * 100;
-                const isToday = d.key === todayRaw;
-                const weekday = getWeekdayAbbr(d.key);
-                return (
-                  <div key={d.key} className="flex-1 flex flex-col items-center group relative z-10 h-full justify-end">
-                    <div
-                      className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
-                        isToday
-                          ? 'bg-gradient-to-t from-orange-500 to-amber-400 opacity-100 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
-                          : d.calories >= kcalTarget
-                            ? 'bg-emerald-500/60 dark:bg-emerald-500/70 hover:opacity-100 opacity-70'
-                            : 'bg-text-secondary/40 hover:opacity-85 opacity-55'
-                      }`}
-                      style={{ height: `${Math.max(pct, 5)}%` }}
-                    />
-                    <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-[8px] font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
-                      {weekday}: {d.calories} kcal
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-between px-2 mt-1.5">
-              {chart.map((d) => {
-                const isToday = d.key === todayRaw;
-                const weekday = getWeekdayAbbr(d.key);
-                return (
-                  <span key={d.key} className={`flex-1 text-center text-[7.5px] font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
-                    {isToday ? 'Dziś' : weekday}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2">
-            <div className="relative h-24 border-b border-border-custom/50 flex items-end justify-between px-2 pb-1">
-              {/* Protein Target baseline */}
-              {proteinGoal > 0 && (
-                <div 
-                  className="absolute left-0 right-0 border-t border-dashed border-primary/40 z-0 pointer-events-none"
-                  style={{ bottom: `${(proteinGoal / Math.max(...chart.map(c => c.protein), proteinGoal, 1)) * 100}%` }}
-                />
-              )}
-              {chart.map((d) => {
-                const maxVal = Math.max(...chart.map(c => c.protein), proteinGoal, 1);
-                const pct = (d.protein / maxVal) * 100;
-                const isToday = d.key === todayRaw;
-                const weekday = getWeekdayAbbr(d.key);
-                return (
-                  <div key={d.key} className="flex-1 flex flex-col items-center group relative z-10 h-full justify-end">
-                    <div
-                      className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
-                        isToday
-                          ? 'bg-gradient-to-t from-primary to-indigo-400 opacity-100 shadow-[0_0_8px_rgba(99,102,241,0.25)]'
-                          : d.protein >= proteinGoal
-                            ? 'bg-emerald-500/60 dark:bg-emerald-500/70 hover:opacity-100 opacity-70'
-                            : 'bg-primary/45 hover:opacity-85 opacity-55'
-                      }`}
-                      style={{ height: `${Math.max(pct, 5)}%` }}
-                    />
-                    <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-[8px] font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
-                      {weekday}: {d.protein}g B
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-between px-2 mt-1.5">
-              {chart.map((d) => {
-                const isToday = d.key === todayRaw;
-                const weekday = getWeekdayAbbr(d.key);
-                return (
-                  <span key={d.key} className={`flex-1 text-center text-[7.5px] font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
-                    {isToday ? 'Dziś' : weekday}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+      <NutritionChart
+        activeChartTab={activeChartTab}
+        setActiveChartTab={setActiveChartTab}
+        chart={chart}
+        kcalTarget={kcalTarget}
+        proteinGoal={proteinGoal}
+        todayRaw={todayRaw}
+        haptics={haptics}
+      />
 
       {/* Sync / targets dashboard progress bars */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">

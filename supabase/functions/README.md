@@ -39,6 +39,7 @@ Frontend: Week Hub + Action Center resolve pending system_proposals (Istotne / O
 | Function | Status | Trigger | JWT | Key tables | LOC | Verified |
 |----------|--------|---------|-----|------------|-----|----------|
 | `vanguard-telegram` | **active** | Telegram webhook | **false** | `vanguard_stream`, `daily_reconciliations`, `ai_chat_messages` | 2630 | 2026-06-12 |
+| `vanguard-telegram-worker` | **active** | DB trigger on new inbox items | **false** | `vanguard_telegram_inbox` (+ reads/writes relative to vanguard-telegram) | ~90 | 2026-07-01 |
 | `vanguard-oracle` | **active** | `vanguard-telegram`, frontend | **false** | `vanguard_oracle_runs`, `vanguard_stream` (+ read: stream, links, aggregates, wiki, medical_* context) | 791 | 2026-06-13 |
 | `vanguard-morning-brief` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
 | `vanguard-morning-ping` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |

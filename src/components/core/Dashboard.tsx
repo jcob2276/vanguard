@@ -12,6 +12,8 @@ import {
   Sun,
   Paintbrush,
   Bookmark,
+  Sparkles,
+  Activity,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -95,9 +97,10 @@ export default function Dashboard({ session }: { session: Session }) {
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set([normalizeView(localStorage.getItem('vanguard_view')) || 'dzis']));
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set(['dzis', 'tydzien', 'projekty', 'historia']));
   const [actionCenterOpen, setActionCenterOpen] = useState(false);
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
+  const [historySubTab, setHistorySubTab] = useState<'chronicle' | 'bio'>('chronicle');
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -500,10 +503,35 @@ export default function Dashboard({ session }: { session: Session }) {
           {mountedTabs.has('historia') && (
           <div className={`p-5 pb-8 ${view === 'historia' ? '' : 'hidden'}`}>
             <Suspense fallback={<ViewFallback />}>
-              <div className="space-y-7">
-                <InsightsDashboard session={session} />
-                <Stats session={session} runningSlot={<StravaWidget session={session} />} />
-                <Photos session={session} />
+              <div className="space-y-6">
+                <div className="flex justify-center px-1">
+                  <div className="flex w-full p-0.75 bg-slate-100 dark:bg-white/[0.04] rounded-2xl border border-border-custom/50">
+                    <button
+                      type="button"
+                      onClick={() => setHistorySubTab('chronicle')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer text-[12px] font-bold ${historySubTab === 'chronicle' ? 'bg-white dark:bg-surface-solid shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-primary' : 'text-text-muted hover:text-text-primary'}`}
+                    >
+                      <Sparkles size={14} />
+                      <span>Kronika</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistorySubTab('bio')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer text-[12px] font-bold ${historySubTab === 'bio' ? 'bg-white dark:bg-surface-solid shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-primary' : 'text-text-muted hover:text-text-primary'}`}
+                    >
+                      <Activity size={14} />
+                      <span>Trener & Bio</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
+                  <InsightsDashboard session={session} />
+                  <Photos session={session} />
+                </div>
+                <div className={historySubTab === 'bio' ? '' : 'hidden'}>
+                  <Stats session={session} runningSlot={<StravaWidget session={session} />} />
+                </div>
               </div>
             </Suspense>
           </div>

@@ -3,21 +3,75 @@ import type { Session } from '@supabase/supabase-js'
 import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { notify } from '../../../lib/notify'
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../lib/date'
+import { supabase } from '../../../lib/supabase'
 import { fetchNutritionDayContext } from '../../../lib/nutritionContext'
 import {
   MEAL_TYPES,
   defaultMealType,
-  ensureFoodStaples,
-  fetchQuickFavorites,
   needsReview,
   parseFoodNL,
   quickAddFavorite,
-  repeatYesterdayMeal,
   saveParsedFoodItems,
   type FoodFavoriteRow,
   type ParsedFoodItem,
   confidenceLabel,
 } from '../../../lib/foodLogging'
+
+const FIXED_FAVORITES: any[] = [
+  {
+    id: 'fixed-kawa',
+    name: 'Kawa domowa',
+    brand: 'espresso 60ml + 340ml mleko 3.2%',
+    calories: 51,
+    protein: 2.6,
+    carbs: 4,
+    fat: 2.7,
+    fiber: 0,
+    sugar: 4,
+    default_grams: 400,
+    is_pinned: true,
+  },
+  {
+    id: 'fixed-banan',
+    name: 'Banan',
+    brand: 'staple',
+    calories: 89,
+    protein: 1.1,
+    carbs: 23,
+    fat: 0.3,
+    fiber: 2.6,
+    sugar: 12,
+    default_grams: 120,
+    is_pinned: true,
+  },
+  {
+    id: 'fixed-odzywka',
+    name: 'Odżywka białkowa 25g białka',
+    brand: 'staple',
+    calories: 380,
+    protein: 80,
+    carbs: 6,
+    fat: 6,
+    fiber: 0,
+    sugar: 3,
+    default_grams: 30,
+    is_pinned: true,
+  }
+];
+
+const getYesterdayLabel = (targetDate: string, mealType: string) => {
+  const yesterday = getYesterdayWarsaw()
+  const mealName = mealType === 'breakfast' ? 'śniadanie' : mealType === 'lunch' ? 'obiad' : mealType === 'dinner' ? 'kolację' : 'przekąskę'
+  if (targetDate === yesterday) {
+    return `Wczoraj na ${mealName}`
+  }
+  // Format targetDate (YYYY-MM-DD) to DD.MM
+  const parts = targetDate.split('-')
+  if (parts.length === 3) {
+    return `Ostatnio na ${mealName} (${parts[2]}.${parts[1]})`
+  }
+  return `Ostatnio na ${mealName}`
+}
 
 type FavoriteChip = FoodFavoriteRow;
 
@@ -50,11 +104,12 @@ export default function FoodQuickCapture({
     foodQualityAnalysis: null as string | null,
   })
   const [qualityPending, setQualityPending] = useState(false)
-  const [favorites, setFavorites] = useState<FavoriteChip[]>([])
   const [parsing, setParsing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<ParsedFoodItem[] | null>(null)
   const [removed, setRemoved] = useState<Set<number>>(new Set())
+  const [yesterdayEntries, setYesterdayEntries] = useState<any[]>([])
+
   const refreshContext = useCallback(async () => {
     const ctx = await fetchNutritionDayContext(userId, logDate, session.access_token)
     setTotals({
@@ -72,15 +127,61 @@ export default function FoodQuickCapture({
     window.setTimeout(() => { void refreshContext().then(() => setQualityPending(false)) }, 8000)
   }, [refreshContext])
 
-  const loadFavorites = useCallback(async () => {
-    await ensureFoodStaples(userId)
-    setFavorites(await fetchQuickFavorites(userId, 8))
-  }, [userId])
+  const loadYesterdayEntries = useCallback(async () => {
+    const todayStr = getTodayWarsaw()
+
+    // Ensure supabase client has the current session
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token ?? '',
+    })
+
+    // 1. Get the most recent date before today that has entries for this meal_type
+    const { data: dateData, error: dateError } = await supabase
+      .from('daily_food_entries')
+      .select('date')
+      .eq('user_id', userId)
+      .eq('meal_type', mealType)
+      .lt('date', todayStr)
+      .order('date', { ascending: false })
+      .limit(1)
+
+    if (dateError) {
+      console.error('[loadYesterdayEntries] dateError:', dateError)
+      setYesterdayEntries([])
+      return
+    }
+    if (!dateData || dateData.length === 0) {
+      console.log('[loadYesterdayEntries] no previous entries for meal_type:', mealType)
+      setYesterdayEntries([])
+      return
+    }
+
+    const targetDate = dateData[0].date
+    console.log('[loadYesterdayEntries] targetDate:', targetDate, 'mealType:', mealType)
+
+    // 2. Fetch all entries for that target date and meal_type
+    const { data, error } = await supabase
+      .from('daily_food_entries')
+      .select('id, name, brand, calories, protein, carbs, fat, fiber, sugar, amount, date')
+      .eq('user_id', userId)
+      .eq('date', targetDate)
+      .eq('meal_type', mealType)
+      .order('logged_at', { ascending: true })
+
+    if (error) {
+      console.error('[loadYesterdayEntries] fetchError:', error)
+      setYesterdayEntries([])
+    } else {
+      console.log('[loadYesterdayEntries] found entries:', data?.length)
+      setYesterdayEntries(data ?? [])
+    }
+  }, [userId, mealType, session.access_token, session.refresh_token])
 
   useEffect(() => {
     void refreshContext()
-    loadFavorites()
-  }, [refreshContext, loadFavorites, refreshSignal])
+    void loadYesterdayEntries()
+  }, [refreshContext, loadYesterdayEntries, refreshSignal])
 
   useEffect(() => {
     void refreshContext()
@@ -142,13 +243,12 @@ export default function FoodQuickCapture({
     }
   }
 
-  const handleFavorite = async (fav: FavoriteChip) => {
+  const handleFavorite = async (fav: any) => {
     if (saving) return
     setSaving(true)
     try {
       await quickAddFavorite(userId, fav, logDate, mealType)
       await refreshContext()
-      await loadFavorites()
       bumpQualityRefresh()
       onSaved?.()
       notify(fav.name, 'success')
@@ -159,19 +259,20 @@ export default function FoodQuickCapture({
     }
   }
 
-  const handleRepeatYesterday = async () => {
+  const handleLogYesterdayEntry = async (entry: any) => {
     if (saving) return
     setSaving(true)
     try {
-      const ok = await repeatYesterdayMeal(userId, logDate)
-      if (!ok) {
-        notify('Brak wpisów z wczoraj', 'error')
-        return
-      }
+      const { error } = await supabase.rpc('repeat_food_entry', {
+        p_user_id: userId,
+        p_source_entry_id: entry.id,
+        p_date: logDate,
+      })
+      if (error) throw error
       await refreshContext()
       bumpQualityRefresh()
       onSaved?.()
-      notify('Powtórzono pierwszy wpis z wczoraj', 'success')
+      notify(`Dodano: ${entry.name}`, 'success')
     } catch (e: any) {
       notify(e.message || 'Błąd', 'error')
     } finally {
@@ -274,9 +375,9 @@ export default function FoodQuickCapture({
         </button>
       </div>
 
-      {(favorites.length > 0 || logDate === today) && (
-        <div className="flex flex-wrap gap-1.5">
-          {favorites.map((f) => {
+      {FIXED_FAVORITES.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1.5">
+          {FIXED_FAVORITES.map((f) => {
             const shortName = f.name.replace(/\s*\(\d+mg kofeiny\)/i, '')
             const label = f.is_pinned
               ? `★ ${shortName.length > 18 ? `${shortName.slice(0, 16)}…` : shortName}`
@@ -287,25 +388,36 @@ export default function FoodQuickCapture({
               type="button"
               disabled={saving}
               onClick={() => handleFavorite(f)}
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 ${
-                f.is_pinned
-                  ? 'border-primary/35 bg-primary/10 text-primary hover:bg-primary/15'
-                  : 'border-border-custom bg-background/40 text-text-secondary hover:border-primary/30 hover:text-primary'
-              }`}
+              className="rounded-full border px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 border-primary/35 bg-primary/10 text-primary hover:bg-primary/15 cursor-pointer"
               title={f.brand ? `${f.name} — ${f.brand}` : f.name}
             >
               {label}
             </button>
             )
           })}
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleRepeatYesterday}
-            className="rounded-full border border-border-custom px-2.5 py-1 text-[10px] font-semibold text-text-muted hover:text-text-primary disabled:opacity-50 flex items-center gap-1"
-          >
-            <RotateCcw size={10} /> Wczoraj
-          </button>
+        </div>
+      )}
+
+      {yesterdayEntries.length > 0 && (
+        <div className="space-y-1.5 pt-2.5 border-t border-border-custom/30 mt-1">
+          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+            {getYesterdayLabel(yesterdayEntries[0].date, mealType)}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {yesterdayEntries.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                disabled={saving}
+                onClick={() => handleLogYesterdayEntry(entry)}
+                className="rounded-full border border-border-custom bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                title={`Zaloguj ponownie: ${entry.name}`}
+              >
+                <RotateCcw size={10} className="text-text-muted" />
+                <span>{entry.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -222,7 +222,7 @@ export async function ensureFoodStaples(userId: string): Promise<void> {
   for (const staple of FOOD_STAPLES) {
     const query = supabase
       .from('food_favorites')
-      .select('id, is_pinned')
+      .select('id, is_pinned, use_count')
       .eq('user_id', userId)
       .eq('name', staple.name);
 
@@ -247,10 +247,14 @@ export async function ensureFoodStaples(userId: string): Promise<void> {
         sugar: staple.sugar,
         default_grams: staple.default_grams,
         is_pinned: true,
-        use_count: 50,
+        use_count: 0,
       })
       if (error) console.warn('[ensureFoodStaples] insert failed', staple.name, error.message)
       continue
+    }
+
+    if ((existing as any).use_count === 50) {
+      await supabase.from('food_favorites').update({ use_count: 0 }).eq('id', existing.id)
     }
 
     if (!existing.is_pinned) {
@@ -264,8 +268,8 @@ export async function fetchQuickFavorites(userId: string, limit = 8): Promise<Fo
     .from('food_favorites')
     .select('id, name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams, is_pinned')
     .eq('user_id', userId)
-    .order('is_pinned', { ascending: false })
     .order('use_count', { ascending: false })
+    .order('is_pinned', { ascending: false })
     .limit(limit))
 }
 
@@ -297,25 +301,34 @@ export async function quickAddFavorite(
   scheduleStrainRecompute(userId)
 }
 
-export async function repeatYesterdayMeal(userId: string, targetDate: string): Promise<boolean> {
+export async function repeatYesterdayMeal(
+  userId: string,
+  targetDate: string,
+  mealType: string
+): Promise<boolean> {
   const yesterday = getYesterdayWarsaw()
   const { data: entries } = await supabase
     .from('daily_food_entries')
     .select('id')
     .eq('user_id', userId)
     .eq('date', yesterday)
+    .eq('meal_type', mealType)
     .order('logged_at', { ascending: true })
-    .limit(1)
 
-  const first = entries?.[0]
-  if (!first) return false
+  if (!entries || entries.length === 0) return false
 
-  const { error } = await supabase.rpc('repeat_food_entry', {
-    p_user_id: userId,
-    p_source_entry_id: first.id,
-    p_date: targetDate,
-  })
-  if (error) throw error
+  // Duplicate all entries for this meal type in parallel
+  await Promise.all(
+    entries.map(async (entry) => {
+      const { error } = await supabase.rpc('repeat_food_entry', {
+        p_user_id: userId,
+        p_source_entry_id: entry.id,
+        p_date: targetDate,
+      })
+      if (error) throw error
+    })
+  )
+
   scheduleFoodQualityAnalysis(userId, targetDate)
   scheduleStrainRecompute(userId)
   return true

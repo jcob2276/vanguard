@@ -12,20 +12,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { supabase } from '../../lib/supabase';
 import {
   RefreshCw, Smartphone, Moon, Sun, Fingerprint,
 } from 'lucide-react';
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
-import { notify, confirmDialog } from '../../lib/notify';
-import {
-  fetchSprintReview,
-  type SprintReview,
-} from '../../lib/goalSpine';
-
-// Subcomponents and hooks
 import { useDesktopData } from './useDesktopData';
 import { Panel, Tip } from './Panel';
 import MarathonPanel from './MarathonPanel';
@@ -35,13 +27,13 @@ import HexagonPanel from './HexagonPanel';
 import FitnessScorePanel from './FitnessScorePanel';
 import HabitsPanel from './HabitsPanel';
 import BehaviorCapturePanel from './BehaviorCapturePanel';
-import { mirrorHabitLogToStream } from '../../lib/behaviorEvidence';
 import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
 import DreamEditModal from './DreamEditModal';
 import GeneralView from './GeneralView';
+import { useHabitsData } from './useHabitsData';
+import { useDreamsData } from './useDreamsData';
 
-// Shared helpers and constants
 import {
   C,
   getSprintInfo,
@@ -61,168 +53,60 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const accessToken = session?.access_token;
   const { pendingGrowthMustCount } = useNudgeData(userId);
   const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
-  const [habits, setHabits] = useState(habitsData);
-  const [habitLogs, setHabitLogs] = useState(habitLogsData);
-  const [isAddingHabit, setIsAddingHabit] = useState(false);
-  const [newHabit, setNewHabit] = useState({ name: '', icon: '✅', is_positive: true });
 
-  useEffect(() => { setHabits(habitsData); }, [habitsData]);
-  useEffect(() => { setHabitLogs(habitLogsData); }, [habitLogsData]);
+  const {
+    habits,
+    habitLogs,
+    isAddingHabit,
+    setIsAddingHabit,
+    newHabit,
+    setNewHabit,
+    addHabit,
+    deleteHabit,
+    toggleHabit,
+  } = useHabitsData({ userId, habitsData, habitLogsData });
 
-  async function addHabit() {
-    if (!newHabit.name.trim()) return;
-    const { data, error } = await supabase.from('habits').insert({ user_id: userId, ...newHabit, name: newHabit.name.trim() }).select().single();
-    if (!error) { setHabits(prev => [...prev, data]); setNewHabit({ name: '', icon: '✅', is_positive: true }); setIsAddingHabit(false); }
-  }
-
-  async function deleteHabit(id: string) {
-    if (!(await confirmDialog('Usunąć nawyk?'))) return;
-    const { error } = await supabase.from('habits').delete().eq('id', id);
-    if (error) { notify('Błąd usuwania nawyku.', 'error'); return; }
-    setHabits(prev => prev.filter(h => h.id !== id));
-  }
-
-  async function toggleHabit(habitId: string) {
-    const today = getTodayWarsaw();
-    const habit = habits.find((h: any) => h.id === habitId);
-    const existing = habitLogs.find((l: any) => l.habit_id === habitId && l.date === today);
-    if (existing) {
-      const { error } = await supabase.from('habit_logs').delete().eq('id', existing.id);
-      if (!error) setHabitLogs((prev: any) => prev.filter((l: any) => l.id !== existing.id));
-    } else {
-      const { data, error } = await supabase.from('habit_logs').insert({ user_id: userId, habit_id: habitId, date: today, completed: true }).select().single();
-      if (!error) {
-        setHabitLogs((prev: any) => [...prev, data]);
-        if (habit) {
-          void mirrorHabitLogToStream(userId, habit, { completed: true, date: today }).catch((err) => {
-            console.warn('[toggleHabit] stream mirror failed', err);
-          });
-        }
-      }
-    }
-  }
-  // ── Dreams (Lista 200 Marzeń) ─────────────────────────────────────────────
-  const [dreams, setDreams] = useState<any[]>([]);
-  const [newDreamTitle, setNewDreamTitle] = useState('');
-  const [newDreamCategory, setNewDreamCategory] = useState('inne');
-  const [dreamFilter, setDreamFilter] = useState('all');
-  const [isAddingDream, setIsAddingDream] = useState(false);
-  const [editingDream, setEditingDream] = useState<any | null>(null);
-  const [editDreamTitle, setEditDreamTitle] = useState('');
-  const [editDreamDesc, setEditDreamDesc] = useState('');
-  const [editDreamCat, setEditDreamCat] = useState('inne');
-  const [editDreamLifeGoal, setEditDreamLifeGoal] = useState<string | null>(null);
-  const [newDreamLifeGoal, setNewDreamLifeGoal] = useState<string | null>(null);
-  const [savingDream, setSavingDream] = useState(false);
-  const [sprintReview, setSprintReview] = useState<SprintReview | null>(null);
-
-  const [visionItems, setVisionItems] = useState<any[]>([]);
-  const [newVisionContent, setNewVisionContent] = useState('');
-  const [newVisionType, setNewVisionType] = useState('affirmation');
-  const [newVisionColor, setNewVisionColor] = useState('indigo');
-  const [isAddingVision, setIsAddingVision] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase.from('dreams').select('*').eq('user_id', userId)
-      .order('is_done', { ascending: true })
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setDreams(data); });
-    supabase.from('vision_board_items').select('*').eq('user_id', userId)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setVisionItems(data); });
-  }, [userId]);
-
-  async function addDream() {
-    if (!newDreamTitle.trim()) return;
-    const { data, error } = await supabase.from('dreams')
-      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory, life_goal: newDreamLifeGoal || null } as any)
-      .select().single();
-    if (!error && data) { setDreams(prev => [data, ...prev]); setNewDreamTitle(''); setNewDreamLifeGoal(null); setIsAddingDream(false); }
-  }
-
-  async function toggleDream(dream: any) {
-    const is_done = !dream.is_done;
-    const { data, error } = await supabase.from('dreams')
-      .update({ is_done, done_at: is_done ? new Date().toISOString() : null })
-      .eq('id', dream.id).select().single();
-    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
-  }
-
-  async function deleteDream(id: string) {
-    const { error } = await supabase.from('dreams').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    setDreams(prev => prev.filter(d => d.id !== id));
-    if (editingDream?.id === id) setEditingDream(null);
-  }
-
-  async function toggleTop5(dream: any) {
-    const is_top5 = !dream.is_top5;
-    const { data, error } = await supabase.from('dreams').update({ is_top5 }).eq('id', dream.id).select().single();
-    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
-  }
-
-  function openDreamModal(dream: any) {
-    setEditingDream(dream);
-    setEditDreamTitle(dream.title);
-    setEditDreamDesc(dream.description || '');
-    setEditDreamCat(dream.category);
-    setEditDreamLifeGoal(dream.life_goal || null);
-  }
-
-  async function saveDreamEdit() {
-    if (!editingDream) return;
-    setSavingDream(true);
-    const { data, error } = await supabase.from('dreams')
-      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat, life_goal: editDreamLifeGoal || null } as any)
-      .eq('id', editingDream.id).select().single();
-    if (!error && data) {
-      setDreams(prev => prev.map(d => d.id === editingDream.id ? data : d));
-      setEditingDream(null);
-    }
-    setSavingDream(false);
-  }
-
-  async function addVisionItem() {
-    if (!newVisionContent.trim()) return;
-    const { data, error } = await supabase.from('vision_board_items')
-      .insert({ user_id: userId, type: newVisionType, content: newVisionContent.trim(), color: newVisionColor })
-      .select().single();
-    if (!error && data) { setVisionItems(prev => [data, ...prev]); setNewVisionContent(''); setIsAddingVision(false); }
-  }
-
-  async function deleteVisionItem(id: string) {
-    const { error } = await supabase.from('vision_board_items').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    setVisionItems(prev => prev.filter(v => v.id !== id));
-  }
-
-  const DREAM_CATEGORIES = ['all', 'finanse', 'ciało', 'relacje', 'doświadczenia', 'wolność', 'inne'];
-  const DREAM_CAT_LABEL: Record<string, string> = { all: 'Wszystkie', finanse: 'Finanse', ciało: 'Ciało', relacje: 'Relacje', doświadczenia: 'Doświadczenia', wolność: 'Wolność', inne: 'Inne' };
-  const DREAM_CAT_COLOR: Record<string, string> = { finanse: 'text-emerald-500', ciało: 'text-rose-500', relacje: 'text-violet-500', doświadczenia: 'text-amber-500', wolność: 'text-sky-500', inne: 'text-text-muted' };
-
-  const VB_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    indigo:  { bg: 'bg-indigo-500/10',  text: 'text-indigo-300',  border: 'border-indigo-500/25' },
-    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-300', border: 'border-emerald-500/25' },
-    amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-300',   border: 'border-amber-500/25' },
-    rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-300',    border: 'border-rose-500/25' },
-    violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-300',  border: 'border-violet-500/25' },
-    sky:     { bg: 'bg-sky-500/10',     text: 'text-sky-300',     border: 'border-sky-500/25' },
-  };
-
-  const filteredDreams = dreamFilter === 'all' ? dreams : dreams.filter(d => d.category === dreamFilter);
-  const doneDreams = dreams.filter(d => d.is_done).length;
-  const top5Dreams = dreams.filter(d => d.is_top5 && !d.is_done).slice(0, 5);
+  const {
+    dreams,
+    newDreamTitle, setNewDreamTitle,
+    newDreamCategory, setNewDreamCategory,
+    dreamFilter, setDreamFilter,
+    isAddingDream, setIsAddingDream,
+    editingDream, setEditingDream,
+    editDreamTitle, setEditDreamTitle,
+    editDreamDesc, setEditDreamDesc,
+    editDreamCat, setEditDreamCat,
+    editDreamLifeGoal, setEditDreamLifeGoal,
+    newDreamLifeGoal, setNewDreamLifeGoal,
+    savingDream,
+    sprintReview,
+    visionItems,
+    newVisionContent, setNewVisionContent,
+    newVisionType, setNewVisionType,
+    newVisionColor, setNewVisionColor,
+    isAddingVision, setIsAddingVision,
+    addDream,
+    toggleDream,
+    deleteDream,
+    toggleTop5,
+    openDreamModal,
+    saveDreamEdit,
+    addVisionItem,
+    deleteVisionItem,
+    DREAM_CATEGORIES,
+    DREAM_CAT_LABEL,
+    DREAM_CAT_COLOR,
+    VB_COLORS,
+    filteredDreams,
+    doneDreams,
+    top5Dreams
+  } = useDreamsData({ userId, loading });
 
   const [syncing,     setSyncing]     = useState(false);
   const [showWorkout, setShowWorkout] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const resumedWorkoutDraft = useRef(false);
 
-  // Tab/process can get killed and remounted fresh (memory pressure) while the logger was
-  // open; this in-memory flag would default back to false and strand the persisted draft
-  // with no UI to reach it. Auto-resume into the logger instead.
   useEffect(() => {
     if (resumedWorkoutDraft.current || !userId) return;
     resumedWorkoutDraft.current = true;
@@ -239,8 +123,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
   }, [theme]);
-
-  // Hexagon — self-contained in HexagonPanel
 
   const grid = theme === 'dark' ? '#2d3748' : '#e5e7eb';
   const tick = theme === 'dark' ? '#9ca3af' : '#6b7280';
@@ -306,7 +188,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
     window.location.assign(`${root}?${new URLSearchParams(options).toString()}`);
   }
 
-  // Keyboard shortcuts: s=sync, t=trening, d=dark toggle
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -335,7 +216,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
   const currMetrics = sprintMetrics(oura, sessions, strava, sprint.sprintStart, sprint.sprintEnd);
   const prevMetrics = sprint.prevStart ? sprintMetrics(oura, sessions, strava, sprint.prevStart, sprint.prevEnd) : null;
 
-  // Project metrics — canonical projects + todo_items (RPC maps open → todo)
   const projectMetrics   = {
     doneInSprint: (moves || []).filter(
       (m) => m.status === 'done' && (m.completed_at || '').slice(0, 10) >= sprint.sprintStart,
@@ -350,11 +230,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
       (p) => p.status === 'active' || (p.sense_status && p.sense_status !== 'cut' && p.sense_status !== 'completed'),
     ).length,
   };
-
-  useEffect(() => {
-    if (!userId) return;
-    void fetchSprintReview(userId).then(setSprintReview);
-  }, [userId, loading]);
 
   const sleepData = oura14.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Sen: r.total_sleep_hours ? +r.total_sleep_hours.toFixed(1) : null, HRV: r.hrv_avg || null }));
   const nutrData  = nutrition.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Kcal: r.calories || 0, Białko: r.protein || 0 }));
@@ -634,7 +509,6 @@ export default function DesktopDashboard({ session }: { session: any }) {
         </div>
       </main>
     </div>
-
 
     <DreamEditModal
       editingDream={editingDream}
