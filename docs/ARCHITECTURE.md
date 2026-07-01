@@ -160,14 +160,9 @@ Do not add or deploy a function that is not listed there with status `active` or
 
 ---
 
-## Agent read order (15 min onboarding)
+## Agent read order
 
-1. `AGENTS.md` — constitution + deploy rules  
-2. `supabase/functions/README.md` — every function  
-3. This file — flow + crons  
-4. `docs/DEV_GUIDE.md` — how to change code  
-5. `docs/PRODUCT_PRINCIPLES.md` — language and epistemic guardrails  
-6. `BACKLOG.md` — do not fix what is intentionally deferred  
+**SSOT:** [`docs/READING_ORDER.md`](./READING_ORDER.md) — kanoniczna kolejność czytania dla agentów.
 
 
 ---

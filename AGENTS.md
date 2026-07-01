@@ -64,21 +64,9 @@ Edge function gotchas:
 - Do NOT store deploy version numbers in rules/docs — they go stale weekly
 ```
 
-## Where to read next (order matters)
+## Where to read next
 
-1. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data flow, crons, subsystems (one page)
-2. [`supabase/functions/README.md`](supabase/functions/README.md) — every edge function: status, JWT, tables
-3. [`docs/DEV_GUIDE.md`](docs/DEV_GUIDE.md) — conventions, checklists, how to add functions
-4. [`docs/agent/README.md`](docs/agent/README.md) — index for router/memory files
-5. [`docs/PRODUCT_LANGUAGE.md`](docs/PRODUCT_LANGUAGE.md) — canonical product vocabulary
-6. `.cursor/rules/vanguard-agent-workflow.mdc` — definition of done for agents
-7. `.cursor/rules/vanguard-context.mdc` — philosophy and epistemic guardrails
-8. `.cursor/rules/vanguard-ops.mdc` — deploy, secrets, DB constraints
-9. [`BACKLOG.md`](BACKLOG.md) — intentionally deferred work
-10. `docs/runbooks/` — incident fixes
-11. [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md) — full guardrails
-12. [`docs/FEATURE_LIFECYCLE.md`](docs/FEATURE_LIFECYCLE.md) — active / disabled / deprecated / dropped map
-13. [`docs/VANGUARD_STATE.md`](docs/VANGUARD_STATE.md) — current state: every tab/component/table that exists
+**SSOT:** [`docs/READING_ORDER.md`](docs/READING_ORDER.md) — kanoniczna kolejność czytania dla agentów (quick start 5 min, pełne czytanie 15 min).
 
 ## Models (current)
 

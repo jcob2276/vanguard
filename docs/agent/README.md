@@ -2,16 +2,9 @@
 
 Ten katalog nie jest drugą konstytucją repo. To indeks dla agentów, żeby szybko ładować właściwe warstwy pamięci bez budowania równoległych zasad.
 
-## Authority Order
+## Reading Order
 
-1. `AGENTS.md` — konstytucja repo, deploy rules, architektura pracy.
-2. `docs/ARCHITECTURE.md` — aktualny przepływ danych i granice systemu.
-3. `supabase/functions/README.md` — rejestr edge functions i JWT.
-4. `docs/DEV_GUIDE.md` — konwencje implementacji.
-5. `.cursor/rules/*.mdc` — szczegółowe zasady workflow, kontekstu i ops.
-6. `docs/PRODUCT_LANGUAGE.md` — kanoniczny słownik produktu dla UI/docs/agentów.
-7. `CLAUDE.md` — lekki router dla Claude/Antigravity, nie source of truth.
-8. `lessons.md` — trwałe lekcje techniczne agentów.
+**SSOT:** [`docs/READING_ORDER.md`](../READING_ORDER.md) — kanoniczna kolejność czytania dla agentów.
 
 ## Domain Memory
 
@@ -21,7 +14,7 @@ Ten katalog nie jest drugą konstytucją repo. To indeks dla agentów, żeby szy
 
 ## Rule
 
-Jeśli instrukcje są sprzeczne, wygrywa plik położony wyżej w `Authority Order`. Domenowe markdowni mogą zasilać produkt i rozmowy, ale nie mogą zmieniać konstytucji systemu, write pathów ani guardraili.
+Jeśli instrukcje są sprzeczne, wygrywa plik wyżej w `READING_ORDER.md`. Domenowe markdowni mogą zasilać produkt i rozmowy, ale nie mogą zmieniać konstytucji systemu, write pathów ani guardraili.
 
 ## Naming
 

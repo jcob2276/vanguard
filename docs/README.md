@@ -6,6 +6,7 @@ Lean operational docs + links to existing deep context.
 
 - [../AGENTS.md](../AGENTS.md) — AI agent entry point + CRITICAL RULES
 - [../README.md](../README.md) — human entry point
+- [READING_ORDER.md](./READING_ORDER.md) — kanoniczna kolejność czytania dla agentów
 
 ## Subsystems (operational)
 
