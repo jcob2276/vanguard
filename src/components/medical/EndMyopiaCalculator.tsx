@@ -5,7 +5,6 @@ import { Camera, ScanFace, Check, ArrowLeft, Ruler, ZoomIn, ZoomOut } from 'luci
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
-import EndMyopiaDailyLog from './EndMyopiaDailyLog';
 
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -222,10 +221,6 @@ export default function EndMyopiaCalculator() {
         <div>
           <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
           <VisionJournal refreshTrigger={refreshTrigger} />
-        </div>
-        
-        <div>
-          <EndMyopiaDailyLog onLogSaved={() => setRefreshTrigger(prev => prev + 1)} />
         </div>
       </div>
     </div>
