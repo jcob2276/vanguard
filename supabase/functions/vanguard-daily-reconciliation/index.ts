@@ -49,7 +49,7 @@ async function buildReflectionPrompt(params: {
   streamRows: StreamRow[];
   frictionRows: any[];
   manual: boolean;
-}): Promise<string> {
+}): Promise<string[]> {
   const voiceBlock = params.voiceRows.length
     ? compactRows(params.voiceRows, 10)
     : "Brak glosowek w ostatnich 24h.";
@@ -71,7 +71,7 @@ async function buildReflectionPrompt(params: {
       apiKey: DEEPSEEK_API_KEY,
       model: "deepseek-v4-flash",
       temperature: 0.35,
-      maxTokens: 900,
+      maxTokens: 2500,
       messages: [
         {
           role: "system",
@@ -88,29 +88,31 @@ async function buildReflectionPrompt(params: {
             `GLOSOWKI 24H:\n${voiceBlock}\n\n` +
             `STREAM 24H:\n${streamBlock}\n\n` +
             `FRICTION 24H:\n${frictionBlock}\n\n` +
-            "Napisz jedna wiadomosc Telegram w formacie:\n" +
-            "1) 3-5 punktow: co slychac w ostatnich 24h z glosowek/streamu.\n" +
-            "2) 2-4 pytania poglebiajace, bardzo konkretne.\n" +
-            "3) Instrukcja: nagraj spokojna glosowke refleksyjna.\n" +
+            "Napisz dwie osobne wiadomosci oddzielone ciagiem znakow '===DELIMITER==='.\n" +
+            "Wiadomosc 1 (Podsumowanie):\n" +
+            "- 3-5 punktow: co slychac w ostatnich 24h z glosowek/streamu.\n\n" +
+            "===DELIMITER===\n\n" +
+            "Wiadomosc 2 (Pytania i Instrukcja):\n" +
+            "- 2-4 pytania poglebiajace, bardzo konkretne.\n" +
+            "- Instrukcja: nagraj spokojna glosowke refleksyjna.\n\n" +
             "Nie pytaj o plan jutra. Nie generuj zadan na jutro."
         }
       ]
     });
 
     const cleaned = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-    if (cleaned) return cleaned.slice(0, 3500);
+    if (cleaned) {
+      const parts = cleaned.split("===DELIMITER===").map(p => p.trim()).filter(Boolean);
+      return parts.length > 0 ? parts : [cleaned];
+    }
   } catch (err) {
     console.warn("[reconciliation] reflection prompt LLM failed:", err);
   }
 
-  return `*Wieczorna refleksja*\n\n` +
-    `W ostatnich 24h widze ${params.voiceRows.length} glosowek i ${params.streamRows.length} wpisow w streamie.\n\n` +
-    `Usiadz spokojnie i nagraj glosowke:\n` +
-    `1. Co dzisiaj realnie poszlo dobrze?\n` +
-    `2. Co poszlo zle albo bylo tarciem?\n` +
-    `3. Co moglo pojsc lepiej i dlaczego?\n` +
-    `4. Za co dzisiaj jestes wdzieczny?\n` +
-    `5. Jaki jeden temat warto jeszcze nazwac bez uciekania w planowanie?`;
+  return [
+    `*Wieczorna refleksja*\n\nW ostatnich 24h widze ${params.voiceRows.length} glosowek i ${params.streamRows.length} wpisow w streamie.`,
+    `Usiadz spokojnie i nagraj glosowke:\n1. Co dzisiaj realnie poszlo dobrze?\n2. Co poszlo zle albo bylo tarciem?\n3. Co moglo pojsc lepiej i dlaczego?\n4. Za co dzisiaj jestes wdzieczny?\n5. Jaki jeden temat warto jeszcze nazwac bez uciekania w planowanie?`
+  ];
 }
 
 Deno.serve(async (req) => {
@@ -176,7 +178,7 @@ Deno.serve(async (req) => {
     });
     const frictionRows = frictionRes.data || [];
 
-    let messageText = await buildReflectionPrompt({
+    let messageTexts = await buildReflectionPrompt({
       voiceRows,
       streamRows,
       frictionRows,
@@ -191,13 +193,17 @@ Deno.serve(async (req) => {
         const bridge = strong.map(p =>
           `📊 *${p.title || "Wzorzec"}* (N=${p.occurrence_count}, pewność ${Math.round(p.confidence * 100)}%)\n${p.evidence_text}`
         ).join("\n\n");
-        messageText += `\n\n---\n\n*W Twoich danych ten schemat się powtarza:*\n\n${bridge}`;
+        messageTexts[0] += `\n\n---\n\n*W Twoich danych ten schemat się powtarza:*\n\n${bridge}`;
       }
     } catch (e) {
       console.warn("[reconciliation] pattern bridge fetch failed (non-fatal):", e);
     }
 
-    const messageId = await sendTelegram(messageText);
+    let messageId: number | null = null;
+    for (const text of messageTexts) {
+      const mid = await sendTelegram(text);
+      if (mid) messageId = mid;
+    }
 
     const { data: row, error: upsertErr } = await supabase.from("daily_reconciliations").upsert({
       user_id: VANGUARD_USER_ID,
