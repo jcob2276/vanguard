@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Camera, ScanFace, Check, ArrowLeft, Ruler } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
+import GlassesCabinet from './GlassesCabinet';
 
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -190,9 +191,15 @@ export default function EndMyopiaCalculator() {
         )}
       </main>
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto p-6 pb-24">
-        <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
-        <VisionJournal />
+      <div className="relative z-10 w-full max-w-4xl mx-auto p-6 pb-24 space-y-12">
+        <div>
+          <GlassesCabinet />
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-black font-display uppercase tracking-tight mb-6">Dziennik EndMyopia</h2>
+          <VisionJournal />
+        </div>
       </div>
     </div>
   );
