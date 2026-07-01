@@ -6,14 +6,14 @@ import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
 
-const EYE_LABELS = { left: 'Lewe 👁', right: 'Prawe 👁', both: 'Oba 👀' } as const;
+const EYE_LABELS = { left: '👁 Lewe', right: 'Prawe 👁' } as const;
 const SNELLEN_ROWS = ['E', 'F P', 'T O Z', 'L P E D', 'P E C F D', 'E D F C Z P'];
 
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { distance, isReady, calibrationFactor, calibrate, resetCalibration } = useFaceDistance(videoRef);
 
-  const [selectedEye, setSelectedEye] = useState<'left' | 'right' | 'both'>('left');
+  const [selectedEye, setSelectedEye] = useState<'left' | 'right'>('left');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -207,7 +207,7 @@ export default function EndMyopiaCalculator() {
 
             {/* Eye selector */}
             <div className="w-full max-w-sm bg-surface border border-border-custom rounded-2xl p-1.5 flex gap-1">
-              {(['left', 'both', 'right'] as const).map(eye => (
+              {(['left', 'right'] as const).map(eye => (
                 <button
                   key={eye}
                   onClick={() => setSelectedEye(eye)}
