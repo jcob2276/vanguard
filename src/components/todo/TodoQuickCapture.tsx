@@ -216,7 +216,11 @@ export default function TodoQuickCapture({
                     {parsedInput.tokens.map((token) => (
                       <span key={`${token.type}-${token.value}`}
                         className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                          token.type === 'priority' ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted') : 'bg-primary/10 text-primary'
+                          token.type === 'priority'
+                            ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted')
+                            : token.type === 'duration'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                            : 'bg-primary/10 text-primary'
                         }`}
                       >
                         {token.label}

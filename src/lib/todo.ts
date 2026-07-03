@@ -48,6 +48,9 @@ interface CreateTodoItemFields {
   due_date?: string;
   recurrence?: string;
   section_id?: string;
+  duration_minutes?: number | null;
+  scheduled_time?: string | null;
+  is_important?: boolean;
 }
 
 export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
@@ -68,6 +71,9 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
         tags,
         due_date: fields.due_date || null,
         recurrence: fields.recurrence || null,
+        duration_minutes: fields.duration_minutes ?? null,
+        scheduled_time: fields.scheduled_time ?? null,
+        is_important: fields.is_important ?? false,
       })
       .select()
       .single(),

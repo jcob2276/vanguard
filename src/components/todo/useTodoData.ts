@@ -360,6 +360,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     // Capture before reset
     const priority = parsedInput.priority || form.priority;
     const due_date = parsedInput.due_date || form.due_date || null;
+    const duration_minutes = parsedInput.duration_minutes ?? null;
     const section_id = form.section_id || activeFilterSection || null;
     const notes = form.notes || null;
     const tagsText = form.tagsText;
@@ -375,12 +376,13 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       created_at: new Date().toISOString(), completed_at: null,
       updated_at: new Date().toISOString(), is_milestone: false,
       project_id: null, reminder_at: null, reminder_sent: false,
+      scheduled_time: null, duration_minutes, is_important: false,
     };
     setItems((prev) => [optimistic, ...prev]);
     setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
     setIsExpanded(false);
 
-    createTodoItem(userId, { title, notes: notes || undefined, priority, due_date: due_date || undefined, section_id: section_id || undefined, recurrence: recurrence || undefined, tagsText })
+    createTodoItem(userId, { title, notes: notes || undefined, priority, due_date: due_date || undefined, duration_minutes: duration_minutes || undefined, section_id: section_id || undefined, recurrence: recurrence || undefined, tagsText })
       .then((newItem) => {
         setItems((prev) => prev.map((i) => i.id === tempId ? newItem : i));
         if (!due_date && priority === 'normal') classifyInBackground(newItem);

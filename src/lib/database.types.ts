@@ -3129,7 +3129,9 @@ export type Database = {
           completed_at: string | null
           created_at: string
           due_date: string | null
+          duration_minutes: number | null
           id: string
+          is_important: boolean
           is_milestone: boolean
           notes: string | null
           priority: string
@@ -3137,6 +3139,7 @@ export type Database = {
           recurrence: string | null
           reminder_at: string | null
           reminder_sent: boolean
+          scheduled_time: string | null
           section_id: string | null
           sort_order: number
           status: string
@@ -3151,7 +3154,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
+          duration_minutes?: number | null
           id?: string
+          is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
           priority?: string
@@ -3159,6 +3164,7 @@ export type Database = {
           recurrence?: string | null
           reminder_at?: string | null
           reminder_sent?: boolean
+          scheduled_time?: string | null
           section_id?: string | null
           sort_order?: number
           status?: string
@@ -3173,7 +3179,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
+          duration_minutes?: number | null
           id?: string
+          is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
           priority?: string
@@ -3181,6 +3189,7 @@ export type Database = {
           recurrence?: string | null
           reminder_at?: string | null
           reminder_sent?: boolean
+          scheduled_time?: string | null
           section_id?: string | null
           sort_order?: number
           status?: string

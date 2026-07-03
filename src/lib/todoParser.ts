@@ -67,7 +67,7 @@ function consumeMatch(text: string, match: RegExpMatchArray): string {
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
-  const tokens: Array<{ type: 'priority' | 'date'; label: string; value: string }> = [];
+  const tokens: Array<{ type: 'priority' | 'date' | 'duration'; label: string; value: string }> = [];
 
   const priorityMatch = title.match(/(^|\s)(p[1-4])(?=\s|$)/i);
   if (priorityMatch) {
@@ -127,13 +127,37 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     }
   }
 
+  // Duration: "30min", "1h", "1.5h", "2h30min", "90min", "45m"
+  const durationMatch = title.match(/(^|\s)(\d+(?:[.,]\d+)?)\s*h(?:(?:our|rs?)?(?:\s*(\d+)\s*m(?:in)?)?)?(?=\s|$)|(^|\s)(\d+)\s*m(?:in)?(?=\s|$)/i);
+  if (durationMatch) {
+    let minutes = 0;
+    if (durationMatch[2]) {
+      // Xh or Xh Ym form
+      const hours = parseFloat(durationMatch[2].replace(',', '.'));
+      minutes = Math.round(hours * 60);
+      if (durationMatch[3]) minutes += parseInt(durationMatch[3]);
+    } else if (durationMatch[5]) {
+      // Xmin or Xm form
+      minutes = parseInt(durationMatch[5]);
+    }
+    if (minutes > 0 && minutes <= 480) {
+      const label = minutes < 60 ? `${minutes}min` : minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${minutes % 60}min`;
+      tokens.push({ type: 'duration', label, value: String(minutes) });
+      title = consumeMatch(title, durationMatch);
+    }
+  }
+
   const priority = tokens.find((token) => token.type === 'priority')?.value || null;
   const due_date = tokens.find((token) => token.type === 'date')?.value || null;
+  const duration_minutes = tokens.find((token) => token.type === 'duration')?.value
+    ? parseInt(tokens.find((token) => token.type === 'duration')!.value)
+    : null;
 
   return {
     title: cleanTitle(title),
     priority,
     due_date,
+    duration_minutes,
     tokens,
   };
 }
