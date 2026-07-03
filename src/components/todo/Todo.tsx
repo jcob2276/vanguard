@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Bell,
   ChevronLeft,
@@ -6,6 +7,8 @@ import {
   Sparkles,
   StickyNote,
   BookOpen,
+  LayoutGrid,
+  Kanban,
 } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
@@ -22,6 +25,8 @@ import BucketHeader from './BucketHeader';
 import TodoCard from './TodoCard';
 import SectionTabs from './SectionTabs';
 import TodoQuickCapture from './TodoQuickCapture';
+import EisenhowerMatrix from './EisenhowerMatrix';
+import KanbanView from './KanbanView';
 import { useTodoData } from './useTodoData';
 
 export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
@@ -54,6 +59,8 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     toggleSubtask, addSubtask, deleteSubtask, saveEditTitle,
     handleDragStart, showContextMenu, handleComplete,
   } = useTodoData({ session, onNavigateTo });
+
+  const [todoView, setTodoView] = useState<'lista' | 'eisenhower' | 'kanban'>('lista');
 
   const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
     <TodoCard
@@ -245,6 +252,30 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               <Bell size={12} /> Powiadomienia
             </button>
           )}
+          {/* View switcher */}
+          <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">
+            <button
+              onClick={() => setTodoView('lista')}
+              className={`rounded-lg p-1.5 transition-all ${todoView === 'lista' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
+              title="Lista"
+            >
+              <ListTodo size={15} />
+            </button>
+            <button
+              onClick={() => setTodoView('eisenhower')}
+              className={`rounded-lg p-1.5 transition-all ${todoView === 'eisenhower' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
+              title="Macierz Eisenhowera"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => setTodoView('kanban')}
+              className={`rounded-lg p-1.5 transition-all ${todoView === 'kanban' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
+              title="Kanban"
+            >
+              <Kanban size={15} />
+            </button>
+          </div>
           <button
             onClick={() => setShowDone((v) => !v)}
             className={`rounded-full p-2 transition-colors ${showDone ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-surface'}`}
@@ -264,6 +295,19 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           onDelete={(id) => { setActiveFilterSection(null); run(() => archiveTodoSection(id)); }}
         />
 
+        {todoView === 'eisenhower' && (
+          <main className="flex-1 overflow-y-auto" onClick={() => setExpandedId(null)}>
+            <EisenhowerMatrix items={items as any} setItems={setItems as any} />
+          </main>
+        )}
+
+        {todoView === 'kanban' && (
+          <main className="flex-1 overflow-hidden">
+            <KanbanView items={items as any} sections={sections} setItems={setItems as any} today={today} />
+          </main>
+        )}
+
+        {todoView === 'lista' && (
         <main
           className="flex-1 overflow-y-auto"
           onClick={() => setExpandedId(null)}
@@ -494,6 +538,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
             </div>
           </div>
         </main>
+        )}
       </div>
 
       {/* Mobile bottom nav */}

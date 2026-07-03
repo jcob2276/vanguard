@@ -1,0 +1,173 @@
+import { updateTodoItem } from '../../lib/todo';
+
+interface Item {
+  id: string;
+  title: string;
+  priority: string;
+  is_important: boolean;
+  due_date: string | null;
+  status: string;
+  duration_minutes: number | null;
+}
+
+interface Props {
+  items: Item[];
+  setItems: (fn: (prev: Item[]) => Item[]) => void;
+}
+
+const QUADRANTS = [
+  {
+    key: 'q1',
+    label: 'Zrób teraz',
+    sub: 'Pilne + Ważne',
+    urgent: true,
+    important: true,
+    color: 'border-rose-500/30 bg-rose-500/5',
+    badge: 'bg-rose-500/15 text-rose-500',
+    dot: 'bg-rose-500',
+  },
+  {
+    key: 'q2',
+    label: 'Zaplanuj',
+    sub: 'Niepilne + Ważne',
+    urgent: false,
+    important: true,
+    color: 'border-blue-500/30 bg-blue-500/5',
+    badge: 'bg-blue-500/15 text-blue-500',
+    dot: 'bg-blue-500',
+  },
+  {
+    key: 'q3',
+    label: 'Deleguj',
+    sub: 'Pilne + Nieważne',
+    urgent: true,
+    important: false,
+    color: 'border-amber-500/30 bg-amber-500/5',
+    badge: 'bg-amber-500/15 text-amber-600',
+    dot: 'bg-amber-500',
+  },
+  {
+    key: 'q4',
+    label: 'Eliminuj',
+    sub: 'Niepilne + Nieważne',
+    urgent: false,
+    important: false,
+    color: 'border-border-custom bg-surface/30',
+    badge: 'bg-surface-solid text-text-muted',
+    dot: 'bg-text-muted',
+  },
+];
+
+function isUrgent(item: Item) {
+  return item.priority === 'urgent';
+}
+
+function quadrantOf(item: Item) {
+  const urgent = isUrgent(item);
+  const important = item.is_important;
+  if (urgent && important) return 'q1';
+  if (!urgent && important) return 'q2';
+  if (urgent && !important) return 'q3';
+  return 'q4';
+}
+
+export default function EisenhowerMatrix({ items, setItems }: Props) {
+  const open = items.filter((i) => i.status === 'open');
+
+  function moveToQuadrant(item: Item, q: typeof QUADRANTS[0]) {
+    const newPriority = q.urgent ? 'urgent' : item.priority === 'urgent' ? 'high' : item.priority;
+    const newImportant = q.important;
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id ? { ...i, priority: newPriority, is_important: newImportant } : i,
+      ),
+    );
+    updateTodoItem(item.id, { priority: newPriority, is_important: newImportant } as any).catch(() => {
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, priority: item.priority, is_important: item.is_important } : i)),
+      );
+    });
+  }
+
+  return (
+    <div className="p-4 pb-24">
+      <div className="grid grid-cols-2 gap-3 max-w-[700px] mx-auto">
+        {QUADRANTS.map((q) => {
+          const qItems = open.filter((i) => quadrantOf(i) === q.key);
+          return (
+            <div
+              key={q.key}
+              className={`rounded-2xl border p-3 min-h-[180px] ${q.color}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData('text/plain');
+                const item = items.find((i) => i.id === id);
+                if (item) moveToQuadrant(item, q);
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-[11px] font-black text-text-primary tracking-tight">{q.label}</p>
+                  <p className="text-[9px] text-text-muted font-medium mt-0.5">{q.sub}</p>
+                </div>
+                {qItems.length > 0 && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${q.badge}`}>
+                    {qItems.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Tasks */}
+              <div className="space-y-1.5">
+                {qItems.map((item) => (
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
+                    className="group flex items-start gap-2 rounded-xl bg-background/60 border border-border-custom/40 px-3 py-2 cursor-grab active:cursor-grabbing hover:border-border-custom transition-all"
+                  >
+                    <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${q.dot}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{item.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {item.due_date && (
+                          <span className="text-[9px] text-text-muted">{item.due_date}</span>
+                        )}
+                        {item.duration_minutes && (
+                          <span className="text-[9px] text-amber-500 font-semibold">
+                            {item.duration_minutes < 60
+                              ? `${item.duration_minutes}min`
+                              : `${Math.floor(item.duration_minutes / 60)}h${item.duration_minutes % 60 ? item.duration_minutes % 60 + 'min' : ''}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Quick move buttons */}
+                    <div className="hidden group-hover:flex flex-col gap-0.5 shrink-0">
+                      {QUADRANTS.filter((qq) => qq.key !== q.key).map((qq) => (
+                        <button
+                          key={qq.key}
+                          onClick={(e) => { e.stopPropagation(); moveToQuadrant(item, qq); }}
+                          className={`text-[8px] font-black px-1.5 py-0.5 rounded-full leading-tight ${qq.badge}`}
+                          title={`Przenieś do: ${qq.label}`}
+                        >
+                          {qq.label.charAt(0)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {qItems.length === 0 && (
+                  <p className="text-[10px] text-text-muted/50 text-center py-4">Przeciągnij tu zadanie</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
