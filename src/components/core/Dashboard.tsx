@@ -45,6 +45,7 @@ const Projects = lazy(() => import('../projects/Projects'));
 const Todo = lazy(() => import('../todo/Todo'));
 const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
+const CalendarView = lazy(() => import('../calendar/CalendarView'));
 
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
@@ -285,6 +286,19 @@ export default function Dashboard({ session }: { session: Session }) {
     );
   }
 
+  if (view === 'kalendarz') {
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <CalendarView
+          session={session}
+          onBack={goBack}
+          onSyncCalendar={startGoogleAuth}
+          isSyncing={isSyncing}
+        />
+      </Suspense>
+    );
+  }
+
 
 
 
@@ -379,6 +393,13 @@ export default function Dashboard({ session }: { session: Session }) {
                   title="Zadania"
                 >
                   <CheckSquare size={15} />
+                </button>
+                <button
+                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('kalendarz'); }}
+                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  title="Kalendarz"
+                >
+                  <Calendar size={15} />
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
