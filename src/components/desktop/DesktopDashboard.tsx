@@ -31,6 +31,7 @@ import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
 import DreamEditModal from './DreamEditModal';
 import GeneralView from './GeneralView';
+import ScoreboardPanel from './ScoreboardPanel';
 import { useHabitsData } from './useHabitsData';
 import { useDreamsData } from './useDreamsData';
 
@@ -325,6 +326,10 @@ export default function DesktopDashboard({ session }: { session: any }) {
         />
 
         <SmartAlerts alerts={alerts} />
+
+        <section id="scoreboard" className="scroll-mt-28">
+          <ScoreboardPanel userId={userId} />
+        </section>
 
         <GeneralView userId={userId} oura={oura} />
 

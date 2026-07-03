@@ -35,6 +35,7 @@ import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorko
 import FoodEntryModal from './nutrition/FoodEntryModal';
 import MorningPlanModal from './MorningPlanModal';
 import DailyShutdownModal from './DailyShutdownModal';
+import WeeklyReviewModal from '../todo/WeeklyReviewModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -155,6 +156,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [workoutKey, setWorkoutKey] = useState(0);
   const [showMorningPlan, setShowMorningPlan] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
   const [foodEditEntry, setFoodEditEntry] = useState<any>(null);
@@ -477,6 +479,20 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
+              {new Date().getDay() === 0 && (
+                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+                    <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowWeeklyReview(true)}
+                    className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm"
+                  >
+                    Rozpocznij
+                  </button>
+                </div>
+              )}
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
               {todayWin && (
                 <button
@@ -502,6 +518,20 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
+              {new Date().getDay() === 0 && (
+                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+                    <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowWeeklyReview(true)}
+                    className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm"
+                  >
+                    Rozpocznij
+                  </button>
+                </div>
+              )}
 
               <Suspense fallback={<ViewFallback />}>
                 <DailyStrainCard session={session} refreshSignal={nutritionKey + workoutKey} />
@@ -684,6 +714,14 @@ export default function Dashboard({ session }: { session: Session }) {
             setShowShutdown(false);
           }}
           onSaved={refresh}
+        />
+      )}
+
+      {showWeeklyReview && (
+        <WeeklyReviewModal
+          session={session}
+          onClose={() => setShowWeeklyReview(false)}
+          onFinished={refresh}
         />
       )}
 

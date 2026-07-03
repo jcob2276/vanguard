@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const SECTIONS: { id: string; label: string; href?: string }[] = [
+  { id: 'scoreboard', label: 'Scoreboard' },
   { id: 'korelacje', label: 'Korelacje', href: '/korealcje' },
   { id: 'trening', label: 'Trening' },
   { id: 'biometria', label: 'Biometria' },
