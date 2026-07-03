@@ -594,7 +594,7 @@ export default function Dashboard({ session }: { session: Session }) {
       </div>
 
       {!showLock && (
-        <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+        <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'max(2rem, calc(1rem + env(safe-area-inset-bottom)))' }}>
           {/* Sliding background indicator pill */}
           <div 
             className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"

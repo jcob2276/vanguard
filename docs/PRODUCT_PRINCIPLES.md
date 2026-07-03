@@ -1,7 +1,23 @@
 # Vanguard OS — Product Principles
 
 > Guardrail document for feature decisions, architecture reviews, and AI behavior.
-> Last updated: 2026-07-01
+> Last updated: 2026-07-02
+
+> **⚠ REWIZJA 2026-07-02 (decyzja Jakuba):** scope-gates tego dokumentu są częściowo
+> nieaktualne. Zakazy **coach mode, prediction, gamification, auto-scheduling**
+> (m.in. w tabeli "What Vanguard is NOT") — **zdjęte**; dokument sam przewidywał tę
+> rewizję po zebraniu realnych danych, a system ma miesiące codziennego użycia.
+>
+> **Bez zmian pozostają guardraile epistemiczne** (naprawiły realne bugi ery Oracle):
+> reasoning ≠ measurement, confirmed gate, inference nie mutuje evidence layer,
+> transparency (source + count + confidence przy każdym claimie). Coach/predykcja są
+> dozwolone **tylko** na bazie policzonych efektów (`compute-behavior-effects`,
+> `compute-correlations`) z widocznym n — nie z generic reasoning LLM.
+>
+> Osobna zasada Jakuba **"zero alertów prewencyjnych"** obowiązuje nadal (coach = pull,
+> nie push) — do jawnego odwołania.
+>
+> Odblokowana roadmapa: [direction/FEATURE_INSPIRATIONS.md](./direction/FEATURE_INSPIRATIONS.md).
 
 > **Stan projektu:** system przestał być naiwny wobec własnych błędów. To nie jest to samo co dojrzałość.
 >

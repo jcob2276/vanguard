@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Pencil, Trash, X, Calendar, Edit2, Info } from 'lucide-react';
+import { Plus, Pencil, Trash, X, Calendar, Edit2, Info, Glasses } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
 type Prescription = {

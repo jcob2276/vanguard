@@ -18,6 +18,21 @@ Dotyczy pliku: `raport_igor_DDMMYYYY.html` na Desktopie.
 
 ---
 
+## Środowisko — ważne szczegóły
+
+- **Python na Windows**: użyj `py` zamiast `python` lub `python3` (launcher Windowsowy)
+- **Hasło Garmin**: trzymane w `C:\Users\jakub\Desktop\Vanguard\.env` jako `GARMIN_EMAIL` / `GARMIN_PASSWORD`
+- **load_dotenv**: gdy skrypt jest poza katalogiem projektu — zawsze podaj jawną ścieżkę:
+  ```python
+  from dotenv import load_dotenv
+  load_dotenv(r'C:\Users\jakub\Desktop\Vanguard\.env')
+  ```
+- **Tokeny Garmin** w `scripts/.garmin_tokens/` — jeśli login nie działa (401/pustce JSON), usuń folder i zaloguj się świeżo: `rmdir /s /q scripts\.garmin_tokens`
+- **Temperatura pogodowa z Garmin**: wartości w °F, przelicz na °C: `(F - 32) * 5/9`
+- **`get_activity()` zwraca null pola** — NIE używaj do summary stats. Używaj `get_activity_splits(AID)` → `lapDTOs[0]` dla globalnych metryk biegu
+
+---
+
 ## Krok 1 — Pobierz kadencję per km z Garmin API
 
 ```bash
@@ -84,8 +99,58 @@ for km in sorted(km_data.keys()):
     print(f'km{km}: {pace_str}/km HR{hr_avg} {cad_avg}spm {elev_net:+.1f}m')
 ```
 
+### Segmentacja per-dystans dla interwałów (NIE per km geograficzny)
+
+Gdy bieg ma strukturę interwałową (np. 5×1km z przerwami), **nie używaj segmentacji per km** — granice geograficzne nie pokrywają się z granicami interwałów. Zamiast tego zdefiniuj segmenty po dystansie i filtruj `sumDistance`:
+
+```python
+segments = [
+    ('Rozgrzewka 1',    0,    1000),
+    ('Rozgrzewka 2', 1000,    2000),
+    ('INT #1',       2000,    3000),
+    ('Przerwa 1',    3000,    3500),
+    ('INT #2',       3500,    4500),
+    ('Przerwa 2',    4500,    5000),
+    ('INT #3',       5000,    6000),
+    ('Przerwa 3',    6000,    6500),
+    ('INT #4',       6500,    7500),
+    ('Przerwa 4',    7500,    8000),
+    ('INT #5',       8000,    9000),
+    ('Cooldown',     9000,   11000),
+]
+
+seg_data = {s[0]: {'cad':[], 'hr':[], 'spd':[], 'elev':[]} for s in segments}
+
+for m in metrics:
+    v = m['metrics']
+    dist = v[DIST]
+    if dist is None: continue
+    for name, start, end in segments:
+        if start <= dist < end:
+            cad = v[CAD]; hr = v[HR]; spd = v[SPD]
+            elev = v[ELEV] if ELEV is not None else None
+            d = seg_data[name]
+            if cad  and  50 < cad  < 300: d['cad'].append(cad)
+            if hr   and  40 < hr   < 220: d['hr'].append(hr)
+            if spd  and 0.5 < spd  < 10:  d['spd'].append(spd)
+            if elev: d['elev'].append(elev)
+            break  # punkt należy tylko do jednego segmentu
+
+for name, start, end in segments:
+    d = seg_data[name]
+    spd_avg = sum(d['spd'])/len(d['spd']) if d['spd'] else 0
+    hr_avg  = round(sum(d['hr'])/len(d['hr'])) if d['hr'] else 0
+    cad_avg = round(sum(d['cad'])/len(d['cad'])) if d['cad'] else 0
+    elev_net = round(d['elev'][-1]-d['elev'][0], 1) if len(d['elev']) >= 2 else 0
+    pace_str = f'{int(1000/spd_avg//60)}:{int(1000/spd_avg%60):02d}' if spd_avg else '--'
+    print(f'{name:15s} [{start/1000:.1f}-{end/1000:.1f}km]: {pace_str}/km  HR{hr_avg}  {cad_avg}spm  {elev_net:+.1f}m')
+```
+
+Granice segmentów zawsze ustal z Jakubem PRZED pisaniem HTML — "pierwsze 2km rozgrzewka, 1km biegu + 500m przerwy" oznacza np. 2-3, 3.5-4.5 itd., nie 0-1, 1-2.
+
 ### Gotowy skrypt jednorazowy
 `scripts/garmin_activity_detail.py` — zmień `GC_ID` na ID aktywności i odpał.
+Działający skrypt z sesji 02.07.2026 (interwały): `C:\Users\jakub\AppData\Local\Temp\claude\...\scratchpad\garmin_intervals.py`
 
 ### Problemy z logowaniem
 - **429 (IP rate limit)** — odczekaj 10–15 min lub użyj VPN przy pierwszym logowaniu
@@ -147,6 +212,27 @@ Szablon: `raport_igor_18062026.html` na Desktopie — skopiuj i podmień dane.
 - **Z3/Z4 mieszany** — Z4 > 20%, RPE 4–5
 - **Progowy Z4** — Z4 > 50%, RPE ≥ 6
 - **Interwałowy** — Z4/Z5 > 30% + wyraźne segmenty szybkie
+
+### Raport interwałowy — dodatkowe sekcje HTML
+
+Gdy bieg jest interwałowy (typ: `Interwały X×Ykm`), dodaj między "Dane biegu" a "Splity":
+
+**Sekcja: Progresja interwałów** — blok z X kolumnami (jedna na interwał) pokazujący tempo, HR, kadencję. Ostatni interwał wyróżniony ciemniejszym kolorem jeśli był najszybszy. Pod blokiem: `Poprawa #1→#X: −Ns/km`.
+
+**Sekcja: Segmenty — Garmin API per metr dystansu** — tabela z WSZYSTKIMI segmentami (rozgrzewka, int #1, przerwa 1, int #2..., cooldown). Dla każdego: tag (kolor), zakres km, tempo, bar wizualny, HR śr, kadencja, wzniesienie netto. Tagi: `tag-int` (zielony) dla interwałów, `tag-rest` (szary) dla przerw, `tag-base` (niebieski) dla rozgrzewki/cooldown, `tag-int-best` (ciemnozielony wypełniony) dla najszybszego interwału.
+
+**Stopka tabeli**: zawsze dodaj zdanie wyjaśniające źródło: "Dane: Garmin Connect API — `get_activity_details` → `metricDescriptors` (mapowanie key→index) + `activityDetailMetrics`, segmentowane po `sumDistance`."
+
+### Profil biegowy Jakuba (kontekst dla wniosków)
+
+- **VO2max**: 47.1 (Cooper test, PR 1km: 4:25 świeży/max)
+- **Cel**: sub-4h Koszyce 4.10.2026 (tempo docelowe: 5:41/km)
+- **VO2max 47.1 = teoretyczny maraton ~3:41–3:45** — VO2max nie jest bottleneckiem, jest zapas
+- **Bottlenecki**: ekonomia biegu (kadencja na easy), próg mleczanowy, akumulacja km
+- **Buty**: ASICS Novablast 5
+- **Trener**: Igor
+- **Overstriding pattern**: kadencja 155 spm na easy vs 170-173 spm na interwałach — problem nawykowy, nie mechaniczny. Rekomendacja: metronom 170 spm na easy
+- **Normy kadencji** dla Jakuba: <160 spm = problem, 165-170 = ok na easy, 170-175 = dobry interwał
 
 ---
 
