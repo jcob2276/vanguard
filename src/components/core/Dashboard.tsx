@@ -32,6 +32,7 @@ import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import FoodEntryModal from './nutrition/FoodEntryModal';
+import MorningPlanModal from './MorningPlanModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -51,6 +52,7 @@ import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
+const TaskAnalyticsCard = lazy(() => import('../insights/TaskAnalyticsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const TodayEventsCard = lazy(() => import('./TodayEventsCard'));
 
@@ -148,6 +150,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [showSaunaLogger, setShowSaunaLogger] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);
+  const [showMorningPlan, setShowMorningPlan] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
   const [foodEditEntry, setFoodEditEntry] = useState<any>(null);
@@ -228,6 +231,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const handlePlanDay = useCallback(() => {
     haptics.light();
+    setShowMorningPlan(true);
     setPlanDaySignal((n) => n + 1);
   }, [haptics]);
 
@@ -555,6 +559,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
 
                 <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
+                  <TaskAnalyticsCard session={session} />
                   <InsightsDashboard session={session} />
                   <Photos session={session} />
                 </div>
@@ -622,6 +627,13 @@ export default function Dashboard({ session }: { session: Session }) {
             </button>
           ))}
         </nav>
+      )}
+
+      {showMorningPlan && (
+        <MorningPlanModal
+          session={session}
+          onClose={() => setShowMorningPlan(false)}
+        />
       )}
 
       {showQuickFoodEntry && (
