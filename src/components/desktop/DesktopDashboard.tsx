@@ -182,7 +182,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
       response_type: 'code',
       prompt: 'consent',
       scope: [
-        'https://www.googleapis.com/auth/calendar.readonly'
+        'https://www.googleapis.com/auth/calendar.events'
       ].join(' ')
     };
     window.location.assign(`${root}?${new URLSearchParams(options).toString()}`);

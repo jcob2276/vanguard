@@ -4,6 +4,7 @@ export interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
+  action?: { label: string; onClick: () => void };
 }
 
 type ToastListener = (items: ToastItem[]) => void;
@@ -38,14 +39,24 @@ export function subscribeConfirm(listener: ConfirmListener): () => void {
   return () => confirmListeners.delete(listener);
 }
 
-export function notify(message: string, type: ToastType = 'info') {
+export function notify(
+  message: string,
+  type: ToastType = 'info',
+  opts?: { action?: { label: string; onClick: () => void }; duration?: number },
+): string {
   const id = crypto.randomUUID();
-  toasts = [...toasts, { id, type, message }];
+  toasts = [...toasts, { id, type, message, action: opts?.action }];
   emitToasts();
   window.setTimeout(() => {
     toasts = toasts.filter((t) => t.id !== id);
     emitToasts();
-  }, 4200);
+  }, opts?.duration ?? 4200);
+  return id;
+}
+
+export function dismissToast(id: string) {
+  toasts = toasts.filter((t) => t.id !== id);
+  emitToasts();
 }
 
 export function confirmDialog(message: string): Promise<boolean> {

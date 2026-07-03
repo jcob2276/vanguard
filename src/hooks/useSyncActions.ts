@@ -3,7 +3,7 @@ import { notify } from '../lib/notify';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 
 const GOOGLE_CLIENT_ID = '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com';
-const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 
 export function useSyncActions({
   userId,

@@ -34,7 +34,8 @@ export default function EditNoteModal({
     setContent(note.content);
     setColor(note.color);
     setTagsInput(note.tags.join(', '));
-  }, [note]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note.id]);
 
   const handleSave = useCallback(() => {
     onUpdate(note.id, {

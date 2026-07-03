@@ -23,7 +23,7 @@ import MasonryGrid from './MasonryGrid';
 import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../lib/captureBridge';
-import { notify } from '../../lib/notify';
+import { notify, dismissToast } from '../../lib/notify';
 
 export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session.user.id;
@@ -205,6 +205,37 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   const handleUpdate = async (id: string, patch: Partial<Note>) => {
     const updatedAt = new Date().toISOString();
+
+    // Archive / unarchive — undo pattern
+    if ('is_archived' in patch) {
+      const original = notes.find(n => n.id === id);
+      if (!original) return;
+
+      const isArchiving = patch.is_archived && !original.is_archived;
+      setNotes(prev => sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n))));
+
+      let cancelled = false;
+      const timer = window.setTimeout(async () => {
+        if (cancelled) return;
+        await supabase.from('vanguard_notes').update({ ...patch, updated_at: updatedAt }).eq('id', id);
+      }, 5000);
+
+      const toastId = notify(isArchiving ? 'Zarchiwizowano' : 'Przywrócono', 'info', {
+        duration: 5000,
+        action: {
+          label: 'Cofnij',
+          onClick: () => {
+            cancelled = true;
+            clearTimeout(timer);
+            setNotes(prev => sortNotes(prev.map(n => (n.id === id ? original : n))));
+            dismissToast(toastId);
+          },
+        },
+      });
+      return;
+    }
+
+    // Normal update (title, content, color, tags, etc.)
     try {
       const { error: err } = await supabase
         .from('vanguard_notes')
@@ -226,26 +257,42 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setBusy(true);
-    try {
-      const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
-      if (err && !isNetworkOrTableError(err)) throw err;
-      setNotes(prev => {
-        const updated = prev.filter(n => n.id !== id);
-        if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
-        return updated;
-      });
-    } catch (e: any) {
-      setNotes(prev => {
-        const updated = prev.filter(n => n.id !== id);
-        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
-        return updated;
-      });
-      setError('Brak połączenia. Usunięto lokalnie.');
-    } finally {
-      setBusy(false);
-    }
+  const handleDelete = (id: string) => {
+    const noteToDelete = notes.find(n => n.id === id);
+    if (!noteToDelete) return;
+
+    // Optimistic remove
+    setNotes(prev => prev.filter(n => n.id !== id));
+    if (editingId === id) setEditingId(null);
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      if (cancelled) return;
+      try {
+        const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
+        if (err && !isNetworkOrTableError(err)) throw err;
+      } catch {
+        setError('Brak połączenia. Usunięto lokalnie.');
+        setNotes(prev => {
+          const updated = prev.filter(n => n.id !== id);
+          localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 5000);
+
+    const toastId = notify('Notatka usunięta', 'info', {
+      duration: 5000,
+      action: {
+        label: 'Cofnij',
+        onClick: () => {
+          cancelled = true;
+          clearTimeout(timer);
+          setNotes(prev => sortNotes([...prev, noteToDelete]));
+          dismissToast(toastId);
+        },
+      },
+    });
   };
 
   const handleTogglePin = async (note: Note) => {

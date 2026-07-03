@@ -155,7 +155,44 @@ export default function RichEditor({
       handleInput();
       handleSelection();
     } else if (action === 'todo') {
-      insertHTML('<div class="keep-todo-item"><span class="keep-todo-checkbox" contenteditable="false"></span><span class="keep-todo-text">Nowe zadanie</span></div><p><br></p>');
+      const editor = editorRef.current;
+      if (!editor) return;
+      editor.focus();
+      const sel = window.getSelection();
+
+      const newTodo = document.createElement('div');
+      newTodo.className = 'keep-todo-item';
+      const checkbox = document.createElement('span');
+      checkbox.className = 'keep-todo-checkbox';
+      checkbox.setAttribute('contenteditable', 'false');
+      newTodo.appendChild(checkbox);
+      const textSpan = document.createElement('span');
+      textSpan.className = 'keep-todo-text';
+      textSpan.innerHTML = ' ';
+      newTodo.appendChild(textSpan);
+
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (editor.contains(range.commonAncestorContainer)) {
+          range.deleteContents();
+          range.insertNode(newTodo);
+        } else {
+          editor.appendChild(newTodo);
+        }
+      } else {
+        editor.appendChild(newTodo);
+      }
+
+      const r = document.createRange();
+      if (textSpan.firstChild) {
+        r.setStart(textSpan.firstChild, 0);
+      } else {
+        r.selectNodeContents(textSpan);
+      }
+      r.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(r);
+      handleInput();
     } else if (action === 'table') {
       const tableHtml =
         '<table class="keep-table">' +

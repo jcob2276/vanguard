@@ -47,7 +47,7 @@
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 
-  /* Google Keep dynamic note colors - Light mode */
+  /* Note colors - Light mode (modern muted pastels) */
   --keep-bg-default: var(--surface-solid);
   --keep-border-default: var(--border);
   --keep-text-default: var(--text-primary);
@@ -56,68 +56,68 @@
   --keep-tag-text-default: var(--text-muted);
   --keep-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06);
 
-  --keep-bg-red: #f28b82;
-  --keep-border-red: transparent;
-  --keep-text-red: #202124;
-  --keep-text-sub-red: #5f6368;
-  --keep-tag-bg-red: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-red: #202124;
+  --keep-bg-red: #fee2e2;
+  --keep-border-red: #fca5a5;
+  --keep-text-red: #1c1c1e;
+  --keep-text-sub-red: #6b7280;
+  --keep-tag-bg-red: rgba(239, 68, 68, 0.1);
+  --keep-tag-text-red: #b91c1c;
 
-  --keep-bg-orange: #fbbc04;
-  --keep-border-orange: transparent;
-  --keep-text-orange: #202124;
-  --keep-text-sub-orange: #5f6368;
-  --keep-tag-bg-orange: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-orange: #202124;
+  --keep-bg-orange: #ffedd5;
+  --keep-border-orange: #fdba74;
+  --keep-text-orange: #1c1c1e;
+  --keep-text-sub-orange: #6b7280;
+  --keep-tag-bg-orange: rgba(249, 115, 22, 0.1);
+  --keep-tag-text-orange: #c2410c;
 
-  --keep-bg-yellow: #fff475;
-  --keep-border-yellow: transparent;
-  --keep-text-yellow: #202124;
-  --keep-text-sub-yellow: #5f6368;
-  --keep-tag-bg-yellow: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-yellow: #202124;
+  --keep-bg-yellow: #fef9c3;
+  --keep-border-yellow: #fde047;
+  --keep-text-yellow: #1c1c1e;
+  --keep-text-sub-yellow: #6b7280;
+  --keep-tag-bg-yellow: rgba(234, 179, 8, 0.12);
+  --keep-tag-text-yellow: #854d0e;
 
-  --keep-bg-green: #ccff90;
-  --keep-border-green: transparent;
-  --keep-text-green: #202124;
-  --keep-text-sub-green: #5f6368;
-  --keep-tag-bg-green: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-green: #202124;
+  --keep-bg-green: #dcfce7;
+  --keep-border-green: #86efac;
+  --keep-text-green: #1c1c1e;
+  --keep-text-sub-green: #6b7280;
+  --keep-tag-bg-green: rgba(34, 197, 94, 0.1);
+  --keep-tag-text-green: #15803d;
 
-  --keep-bg-teal: #a7ffeb;
-  --keep-border-teal: transparent;
-  --keep-text-teal: #202124;
-  --keep-text-sub-teal: #5f6368;
-  --keep-tag-bg-teal: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-teal: #202124;
+  --keep-bg-teal: #ccfbf1;
+  --keep-border-teal: #5eead4;
+  --keep-text-teal: #1c1c1e;
+  --keep-text-sub-teal: #6b7280;
+  --keep-tag-bg-teal: rgba(20, 184, 166, 0.1);
+  --keep-tag-text-teal: #0f766e;
 
-  --keep-bg-blue: #cbf0f8;
-  --keep-border-blue: transparent;
-  --keep-text-blue: #202124;
-  --keep-text-sub-blue: #5f6368;
-  --keep-tag-bg-blue: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-blue: #202124;
+  --keep-bg-blue: #dbeafe;
+  --keep-border-blue: #93c5fd;
+  --keep-text-blue: #1c1c1e;
+  --keep-text-sub-blue: #6b7280;
+  --keep-tag-bg-blue: rgba(59, 130, 246, 0.1);
+  --keep-tag-text-blue: #1d4ed8;
 
-  --keep-bg-indigo: #aecbfa;
-  --keep-border-indigo: transparent;
-  --keep-text-indigo: #202124;
-  --keep-text-sub-indigo: #5f6368;
-  --keep-tag-bg-indigo: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-indigo: #202124;
+  --keep-bg-indigo: #e0e7ff;
+  --keep-border-indigo: #a5b4fc;
+  --keep-text-indigo: #1c1c1e;
+  --keep-text-sub-indigo: #6b7280;
+  --keep-tag-bg-indigo: rgba(99, 102, 241, 0.1);
+  --keep-tag-text-indigo: #4338ca;
 
-  --keep-bg-purple: #d7aefb;
-  --keep-border-purple: transparent;
-  --keep-text-purple: #202124;
-  --keep-text-sub-purple: #5f6368;
-  --keep-tag-bg-purple: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-purple: #202124;
+  --keep-bg-purple: #f3e8ff;
+  --keep-border-purple: #d8b4fe;
+  --keep-text-purple: #1c1c1e;
+  --keep-text-sub-purple: #6b7280;
+  --keep-tag-bg-purple: rgba(168, 85, 247, 0.1);
+  --keep-tag-text-purple: #7e22ce;
 
-  --keep-bg-pink: #fdcfe8;
-  --keep-border-pink: transparent;
-  --keep-text-pink: #202124;
-  --keep-text-sub-pink: #5f6368;
-  --keep-tag-bg-pink: rgba(0, 0, 0, 0.06);
-  --keep-tag-text-pink: #202124;
+  --keep-bg-pink: #fce7f3;
+  --keep-border-pink: #f9a8d4;
+  --keep-text-pink: #1c1c1e;
+  --keep-text-sub-pink: #6b7280;
+  --keep-tag-bg-pink: rgba(236, 72, 153, 0.1);
+  --keep-tag-text-pink: #be185d;
 }
 
 .dark {
@@ -838,19 +838,31 @@
   flex-wrap: wrap;
 }
 .keep-swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid transparent;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
 }
-.keep-swatch:hover { transform: scale(1.2); }
+.keep-swatch:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+}
 .keep-swatch.selected {
-  border-color: white;
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.6);
-  transform: scale(1.15);
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.keep-swatch.selected::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255,255,255,0.72);
+  pointer-events: none;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
@@ -1103,8 +1115,8 @@
 }
 
 .keep-menu-colors {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
   gap: 8px;
   padding: 14px 16px;
 }
@@ -1926,18 +1938,29 @@
   gap: 8px;
 }
 .note-quick-color-btn {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-  transition: transform 0.15s ease;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  transition: transform 0.15s ease, box-shadow 0.15s;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 .note-quick-color-btn:hover {
-  transform: scale(1.2);
+  transform: scale(1.12);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 .note-quick-color-btn.active {
-  border-color: var(--text-primary);
+  transform: scale(1.08);
+}
+.note-quick-color-btn.active::after {
+  content: '';
+  position: absolute;
+  inset: 2.5px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(255,255,255,0.72);
+  pointer-events: none;
 }
 .note-quick-save-btn {
   background: var(--primary);

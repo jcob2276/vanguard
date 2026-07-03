@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, RefreshCw, X, Loader2, Sparkles, Zap, Flame, Droplet } from 'lucide-react';
+import { Plus, RefreshCw, X, Loader2, Zap, Flame, Droplet } from 'lucide-react';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 import { useNutritionData, type TodayEntry } from './useNutritionData';
 import NutritionChart from './NutritionChart';
@@ -29,7 +29,6 @@ export default function NutritionCard({
     weeklyBudget,
     todayEntries,
     deletingId,
-    aiSuggestions,
     forecast,
     forecastNote,
     isExpanded, setIsExpanded,
@@ -477,20 +476,6 @@ export default function NutritionCard({
         </div>
       )}
 
-      {/* AI suggestions */}
-      {aiSuggestions.length > 0 && remainingKcalToday > 200 && (
-        <div className="mt-3.5 rounded-xl border border-primary/15 bg-primary/[0.04] p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles size={11} className="text-primary" />
-            <span className="text-[9px] font-black uppercase tracking-wider text-primary">AI sugeruje na dziś</span>
-          </div>
-          <div className="space-y-1">
-            {aiSuggestions.map((s, i) => (
-              <p key={i} className="text-[11.5px] text-text-secondary leading-snug">• {s}</p>
-            ))}
-          </div>
-        </div>
-      )}
 
       {showEntryModal && (
         <FoodEntryModal
