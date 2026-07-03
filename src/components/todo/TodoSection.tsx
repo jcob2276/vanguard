@@ -57,7 +57,7 @@ export default function TodoSection({
   return (
     <div
       ref={innerRef || undefined}
-      className={`rounded-2xl p-2 transition-all duration-200 ${containerDragClass}`}
+      className={`rounded-2xl p-2 transition-[background-color,border-color,transform,box-shadow] duration-200 ${containerDragClass}`}
     >
       <BucketHeader
         icon={icon}

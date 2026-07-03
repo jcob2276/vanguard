@@ -9,6 +9,7 @@ import {
   BookOpen,
   LayoutGrid,
   Kanban,
+  Clock3,
 } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
@@ -19,6 +20,7 @@ import {
   setTodoStatus,
   updateTodoItem,
 } from '../../lib/todo';
+import { supabase } from '../../lib/supabase';
 import ContextMenu from './ContextMenu';
 import DragGhost from './DragGhost';
 import BucketHeader from './BucketHeader';
@@ -27,6 +29,8 @@ import SectionTabs from './SectionTabs';
 import TodoQuickCapture from './TodoQuickCapture';
 import EisenhowerMatrix from './EisenhowerMatrix';
 import KanbanView from './KanbanView';
+import TimelineView from './TimelineView';
+import TodayEventsPanel from './TodayEventsPanel';
 import { useTodoData } from './useTodoData';
 
 export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
@@ -60,7 +64,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     handleDragStart, showContextMenu, handleComplete,
   } = useTodoData({ session, onNavigateTo });
 
-  const [todoView, setTodoView] = useState<'lista' | 'eisenhower' | 'kanban'>('lista');
+  const [todoView, setTodoView] = useState<'lista' | 'eisenhower' | 'kanban' | 'timeline'>('lista');
 
   const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
     <TodoCard
@@ -108,7 +112,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       sectionGoalKey={item.section_id ? sectionGoalMap[item.section_id] ?? null : null}
       dreamTitle={item.section_id ? sectionDreamMap[item.section_id] ?? null : null}
       onDragStart={handleDragStart}
-      isDragging={draggingItem !== null}
+      isDragging={draggingItem?.id === item.id}
       onShowContextMenu={showContextMenu}
       onMoveToToday={!inToday ? () => {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() } : i));
@@ -143,6 +147,26 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, reminder_at: null, reminder_sent: false } : i));
         updateTodoItem(item.id, { reminder_at: null, reminder_sent: false } as any).catch((err) => {
           setError(err instanceof Error ? err.message : String(err));
+        });
+      }}
+      onSetTags={(tags: string[]) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, tags } : i));
+        updateTodoItem(item.id, { tags } as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, tags: item.tags } : i));
+        });
+      }}
+      onAiBreakdown={async () => {
+        const { data, error } = await supabase.functions.invoke('vanguard-task-breakdown', {
+          body: { itemId: item.id, userId, title: item.title, notes: item.notes },
+        });
+        if (error) throw error;
+        return (data?.subtasks as string[]) ?? [];
+      }}
+      onSetTitle={(newTitle: string) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, title: newTitle } : i));
+        updateTodoItem(item.id, { title: newTitle } as any).catch(() => {
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, title: item.title } : i));
         });
       }}
     />
@@ -275,6 +299,13 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
             >
               <Kanban size={15} />
             </button>
+            <button
+              onClick={() => setTodoView('timeline')}
+              className={`rounded-lg p-1.5 transition-all ${todoView === 'timeline' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
+              title="Oś czasu"
+            >
+              <Clock3 size={15} />
+            </button>
           </div>
           <button
             onClick={() => setShowDone((v) => !v)}
@@ -304,6 +335,18 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         {todoView === 'kanban' && (
           <main className="flex-1 overflow-hidden">
             <KanbanView items={items as any} sections={sections} setItems={setItems as any} today={today} />
+          </main>
+        )}
+
+        {todoView === 'timeline' && (
+          <main className="flex-1 overflow-hidden">
+            <TimelineView
+              items={todayItems as any}
+              sectionGoalMap={sectionGoalMap}
+              today={today}
+              onToggle={(item: any) => handleComplete(item)}
+              onExpand={(id: string) => toggleExpand(id)}
+            />
           </main>
         )}
 
@@ -413,6 +456,30 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                         onToggle={() => toggleSectionCollapse('today')}
                         isDropTarget={dragTarget === 'today'}
                       />
+                      {(() => {
+                        const totalMin = todayItems.reduce((s: number, i: any) => s + (i.duration_minutes || 0), 0);
+                        if (totalMin === 0) return null;
+                        const capMin = 480;
+                        const pct = Math.min(100, Math.round((totalMin / capMin) * 100));
+                        const over = totalMin > capMin;
+                        const label = totalMin >= 60
+                          ? `${Math.floor(totalMin / 60)}h${totalMin % 60 > 0 ? ` ${totalMin % 60}m` : ''}`
+                          : `${totalMin}m`;
+                        return (
+                          <div className="mb-2 -mt-1 px-0.5">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
+                              <span className={`text-[9px] font-bold tabular-nums ${over ? 'text-rose-400' : 'text-text-muted/50'}`}>{label} / 8h</span>
+                            </div>
+                            <div className="h-[3px] rounded-full bg-surface-solid overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-rose-400/70' : 'bg-orange-400/60'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {!collapsedSections['today'] && (
                         <div className="pt-1">
                           {todayItems.length === 0 ? (
@@ -425,7 +492,29 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                               <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby zaplanować na dziś</span>
                             </div>
                           ) : (
-                            todayItems.map((i: any) => renderCard(i, { inToday: true }))
+                            <>
+                              {(() => {
+                                const pending = todayItems.filter((i: any) => i.status !== 'done' && i.status !== 'dropped');
+                                if (pending.length < 2) return null;
+                                const focus = pending[0];
+                                const [focusEmoji] = focus.title.match(/^\p{Emoji}/u) ?? [''];
+                                const focusLabel = focusEmoji ? focus.title.slice([...focusEmoji].length).trim() : focus.title;
+                                return (
+                                  <button
+                                    onClick={() => toggleExpand(focus.id)}
+                                    className="w-full mb-2 flex items-center gap-2.5 rounded-xl border border-orange-500/20 bg-orange-500/6 px-3 py-2.5 text-left hover:bg-orange-500/10 transition-all btn-press"
+                                  >
+                                    <span className="text-[16px] leading-none shrink-0">{focusEmoji || '🎯'}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 mb-0.5">Co teraz?</p>
+                                      <p className="text-[13px] font-semibold text-text-primary leading-snug truncate">{focusLabel}</p>
+                                    </div>
+                                    <span className="shrink-0 rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400">Zacznij →</span>
+                                  </button>
+                                );
+                              })()}
+                              {todayItems.map((i: any) => renderCard(i, { inToday: true }))}
+                            </>
                           )}
                         </div>
                       )}
@@ -540,6 +629,9 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         </main>
         )}
       </div>
+
+      {/* Desktop: today's calendar events panel */}
+      <TodayEventsPanel userId={userId} today={today} />
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">

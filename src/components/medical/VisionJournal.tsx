@@ -103,7 +103,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
       <div>
         <h3 className="text-xl font-bold mb-4">Lewe Oko</h3>
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={chartDataLeft}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
               <XAxis dataKey="name" stroke="#888" fontSize={12} />
@@ -121,7 +121,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
       <div>
         <h3 className="text-xl font-bold mb-4">Prawe Oko</h3>
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={chartDataRight}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
               <XAxis dataKey="name" stroke="#888" fontSize={12} />

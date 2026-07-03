@@ -74,7 +74,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             </div>
 
             {/* Stats comparison — 7 dni vs średnia 3 poprzednich tygodni */}
-            <div className="rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md p-4.5 space-y-3 shadow-sm">
+            <div className="rounded-xl border border-border-custom/60 bg-slate-100/40 dark:bg-white/[0.02] p-4.5 space-y-3 shadow-sm">
               {s.km_trend && (
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[8px] font-black uppercase text-text-muted w-20 shrink-0 tracking-widest">Km/tydz</span>
@@ -105,7 +105,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             </div>
 
             {/* Summaries */}
-            <div className="space-y-2 rounded-[24px] border border-border-custom bg-surface/30 p-4">
+            <div className="space-y-2 rounded-xl border border-border-custom/60 bg-slate-100/30 dark:bg-white/[0.015] p-4">
               {r.coach_decision_summary && (
                 <p className="text-[11.5px] text-dayC font-semibold leading-relaxed border-l-2 border-dayC/40 pl-2.5 mb-2">{r.coach_decision_summary}</p>
               )}
@@ -188,7 +188,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Rekomendacje</p>
                 <div className="space-y-2">
                   {r.recommendations.map((rec: any, i: number) => (
-                    <div key={i} className="rounded-[24px] border border-border-custom bg-surface/30 p-4 flex gap-3 shadow-sm">
+                    <div key={i} className="rounded-xl border border-border-custom/60 bg-slate-100/30 dark:bg-white/[0.015] p-4 flex gap-3 shadow-sm">
                       <span className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary">{rec.priority}</span>
                       <div className="min-w-0">
                         <p className="text-[11.5px] font-black text-text-primary">{rec.action}</p>

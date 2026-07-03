@@ -315,7 +315,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         saveMetrics={saveMetrics}
       />
 
-      <section className="space-y-4 rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
+      <section className="card p-5 space-y-4">
         <DataExportSection
           dateRange={dateRange}
           setDateRange={setDateRange}

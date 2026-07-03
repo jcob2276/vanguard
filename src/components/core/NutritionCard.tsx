@@ -71,7 +71,7 @@ export default function NutritionCard({
   };
 
   return (
-    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-5 shadow-sm">
+    <section className="card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Żywienie</p>

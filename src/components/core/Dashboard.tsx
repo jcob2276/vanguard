@@ -18,6 +18,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { getTodayWarsaw } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { useSyncActions } from '../../hooks/useSyncActions';
@@ -33,6 +34,7 @@ import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 import MorningPlanModal from './MorningPlanModal';
+import DailyShutdownModal from './DailyShutdownModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -147,10 +149,12 @@ export default function Dashboard({ session }: { session: Session }) {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [userId]);
+
   const [showSaunaLogger, setShowSaunaLogger] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);
   const [showMorningPlan, setShowMorningPlan] = useState(false);
+  const [showShutdown, setShowShutdown] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
   const [foodEditEntry, setFoodEditEntry] = useState<any>(null);
@@ -228,6 +232,26 @@ export default function Dashboard({ session }: { session: Session }) {
   const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
   const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
   const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
+
+  // Auto-suggest Evening Shutdown after 20:00 Warsaw time — once per day, not on every refresh.
+  useEffect(() => {
+    if (!todayWin) return;
+    if (todayWin.day_note?.trim()) return;
+
+    const today = getTodayWarsaw();
+    try {
+      if (localStorage.getItem('vanguard_shutdown_dismissed') === today) return;
+    } catch (e) {}
+
+    const warsawHour = parseInt(
+      new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }),
+      10
+    );
+
+    if (warsawHour >= 20) {
+      setShowShutdown(true);
+    }
+  }, [todayWin]);
 
   const handlePlanDay = useCallback(() => {
     haptics.light();
@@ -454,6 +478,14 @@ export default function Dashboard({ session }: { session: Session }) {
                 onFocusPlan={handleFocusPlan}
               />
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
+              {todayWin && (
+                <button
+                  onClick={() => setShowShutdown(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm mt-4"
+                >
+                  Domknij Dzień (Rytuał Wieczorny)
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -505,6 +537,14 @@ export default function Dashboard({ session }: { session: Session }) {
               </Link>
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
+              {todayWin && (
+                <button
+                  onClick={() => setShowShutdown(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm"
+                >
+                  Domknij Dzień (Rytuał Wieczorny)
+                </button>
+              )}
 
               <Suspense fallback={<ViewFallback />}>
                 <DailySnapshotCard session={session} />
@@ -597,7 +637,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'max(2rem, calc(1rem + env(safe-area-inset-bottom)))' }}>
           {/* Sliding background indicator pill */}
           <div 
-            className="absolute top-1.5 bottom-1.5 rounded-full bg-primary/10 transition-all duration-300"
+            className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-300"
             style={{
               width: 'calc(25% - 3px)',
               left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
@@ -633,6 +673,17 @@ export default function Dashboard({ session }: { session: Session }) {
         <MorningPlanModal
           session={session}
           onClose={() => setShowMorningPlan(false)}
+        />
+      )}
+
+      {showShutdown && (
+        <DailyShutdownModal
+          session={session}
+          onClose={() => {
+            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
+            setShowShutdown(false);
+          }}
+          onSaved={refresh}
         />
       )}
 

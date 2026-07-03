@@ -6,16 +6,6 @@ import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
 
-// True Snellen proportions: each row ~1.26x smaller than the one above
-const SNELLEN_ROWS = [
-  { letters: 'E',           size: 4.8 },
-  { letters: 'F P',         size: 3.6 },
-  { letters: 'T O Z',       size: 2.7 },
-  { letters: 'L P E D',     size: 2.0 },
-  { letters: 'P E C F D',   size: 1.5 },
-  { letters: 'E D F C Z P', size: 1.1 },
-];
-
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 
@@ -52,7 +42,12 @@ export default function EndMyopiaCalculator() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [snellenRows, setSnellenRows] = useState(4); // how many rows to show
+  const [sizeLevel, setSizeLevel] = useState(4); // 1=smallest … 6=largest
+  const [autoCapture, setAutoCapture] = useState(() =>
+    localStorage.getItem('endmyopia_auto_capture') !== 'false'
+  );
+
+  const FOCUS_SIZES = [1.5, 2.2, 3.2, 4.5, 6.0, 8.0];
 
   const faceDetected = distance !== null;
   const capturedDiopters = capturedDistance ? (-100 / capturedDistance) : null;
@@ -64,16 +59,30 @@ export default function EndMyopiaCalculator() {
     }
   }, [calibrationFactor]);
 
-  // Auto-capture when stability reaches 1
+  // Auto-capture when stability reaches 1 (only in auto mode)
   useEffect(() => {
+    if (!autoCapture) return;
     if (phase === 'measure' && stability >= 1 && distance !== null) {
-      // Haptic feedback
       if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
       setCapturedDistance(distance);
       setPhase('captured');
       resetStability();
     }
-  }, [stability, phase, distance]);
+  }, [stability, phase, distance, autoCapture]);
+
+  const handleManualCapture = () => {
+    if (distance === null) return;
+    if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
+    setCapturedDistance(distance);
+    setPhase('captured');
+    resetStability();
+  };
+
+  const toggleAutoCapture = () => {
+    const next = !autoCapture;
+    setAutoCapture(next);
+    localStorage.setItem('endmyopia_auto_capture', String(next));
+  };
 
   // Camera setup
   useEffect(() => {
@@ -169,36 +178,60 @@ export default function EndMyopiaCalculator() {
             <StabilityRing progress={stability} size={52} />
           </div>
 
-          {/* Snellen letters — centered, full-screen feel */}
-          <div className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-24">
-            {SNELLEN_ROWS.slice(0, snellenRows).map((row, i) => (
-              <p
-                key={i}
-                className="text-black font-black tracking-[0.3em] text-center leading-none mb-1"
-                style={{ fontSize: `${row.size}rem` }}
-              >
-                {row.letters}
-              </p>
-            ))}
+          {/* FOCUS word — centered */}
+          <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-32">
+            <p
+              className="text-black font-black tracking-[0.25em] text-center leading-none select-none"
+              style={{ fontSize: `${FOCUS_SIZES[sizeLevel - 1]}rem` }}
+            >
+              FOCUS
+            </p>
           </div>
 
           {/* Bottom controls */}
-          <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-6 px-8">
-            <button
-              onClick={() => setSnellenRows(r => Math.max(1, r - 1))}
-              className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
-            >
-              <ZoomOut size={20} />
-            </button>
-            <div className="flex flex-col items-center text-center">
-              <p className="text-xs text-gray-400 font-medium">Stój nieruchomo na krawędzi rozmycia</p>
-              <p className="text-[10px] text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
+          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3 px-8">
+            {/* Zoom + capture row */}
+            <div className="flex items-center justify-between w-full">
+              <button
+                onClick={() => setSizeLevel(l => Math.max(1, l - 1))}
+                className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+              >
+                <ZoomOut size={20} />
+              </button>
+
+              {autoCapture ? (
+                <div className="flex flex-col items-center text-center">
+                  <p className="text-xs text-gray-400 font-medium">Stój na krawędzi rozmycia</p>
+                  <p className="text-[10px] text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
+                </div>
+              ) : (
+                <button
+                  onClick={handleManualCapture}
+                  disabled={!faceDetected}
+                  className="bg-blue-500 text-white font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-30 active:scale-95 transition-all shadow-lg"
+                >
+                  Złap pomiar
+                </button>
+              )}
+
+              <button
+                onClick={() => setSizeLevel(l => Math.min(6, l + 1))}
+                className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+              >
+                <ZoomIn size={20} />
+              </button>
             </div>
+
+            {/* Auto/manual toggle */}
             <button
-              onClick={() => setSnellenRows(r => Math.min(6, r + 1))}
-              className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+              onClick={toggleAutoCapture}
+              className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${
+                autoCapture
+                  ? 'bg-blue-50 text-blue-500 border border-blue-200'
+                  : 'bg-gray-100 text-gray-400 border border-gray-200'
+              }`}
             >
-              <ZoomIn size={20} />
+              {autoCapture ? '● Auto-capture' : '○ Ręczne złapanie'}
             </button>
           </div>
         </div>

@@ -28,7 +28,7 @@ export interface PanelProps {
 
 export function Panel({ title, children, className = '' }: PanelProps) {
   return (
-    <div className={`rounded-[20px] border border-border-custom bg-surface p-5 shadow-sm ${className}`}>
+    <div className={`card p-5 ${className}`}>
       {title && (
         <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted mb-4 pb-2.5 border-b border-border-custom">
           {title}

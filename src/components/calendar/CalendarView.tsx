@@ -9,9 +9,14 @@ import {
   LayoutGrid,
   X,
   Clock,
+  Trash2,
+  Sliders,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWrite';
+import { useTimeBudgets } from '../../hooks/useTimeBudgets';
+import { createTodoItem, setTodoStatus } from '../../lib/todo';
+import { warsawDayBoundsISO } from '../../lib/date';
 
 interface Props {
   session: any;
@@ -29,6 +34,12 @@ interface CalRow {
   start_time: string | null;
   end_time: string | null;
   category: string | null;
+}
+
+interface SidebarTodo {
+  id: string;
+  title: string;
+  status: string;
 }
 
 const HOUR_START = 6;
@@ -73,23 +84,61 @@ function monthLabel(dateStr: string) {
   return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function getWarsawParts(isoStr: string) {
+  const normalized = isoStr.includes(' ') && !isoStr.includes('T') ? isoStr.replace(' ', 'T') : isoStr;
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) throw new Error(`Invalid date string: ${isoStr}`);
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
+  
+  return {
+    year: getPart('year'),
+    month: getPart('month'),
+    day: getPart('day'),
+    hour: getPart('hour'),
+    minute: getPart('minute'),
+    dateStr: `${getPart('year')}-${getPart('month')}-${getPart('day')}`,
+    timeStr: `${getPart('hour')}:${getPart('minute')}`
+  };
+}
+
 function parseTime(iso: string) {
-  // Returns minutes from midnight
-  const parts = iso.split('T');
-  if (parts.length < 2) return 0;
-  const timePart = parts[1];
-  const [h, min] = timePart.split(':').map(Number);
-  return h * 60 + (min || 0);
+  try {
+    const { hour, minute } = getWarsawParts(iso);
+    return Number(hour) * 60 + Number(minute);
+  } catch (e) {
+    return 0;
+  }
 }
 
 function formatTime(iso: string) {
-  const parts = iso.split('T');
-  if (parts.length < 2) return '';
-  return parts[1].slice(0, 5);
+  try {
+    const { timeStr } = getWarsawParts(iso);
+    return timeStr;
+  } catch (e) {
+    return '';
+  }
 }
 
 function dateOfISO(iso: string) {
-  return iso.split('T')[0];
+  try {
+    const { dateStr } = getWarsawParts(iso);
+    return dateStr;
+  } catch (e) {
+    return iso.split('T')[0] || iso.split(' ')[0] || '';
+  }
 }
 
 function nowMinutes() {
@@ -98,11 +147,11 @@ function nowMinutes() {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  work: 'bg-blue-500/80 border-blue-600/50',
-  health: 'bg-emerald-500/80 border-emerald-600/50',
-  personal: 'bg-violet-500/80 border-violet-600/50',
-  sport: 'bg-orange-500/80 border-orange-600/50',
-  study: 'bg-sky-500/80 border-sky-600/50',
+  work: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
+  health: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  personal: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
+  sport: 'bg-orange-500/8 dark:bg-orange-500/12 border-l-orange-500 border-y-orange-500/10 border-r-orange-500/10 text-orange-600 dark:text-orange-400',
+  study: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
 };
 
 function eventColor(ev: CalRow) {
@@ -132,19 +181,108 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [quickDuration, setQuickDuration] = useState(60);
   const [saving, setSaving] = useState(false);
 
+  // Edit event state
+  const [selectedEvent, setSelectedEvent] = useState<CalRow | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<string | null>(null);
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Time Budgeting state
+  const [budgetPanelExpanded, setBudgetPanelExpanded] = useState(false);
+  const [showBudgetConfig, setShowBudgetConfig] = useState(false);
+  const [budgetMinInputs, setBudgetMinInputs] = useState<Record<string, string>>({});
+  const [budgetMaxInputs, setBudgetMaxInputs] = useState<Record<string, string>>({});
+
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const { createEvent } = useCalendarWrite({ userId, accessToken });
+  const { budgets, saveBudget } = useTimeBudgets(userId || '');
+  const { createEvent, updateEvent, deleteEvent } = useCalendarWrite({ userId, accessToken });
+
+  // Sidebar Tasks states
+  const [sidebarTodos, setSidebarTodos] = useState<SidebarTodo[]>([]);
+  const [newTodoTitle, setNewTodoTitle] = useState('');
+
+  const fetchSidebarTodos = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const { data, error } = await supabase
+        .from('todo_items')
+        .select('id, title, status')
+        .eq('user_id', userId)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      setSidebarTodos((data as SidebarTodo[]) || []);
+    } catch (e) {
+      console.error('Error fetching sidebar todos:', e);
+    }
+  }, [userId]);
+
+  const handleToggleTodo = async (id: string) => {
+    try {
+      setSidebarTodos((prev) => prev.filter((t) => t.id !== id));
+      await setTodoStatus({ id }, 'done');
+    } catch (e) {
+      console.error('Error completing todo:', e);
+      fetchSidebarTodos();
+    }
+  };
+
+  const handleQuickAddTodo = async () => {
+    if (!userId || !newTodoTitle.trim()) return;
+    const title = newTodoTitle.trim();
+    setNewTodoTitle('');
+    try {
+      const created = await createTodoItem(userId, { title });
+      setSidebarTodos((prev) => [created as SidebarTodo, ...prev]);
+    } catch (e) {
+      console.error('Error creating quick todo:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSidebarTodos();
+  }, [fetchSidebarTodos]);
+
+  // Sum event durations for the current week per category
+  const categoryWeeklyTotals = useMemo(() => {
+    const totals: Record<string, number> = {
+      work: 0,
+      health: 0,
+      personal: 0,
+      sport: 0,
+      study: 0,
+    };
+    events.forEach((ev) => {
+      if (!ev.start_time || !ev.end_time || !ev.category) return;
+      const cat = ev.category.toLowerCase();
+      if (!(cat in totals)) return;
+      try {
+        const start = new Date(ev.start_time.replace(' ', 'T')).getTime();
+        const end = new Date(ev.end_time.replace(' ', 'T')).getTime();
+        const diffMs = end - start;
+        if (diffMs > 0) {
+          const hours = diffMs / (1000 * 60 * 60);
+          totals[cat] += hours;
+        }
+      } catch (e) {
+        console.error('Error calculating event duration:', e);
+      }
+    });
+    return totals;
+  }, [events]);
 
   // Fetch events for visible date range
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     let rangeStart = '';
     let rangeEnd = '';
-    if (calView === 'dzien') {
-      rangeStart = selectedDay;
-      rangeEnd = addDays(selectedDay, 1);
-    } else if (calView === 'tydzien') {
+    if (calView === 'dzien' || calView === 'tydzien') {
       rangeStart = weekStart;
       rangeEnd = addDays(weekStart, 7);
     } else {
@@ -154,12 +292,14 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     }
     setLoading(true);
     try {
+      const { fromISO } = warsawDayBoundsISO(rangeStart);
+      const { fromISO: toISO } = warsawDayBoundsISO(rangeEnd);
       const { data, error } = await supabase
         .from('vanguard_calendar')
         .select('*')
         .eq('user_id', userId)
-        .gte('start_time', `${rangeStart}T00:00:00`)
-        .lt('start_time', `${rangeEnd}T00:00:00`)
+        .gte('start_time', fromISO)
+        .lt('start_time', toISO)
         .order('start_time', { ascending: true });
       if (error) throw error;
       setEvents((data as CalRow[]) || []);
@@ -190,7 +330,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     return events.filter((e) => e.start_time && dateOfISO(e.start_time) === day);
   }, [events]);
 
-  function handleSlotClick(date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) {
+  const handleSlotClick = (date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
     const clickedMin = Math.round(((hour * 60 + (offsetY / PX_PER_HOUR) * 60)) / 15) * 15;
@@ -199,7 +339,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     setQuickDuration(60);
   }
 
-  async function handleQuickSave() {
+  const handleQuickSave = async () => {
     if (!quickCreate || !quickTitle.trim()) return;
     setSaving(true);
     const { date, startMin } = quickCreate;
@@ -234,7 +374,82 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     }
   }
 
-  function minutesLabel(m: number) {
+  const handleEventClick = (ev: CalRow) => {
+    if (!ev.start_time || !ev.end_time) return;
+    setSelectedEvent(ev);
+    setEditTitle(ev.summary || '');
+    setEditCategory(ev.category || null);
+    
+    try {
+      const startParts = getWarsawParts(ev.start_time);
+      const endParts = getWarsawParts(ev.end_time);
+      
+      setEditDate(startParts.dateStr);
+      setEditStart(startParts.timeStr);
+      setEditEnd(endParts.timeStr);
+    } catch (e) {
+      console.error('Failed to parse event click time:', e);
+      const partsStart = ev.start_time.split('T');
+      const partsEnd = ev.end_time.split('T');
+      setEditDate(partsStart[0]);
+      setEditStart(partsStart[1] ? partsStart[1].slice(0, 5) : '12:00');
+      setEditEnd(partsEnd[1] ? partsEnd[1].slice(0, 5) : '13:00');
+    }
+  }
+
+  const handleEditSave = async () => {
+    if (!selectedEvent || !editTitle.trim() || !editStart || !editEnd || !editDate) return;
+    setSaving(true);
+    const start = `${editDate}T${editStart}:00${WARSAW_OFFSET}`;
+    const end = `${editDate}T${editEnd}:00${WARSAW_OFFSET}`;
+    const evId = selectedEvent.event_id || selectedEvent.id;
+    const ev: CalendarEvent & { id: string } = {
+      id: evId,
+      summary: editTitle.trim(),
+      start,
+      end,
+      category: editCategory || undefined,
+    };
+    try {
+      await updateEvent(ev);
+      setEvents((prev) =>
+        prev.map((item) =>
+          item.id === selectedEvent.id
+            ? {
+                ...item,
+                summary: ev.summary,
+                start_time: start,
+                end_time: end,
+                category: ev.category || null,
+              }
+            : item,
+        ).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')),
+      );
+      setSelectedEvent(null);
+    } catch (err) {
+      console.error('edit event error:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const handleEditDelete = async () => {
+    if (!selectedEvent) return;
+    if (!window.confirm('Czy na pewno chcesz usunąć to wydarzenie?')) return;
+    setDeleting(true);
+    const evId = selectedEvent.event_id || selectedEvent.id;
+    try {
+      await deleteEvent(evId);
+      setEvents((prev) => prev.filter((item) => item.id !== selectedEvent.id));
+      setSelectedEvent(null);
+    } catch (err) {
+      console.error('delete event error:', err);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const minutesLabel = (m: number) => {
     const h = Math.floor(m / 60);
     const min = m % 60;
     return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
@@ -242,7 +457,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   // ── Render helpers ──
 
-  function renderEventBlock(ev: CalRow, colWidth: string) {
+  const renderEventBlock = (ev: CalRow, colWidth: string) => {
     if (!ev.start_time || !ev.end_time) return null;
     const startMin = parseTime(ev.start_time);
     const endMin = parseTime(ev.end_time);
@@ -252,15 +467,16 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     return (
       <div
         key={ev.id}
-        className={`absolute left-0.5 right-0.5 rounded-lg border px-1.5 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all shadow-sm ${eventColor(ev)}`}
+        onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
+        className={`absolute left-0.5 right-0.5 rounded-lg border-l-2 border-y border-r border-border-custom/50 px-1.5 py-1 overflow-hidden cursor-pointer hover:scale-[1.01] transition-all hover:shadow-sm ${eventColor(ev)}`}
         style={{ top, height, width: colWidth }}
         title={ev.summary || ''}
       >
-        <p className="text-white text-[9px] font-black leading-tight line-clamp-2">
+        <p className="text-current text-[9px] font-black leading-tight line-clamp-2">
           {ev.summary}
         </p>
         {!tooShort && (
-          <p className="text-white/70 text-[8px] leading-tight mt-0.5">
+          <p className="text-current/75 text-[8px] leading-tight mt-0.5">
             {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
           </p>
         )}
@@ -268,7 +484,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
-  function renderTimeGutter() {
+  const renderTimeGutter = () => {
     return (
       <div className="flex flex-col shrink-0" style={{ width: 36 }}>
         {Array.from({ length: HOURS + 1 }, (_, i) => (
@@ -284,7 +500,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
-  function renderDayColumn(day: string, colClass = '') {
+  const renderDayColumn = (day: string, colClass = '') => {
     const dayEvents = eventsForDay(day);
     const isToday = day === today;
     const nowLine = isToday ? (nowMinutes() - HOUR_START * 60) * PX_PER_MIN : null;
@@ -321,21 +537,43 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   // ── Views ──
 
-  function renderDayView() {
+  const renderDayView = () => {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Day nav */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
-          <button onClick={() => setSelectedDay(addDays(selectedDay, -1))} className="p-2 rounded-full hover:bg-surface-solid transition-colors">
+          <button
+            onClick={() => {
+              const d = addDays(selectedDay, -1);
+              setSelectedDay(d);
+              setWeekStart(weekMon(d));
+            }}
+            className="p-2 rounded-full hover:bg-surface-solid transition-colors"
+          >
             <ChevronLeft size={18} className="text-text-muted" />
           </button>
           <div className="text-center">
             <p className="text-[14px] font-bold text-text-primary">{monthLabel(selectedDay)}</p>
             {selectedDay !== today && (
-              <button onClick={() => setSelectedDay(today)} className="text-[10px] text-primary font-semibold">Wróć do dziś</button>
+              <button
+                onClick={() => {
+                  setSelectedDay(today);
+                  setWeekStart(weekMon(today));
+                }}
+                className="text-[10px] text-primary font-semibold"
+              >
+                Wróć do dziś
+              </button>
             )}
           </div>
-          <button onClick={() => setSelectedDay(addDays(selectedDay, 1))} className="p-2 rounded-full hover:bg-surface-solid transition-colors">
+          <button
+            onClick={() => {
+              const d = addDays(selectedDay, 1);
+              setSelectedDay(d);
+              setWeekStart(weekMon(d));
+            }}
+            className="p-2 rounded-full hover:bg-surface-solid transition-colors"
+          >
             <ChevronRight size={18} className="text-text-muted" />
           </button>
         </div>
@@ -352,12 +590,19 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
-  function renderWeekView() {
+  const renderWeekView = () => {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Week nav */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
-          <button onClick={() => setWeekStart(addDays(weekStart, -7))} className="p-2 rounded-full hover:bg-surface-solid transition-colors">
+          <button
+            onClick={() => {
+              const w = addDays(weekStart, -7);
+              setWeekStart(w);
+              setSelectedDay(w);
+            }}
+            className="p-2 rounded-full hover:bg-surface-solid transition-colors"
+          >
             <ChevronLeft size={18} className="text-text-muted" />
           </button>
           <div className="text-center">
@@ -365,10 +610,26 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               {dayLabel(weekStart)} – {dayLabel(addDays(weekStart, 6))}
             </p>
             {!weekDays.includes(today) && (
-              <button onClick={() => setWeekStart(weekMon(today))} className="text-[10px] text-primary font-semibold">Bieżący tydzień</button>
+              <button
+                onClick={() => {
+                  const w = weekMon(today);
+                  setWeekStart(w);
+                  setSelectedDay(today);
+                }}
+                className="text-[10px] text-primary font-semibold"
+              >
+                Bieżący tydzień
+              </button>
             )}
           </div>
-          <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="p-2 rounded-full hover:bg-surface-solid transition-colors">
+          <button
+            onClick={() => {
+              const w = addDays(weekStart, 7);
+              setWeekStart(w);
+              setSelectedDay(w);
+            }}
+            className="p-2 rounded-full hover:bg-surface-solid transition-colors"
+          >
             <ChevronRight size={18} className="text-text-muted" />
           </button>
         </div>
@@ -377,13 +638,21 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           {weekDays.map((day) => {
             const isToday = day === today;
             return (
-              <div key={day} className="flex-1 text-center py-1.5">
-                <p className={`text-[9px] font-black uppercase ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+              <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center">
+                <p className={`text-[8.5px] font-bold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted'}`}>
                   {new Date(day + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'short' })}
                 </p>
-                <p className={`text-[13px] font-black leading-none mt-0.5 ${isToday ? 'text-primary' : 'text-text-secondary'}`}>
-                  {parseInt(day.split('-')[2])}
-                </p>
+                <div className="mt-1 flex items-center justify-center h-6 w-6">
+                  {isToday ? (
+                    <span className="h-5.5 w-5.5 rounded-full bg-primary flex items-center justify-center text-[11.5px] font-black text-white leading-none shadow-sm shadow-primary/20">
+                      {parseInt(day.split('-')[2])}
+                    </span>
+                  ) : (
+                    <span className="text-[11.5px] font-bold text-text-secondary leading-none">
+                      {parseInt(day.split('-')[2])}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -406,7 +675,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
-  function renderAgendaView() {
+  const renderAgendaView = () => {
     const days = Array.from({ length: 14 }, (_, i) => addDays(today, i));
     return (
       <div className="flex-1 overflow-y-auto pb-20">
@@ -427,7 +696,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 {dayEv.map((ev) => (
                   <div
                     key={ev.id}
-                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
+                    onClick={() => handleEventClick(ev)}
+                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer hover:scale-[1.005] active:scale-[0.995] transition-all ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
                   >
                     <div className={`w-2 h-2 rounded-full shrink-0 ${eventColor(ev).split(' ')[0].replace('bg-', 'bg-')}`} />
                     <div className="min-w-0 flex-1">
@@ -466,19 +736,19 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   }
 
   // ── Quick create modal ──
-  function renderQuickCreate() {
+  const renderQuickCreate = () => {
     if (!quickCreate) return null;
     const { date, startMin } = quickCreate;
     const endMin = startMin + quickDuration;
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-0" onClick={() => setQuickCreate(null)}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setQuickCreate(null)}>
         <div
-          className="w-full max-w-md rounded-t-3xl bg-background border-t border-border-custom shadow-2xl p-5 pb-10 space-y-4"
+          className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[14px] font-black text-text-primary">Nowe wydarzenie</p>
-            <button onClick={() => setQuickCreate(null)} className="p-1 text-text-muted hover:text-text-primary">
+            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Nowe wydarzenie</p>
+            <button onClick={() => setQuickCreate(null)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -488,32 +758,32 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             onChange={(e) => setQuickTitle(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickSave(); }}
             placeholder="Tytuł wydarzenia..."
-            className="w-full bg-surface-solid/50 border border-border-custom/60 rounded-xl px-4 py-3 text-[14px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
+            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-4 py-3.5 text-[14px] font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-text-muted/30"
           />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 text-text-secondary bg-slate-50 dark:bg-white/[0.02] border border-border-custom/40 rounded-xl px-3.5 py-2.5">
             <Clock size={14} className="text-text-muted shrink-0" />
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-[12px] font-semibold text-text-secondary">
-                {monthLabel(date)}, {minutesLabel(startMin)} – {minutesLabel(endMin)}
-              </span>
-            </div>
+            <span className="text-[12px] font-semibold">
+              {monthLabel(date)}, {minutesLabel(startMin)} – {minutesLabel(endMin)}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-text-muted font-semibold">Czas:</span>
-            {[30, 60, 90, 120].map((d) => (
-              <button
-                key={d}
-                onClick={() => setQuickDuration(d)}
-                className={`text-[11px] font-black px-2.5 py-1.5 rounded-xl border transition-all ${quickDuration === d ? 'bg-primary/15 text-primary border-primary/30' : 'border-border-custom/60 text-text-muted hover:text-text-primary'}`}
-              >
-                {d < 60 ? `${d}min` : `${d / 60}h`}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Czas trwania:</span>
+            <div className="flex gap-1.5">
+              {[30, 60, 90, 120].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setQuickDuration(d)}
+                  className={`flex-1 text-[11px] font-bold py-2 rounded-xl border transition-all ${quickDuration === d ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+                >
+                  {d < 60 ? `${d}m` : `${d / 60}h`}
+                </button>
+              ))}
+            </div>
           </div>
           <button
             onClick={handleQuickSave}
             disabled={saving || !quickTitle.trim()}
-            className="w-full rounded-xl bg-primary text-white py-3 text-[13px] font-black disabled:opacity-40 transition-all hover:bg-primary/90 active:scale-[0.98]"
+            className="w-full rounded-xl bg-primary text-white py-3.5 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40"
           >
             {saving ? 'Dodaję...' : 'Dodaj wydarzenie'}
           </button>
@@ -522,60 +792,505 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-background text-text-primary overflow-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-4 py-3 backdrop-blur-xl shrink-0">
-        <button onClick={onBack} className="p-1.5 text-primary">
-          <ChevronLeft size={22} strokeWidth={2.5} />
-        </button>
-        <h1 className="text-[18px] font-black text-text-primary flex-1">Kalendarz</h1>
-
-        {/* View switcher */}
-        <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">
-          {([['dzien', Calendar], ['tydzien', LayoutGrid], ['agenda', List]] as [CalView, any][]).map(([v, Icon]) => (
-            <button
-              key={v}
-              onClick={() => setCalView(v)}
-              className={`rounded-lg p-1.5 transition-all ${calView === v ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
-              title={v}
-            >
-              <Icon size={15} />
+  // ── Edit event modal ──
+  const renderEditModal = () => {
+    if (!selectedEvent) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setSelectedEvent(null)}>
+        <div
+          className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Edytuj wydarzenie</p>
+            <button onClick={() => setSelectedEvent(null)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
+              <X size={18} />
             </button>
-          ))}
+          </div>
+
+          {/* Title */}
+          <input
+            autoFocus
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleEditSave(); }}
+            placeholder="Tytuł wydarzenia..."
+            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-4 py-3 text-[14px] font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-text-muted/30"
+          />
+
+          {/* Date & Time Row */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+              />
+              <input
+                type="time"
+                value={editStart}
+                onChange={(e) => setEditStart(e.target.value)}
+                className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+              />
+              <input
+                type="time"
+                value={editEnd}
+                onChange={(e) => setEditEnd(e.target.value)}
+                className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Category selection */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kategoria</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
+                { key: 'work', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
+                { key: 'health', label: 'Zdrowie', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'personal', label: 'Osobiste', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
+                { key: 'sport', label: 'Sport', color: 'border-orange-500/20 bg-orange-500/8 text-orange-500', dot: 'bg-orange-500' },
+                { key: 'study', label: 'Nauka', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+              ].map((cat) => {
+                const isSelected = editCategory === cat.key;
+                const baseColors = cat.color.split(' ');
+                return (
+                  <button
+                    key={cat.key || 'none'}
+                    type="button"
+                    onClick={() => setEditCategory(cat.key)}
+                    className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                      isSelected
+                        ? cat.key
+                          ? `${baseColors[0]} ${baseColors[1].replace('/8', '/20')} text-text-primary font-black shadow-sm`
+                          : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
+                        : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              onClick={handleEditDelete}
+              disabled={deleting || saving}
+              className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 text-[13px] font-bold transition-all active:scale-95 disabled:opacity-40"
+            >
+              <Trash2 size={15} />
+              <span>{deleting ? 'Usuwam...' : 'Usuń'}</span>
+            </button>
+            <button
+              onClick={handleEditSave}
+              disabled={saving || deleting || !editTitle.trim()}
+              className="flex-1 rounded-xl bg-primary text-white py-3 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40"
+            >
+              {saving ? 'Zapisuję...' : 'Zapisz zmiany'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Budget Config Modal ──
+  const renderBudgetConfigModal = () => {
+    if (!showBudgetConfig) return null;
+
+    const handleSaveAll = async () => {
+      try {
+        const categories = ['work', 'health', 'personal', 'sport', 'study'];
+        for (const cat of categories) {
+          const minRaw = budgetMinInputs[cat] || '';
+          const maxRaw = budgetMaxInputs[cat] || '';
+          const minHours = minRaw.trim() !== '' ? Number(minRaw) : null;
+          const maxHours = maxRaw.trim() !== '' ? Number(maxRaw) : null;
+          await saveBudget(cat, minHours, maxHours);
+        }
+        setShowBudgetConfig(false);
+      } catch (err) {
+        console.error('Error saving budgets:', err);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setShowBudgetConfig(false)}>
+        <div
+          className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Ustaw Budżety Czasu</p>
+            <button onClick={() => setShowBudgetConfig(false)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+            {[
+              { key: 'work', label: 'Praca (work)', placeholderMin: 'brak', placeholderMax: 'np. 40' },
+              { key: 'health', label: 'Zdrowie (health)', placeholderMin: 'np. 3', placeholderMax: 'brak' },
+              { key: 'personal', label: 'Relacje (personal)', placeholderMin: 'np. 4', placeholderMax: 'brak' },
+              { key: 'sport', label: 'Sport (sport)', placeholderMin: 'np. 5', placeholderMax: 'brak' },
+              { key: 'study', label: 'Nauka (study)', placeholderMin: 'np. 3', placeholderMax: 'brak' },
+            ].map((cat) => (
+              <div key={cat.key} className="space-y-1.5 p-3 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
+                <span className="text-[11px] font-bold text-text-primary">{cat.label}</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-text-muted font-semibold uppercase tracking-wider block mb-0.5">Min (godz)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder={cat.placeholderMin}
+                      value={budgetMinInputs[cat.key] || ''}
+                      onChange={(e) => setBudgetMinInputs({ ...budgetMinInputs, [cat.key]: e.target.value })}
+                      className="w-full bg-background border border-border-custom/60 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-text-muted font-semibold uppercase tracking-wider block mb-0.5">Max (godz)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder={cat.placeholderMax}
+                      value={budgetMaxInputs[cat.key] || ''}
+                      onChange={(e) => setBudgetMaxInputs({ ...budgetMaxInputs, [cat.key]: e.target.value })}
+                      className="w-full bg-background border border-border-custom/60 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={handleSaveAll}
+            className="w-full rounded-xl bg-primary text-white py-3.5 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all"
+          >
+            Zapisz limity
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-background text-text-primary overflow-hidden">
+      {/* LEFT SIDEBAR (Notion Calendar / Cron Style - visible on desktop) */}
+      <div className="hidden md:flex flex-col w-80 border-r border-border-custom/50 bg-background/95 shrink-0 h-full overflow-hidden">
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-border-custom/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black">V</div>
+            <span className="text-[13px] font-black tracking-wider uppercase text-text-primary">Vanguard OS</span>
+          </div>
+          <button onClick={onBack} className="p-1.5 text-text-muted hover:text-text-primary transition-colors" title="Wróć do pulpitu">
+            <ChevronLeft size={18} />
+          </button>
         </div>
 
-        <button
-          onClick={() => { onSyncCalendar(); setTimeout(fetchEvents, 2000); }}
-          disabled={isSyncing}
-          className="p-1.5 text-text-muted hover:text-primary transition-colors"
-          title="Synchronizuj"
-        >
-          <RefreshCw size={16} className={isSyncing || loading ? 'animate-spin' : ''} />
-        </button>
+        {/* Sidebar Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Section 1: Time Budgets */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
+              <button
+                onClick={() => {
+                  const mins: Record<string, string> = {};
+                  const maxs: Record<string, string> = {};
+                  ['work', 'health', 'personal', 'sport', 'study'].forEach((cat) => {
+                    const b = budgets.find((item) => item.category === cat);
+                    mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
+                    maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
+                  });
+                  setBudgetMinInputs(mins);
+                  setBudgetMaxInputs(maxs);
+                  setShowBudgetConfig(true);
+                }}
+                className="text-[10px] text-primary font-bold hover:underline"
+              >
+                Konfiguruj
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { key: 'work', label: 'Praca', color: 'bg-blue-500', dot: 'bg-blue-500' },
+                { key: 'health', label: 'Zdrowie', color: 'bg-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'personal', label: 'Relacje', color: 'bg-violet-500', dot: 'bg-violet-500' },
+                { key: 'sport', label: 'Sport', color: 'bg-orange-500', dot: 'bg-orange-500' },
+                { key: 'study', label: 'Nauka', color: 'bg-sky-500', dot: 'bg-sky-500' },
+              ].map((cat) => {
+                const spent = categoryWeeklyTotals[cat.key] || 0;
+                const b = budgets.find((item) => item.category === cat.key);
+                const minVal = b?.min_hours;
+                const maxVal = b?.max_hours;
 
-        <button
-          onClick={() => {
-            setQuickCreate({ date: selectedDay, startMin: 9 * 60 });
-            setQuickTitle('');
-            setQuickDuration(60);
-          }}
-          className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20"
-          title="Nowe wydarzenie"
-        >
-          <Plus size={16} />
-        </button>
-      </header>
+                let pct = 0;
+                let statusText = '';
+                let barColor = cat.color;
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {calView === 'dzien' && renderDayView()}
-        {calView === 'tydzien' && renderWeekView()}
-        {calView === 'agenda' && renderAgendaView()}
+                if (minVal !== null && minVal !== undefined && minVal > 0) {
+                  pct = Math.min(100, (spent / minVal) * 100);
+                  statusText = `${spent.toFixed(1)}h / min ${minVal}h`;
+                  if (spent >= minVal) {
+                    barColor = 'bg-emerald-500 dark:bg-emerald-400';
+                  } else {
+                    barColor = 'bg-amber-500 dark:bg-amber-400';
+                  }
+                } else if (maxVal !== null && maxVal !== undefined && maxVal > 0) {
+                  pct = Math.min(100, (spent / maxVal) * 100);
+                  statusText = `${spent.toFixed(1)}h / max ${maxVal}h`;
+                  if (spent > maxVal) {
+                    barColor = 'bg-rose-500 dark:bg-rose-400';
+                  } else {
+                    barColor = cat.color;
+                  }
+                } else {
+                  statusText = `${spent.toFixed(1)}h`;
+                  pct = 0;
+                }
+
+                return (
+                  <div key={cat.key} className="space-y-1 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/40 rounded-xl">
+                    <div className="flex items-center justify-between text-[10px] font-bold">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
+                        <span className="text-text-primary">{cat.label}</span>
+                      </div>
+                      <span className="text-text-muted">{statusText}</span>
+                    </div>
+                    {(minVal || maxVal) ? (
+                      <div className="w-full h-1 bg-border-custom/40 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-[9px] text-text-muted/40 italic">Brak limitu</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 2: Tasks (Notion Calendar Style) */}
+          <div className="space-y-3 pt-4 border-t border-border-custom/40">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
+            
+            {/* Quick add task input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Dodaj szybkie zadanie..."
+                value={newTodoTitle}
+                onChange={(e) => setNewTodoTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAddTodo(); }}
+                className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl pl-3 pr-8 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/30"
+              />
+              <button
+                onClick={handleQuickAddTodo}
+                disabled={!newTodoTitle.trim()}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 disabled:opacity-30"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
+              {sidebarTodos.length === 0 ? (
+                <p className="text-[11px] text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
+              ) : (
+                sidebarTodos.map((todo) => (
+                  <div
+                    key={todo.id}
+                    className="flex items-start gap-2.5 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-colors group"
+                  >
+                    <input
+                      type="checkbox"
+                      onChange={() => handleToggleTodo(todo.id)}
+                      className="mt-0.5 w-3.5 h-3.5 border-border-custom/80 rounded bg-transparent checked:bg-primary checked:border-primary transition-all cursor-pointer accent-primary shrink-0"
+                    />
+                    <span className="text-[12px] font-semibold text-text-primary group-hover:text-text-primary transition-colors flex-1 break-words">
+                      {todo.title}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT MAIN VIEW */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-4 py-3 backdrop-blur-xl shrink-0">
+          <button onClick={onBack} className="p-1.5 text-primary md:hidden">
+            <ChevronLeft size={22} strokeWidth={2.5} />
+          </button>
+          <h1 className="text-[18px] font-black text-text-primary flex-1">Kalendarz</h1>
+
+          {/* View switcher */}
+          <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">
+            {([['dzien', Calendar], ['tydzien', LayoutGrid], ['agenda', List]] as [CalView, any][]).map(([v, Icon]) => (
+              <button
+                key={v}
+                onClick={() => setCalView(v)}
+                className={`rounded-lg p-1.5 transition-all ${calView === v ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
+                title={v}
+              >
+                <Icon size={15} />
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { onSyncCalendar(); setTimeout(fetchEvents, 2000); }}
+            disabled={isSyncing}
+            className="p-1.5 text-text-muted hover:text-primary transition-colors"
+            title="Synchronizuj"
+          >
+            <RefreshCw size={16} className={isSyncing || loading ? 'animate-spin' : ''} />
+          </button>
+
+          <button
+            onClick={() => {
+              const mins: Record<string, string> = {};
+              const maxs: Record<string, string> = {};
+              ['work', 'health', 'personal', 'sport', 'study'].forEach((cat) => {
+                const b = budgets.find((item) => item.category === cat);
+                mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
+                maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
+              });
+              setBudgetMinInputs(mins);
+              setBudgetMaxInputs(maxs);
+              setShowBudgetConfig(true);
+            }}
+            className="p-1.5 text-text-muted hover:text-primary transition-colors md:hidden"
+            title="Budżety sfer życia"
+          >
+            <Sliders size={16} />
+          </button>
+
+          <button
+            onClick={() => {
+              setQuickCreate({ date: selectedDay, startMin: 9 * 60 });
+              setQuickTitle('');
+              setQuickDuration(60);
+            }}
+            className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20"
+            title="Nowe wydarzenie"
+          >
+            <Plus size={16} />
+          </button>
+        </header>
+
+        {/* Collapsible Budget Panel (visible only on mobile) */}
+        <div className="block md:hidden border-b border-border-custom/40 bg-slate-50/50 dark:bg-white/[0.01] shrink-0">
+          <button
+            onClick={() => setBudgetPanelExpanded(!budgetPanelExpanded)}
+            className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-text-muted hover:text-text-primary transition-all"
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>BUDŻET CZASU (TYDZIEŃ)</span>
+            </div>
+            <span className="text-[10px] uppercase font-black tracking-wider text-primary">
+              {budgetPanelExpanded ? 'Zwiń' : 'Rozwiń'}
+            </span>
+          </button>
+
+          {budgetPanelExpanded && (
+            <div className="px-4 pb-3.5 pt-1 grid grid-cols-2 gap-3.5">
+              {[
+                { key: 'work', label: 'Praca', color: 'bg-blue-500', text: 'text-blue-500' },
+                { key: 'health', label: 'Zdrowie', color: 'bg-emerald-500', text: 'text-emerald-500' },
+                { key: 'personal', label: 'Relacje', color: 'bg-violet-500', text: 'text-violet-500' },
+                { key: 'sport', label: 'Sport', color: 'bg-orange-500', text: 'text-orange-500' },
+                { key: 'study', label: 'Nauka', color: 'bg-sky-500', text: 'text-sky-500' },
+              ].map((cat) => {
+                const spent = categoryWeeklyTotals[cat.key] || 0;
+                const b = budgets.find((item) => item.category === cat.key);
+                const minVal = b?.min_hours;
+                const maxVal = b?.max_hours;
+
+                let pct = 0;
+                let statusText = '';
+                let barColor = cat.color;
+
+                if (minVal !== null && minVal !== undefined && minVal > 0) {
+                  pct = Math.min(100, (spent / minVal) * 100);
+                  statusText = `${spent.toFixed(1)}h / min ${minVal}h`;
+                  if (spent >= minVal) {
+                    barColor = 'bg-emerald-500 dark:bg-emerald-400';
+                  } else {
+                    barColor = 'bg-amber-500 dark:bg-amber-400';
+                  }
+                } else if (maxVal !== null && maxVal !== undefined && maxVal > 0) {
+                  pct = Math.min(100, (spent / maxVal) * 100);
+                  statusText = `${spent.toFixed(1)}h / max ${maxVal}h`;
+                  if (spent > maxVal) {
+                    barColor = 'bg-rose-500 dark:bg-rose-400';
+                  } else {
+                    barColor = cat.color;
+                  }
+                } else {
+                  statusText = `${spent.toFixed(1)}h`;
+                  pct = 0;
+                }
+
+                return (
+                  <div key={cat.key} className="space-y-1.5 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
+                    <div className="flex items-center justify-between text-[10px] font-bold">
+                      <span className="text-text-primary">{cat.label}</span>
+                      <span className="text-text-muted">{statusText}</span>
+                    </div>
+                    {(minVal || maxVal) ? (
+                      <div className="w-full h-1.5 bg-border-custom/40 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-[9px] text-text-muted/40 italic">Brak limitu</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {calView === 'dzien' && renderDayView()}
+          {calView === 'tydzien' && renderWeekView()}
+          {calView === 'agenda' && renderAgendaView()}
+        </div>
       </div>
 
       {/* Quick create modal */}
       {renderQuickCreate()}
+
+      {/* Edit event modal */}
+      {renderEditModal()}
+
+      {/* Budget config modal */}
+      {renderBudgetConfigModal()}
     </div>
   );
 }

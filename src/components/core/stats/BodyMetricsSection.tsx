@@ -91,7 +91,7 @@ export function BodyMetricsSection({
   const bmiColor = bmi == null ? '' : bmi < BMI_NORMAL_LOW ? 'text-amber-500' : bmi < BMI_NORMAL_HIGH ? 'text-emerald-500 dark:text-emerald-400' : bmi < 30 ? 'text-amber-500' : 'text-rose-500';
 
   return (
-    <section className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
+    <section className="card !p-0">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <div>

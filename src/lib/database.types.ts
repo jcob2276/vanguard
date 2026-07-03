@@ -1049,6 +1049,138 @@ export type Database = {
         }
         Relationships: []
       }
+      endmyopia_daily_logs: {
+        Row: {
+          active_focus_minutes: number | null
+          breaks_taken: number | null
+          created_at: string
+          date: string
+          distance_object_notes: string | null
+          id: string
+          outdoor_minutes: number | null
+          screen_time_hours: number | null
+          snellen_both: string | null
+          snellen_left: string | null
+          snellen_right: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_focus_minutes?: number | null
+          breaks_taken?: number | null
+          created_at?: string
+          date?: string
+          distance_object_notes?: string | null
+          id?: string
+          outdoor_minutes?: number | null
+          screen_time_hours?: number | null
+          snellen_both?: string | null
+          snellen_left?: string | null
+          snellen_right?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_focus_minutes?: number | null
+          breaks_taken?: number | null
+          created_at?: string
+          date?: string
+          distance_object_notes?: string | null
+          id?: string
+          outdoor_minutes?: number | null
+          screen_time_hours?: number | null
+          snellen_both?: string | null
+          snellen_left?: string | null
+          snellen_right?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      endmyopia_measurements: {
+        Row: {
+          blur_distance_cm: number
+          created_at: string
+          diopters: number
+          eye_measured: Database["public"]["Enums"]["endmyopia_eye_enum"]
+          id: string
+          lighting_condition: string | null
+          measured_at: string
+          notes: string | null
+        }
+        Insert: {
+          blur_distance_cm: number
+          created_at?: string
+          diopters: number
+          eye_measured: Database["public"]["Enums"]["endmyopia_eye_enum"]
+          id?: string
+          lighting_condition?: string | null
+          measured_at?: string
+          notes?: string | null
+        }
+        Update: {
+          blur_distance_cm?: number
+          created_at?: string
+          diopters?: number
+          eye_measured?: Database["public"]["Enums"]["endmyopia_eye_enum"]
+          id?: string
+          lighting_condition?: string | null
+          measured_at?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      endmyopia_prescriptions: {
+        Row: {
+          axis_l: number | null
+          axis_r: number | null
+          created_at: string
+          cyl_l: number | null
+          cyl_r: number | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          sphere_l: number | null
+          sphere_r: number | null
+          started_at: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          axis_l?: number | null
+          axis_r?: number | null
+          created_at?: string
+          cyl_l?: number | null
+          cyl_r?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          sphere_l?: number | null
+          sphere_r?: number | null
+          started_at: string
+          status: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          axis_l?: number | null
+          axis_r?: number | null
+          created_at?: string
+          cyl_l?: number | null
+          cyl_r?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          sphere_l?: number | null
+          sphere_r?: number | null
+          started_at?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercise_logs: {
         Row: {
           created_at: string | null
@@ -4414,6 +4546,33 @@ export type Database = {
           },
         ]
       }
+      vanguard_telegram_inbox: {
+        Row: {
+          created_at: string | null
+          error_log: string | null
+          id: string
+          payload: Json
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_log?: string | null
+          id?: string
+          payload: Json
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_log?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vanguard_tokens: {
         Row: {
           provider: string
@@ -5342,7 +5501,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      endmyopia_eye_enum: "left" | "right" | "both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5469,6 +5628,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      endmyopia_eye_enum: ["left", "right", "both"],
+    },
   },
 } as const

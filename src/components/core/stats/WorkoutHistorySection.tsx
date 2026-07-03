@@ -30,7 +30,7 @@ export function WorkoutHistorySection({
     <section className="space-y-3">
       <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Siłownia</p>
       <h2 className="mt-0.5 font-display text-[18px] font-black tracking-tight text-text-primary">Historia treningów</h2>
-      <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface/50 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
+      <div className="overflow-hidden card !p-0">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-text-primary/[0.02] text-[8px] font-black uppercase tracking-widest text-text-secondary">

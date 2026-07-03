@@ -331,7 +331,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         <section id="trening" className="scroll-mt-28 space-y-5">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border-custom" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Trening</span>
+            <span className="pixel-label">Trening</span>
             <div className="h-px flex-1 bg-border-custom" />
           </div>
         <div className="space-y-5">
@@ -363,7 +363,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         <section id="biometria" className="scroll-mt-28 space-y-5">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border-custom" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Biometria & paliwo</span>
+            <span className="pixel-label">Biometria & paliwo</span>
             <div className="h-px flex-1 bg-border-custom" />
           </div>
         <div className="grid grid-cols-3 gap-5">
@@ -426,7 +426,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         <section id="badania" className="scroll-mt-28 space-y-5">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border-custom" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Badania i analityka</span>
+            <span className="pixel-label">Badania i analityka</span>
             <div className="h-px flex-1 bg-border-custom" />
           </div>
           <Suspense fallback={<div className="h-32 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}>
@@ -437,7 +437,7 @@ export default function DesktopDashboard({ session }: { session: any }) {
         <section id="kierunek" className="scroll-mt-28 space-y-5">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border-custom" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Kierunek długoterminowy</span>
+            <span className="pixel-label">Kierunek długoterminowy</span>
             <div className="h-px flex-1 bg-border-custom" />
           </div>
 

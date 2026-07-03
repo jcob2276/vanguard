@@ -3,8 +3,7 @@ import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Flame, BatteryCharging, RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, Heart, Coffee, Droplets, BarChart2 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, BarChart2 } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import type { Session } from '@supabase/supabase-js';
@@ -41,9 +40,9 @@ const SIGNAL_PILL: Record<string, string> = {
 const CONF_LABEL = { solid: 'Solid', building: 'Building', calibrating: 'Calibrating' };
 
 const STATUS_RING = {
-  green:  'border-emerald-500/20 bg-emerald-500/[0.03] shadow-[0_8px_30px_rgba(16,185,129,0.04)]',
-  yellow: 'border-amber-500/20 bg-amber-500/[0.03] shadow-[0_8px_30px_rgba(245,158,11,0.04)]',
-  red:    'border-rose-500/25 bg-rose-500/[0.03] shadow-[0_8px_30px_rgba(244,63,94,0.04)]',
+  green:  '!border-emerald-500/20',
+  yellow: '!border-amber-500/20',
+  red:    '!border-rose-500/25',
 };
 const STATUS_GLOW = { green: 'bg-emerald-500/5', yellow: 'bg-amber-500/5', red: 'bg-rose-500/5' };
 
@@ -55,23 +54,6 @@ const READINESS_MAP: Record<string, { label: string; color: string; bg: string }
   insufficient: { label: '– Za mało danych',        color: 'text-text-muted',                         bg: 'bg-surface-solid border-border-custom' },
 };
 
-function Metric({ icon: Icon, label, value, max, tone, note = null }: { icon: LucideIcon; label: string; value: number | string | null | undefined; max: number; tone: string; note?: string | null }) {
-  const pct = max ? Math.min((Number(value) / max) * 100, 100) : 0;
-  return (
-    <div className="flex-1 bg-surface-solid border border-border-custom rounded-[16px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-      <div className="flex items-center gap-1 mb-1.5">
-        <Icon size={11} className="text-text-muted" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</span>
-      </div>
-      <p className={`text-[19px] font-black italic font-display ${tone}`}>
-        {value ?? '--'}<span className="text-[11px] text-text-muted not-italic ml-0.5">/{max}</span>
-      </p>
-      <div className="h-1 mt-2 bg-border-custom rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: 'currentColor' }} />
-      </div>
-    </div>
-  );
-}
 
 export default function DailyStrainCard({
   session,
@@ -174,36 +156,36 @@ export default function DailyStrainCard({
 
   if (loading) {
     return (
-      <section className="card p-5">
+      <div className="card p-4">
         <DataStateNotice
           tone="loading"
           title="Obciążenie dnia się liczy"
           detail="Ładuje ostatni wynik obciążenia i regeneracji."
         />
-      </section>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <section className="card border-red-500/20 p-5">
+      <div className="card border-red-500/20 p-4">
         <DataStateNotice
           tone="warning"
           title="Obciążenie niedostępne"
           detail={`Nie mogę odczytać danych: ${error}`}
         />
-      </section>
+      </div>
     );
   }
 
   if (!row) {
     return (
-      <section className="card p-5">
+      <div className="card p-4">
         <DataStateNotice
           title="Brak danych obciążenia"
           detail="Uruchom sync Oura/Strava i przelicz strain."
         />
-      </section>
+      </div>
     );
   }
 
@@ -217,17 +199,12 @@ export default function DailyStrainCard({
   ].filter(Boolean);
 
   const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
-  const limiterKey = (row.main_limiter || '') as keyof typeof LIMITER_PL;
   const isStale = row.date !== getTodayWarsaw();
 
   const comp = (row.components as any) ?? {};
   const recConf         = comp.recovery_confidence as 'calibrating' | 'building' | 'solid' | undefined;
   const strConf         = comp.strain_confidence   as 'calibrating' | 'building' | 'solid' | undefined;
-  const vitalityScore   = comp.vitality_score      as number  | null | undefined;
-  const fitnessAge      = comp.fitness_age         as number  | null | undefined;
-  const caffeineAlert   = comp.caffeine_alert      as boolean | null | undefined;
   const caffeineMg      = comp.caffeine_active_mg  as number  | null | undefined;
-  const hydrationGoalMl = comp.hydration_goal_ml   as number  | null | undefined;
   const sleepDebtH      = comp.sleep_debt_h        as number  | null | undefined;
   const hrvZ            = comp.hrv_z               as number  | null | undefined;
   const rhrZ            = comp.rhr_z               as number  | null | undefined;
@@ -240,152 +217,158 @@ export default function DailyStrainCard({
   const readinessLevel  = (row as any).readiness_level as string | null | undefined;
   const readinessInfo   = readinessLevel ? READINESS_MAP[readinessLevel] : null;
 
+  const metricCols = 2 + (fuelingScore != null ? 1 : 0) + (sleepDebtH != null ? 1 : 0);
+
   return (
-    <section className={`animate-fadeIn relative overflow-hidden rounded-[24px] border ${STATUS_RING[statusKey] || STATUS_RING.green} bg-surface backdrop-blur-md p-3.5 shadow-sm`}>
+    <div className={`animate-fadeIn relative overflow-hidden card ${STATUS_RING[statusKey] || STATUS_RING.green} p-3.5 space-y-3`}>
       <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
-      <button onClick={refresh} disabled={refreshing}
-        title="Sync + przelicz"
-        className="absolute top-3 right-3 z-10 rounded-xl border border-border-custom bg-surface-solid/40 p-2 text-text-muted transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50">
-        <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-      </button>
-      <div className="relative space-y-2.5">
-        {isStale && (
-          <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-            Dane z {row.date} — odśwież po prawej
-          </p>
-        )}
 
-        {/* Readiness level — główny status dnia */}
-        {readinessInfo && (
-          <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
-            {readinessInfo.label}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <Metric icon={Flame} label="Strain" value={row.strain_score} max={21} tone={strainTone} />
-          <Metric icon={BatteryCharging} label="Recovery" value={row.recovery_score} max={100} tone={recovTone} />
-          {fuelingScore != null && (
-            <Metric icon={Zap} label="Fueling" value={fuelingScore} max={100} tone={fuelingScore >= 70 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'} />
+      {/* Header */}
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-1.5">
+          <span className="pixel-label text-[10px]">Stan gotowości</span>
+          {isStale && (
+            <span className="text-[8px] font-bold text-amber-500 uppercase tracking-wider">
+              (Dane z {row.date})
+            </span>
           )}
         </div>
+        <button onClick={refresh} disabled={refreshing} title="Sync + przelicz"
+          className="rounded-xl border border-border-custom bg-surface-solid/40 p-2 text-text-muted transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50">
+          <RefreshCw size={11} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
 
-        {strainExplanation && (
-          <p className="text-[11px] text-text-secondary leading-relaxed">{strainExplanation}</p>
+      {/* Readiness badge + confidence pills on same row */}
+      <div className="flex items-center gap-1.5 flex-wrap relative z-10">
+        {readinessInfo && (
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
+            {readinessInfo.label}
+          </span>
         )}
+        {strConf && (
+          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${CONF_PILL[strConf]}`}>
+            Strain · {CONF_LABEL[strConf]}
+          </span>
+        )}
+        {recConf && (
+          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${CONF_PILL[recConf]}`}>
+            Recovery · {CONF_LABEL[recConf]}
+          </span>
+        )}
+      </div>
 
-        {wellnessLoad != null && wellnessLoad > 0 && (
-          <p className="text-[10px] text-text-muted">
-            Wellness (sauna / lodowata): <span className="font-bold text-orange-500">{wellnessLoad}</span> pkt w strain
+      {/* Explanation */}
+      {strainExplanation && (
+        <p className="text-[11.5px] text-text-secondary leading-relaxed relative z-10">{strainExplanation}</p>
+      )}
+
+      {wellnessLoad != null && wellnessLoad > 0 && (
+        <p className="text-[9.5px] text-text-muted relative z-10">
+          Wellness (sauna / zimno): <span className="font-bold text-orange-500">{wellnessLoad}</span> pkt w strain
+        </p>
+      )}
+
+      {/* Signal pills */}
+      {readinessSignals && readinessSignals.length > 0 && (
+        <div className="flex flex-wrap gap-1 relative z-10">
+          {readinessSignals.map((s) => (
+            <span key={s.key} className={`inline-flex rounded-lg border px-1.5 py-0.5 text-[8.5px] font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
+              {s.detail}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="h-px bg-border-custom/30 relative z-10" />
+
+      {/* Mini metrics row: Strain | Recovery | [Fueling] | [Sleep debt] */}
+      <div className={`grid gap-4 relative z-10`} style={{ gridTemplateColumns: `repeat(${metricCols}, 1fr)` }}>
+        {/* Strain */}
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Strain</p>
+          <p className={`text-[19px] font-black leading-none mt-0.5 ${strainTone}`}>
+            {strainScore ?? '--'}<span className="text-[9px] text-text-muted font-normal">/21</span>
           </p>
-        )}
+          <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
+            <div className="h-[2px] rounded-full bg-orange-400 transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
+          </div>
+        </div>
 
-        {readinessSignals && readinessSignals.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {readinessSignals.map((s) => (
-              <span key={s.key} className={`inline-flex rounded-lg border px-2 py-0.5 text-[9px] font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
-                {s.detail}
-              </span>
-            ))}
+        {/* Recovery */}
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Recovery</p>
+          <p className={`text-[19px] font-black leading-none mt-0.5 ${recovTone}`}>
+            {recoveryScore ?? '--'}<span className="text-[9px] text-text-muted font-normal">/100</span>
+          </p>
+          <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
+            <div className={`h-[2px] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-emerald-500' : recoveryScore >= 55 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
+          </div>
+        </div>
+
+        {/* Fueling */}
+        {fuelingScore != null && (
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Fueling</p>
+            <p className={`text-[19px] font-black leading-none mt-0.5 ${fuelingScore >= 70 ? 'text-emerald-500' : 'text-amber-500'}`}>
+              {fuelingScore}<span className="text-[9px] text-text-muted font-normal">/100</span>
+            </p>
+            <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
+              <div className={`h-[2px] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
+            </div>
           </div>
         )}
 
-        {/* Confidence pills */}
-        {(recConf || strConf) && (
-          <div className="flex gap-1.5 flex-wrap">
-            {strConf && (
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CONF_PILL[strConf]}`}>
-                Strain · {CONF_LABEL[strConf]}
-              </span>
-            )}
-            {recConf && (
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${CONF_PILL[recConf]}`}>
-                Recovery · {CONF_LABEL[recConf]}
-              </span>
-            )}
+        {/* Sleep debt */}
+        {sleepDebtH != null && (
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
+              {sleepDebtH < 0 ? 'Dług snu' : 'Nadwyżka'}
+            </p>
+            <p className={`text-[19px] font-black leading-none mt-0.5 ${sleepDebtH < -0.5 ? 'text-rose-500' : sleepDebtH > 0.5 ? 'text-emerald-500' : 'text-text-primary'}`}>
+              {sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}
+            </p>
           </div>
         )}
+      </div>
 
-        {/* Secondary metrics: vitality / fitness age / caffeine / hydration / sleep debt */}
-        {(vitalityScore != null || fitnessAge != null || caffeineAlert || hydrationGoalMl != null || sleepDebtH != null) && (
-          <div className="flex gap-1.5 flex-wrap">
-            {vitalityScore != null && (
-              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
-                <Heart size={9} className="text-rose-400" />
-                <span className="text-text-muted">Vitality</span>
-                <span className="text-text-primary">{vitalityScore}</span>
-              </span>
-            )}
-            {fitnessAge != null && (
-              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
-                <span className="text-text-muted">Bio age</span>
-                <span className="text-text-primary">{fitnessAge}</span>
-              </span>
-            )}
-            {caffeineAlert && caffeineMg != null && (
-              <span className="inline-flex items-center gap-1 rounded-xl bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                <Coffee size={9} />
-                {caffeineMg}mg kofeiny
-              </span>
-            )}
-            {hydrationGoalMl != null && (
-              <span className="inline-flex items-center gap-1 rounded-xl bg-surface-solid border border-border-custom px-2.5 py-1 text-[10px] font-bold">
-                <Droplets size={9} className="text-sky-400" />
-                <span className="text-text-muted">Nawodnienie</span>
-                <span className="text-text-primary">{(hydrationGoalMl / 1000).toFixed(1)}L</span>
-              </span>
-            )}
-            {sleepDebtH != null && (
-              <span className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-bold border ${
-                sleepDebtH < -0.5
-                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
-                  : sleepDebtH > 0.5
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-surface-solid border-border-custom text-text-primary'
-              }`}>
-                <Moon size={9} />
-                <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">
-                  {sleepDebtH < 0 ? 'dług snu' : sleepDebtH > 0.5 ? 'nadwyżka snu' : 'sen ok'}
-                </span>
-                <span>{sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}</span>
-              </span>
-            )}
-          </div>
-        )}
-
-        {missingSignals.length > 0 && (
-          <DataStateNotice
-            title="Niepełne dane"
-            detail={missingSignals.join(' | ')}
-          />
-        )}
-
-        {oura && (
-          <div className="grid grid-cols-5 gap-1.5 pt-2.5 border-t border-border-custom">
+      {/* Oura vitals */}
+      {oura && (
+        <>
+          <div className="h-px bg-border-custom/30 relative z-10" />
+          <div className="flex items-center justify-between relative z-10">
             {[
-              { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: zToVitalColor(hrvZ, 'text-dayA') },
-              { icon: Activity, label: 'RHR', value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--', color: zToVitalColor(rhrZ, 'text-dayB') },
-              { icon: Moon, label: 'Sen', value: sleepScoreToday != null ? `${sleepScoreToday}pts` : (oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--'), color: zToVitalColor(sleepZ, oura.total_sleep_hours == null ? 'text-text-muted' : oura.total_sleep_hours >= 7.5 ? 'text-emerald-500 dark:text-emerald-400' : oura.total_sleep_hours >= 6 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400') },
-              { icon: Thermometer, label: 'Temp', value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
-              { icon: Footprints, label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="flex flex-col items-center gap-1 bg-surface-solid border border-border-custom rounded-xl py-2 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                <Icon size={12} className={color} />
-                <span className="text-[9px] font-bold tracking-wider text-text-muted uppercase">{label}</span>
-                <span className={`text-[11px] font-bold font-display ${color}`}>{value}</span>
+              { icon: Zap,         label: 'HRV',   value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--',           color: zToVitalColor(hrvZ, 'text-dayA') },
+              { icon: Activity,    label: 'RHR',   value: oura.rhr_avg ? `${oura.rhr_avg}bpm` : '--',          color: zToVitalColor(rhrZ, 'text-dayB') },
+              { icon: Moon,        label: 'Sen',   value: sleepScoreToday != null ? `${sleepScoreToday}pts` : (oura.total_sleep_hours ? `${Math.floor(oura.total_sleep_hours)}h${Math.round((oura.total_sleep_hours % 1) * 60)}m` : '--'), color: zToVitalColor(sleepZ, oura.total_sleep_hours == null ? 'text-text-muted' : oura.total_sleep_hours >= 7.5 ? 'text-emerald-500 dark:text-emerald-400' : oura.total_sleep_hours >= 6 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400') },
+              { icon: Thermometer, label: 'Temp',  value: oura.temp_deviation != null ? `${oura.temp_deviation > 0 ? '+' : ''}${oura.temp_deviation}°` : '--', color: Math.abs(oura.temp_deviation || 0) > 0.5 ? 'text-rose-500' : 'text-text-secondary' },
+              { icon: Footprints,  label: 'Kroki', value: (oura.steps ?? 0) > 0 ? (oura.steps ?? 0).toLocaleString() : '--', color: 'text-dayC' },
+            ].map(({ icon: Icon, label, value, color }, idx) => (
+              <div key={label} className={`flex-1 flex flex-col items-center text-center ${idx > 0 ? 'border-l border-border-custom/30' : ''}`}>
+                <div className="flex items-center gap-0.5">
+                  <Icon size={9} className={color} />
+                  <span className="text-[8px] font-bold tracking-wider text-text-muted uppercase">{label}</span>
+                </div>
+                <span className={`text-[10px] font-black font-mono mt-0.5 ${color}`}>{value}</span>
               </div>
             ))}
           </div>
-        )}
+        </>
+      )}
 
-        <Link
-          to="/korealcje"
-          className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-border-custom bg-surface-solid/40 py-2 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
-        >
-          <BarChart2 size={11} />
-          Korelacje — kawa, sen, trening
-        </Link>
-      </div>
-    </section>
+      {missingSignals.length > 0 && (
+        <DataStateNotice title="Niepełne dane" detail={missingSignals.join(' | ')} />
+      )}
+
+      {/* Correlations link */}
+      <Link
+        to="/korealcje"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[0.985] relative z-10"
+      >
+        <BarChart2 size={11} />
+        Korelacje — kawa, sen, trening
+      </Link>
+    </div>
   );
 }
