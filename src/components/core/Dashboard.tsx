@@ -186,6 +186,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);
   const [showMorningPlan, setShowMorningPlan] = useState(false);
+  const [morningPlanTargetDate, setMorningPlanTargetDate] = useState<string | null>(null);
   const [showShutdown, setShowShutdown] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
@@ -852,7 +853,8 @@ export default function Dashboard({ session }: { session: Session }) {
       {showMorningPlan && (
         <MorningPlanModal
           session={session}
-          onClose={() => setShowMorningPlan(false)}
+          targetDate={morningPlanTargetDate ?? undefined}
+          onClose={() => { setShowMorningPlan(false); setMorningPlanTargetDate(null); }}
         />
       )}
 
@@ -864,6 +866,14 @@ export default function Dashboard({ session }: { session: Session }) {
             setShowShutdown(false);
           }}
           onSaved={refresh}
+          onPlanTomorrow={() => {
+            const tomorrow = new Date(`${getTodayWarsaw()}T12:00:00Z`);
+            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
+            setShowShutdown(false);
+            setMorningPlanTargetDate(tomorrow.toISOString().slice(0, 10));
+            setShowMorningPlan(true);
+          }}
         />
       )}
 

@@ -8,9 +8,10 @@ interface Props {
   session: any;
   onClose: () => void;
   onSaved?: () => void;
+  onPlanTomorrow?: () => void;
 }
 
-export default function DailyShutdownModal({ session, onClose, onSaved }: Props) {
+export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTomorrow }: Props) {
   const userId = session?.user?.id as string | undefined;
   const today = getTodayWarsaw();
 
@@ -406,12 +407,25 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
           )}
 
           {step === 3 && (
-            <button
-              onClick={onClose}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center shadow-lg shadow-indigo-600/10"
-            >
-              Zamknij i odpocznij
-            </button>
+            <div className="w-full flex gap-2">
+              <button
+                onClick={onClose}
+                className={`py-3.5 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all text-center ${
+                  onPlanTomorrow ? 'flex-1' : 'w-full'
+                }`}
+              >
+                Zamknij i odpocznij
+              </button>
+              {onPlanTomorrow && (
+                <button
+                  onClick={onPlanTomorrow}
+                  className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-1.5"
+                >
+                  <ChevronRight size={15} />
+                  Zaplanuj jutro
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -2,12 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, CheckCircle2, Send, ChevronRight, ChevronLeft, AlertTriangle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite } from '../../hooks/useCalendarWrite';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw } from '../../lib/date';
+import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth';
 import { updateDailyWin, insertDailyWin } from '../../lib/goalSpine.mutations';
+import DayTimeline, { type TimelineBlock } from '../shared/DayTimeline';
 
 interface Props {
   session: any;
   onClose: () => void;
+  /** Date being planned (YYYY-MM-DD). Defaults to today; pass tomorrow's date
+   * to chain this straight out of the evening shutdown ritual. */
+  targetDate?: string;
 }
 
 interface TodoSlot {
@@ -18,6 +23,12 @@ interface TodoSlot {
   due_date: string | null;
   scheduled_time: string | null;
   status: string;
+}
+
+interface CalEvent {
+  start_time: string;
+  end_time: string;
+  summary: string | null;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -39,10 +50,41 @@ function addMinutes(timeStr: string, minutes: number) {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-export default function MorningPlanModal({ session, onClose }: Props) {
+/** Shifts a YYYY-MM-DD date string by N days, anchored at UTC noon to sidestep DST edges. */
+function shiftDateStr(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The date part of a stored calendar/scheduled ISO string (Warsaw wall-clock, per warsawIso). */
+function isoDateStr(iso: string): string {
+  return iso.split('T')[0];
+}
+
+/** Minutes since midnight, read directly off the Warsaw wall-clock digits (no browser-tz conversion). */
+function isoMinutesOfDay(iso: string): number {
+  const t = iso.split('T')[1] || '00:00:00';
+  const [h, m] = t.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** Duration in minutes — a plain instant delta, safe regardless of how either Date parses tz. */
+function isoDurationMin(startIso: string, endIso: string): number {
+  const diff = (new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000;
+  return diff > 0 ? diff : 0;
+}
+
+export default function MorningPlanModal({ session, onClose, targetDate }: Props) {
   const userId = session?.user?.id as string | undefined;
   const accessToken = session?.access_token as string | undefined;
-  const today = getTodayWarsaw();
+  const actualToday = getTodayWarsaw();
+  const planningDate = targetDate ?? actualToday;
+  const isPlanningTomorrow = planningDate !== actualToday;
+  const dayWord = isPlanningTomorrow ? 'jutro' : 'dziś';
+  const dayWordCap = isPlanningTomorrow ? 'Jutro' : 'Dziś';
+  const dayWordGen = isPlanningTomorrow ? 'jutrzejszego' : 'dzisiejszego';
+  const dayWordAcc = isPlanningTomorrow ? 'jutrzejszą' : 'dzisiejszą';
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(true);
@@ -52,7 +94,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
   const [yesterdayTasks, setYesterdayTasks] = useState<TodoSlot[]>([]);
   const [todayTasks, setTodayTasks] = useState<TodoSlot[]>([]);
   const [inboxTasks, setInboxTasks] = useState<TodoSlot[]>([]);
-  
+
   // Power List slots (1-5)
   const [powerList, setPowerList] = useState<(TodoSlot | null)[]>([null, null, null, null, null]);
   const [todayWinId, setTodayWinId] = useState<string | null>(null);
@@ -60,9 +102,16 @@ export default function MorningPlanModal({ session, onClose }: Props) {
   // Time-boxing states
   const [times, setTimes] = useState<Record<string, string>>({}); // taskId -> "HH:MM"
   const [durations, setDurations] = useState<Record<string, number>>({}); // taskId -> minutes
-  const [calendarMeetingMinutes, setCalendarMeetingMinutes] = useState(0);
+
+  // Week context — fetched once for the whole week so the header strip and the
+  // day timeline in Step 3 share the same data instead of two separate queries.
+  const [weekCalendarEvents, setWeekCalendarEvents] = useState<CalEvent[]>([]);
+  const [weekTaskCounts, setWeekTaskCounts] = useState<Record<string, number>>({});
 
   const { createEvent } = useCalendarWrite({ userId, accessToken });
+
+  const weekStart = useMemo(() => getWeekStartWarsaw(planningDate), [planningDate]);
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftDateStr(weekStart, i)), [weekStart]);
 
   // Initial load
   useEffect(() => {
@@ -70,22 +119,26 @@ export default function MorningPlanModal({ session, onClose }: Props) {
     setLoading(true);
     (async () => {
       try {
-        // 1. Fetch yesterday's (and older) open tasks
+        // 1. Fetch open tasks due before the planning date (yesterday-and-older
+        // when planning today; today's own leftovers too when planning tomorrow)
         const { data: pastData } = await supabase
           .from('todo_items')
           .select('id, title, priority, duration_minutes, due_date, scheduled_time, status')
           .eq('user_id', userId)
           .eq('status', 'open')
-          .lt('due_date', today)
+          .lt('due_date', planningDate)
           .order('priority', { ascending: true });
 
-        // 2. Fetch today's open tasks
+        // 2. Fetch the planning date's open tasks
+        const orFilter = isPlanningTomorrow
+          ? `due_date.eq.${planningDate}`
+          : `due_date.eq.${planningDate},ai_bucket.eq.today`;
         const { data: currentData } = await supabase
           .from('todo_items')
           .select('id, title, priority, duration_minutes, due_date, scheduled_time, status')
           .eq('user_id', userId)
           .eq('status', 'open')
-          .or(`due_date.eq.${today},ai_bucket.eq.today`)
+          .or(orFilter)
           .order('priority', { ascending: true });
 
         // 3. Fetch general inbox open tasks (no due date)
@@ -114,12 +167,12 @@ export default function MorningPlanModal({ session, onClose }: Props) {
         setTimes(timesPreset);
         setDurations(durationsPreset);
 
-        // 4. Fetch today's daily win row (Power List)
+        // 4. Fetch the planning date's daily win row (Power List)
         const { data: winData } = await supabase
           .from('daily_wins')
           .select('*')
           .eq('user_id', userId)
-          .eq('date', today)
+          .eq('date', planningDate)
           .maybeSingle();
 
         if (winData) {
@@ -137,42 +190,53 @@ export default function MorningPlanModal({ session, onClose }: Props) {
                 title: taskTitle || 'Zadanie',
                 priority: 'normal',
                 duration_minutes: 30,
-                due_date: today,
+                due_date: planningDate,
                 scheduled_time: null,
                 status: 'open',
               };
             }
           }
           setPowerList(presetList);
+        } else {
+          setTodayWinId(null);
+          setPowerList([null, null, null, null, null]);
         }
 
-        // 5. Fetch calendar meetings duration for today
-        const { data: calData } = await supabase
+        // 5. Fetch the whole week's calendar + task-due counts (header strip + Step 3 timeline)
+        const weekStartLocal = getWeekStartWarsaw(planningDate);
+        const weekEndExclusive = shiftWeekStart(weekStartLocal, 1);
+
+        const { data: weekCalData } = await supabase
           .from('vanguard_calendar')
-          .select('start_time, end_time')
+          .select('start_time, end_time, summary')
           .eq('user_id', userId)
-          .gte('start_time', today + 'T00:00:00')
-          .lte('start_time', today + 'T23:59:59');
+          .gte('start_time', weekStartLocal + 'T00:00:00')
+          .lt('start_time', weekEndExclusive + 'T00:00:00');
+        setWeekCalendarEvents((weekCalData as CalEvent[]) || []);
 
-        let meetingMins = 0;
-        calData?.forEach((evt) => {
-          if (evt.start_time && evt.end_time) {
-            const diff = (new Date(evt.end_time).getTime() - new Date(evt.start_time).getTime()) / 60000;
-            if (diff > 0) meetingMins += diff;
-          }
+        const { data: weekTaskData } = await supabase
+          .from('todo_items')
+          .select('due_date')
+          .eq('user_id', userId)
+          .eq('status', 'open')
+          .not('due_date', 'is', null)
+          .gte('due_date', weekStartLocal)
+          .lt('due_date', weekEndExclusive);
+        const counts: Record<string, number> = {};
+        (weekTaskData || []).forEach((t) => {
+          if (t.due_date) counts[t.due_date] = (counts[t.due_date] || 0) + 1;
         });
-        setCalendarMeetingMinutes(meetingMins);
-
+        setWeekTaskCounts(counts);
       } catch (err) {
         console.error('Failed to load morning planning data:', err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [userId, today]);
+  }, [userId, planningDate, isPlanningTomorrow]);
 
   // Yesterday reviews actions
-  const handleYesterdayAction = async (taskId: string, action: 'today' | 'tomorrow' | 'backlog' | 'drop' | 'done') => {
+  const handleYesterdayAction = async (taskId: string, action: 'today' | 'later' | 'backlog' | 'drop' | 'done') => {
     try {
       // Optimistic update
       const target = yesterdayTasks.find((t) => t.id === taskId);
@@ -181,13 +245,11 @@ export default function MorningPlanModal({ session, onClose }: Props) {
       setYesterdayTasks((prev) => prev.filter((t) => t.id !== taskId));
 
       if (action === 'today') {
-        setTodayTasks((prev) => [...prev, { ...target, due_date: today }]);
-        await supabase.from('todo_items').update({ due_date: today }).eq('id', taskId);
-      } else if (action === 'tomorrow') {
-        const tomorrowDate = new Date();
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-        const tomStr = formatWarsawDate(tomorrowDate);
-        await supabase.from('todo_items').update({ due_date: tomStr }).eq('id', taskId);
+        setTodayTasks((prev) => [...prev, { ...target, due_date: planningDate }]);
+        await supabase.from('todo_items').update({ due_date: planningDate }).eq('id', taskId);
+      } else if (action === 'later') {
+        const laterDate = shiftDateStr(planningDate, 1);
+        await supabase.from('todo_items').update({ due_date: laterDate }).eq('id', taskId);
       } else if (action === 'backlog') {
         setInboxTasks((prev) => [...prev, { ...target, due_date: null }]);
         await supabase.from('todo_items').update({ due_date: null }).eq('id', taskId);
@@ -206,7 +268,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
 
   const handleAssignToSlot = (task: TodoSlot) => {
     if (activeSlotIdx === null) return;
-    
+
     // Check if task is already in another slot, if so clear it
     setPowerList((prev) => {
       const next = prev.map((s, idx) => {
@@ -226,6 +288,17 @@ export default function MorningPlanModal({ session, onClose }: Props) {
       return next;
     });
   };
+
+  // The planning date's own calendar events, sliced out of the week fetch
+  const dayCalendarEvents = useMemo(
+    () => weekCalendarEvents.filter((e) => e.start_time && isoDateStr(e.start_time) === planningDate),
+    [weekCalendarEvents, planningDate],
+  );
+
+  const calendarMeetingMinutes = useMemo(
+    () => dayCalendarEvents.reduce((sum, e) => sum + (e.end_time ? isoDurationMin(e.start_time, e.end_time) : 0), 0),
+    [dayCalendarEvents],
+  );
 
   // Calculations for Step 3
   const totalMinutesPlanned = useMemo(() => {
@@ -247,6 +320,33 @@ export default function MorningPlanModal({ session, onClose }: Props) {
   const capacityHoursPlanned = Math.round((totalMinutesPlanned / 60) * 10) / 10;
   const isOverloaded = capacityHoursPlanned > CAPACITY_HOURS;
 
+  // Existing events + live task-time overlay, for the Step 3 timeline
+  const timelineBlocks: TimelineBlock[] = useMemo(() => {
+    const existing: TimelineBlock[] = dayCalendarEvents.map((e, i) => ({
+      id: `existing-${i}`,
+      startMin: isoMinutesOfDay(e.start_time),
+      durationMin: e.end_time ? isoDurationMin(e.start_time, e.end_time) : 30,
+      label: e.summary || 'Wydarzenie',
+      variant: 'existing',
+    }));
+    const uniqueTasks = [...powerList.filter(Boolean), ...todayTasks].filter(
+      (t, idx, self): t is TodoSlot => !!t && self.findIndex((x) => x?.id === t?.id) === idx,
+    );
+    const planned: TimelineBlock[] = uniqueTasks
+      .filter((t) => times[t.id])
+      .map((t) => {
+        const [h, m] = times[t.id].split(':').map(Number);
+        return {
+          id: t.id,
+          startMin: (h || 0) * 60 + (m || 0),
+          durationMin: durations[t.id] || 30,
+          label: t.title,
+          variant: 'planned' as const,
+        };
+      });
+    return [...existing, ...planned];
+  }, [dayCalendarEvents, powerList, todayTasks, times, durations]);
+
   // Submit all
   const handleSubmitPlan = async () => {
     if (!userId) return;
@@ -254,7 +354,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
     try {
       // 1. Save Power List (daily_wins)
       const patch: any = {
-        date: today,
+        date: planningDate,
         user_id: userId,
       };
       powerList.forEach((task, idx) => {
@@ -271,8 +371,6 @@ export default function MorningPlanModal({ session, onClose }: Props) {
       }
 
       // 2. Schedule events in Calendar & Update Todo items
-      const todayTaskIds = new Set(todayTasks.map((t) => t.id));
-      const powerListTaskIds = new Set(powerList.filter(Boolean).map((t) => t!.id));
       const allSchedulable = [...todayTasks, ...powerList.filter(Boolean)] as TodoSlot[];
 
       // Filter uniques
@@ -284,12 +382,12 @@ export default function MorningPlanModal({ session, onClose }: Props) {
         if (startTime) {
           const dur = durations[taskId] || 30;
           const endTime = addMinutes(startTime, dur);
-          
+
           // Add to calendar
           await createEvent({
             summary: task.title,
-            start: warsawIso(today, startTime),
-            end: warsawIso(today, endTime),
+            start: warsawIso(planningDate, startTime),
+            end: warsawIso(planningDate, endTime),
             category: 'praca',
           });
 
@@ -297,7 +395,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
           await supabase
             .from('todo_items')
             .update({
-              scheduled_time: warsawIso(today, startTime),
+              scheduled_time: warsawIso(planningDate, startTime),
               duration_minutes: dur,
             })
             .eq('id', taskId);
@@ -330,19 +428,57 @@ export default function MorningPlanModal({ session, onClose }: Props) {
 
       {/* Sheet / Dialog */}
       <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[750px] overflow-hidden">
-        
+
         {/* Header */}
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Planowanie Poranne</h2>
+            <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">
+              {isPlanningTomorrow ? 'Zaplanuj Jutro' : 'Planowanie Poranne'}
+            </h2>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] font-semibold text-text-muted">{today}</span>
+              <span className="text-[10px] font-semibold text-text-muted">{planningDate}</span>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Krok {step} z 3</span>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
             <X size={18} />
           </button>
+        </div>
+
+        {/* Week-at-a-glance strip — visible across all steps for context */}
+        <div className="flex items-stretch gap-0.5 px-3 pt-2.5 pb-1.5 border-b border-border-custom/10 shrink-0">
+          {weekDays.map((d) => {
+            const isTarget = d === planningDate;
+            const isRealToday = d === actualToday;
+            const hours = weekCalendarEvents
+              .filter((e) => e.start_time && isoDateStr(e.start_time) === d)
+              .reduce((sum, e) => sum + (e.end_time ? isoDurationMin(e.start_time, e.end_time) : 0), 0) / 60;
+            const taskCount = weekTaskCounts[d] || 0;
+            const loadPct = Math.min(100, (hours / CAPACITY_HOURS) * 100);
+            const weekdayLabel = new Date(`${d}T12:00:00Z`).toLocaleDateString('pl-PL', { weekday: 'short' }).replace('.', '');
+            const dayNum = Number(d.slice(8, 10));
+            return (
+              <div
+                key={d}
+                className={`flex-1 flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${isTarget ? 'bg-primary/10' : ''}`}
+              >
+                <span className={`text-[8px] font-black uppercase tracking-wide ${isTarget ? 'text-primary' : 'text-text-muted/70'}`}>
+                  {weekdayLabel}
+                </span>
+                <span
+                  className={`text-[11px] font-black ${
+                    isTarget ? 'text-primary' : isRealToday ? 'text-text-primary' : 'text-text-secondary'
+                  }`}
+                >
+                  {dayNum}
+                </span>
+                <div className="w-4 h-1 rounded-full bg-border-custom/30 overflow-hidden">
+                  <div className="h-full bg-primary/50" style={{ width: `${loadPct}%` }} />
+                </div>
+                <span className="text-[7px] font-bold text-text-muted/60 h-2.5">{taskCount > 0 ? `${taskCount}z` : ''}</span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Wizard Progress Line */}
@@ -354,12 +490,14 @@ export default function MorningPlanModal({ session, onClose }: Props) {
 
         {/* Content Box */}
         <div className="flex-1 overflow-y-auto p-5">
-          
-          {/* STEP 1: Yesterday's Review */}
+
+          {/* STEP 1: Leftover Review */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-[13px] font-black text-text-primary">Co zostało z wczoraj?</h3>
+                <h3 className="text-[13px] font-black text-text-primary">
+                  {isPlanningTomorrow ? 'Co zostało z dzisiaj?' : 'Co zostało z wczoraj?'}
+                </h3>
                 <p className="text-[10px] text-text-muted mt-0.5">Zweryfikuj zaległe zadania, aby utrzymać czysty Inbox.</p>
               </div>
 
@@ -367,7 +505,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
                 <div className="flex flex-col items-center justify-center py-10 border border-dashed border-border-custom/60 rounded-2xl bg-surface/20">
                   <CheckCircle2 size={32} className="text-emerald-400 mb-2" />
                   <span className="text-[12px] font-bold text-text-primary">Wszystko czyste!</span>
-                  <span className="text-[10px] text-text-muted mt-0.5">Brak zaległych zadań z wczoraj.</span>
+                  <span className="text-[10px] text-text-muted mt-0.5">Brak zaległych zadań.</span>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
@@ -379,19 +517,19 @@ export default function MorningPlanModal({ session, onClose }: Props) {
                         </span>
                         <span className="text-[12px] font-semibold text-text-primary flex-1 break-words">{task.title}</span>
                       </div>
-                      
+
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <button
                           onClick={() => handleYesterdayAction(task.id, 'today')}
                           className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary/20 transition-colors"
                         >
-                          Na dziś
+                          Na {dayWord}
                         </button>
                         <button
-                          onClick={() => handleYesterdayAction(task.id, 'tomorrow')}
+                          onClick={() => handleYesterdayAction(task.id, 'later')}
                           className="px-2 py-1 rounded-lg bg-surface border border-border-custom/80 text-text-primary text-[10px] font-bold hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-colors"
                         >
-                          Jutro
+                          Później
                         </button>
                         <button
                           onClick={() => handleYesterdayAction(task.id, 'backlog')}
@@ -423,8 +561,8 @@ export default function MorningPlanModal({ session, onClose }: Props) {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-[13px] font-black text-text-primary">Twoja dzisiejsza Power List</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Wybierz 3-5 najważniejszych zadań (Zwycięstw) na dzisiejszy dzień.</p>
+                <h3 className="text-[13px] font-black text-text-primary">Twoja {dayWordAcc} Power List</h3>
+                <p className="text-[10px] text-text-muted mt-0.5">Wybierz 3-5 najważniejszych zadań (Zwycięstw) na {dayWord}.</p>
               </div>
 
               {/* Power List slots */}
@@ -467,7 +605,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
 
               {/* Selection list */}
               <div className="space-y-2">
-                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Dostępne zadania na dziś i Inbox</span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Dostępne zadania na {dayWord} i Inbox</span>
                 <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
                   {[...todayTasks, ...inboxTasks].length === 0 ? (
                     <p className="text-[11px] text-text-muted italic py-4 text-center">Brak wolnych zadań</p>
@@ -512,13 +650,13 @@ export default function MorningPlanModal({ session, onClose }: Props) {
             <div className="space-y-4">
               <div>
                 <h3 className="text-[13px] font-black text-text-primary">Time-boxing w kalendarzu</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Zaplanuj dokładny czas na wykonanie dzisiejszych zadań.</p>
+                <p className="text-[10px] text-text-muted mt-0.5">Zaplanuj dokładny czas na wykonanie zadań ({dayWord}).</p>
               </div>
 
               {/* Workload Capacity indicator */}
               <div className="p-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zapełnienie dzisiejszego dnia</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zapełnienie {dayWordGen} dnia</span>
                   <span className={`text-[11px] font-black ${isOverloaded ? 'text-rose-500' : 'text-primary'}`}>
                     {capacityHoursPlanned}h / {CAPACITY_HOURS}h
                   </span>
@@ -539,6 +677,12 @@ export default function MorningPlanModal({ session, onClose }: Props) {
                   <span>Czas spotkań w kalendarzu: {Math.round(calendarMeetingMinutes / 60 * 10) / 10}h</span>
                   <span>Czas zaplanowanych zadań: {Math.round((totalMinutesPlanned - calendarMeetingMinutes) / 60 * 10) / 10}h</span>
                 </div>
+              </div>
+
+              {/* Visual day timeline — existing calendar events vs. task times being assigned below */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Podgląd kalendarza {dayWordGen} dnia</span>
+                <DayTimeline blocks={timelineBlocks} />
               </div>
 
               {/* Today's Tasks scheduling list */}
@@ -617,7 +761,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
               className="px-5 py-3 rounded-xl bg-primary text-white text-[12px] font-black hover:bg-primary/95 transition-all flex items-center gap-1.5 ml-auto shadow-lg shadow-primary/10 disabled:opacity-40"
             >
               <Send size={14} />
-              {sending ? 'Zapisuję plan...' : 'Zatwierdź Plan'}
+              {sending ? 'Zapisuję plan...' : `Zatwierdź Plan${dayWordCap === 'Jutro' ? ' na Jutro' : ''}`}
             </button>
           )}
         </div>
