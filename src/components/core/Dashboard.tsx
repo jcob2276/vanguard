@@ -448,6 +448,21 @@ export default function Dashboard({ session }: { session: Session }) {
     { id: 'historia', icon: Clock, label: 'Historia' },
   ];
 
+  const weeklyReviewNudge = new Date().getDay() === 0 && !taskReviewDoneThisWeek && (
+    <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+      </div>
+      <button
+        onClick={() => setShowWeeklyReview(true)}
+        className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm"
+      >
+        Rozpocznij
+      </button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
       <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
@@ -551,20 +566,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
-              {new Date().getDay() === 0 && !taskReviewDoneThisWeek && (
-                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
-                    <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
-                  </div>
-                  <button
-                    onClick={() => setShowWeeklyReview(true)}
-                    className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm"
-                  >
-                    Rozpocznij
-                  </button>
-                </div>
-              )}
+              {weeklyReviewNudge}
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
               {todayWin && isAfter20() && (
                 <button
@@ -590,20 +592,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
-              {new Date().getDay() === 0 && !taskReviewDoneThisWeek && (
-                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
-                    <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
-                  </div>
-                  <button
-                    onClick={() => setShowWeeklyReview(true)}
-                    className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm"
-                  >
-                    Rozpocznij
-                  </button>
-                </div>
-              )}
+              {weeklyReviewNudge}
 
               <Suspense fallback={<ViewFallback />}>
                 <DailyStrainCard session={session} refreshSignal={nutritionKey + workoutKey} />

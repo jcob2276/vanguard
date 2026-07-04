@@ -154,6 +154,31 @@ function nowMinutes() {
   return n.getHours() * 60 + n.getMinutes();
 }
 
+/** Shared by the desktop sidebar and mobile collapsible budget panels — same
+ * min/max-vs-actual logic, kept in one place so a fix doesn't need to land twice. */
+function computeBudgetBarState(
+  spent: number,
+  minVal: number | null | undefined,
+  maxVal: number | null | undefined,
+  baseColor: string,
+): { pct: number; statusText: string; barColor: string } {
+  if (minVal != null && minVal > 0) {
+    return {
+      pct: Math.min(100, (spent / minVal) * 100),
+      statusText: `${spent.toFixed(1)}h / min ${minVal}h`,
+      barColor: spent >= minVal ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400',
+    };
+  }
+  if (maxVal != null && maxVal > 0) {
+    return {
+      pct: Math.min(100, (spent / maxVal) * 100),
+      statusText: `${spent.toFixed(1)}h / max ${maxVal}h`,
+      barColor: spent > maxVal ? 'bg-rose-500 dark:bg-rose-400' : baseColor,
+    };
+  }
+  return { pct: 0, statusText: `${spent.toFixed(1)}h`, barColor: baseColor };
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   praca: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
   cialo_trening: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -2021,31 +2046,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 const b = budgets.find((item) => item.category === cat.key);
                 const minVal = b?.min_hours;
                 const maxVal = b?.max_hours;
-
-                let pct = 0;
-                let statusText = '';
-                let barColor = cat.color;
-
-                if (minVal !== null && minVal !== undefined && minVal > 0) {
-                  pct = Math.min(100, (spent / minVal) * 100);
-                  statusText = `${spent.toFixed(1)}h / min ${minVal}h`;
-                  if (spent >= minVal) {
-                    barColor = 'bg-emerald-500 dark:bg-emerald-400';
-                  } else {
-                    barColor = 'bg-amber-500 dark:bg-amber-400';
-                  }
-                } else if (maxVal !== null && maxVal !== undefined && maxVal > 0) {
-                  pct = Math.min(100, (spent / maxVal) * 100);
-                  statusText = `${spent.toFixed(1)}h / max ${maxVal}h`;
-                  if (spent > maxVal) {
-                    barColor = 'bg-rose-500 dark:bg-rose-400';
-                  } else {
-                    barColor = cat.color;
-                  }
-                } else {
-                  statusText = `${spent.toFixed(1)}h`;
-                  pct = 0;
-                }
+                const { pct, statusText, barColor } = computeBudgetBarState(spent, minVal, maxVal, cat.color);
 
                 return (
                   <div key={cat.key} className="space-y-1 p-2.5 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl">
@@ -2222,31 +2223,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 const b = budgets.find((item) => item.category === cat.key);
                 const minVal = b?.min_hours;
                 const maxVal = b?.max_hours;
-
-                let pct = 0;
-                let statusText = '';
-                let barColor = cat.color;
-
-                if (minVal !== null && minVal !== undefined && minVal > 0) {
-                  pct = Math.min(100, (spent / minVal) * 100);
-                  statusText = `${spent.toFixed(1)}h / min ${minVal}h`;
-                  if (spent >= minVal) {
-                    barColor = 'bg-emerald-500 dark:bg-emerald-400';
-                  } else {
-                    barColor = 'bg-amber-500 dark:bg-amber-400';
-                  }
-                } else if (maxVal !== null && maxVal !== undefined && maxVal > 0) {
-                  pct = Math.min(100, (spent / maxVal) * 100);
-                  statusText = `${spent.toFixed(1)}h / max ${maxVal}h`;
-                  if (spent > maxVal) {
-                    barColor = 'bg-rose-500 dark:bg-rose-400';
-                  } else {
-                    barColor = cat.color;
-                  }
-                } else {
-                  statusText = `${spent.toFixed(1)}h`;
-                  pct = 0;
-                }
+                const { pct, statusText, barColor } = computeBudgetBarState(spent, minVal, maxVal, cat.color);
 
                 return (
                   <div key={cat.key} className="space-y-1.5 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
