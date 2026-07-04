@@ -57,7 +57,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
 
   const toggleExpand = useCallback((id: string) => setExpandedId(prev => prev === id ? null : id), []);
 
-  const goTo = (dest: 'todo' | 'keep' | 'links') => {
+  const goTo = (dest: 'todo' | 'keep' | 'links' | 'kalendarz') => {
     if (onNavigateTo) onNavigateTo(dest);
   };
 

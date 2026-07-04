@@ -16,6 +16,7 @@ import {
   Search,
   Tag,
   X,
+  Calendar,
 } from 'lucide-react';
 import EditNoteModal from './EditNoteModal';
 import NoteCard from './NoteCard';
@@ -427,6 +428,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   const handleTagClick = (tag: string) => {
     setSidebarTab('notes');
+    setSearch('');
     setActiveTag(t => (t === tag ? null : tag));
   };
 
@@ -521,7 +523,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           <p className="keep-sidebar-section-label">Notatki</p>
           <button
             className={`keep-sidebar-item ${sidebarTab === 'notes' && !activeTag ? 'active' : ''}`}
-            onClick={() => { setSidebarTab('notes'); setActiveTag(null); }}
+            onClick={() => { setSidebarTab('notes'); setActiveTag(null); setSearch(''); }}
           >
             <CheckSquare size={15} />
             <span>Notatki</span>
@@ -531,7 +533,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           </button>
           <button
             className={`keep-sidebar-item ${sidebarTab === 'archive' && !activeTag ? 'active' : ''}`}
-            onClick={() => { setSidebarTab('archive'); setActiveTag(null); }}
+            onClick={() => { setSidebarTab('archive'); setActiveTag(null); setSearch(''); }}
           >
             <Archive size={15} />
             <span>Archiwum</span>
@@ -546,6 +548,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           <button className="keep-sidebar-item" onClick={() => goTo('todo')}>
             <ListTodo size={15} />
             <span>To Do</span>
+          </button>
+          <button className="keep-sidebar-item" onClick={() => goTo('kalendarz')}>
+            <Calendar size={15} />
+            <span>Kalendarz</span>
           </button>
           <button className="keep-sidebar-item" onClick={() => goTo('links')}>
             <BookOpen size={15} />
@@ -603,6 +609,14 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
             </div>
           ) : (
             <div className="keep-sections pb-20 md:pb-0">
+              {search && (
+                <div className="text-[10.5px] font-bold text-text-muted px-4 py-2 bg-slate-500/5 border border-border-custom/20 rounded-xl mb-4 flex items-center justify-between">
+                  <span>Wyniki wyszukiwania dla "{search}":</span>
+                  <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[9.5px]">
+                    {filtered.length} {filtered.length === 1 ? 'notatka' : [2, 3, 4].includes(filtered.length % 10) && ![12, 13, 14].includes(filtered.length % 100) ? 'notatki' : 'notatek'}
+                  </span>
+                </div>
+              )}
               {/* Pinned */}
               {pinned.length > 0 && (
                 <section className="keep-section">
@@ -717,6 +731,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         <button onClick={() => goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <ListTodo size={22} />
           <span className="text-[11px] font-semibold">Zadania</span>
+        </button>
+        <button onClick={() => goTo('kalendarz')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <Calendar size={22} />
+          <span className="text-[11px] font-semibold">Kalendarz</span>
         </button>
         <button onClick={() => goTo('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <BookOpen size={22} />

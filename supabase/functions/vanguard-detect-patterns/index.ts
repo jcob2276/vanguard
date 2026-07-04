@@ -1,4 +1,4 @@
-import { createServiceClient, corsHeadersFor } from "../_shared/supabase.ts";
+import { createServiceClient, corsHeadersFor, resolveUserScope } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
 import {
@@ -102,7 +102,10 @@ Deno.serve(async (req: Request) => {
     let userId = getVanguardUserId();
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      if (body?.user_id) userId = body.user_id;
+      if (body?.user_id) {
+        const scope = await resolveUserScope(req, body.user_id);
+        userId = scope.userId ?? userId;
+      }
     }
 
     console.log(`[detect-patterns] Running for user ${userId}`);

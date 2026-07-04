@@ -1,10 +1,12 @@
-import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { userId, code, redirectUri } = await req.json()
+    const body = await req.json()
+    const { code, redirectUri } = body
+    const { userId } = await resolveUserScope(req, body.userId ?? null)
     const supabase = createServiceClient()
 
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')

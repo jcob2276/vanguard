@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { getTodayWarsaw } from './date';
+import { getTodayWarsaw, warsawDayBoundsISO } from './date';
 import type { TodayNutritionSnapshot } from './foodLogging';
 
 export type NutritionTrajectory = 'on_track' | 'behind' | 'ahead';
@@ -139,8 +139,7 @@ export async function fetchNutritionDayContext(
 ): Promise<NutritionDayContext> {
   await ensureNutritionTargetForDate(userId, date, accessToken);
 
-  const dayStart = `${date}T00:00:00+02:00`;
-  const dayEnd = `${date}T23:59:59+02:00`;
+  const { fromISO: dayStart, toISO: dayEnd } = warsawDayBoundsISO(date);
 
   const [dayRow, targetRow, profileRow, stravaRes, sessionsRes] = await Promise.all([
     supabase

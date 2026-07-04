@@ -124,7 +124,10 @@ export default function EndMyopiaCalculator() {
     setIsSaving(true);
     setSaveError(false);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Brak zalogowanego użytkownika');
       const { error } = await supabase.from('endmyopia_measurements').insert({
+        user_id: user.id,
         eye_measured: selectedEye,
         blur_distance_cm: parseFloat(capturedDistance.toFixed(2)),
         diopters: parseFloat(capturedDiopters.toFixed(2)),

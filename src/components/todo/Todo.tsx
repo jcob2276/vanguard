@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Kanban,
   Clock3,
+  Calendar,
 } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
@@ -246,6 +247,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         <button className="keep-sidebar-item active">
           <ListTodo size={15} />
           <span>Zadania</span>
+        </button>
+        <button className="keep-sidebar-item" onClick={() => goTo('kalendarz')}>
+          <Calendar size={15} />
+          <span>Kalendarz</span>
         </button>
         <button className="keep-sidebar-item" onClick={() => goTo('links')}>
           <BookOpen size={15} />
@@ -642,6 +647,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
         <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
           <ListTodo size={22} />
           <span className="text-[11px] font-semibold">Zadania</span>
+        </button>
+        <button onClick={() => onNavigateTo?.('kalendarz')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
+          <Calendar size={22} />
+          <span className="text-[11px] font-semibold">Kalendarz</span>
         </button>
         <button onClick={() => onNavigateTo?.('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <BookOpen size={22} />

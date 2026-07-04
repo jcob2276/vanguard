@@ -1,4 +1,4 @@
-import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 
 async function getAccessToken(userId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -35,11 +35,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { userId, action, event } = body
+    const { action, event } = body
     // action: 'create' | 'update' | 'delete'
     // event: { id?, summary, start, end, description? }
     //   start/end: ISO datetime string e.g. "2026-07-03T10:00:00+02:00"
 
+    const { userId } = await resolveUserScope(req, body.userId ?? null)
     if (!userId || !action) throw new Error('Missing userId or action')
 
     const access_token = await getAccessToken(userId)
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
       await safeExecute(
         supabase
           .from('vanguard_calendar')
-          .update({ summary: event.summary, start_time: event.start, end_time: event.end })
+          .update({ summary: event.summary, start_time: event.start, end_time: event.end, category: event.category })
           .eq('user_id', userId)
           .eq('event_id', event.id)
       )

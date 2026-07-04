@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { updateTodoItem } from '../../lib/todo';
 
 interface Item {
@@ -72,6 +73,7 @@ function quadrantOf(item: Item) {
 }
 
 export default function EisenhowerMatrix({ items, setItems }: Props) {
+  const [dragOverQ, setDragOverQ] = useState<string | null>(null);
   const open = items.filter((i) => i.status === 'open');
 
   function moveToQuadrant(item: Item, q: typeof QUADRANTS[0]) {
@@ -97,10 +99,15 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
           return (
             <div
               key={q.key}
-              className={`rounded-2xl border p-3 min-h-[180px] ${q.color}`}
-              onDragOver={(e) => e.preventDefault()}
+              className={`rounded-2xl border p-3 min-h-[180px] transition-all duration-200 ${q.color} ${dragOverQ === q.key ? 'scale-[1.01] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverQ(q.key);
+              }}
+              onDragLeave={() => setDragOverQ(null)}
               onDrop={(e) => {
                 e.preventDefault();
+                setDragOverQ(null);
                 const id = e.dataTransfer.getData('text/plain');
                 const item = items.find((i) => i.id === id);
                 if (item) moveToQuadrant(item, q);

@@ -1,5 +1,5 @@
 import { updateTodoItem } from '../../lib/todo';
-import { PRIORITY } from './todoUtils';
+import { PRIORITY, PRIORITY_ORDER } from './todoUtils';
 
 interface Item {
   id: string;
@@ -23,8 +23,6 @@ interface Props {
   setItems: (fn: (prev: Item[]) => Item[]) => void;
   today: string;
 }
-
-const PRIORITY_ORDER = ['urgent', 'high', 'normal', 'low'];
 
 export default function KanbanView({ items, sections, setItems, today }: Props) {
   const open = items.filter((i) => i.status === 'open');
@@ -62,7 +60,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
       {columns.map((col) => {
         const colItems = open
           .filter((i) => i.section_id === col.id)
-          .sort((a, b) => PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority));
+          .sort((a, b) => PRIORITY_ORDER.indexOf(b.priority) - PRIORITY_ORDER.indexOf(a.priority));
 
         return (
           <div

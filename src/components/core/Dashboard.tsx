@@ -324,6 +324,7 @@ export default function Dashboard({ session }: { session: Session }) {
           onBack={goBack}
           onSyncCalendar={startGoogleAuth}
           isSyncing={isSyncing}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
         />
       </Suspense>
     );

@@ -11,6 +11,12 @@ import {
   Clock,
   Trash2,
   Sliders,
+  Sparkles,
+  Shield,
+  Zap,
+  CalendarDays,
+  Moon,
+  StickyNote,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWrite';
@@ -23,6 +29,7 @@ interface Props {
   onBack: () => void;
   onSyncCalendar: () => void;
   isSyncing: boolean;
+  onNavigateTo?: (dest: string) => void;
 }
 
 type CalView = 'dzien' | 'tydzien' | 'agenda';
@@ -155,10 +162,14 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 function eventColor(ev: CalRow) {
+  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
+  if (isFocusTime) {
+    return 'bg-indigo-500/8 dark:bg-indigo-500/12 border-l-indigo-500 border-y-indigo-500/10 border-r-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium';
+  }
   if (ev.category && CATEGORY_COLORS[ev.category.toLowerCase()]) {
     return CATEGORY_COLORS[ev.category.toLowerCase()];
   }
-  return 'bg-primary/75 border-primary/50';
+  return 'bg-primary/8 border-l-primary border-y-primary/10 border-r-primary/10 text-primary';
 }
 
 interface QuickCreateState {
@@ -166,7 +177,125 @@ interface QuickCreateState {
   startMin: number; // minutes from midnight
 }
 
-export default function CalendarView({ session, onBack, onSyncCalendar, isSyncing }: Props) {
+function MiniCalendar({ selectedDay, onSelectDay }: { selectedDay: string; onSelectDay: (day: string) => void }) {
+  const [currentDate, setCurrentDate] = useState(() => {
+    const [y, m] = selectedDay.split('-').map(Number);
+    return new Date(y, m - 1, 1);
+  });
+
+  useEffect(() => {
+    const [y, m] = selectedDay.split('-').map(Number);
+    setCurrentDate(new Date(y, m - 1, 1));
+  }, [selectedDay]);
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+  const daysGrid: { dayStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
+
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dNum = prevMonthTotalDays - i;
+    const prevMonthDate = new Date(year, month - 1, dNum);
+    daysGrid.push({
+      dayStr: toLocalISO(prevMonthDate),
+      dayNum: dNum,
+      isCurrentMonth: false,
+    });
+  }
+
+  for (let i = 1; i <= totalDays; i++) {
+    const curDate = new Date(year, month, i);
+    daysGrid.push({
+      dayStr: toLocalISO(curDate),
+      dayNum: i,
+      isCurrentMonth: true,
+    });
+  }
+
+  const remainingSlots = 42 - daysGrid.length;
+  for (let i = 1; i <= remainingSlots; i++) {
+    const nextMonthDate = new Date(year, month + 1, i);
+    daysGrid.push({
+      dayStr: toLocalISO(nextMonthDate),
+      dayNum: i,
+      isCurrentMonth: false,
+    });
+  }
+
+  const monthNames = [
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+  ];
+
+  const today = todayStr();
+
+  return (
+    <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-3.5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-black text-text-primary tracking-wide">
+          {monthNames[month]} {year}
+        </span>
+        <div className="flex gap-1">
+          <button
+            onClick={handlePrevMonth}
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+          >
+            <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
+          </button>
+          <button
+            onClick={handleNextMonth}
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+          >
+            <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-1.5 text-center">
+        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
+          <span key={idx} className="text-[9px] font-bold text-text-muted/50 uppercase tracking-wider">
+            {d}
+          </span>
+        ))}
+        {daysGrid.map((item, idx) => {
+          const isSelected = item.dayStr === selectedDay;
+          const isToday = item.dayStr === today;
+          return (
+            <button
+              key={idx}
+              onClick={() => onSelectDay(item.dayStr)}
+              className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-[10.5px] transition-all duration-150 active:scale-90 ${
+                isSelected
+                  ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
+                  : isToday
+                  ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
+                  : item.isCurrentMonth
+                  ? 'text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] font-semibold hover:scale-[1.08]'
+                  : 'text-text-muted/30 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
+              }`}
+            >
+              {item.dayNum}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function CalendarView({ session, onBack, onSyncCalendar, isSyncing, onNavigateTo }: Props) {
   const userId = session?.user?.id as string | undefined;
   const accessToken = session?.access_token as string | undefined;
 
@@ -179,6 +308,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [quickCreate, setQuickCreate] = useState<QuickCreateState | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickDuration, setQuickDuration] = useState(60);
+  const [quickCategory, setQuickCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Edit event state
@@ -196,6 +326,33 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [budgetMinInputs, setBudgetMinInputs] = useState<Record<string, string>>({});
   const [budgetMaxInputs, setBudgetMaxInputs] = useState<Record<string, string>>({});
 
+  // Reclaim.ai features states
+  const [focusTimeDefense, setFocusTimeDefense] = useState(true);
+  const [decompressionBuffer, setDecompressionBuffer] = useState(true);
+  const [smartHabitsFlex, setSmartHabitsFlex] = useState(true);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [syncingOuraSleep, setSyncingOuraSleep] = useState(false);
+  const [syncingActivities, setSyncingActivities] = useState(false);
+
+  // Custom dialogs & notification states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [nowMin, setNowMin] = useState(() => nowMinutes());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMin(nowMinutes());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
   const gridRef = useRef<HTMLDivElement>(null);
 
   const { budgets, saveBudget } = useTimeBudgets(userId || '');
@@ -204,6 +361,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   // Sidebar Tasks states
   const [sidebarTodos, setSidebarTodos] = useState<SidebarTodo[]>([]);
   const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [completedTodoIds, setCompletedTodoIds] = useState<Set<string>>(new Set());
 
   const fetchSidebarTodos = useCallback(async () => {
     if (!userId) return;
@@ -225,8 +383,23 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   const handleToggleTodo = async (id: string) => {
     try {
-      setSidebarTodos((prev) => prev.filter((t) => t.id !== id));
-      await setTodoStatus({ id }, 'done');
+      // Mark as completed locally to trigger strikethrough animation
+      setCompletedTodoIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+
+      // Delay removal from UI and database update to let the user see the completion state
+      setTimeout(async () => {
+        setSidebarTodos((prev) => prev.filter((t) => t.id !== id));
+        setCompletedTodoIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        await setTodoStatus({ id }, 'done');
+      }, 1000);
     } catch (e) {
       console.error('Error completing todo:', e);
       fetchSidebarTodos();
@@ -260,6 +433,11 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     };
     events.forEach((ev) => {
       if (!ev.start_time || !ev.end_time || !ev.category) return;
+      
+      // Exclude sleep from the active budget calculations
+      const isSleep = ev.summary?.toLowerCase()?.includes('sen') || ev.summary?.toLowerCase()?.includes('sleep');
+      if (isSleep) return;
+
       const cat = ev.category.toLowerCase();
       if (!(cat in totals)) return;
       try {
@@ -312,6 +490,62 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
+  // Keyboard shortcuts inspired by Notion Calendar / Cron
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedEvent(null);
+        setQuickCreate(null);
+        setShowBudgetConfig(false);
+        setShowDeleteConfirm(false);
+        return;
+      }
+
+      const activeEl = document.activeElement;
+      if (activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.getAttribute('contenteditable') === 'true'
+      )) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === 't') {
+        e.preventDefault();
+        setSelectedDay(today);
+        setWeekStart(weekMon(today));
+        setCalView('dzien');
+        setToastMessage('Przejście do dzisiaj 📅');
+      } else if (key === 'd') {
+        e.preventDefault();
+        setCalView('dzien');
+      } else if (key === 'w') {
+        e.preventDefault();
+        setCalView('tydzien');
+      } else if (key === 'a') {
+        e.preventDefault();
+        setCalView('agenda');
+      } else if (key === 'r') {
+        e.preventDefault();
+        onSyncCalendar();
+        setTimeout(fetchEvents, 2000);
+        setToastMessage('Synchronizowanie kalendarza... 🔄');
+      } else if (key === 'c') {
+        e.preventDefault();
+        setQuickCreate({ date: selectedDay, startMin: 9 * 60 });
+        setQuickTitle('');
+        setQuickDuration(60);
+        setQuickCategory(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDay, today, onSyncCalendar, fetchEvents]);
+
   // Scroll to current time on day view mount
   useEffect(() => {
     if (calView !== 'dzien' && calView !== 'tydzien') return;
@@ -330,6 +564,309 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     return events.filter((e) => e.start_time && dateOfISO(e.start_time) === day);
   }, [events]);
 
+  const handleAISchedule = async () => {
+    if (sidebarTodos.length === 0) {
+      setToastMessage('Brak zadań w skrzynce Inbox do zaplanowania.');
+      return;
+    }
+    setIsScheduling(true);
+    try {
+      const dayEvents = eventsForDay(selectedDay);
+      let busyIntervals = dayEvents.map(ev => {
+        const start = parseTime(ev.start_time || '');
+        const end = parseTime(ev.end_time || '');
+        return { start, end };
+      }).sort((a, b) => a.start - b.start);
+
+      // Focus Time Defense: check 8:00 - 10:00 (480 to 600 min)
+      if (focusTimeDefense) {
+        const overlapsFocus = busyIntervals.some(i => (i.start < 600 && i.end > 480));
+        if (!overlapsFocus) {
+          const startISO = `${selectedDay}T08:00:00${WARSAW_OFFSET}`;
+          const endISO = `${selectedDay}T10:00:00${WARSAW_OFFSET}`;
+          await createEvent({
+            summary: 'Focus Time 🛡️',
+            start: startISO,
+            end: endISO,
+            category: 'work'
+          });
+          busyIntervals.push({ start: 480, end: 600 });
+          busyIntervals.sort((a, b) => a.start - b.start);
+        }
+      }
+
+      // Schedule inbox tasks
+      let currentPointer = 540; // Start at 9:00 AM (540 mins)
+      const workEnd = 1080; // End at 6:00 PM (1080 mins)
+      const pad = (n: number) => String(n).padStart(2, '0');
+
+      for (const todo of sidebarTodos) {
+        if (currentPointer >= workEnd) break;
+        const duration = 60; // 1 hour per task
+        let foundSlot = false;
+
+        while (currentPointer + duration <= workEnd && !foundSlot) {
+          const slotStart = currentPointer;
+          const slotEnd = slotStart + duration;
+          const collision = busyIntervals.some(i => (i.start < slotEnd && i.end > slotStart));
+
+          if (!collision) {
+            const startH = Math.floor(slotStart / 60);
+            const startM = slotStart % 60;
+            const endH = Math.floor(slotEnd / 60);
+            const endM = slotEnd % 60;
+
+            const startISO = `${selectedDay}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
+            const endISO = `${selectedDay}T${pad(endH)}:${pad(endM)}:00${WARSAW_OFFSET}`;
+
+            await createEvent({
+              summary: `✨ [AI] ${todo.title}`,
+              start: startISO,
+              end: endISO,
+              category: 'work'
+            });
+
+            await setTodoStatus({ id: todo.id }, 'done');
+
+            let bufferMins = decompressionBuffer ? 15 : 0;
+            busyIntervals.push({ start: slotStart, end: slotEnd + bufferMins });
+            busyIntervals.sort((a, b) => a.start - b.start);
+
+            currentPointer = slotEnd + bufferMins;
+            foundSlot = true;
+          } else {
+            currentPointer += 15; // Scan next 15-minute alignment
+          }
+        }
+      }
+
+      await fetchEvents();
+      await fetchSidebarTodos();
+      setToastMessage('Zadania zostały pomyślnie zaplanowane przez AI! ✨');
+    } catch (e) {
+      console.error('Error during AI scheduling:', e);
+      setToastMessage('Wystąpił błąd podczas planowania.');
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const handleSyncOuraSleep = async () => {
+    if (!userId) return;
+    setSyncingOuraSleep(true);
+    setToastMessage('Pobieram dane snu z Oura... 🔄');
+    try {
+      // Fetch Oura daily summaries
+      const { data: ouraRows, error: ouraErr } = await supabase
+        .from('oura_daily_summary')
+        .select('date, bedtime_timestamp, total_sleep_hours')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(14);
+
+      if (ouraErr) throw ouraErr;
+      if (!ouraRows || ouraRows.length === 0) {
+        setToastMessage('Brak danych snu w oura_daily_summary! ❌');
+        setSyncingOuraSleep(false);
+        return;
+      }
+
+      // Fetch current calendar events for the active range
+      const fromISO = addDays(selectedDay, -7) + 'T00:00:00Z';
+      const toISO = addDays(selectedDay, 7) + 'T23:59:59Z';
+      const { data: currentEvents, error: eventsErr } = await supabase
+        .from('vanguard_calendar')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', fromISO)
+        .lt('start_time', toISO);
+
+      if (eventsErr) throw eventsErr;
+
+      let updatedCount = 0;
+      let createdCount = 0;
+
+      for (const row of ouraRows) {
+        if (!row.bedtime_timestamp || !row.total_sleep_hours) continue;
+
+        // Oura stores bedtime_timestamp in UTC/Warsaw timezone context
+        const startISO = new Date(row.bedtime_timestamp).toISOString();
+        const endISO = new Date(
+          new Date(row.bedtime_timestamp).getTime() + row.total_sleep_hours * 3600 * 1000
+        ).toISOString();
+
+        // Oura date represents the morning of wake up (e.g. "2026-07-04" for sleep ending July 4th morning)
+        const wakeDateStr = row.date;
+
+        // Find existing "Sen" / "Sleep" event that ends on this date
+        const existingEvent = currentEvents?.find((ev) => {
+          const isSen = ev.summary?.toLowerCase() === 'sen' || ev.summary?.toLowerCase()?.includes('sen ') || ev.summary?.toLowerCase() === 'sleep';
+          if (!isSen) return false;
+          const evEndDateStr = ev.end_time?.split('T')[0];
+          return evEndDateStr === wakeDateStr;
+        });
+
+        if (existingEvent) {
+          await updateEvent({
+            id: existingEvent.event_id || existingEvent.id,
+            summary: 'Sen 🛌',
+            start: startISO,
+            end: endISO,
+            category: 'health',
+          });
+          updatedCount++;
+        } else {
+          await createEvent({
+            summary: 'Sen 🛌',
+            start: startISO,
+            end: endISO,
+            category: 'health',
+          });
+          createdCount++;
+        }
+      }
+
+      if (updatedCount === 0 && createdCount === 0) {
+        setToastMessage('Dane snu Oura są już aktualne! 🛌✨');
+      } else {
+        setToastMessage(`Zsynchronizowano sen: zaktualizowano ${updatedCount}, dodano ${createdCount}! 🛌✨`);
+      }
+      await fetchEvents();
+    } catch (err) {
+      console.error('Error syncing Oura sleep:', err);
+      setToastMessage('Nie udało się zsynchronizować snu z Oura.');
+    } finally {
+      setSyncingOuraSleep(false);
+    }
+  };
+
+  const handleSyncActivities = async () => {
+    if (!userId) return;
+    setSyncingActivities(true);
+    setToastMessage('Pobieram aktywności... 🔄');
+    try {
+      // 1. Fetch workout sessions with exercise logs
+      const { data: sessions, error: sessionErr } = await supabase
+        .from('workout_sessions')
+        .select('*, exercise_logs(exercise_name)')
+        .eq('user_id', userId)
+        .order('workout_day', { ascending: false })
+        .limit(30);
+
+      if (sessionErr) throw sessionErr;
+
+      // 2. Fetch Strava activities
+      const { data: strava, error: stravaErr } = await supabase
+        .from('strava_activities_clean')
+        .select('*')
+        .eq('user_id', userId)
+        .order('start_date', { ascending: false })
+        .limit(30);
+
+      if (stravaErr) throw stravaErr;
+
+      // 3. Fetch current calendar events for range
+      const fromISO = addDays(selectedDay, -10) + 'T00:00:00Z';
+      const toISO = addDays(selectedDay, 10) + 'T23:59:59Z';
+      const { data: currentEvents, error: eventsErr } = await supabase
+        .from('vanguard_calendar')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', fromISO)
+        .lt('start_time', toISO);
+
+      if (eventsErr) throw eventsErr;
+
+      let createdCount = 0;
+      let skippedCount = 0;
+
+      const eventExists = (startTime: string, summarySub: string) => {
+        const startSec = new Date(startTime).getTime();
+        return currentEvents?.some((ev) => {
+          const startEvSec = new Date(ev.start_time || '').getTime();
+          const matchTime = Math.abs(startSec - startEvSec) < 5 * 60 * 1000; // 5 mins threshold
+          const matchSummary = ev.summary?.toLowerCase()?.includes(summarySub.toLowerCase());
+          return matchTime && matchSummary;
+        });
+      };
+
+      // Sync Gym & Sauna
+      if (sessions) {
+        for (const session of sessions) {
+          if (!session.start_time) continue;
+
+          const isSauna = session.exercise_logs?.some(
+            (el: any) => el.exercise_name?.toLowerCase() === 'sauna'
+          );
+
+          const summary = isSauna ? 'Sauna 🧖' : 'Siłownia 🏋️';
+          const category = isSauna ? 'health' : 'sport';
+          const startISO = new Date(session.start_time).toISOString();
+
+          let duration = session.duration_minutes || 60;
+          if (session.end_time && session.start_time) {
+            const diffMs = new Date(session.end_time).getTime() - new Date(session.start_time).getTime();
+            if (diffMs > 0 && diffMs < 5 * 3600 * 1000) {
+              duration = diffMs / (60 * 1000);
+            }
+          }
+
+          const endISO = new Date(new Date(startISO).getTime() + duration * 60 * 1000).toISOString();
+
+          if (eventExists(startISO, isSauna ? 'sauna' : 'siłownia')) {
+            skippedCount++;
+            continue;
+          }
+
+          await createEvent({
+            summary,
+            start: startISO,
+            end: endISO,
+            category,
+          });
+          createdCount++;
+        }
+      }
+
+      // Sync Strava runs
+      if (strava) {
+        for (const act of strava) {
+          if (!act.start_date) continue;
+
+          const summary = `Bieg 🏃 (${act.name || 'Strava'})`;
+          const startISO = new Date(act.start_date).toISOString();
+          const durationSec = act.elapsed_time || 3600;
+          const endISO = new Date(new Date(startISO).getTime() + durationSec * 1000).toISOString();
+
+          if (eventExists(startISO, 'bieg')) {
+            skippedCount++;
+            continue;
+          }
+
+          await createEvent({
+            summary,
+            start: startISO,
+            end: endISO,
+            category: 'sport',
+          });
+          createdCount++;
+        }
+      }
+
+      if (createdCount === 0) {
+        setToastMessage('Wszystkie aktywności są już aktualne! 🏃🏋️🧖');
+      } else {
+        setToastMessage(`Zsynchronizowano aktywności: dodano ${createdCount} nowych wpisów! 🏃🏋️🧖`);
+      }
+      await fetchEvents();
+    } catch (err) {
+      console.error('Error syncing activities:', err);
+      setToastMessage('Nie udało się zsynchronizować aktywności.');
+    } finally {
+      setSyncingActivities(false);
+    }
+  };
+
   const handleSlotClick = (date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
@@ -337,6 +874,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     setQuickCreate({ date, startMin: clickedMin });
     setQuickTitle('');
     setQuickDuration(60);
+    setQuickCategory(null);
   }
 
   const handleQuickSave = async () => {
@@ -352,7 +890,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const pad = (n: number) => String(n).padStart(2, '0');
     const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
     const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
-    const ev: CalendarEvent = { summary: quickTitle.trim(), start, end };
+    const ev: CalendarEvent = { summary: quickTitle.trim(), start, end, category: quickCategory || undefined };
     try {
       const result = await createEvent(ev);
       const newRow: CalRow = {
@@ -361,7 +899,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         summary: ev.summary,
         start_time: start,
         end_time: end,
-        category: null,
+        category: ev.category || null,
       };
       setEvents((prev) => [...prev, newRow].sort((a, b) =>
         (a.start_time || '').localeCompare(b.start_time || ''),
@@ -400,8 +938,16 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const handleEditSave = async () => {
     if (!selectedEvent || !editTitle.trim() || !editStart || !editEnd || !editDate) return;
     setSaving(true);
+    
     const start = `${editDate}T${editStart}:00${WARSAW_OFFSET}`;
-    const end = `${editDate}T${editEnd}:00${WARSAW_OFFSET}`;
+    let endDateStr = editDate;
+    
+    // If end time is chronologically before start time, it crosses midnight (ends the next day)
+    if (editEnd < editStart) {
+      endDateStr = addDays(editDate, 1);
+    }
+    
+    const end = `${endDateStr}T${editEnd}:00${WARSAW_OFFSET}`;
     const evId = selectedEvent.event_id || selectedEvent.id;
     const ev: CalendarEvent & { id: string } = {
       id: evId,
@@ -428,25 +974,33 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       setSelectedEvent(null);
     } catch (err) {
       console.error('edit event error:', err);
+      setToastMessage('Nie udało się zapisać zmian. Upewnij się, że godziny są poprawne.');
     } finally {
       setSaving(false);
     }
   }
 
-  const handleEditDelete = async () => {
+  const executeDelete = async () => {
     if (!selectedEvent) return;
-    if (!window.confirm('Czy na pewno chcesz usunąć to wydarzenie?')) return;
     setDeleting(true);
     const evId = selectedEvent.event_id || selectedEvent.id;
     try {
       await deleteEvent(evId);
       setEvents((prev) => prev.filter((item) => item.id !== selectedEvent.id));
       setSelectedEvent(null);
+      setShowDeleteConfirm(false);
+      setToastMessage('Wydarzenie zostało usunięte. 🗑️');
     } catch (err) {
       console.error('delete event error:', err);
+      setToastMessage('Nie udało się usunąć wydarzenia.');
     } finally {
       setDeleting(false);
     }
+  }
+
+  const handleEditDelete = async () => {
+    if (!selectedEvent) return;
+    setShowDeleteConfirm(true);
   }
 
   const minutesLabel = (m: number) => {
@@ -457,29 +1011,177 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   // ── Render helpers ──
 
+  const handleEventMouseDown = (
+    ev: CalRow,
+    e: React.MouseEvent<HTMLDivElement>,
+    action: 'move' | 'resize'
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (!ev.start_time || !ev.end_time) return;
+
+    const cardElement = action === 'resize'
+      ? (e.currentTarget.parentElement as HTMLDivElement)
+      : (e.currentTarget as HTMLDivElement);
+
+    // Disable CSS transitions during interaction to eliminate browser latency
+    if (cardElement) {
+      cardElement.style.transition = 'none';
+      cardElement.style.zIndex = '50';
+    }
+
+    const startMin = parseTime(ev.start_time);
+    const endMin = parseTime(ev.end_time);
+    const duration = endMin - startMin;
+
+    const startY = e.clientY;
+    const initialStartMin = startMin;
+    const initialEndMin = endMin;
+    const eventDate = dateOfISO(ev.start_time);
+
+    let hasMoved = false;
+    let lastDiffMins = 0;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      hasMoved = true;
+      const diffY = moveEvent.clientY - startY;
+      const diffMins = Math.round((diffY / PX_PER_MIN) / 15) * 15; // Snap to 15m intervals
+
+      // Performance throttle: Only update React state if crossing grid boundaries
+      if (diffMins === lastDiffMins) return;
+      lastDiffMins = diffMins;
+
+      setEvents((prevEvents) =>
+        prevEvents.map((item) => {
+          if (item.id !== ev.id) return item;
+
+          let newStartMin = initialStartMin;
+          let newEndMin = initialEndMin;
+
+          if (action === 'move') {
+            newStartMin = Math.max(HOUR_START * 60, Math.min(HOUR_END * 60 - duration, initialStartMin + diffMins));
+            newEndMin = newStartMin + duration;
+          } else if (action === 'resize') {
+            newEndMin = Math.max(newStartMin + 15, Math.min(HOUR_END * 60, initialEndMin + diffMins));
+          }
+
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const newStartISO = `${eventDate}T${pad(Math.floor(newStartMin / 60))}:${pad(newStartMin % 60)}:00${WARSAW_OFFSET}`;
+          const newEndISO = `${eventDate}T${pad(Math.floor(newEndMin / 60))}:${pad(newEndMin % 60)}:00${WARSAW_OFFSET}`;
+
+          return {
+            ...item,
+            start_time: newStartISO,
+            end_time: newEndISO,
+          };
+        })
+      );
+    };
+
+    const handleMouseUp = async (upEvent: MouseEvent) => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+
+      // Restore transitions and original depth
+      if (cardElement) {
+        cardElement.style.transition = '';
+        cardElement.style.zIndex = '';
+      }
+
+      if (!hasMoved) {
+        handleEventClick(ev);
+        return;
+      }
+
+      const diffY = upEvent.clientY - startY;
+      const diffMins = Math.round((diffY / PX_PER_MIN) / 15) * 15;
+
+      let finalStartMin = initialStartMin;
+      let finalEndMin = initialEndMin;
+
+      if (action === 'move') {
+        finalStartMin = Math.max(HOUR_START * 60, Math.min(HOUR_END * 60 - duration, initialStartMin + diffMins));
+        finalEndMin = finalStartMin + duration;
+      } else if (action === 'resize') {
+        finalEndMin = Math.max(finalStartMin + 15, Math.min(HOUR_END * 60, initialEndMin + diffMins));
+      }
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const startISO = `${eventDate}T${pad(Math.floor(finalStartMin / 60))}:${pad(finalStartMin % 60)}:00${WARSAW_OFFSET}`;
+      const endISO = `${eventDate}T${pad(Math.floor(finalEndMin / 60))}:${pad(finalEndMin % 60)}:00${WARSAW_OFFSET}`;
+
+      const updatePayload = {
+        id: ev.event_id || ev.id,
+        summary: ev.summary || '',
+        start: startISO,
+        end: endISO,
+        category: ev.category || undefined,
+      };
+
+      try {
+        await updateEvent(updatePayload);
+        setToastMessage('Zaktualizowano czas wydarzenia! 🕒');
+      } catch (err) {
+        console.error('Failed to save drag/resize changes:', err);
+        setToastMessage('Nie udało się zapisać zmian.');
+        setEvents((prevEvents) =>
+          prevEvents.map((item) =>
+            item.id === ev.id
+              ? { ...item, start_time: ev.start_time, end_time: ev.end_time }
+              : item
+          )
+        );
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const renderEventBlock = (ev: CalRow, colWidth: string) => {
     if (!ev.start_time || !ev.end_time) return null;
     const startMin = parseTime(ev.start_time);
     const endMin = parseTime(ev.end_time);
-    const top = Math.max(0, (startMin - HOUR_START * 60) * PX_PER_MIN);
-    const height = Math.max(20, (endMin - startMin) * PX_PER_MIN);
+    const visibleStartMin = Math.max(HOUR_START * 60, startMin);
+    const visibleEndMin = Math.min(HOUR_END * 60, endMin);
+    const top = (visibleStartMin - HOUR_START * 60) * PX_PER_MIN;
+    const height = Math.max(20, (visibleEndMin - visibleStartMin) * PX_PER_MIN);
     const tooShort = height < 32;
+    const isAIScheduled = ev.summary?.includes('✨') || ev.summary?.includes('[AI]');
+    const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
+
+    // Display start/end hours inline if card height is too short for a separate line
+    const displaySummary = tooShort
+      ? `${ev.summary} (${formatTime(ev.start_time)}–${formatTime(ev.end_time)})`
+      : ev.summary;
+
     return (
       <div
         key={ev.id}
-        onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
-        className={`absolute left-0.5 right-0.5 rounded-lg border-l-2 border-y border-r border-border-custom/50 px-1.5 py-1 overflow-hidden cursor-pointer hover:scale-[1.01] transition-all hover:shadow-sm ${eventColor(ev)}`}
+        onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
+        className={`absolute left-0.5 right-0.5 rounded-[6px] border-l-[3.5px] border-y border-r border-border-custom/10 px-2 py-1 overflow-hidden cursor-move hover:scale-[1.015] hover:shadow-md hover:brightness-105 active:scale-[0.985] active:brightness-95 transition-all duration-200 hover:z-20 select-none ${eventColor(ev)}`}
         style={{ top, height, width: colWidth }}
         title={ev.summary || ''}
       >
-        <p className="text-current text-[9px] font-black leading-tight line-clamp-2">
-          {ev.summary}
-        </p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {isAIScheduled && <Sparkles size={10} className="shrink-0 text-current animate-pulse opacity-90" />}
+          {isFocusTime && <Shield size={10} className="shrink-0 text-current opacity-90" />}
+          <p className="text-current text-[10.5px] font-bold leading-tight truncate flex-1">
+            {displaySummary}
+          </p>
+        </div>
         {!tooShort && (
-          <p className="text-current/75 text-[8px] leading-tight mt-0.5">
+          <p className="text-current/75 text-[8.5px] font-bold leading-tight mt-0.5">
             {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
           </p>
         )}
+        
+        {/* Drag Resize Handle (Bottom Edge) */}
+        <div
+          onMouseDown={(e) => handleEventMouseDown(ev, e, 'resize')}
+          className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-black/10 dark:hover:bg-white/10 z-30"
+        />
       </div>
     );
   }
@@ -503,7 +1205,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const renderDayColumn = (day: string, colClass = '') => {
     const dayEvents = eventsForDay(day);
     const isToday = day === today;
-    const nowLine = isToday ? (nowMinutes() - HOUR_START * 60) * PX_PER_MIN : null;
+    const nowLine = isToday ? (nowMin - HOUR_START * 60) * PX_PER_MIN : null;
     return (
       <div
         key={day}
@@ -517,6 +1219,55 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             className="absolute left-0 right-0 border-t border-border-custom/20 cursor-pointer hover:bg-primary/5 transition-colors"
             style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }}
             onClick={(e) => handleSlotClick(day, HOUR_START + i, e)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add('bg-primary/10');
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.classList.remove('bg-primary/10');
+            }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove('bg-primary/10');
+              const rawData = e.dataTransfer.getData('text/plain');
+              if (!rawData) return;
+              try {
+                const todo = JSON.parse(rawData);
+                // Calculate drop offset in the 1 hour block
+                const rect = e.currentTarget.getBoundingClientRect();
+                const offsetY = e.clientY - rect.top;
+                const clickedMin = Math.round((offsetY / PX_PER_HOUR) * 60 / 15) * 15;
+                const startMin = (HOUR_START + i) * 60 + clickedMin;
+                const endMin = startMin + 60; // default to 1 hour duration
+
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const startH = Math.floor(startMin / 60);
+                const startM = startMin % 60;
+                const endH = Math.floor(endMin / 60);
+                const endM = endMin % 60;
+
+                const startISO = `${day}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
+                const endISO = `${day}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
+
+                setSaving(true);
+                await createEvent({
+                  summary: todo.title,
+                  start: startISO,
+                  end: endISO,
+                  category: 'work'
+                });
+
+                // Complete the task from the inbox (shows strikethrough animation first)
+                handleToggleTodo(todo.id);
+                setToastMessage(`Zaplanowano zadanie: "${todo.title}"! 📅`);
+                await fetchEvents();
+              } catch (err) {
+                console.error('Failed to drop and schedule task:', err);
+                setToastMessage('Nie udało się zaplanować zadania.');
+              } finally {
+                setSaving(false);
+              }
+            }}
           />
         ))}
         {/* Events */}
@@ -780,6 +1531,41 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               ))}
             </div>
           </div>
+          {/* Category selection */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kategoria</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
+                { key: 'work', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
+                { key: 'health', label: 'Zdrowie', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'personal', label: 'Osobiste', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
+                { key: 'sport', label: 'Sport', color: 'border-orange-500/20 bg-orange-500/8 text-orange-500', dot: 'bg-orange-500' },
+                { key: 'study', label: 'Nauka', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+              ].map((cat) => {
+                const isSelected = quickCategory === cat.key;
+                const baseColors = cat.color.split(' ');
+                return (
+                  <button
+                    key={cat.key || 'none'}
+                    type="button"
+                    onClick={() => setQuickCategory(cat.key)}
+                    className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                      isSelected
+                        ? cat.key
+                          ? `${baseColors[0]} ${baseColors[1].replace('/8', '/20')} text-text-primary font-black shadow-sm`
+                          : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
+                        : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <button
             onClick={handleQuickSave}
             disabled={saving || !quickTitle.trim()}
@@ -984,6 +1770,45 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
+  // ── Delete Confirm Modal ──
+  const renderDeleteConfirmModal = () => {
+    if (!showDeleteConfirm) return null;
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setShowDeleteConfirm(false)}>
+        <div
+          className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0">
+              <Trash2 size={20} />
+            </div>
+            <div>
+              <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Potwierdź usunięcie</p>
+              <p className="text-[11.5px] text-text-muted mt-0.5">Czy na pewno chcesz usunąć to wydarzenie? Tej operacji nie można cofnąć.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/20 hover:bg-surface-solid/40 text-text-primary py-3 text-[12px] font-black active:scale-[0.98] transition-all cursor-pointer"
+            >
+              Anuluj
+            </button>
+            <button
+              onClick={executeDelete}
+              disabled={deleting}
+              className="flex-1 rounded-xl bg-rose-500 hover:bg-rose-600 text-white py-3 text-[12px] font-black shadow-lg shadow-rose-500/15 active:scale-[0.98] transition-all disabled:opacity-40 cursor-pointer"
+            >
+              {deleting ? 'Usuwanie...' : 'Usuń wydarzenie'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background text-text-primary overflow-hidden">
       {/* LEFT SIDEBAR (Notion Calendar / Cron Style - visible on desktop) */}
@@ -991,17 +1816,172 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         {/* Sidebar Header */}
         <div className="p-4 border-b border-border-custom/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black">V</div>
+            <div className="w-6.5 h-6.5 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[12px] font-black shadow-sm">
+              <Zap size={14} className="fill-primary text-primary" />
+            </div>
             <span className="text-[13px] font-black tracking-wider uppercase text-text-primary">Vanguard OS</span>
           </div>
-          <button onClick={onBack} className="p-1.5 text-text-muted hover:text-text-primary transition-colors" title="Wróć do pulpitu">
+          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] text-text-muted hover:text-text-primary transition-all" title="Wróć do pulpitu">
             <ChevronLeft size={18} />
           </button>
         </div>
 
+        {/* Quick View Switcher */}
+        <div className="px-4 py-3 border-b border-border-custom/25 bg-slate-500/5 dark:bg-white/[0.01] flex gap-1.5 shrink-0">
+          <button
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-black bg-primary/10 text-primary border border-primary/15"
+          >
+            <Calendar size={13} className="shrink-0" />
+            <span>Kalendarz</span>
+          </button>
+          <button
+            onClick={() => onNavigateTo?.('todo')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer"
+          >
+            <List size={13} className="shrink-0" />
+            <span>Zadania</span>
+          </button>
+          <button
+            onClick={() => onNavigateTo?.('keep')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer"
+          >
+            <StickyNote size={13} className="shrink-0" />
+            <span>Notatki</span>
+          </button>
+        </div>
+
         {/* Sidebar Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Section 1: Time Budgets */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {/* Section 1: Monthly Mini Calendar */}
+          <MiniCalendar selectedDay={selectedDay} onSelectDay={(day) => {
+            setSelectedDay(day);
+            setWeekStart(weekMon(day));
+          }} />
+
+          {/* Section 2: Reclaim.ai Options & AI scheduling */}
+          <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center gap-1.5 pb-1 border-b border-border-custom/20">
+              <Sparkles size={14} className="text-primary animate-pulse" />
+              <span className="text-[10px] font-black text-text-primary uppercase tracking-wider">Silnik Reclaim.ai</span>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Ochrona Focus Time</span>
+                  <span className="text-[9px] text-text-muted">Blokuj poranki na Deep Work</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={focusTimeDefense}
+                  onChange={(e) => setFocusTimeDefense(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Bufory Oddechu</span>
+                  <span className="text-[9px] text-text-muted">15m przerwy po spotkaniach</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={decompressionBuffer}
+                  onChange={(e) => setDecompressionBuffer(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Elastyczne Nawyki</span>
+                  <span className="text-[9px] text-text-muted">Dynamiczna relokacja rutyn</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={smartHabitsFlex}
+                  onChange={(e) => setSmartHabitsFlex(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
+                />
+              </label>
+            </div>
+
+            <button
+              onClick={handleAISchedule}
+              disabled={isScheduling}
+              className="w-full relative flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/95 hover:to-violet-600/95 text-white py-2.5 text-[12px] font-black shadow-md hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] transition-all duration-200 disabled:opacity-50 cursor-pointer"
+            >
+              {isScheduling ? (
+                <>
+                  <RefreshCw size={13} className="animate-spin" />
+                  <span>Planowanie...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  <span>Uruchom Silnik AI</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Section 2.5: Biometrics & Activity Sync */}
+          <div className="bg-emerald-500/5 dark:bg-emerald-500/[0.02] border border-emerald-500/15 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center gap-1.5 pb-1 border-b border-emerald-500/10">
+              <Sliders size={13} className="text-emerald-500 shrink-0" />
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Synchronizacja Danych</span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Oura Sleep */}
+              <div className="space-y-1.5">
+                <span className="text-[9.5px] font-bold text-text-muted">Sen (Oura Ring)</span>
+                <button
+                  onClick={handleSyncOuraSleep}
+                  disabled={syncingOuraSleep}
+                  title="Synchronizuje rzeczywisty czas zasypiania i obudzenia z Oura Ring"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 hover:scale-[1.015] active:scale-[0.985] text-emerald-500 py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  {syncingOuraSleep ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Synchronizowanie...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon size={13} />
+                      <span>Dopasuj Sen z Oura</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Gym, Sauna, Strava Activities */}
+              <div className="space-y-1.5 pt-2 border-t border-border-custom/25">
+                <span className="text-[9.5px] font-bold text-text-muted">Treningi, Sauna & Strava</span>
+                <button
+                  onClick={handleSyncActivities}
+                  disabled={syncingActivities}
+                  title="Pobiera treningi, sauny oraz biegi i nakłada je jako kolorowe bloki"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/15 hover:scale-[1.015] active:scale-[0.985] text-primary py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  {syncingActivities ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Synchronizowanie...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={13} />
+                      <span>Wgraj Treningi do kalendarza</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Time Budgets */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
@@ -1018,7 +1998,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                   setBudgetMaxInputs(maxs);
                   setShowBudgetConfig(true);
                 }}
-                className="text-[10px] text-primary font-bold hover:underline"
+                className="text-[10px] text-primary font-black hover:underline"
               >
                 Konfiguruj
               </button>
@@ -1062,7 +2042,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 }
 
                 return (
-                  <div key={cat.key} className="space-y-1 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/40 rounded-xl">
+                  <div key={cat.key} className="space-y-1 p-2.5 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl">
                     <div className="flex items-center justify-between text-[10px] font-bold">
                       <div className="flex items-center gap-1.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
@@ -1071,14 +2051,14 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                       <span className="text-text-muted">{statusText}</span>
                     </div>
                     {(minVal || maxVal) ? (
-                      <div className="w-full h-1 bg-border-custom/40 rounded-full overflow-hidden">
+                      <div className="w-full h-1 bg-border-custom/40 rounded-full overflow-hidden mt-1">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                     ) : (
-                      <div className="text-[9px] text-text-muted/40 italic">Brak limitu</div>
+                      <div className="text-[9px] text-text-muted/40 italic mt-0.5">Brak limitu</div>
                     )}
                   </div>
                 );
@@ -1086,7 +2066,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             </div>
           </div>
 
-          {/* Section 2: Tasks (Notion Calendar Style) */}
+          {/* Section 4: Tasks (Notion Calendar Style) */}
           <div className="space-y-3 pt-4 border-t border-border-custom/40">
             <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
             
@@ -1113,21 +2093,30 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               {sidebarTodos.length === 0 ? (
                 <p className="text-[11px] text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
               ) : (
-                sidebarTodos.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className="flex items-start gap-2.5 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-colors group"
-                  >
-                    <input
-                      type="checkbox"
-                      onChange={() => handleToggleTodo(todo.id)}
-                      className="mt-0.5 w-3.5 h-3.5 border-border-custom/80 rounded bg-transparent checked:bg-primary checked:border-primary transition-all cursor-pointer accent-primary shrink-0"
-                    />
-                    <span className="text-[12px] font-semibold text-text-primary group-hover:text-text-primary transition-colors flex-1 break-words">
-                      {todo.title}
-                    </span>
-                  </div>
-                ))
+                sidebarTodos.map((todo) => {
+                  const isCompleted = completedTodoIds.has(todo.id);
+                  return (
+                    <div
+                      key={todo.id}
+                      draggable="true"
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title }));
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      className={`flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all cursor-grab active:cursor-grabbing group hover:scale-[1.01] active:scale-[0.99] select-none ${isCompleted ? 'opacity-50 border-emerald-500/20 bg-emerald-500/[0.02]' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isCompleted}
+                        onChange={() => handleToggleTodo(todo.id)}
+                        className="mt-0.5 w-3.5 h-3.5 border-border-custom/80 rounded bg-transparent checked:bg-emerald-500 checked:border-emerald-500 transition-all cursor-pointer accent-emerald-500 shrink-0"
+                      />
+                      <span className={`text-[12px] font-semibold flex-1 break-words transition-all duration-300 ${isCompleted ? 'line-through text-text-muted/50' : 'text-text-primary group-hover:text-primary'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -1291,6 +2280,17 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
       {/* Budget config modal */}
       {renderBudgetConfigModal()}
+
+      {/* Delete confirm modal */}
+      {renderDeleteConfirmModal()}
+
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-[9999] flex items-center gap-2.5 rounded-2xl bg-slate-900/90 dark:bg-white/95 text-white dark:text-slate-950 px-4 py-3.5 shadow-2xl border border-white/10 dark:border-slate-800/10 backdrop-blur-md">
+          <Sparkles size={14} className="text-primary animate-pulse shrink-0" />
+          <span className="text-[12px] font-black tracking-wide leading-none">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

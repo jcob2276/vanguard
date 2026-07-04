@@ -306,8 +306,13 @@ export default function OracleCard({
             const tags = await exifr.parse(file);
             const dateObj = tags?.DateTimeOriginal || tags?.CreateDate || tags?.ModifyDate;
             if (dateObj) {
+              // EXIF timestamps are naive (no timezone) — exifr parses them via the local
+              // Date constructor, so its local getters already reflect the recorded date
+              // as-is. Routing through toISOString()/UTC math double-converts and can
+              // shift the calendar date; read the local components directly instead.
               const d = new Date(dateObj);
-              occurredDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+              const pad = (n: number) => String(n).padStart(2, '0');
+              occurredDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
             }
           
           const fileName = `${session.user.id}/${Date.now()}_chat_${i}.${file.name.split('.').pop()}`;

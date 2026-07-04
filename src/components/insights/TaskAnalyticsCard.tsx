@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { BarChartWidget } from '../widgets/BarChart';
 import { CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { formatWarsawDate, getDaysAgoWarsaw } from '../../lib/date';
 
 interface Props {
   session: Session;
@@ -16,15 +17,10 @@ interface DoneTask {
 
 const DAY_LABELS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
 
-function warsawDate(isoStr: string) {
-  // Parse ISO, shift to Warsaw (+02:00 CEST simplified)
-  const d = new Date(isoStr);
-  return new Date(d.getTime() + 2 * 3600 * 1000);
-}
-
-function dateKey(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+/** Day-of-week (0=Sun) for a Warsaw calendar date, anchored at noon UTC to avoid
+ * local-browser-timezone drift and DST-boundary date shifts. */
+function warsawDayOfWeek(dateStr: string) {
+  return new Date(`${dateStr}T12:00:00Z`).getUTCDay();
 }
 
 export default function TaskAnalyticsCard({ session }: Props) {
@@ -59,12 +55,12 @@ export default function TaskAnalyticsCard({ session }: Props) {
     // Build last 7 days
     const days: Array<{ key: string; label: string; dayOfWeek: number }> = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+      const key = i === 0 ? formatWarsawDate(new Date()) : getDaysAgoWarsaw(i);
+      const dow = warsawDayOfWeek(key);
       days.push({
-        key: dateKey(d),
-        label: i === 0 ? 'Dziś' : DAY_LABELS[d.getDay()],
-        dayOfWeek: d.getDay(),
+        key,
+        label: i === 0 ? 'Dziś' : DAY_LABELS[dow],
+        dayOfWeek: dow,
       });
     }
 
@@ -75,7 +71,7 @@ export default function TaskAnalyticsCard({ session }: Props) {
 
     tasks.forEach((t) => {
       if (!t.completed_at) return;
-      const localDate = dateKey(warsawDate(t.completed_at));
+      const localDate = formatWarsawDate(t.completed_at);
       const min = t.duration_minutes || 0;
       minutesByDay[localDate] = (minutesByDay[localDate] || 0) + min;
       countByDay[localDate] = (countByDay[localDate] || 0) + 1;

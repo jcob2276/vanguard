@@ -1063,6 +1063,7 @@ export type Database = {
           snellen_left: string | null
           snellen_right: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
           active_focus_minutes?: number | null
@@ -1077,6 +1078,7 @@ export type Database = {
           snellen_left?: string | null
           snellen_right?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
           active_focus_minutes?: number | null
@@ -1091,6 +1093,7 @@ export type Database = {
           snellen_left?: string | null
           snellen_right?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1104,6 +1107,7 @@ export type Database = {
           lighting_condition: string | null
           measured_at: string
           notes: string | null
+          user_id: string
         }
         Insert: {
           blur_distance_cm: number
@@ -1114,6 +1118,7 @@ export type Database = {
           lighting_condition?: string | null
           measured_at?: string
           notes?: string | null
+          user_id: string
         }
         Update: {
           blur_distance_cm?: number
@@ -1124,6 +1129,7 @@ export type Database = {
           lighting_condition?: string | null
           measured_at?: string
           notes?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -3764,7 +3770,7 @@ export type Database = {
           created_at: string | null
           id: string
           reason: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           alias: string
@@ -3772,7 +3778,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reason?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           alias?: string
@@ -3780,7 +3786,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reason?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -3807,7 +3813,7 @@ export type Database = {
           target_entity: string
           target_type: string
           temporal_status: string | null
-          user_id: string | null
+          user_id: string
           valid_from: string | null
           valid_until: string | null
           weight: number | null
@@ -3834,7 +3840,7 @@ export type Database = {
           target_entity: string
           target_type: string
           temporal_status?: string | null
-          user_id?: string | null
+          user_id: string
           valid_from?: string | null
           valid_until?: string | null
           weight?: number | null
@@ -3861,7 +3867,7 @@ export type Database = {
           target_entity?: string
           target_type?: string
           temporal_status?: string | null
-          user_id?: string | null
+          user_id?: string
           valid_from?: string | null
           valid_until?: string | null
           weight?: number | null
@@ -4312,7 +4318,7 @@ export type Database = {
           retrieved_context: Json | null
           sources: Json | null
           state_vector: Json | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           answer?: string | null
@@ -4325,7 +4331,7 @@ export type Database = {
           retrieved_context?: Json | null
           sources?: Json | null
           state_vector?: Json | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           answer?: string | null
@@ -4338,7 +4344,7 @@ export type Database = {
           retrieved_context?: Json | null
           sources?: Json | null
           state_vector?: Json | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -4349,7 +4355,7 @@ export type Database = {
           is_active: boolean | null
           key: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
           value: string
         }
         Insert: {
@@ -4358,7 +4364,7 @@ export type Database = {
           is_active?: boolean | null
           key: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
           value: string
         }
         Update: {
@@ -4367,7 +4373,7 @@ export type Database = {
           is_active?: boolean | null
           key?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
           value?: string
         }
         Relationships: []
@@ -4570,6 +4576,33 @@ export type Database = {
           payload?: Json
           status?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      vanguard_time_budgets: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          max_hours: number | null
+          min_hours: number | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          max_hours?: number | null
+          min_hours?: number | null
+          user_id?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          max_hours?: number | null
+          min_hours?: number | null
+          user_id?: string
         }
         Relationships: []
       }
