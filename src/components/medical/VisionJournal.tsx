@@ -21,8 +21,8 @@ type Measurement = {
 type DailyLog = {
   id: string;
   date: string;
-  active_focus_minutes: number;
-  screen_time_hours: number;
+  active_focus_minutes: number | null;
+  screen_time_hours: number | null;
 };
 
 function getTimeOfDay(dateStr: string): 'Rano' | 'Południe' | 'Wieczór' {
@@ -42,6 +42,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
 
   useEffect(() => {
     async function loadData() {
@@ -57,49 +58,103 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   }, [refreshTrigger]);
 
   // Process data for charts
-  // We want to group by Month/Year and show Rano-L, Południe-L, Wieczór-L, etc.
   const chartDataLeft = useMemo(() => {
-    const grouped: Record<string, { name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
+    const grouped: Record<string, { sortKey: string; name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
     measurements.filter(m => m.eye_measured === 'left' || m.eye_measured === 'both').forEach(m => {
-      const my = getMonthYear(m.measured_at);
-      if (!grouped[my]) grouped[my] = { name: my, rano: [], poludnie: [], wieczor: [] };
+      let key = '';
+      let label = '';
+      if (viewMode === 'daily') {
+        const d = new Date(m.measured_at);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        label = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
+      } else {
+        const d = new Date(m.measured_at);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+        label = getMonthYear(m.measured_at);
+      }
+
+      if (!grouped[key]) grouped[key] = { sortKey: key, name: label, rano: [], poludnie: [], wieczor: [] };
       const tod = getTimeOfDay(m.measured_at);
-      if (tod === 'Rano') grouped[my].rano.push(m.diopters);
-      else if (tod === 'Południe') grouped[my].poludnie.push(m.diopters);
-      else grouped[my].wieczor.push(m.diopters);
+      if (tod === 'Rano') grouped[key].rano.push(m.diopters);
+      else if (tod === 'Południe') grouped[key].poludnie.push(m.diopters);
+      else grouped[key].wieczor.push(m.diopters);
     });
 
-    return Object.values(grouped).map(g => ({
-      name: g.name,
-      'Rano - L': g.rano.length ? (g.rano.reduce((a,b)=>a+b,0)/g.rano.length).toFixed(2) : null,
-      'Południe - L': g.poludnie.length ? (g.poludnie.reduce((a,b)=>a+b,0)/g.poludnie.length).toFixed(2) : null,
-      'Wieczór - L': g.wieczor.length ? (g.wieczor.reduce((a,b)=>a+b,0)/g.wieczor.length).toFixed(2) : null,
-    }));
-  }, [measurements]);
+    return Object.values(grouped)
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map(g => ({
+        name: g.name,
+        'Rano - L': g.rano.length ? (g.rano.reduce((a,b)=>a+b,0)/g.rano.length).toFixed(2) : null,
+        'Południe - L': g.poludnie.length ? (g.poludnie.reduce((a,b)=>a+b,0)/g.poludnie.length).toFixed(2) : null,
+        'Wieczór - L': g.wieczor.length ? (g.wieczor.reduce((a,b)=>a+b,0)/g.wieczor.length).toFixed(2) : null,
+      }));
+  }, [measurements, viewMode]);
 
   const chartDataRight = useMemo(() => {
-    const grouped: Record<string, { name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
+    const grouped: Record<string, { sortKey: string; name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
     measurements.filter(m => m.eye_measured === 'right' || m.eye_measured === 'both').forEach(m => {
-      const my = getMonthYear(m.measured_at);
-      if (!grouped[my]) grouped[my] = { name: my, rano: [], poludnie: [], wieczor: [] };
+      let key = '';
+      let label = '';
+      if (viewMode === 'daily') {
+        const d = new Date(m.measured_at);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        label = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
+      } else {
+        const d = new Date(m.measured_at);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+        label = getMonthYear(m.measured_at);
+      }
+
+      if (!grouped[key]) grouped[key] = { sortKey: key, name: label, rano: [], poludnie: [], wieczor: [] };
       const tod = getTimeOfDay(m.measured_at);
-      if (tod === 'Rano') grouped[my].rano.push(m.diopters);
-      else if (tod === 'Południe') grouped[my].poludnie.push(m.diopters);
-      else grouped[my].wieczor.push(m.diopters);
+      if (tod === 'Rano') grouped[key].rano.push(m.diopters);
+      else if (tod === 'Południe') grouped[key].poludnie.push(m.diopters);
+      else grouped[key].wieczor.push(m.diopters);
     });
 
-    return Object.values(grouped).map(g => ({
-      name: g.name,
-      'Rano - P': g.rano.length ? (g.rano.reduce((a,b)=>a+b,0)/g.rano.length).toFixed(2) : null,
-      'Południe - P': g.poludnie.length ? (g.poludnie.reduce((a,b)=>a+b,0)/g.poludnie.length).toFixed(2) : null,
-      'Wieczór - P': g.wieczor.length ? (g.wieczor.reduce((a,b)=>a+b,0)/g.wieczor.length).toFixed(2) : null,
-    }));
-  }, [measurements]);
+    return Object.values(grouped)
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map(g => ({
+        name: g.name,
+        'Rano - P': g.rano.length ? (g.rano.reduce((a,b)=>a+b,0)/g.rano.length).toFixed(2) : null,
+        'Południe - P': g.poludnie.length ? (g.poludnie.reduce((a,b)=>a+b,0)/g.poludnie.length).toFixed(2) : null,
+        'Wieczór - P': g.wieczor.length ? (g.wieczor.reduce((a,b)=>a+b,0)/g.wieczor.length).toFixed(2) : null,
+      }));
+  }, [measurements, viewMode]);
 
   if (loading) return <div className="p-4 text-text-muted">Wczytywanie dziennika...</div>;
 
   return (
     <div className="w-full flex flex-col gap-8 bg-surface/50 p-6 rounded-3xl border border-border-custom shadow-xl">
+      <div className="flex items-center justify-between border-b border-border-custom/40 pb-4">
+        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Agregacja wykresu</span>
+        <div className="flex bg-slate-100 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl p-0.5">
+          <button
+            onClick={() => setViewMode('daily')}
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              viewMode === 'daily'
+                ? 'bg-primary text-white shadow-sm font-black'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            Dzienna
+          </button>
+          <button
+            onClick={() => setViewMode('monthly')}
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              viewMode === 'monthly'
+                ? 'bg-primary text-white shadow-sm font-black'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            Miesięczna
+          </button>
+        </div>
+      </div>
       <div>
         <h3 className="text-xl font-bold mb-4">Lewe Oko</h3>
         <div className="h-64 w-full">
