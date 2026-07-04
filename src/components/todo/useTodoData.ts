@@ -3,8 +3,11 @@ import { getTodayWarsaw } from '../../lib/date';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import {
   archiveTodoSection,
+  createSmartList,
   createTodoItem,
   createTodoSection,
+  deleteSmartList,
+  listSmartLists,
   listTodoItems,
   listTodoSections,
   renameTodoSection,
@@ -20,6 +23,7 @@ import {
   nextOccurrenceDate,
   parseSubtasks,
   serializeSubtasks,
+  matchesSmartQuery,
   PRIORITY_ORDER,
 } from './todoUtils';
 import type { Database } from '../../lib/database.types';
@@ -28,6 +32,7 @@ export type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 export type TodoSectionRow = Database['public']['Tables']['todo_sections']['Row'];
 export type ProjectRow = Database['public']['Tables']['projects']['Row'];
 export type DreamRow = Database['public']['Tables']['dreams']['Row'];
+export type SmartListRow = Database['public']['Tables']['todo_smart_lists']['Row'];
 
 export interface UseTodoDataProps {
   session: any;
@@ -42,6 +47,9 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   const [items, setItems] = useState<TodoItemRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [dreams, setDreams] = useState<Pick<DreamRow, 'id' | 'title' | 'life_goal'>[]>([]);
+  const [smartLists, setSmartLists] = useState<SmartListRow[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSmartListId, setActiveSmartListId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,17 +109,19 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   const fetchAll = useCallback(async () => {
     const todayDate = getTodayWarsaw();
     try {
-      const [s, i, { data: winData }, p, { data: d }] = await Promise.all([
+      const [s, i, { data: winData }, p, { data: d }, sl] = await Promise.all([
         listTodoSections(userId),
         listTodoItems(userId),
         supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
         listProjects(userId),
         supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId),
+        listSmartLists(userId),
       ]);
       setSections(s || []);
       setItems(i || []);
       setProjects(p || []);
       setDreams((d as any) || []);
+      setSmartLists(sl || []);
       if (winData) {
         const winDataAny = winData as any;
         setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winDataAny[`task_${n}_todo_id`]).filter(Boolean)));
@@ -276,14 +286,32 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   }, [sections, projects, dreams]);
 
   const parsedInput = useMemo(() => parseTodoQuickInput(form.title), [form.title]);
-  const openItems = useMemo(() => items.filter((i) => i.status === 'open'), [items]);
-  const doneItems = useMemo(() => items.filter((i) => i.status === 'done'), [items]);
+  // Nested subtasks (parent_task_id) are rendered under their parent card, not as top-level list rows.
+  const openItems = useMemo(() => items.filter((i) => i.status === 'open' && !i.parent_task_id), [items]);
+  const doneItems = useMemo(() => items.filter((i) => i.status === 'done' && !i.parent_task_id), [items]);
+  const childrenByParentId = useMemo(() => {
+    const map: Record<string, TodoItemRow[]> = {};
+    for (const i of items) {
+      if (!i.parent_task_id) continue;
+      (map[i.parent_task_id] = map[i.parent_task_id] || []).push(i);
+    }
+    return map;
+  }, [items]);
+  const getChildren = useCallback((itemId: string) => childrenByParentId[itemId] || [], [childrenByParentId]);
+
+  const sectionNameById = useMemo(() => Object.fromEntries(sections.map((s) => [s.id, s.name])), [sections]);
+  const activeSmartQuery = useMemo(() => {
+    if (searchQuery.trim()) return searchQuery.trim();
+    if (activeSmartListId) return smartLists.find(sl => sl.id === activeSmartListId)?.query || '';
+    return '';
+  }, [searchQuery, activeSmartListId, smartLists]);
 
   const applyFilter = useCallback((arr: TodoItemRow[]) => arr.filter(i => {
     if (activeFilterTag && !(i.tags || []).includes(activeFilterTag)) return false;
     if (activeFilterSection && i.section_id !== activeFilterSection) return false;
+    if (activeSmartQuery && !matchesSmartQuery(activeSmartQuery, i, today, sectionNameById)) return false;
     return true;
-  }), [activeFilterTag, activeFilterSection]);
+  }), [activeFilterTag, activeFilterSection, activeSmartQuery, today, sectionNameById]);
 
   const { todayItems, inboxItems, sectionsWithItems } = useMemo(() => {
     const todayList = openItems
@@ -371,7 +399,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     const tempId = `__temp_${Date.now()}`;
     const optimistic: TodoItemRow = {
       id: tempId, user_id: userId, title, notes, priority, due_date,
-      section_id, recurrence, tags, status: 'open',
+      section_id, recurrence, tags, status: 'open', parent_task_id: null,
       ai_bucket: null, ai_classified_at: null, sort_order: 0,
       created_at: new Date().toISOString(), completed_at: null,
       updated_at: new Date().toISOString(), is_milestone: false,
@@ -405,6 +433,30 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   const deleteSubtask = (item: TodoItemRow, idx: number) => {
     const { description, subtasks } = parseSubtasks(item.notes);
     run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.filter((_, i) => i !== idx)) }));
+  };
+
+  // Real nested subtask — a full todo_item (own priority/due date/reminders), not a checklist line.
+  const addChildTask = (parent: TodoItemRow, title: string) => {
+    if (!title.trim()) return;
+    run(() => createTodoItem(userId, {
+      title: title.trim(),
+      section_id: parent.section_id || undefined,
+      parent_task_id: parent.id,
+    }));
+  };
+
+  const saveCurrentAsSmartList = (name: string) => {
+    if (!activeSmartQuery.trim() || !name.trim()) return;
+    run(async () => {
+      const created = await createSmartList(userId, name, activeSmartQuery);
+      setSmartLists((prev) => [...prev, created]);
+    });
+  };
+
+  const removeSmartList = (id: string) => {
+    if (activeSmartListId === id) setActiveSmartListId(null);
+    setSmartLists((prev) => prev.filter((sl) => sl.id !== id));
+    deleteSmartList(id).catch((err) => setError(err instanceof Error ? err.message : String(err)));
   };
   const saveEditTitle = (item: TodoItemRow) => {
     const title = editingTitle.trim();
@@ -507,6 +559,14 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     saveEditTitle,
     handleDragStart,
     showContextMenu,
-    handleComplete
+    handleComplete,
+    getChildren,
+    addChildTask,
+    smartLists,
+    searchQuery, setSearchQuery,
+    activeSmartListId, setActiveSmartListId,
+    saveCurrentAsSmartList,
+    removeSmartList,
+    activeSmartQuery,
   };
 }

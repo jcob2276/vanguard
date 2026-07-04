@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles } from 'lucide-react';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, ListTree, Paperclip, Upload } from 'lucide-react';
 import {
   GOAL_ICON,
   PRIORITY,
@@ -9,6 +9,7 @@ import {
   parseSubtasks,
   RECURRENCE_LABELS
 } from './todoUtils';
+import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo';
 
 export interface TodoCardProps {
   item: any;
@@ -44,6 +45,9 @@ export interface TodoCardProps {
   onSetTags: (tags: string[]) => void;
   onAiBreakdown: () => Promise<string[]>;
   onSetTitle: (title: string) => void;
+  childTasks?: any[];
+  onAddChildTask?: (title: string) => void;
+  onToggleChildTask?: (child: any) => void;
 }
 
 export default function TodoCard({
@@ -80,12 +84,20 @@ export default function TodoCard({
   onSetTags,
   onAiBreakdown,
   onSetTitle,
+  childTasks = [],
+  onAddChildTask,
+  onToggleChildTask,
 }: TodoCardProps) {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
   const [newSubtask, setNewSubtask] = useState('');
+  const [newChildTask, setNewChildTask] = useState('');
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachmentsLoaded, setAttachmentsLoaded] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [completing, setCompleting] = useState(false);
@@ -106,6 +118,32 @@ export default function TodoCard({
       return () => clearTimeout(t);
     }
   }, [expanded, item.recurrence, item.reminder_at]);
+
+  // Lazy-load attachments only once, the first time the card is expanded.
+  useEffect(() => {
+    if (!expanded || attachmentsLoaded) return;
+    listAttachments(item.id).then((rows) => {
+      setAttachments(rows);
+      setAttachmentsLoaded(true);
+    }).catch(() => setAttachmentsLoaded(true));
+  }, [expanded, item.id, attachmentsLoaded]);
+
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const created = await uploadAttachment(item.user_id, item.id, file);
+      setAttachments((prev) => [...prev, created]);
+    } catch (e) {
+      console.error('Attachment upload failed', e);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (att: any) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== att.id));
+    try { await deleteAttachment(att); } catch (e) { console.error('Attachment delete failed', e); }
+  };
 
   const [reminderInput, setReminderInput] = useState('');
 
@@ -578,6 +616,114 @@ export default function TodoCard({
                         +
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Nested subtasks — real todo_items (own priority/due date/reminders), not a checklist line */}
+                {onAddChildTask && (
+                  <div>
+                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
+                      <ListTree size={11} /> Podzadania (pełne)
+                    </p>
+                    <div className="space-y-1">
+                      {childTasks.map((child) => (
+                        <div
+                          key={child.id}
+                          className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
+                        >
+                          <button onClick={() => onToggleChildTask?.(child)} className="shrink-0 btn-press">
+                            <div
+                              className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                child.status === 'done' ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
+                              }`}
+                            >
+                              {child.status === 'done' && <Check size={8} className="text-white" strokeWidth={3} />}
+                            </div>
+                          </button>
+                          <span
+                            className={`min-w-0 flex-1 text-[11px] font-medium truncate ${
+                              child.status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'
+                            }`}
+                          >
+                            {child.title}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 pt-0.5">
+                        <input
+                          placeholder="Nowe pełne podzadanie…"
+                          value={newChildTask}
+                          onChange={e => setNewChildTask(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && newChildTask.trim()) {
+                              onAddChildTask(newChildTask);
+                              setNewChildTask('');
+                            }
+                          }}
+                          className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-2 text-[11px] font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
+                        />
+                        <button
+                          onClick={() => {
+                            if (newChildTask.trim()) {
+                              onAddChildTask(newChildTask);
+                              setNewChildTask('');
+                            }
+                          }}
+                          disabled={!newChildTask.trim()}
+                          className="rounded-xl bg-primary/90 px-3 py-2 text-[9px] font-black text-white disabled:opacity-30 hover:bg-primary transition-colors btn-press"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* File attachments */}
+                <div>
+                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
+                    <Paperclip size={11} /> Załączniki
+                  </p>
+                  <div className="space-y-1">
+                    {attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
+                      >
+                        <Paperclip size={11} className="shrink-0 text-text-muted/50" />
+                        <a
+                          href={att.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="min-w-0 flex-1 text-[11px] font-medium text-primary truncate hover:underline"
+                        >
+                          {att.file_name}
+                        </a>
+                        <button
+                          onClick={() => handleDeleteAttachment(att)}
+                          className="shrink-0 text-text-muted/30 hover:text-rose-400 transition-colors btn-press"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingFile}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom/60 py-2 text-[11px] font-semibold text-text-muted hover:text-primary hover:border-primary/40 transition-all disabled:opacity-40"
+                    >
+                      <Upload size={11} /> {uploadingFile ? 'Wysyłanie…' : 'Dodaj plik'}
+                    </button>
                   </div>
                 </div>
 

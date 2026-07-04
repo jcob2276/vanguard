@@ -95,3 +95,66 @@ export const serializeSubtasks = (description: string, subtasks: Array<{ checked
   if (d && s) return `${d}\n\n${s}`;
   return d || s;
 };
+
+// ── Smart query language ──
+// Tokens: tag:x priority:high due:today|week|overdue|none section:name text...
+// Unrecognized tokens and anything left over are treated as free-text title search.
+export interface SmartQueryItem {
+  id: string;
+  title: string;
+  priority: string | null;
+  tags: string[] | null;
+  due_date: string | null;
+  section_id: string | null;
+  status: string;
+}
+
+export function matchesSmartQuery(
+  query: string,
+  item: SmartQueryItem,
+  today: string,
+  sectionNameById: Record<string, string>
+): boolean {
+  const tokenRe = /(\w+):(\S+)/g;
+  let m: RegExpExecArray | null;
+  let freeText = query;
+  const conditions: Array<() => boolean> = [];
+
+  while ((m = tokenRe.exec(query)) !== null) {
+    const [full, key, value] = m;
+    freeText = freeText.replace(full, ' ');
+    const v = value.toLowerCase();
+    switch (key.toLowerCase()) {
+      case 'tag':
+        conditions.push(() => (item.tags || []).some(t => t.toLowerCase() === v));
+        break;
+      case 'priority':
+        conditions.push(() => (item.priority || 'normal').toLowerCase() === v);
+        break;
+      case 'section':
+        conditions.push(() => (item.section_id ? sectionNameById[item.section_id] : '')?.toLowerCase().includes(v) ?? false);
+        break;
+      case 'status':
+        conditions.push(() => item.status.toLowerCase() === v);
+        break;
+      case 'due':
+        conditions.push(() => {
+          if (v === 'none') return !item.due_date;
+          if (!item.due_date) return false;
+          if (v === 'today') return item.due_date === today;
+          if (v === 'overdue') return item.due_date < today;
+          if (v === 'week') {
+            const diff = Math.round((new Date(item.due_date + 'T12:00:00Z').getTime() - new Date(today + 'T12:00:00Z').getTime()) / 86400000);
+            return diff >= 0 && diff <= 7;
+          }
+          return true;
+        });
+        break;
+    }
+  }
+
+  const remaining = freeText.trim().toLowerCase();
+  if (remaining) conditions.push(() => item.title.toLowerCase().includes(remaining));
+
+  return conditions.every(c => c());
+}

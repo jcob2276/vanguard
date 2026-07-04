@@ -3260,6 +3260,47 @@ export type Database = {
         }
         Relationships: []
       }
+      todo_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          todo_item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          todo_item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          todo_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todo_attachments_todo_item_id_fkey"
+            columns: ["todo_item_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todo_items: {
         Row: {
           ai_bucket: string | null
@@ -3272,6 +3313,7 @@ export type Database = {
           is_important: boolean
           is_milestone: boolean
           notes: string | null
+          parent_task_id: string | null
           priority: string
           project_id: string | null
           recurrence: string | null
@@ -3297,6 +3339,7 @@ export type Database = {
           is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           recurrence?: string | null
@@ -3322,6 +3365,7 @@ export type Database = {
           is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           recurrence?: string | null
@@ -3337,6 +3381,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "todo_items_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "todo_items_project_id_fkey"
             columns: ["project_id"]
@@ -3393,6 +3444,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      todo_smart_lists: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          query: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          query: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          query?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       training_plan_workouts: {
         Row: {
