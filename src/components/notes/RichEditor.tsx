@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter } from 'lucide-react';
+import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter, List, Code, AlertCircle } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
 import { notify } from '../../lib/notify';
 
@@ -10,6 +10,7 @@ export default function RichEditor({
   className = '',
   style = {},
   showStaticBar = false,
+  allNotes = [],
 }: {
   value: string;
   onChange: (html: string) => void;
@@ -17,6 +18,7 @@ export default function RichEditor({
   className?: string;
   style?: React.CSSProperties;
   showStaticBar?: boolean;
+  allNotes?: Array<{ id: string; title: string }>;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +27,31 @@ export default function RichEditor({
   const staticBarRef = useRef<HTMLDivElement>(null);
   // Saved selection before toolbar action steals focus
   const savedSelectionRef = useRef<{ range: Range } | null>(null);
+
+  // Notion Slash Command Menu items
+  const SLASH_COMMANDS = [
+    { key: 'todo', label: 'Zadanie Todo', sub: 'Checkbox checklisty', icon: '☑️' },
+    { key: 'h1', label: 'Nagłówek H1', sub: 'Wielki tytuł sekcji', icon: 'H1' },
+    { key: 'h2', label: 'Nagłówek H2', sub: 'Średni podtytuł', icon: 'H2' },
+    { key: 'bullet', label: 'Lista punktowana', sub: 'Kropkowane wyliczenie', icon: '•' },
+    { key: 'code', label: 'Blok kodu', sub: 'Monospace w ramce', icon: '💻' },
+    { key: 'callout', label: 'Wyróżnienie Callout', sub: 'Szara ramka ostrzeżenia', icon: '💡' },
+  ];
+
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [showWikiMenu, setShowWikiMenu] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{ top: number; left: number } | null>(null);
+  const [slashSearchQuery, setSlashSearchQuery] = useState('');
+  const [wikiSearchQuery, setWikiSearchQuery] = useState('');
+  const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
+
+  const filteredSlashCommands = SLASH_COMMANDS.filter(cmd =>
+    cmd.label.toLowerCase().includes(slashSearchQuery.toLowerCase())
+  );
+
+  const filteredWikiNotes = (allNotes || [])
+    .filter(n => n.title.toLowerCase().includes(wikiSearchQuery.toLowerCase()))
+    .slice(0, 8);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -61,6 +88,135 @@ export default function RichEditor({
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
+  };
+
+  const checkTriggers = () => {
+    const selection = window.getSelection();
+    if (!selection || !selection.anchorNode || !selection.rangeCount) return;
+    const node = selection.anchorNode;
+    const text = node.textContent || '';
+    const offset = selection.anchorOffset;
+    const textBefore = text.slice(0, offset);
+
+    // 1. Check for WikiLink trigger "[["
+    const wikiIdx = textBefore.lastIndexOf('[[');
+    if (wikiIdx !== -1 && wikiIdx >= textBefore.lastIndexOf(']]')) {
+      const query = textBefore.slice(wikiIdx + 2);
+      if (!showWikiMenu || wikiSearchQuery !== query) {
+        setWikiSearchQuery(query);
+        setSelectedMenuIndex(0);
+      }
+      setShowWikiMenu(true);
+      setShowSlashMenu(false);
+      
+      const range = selection.getRangeAt(0).cloneRange();
+      try {
+        range.setStart(node, wikiIdx);
+        range.setEnd(node, offset);
+        const rects = range.getClientRects();
+        if (rects.length > 0 && editorRef.current) {
+          const parentRect = editorRef.current.getBoundingClientRect();
+          setMenuCoords({
+            top: rects[0].bottom - parentRect.top + editorRef.current.scrollTop + 6,
+            left: rects[0].left - parentRect.left
+          });
+        }
+      } catch (e) {}
+      return;
+    } else {
+      setShowWikiMenu(false);
+    }
+
+    // 2. Check for Slash Command trigger "/"
+    const slashIdx = textBefore.lastIndexOf('/');
+    if (slashIdx !== -1 && (slashIdx === 0 || textBefore.charAt(slashIdx - 1) === ' ' || textBefore.charAt(slashIdx - 1) === '\u00a0')) {
+      const query = textBefore.slice(slashIdx + 1);
+      if (!query.includes(' ')) {
+        if (!showSlashMenu || slashSearchQuery !== query) {
+          setSlashSearchQuery(query);
+          setSelectedMenuIndex(0);
+        }
+        setShowSlashMenu(true);
+        setShowWikiMenu(false);
+
+        const range = selection.getRangeAt(0).cloneRange();
+        try {
+          range.setStart(node, slashIdx);
+          range.setEnd(node, offset);
+          const rects = range.getClientRects();
+          if (rects.length > 0 && editorRef.current) {
+            const parentRect = editorRef.current.getBoundingClientRect();
+            setMenuCoords({
+              top: rects[0].bottom - parentRect.top + editorRef.current.scrollTop + 6,
+              left: rects[0].left - parentRect.left
+            });
+          }
+        } catch (e) {}
+        return;
+      }
+    }
+    
+    setShowSlashMenu(false);
+  };
+
+  const executeSlashCommand = (cmd: typeof SLASH_COMMANDS[0]) => {
+    if (!cmd) return;
+    const selection = window.getSelection();
+    if (!selection || !selection.anchorNode || !selection.rangeCount) return;
+    const node = selection.anchorNode;
+    const offset = selection.anchorOffset;
+    const text = node.textContent || '';
+    const slashIdx = text.slice(0, offset).lastIndexOf('/');
+    
+    if (slashIdx !== -1) {
+      const range = selection.getRangeAt(0);
+      range.setStart(node, slashIdx);
+      range.setEnd(node, offset);
+      range.deleteContents();
+    }
+
+    setShowSlashMenu(false);
+    setSelectedMenuIndex(0);
+
+    if (cmd.key === 'todo') {
+      handleAction('todo');
+    } else if (cmd.key === 'h1') {
+      document.execCommand('formatBlock', false, '<h1>');
+      handleInput();
+    } else if (cmd.key === 'h2') {
+      document.execCommand('formatBlock', false, '<h2>');
+      handleInput();
+    } else if (cmd.key === 'bullet') {
+      document.execCommand('insertUnorderedList', false);
+      handleInput();
+    } else if (cmd.key === 'code') {
+      insertHTML('<pre class="keep-code-block" contenteditable="true">Blok kodu...</pre><p><br></p>');
+    } else if (cmd.key === 'callout') {
+      insertHTML('<div class="keep-callout-block" contenteditable="true">💡 Wpisz ważne info tutaj...</div><p><br></p>');
+    }
+  };
+
+  const executeWikiLink = (note: { id: string; title: string }) => {
+    if (!note) return;
+    const selection = window.getSelection();
+    if (!selection || !selection.anchorNode || !selection.rangeCount) return;
+    const node = selection.anchorNode;
+    const offset = selection.anchorOffset;
+    const text = node.textContent || '';
+    const wikiIdx = text.slice(0, offset).lastIndexOf('[[');
+
+    if (wikiIdx !== -1) {
+      const range = selection.getRangeAt(0);
+      range.setStart(node, wikiIdx);
+      range.setEnd(node, offset);
+      range.deleteContents();
+    }
+
+    setShowWikiMenu(false);
+    setSelectedMenuIndex(0);
+
+    const linkHtml = `<a href="#" class="wiki-link" data-note-id="${note.id}">[[${note.title}]]</a>&nbsp;`;
+    insertHTML(linkHtml);
   };
 
   const handleSelection = () => {
@@ -285,9 +441,50 @@ export default function RichEditor({
       }
       handleInput();
     }
+    if (target.classList.contains('wiki-link')) {
+      e.preventDefault();
+      const noteId = target.getAttribute('data-note-id');
+      if (noteId) {
+        target.dispatchEvent(new CustomEvent('wiki-link-navigate', { bubbles: true, detail: { noteId } }));
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (showSlashMenu || showWikiMenu) {
+      const maxIndex = showSlashMenu ? filteredSlashCommands.length - 1 : filteredWikiNotes.length - 1;
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedMenuIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedMenuIndex(prev => (prev <= 0 ? maxIndex : prev - 1));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (showSlashMenu) {
+          if (filteredSlashCommands[selectedMenuIndex]) {
+            executeSlashCommand(filteredSlashCommands[selectedMenuIndex]);
+          }
+        } else {
+          if (filteredWikiNotes[selectedMenuIndex]) {
+            executeWikiLink(filteredWikiNotes[selectedMenuIndex]);
+          }
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowSlashMenu(false);
+        setShowWikiMenu(false);
+        return;
+      }
+    }
+
     // Space conversion: auto-create checkbox when user types [], - [], - [ ], or * [ ] followed by Space
     if (e.key === ' ') {
       const selection = window.getSelection();
@@ -483,14 +680,60 @@ export default function RichEditor({
       <div
         ref={editorRef}
         contentEditable
-        onInput={handleInput}
+        onInput={() => { handleInput(); checkTriggers(); }}
         onMouseUp={handleSelection}
-        onKeyUp={handleSelection}
+        onKeyUp={() => { handleSelection(); checkTriggers(); }}
         onClick={handleEditorClick}
         onKeyDown={handleKeyDown}
         className={`keep-rich-editor ${className}`}
         style={style}
       />
+      {showSlashMenu && menuCoords && filteredSlashCommands.length > 0 && (
+        <div
+          className="keep-autocomplete-menu"
+          style={{ top: menuCoords.top, left: menuCoords.left }}
+          onMouseDown={e => e.preventDefault()}
+        >
+          {filteredSlashCommands.map((cmd, i) => (
+            <button
+              key={cmd.key}
+              type="button"
+              className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); executeSlashCommand(cmd); }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{cmd.icon}</span>
+                <strong style={{ fontSize: 12 }}>{cmd.label}</strong>
+              </span>
+              <span className="item-sub" style={{ marginLeft: 28 }}>{cmd.sub}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {showWikiMenu && menuCoords && (
+        <div
+          className="keep-autocomplete-menu"
+          style={{ top: menuCoords.top, left: menuCoords.left }}
+          onMouseDown={e => e.preventDefault()}
+        >
+          <div style={{ padding: '6px 12px 4px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5 }}>Połącz notatkę</div>
+          {filteredWikiNotes.length > 0 ? filteredWikiNotes.map((note, i) => (
+            <button
+              key={note.id}
+              type="button"
+              className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); executeWikiLink(note); }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, flexShrink: 0 }}>📎</span>
+                <strong style={{ fontSize: 12 }}>{note.title || '(Bez tytułu)'}</strong>
+              </span>
+            </button>
+          )) : (
+            <div style={{ padding: '10px 12px', fontSize: 11, opacity: 0.5 }}>Brak notatek dla "{wikiSearchQuery}"</div>
+          )}
+        </div>
+      )}
       {/* CSS Placeholder fallback */}
       {(!value || value === '<br>' || value === '') && (
         <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-50 text-[13px] select-none">

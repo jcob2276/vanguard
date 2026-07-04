@@ -1152,22 +1152,28 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
 
     // Display start/end hours inline if card height is too short for a separate line
-    const displaySummary = tooShort
-      ? `${ev.summary} (${formatTime(ev.start_time)}–${formatTime(ev.end_time)})`
-      : ev.summary;
+    let displaySummary = ev.summary;
+    if (tooShort) {
+      const isSleep = ev.summary?.toLowerCase().includes('sen') || ev.summary?.toLowerCase().includes('sleep');
+      if (isSleep) {
+        displaySummary = `${formatTime(ev.start_time)}-${formatTime(ev.end_time)}`;
+      } else {
+        displaySummary = `${ev.summary} (${formatTime(ev.start_time)}–${formatTime(ev.end_time)})`;
+      }
+    }
 
     return (
       <div
         key={ev.id}
         onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
-        className={`absolute left-0.5 right-0.5 rounded-[6px] border-l-[3.5px] border-y border-r border-border-custom/10 px-2 py-1 overflow-hidden cursor-move hover:scale-[1.015] hover:shadow-md hover:brightness-105 active:scale-[0.985] active:brightness-95 transition-all duration-200 hover:z-20 select-none ${eventColor(ev)}`}
+        className={`absolute left-0.5 right-0.5 rounded-[6px] border-l-[3.5px] border-y border-r border-border-custom/10 ${tooShort ? 'px-1 py-0.5 flex items-center justify-center' : 'px-2 py-1'} overflow-hidden cursor-move hover:scale-[1.015] hover:shadow-md hover:brightness-105 active:scale-[0.985] active:brightness-95 transition-all duration-200 hover:z-20 select-none ${eventColor(ev)}`}
         style={{ top, height, width: colWidth }}
         title={ev.summary || ''}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
-          {isAIScheduled && <Sparkles size={10} className="shrink-0 text-current animate-pulse opacity-90" />}
-          {isFocusTime && <Shield size={10} className="shrink-0 text-current opacity-90" />}
-          <p className="text-current text-[10.5px] font-bold leading-tight truncate flex-1">
+        <div className="flex items-center gap-1 min-w-0 w-full justify-center">
+          {isAIScheduled && !tooShort && <Sparkles size={10} className="shrink-0 text-current animate-pulse opacity-90" />}
+          {isFocusTime && !tooShort && <Shield size={10} className="shrink-0 text-current opacity-90" />}
+          <p className={`text-current ${tooShort ? 'text-[8px]' : 'text-[10.5px]'} font-bold leading-none truncate text-center`}>
             {displaySummary}
           </p>
         </div>

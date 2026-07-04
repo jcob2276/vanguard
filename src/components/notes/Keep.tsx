@@ -716,7 +716,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
               onTogglePin={handleTogglePin}
               busy={busy}
               allTags={allTags}
+              allNotes={notes}
               onExportChecklists={handleExportChecklists}
+              onNavigateToNote={(id) => { setEditingId(id); }}
             />
           ) : null;
         })()

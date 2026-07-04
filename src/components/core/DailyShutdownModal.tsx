@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Send, Sparkles, Smile, Flame, Award } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw } from '../../lib/date';
+import { useEffect, useState } from "react";
+import { X, ChevronRight, ChevronLeft, Send, Sparkles, Smile, Flame, Award } from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { getTodayWarsaw } from "../../lib/date";
+import { notify } from "../../lib/notify";
 
 interface Props {
   session: any;
@@ -15,11 +16,12 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3>(1); // Step 1: Checklist, Step 2: Rating/Reflection, Step 3: Success Screen
+  const [step, setStep] = useState<1 | 2 | 3>(1); // Step 1: Checklist preview & actual accomplishment notes, Step 2: Rating/Reflection, Step 3: Success Screen
 
   const [todayWin, setTodayWin] = useState<any>(null);
   const [completedTasks, setCompletedTasks] = useState<boolean[]>([false, false, false, false, false]);
-  const [reflectionText, setReflectionText] = useState('');
+  const [reflectionText, setReflectionText] = useState("");
+  const [actualAccomplishmentText, setActualAccomplishmentText] = useState("");
   const [moodScore, setMoodScore] = useState(3);
   const [rpeScore, setRpeScore] = useState(5);
   const [dayScore, setDayScore] = useState(7);
@@ -30,10 +32,10 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
     (async () => {
       try {
         const { data, error } = await supabase
-          .from('daily_wins')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', today)
+          .from("daily_wins")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("date", today)
           .maybeSingle();
 
         if (error) throw error;
@@ -47,97 +49,90 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
             !!data.done_4,
             !!data.done_5,
           ]);
-          setReflectionText(data.day_note || '');
+          setReflectionText(data.day_note || "");
+          setActualAccomplishmentText(data.journal_entry || "");
           setMoodScore(data.mood_score || 3);
           setRpeScore(data.daily_rpe || 5);
         }
 
         const { data: recon } = await supabase
-          .from('daily_reconciliations')
-          .select('day_score')
-          .eq('user_id', userId)
-          .eq('date', today)
+          .from("daily_reconciliations")
+          .select("day_score")
+          .eq("user_id", userId)
+          .eq("date", today)
           .maybeSingle();
         
         if (recon && recon.day_score !== null) {
           setDayScore(recon.day_score);
         }
       } catch (err) {
-        console.error('Error fetching today win for shutdown:', err);
+        console.error("Error fetching today win for shutdown:", err);
       } finally {
         setLoading(false);
       }
     })();
   }, [userId, today]);
 
-  const handleToggleTask = (idx: number) => {
-    setCompletedTasks((prev) => {
-      const next = [...prev];
-      next[idx] = !next[idx];
-      return next;
-    });
-  };
-
   const handleSaveShutdown = async () => {
     if (!userId || !todayWin) return;
     setSaving(true);
     try {
-      const activeTasksCount = [1, 2, 3, 4, 5].filter((i) => todayWin[`task_${i}`]?.trim()).length;
-      const doneCount = [1, 2, 3, 4, 5].filter((i, idx) => todayWin[`task_${i}`]?.trim() && completedTasks[idx]).length;
+      const activeTasksCount = [1, 2, 3, 4, 5].filter((i) => todayWin["task_" + i]?.trim()).length;
+      const doneCount = [1, 2, 3, 4, 5].filter((i, idx) => todayWin["task_" + i]?.trim() && completedTasks[idx]).length;
       const allDone = activeTasksCount > 0 && doneCount === activeTasksCount;
-      const result = allDone ? 'Z' : 'P';
+      const result = allDone ? "Z" : "P";
 
-      // 1. Update daily_wins
+      // 1. Update daily_wins (journal_entry stores the actual accomplishments note)
       const patch = {
-        done_1: completedTasks[0],
-        done_2: completedTasks[1],
-        done_3: completedTasks[2],
-        done_4: completedTasks[3],
-        done_5: completedTasks[4],
         day_note: reflectionText.trim(),
+        journal_entry: actualAccomplishmentText.trim(),
         mood_score: moodScore,
         daily_rpe: rpeScore,
         result,
       };
       
       const { error: winErr } = await supabase
-        .from('daily_wins')
+        .from("daily_wins")
         .update(patch)
-        .eq('id', todayWin.id);
+        .eq("id", todayWin.id);
       
       if (winErr) throw winErr;
 
       // 2. Update daily_reconciliations
       const { data: recon } = await supabase
-        .from('daily_reconciliations')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('date', today)
+        .from("daily_reconciliations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("date", today)
         .maybeSingle();
 
       if (recon) {
         await supabase
-          .from('daily_reconciliations')
+          .from("daily_reconciliations")
           .update({ day_score: dayScore })
-          .eq('id', recon.id);
+          .eq("id", recon.id);
       } else {
         await supabase
-          .from('daily_reconciliations')
+          .from("daily_reconciliations")
           .insert({ user_id: userId, date: today, day_score: dayScore });
       }
 
       // 3. Insert stream log
-      await supabase.from('vanguard_stream').insert({
+      const reflectionPart = reflectionText.trim() ? " | Refleksja: " + reflectionText.trim() : "";
+      const accomplishmentPart = actualAccomplishmentText.trim() ? " | Co zrobiono: " + actualAccomplishmentText.trim() : "";
+      
+      await supabase.from("vanguard_stream").insert({
         user_id: userId,
-        source: 'daily_shutdown',
-        content: `Domknięcie dnia: ${reflectionText.trim()} (Wynik: ${dayScore}/10, Samopoczucie: ${moodScore}/5, RPE: ${rpeScore}/10)`,
-        metadata: { kind: 'day_close', date: today, day_score: dayScore, mood: moodScore, rpe: rpeScore },
+        source: "daily_shutdown",
+        content: "Domknięcie dnia: Wynik " + dayScore + "/10 (Samopoczucie: " + moodScore + "/5, RPE: " + rpeScore + "/10)" + reflectionPart + accomplishmentPart,
+        metadata: { kind: "day_close", date: today, day_score: dayScore, mood: moodScore, rpe: rpeScore },
       });
 
       if (onSaved) onSaved();
       setStep(3); // Go to success screen
     } catch (err) {
-      console.error('Error saving daily shutdown:', err);
+      console.error("Error saving daily shutdown:", err);
+      notify("Nie udało się zamknąć dnia", "error");
     } finally {
       setSaving(false);
     }
@@ -146,8 +141,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
   const tasksList = todayWin
     ? [1, 2, 3, 4, 5]
         .map((i, idx) => ({
-          title: todayWin[`task_${i}`],
-          todoId: todayWin[`task_${i}_todo_id`],
+          title: todayWin["task_" + i],
+          todoId: todayWin["task_" + i + "_todo_id"],
           done: completedTasks[idx],
           idx,
         }))
@@ -165,7 +160,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
     );
   }
 
-  // Handle case where plan wasn't initialized today
   if (!todayWin) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -184,10 +178,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
 
-      {/* Sheet / Dialog */}
       <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[680px] overflow-hidden">
         
         {/* Header */}
@@ -204,23 +196,21 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
           </button>
         </div>
 
-        {/* Wizard Progress Line */}
         {step < 3 && (
           <div className="grid grid-cols-2 h-1 bg-border-custom/20 shrink-0">
-            <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 1 ? "bg-indigo-500" : "bg-transparent"}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 2 ? "bg-indigo-500" : "bg-transparent"}`} />
           </div>
         )}
 
-        {/* Content Box */}
         <div className="flex-1 overflow-y-auto p-5">
           
-          {/* STEP 1: Tasks Checklist */}
+          {/* STEP 1: Power List Preview & Actual Accomplishment Notes */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-[13px] font-black text-text-primary">Co zrobiliśmy z dzisiejszej Power List?</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Zaznacz ukończone Zwycięstwa z dzisiejszego planu.</p>
+                <h3 className="text-[13px] font-black text-text-primary">Twoje Zwycięstwa na dziś (Power List)</h3>
+                <p className="text-[10px] text-text-muted mt-0.5">Podgląd dzisiejszego planu i jego realizacji.</p>
               </div>
 
               {tasksList.length === 0 ? (
@@ -228,29 +218,42 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
                   Brak zadań w Power List na dziś.
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {tasksList.map((task) => (
                     <div
                       key={task.idx}
-                      onClick={() => handleToggleTask(task.idx)}
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
                         task.done
-                          ? 'border-emerald-500/30 bg-emerald-500/[0.02] text-text-primary'
-                          : 'border-border-custom/60 bg-surface hover:bg-slate-50 dark:hover:bg-white/[0.01]'
+                          ? "border-emerald-500/20 bg-emerald-500/[0.015] text-text-primary"
+                          : "border-border-custom/60 bg-surface/50 text-text-muted"
                       }`}
                     >
-                      <span className={`text-[12px] font-semibold ${task.done ? 'line-through text-text-muted' : ''}`}>
+                      <span className={`text-[12px] font-semibold ${task.done ? "line-through opacity-75" : ""}`}>
                         {task.title}
                       </span>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        task.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-border-custom'
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
+                        task.done ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-500"
                       }`}>
-                        {task.done && <span className="text-[9px] font-bold">✓</span>}
-                      </div>
+                        {task.done ? "Zrobione" : "Niezrobione"}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Comment text area */}
+              <div className="space-y-1.5 pt-2">
+                <span className="text-[11px] font-bold text-text-primary block">
+                  Co realnie zrobiłeś z dzisiejszych zadań? (Opcjonalnie)
+                </span>
+                <textarea
+                  value={actualAccomplishmentText}
+                  onChange={(e) => setActualAccomplishmentText(e.target.value)}
+                  placeholder="Napisz, co faktycznie udało się zrealizować (np. Zrobiłem siłownię, ale skróciłem trening o połowę lub Zgłosiłem zadanie, ale muszę poprawić szczegóły)."
+                  rows={3}
+                  className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
+                />
+              </div>
             </div>
           )}
 
@@ -262,7 +265,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
                 <p className="text-[10px] text-text-muted mt-0.5">Podsumuj krótko dzisiejszy dzień i oceń swoje samopoczucie.</p>
               </div>
 
-              {/* Sliders group */}
               <div className="space-y-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 p-4 rounded-2xl">
                 {/* Day Score */}
                 <div className="space-y-1.5">
@@ -291,7 +293,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
                       Samopoczucie (1-5)
                     </span>
                     <span className="text-emerald-500 font-extrabold">
-                      {moodScore === 5 ? '🔥 Świetnie' : moodScore === 4 ? '😊 Dobrze' : moodScore === 3 ? '😐 Neutralnie' : moodScore === 2 ? '🥱 Słabo' : '😫 Zle'}
+                      {moodScore === 5 ? "🔥 Świetnie" : moodScore === 4 ? "😊 Dobrze" : moodScore === 3 ? "😐 Neutralnie" : moodScore === 2 ? "🥱 Słabo" : "😫 Źle"}
                     </span>
                   </div>
                   <input
@@ -330,7 +332,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
                 <textarea
                   value={reflectionText}
                   onChange={(e) => setReflectionText(e.target.value)}
-                  placeholder="Zapisz refleksję, np. 'Przeciągnąłem pracę nad kodem i nie zrobiłem cardio. Jutro pilnuję limitu.'"
+                  placeholder="Zapisz refleksję, np. Zgłosiłem zadanie, ale nie zrobiłem cardio. Jutro pilnuję limitu."
                   rows={3}
                   className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
                 />
@@ -348,15 +350,22 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
                 <h2 className="text-[16px] font-black text-text-primary uppercase tracking-wider">Dzień Zamknięty</h2>
                 <p className="text-[12px] text-text-muted">Praca została mentalnie domknięta. Czas na odpoczynek i regenerację.</p>
               </div>
-              <div className="p-4 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/40 rounded-2xl w-full text-left space-y-1.5">
+              <div className="p-4 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/40 rounded-2xl w-full text-left space-y-2">
                 <div className="flex items-center justify-between text-[11px] font-bold text-text-primary">
                   <span>Wynik Dnia:</span>
                   <span className="text-indigo-500 font-black">{dayScore}/10</span>
                 </div>
+                {actualAccomplishmentText.trim() && (
+                  <div className="text-[10px] text-text-muted mt-1 pt-1.5 border-t border-border-custom/20">
+                    <span className="font-bold text-text-secondary block">Co realnie zrobione:</span>
+                    <p className="italic mt-0.5 break-words"> {actualAccomplishmentText.trim()} </p>
+                  </div>
+                )}
                 {reflectionText.trim() && (
-                  <p className="text-[10px] text-text-muted italic border-t border-border-custom/30 pt-1.5 mt-1.5 break-words">
-                    „{reflectionText.trim()}”
-                  </p>
+                  <div className="text-[10px] text-text-muted mt-1 pt-1.5 border-t border-border-custom/20">
+                    <span className="font-bold text-text-secondary block">Refleksja wieczorna:</span>
+                    <p className="italic mt-0.5 break-words"> {reflectionText.trim()} </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -392,7 +401,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved }: Props)
               className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto shadow-lg shadow-indigo-600/10 disabled:opacity-40"
             >
               <Send size={14} />
-              {saving ? 'Zamykam dzień...' : 'Zatwierdź zamknięcie'}
+              {saving ? "Zamykam dzień..." : "Zatwierdź zamknięcie"}
             </button>
           )}
 

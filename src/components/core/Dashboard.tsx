@@ -14,6 +14,7 @@ import {
   Bookmark,
   Sparkles,
   Activity,
+  Plus,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -77,6 +78,20 @@ function ViewFallback() {
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </div>
   );
+}
+
+function isAfter20(): boolean {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Warsaw',
+      hour: 'numeric',
+      hour12: false,
+    });
+    const hour = parseInt(formatter.format(new Date()), 10);
+    return hour >= 20;
+  } catch (e) {
+    return new Date().getHours() >= 20;
+  }
 }
 
 export default function Dashboard({ session }: { session: Session }) {
@@ -158,6 +173,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [showShutdown, setShowShutdown] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
+  const [showFastCapture, setShowFastCapture] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
   const [foodEditEntry, setFoodEditEntry] = useState<any>(null);
   const logoLongPressTimer = useRef<number | null>(null);
@@ -495,7 +511,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </div>
               )}
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
-              {todayWin && (
+              {todayWin && isAfter20() && (
                 <button
                   onClick={() => setShowShutdown(true)}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm mt-4"
@@ -568,7 +584,7 @@ export default function Dashboard({ session }: { session: Session }) {
               </Link>
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
-              {todayWin && (
+              {todayWin && isAfter20() && (
                 <button
                   onClick={() => setShowShutdown(true)}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm"
@@ -664,40 +680,119 @@ export default function Dashboard({ session }: { session: Session }) {
         </main>
       </div>
 
+      {/* Fast Capture Floating Button & Menu */}
+      {!showLock && (
+        <>
+          {showFastCapture && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-35 bg-black/40 backdrop-blur-[2.5px] transition-all animate-fadeIn" 
+                onClick={() => setShowFastCapture(false)} 
+              />
+              
+              {/* Actions Menu */}
+              <div 
+                className="fixed left-1/2 z-40 flex flex-col items-center gap-2.5 transition-all"
+                style={{ 
+                  bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 4.5rem)',
+                  transform: 'translateX(-50%)'
+                }}
+              >
+                {[
+                  { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => { setShowQuickFoodEntry(true); } },
+                  { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); setShowWorkoutLogger(true); } },
+                  { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { setShowSaunaLogger(true); } },
+                  { label: 'Zaloguj Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
+                ].map((item, idx) => (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      setShowFastCapture(false);
+                      item.action();
+                    }}
+                    className={`fast-capture-menu-item flex items-center gap-2.5 px-5 py-3 rounded-full border border-border-custom bg-surface/90 text-[11.5px] font-black uppercase tracking-wider text-text-primary shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer ${item.color.split(' ').slice(1).join(' ')}`}
+                    style={{
+                      animation: `fade-in-up 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
+                      animationDelay: `${idx * 0.04}s`,
+                      opacity: 0,
+                      transform: 'translateY(15px)'
+                    }}
+                  >
+                    <span className="text-[13px]">{item.emoji}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
       {!showLock && (
         <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'max(2rem, calc(1rem + env(safe-area-inset-bottom)))' }}>
           {/* Sliding background indicator pill */}
           <div 
             className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-300"
             style={{
-              width: 'calc(25% - 3px)',
-              left: `calc(${TAB_ORDER.indexOf(view) * 25}% + 1.5px)`,
+              width: 'calc(20% - 3px)',
+              left: (() => {
+                const idx = TAB_ORDER.indexOf(view);
+                const slotIndex = idx < 2 ? idx : idx + 1;
+                return `calc(${slotIndex * 20}% + 1.5px)`;
+              })(),
               transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
             }}
           />
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
-              disabled={false}
-              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
-                view === item.id
-                  ? 'text-primary font-black'
-                  : 'text-text-muted hover:text-text-primary'
-              }`}
-            >
-              <div className="relative">
-                <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-                {item.id === 'dzis' && urgentTodoCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-                    {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-            </button>
-          ))}
+          {(() => {
+            const elements: React.ReactNode[] = [];
+            navItems.forEach((item, idx) => {
+              elements.push(
+                <button
+                  key={item.id}
+                  onClick={() => navigateTo(item.id)}
+                  disabled={false}
+                  className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
+                    view === item.id
+                      ? 'text-primary font-black'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  <div className="relative">
+                    <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+                    {item.id === 'dzis' && urgentTodoCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                        {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
+                </button>
+              );
+
+              if (idx === 1) {
+                elements.push(
+                  <div key="fab-slot" className="relative flex-1 flex items-center justify-center h-full" />
+                );
+              }
+            });
+            return elements;
+          })()}
         </nav>
+      )}
+
+      {!showLock && (
+        <button
+          onClick={() => setShowFastCapture(v => !v)}
+          className="fast-capture-btn fixed left-1/2 z-50 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-white hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
+          style={{
+            bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 1.95rem)',
+          }}
+        >
+          <div className={`transition-transform duration-300 ${showFastCapture ? 'rotate-[135deg]' : ''}`}>
+            <Plus size={18} strokeWidth={3.5} />
+          </div>
+        </button>
       )}
 
       {showMorningPlan && (
