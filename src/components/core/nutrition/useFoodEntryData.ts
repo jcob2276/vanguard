@@ -125,15 +125,6 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
   const [todayTotals, setTodayTotals] = useState<{ calories: number; protein: number } | null>(null);
   const [targets, setTargets] = useState<{ target_kcal: number | null; protein_floor_g: number | null } | null>(null);
 
-  // Manual entry
-  const manualDraftKey = (field: string) => userId ? `vanguard_food_manual_${field}_${userId}` : null;
-  const [manualMode, setManualMode] = useState(false);
-  const [manualName, setManualName] = usePersistentDraft(manualDraftKey('name'), '');
-  const [manualKcal, setManualKcal] = usePersistentDraft(manualDraftKey('kcal'), '');
-  const [manualProtein, setManualProtein] = usePersistentDraft(manualDraftKey('protein'), '');
-  const [manualCarbs, setManualCarbs] = usePersistentDraft(manualDraftKey('carbs'), '');
-  const [manualFat, setManualFat] = usePersistentDraft(manualDraftKey('fat'), '');
-
   // NL mode
   const [nlMode, setNlMode] = useState(false);
   const [nlText, setNlText] = usePersistentDraft(userId ? `vanguard_food_nl_draft_${userId}` : null, '');
@@ -402,44 +393,6 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     }
   }, [userId, quickAddingId, mealType, onSaved, loadLists, flashSaved, afterFoodLog]);
 
-  const saveManual = useCallback(async () => {
-    if (!userId || saving || !manualName.trim() || !manualKcal.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
-        p_user_id: userId, p_date: getTodayWarsaw(), p_grams: 100,
-        p_entry: {
-          name: manualName.trim(), brand: null, barcode: null,
-          calories: Number(manualKcal) || 0,
-          protein: manualProtein.trim() ? Number(manualProtein) : null,
-          carbs: manualCarbs.trim() ? Number(manualCarbs) : null,
-          fat: manualFat.trim() ? Number(manualFat) : null,
-          fiber: null, sugar: null, meal_type: mealType,
-        },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary({
-        name: manualName.trim(), brand: null, barcode: null,
-        calories: Number(manualKcal) || 0,
-        protein: manualProtein.trim() ? Number(manualProtein) : null,
-        carbs: manualCarbs.trim() ? Number(manualCarbs) : null,
-        fat: manualFat.trim() ? Number(manualFat) : null,
-        fiber: null, sugar: null,
-      }, 100);
-      afterFoodLog();
-      flashSaved();
-      onSaved?.();
-      setManualName(''); setManualKcal(''); setManualProtein(''); setManualCarbs(''); setManualFat('');
-      setManualMode(false);
-      loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
-    } finally {
-      setSaving(false);
-    }
-  }, [userId, saving, manualName, manualKcal, manualProtein, manualCarbs, manualFat, mealType, onSaved, loadLists, flashSaved, cacheToLibrary, afterFoodLog, setManualName, setManualKcal, setManualProtein, setManualCarbs, setManualFat]);
-
   const parseNL = useCallback(async () => {
     if (!nlText.trim() || nlParsing || !userId) return;
     setNlParsing(true);
@@ -586,12 +539,6 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     editDeleting,
     todayTotals,
     targets,
-    manualMode, setManualMode,
-    manualName, setManualName,
-    manualKcal, setManualKcal,
-    manualProtein, setManualProtein,
-    manualCarbs, setManualCarbs,
-    manualFat, setManualFat,
     nlMode, setNlMode,
     nlText, setNlText,
     nlParsing,
@@ -605,7 +552,6 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     quickAddSearchResult,
     quickAddFavorite,
     quickRepeatEntry,
-    saveManual,
     parseNL,
     saveNLItems,
     saveEntryEdit,

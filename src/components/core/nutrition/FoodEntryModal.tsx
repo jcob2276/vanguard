@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, PenLine, Sparkles, Trash2, Check } from 'lucide-react';
+import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Sparkles, Trash2, Check } from 'lucide-react';
 import { confidenceLabel } from '../../../lib/foodLogging';
 import BarcodeScanner from './BarcodeScanner';
 import FoodRow from './FoodRow';
@@ -55,12 +55,6 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     editDeleting,
     todayTotals,
     targets,
-    manualMode, setManualMode,
-    manualName, setManualName,
-    manualKcal, setManualKcal,
-    manualProtein, setManualProtein,
-    manualCarbs, setManualCarbs,
-    manualFat, setManualFat,
     nlMode, setNlMode,
     nlText, setNlText,
     nlParsing,
@@ -74,7 +68,6 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     quickAddSearchResult,
     quickAddFavorite,
     quickRepeatEntry,
-    saveManual,
     parseNL,
     saveNLItems,
     saveEntryEdit,
@@ -107,20 +100,17 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
       if (e.key !== 'Escape') return;
       if (editingEntry) { setEditingEntry(null); return; }
       if (nlMode) { setNlMode(false); return; }
-      if (manualMode) { setManualMode(false); return; }
       if (selected) { setSelected(null); return; }
       onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editingEntry, nlMode, manualMode, selected, onClose, setEditingEntry, setNlMode, setManualMode, setSelected]);
+  }, [editingEntry, nlMode, selected, onClose, setEditingEntry, setNlMode, setSelected]);
 
   const screen = editingEntry
     ? 'edit'
     : nlMode
     ? 'nl'
-    : manualMode
-    ? 'manual'
     : selected
     ? 'portion'
     : 'browse';
@@ -130,7 +120,6 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
   const headerTitle =
     screen === 'edit' ? 'Edytuj wpis'
     : screen === 'nl' ? 'Opisz posiłek'
-    : screen === 'manual' ? 'Wpisz ręcznie'
     : screen === 'portion' ? 'Ile zjadłeś?'
     : savedFlash ? '✓ Dodano!' : 'Dodaj posiłek';
 
@@ -385,57 +374,6 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
             </div>
           )}
 
-          {/* ── Manual entry screen ───────────────────────────────── */}
-          {screen === 'manual' && (
-            <div className="space-y-4">
-              <button onClick={() => { setManualMode(false); setError(null); }}
-                className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
-              <div>
-                <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Nazwa</label>
-                <input type="text" autoFocus value={manualName} onChange={(e) => setManualName(e.target.value)}
-                  placeholder="np. Pizza Margherita, Sałatka grecka..."
-                  className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Kcal *</label>
-                  <input type="number" inputMode="numeric" value={manualKcal} onChange={(e) => setManualKcal(e.target.value)} placeholder="0"
-                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30" />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Białko g</label>
-                  <input type="number" inputMode="numeric" value={manualProtein} onChange={(e) => setManualProtein(e.target.value)} placeholder="0"
-                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[14px] font-bold text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Węgle g</label>
-                  <input type="number" inputMode="numeric" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value)} placeholder="opcjonalne"
-                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30" />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1">Tłuszcze g</label>
-                  <input type="number" inputMode="numeric" value={manualFat} onChange={(e) => setManualFat(e.target.value)} placeholder="opcjonalne"
-                    className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/30" />
-                </div>
-              </div>
-              <div className="flex gap-1.5 flex-wrap">
-                {MEAL_TYPES.map((m) => (
-                  <button key={m.id} onClick={() => setMealType(m.id)}
-                    className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${mealType === m.id ? 'bg-primary text-white' : 'border border-border-custom text-text-muted'}`}>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              {error && <p className="text-[11px] text-rose-500">{error}</p>}
-              <button onClick={saveManual} disabled={saving || !manualName.trim() || !manualKcal.trim()}
-                className="w-full rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer">
-                {saving ? 'Zapisuję...' : savedFlash ? 'Zapisano ✓' : 'Zapisz'}
-              </button>
-            </div>
-          )}
-
           {/* ── Portion selector ──────────────────────────────────── */}
           {screen === 'portion' && selected && (
             <div className="space-y-4">
@@ -494,23 +432,32 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
           {screen === 'browse' && (
             <>
               {/* Search bar + scanner */}
-              <div className="flex items-center gap-2 mb-3 rounded-full border border-border-custom bg-surface-solid/40 pl-1 pr-1.5">
+              <div className="group flex items-center gap-1 mb-3.5 rounded-2xl border border-border-custom bg-surface-solid/40 pl-1 pr-1.5 shadow-sm transition-all focus-within:border-primary/40 focus-within:bg-surface-solid/70 focus-within:ring-4 focus-within:ring-primary/10">
                 <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-primary" />
                   <input
                     ref={searchInputRef}
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Szukaj produktu..."
-                    className="w-full bg-transparent pl-9 pr-2 py-2.5 text-[13px] text-text-primary outline-none placeholder:text-text-muted/40"
+                    className="w-full bg-transparent pl-10 pr-2 py-3 text-[14px] font-medium text-text-primary outline-none placeholder:text-text-muted/45 placeholder:font-normal"
                   />
                 </div>
+                {query && !searching && (
+                  <button
+                    onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
+                    className="shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/5 transition-all cursor-pointer"
+                    title="Wyczyść"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
                 {searching ? (
-                  <Loader2 size={15} className="text-text-muted animate-spin mr-1.5" />
+                  <Loader2 size={15} className="shrink-0 text-primary animate-spin mx-1.5" />
                 ) : (
                   <button onClick={() => { setError(null); setScannerOpen(true); }}
-                    className="rounded-full p-2 text-text-muted hover:text-primary hover:bg-primary/10 transition-all cursor-pointer" title="Skanuj kod">
+                    className="shrink-0 rounded-full p-2 text-text-muted hover:text-primary hover:bg-primary/10 transition-all cursor-pointer" title="Skanuj kod">
                     <ScanLine size={16} />
                   </button>
                 )}
@@ -556,27 +503,23 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
                 </div>
               ) : (
                 <>
-                  {/* AI + Manual shortcuts */}
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      onClick={() => { setNlMode(true); setError(null); }}
-                      className="flex-1 rounded-xl border border-primary/30 bg-primary/[0.06] py-2 text-[10px] font-black text-primary hover:bg-primary/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Sparkles size={12} /> Opisz słowami
-                    </button>
-                    <button
-                      onClick={() => { setManualMode(true); setError(null); }}
-                      className="flex-1 rounded-xl border border-border-custom py-2 text-[10px] font-bold text-text-muted hover:text-text-primary transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <PenLine size={12} /> Wpisz ręcznie
-                    </button>
-                  </div>
+                  {/* AI shortcut */}
+                  <button
+                    onClick={() => { setNlMode(true); setError(null); }}
+                    className="w-full mb-3.5 rounded-2xl border border-primary/25 bg-primary/[0.07] py-3 text-[12px] font-black text-primary hover:bg-primary/[0.12] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={14} /> Opisz posiłek słowami
+                  </button>
 
-                  {/* Tabs */}
-                  <div className="flex gap-1.5 mb-3">
+                  {/* Tabs — segmented control */}
+                  <div className="flex gap-0.5 mb-3.5 rounded-full bg-surface-solid/50 p-1">
                     {(['favorites', 'recent'] as const).map((tab) => (
                       <button key={tab} onClick={() => setActiveTab(tab)}
-                        className={`rounded-full px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${activeTab === tab ? 'bg-primary text-white' : 'text-text-muted hover:text-text-primary'}`}>
+                        className={`flex-1 rounded-full py-2 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                          activeTab === tab
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'text-text-muted hover:text-text-primary'
+                        }`}>
                         {tab === 'favorites' ? 'Częste' : 'Ostatnie'}
                       </button>
                     ))}
