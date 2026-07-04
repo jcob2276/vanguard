@@ -399,9 +399,9 @@ export default function Dashboard({ session }: { session: Session }) {
 
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
-          <div>
+      <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
+          <div className="min-w-0 shrink-0">
             <h1
               className="font-display text-sm text-primary select-none cursor-pointer"
               title="Przytrzymaj, żeby szybko dodać posiłek"
@@ -412,11 +412,11 @@ export default function Dashboard({ session }: { session: Session }) {
             >
               <BrandTitle />
             </h1>
-            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
               {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="header-icon-row flex min-w-0 items-center gap-2 overflow-x-auto">
             {session?.user?.id && (
               <PersonaAvatarButton
                 userId={session.user.id}
@@ -427,7 +427,7 @@ export default function Dashboard({ session }: { session: Session }) {
             )}
             <button
               onClick={toggleTheme}
-              className="rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary hover:bg-surface-solid transition-all active:scale-95 cursor-pointer"
+              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary hover:bg-surface-solid transition-all active:scale-95 cursor-pointer"
               title="Przełącz motyw"
             >
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
@@ -436,21 +436,21 @@ export default function Dashboard({ session }: { session: Session }) {
               <>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('todo'); }}
-                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Zadania"
                 >
                   <CheckSquare size={15} />
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('kalendarz'); }}
-                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Kalendarz"
                 >
                   <Calendar size={15} />
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
-                  className="relative rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="relative shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Notatki"
                 >
                   <Paintbrush size={15} />
@@ -462,7 +462,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('links'); }}
-                  className="relative rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="relative shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Zapisane linki"
                 >
                   <Bookmark size={15} />
@@ -475,7 +475,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
                 <Link
                   to="/dashboard"
-                  className="rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
                   title="Desktop dashboard"
                 >
                   <LayoutDashboard size={15} />
