@@ -28,6 +28,7 @@ import { getWeekStartWarsaw } from '../../lib/growth';
 import { fetchLongTermGoals } from '../../lib/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
 import DataStateNotice from '../core/DataStateNotice';
+import LifeGoalsCard from './LifeGoalsCard';
 
 // Subcomponents and utilities
 import {
@@ -567,6 +568,8 @@ export default function Projects({
           </button>
         </div>
       </div>
+
+      <LifeGoalsCard userId={userId} lifeGoals={lifeGoals} />
 
       {/* ── Priorytetowe Zadania ── */}
       {importantTasks.length > 0 && (
