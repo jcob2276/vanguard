@@ -634,14 +634,6 @@ export default function Dashboard({ session }: { session: Session }) {
               />
               */}
 
-              {/* Hide for now
-              <Link
-                to="/optics"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold uppercase tracking-wider text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 shadow-sm"
-              >
-                Zaloguj Wzrok
-              </Link>
-              */}
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
               {todayWin && isAfter20() && (
@@ -763,6 +755,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => { setShowQuickFoodEntry(true); } },
                   { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); setShowWorkoutLogger(true); } },
                   { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { setShowSaunaLogger(true); } },
+                  { label: 'Zaloguj Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
                 ].map((item, idx) => (
                   <button
                     key={item.label}
