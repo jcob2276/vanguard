@@ -267,9 +267,9 @@ export default function Dashboard({ session }: { session: Session }) {
     const deltaY = touch.clientY - start.y;
     const deltaT = Date.now() - start.t;
 
-    const isHorizontalEnough = Math.abs(deltaX) > Math.abs(deltaY) * 1.5;
-    const isFarEnough = Math.abs(deltaX) >= 60;
-    const isFastEnough = deltaT < 600;
+    const isHorizontalEnough = Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+    const isFarEnough = Math.abs(deltaX) >= 45;
+    const isFastEnough = deltaT < 1000;
     if (!isHorizontalEnough || !isFarEnough || !isFastEnough) return;
 
     const idx = TAB_ORDER.indexOf(view);
