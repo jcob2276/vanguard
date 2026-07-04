@@ -4,6 +4,7 @@ import { CalendarDays, Target, AlertCircle, ChevronRight } from 'lucide-react';
 import { MagazineBar } from '../shared/MagazineBar';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
 import ProjectWeekKpis from './ProjectWeekKpis';
+import WeeklyBalanceHexagon from './WeeklyBalanceHexagon';
 import { SystemProposalCard } from '../shared/SystemProposalCard';
 import { useDirectionContext } from '../../hooks/useDirectionContext';
 import { useSpineGuidance } from '../../hooks/useSpineGuidance';
@@ -143,6 +144,8 @@ export default function WeekHub({
       )}
 
       {magazineView && <MagazineBar view={magazineView} />}
+
+      <WeeklyBalanceHexagon userId={userId} />
 
       {direction.weekStart && (direction.activeProjects?.length ?? 0) > 0 && (
         <ProjectWeekKpis

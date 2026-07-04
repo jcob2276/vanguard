@@ -166,6 +166,13 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setItems(prev => prev.map(i => i.id === item.id ? { ...i, tags: item.tags } : i));
         });
       }}
+      onSetSphere={(sphere: string | null) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: sphere } : i));
+        updateTodoItem(item.id, { category: sphere } as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: item.category } : i));
+        });
+      }}
       onAiBreakdown={async () => {
         const { data, error } = await supabase.functions.invoke('vanguard-task-breakdown', {
           body: { itemId: item.id, userId, title: item.title, notes: item.notes },

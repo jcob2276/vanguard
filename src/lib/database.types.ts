@@ -3305,6 +3305,7 @@ export type Database = {
         Row: {
           ai_bucket: string | null
           ai_classified_at: string | null
+          category: string | null
           completed_at: string | null
           created_at: string
           due_date: string | null
@@ -3331,6 +3332,7 @@ export type Database = {
         Insert: {
           ai_bucket?: string | null
           ai_classified_at?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
@@ -3357,6 +3359,7 @@ export type Database = {
         Update: {
           ai_bucket?: string | null
           ai_classified_at?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string
           due_date?: string | null

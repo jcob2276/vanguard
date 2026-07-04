@@ -290,7 +290,7 @@ export default function MorningPlanModal({ session, onClose }: Props) {
             summary: task.title,
             start: warsawIso(today, startTime),
             end: warsawIso(today, endTime),
-            category: 'work',
+            category: 'praca',
           });
 
           // Update DB task duration & scheduled time

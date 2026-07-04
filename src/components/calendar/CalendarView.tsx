@@ -23,6 +23,7 @@ import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWri
 import { useTimeBudgets } from '../../hooks/useTimeBudgets';
 import { createTodoItem, setTodoStatus } from '../../lib/todo';
 import { warsawDayBoundsISO } from '../../lib/date';
+import { LIFE_SPHERES } from '../../lib/lifeSpheres';
 
 interface Props {
   session: any;
@@ -154,11 +155,12 @@ function nowMinutes() {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  work: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
-  health: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  personal: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
-  sport: 'bg-orange-500/8 dark:bg-orange-500/12 border-l-orange-500 border-y-orange-500/10 border-r-orange-500/10 text-orange-600 dark:text-orange-400',
-  study: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
+  praca: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
+  cialo_trening: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  duch_refleksja: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
+  finanse: 'bg-amber-500/8 dark:bg-amber-500/12 border-l-amber-500 border-y-amber-500/10 border-r-amber-500/10 text-amber-600 dark:text-amber-400',
+  relacje_rodzina: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
+  odpoczynek_regeneracja: 'bg-rose-500/8 dark:bg-rose-500/12 border-l-rose-500 border-y-rose-500/10 border-r-rose-500/10 text-rose-600 dark:text-rose-400',
 };
 
 function eventColor(ev: CalRow) {
@@ -424,13 +426,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   // Sum event durations for the current week per category
   const categoryWeeklyTotals = useMemo(() => {
-    const totals: Record<string, number> = {
-      work: 0,
-      health: 0,
-      personal: 0,
-      sport: 0,
-      study: 0,
-    };
+    const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
     events.forEach((ev) => {
       if (!ev.start_time || !ev.end_time || !ev.category) return;
       
@@ -588,7 +584,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary: 'Focus Time 🛡️',
             start: startISO,
             end: endISO,
-            category: 'work'
+            category: 'praca'
           });
           busyIntervals.push({ start: 480, end: 600 });
           busyIntervals.sort((a, b) => a.start - b.start);
@@ -623,7 +619,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               summary: `✨ [AI] ${todo.title}`,
               start: startISO,
               end: endISO,
-              category: 'work'
+              category: 'praca'
             });
 
             await setTodoStatus({ id: todo.id }, 'done');
@@ -712,7 +708,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary: 'Sen 🛌',
             start: startISO,
             end: endISO,
-            category: 'health',
+            category: 'cialo_trening',
           });
           updatedCount++;
         } else {
@@ -720,7 +716,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary: 'Sen 🛌',
             start: startISO,
             end: endISO,
-            category: 'health',
+            category: 'cialo_trening',
           });
           createdCount++;
         }
@@ -800,7 +796,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           );
 
           const summary = isSauna ? 'Sauna 🧖' : 'Siłownia 🏋️';
-          const category = isSauna ? 'health' : 'sport';
+          const category = 'cialo_trening';
           const startISO = new Date(session.start_time).toISOString();
 
           let duration = session.duration_minutes || 60;
@@ -847,7 +843,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary,
             start: startISO,
             end: endISO,
-            category: 'sport',
+            category: 'cialo_trening',
           });
           createdCount++;
         }
@@ -1260,7 +1256,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                   summary: todo.title,
                   start: startISO,
                   end: endISO,
-                  category: 'work'
+                  category: 'praca'
                 });
 
                 // Complete the task from the inbox (shows strikethrough animation first)
@@ -1543,11 +1539,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             <div className="flex flex-wrap gap-1.5">
               {[
                 { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
-                { key: 'work', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
-                { key: 'health', label: 'Zdrowie', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'personal', label: 'Osobiste', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
-                { key: 'sport', label: 'Sport', color: 'border-orange-500/20 bg-orange-500/8 text-orange-500', dot: 'bg-orange-500' },
-                { key: 'study', label: 'Nauka', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+                { key: 'praca', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
+                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+                { key: 'finanse', label: 'Finanse', color: 'border-amber-500/20 bg-amber-500/8 text-amber-500', dot: 'bg-amber-500' },
+                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
+                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'border-rose-500/20 bg-rose-500/8 text-rose-500', dot: 'bg-rose-500' },
               ].map((cat) => {
                 const isSelected = quickCategory === cat.key;
                 const baseColors = cat.color.split(' ');
@@ -1642,11 +1639,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             <div className="flex flex-wrap gap-1.5">
               {[
                 { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
-                { key: 'work', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
-                { key: 'health', label: 'Zdrowie', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'personal', label: 'Osobiste', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
-                { key: 'sport', label: 'Sport', color: 'border-orange-500/20 bg-orange-500/8 text-orange-500', dot: 'bg-orange-500' },
-                { key: 'study', label: 'Nauka', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+                { key: 'praca', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
+                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
+                { key: 'finanse', label: 'Finanse', color: 'border-amber-500/20 bg-amber-500/8 text-amber-500', dot: 'bg-amber-500' },
+                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
+                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'border-rose-500/20 bg-rose-500/8 text-rose-500', dot: 'bg-rose-500' },
               ].map((cat) => {
                 const isSelected = editCategory === cat.key;
                 const baseColors = cat.color.split(' ');
@@ -1700,7 +1698,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
     const handleSaveAll = async () => {
       try {
-        const categories = ['work', 'health', 'personal', 'sport', 'study'];
+        const categories = LIFE_SPHERES.map((s) => s.id);
         for (const cat of categories) {
           const minRaw = budgetMinInputs[cat] || '';
           const maxRaw = budgetMaxInputs[cat] || '';
@@ -1729,11 +1727,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
           <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
             {[
-              { key: 'work', label: 'Praca (work)', placeholderMin: 'brak', placeholderMax: 'np. 40' },
-              { key: 'health', label: 'Zdrowie (health)', placeholderMin: 'np. 3', placeholderMax: 'brak' },
-              { key: 'personal', label: 'Relacje (personal)', placeholderMin: 'np. 4', placeholderMax: 'brak' },
-              { key: 'sport', label: 'Sport (sport)', placeholderMin: 'np. 5', placeholderMax: 'brak' },
-              { key: 'study', label: 'Nauka (study)', placeholderMin: 'np. 3', placeholderMax: 'brak' },
+              { key: 'praca', label: 'Praca', placeholderMin: 'brak', placeholderMax: 'np. 40' },
+              { key: 'cialo_trening', label: 'Ciało / Trening', placeholderMin: 'np. 5', placeholderMax: 'brak' },
+              { key: 'duch_refleksja', label: 'Duch / Refleksja', placeholderMin: 'np. 3', placeholderMax: 'brak' },
+              { key: 'finanse', label: 'Finanse', placeholderMin: 'np. 1', placeholderMax: 'brak' },
+              { key: 'relacje_rodzina', label: 'Relacje / Rodzina', placeholderMin: 'np. 4', placeholderMax: 'brak' },
+              { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', placeholderMin: 'np. 3', placeholderMax: 'brak' },
             ].map((cat) => (
               <div key={cat.key} className="space-y-1.5 p-3 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
                 <span className="text-[11px] font-bold text-text-primary">{cat.label}</span>
@@ -1995,7 +1994,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 onClick={() => {
                   const mins: Record<string, string> = {};
                   const maxs: Record<string, string> = {};
-                  ['work', 'health', 'personal', 'sport', 'study'].forEach((cat) => {
+                  LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
                     const b = budgets.find((item) => item.category === cat);
                     mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
                     maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
@@ -2011,11 +2010,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             </div>
             <div className="space-y-2">
               {[
-                { key: 'work', label: 'Praca', color: 'bg-blue-500', dot: 'bg-blue-500' },
-                { key: 'health', label: 'Zdrowie', color: 'bg-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'personal', label: 'Relacje', color: 'bg-violet-500', dot: 'bg-violet-500' },
-                { key: 'sport', label: 'Sport', color: 'bg-orange-500', dot: 'bg-orange-500' },
-                { key: 'study', label: 'Nauka', color: 'bg-sky-500', dot: 'bg-sky-500' },
+                { key: 'praca', label: 'Praca', color: 'bg-blue-500', dot: 'bg-blue-500' },
+                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'bg-emerald-500', dot: 'bg-emerald-500' },
+                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'bg-sky-500', dot: 'bg-sky-500' },
+                { key: 'finanse', label: 'Finanse', color: 'bg-amber-500', dot: 'bg-amber-500' },
+                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'bg-violet-500', dot: 'bg-violet-500' },
+                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'bg-rose-500', dot: 'bg-rose-500' },
               ].map((cat) => {
                 const spent = categoryWeeklyTotals[cat.key] || 0;
                 const b = budgets.find((item) => item.category === cat.key);
@@ -2165,7 +2165,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             onClick={() => {
               const mins: Record<string, string> = {};
               const maxs: Record<string, string> = {};
-              ['work', 'health', 'personal', 'sport', 'study'].forEach((cat) => {
+              LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
                 const b = budgets.find((item) => item.category === cat);
                 mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
                 maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
@@ -2211,11 +2211,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           {budgetPanelExpanded && (
             <div className="px-4 pb-3.5 pt-1 grid grid-cols-2 gap-3.5">
               {[
-                { key: 'work', label: 'Praca', color: 'bg-blue-500', text: 'text-blue-500' },
-                { key: 'health', label: 'Zdrowie', color: 'bg-emerald-500', text: 'text-emerald-500' },
-                { key: 'personal', label: 'Relacje', color: 'bg-violet-500', text: 'text-violet-500' },
-                { key: 'sport', label: 'Sport', color: 'bg-orange-500', text: 'text-orange-500' },
-                { key: 'study', label: 'Nauka', color: 'bg-sky-500', text: 'text-sky-500' },
+                { key: 'praca', label: 'Praca', color: 'bg-blue-500', text: 'text-blue-500' },
+                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'bg-emerald-500', text: 'text-emerald-500' },
+                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'bg-sky-500', text: 'text-sky-500' },
+                { key: 'finanse', label: 'Finanse', color: 'bg-amber-500', text: 'text-amber-500' },
+                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'bg-violet-500', text: 'text-violet-500' },
+                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'bg-rose-500', text: 'text-rose-500' },
               ].map((cat) => {
                 const spent = categoryWeeklyTotals[cat.key] || 0;
                 const b = budgets.find((item) => item.category === cat.key);

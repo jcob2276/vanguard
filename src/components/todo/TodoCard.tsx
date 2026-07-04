@@ -10,6 +10,7 @@ import {
   RECURRENCE_LABELS
 } from './todoUtils';
 import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo';
+import { LIFE_SPHERES } from '../../lib/lifeSpheres';
 
 export interface TodoCardProps {
   item: any;
@@ -43,6 +44,7 @@ export interface TodoCardProps {
   onSetReminder: (isoDatetime: string) => void;
   onCancelReminder: () => void;
   onSetTags: (tags: string[]) => void;
+  onSetSphere?: (sphere: string | null) => void;
   onAiBreakdown: () => Promise<string[]>;
   onSetTitle: (title: string) => void;
   childTasks?: any[];
@@ -82,6 +84,7 @@ export default function TodoCard({
   onSetReminder,
   onCancelReminder,
   onSetTags,
+  onSetSphere,
   onAiBreakdown,
   onSetTitle,
   childTasks = [],
@@ -875,6 +878,41 @@ export default function TodoCard({
                           </div>
                         )}
                       </div>
+
+                      {/* Life sphere — weekly balance tracking (Praca/Ciało/Duch/Finanse/Relacje/Odpoczynek) */}
+                      {onSetSphere && (
+                        <div>
+                          <p className="mb-1 text-[11px] font-semibold text-text-muted">Sfera życia</p>
+                          <div className="flex flex-wrap gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onSetSphere(null)}
+                              className={`rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors btn-press ${
+                                !item.category
+                                  ? 'border-primary/20 bg-primary/10 text-primary'
+                                  : 'border-border-custom/50 text-text-muted hover:text-text-primary'
+                              }`}
+                            >
+                              Brak
+                            </button>
+                            {LIFE_SPHERES.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => onSetSphere(s.id)}
+                                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors btn-press ${
+                                  item.category === s.id
+                                    ? `${s.border} ${s.bgSoft} ${s.text}`
+                                    : 'border-border-custom/50 text-text-muted hover:text-text-primary'
+                                }`}
+                              >
+                                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Tags */}
                       <div>
