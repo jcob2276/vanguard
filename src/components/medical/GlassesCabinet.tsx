@@ -40,7 +40,7 @@ export default function GlassesCabinet() {
         .order('started_at', { ascending: false });
 
       if (error) throw error;
-      setPrescriptions(data || []);
+      setPrescriptions((data || []) as Prescription[]);
     } catch (error) {
       console.error('Error loading prescriptions:', error);
     } finally {
@@ -53,12 +53,12 @@ export default function GlassesCabinet() {
     setLoading(true);
     try {
       const excelData = [
-        { user_id: user.id, type: 'normalized', status: 'active', started_at: '2022-06-15', sphere_l: -2.75, cyl_l: null, axis_l: null, sphere_r: -4.25, cyl_r: -0.75, axis_r: 10 },
-        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2020-10-24', ended_at: '2022-06-15', sphere_l: -3.25, cyl_l: null, axis_l: null, sphere_r: -4.50, cyl_r: -0.75, axis_r: 10 },
-        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2019-07-24', ended_at: '2020-10-24', sphere_l: -3.50, cyl_l: null, axis_l: null, sphere_r: -4.50, cyl_r: -0.75, axis_r: 10 },
-        { user_id: user.id, type: 'differential', status: 'active', started_at: '2024-12-25', notes: 'mg być idealne', sphere_l: -1.50, cyl_l: null, axis_l: null, sphere_r: -3.00, cyl_r: -0.75, axis_r: 10 },
-        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za mocne', sphere_l: -1.75, cyl_l: null, axis_l: null, sphere_r: -3.25, cyl_r: -0.75, axis_r: 10 },
-        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za słabe', sphere_l: -1.25, cyl_l: null, axis_l: null, sphere_r: -2.75, cyl_r: -0.75, axis_r: 10 }
+        { user_id: user.id, type: 'normalized', status: 'active', started_at: '2022-06-15', sphere_r: -2.75, cyl_r: null, axis_r: null, sphere_l: -4.25, cyl_l: -0.75, axis_l: 10, notes: 'PD 61mm' },
+        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2020-10-24', ended_at: '2022-06-15', sphere_r: -3.25, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
+        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2019-07-24', ended_at: '2020-10-24', sphere_r: -3.50, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
+        { user_id: user.id, type: 'differential', status: 'active', started_at: '2024-12-25', notes: 'mg być idealne', sphere_r: -1.50, cyl_r: null, axis_r: null, sphere_l: -3.00, cyl_l: -0.75, axis_l: 10 },
+        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za mocne', sphere_r: -1.75, cyl_r: null, axis_r: null, sphere_l: -3.25, cyl_l: -0.75, axis_l: 10 },
+        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za słabe', sphere_r: -1.25, cyl_r: null, axis_r: null, sphere_l: -2.75, cyl_l: -0.75, axis_l: 10 }
       ];
       
       const { error } = await supabase.from('endmyopia_prescriptions').insert(excelData);
