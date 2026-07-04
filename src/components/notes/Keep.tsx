@@ -455,7 +455,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     if (!newTag) return;
 
     if (allTags.includes(newTag)) {
-      notify('Ten tag już istnieje.', 'warning');
+      notify('Ten tag już istnieje.', 'error');
       return;
     }
 
