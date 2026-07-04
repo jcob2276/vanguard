@@ -3,6 +3,7 @@ import { X, CheckCircle2, Send, ChevronRight, ChevronLeft, AlertTriangle, Trash2
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite } from '../../hooks/useCalendarWrite';
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { updateDailyWin, insertDailyWin } from '../../lib/goalSpine.mutations';
 
 interface Props {
   session: any;
@@ -264,9 +265,9 @@ export default function MorningPlanModal({ session, onClose }: Props) {
       });
 
       if (todayWinId) {
-        await supabase.from('daily_wins').update(patch).eq('id', todayWinId);
+        await updateDailyWin(userId, todayWinId, patch);
       } else {
-        await supabase.from('daily_wins').insert(patch);
+        await insertDailyWin(userId, patch);
       }
 
       // 2. Schedule events in Calendar & Update Todo items

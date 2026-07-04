@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
 import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getTodayWarsaw } from '../../lib/date';
+import { listTodoSections, listTodoItems, updateTodoItem } from '../../lib/todo';
 
 interface Props {
   session: any;
   onClose: () => void;
   onFinished?: () => void;
-}
-
-function getTodayWarsaw() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
 }
 
 export default function WeeklyReviewModal({ session, onClose, onFinished }: Props) {
@@ -40,23 +38,11 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     (async () => {
       try {
         // 1. Fetch active sections
-        const { data: secData, error: secErr } = await supabase
-          .from('todo_sections')
-          .select('*')
-          .eq('user_id', userId)
-          .order('position', { ascending: true });
-        if (secErr) throw secErr;
-        setSections(secData || []);
+        const secData = await listTodoSections(userId);
+        setSections(secData);
 
         // 2. Fetch all active todo items
-        const { data: itemsData, error: itemsErr } = await supabase
-          .from('todo_items')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('status', 'open');
-        if (itemsErr) throw itemsErr;
-
-        const allItems = itemsData || [];
+        const allItems = (await listTodoItems(userId)).filter((item) => item.status === 'open');
         setInboxItems(allItems.filter((item) => !item.section_id));
         setSectionItems(allItems.filter((item) => !!item.section_id));
       } catch (err) {
@@ -91,10 +77,9 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     setSaving(true);
     try {
       // 1. Write all staged updates to Supabase
-      const updatePromises = Object.entries(pendingUpdates).map(([id, patch]) => {
-        return supabase.from('todo_items').update(patch).eq('id', id);
-      });
-      await Promise.all(updatePromises);
+      await Promise.all(
+        Object.entries(pendingUpdates).map(([id, patch]) => updateTodoItem(id, patch)),
+      );
 
       // 2. Insert weekly review marker log into vanguard_stream
       await supabase.from('vanguard_stream').insert({
