@@ -246,6 +246,39 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, [view, haptics]);
 
+  // Swipe left/right between the 4 main tabs, in addition to tapping the bottom nav.
+  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
+
+  const handleMainTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    swipeStart.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
+  }, []);
+
+  const handleMainTouchEnd = useCallback((e: React.TouchEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    if ((e.target as HTMLElement)?.closest?.('[data-no-swipe-nav]')) return;
+
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const deltaT = Date.now() - start.t;
+
+    const isHorizontalEnough = Math.abs(deltaX) > Math.abs(deltaY) * 1.5;
+    const isFarEnough = Math.abs(deltaX) >= 60;
+    const isFastEnough = deltaT < 600;
+    if (!isHorizontalEnough || !isFarEnough || !isFastEnough) return;
+
+    const idx = TAB_ORDER.indexOf(view);
+    if (idx === -1) return;
+    const nextIdx = deltaX < 0 ? idx + 1 : idx - 1;
+    if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return;
+    navigateTo(TAB_ORDER[nextIdx]);
+  }, [view, navigateTo]);
+
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
     try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
     if (target === 'dashboard') {
@@ -502,7 +535,11 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden vt-tab-main">
+        <main
+          className="flex-1 overflow-hidden vt-tab-main"
+          onTouchStart={showLock ? undefined : handleMainTouchStart}
+          onTouchEnd={showLock ? undefined : handleMainTouchEnd}
+        >
           {showLock ? (
             <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
               <OrientationFooter session={session} />
