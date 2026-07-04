@@ -2228,3 +2228,12 @@
 .fast-capture-menu-item:hover {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
+
+/* Header icon row: scrolls internally instead of overflowing the app shell */
+.header-icon-row {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.header-icon-row::-webkit-scrollbar {
+  display: none;
+}
