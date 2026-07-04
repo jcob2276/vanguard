@@ -34,6 +34,7 @@ function StabilityRing({ progress, size = 64 }: { progress: number; size?: numbe
 
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const pipVideoRef = useRef<HTMLVideoElement>(null);
   const { distance, stability, isReady, calibrationFactor, calibrate, resetCalibration, resetStability } = useFaceDistance(videoRef);
 
   const [phase, setPhase] = useState<Phase>('calibrate');
@@ -52,10 +53,19 @@ export default function EndMyopiaCalculator() {
   const faceDetected = distance !== null;
   const capturedDiopters = capturedDistance ? (-100 / capturedDistance) : null;
 
+  // Use function declaration for hoisting support in useEffect
+  function startMeasure(eye: Eye) {
+    setSelectedEye(eye);
+    setCapturedDistance(null);
+    setSaveError(false);
+    resetStability();
+    setPhase('measure');
+  }
+
   // Skip calibrate phase if already calibrated
   useEffect(() => {
     if (calibrationFactor && phase === 'calibrate') {
-      setPhase('select-eye');
+      startMeasure('left');
     }
   }, [calibrationFactor]);
 
@@ -91,6 +101,7 @@ export default function EndMyopiaCalculator() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         if (videoRef.current) videoRef.current.srcObject = stream;
+        if (pipVideoRef.current) pipVideoRef.current.srcObject = stream;
       } catch (err) {
         console.error('Camera error:', err);
       }
@@ -101,15 +112,7 @@ export default function EndMyopiaCalculator() {
 
   const handleCalibrate = () => {
     calibrate(40);
-    setPhase('select-eye');
-  };
-
-  const startMeasure = (eye: Eye) => {
-    setSelectedEye(eye);
-    setCapturedDistance(null);
-    setSaveError(false);
-    resetStability();
-    setPhase('measure');
+    startMeasure('left');
   };
 
   const handleRetry = () => {
@@ -133,9 +136,18 @@ export default function EndMyopiaCalculator() {
         diopters: parseFloat(capturedDiopters.toFixed(2)),
       });
       if (error) throw error;
-      setPhase('saved');
       setRefreshTrigger(prev => prev + 1);
-      setTimeout(() => setPhase('select-eye'), 2000);
+      
+      const currentEye = selectedEye;
+      setPhase('saved');
+      
+      setTimeout(() => {
+        if (currentEye === 'left') {
+          startMeasure('right');
+        } else {
+          setPhase('select-eye');
+        }
+      }, 1500);
     } catch {
       setSaveError(true);
     } finally {
@@ -157,7 +169,7 @@ export default function EndMyopiaCalculator() {
 
           {/* PIP Camera - top right corner */}
           <div className="absolute top-4 right-4 w-16 h-20 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
-            <video ref={undefined} autoPlay playsInline muted className="w-full h-full object-cover -scale-x-100" style={{ objectFit: 'cover' }} />
+            <video ref={pipVideoRef} autoPlay playsInline muted className="w-full h-full object-cover -scale-x-100" style={{ objectFit: 'cover' }} />
           </div>
 
           {/* Back + status bar */}
@@ -298,7 +310,9 @@ export default function EndMyopiaCalculator() {
             <Check size={36} className="text-emerald-400" />
           </div>
           <p className="text-2xl font-black text-emerald-400">Zapisano!</p>
-          <p className="text-sm text-emerald-700">Wracam do wyboru oka...</p>
+          <p className="text-sm text-emerald-700">
+            {selectedEye === 'left' ? 'Przechodzę do prawego oka...' : 'Pomiary zakończone!'}
+          </p>
         </div>
       )}
 

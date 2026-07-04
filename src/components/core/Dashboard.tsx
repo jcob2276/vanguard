@@ -755,7 +755,7 @@ export default function Dashboard({ session }: { session: Session }) {
                   { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => { setShowQuickFoodEntry(true); } },
                   { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); setShowWorkoutLogger(true); } },
                   { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { setShowSaunaLogger(true); } },
-                  { label: 'Zaloguj Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
+                  { label: 'Zmierz Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
                 ].map((item, idx) => (
                   <button
                     key={item.label}
