@@ -71,7 +71,10 @@ async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id);
-    if (error) console.error("[detect-patterns] update error:", error.message);
+    if (error) {
+      console.error("[detect-patterns] update error:", error.message);
+      throw new Error(error.message);
+    }
     return "updated";
   }
 
@@ -88,7 +91,10 @@ async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"
     confidence: pattern.confidence,
     status: pattern.status,
   });
-  if (error) console.error("[detect-patterns] insert error:", error.message);
+  if (error) {
+    console.error("[detect-patterns] insert error:", error.message);
+    throw new Error(error.message);
+  }
   return "inserted";
 }
 

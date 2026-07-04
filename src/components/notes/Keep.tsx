@@ -15,6 +15,7 @@ import {
   Plus,
   Search,
   Tag,
+  Trash2,
   X,
   Calendar,
 } from 'lucide-react';
@@ -411,6 +412,86 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   const allTags = Array.from(new Set(notes.flatMap(n => n.tags))).sort();
 
+  const handleDeleteTag = async (tagToDelete: string) => {
+    const confirmed = window.confirm(`Czy na pewno chcesz usunąć tag "${tagToDelete}" ze wszystkich notatek?`);
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const notesToUpdate = notes.filter(n => n.tags?.includes(tagToDelete));
+      for (const note of notesToUpdate) {
+        const nextTags = (note.tags || []).filter(t => t !== tagToDelete);
+        const { error: err } = await supabase
+          .from('vanguard_notes')
+          .update({ tags: nextTags, updated_at: new Date().toISOString() })
+          .eq('id', note.id);
+        if (err) throw err;
+      }
+      const updatedNotes = notes.map(n => 
+        n.tags?.includes(tagToDelete) 
+          ? { ...n, tags: (n.tags || []).filter(t => t !== tagToDelete), updated_at: new Date().toISOString() } 
+          : n
+      );
+      setNotes(sortNotes(updatedNotes));
+      localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updatedNotes));
+      notify(`Tag "${tagToDelete}" został usunięty ze wszystkich notatek.`, 'info');
+      if (activeTag === tagToDelete) {
+        setActiveTag(null);
+      }
+    } catch (e: any) {
+      console.error('Error deleting tag:', e);
+      setError(e.message || 'Nie udało się usunąć tagu.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateTag = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newTagRaw = window.prompt('Wpisz nazwę nowego tagu:');
+    if (!newTagRaw) return;
+    const newTag = newTagRaw.trim().toLowerCase().replace(/[\s#]/g, '_');
+    if (!newTag) return;
+
+    if (allTags.includes(newTag)) {
+      notify('Ten tag już istnieje.', 'warning');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const payload = {
+        user_id: userId,
+        title: `Tag: ${newTag}`,
+        content: `Pusta notatka utworzona automatycznie dla tagu #${newTag}.`,
+        tags: [newTag],
+        color: 'default',
+        is_pinned: false,
+        is_archived: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error: err } = await supabase
+        .from('vanguard_notes')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (err) throw err;
+
+      setNotes(prev => sortNotes([data, ...prev]));
+      notify(`Utworzono tag: "${newTag}"!`, 'info');
+    } catch (e: any) {
+      console.error('Error creating tag:', e);
+      setError(e.message || 'Nie udało się utworzyć tagu.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const filtered = notes.filter(n => {
     const matchTab = sidebarTab === 'notes' ? !n.is_archived : !!n.is_archived;
     const q = search.toLowerCase();
@@ -558,21 +639,39 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
             <span>Pocket</span>
           </button>
 
-          {allTags.length > 0 && (
-            <>
-              <div className="keep-sidebar-separator" />
-              <p className="keep-sidebar-section-label">Tagi</p>
-              {allTags.map(tag => (
-                <button
-                  key={tag}
-                  className={`keep-sidebar-item ${activeTag === tag ? 'active' : ''}`}
-                  onClick={() => { setSidebarTab('notes'); setActiveTag(t => (t === tag ? null : tag)); }}
-                >
-                  <Tag size={13} />
-                  <span>{tag}</span>
-                </button>
-              ))}
-            </>
+          <div className="keep-sidebar-separator" />
+          <div className="flex items-center justify-between keep-sidebar-section-label pr-1.5">
+            <span>Tagi</span>
+            <button
+              onClick={handleCreateTag}
+              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              title="Dodaj nowy tag"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+          {allTags.map(tag => (
+            <div
+              key={tag}
+              className={`group flex items-center justify-between keep-sidebar-item ${activeTag === tag ? 'active' : ''}`}
+              onClick={() => { setSidebarTab('notes'); setActiveTag(t => (t === tag ? null : tag)); }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Tag size={13} className="shrink-0" />
+                <span className="truncate">{tag}</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
+                className="hidden group-hover:flex p-1 rounded hover:bg-rose-500/10 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
+                title="Usuń tag ze wszystkich notatek"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          {allTags.length === 0 && (
+            <p className="text-[10.5px] text-text-muted/40 px-3 py-1.5 italic">brak tagów</p>
           )}
         </aside>
 

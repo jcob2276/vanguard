@@ -414,6 +414,7 @@ export default function PowerList({
             );
           })}
 
+          {/* Hide the duplicate inline daily shutdown input as it is fully handled in DailyShutdownModal
           {eveningCloseDue && (
             <div className="space-y-2 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] p-3.5 animate-fadeIn">
               <p className="text-[8px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
@@ -441,6 +442,7 @@ export default function PowerList({
               </button>
             </div>
           )}
+          */}
 
           {todayWin?.day_note?.trim() && !eveningCloseDue && (
             <p className="text-[10px] text-text-muted px-1">

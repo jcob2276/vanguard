@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const cut21d = new Date(now.getTime() - 21  * 24 * 60 * 60 * 1000).toISOString()
 
     // 1. CURRENT CONTEXT — ostatnie 72h (primary)
-    const [stream72h, frictionRecent, biometrics, pendingHypotheses] = await Promise.all([
+    const [stream72h, frictionRecent, biometrics, pendingHypotheses, behavioralPatterns] = await Promise.all([
       supabase
         .from('vanguard_stream')
         .select('content, category, created_at')
@@ -53,12 +53,21 @@ Deno.serve(async (req) => {
         .eq('user_id', user_id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
-        .limit(3)
+        .limit(3),
+
+      supabase
+        .from('vanguard_behavioral_patterns')
+        .select('pattern_type, title, evidence_text, status, confidence, occurrence_count')
+        .eq('user_id', user_id)
+        .neq('status', 'archived')
+        .neq('status', 'user_rejected')
+        .order('confidence', { ascending: false })
     ])
     if (stream72h.error) console.error('[analyst] stream72h query error:', stream72h.error);
     if (frictionRecent.error) console.error('[analyst] frictionRecent query error:', frictionRecent.error);
     if (biometrics.error) console.error('[analyst] biometrics query error:', biometrics.error);
     if (pendingHypotheses.error) console.error('[analyst] pendingHypotheses query error:', pendingHypotheses.error);
+    if (behavioralPatterns.error) console.error('[analyst] behavioralPatterns query error:', behavioralPatterns.error);
 
     const { data: streamPattern, error: streamPatternErr } = await supabase
       .from('vanguard_stream')
@@ -149,6 +158,10 @@ Deno.serve(async (req) => {
       .map(b => `${b.date}: ${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours}h, HRV=${b.hrv_avg}`)
       .join('\n')
 
+    const behavioralPatternsText = (behavioralPatterns.data || [])
+      .map(p => `- [${p.status}] ${p.title || p.pattern_type}: ${p.evidence_text} (confidence: ${p.confidence}, count: ${p.occurrence_count})`)
+      .join('\n')
+
     // 4. DEEPSEEK REASONER — analiza friction patterns
     const { content: rawContentParsed } = await deepseekChat({
       apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
@@ -213,11 +226,15 @@ FORMAT JSON:
     "based_on": "friction_type X, N evidences"
   },
   "provocation": "Jedno zdanie — obserwacja oparta na powtarzającym się wzorcu (NIE psychologia, tylko fakt z danych)"
-}`
+}
+`
         },
         {
           role: 'user',
-          content: `PENDING HYPOTHESES (do ewaluacji):
+          content: `EXISTING BEHAVIORAL PATTERNS (Etap 1):
+${behavioralPatternsText || 'Brak.'}
+
+PENDING HYPOTHESES (do ewaluacji):
 ${JSON.stringify(pendingHypotheses.data || [])}
 
 STREAM — OSTATNIE 72H (primary):
@@ -237,7 +254,7 @@ ${biometricsText || 'Brak.'}
 GRAF (current/declared <21d):
 ${graphText || 'Brak aktywnych krawędzi.'}
 
-ZALEŻNOŚCI BIOMETRYCZNE (auto-liczone korelacje):
+ZALEŻNOCI BIOMETRYCZNE (auto-liczone korelacje):
 ${corrText}
 
 OBCIĄŻENIE TRENINGOWE — strefy HR, ostatnie 7 dni:

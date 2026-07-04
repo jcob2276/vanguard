@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   Moon,
   Sun,
-  Paintbrush,
+  StickyNote,
   Bookmark,
   Sparkles,
   Activity,
@@ -466,10 +466,10 @@ export default function Dashboard({ session }: { session: Session }) {
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
       <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom bg-background/80 px-5 py-4.5 backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]">
           <div className="min-w-0 shrink-0">
             <h1
-              className="font-display text-sm text-primary select-none cursor-pointer"
+              className="font-display text-sm text-primary select-none cursor-pointer flex items-center gap-1.5"
               title="Przytrzymaj, żeby szybko dodać posiłek"
               onPointerDown={handleLogoPressStart}
               onPointerUp={handleLogoPressEnd}
@@ -477,8 +477,9 @@ export default function Dashboard({ session }: { session: Session }) {
               onContextMenu={(e) => e.preventDefault()}
             >
               <BrandTitle />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" title="System Online" />
             </h1>
-            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+            <p className="mt-1 text-[8.5px] font-black uppercase tracking-wider text-text-muted/65">
               {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
             </p>
           </div>
@@ -493,7 +494,7 @@ export default function Dashboard({ session }: { session: Session }) {
             )}
             <button
               onClick={toggleTheme}
-              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/40 dark:bg-white/[0.03] p-2.5 text-text-secondary hover:text-text-primary hover:bg-surface-solid transition-all active:scale-95 cursor-pointer"
+              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-90 cursor-pointer flex items-center justify-center"
               title="Przełącz motyw"
             >
               {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
@@ -502,46 +503,57 @@ export default function Dashboard({ session }: { session: Session }) {
               <>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('todo'); }}
-                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
+                    view === 'todo'
+                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
+                  }`}
                   title="Zadania"
                 >
                   <CheckSquare size={15} />
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('kalendarz'); }}
-                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
+                    view === 'kalendarz'
+                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
+                  }`}
                   title="Kalendarz"
                 >
                   <Calendar size={15} />
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
-                  className="relative shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
+                    view === 'keep'
+                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
+                  }`}
                   title="Notatki"
                 >
-                  <Paintbrush size={15} />
+                  <StickyNote size={15} />
                   {staleNoteCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[8px] font-black text-white shadow-sm">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[8px] font-black text-white shadow-sm ring-1 ring-background">
                       {staleNoteCount > 9 ? '9+' : staleNoteCount}
                     </span>
                   )}
                 </button>
                 <button
                   onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('links'); }}
-                  className="relative shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
+                    view === 'links'
+                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
+                  }`}
                   title="Zapisane linki"
                 >
                   <Bookmark size={15} />
-                  {unreadLinkCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-                      {unreadLinkCount > 9 ? '9+' : unreadLinkCount}
-                    </span>
-                  )}
                 </button>
 
                 <Link
                   to="/dashboard"
-                  className="shrink-0 rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer"
+                  className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center"
                   title="Desktop dashboard"
                 >
                   <LayoutDashboard size={15} />
@@ -609,6 +621,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onOpenFullModal={() => setShowQuickFoodEntry(true)}
               />
 
+              {/* Hide for now as it is accessible from the bottom '+' button
               <TrainingSaunaQuickBar
                 session={session}
                 refreshSignal={workoutKey}
@@ -619,13 +632,16 @@ export default function Dashboard({ session }: { session: Session }) {
                 }}
                 onOpenSauna={() => setShowSaunaLogger(true)}
               />
+              */}
 
+              {/* Hide for now
               <Link
                 to="/optics"
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold uppercase tracking-wider text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 shadow-sm"
               >
                 Zaloguj Wzrok
               </Link>
+              */}
 
               <PowerList session={session} todayWin={todayWin} onUpdate={refresh} planDaySignal={planDaySignal} />
               {todayWin && isAfter20() && (
@@ -747,7 +763,6 @@ export default function Dashboard({ session }: { session: Session }) {
                   { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => { setShowQuickFoodEntry(true); } },
                   { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); setShowWorkoutLogger(true); } },
                   { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { setShowSaunaLogger(true); } },
-                  { label: 'Zaloguj Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
                 ].map((item, idx) => (
                   <button
                     key={item.label}

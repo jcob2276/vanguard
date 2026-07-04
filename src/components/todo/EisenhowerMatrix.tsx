@@ -152,12 +152,12 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                       </div>
                     </div>
                     {/* Quick move buttons */}
-                    <div className="hidden group-hover:flex flex-col gap-0.5 shrink-0">
+                    <div className="flex md:hidden md:group-hover:flex flex-row md:flex-col gap-1 items-center justify-center shrink-0 ml-1">
                       {QUADRANTS.filter((qq) => qq.key !== q.key).map((qq) => (
                         <button
                           key={qq.key}
                           onClick={(e) => { e.stopPropagation(); moveToQuadrant(item, qq); }}
-                          className={`text-[8px] font-black px-1.5 py-0.5 rounded-full leading-tight ${qq.badge}`}
+                          className={`text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black shadow-sm active:scale-90 transition-transform ${qq.badge}`}
                           title={`Przenieś do: ${qq.label}`}
                         >
                           {qq.label.charAt(0)}

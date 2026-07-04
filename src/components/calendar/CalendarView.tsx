@@ -162,6 +162,18 @@ function computeBudgetBarState(
   maxVal: number | null | undefined,
   baseColor: string,
 ): { pct: number; statusText: string; barColor: string } {
+  if (minVal != null && minVal > 0 && maxVal != null && maxVal > 0) {
+    return {
+      pct: Math.min(100, (spent / maxVal) * 100),
+      statusText: `${spent.toFixed(1)}h / ${minVal}–${maxVal}h`,
+      barColor:
+        spent < minVal
+          ? 'bg-amber-500 dark:bg-amber-400'
+          : spent > maxVal
+          ? 'bg-rose-500 dark:bg-rose-400'
+          : 'bg-emerald-500 dark:bg-emerald-400',
+    };
+  }
   if (minVal != null && minVal > 0) {
     return {
       pct: Math.min(100, (spent / minVal) * 100),
@@ -186,17 +198,133 @@ const CATEGORY_COLORS: Record<string, string> = {
   finanse: 'bg-amber-500/8 dark:bg-amber-500/12 border-l-amber-500 border-y-amber-500/10 border-r-amber-500/10 text-amber-600 dark:text-amber-400',
   relacje_rodzina: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
   odpoczynek_regeneracja: 'bg-rose-500/8 dark:bg-rose-500/12 border-l-rose-500 border-y-rose-500/10 border-r-rose-500/10 text-rose-600 dark:text-rose-400',
+
+  // Legacy Fallbacks
+  work: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
+  health: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  personal: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
+  sport: 'bg-orange-500/8 dark:bg-orange-500/12 border-l-orange-500 border-y-orange-500/10 border-r-orange-500/10 text-orange-600 dark:text-orange-400',
+  study: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
 };
 
 function eventColor(ev: CalRow) {
+  const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
   if (isFocusTime) {
-    return 'bg-indigo-500/8 dark:bg-indigo-500/12 border-l-indigo-500 border-y-indigo-500/10 border-r-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium';
+    return 'bg-indigo-600 dark:bg-indigo-700 text-white border border-indigo-700/20 font-semibold';
   }
+
+  // 1. Explicit database category
   if (ev.category && CATEGORY_COLORS[ev.category.toLowerCase()]) {
     return CATEGORY_COLORS[ev.category.toLowerCase()];
   }
-  return 'bg-primary/8 border-l-primary border-y-primary/10 border-r-primary/10 text-primary';
+
+  // 2. Keyword-based fallbacks for uncategorized events
+  if (summaryLower.includes('sen') || summaryLower.includes('sleep') || summaryLower.includes('sauna')) {
+    return CATEGORY_COLORS['odpoczynek_regeneracja'];
+  }
+  if (summaryLower.includes('bieg') || summaryLower.includes('trening') || summaryLower.includes('siłownia') || summaryLower.includes('run') || summaryLower.includes('gym') || summaryLower.includes('workout')) {
+    return CATEGORY_COLORS['cialo_trening'];
+  }
+  if (summaryLower.includes('medyt') || summaryLower.includes('reflek') || summaryLower.includes('cich') || summaryLower.includes('silent') || summaryLower.includes('mindful')) {
+    return CATEGORY_COLORS['duch_refleksja'];
+  }
+  if (summaryLower.includes('budżet') || summaryLower.includes('finans') || summaryLower.includes('money') || summaryLower.includes('invest') || summaryLower.includes('giełd')) {
+    return CATEGORY_COLORS['finanse'];
+  }
+  if (summaryLower.includes('rodzin') || summaryLower.includes('randk') || summaryLower.includes('spotkan') || summaryLower.includes('koleg') || summaryLower.includes('znajom') || summaryLower.includes('dinner') || summaryLower.includes('date') || summaryLower.includes('urodzin')) {
+    if (!summaryLower.includes('pracy') && !summaryLower.includes('work') && !summaryLower.includes('daily') && !summaryLower.includes('sync')) {
+      return CATEGORY_COLORS['relacje_rodzina'];
+    }
+  }
+
+  return 'bg-primary text-white border border-primary/20';
+}
+
+function layoutDayEvents(dayEvents: CalRow[]) {
+  // 1. Filter and parse times
+  const parsed = dayEvents
+    .filter(ev => ev.start_time && ev.end_time)
+    .map(ev => {
+      const start = parseTime(ev.start_time!);
+      const end = parseTime(ev.end_time!);
+      return {
+        event: ev,
+        start: Math.max(HOUR_START * 60, start),
+        end: Math.min(HOUR_END * 60, end)
+      };
+    });
+
+  // Sort by start time, then end time (longest first)
+  parsed.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    return (b.end - b.start) - (a.end - a.start);
+  });
+
+  // Group into columns
+  const columns: { end: number }[][] = [];
+  const eventLayouts = new Map<string, { columnIndex: number }>();
+
+  for (const item of parsed) {
+    let colIndex = 0;
+    while (colIndex < columns.length) {
+      const col = columns[colIndex];
+      const lastInCol = col[col.length - 1];
+      if (item.start >= lastInCol.end) {
+        break;
+      }
+      colIndex++;
+    }
+
+    if (colIndex === columns.length) {
+      columns.push([]);
+    }
+
+    columns[colIndex].push(item);
+    eventLayouts.set(item.event.id, { columnIndex: colIndex });
+  }
+
+  // Group into overlapping clusters to normalize column counts
+  const clusters: typeof parsed[] = [];
+  let currentCluster: typeof parsed = [];
+  let clusterEnd = 0;
+
+  for (const item of parsed) {
+    if (currentCluster.length === 0 || item.start < clusterEnd) {
+      currentCluster.push(item);
+      clusterEnd = Math.max(clusterEnd, item.end);
+    } else {
+      clusters.push(currentCluster);
+      currentCluster = [item];
+      clusterEnd = item.end;
+    }
+  }
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster);
+  }
+
+  const styles = new Map<string, { left: string; width: string }>();
+
+  for (const cluster of clusters) {
+    let maxCol = 0;
+    for (const item of cluster) {
+      const layout = eventLayouts.get(item.event.id);
+      if (layout && layout.columnIndex > maxCol) {
+        maxCol = layout.columnIndex;
+      }
+    }
+    const colsCount = maxCol + 1;
+
+    for (const item of cluster) {
+      const layout = eventLayouts.get(item.event.id);
+      const colIdx = layout ? layout.columnIndex : 0;
+      const width = `${100 / colsCount}%`;
+      const left = `${(colIdx * 100) / colsCount}%`;
+      styles.set(item.event.id, { left, width });
+    }
+  }
+
+  return styles;
 }
 
 interface QuickCreateState {
@@ -459,7 +587,13 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       const isSleep = ev.summary?.toLowerCase()?.includes('sen') || ev.summary?.toLowerCase()?.includes('sleep');
       if (isSleep) return;
 
-      const cat = ev.category.toLowerCase();
+      let cat = ev.category.toLowerCase();
+      if (cat === 'work') cat = 'praca';
+      else if (cat === 'health') cat = 'cialo_trening';
+      else if (cat === 'personal') cat = 'relacje_rodzina';
+      else if (cat === 'sport') cat = 'cialo_trening';
+      else if (cat === 'study') cat = 'duch_refleksja';
+
       if (!(cat in totals)) return;
       try {
         const start = new Date(ev.start_time.replace(' ', 'T')).getTime();
@@ -638,7 +772,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             const endM = slotEnd % 60;
 
             const startISO = `${selectedDay}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
-            const endISO = `${selectedDay}T${pad(endH)}:${pad(endM)}:00${WARSAW_OFFSET}`;
+            const endISO = `${endH === 24 ? selectedDay : selectedDay}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`; // safeguard against 24:00 offset
 
             await createEvent({
               summary: `✨ [AI] ${todo.title}`,
@@ -733,7 +867,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary: 'Sen 🛌',
             start: startISO,
             end: endISO,
-            category: 'cialo_trening',
+            category: 'odpoczynek_regeneracja',
           });
           updatedCount++;
         } else {
@@ -741,7 +875,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             summary: 'Sen 🛌',
             start: startISO,
             end: endISO,
-            category: 'cialo_trening',
+            category: 'odpoczynek_regeneracja',
           });
           createdCount++;
         }
@@ -821,7 +955,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           );
 
           const summary = isSauna ? 'Sauna 🧖' : 'Siłownia 🏋️';
-          const category = 'cialo_trening';
+          const category = isSauna ? 'odpoczynek_regeneracja' : 'cialo_trening';
           const startISO = new Date(session.start_time).toISOString();
 
           let duration = session.duration_minutes || 60;
@@ -1160,7 +1294,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const renderEventBlock = (ev: CalRow, colWidth: string) => {
+  const renderEventBlock = (ev: CalRow, left: string, width: string) => {
     if (!ev.start_time || !ev.end_time) return null;
     const startMin = parseTime(ev.start_time);
     const endMin = parseTime(ev.end_time);
@@ -1187,27 +1321,27 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       <div
         key={ev.id}
         onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
-        className={`absolute left-0.5 right-0.5 rounded-[6px] border-l-[3.5px] border-y border-r border-border-custom/10 ${tooShort ? 'px-1 py-0.5 flex items-center justify-center' : 'px-2 py-1'} overflow-hidden cursor-move hover:scale-[1.015] hover:shadow-md hover:brightness-105 active:scale-[0.985] active:brightness-95 transition-all duration-200 hover:z-20 select-none ${eventColor(ev)}`}
-        style={{ top, height, width: colWidth }}
+        className={`absolute rounded-none shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-105 active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
+        style={{ top, height, left: `calc(${left} + 1px)`, width: `calc(${width} - 2px)` }}
         title={ev.summary || ''}
       >
-        <div className="flex items-center gap-1 min-w-0 w-full justify-center">
-          {isAIScheduled && !tooShort && <Sparkles size={10} className="shrink-0 text-current animate-pulse opacity-90" />}
-          {isFocusTime && !tooShort && <Shield size={10} className="shrink-0 text-current opacity-90" />}
-          <p className={`text-current ${tooShort ? 'text-[8px]' : 'text-[10.5px]'} font-bold leading-none truncate text-center`}>
+        <div className="flex items-start gap-0.5 min-w-0 w-full justify-start flex-wrap">
+          {isAIScheduled && !tooShort && <Sparkles size={9} className="shrink-0 animate-pulse opacity-90 mt-0.5" />}
+          {isFocusTime && !tooShort && <Shield size={9} className="shrink-0 opacity-90 mt-0.5" />}
+          <p className={`${tooShort ? 'text-[8.5px]' : 'text-[9.5px]'} font-extrabold leading-tight break-all whitespace-normal line-clamp-3`}>
             {displaySummary}
           </p>
         </div>
         {!tooShort && (
-          <p className="text-current/75 text-[8.5px] font-bold leading-tight mt-0.5">
-            {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
-          </p>
+          <div className="opacity-85 text-[8.5px] font-bold leading-none mt-0.5 break-all whitespace-normal">
+            <span>{formatTime(ev.start_time)}–{formatTime(ev.end_time)}</span>
+          </div>
         )}
         
         {/* Drag Resize Handle (Bottom Edge) */}
         <div
           onMouseDown={(e) => handleEventMouseDown(ev, e, 'resize')}
-          className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-black/10 dark:hover:bg-white/10 z-30"
+          className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-black/10 dark:hover:bg-white/10 z-30"
         />
       </div>
     );
@@ -1215,12 +1349,17 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
   const renderTimeGutter = () => {
     return (
-      <div className="flex flex-col shrink-0" style={{ width: 36 }}>
+      <div className="flex flex-col shrink-0 relative" style={{ width: 44 }}>
         {Array.from({ length: HOURS + 1 }, (_, i) => (
           <div
             key={i}
-            className="text-[9px] font-bold text-text-muted/60 text-right pr-1 shrink-0"
-            style={{ height: PX_PER_HOUR, lineHeight: `${PX_PER_HOUR}px` }}
+            className="text-[10px] font-extrabold text-text-muted/40 text-right pr-2 absolute right-0"
+            style={{ 
+              top: i * PX_PER_HOUR, 
+              transform: 'translateY(-50%)',
+              height: 20,
+              lineHeight: '20px'
+            }}
           >
             {String(HOUR_START + i).padStart(2, '0')}:00
           </div>
@@ -1298,15 +1437,21 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           />
         ))}
         {/* Events */}
-        {dayEvents.map((ev) => renderEventBlock(ev, 'calc(100% - 4px)'))}
+        {(() => {
+          const layouts = layoutDayEvents(dayEvents);
+          return dayEvents.map((ev) => {
+            const layout = layouts.get(ev.id) || { left: '0%', width: '100%' };
+            return renderEventBlock(ev, layout.left, layout.width);
+          });
+        })()}
         {/* Now line */}
         {nowLine !== null && nowLine >= 0 && (
           <div
-            className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
+            className="absolute left-0 right-0 flex items-center pointer-events-none z-20"
             style={{ top: nowLine }}
           >
-            <div className="w-2 h-2 rounded-full bg-rose-500 -ml-1" />
-            <div className="flex-1 h-[1.5px] bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse -ml-[5px]" />
+            <div className="flex-1 h-[1.5px] bg-rose-500" />
           </div>
         )}
       </div>
@@ -1412,7 +1557,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           </button>
         </div>
         {/* Day headers */}
-        <div className="flex border-b border-border-custom/20" style={{ paddingLeft: 36 }}>
+        <div className="flex border-b border-border-custom/20" style={{ paddingLeft: 44 }}>
           {weekDays.map((day) => {
             const isToday = day === today;
             return (

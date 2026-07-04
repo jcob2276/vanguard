@@ -1,6 +1,7 @@
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
+import { getEmbedding } from "../_shared/openai.ts";
 
 type SourceRef = {
   table: string;
@@ -623,6 +624,60 @@ Priorytet:
       if (error) throw error;
       pagesUpserted++;
       pageIdBySlug[data.slug] = data.id;
+
+      // Sync to vanguard_knowledge to enable semantic search of compiled facts
+      try {
+        const openaiKey = Deno.env.get("OPENAI_API_KEY") || "";
+        if (openaiKey) {
+          const titleText = trimText(draft.title || slug, 120);
+          const summaryText = trimText(draft.summary || "", 600);
+          const knowledgeContent = `${titleText}: ${summaryText}`;
+          const embedding = await getEmbedding(knowledgeContent, openaiKey);
+          if (embedding) {
+            const importanceScore = Math.round(clamp(Number(draft.confidence ?? 0.55)) * 10);
+            const isVerified = draft.status === "user_confirmed" || draft.status === "active";
+            
+            const { data: existingKn } = await supabase
+              .from("vanguard_knowledge")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("metadata->>slug", slug)
+              .maybeSingle();
+
+            const payloadKn: any = {
+              user_id: userId,
+              title: titleText,
+              content: knowledgeContent,
+              category: draft.page_type || "concept",
+              importance_score: importanceScore,
+              is_verified: isVerified,
+              embedding: embedding,
+              metadata: { slug, wiki_page_id: data.id },
+              updated_at: now.toISOString(),
+            };
+
+            if (existingKn?.id) {
+              payloadKn.id = existingKn.id;
+            } else {
+              payloadKn.created_at = now.toISOString();
+            }
+
+            const { error: knErr } = await supabase
+              .from("vanguard_knowledge")
+              .upsert(payloadKn);
+
+            if (knErr) {
+              console.error(`[wiki-compiler] Failed to sync to vanguard_knowledge for page ${slug}:`, knErr.message);
+            } else {
+              console.log(`[wiki-compiler] Successfully synced to vanguard_knowledge for page ${slug}`);
+            }
+          } else {
+            console.warn(`[wiki-compiler] Failed to generate embedding for page ${slug}, skipping vanguard_knowledge sync`);
+          }
+        }
+      } catch (knSyncErr: any) {
+        console.error(`[wiki-compiler] Exception during vanguard_knowledge sync for page ${slug}:`, knSyncErr.message || knSyncErr);
+      }
 
       for (const ref of refs) {
         if (!ref.table || !ref.id) continue;

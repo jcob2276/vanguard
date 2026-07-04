@@ -67,7 +67,7 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
   const [
     winsRes, ouraRes, nutrRes, targetRes, runsRes, habitLogsRes,
     staleHighRes, linksRes, thisWeekStreamRes, sectionsRes, doneTasksRes, projectsRes,
-    kpisRes, kpiEntriesRes, reconciliationsRes,
+    kpisRes, kpiEntriesRes, reconciliationsRes, behavioralPatternsRes, curiosityQueueRes,
   ] = await Promise.all([
     db.from("daily_wins")
       .select("date, result, task_1, task_2, task_3, task_4, task_5, category_1, category_2, category_3, category_4, category_5, done_1, done_2, done_3, done_4, done_5, day_note, task_1_project_id, task_2_project_id, task_3_project_id, task_4_project_id, task_5_project_id, task_1_target_value, task_2_target_value, task_3_target_value, task_4_target_value, task_5_target_value")
@@ -105,6 +105,18 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
     db.from("daily_reconciliations")
       .select("date, day_score, mode, morning_action, midday_status, midday_blocker, planning_summary, user_response")
       .eq("user_id", userId).gte("date", weekStart).lte("date", weekEnd).order("date"),
+    db.from("vanguard_behavioral_patterns")
+      .select("pattern_type, title, evidence_text, status, confidence, occurrence_count")
+      .eq("user_id", userId)
+      .neq("status", "archived")
+      .neq("status", "user_rejected")
+      .order("confidence", { ascending: false }),
+    db.from("vanguard_curiosity_queue")
+      .select("hypothesis, provocation, category, confidence_score")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .order("confidence_score", { ascending: false })
+      .limit(5),
   ]);
 
   const sprintInfo = getSprintInfoForDate(weekEnd);
@@ -231,6 +243,8 @@ async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
     thisWeekVoice, thisWeekShortMsgs, doneTasks, activeProjects,
     kpiValuesList, reconciliationList,
     sprintGoal, monthTheme,
+    behavioralPatterns: behavioralPatternsRes.data ?? [],
+    curiosityQueue: curiosityQueueRes.data ?? [],
   };
 }
 
@@ -296,6 +310,14 @@ function factsToPrompt(f: Awaited<ReturnType<typeof gatherWeekFacts>>): string {
       }).join("\n\n")
     : "(brak)";
 
+  const patternsBlock = f.behavioralPatterns?.length
+    ? f.behavioralPatterns.map((p: any) => `- [${p.status}] ${p.title || p.pattern_type}: ${p.evidence_text} (confidence: ${p.confidence}, occurrence_count: ${p.occurrence_count})`).join("\n")
+    : "(brak)";
+
+  const curiosityBlock = f.curiosityQueue?.length
+    ? f.curiosityQueue.map((c: any) => `- [${c.category}] ${c.hypothesis} (${c.provocation ? `provocation: ${c.provocation}` : ""})`).join("\n")
+    : "(brak)";
+
   return `Tydzień: ${f.weekStart} – ${f.weekEnd}
 
 ${f.monthTheme ? `TEMAT MIESIĄCA (horyzont 4 tyg.): ${f.monthTheme}\n` : ""}${f.sprintGoal ? `CEL SPRINTU (12 tyg.): ${f.sprintGoal}\n` : ""}
@@ -326,6 +348,12 @@ ${projectsBlock}
 
 KPI PROJEKTÓW / CELÓW (zalogowane wartości tygodniowe):
 ${kpisBlock}
+
+WZORCE BEHAWIORALNE W BAZIE (Etap 1):
+${patternsBlock}
+
+AKTYWNE HIPOTEZY / PYTANIA ANALITYKA (Curiosity Queue):
+${curiosityBlock}
 
 PODSUMOWANIA DZIENNE (Tryb dnia + Refleksja wieczorna):
 ${reconBlock}

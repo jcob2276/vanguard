@@ -4084,6 +4084,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@eslint/js@^10.0.1",
+        "npm:@mediapipe/tasks-vision@~0.10.35",
         "npm:@supabase/supabase-js@^2.105.1",
         "npm:@tailwindcss/postcss@^4.2.4",
         "npm:@types/react-dom@^19.2.3",
@@ -4100,6 +4101,7 @@
         "npm:postcss@^8.5.12",
         "npm:react-body-highlighter@^2.0.5",
         "npm:react-dom@^19.2.5",
+        "npm:react-is@^19.2.7",
         "npm:react-router-dom@^7.17.0",
         "npm:react@^19.2.5",
         "npm:recharts@^3.8.1",
