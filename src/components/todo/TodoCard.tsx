@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, ListTree, Paperclip, Upload } from 'lucide-react';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload } from 'lucide-react';
 import {
   GOAL_ICON,
   PRIORITY,
   PRIORITY_ORDER,
   splitEmoji,
   relativeDate,
-  parseSubtasks,
   RECURRENCE_LABELS
 } from './todoUtils';
 import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo';
@@ -19,9 +18,6 @@ export interface TodoCardProps {
   onSetPriority: (p: string) => void;
   expanded: boolean;
   onToggleExpand: (id: string) => void;
-  onToggleSubtask: (index: number) => void;
-  onAddSubtask: (text: string) => void;
-  onDeleteSubtask: (index: number) => void;
   busy: boolean;
   today: string;
   isLinkedToPlan: boolean;
@@ -59,9 +55,6 @@ export default function TodoCard({
   onSetPriority,
   expanded,
   onToggleExpand,
-  onToggleSubtask,
-  onAddSubtask,
-  onDeleteSubtask,
   busy,
   today,
   isLinkedToPlan,
@@ -95,7 +88,6 @@ export default function TodoCard({
   const [touchStartY, setTouchStartY] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
-  const [newSubtask, setNewSubtask] = useState('');
   const [newChildTask, setNewChildTask] = useState('');
   const [attachments, setAttachments] = useState<any[]>([]);
   const [attachmentsLoaded, setAttachmentsLoaded] = useState(false);
@@ -150,12 +142,9 @@ export default function TodoCard({
 
   const [reminderInput, setReminderInput] = useState('');
 
-  const { description, subtasks } = useMemo(() => parseSubtasks(item.notes), [item.notes]);
-  const doneCount = subtasks.filter(s => s.checked).length;
-  // Progress must count both subtask stores (checklist-in-notes and real parent_task_id
-  // children) — a card can have either or both, and counting only one undercounts.
-  const totalSubtaskCount = subtasks.length + childTasks.length;
-  const doneSubtaskCount = doneCount + childTasks.filter((c) => c.status === 'done').length;
+  const description = (item.notes || '').trim();
+  const totalSubtaskCount = childTasks.length;
+  const doneSubtaskCount = childTasks.filter((c) => c.status === 'done').length;
   const p = PRIORITY[item.priority] ?? PRIORITY.normal;
   const isDone = item.status === 'done';
 
@@ -544,94 +533,10 @@ export default function TodoCard({
                   </div>
                 </div>
 
-                {/* Subtasks (Podzadania) - Default Visible */}
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Podzadania</p>
-                  <div className="space-y-1">
-                    {subtasks.map((st, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
-                      >
-                        <button onClick={() => onToggleSubtask(idx)} className="shrink-0 btn-press">
-                          <div
-                            className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
-                              st.checked ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
-                            }`}
-                          >
-                            {st.checked && <Check size={8} className="text-white" strokeWidth={3} />}
-                          </div>
-                        </button>
-                        <span
-                          className={`min-w-0 flex-1 text-[11px] font-medium truncate ${
-                            st.checked ? 'line-through text-text-muted' : 'text-text-primary'
-                          }`}
-                        >
-                          {st.text}
-                        </span>
-                        <button
-                          onClick={() => onDeleteSubtask(idx)}
-                          className="shrink-0 text-text-muted/30 hover:text-rose-400 transition-colors btn-press"
-                        >
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ))}
-                    {subtasks.length === 0 && (
-                      <button
-                        onClick={async () => {
-                          setAiLoading(true);
-                          try {
-                            const steps = await onAiBreakdown();
-                            for (const s of steps) onAddSubtask(s);
-                          } finally {
-                            setAiLoading(false);
-                          }
-                        }}
-                        disabled={aiLoading}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 py-2 text-[11px] font-semibold text-primary/70 hover:bg-primary/10 hover:text-primary transition-all btn-press disabled:opacity-40"
-                      >
-                        {aiLoading
-                          ? <span className="animate-pulse">Rozbijam…</span>
-                          : <><Sparkles size={11} /> Rozbij z AI</>
-                        }
-                      </button>
-                    )}
-                    <div className="flex gap-2 pt-0.5">
-                      <input
-                        placeholder="Nowe podzadanie..."
-                        value={newSubtask}
-                        onChange={e => setNewSubtask(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && newSubtask.trim()) {
-                            onAddSubtask(newSubtask);
-                            setNewSubtask('');
-                          }
-                        }}
-                        className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-2 text-[11px] font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
-                      />
-                      <button
-                        onClick={() => {
-                          if (newSubtask.trim()) {
-                            onAddSubtask(newSubtask);
-                            setNewSubtask('');
-                          }
-                        }}
-                        disabled={!newSubtask.trim()}
-                        className="rounded-xl bg-primary/90 px-3 py-2 text-[9px] font-black text-white disabled:opacity-30 hover:bg-primary transition-colors btn-press"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Nested subtasks — real todo_items (own priority/due date/reminders), not a checklist line */}
+                {/* Subtasks (Podzadania) — real todo_items with their own priority/due date/reminders */}
                 {onAddChildTask && (
                   <div>
-                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
-                      <ListTree size={11} /> Podzadania (pełne)
-                    </p>
+                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Podzadania</p>
                     <div className="space-y-1">
                       {childTasks.map((child) => (
                         <div
@@ -656,9 +561,29 @@ export default function TodoCard({
                           </span>
                         </div>
                       ))}
+                      {childTasks.length === 0 && (
+                        <button
+                          onClick={async () => {
+                            setAiLoading(true);
+                            try {
+                              const steps = await onAiBreakdown();
+                              for (const s of steps) onAddChildTask(s);
+                            } finally {
+                              setAiLoading(false);
+                            }
+                          }}
+                          disabled={aiLoading}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 py-2 text-[11px] font-semibold text-primary/70 hover:bg-primary/10 hover:text-primary transition-all btn-press disabled:opacity-40"
+                        >
+                          {aiLoading
+                            ? <span className="animate-pulse">Rozbijam…</span>
+                            : <><Sparkles size={11} /> Rozbij z AI</>
+                          }
+                        </button>
+                      )}
                       <div className="flex gap-2 pt-0.5">
                         <input
-                          placeholder="Nowe pełne podzadanie…"
+                          placeholder="Nowe podzadanie…"
                           value={newChildTask}
                           onChange={e => setNewChildTask(e.target.value)}
                           onKeyDown={e => {

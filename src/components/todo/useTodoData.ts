@@ -21,8 +21,6 @@ import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 import {
   nextOccurrenceDate,
-  parseSubtasks,
-  serializeSubtasks,
   matchesSmartQuery,
   PRIORITY_ORDER,
 } from './todoUtils';
@@ -421,21 +419,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       });
   };
 
-  const toggleSubtask = (item: TodoItemRow, idx: number) => {
-    const { description, subtasks } = parseSubtasks(item.notes);
-    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.map((st: any, i: number) => i === idx ? { ...st, checked: !st.checked } : st)) }));
-  };
-  const addSubtask = (item: TodoItemRow, text: string) => {
-    if (!text.trim()) return;
-    const { description, subtasks } = parseSubtasks(item.notes);
-    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, [...subtasks, { checked: false, text: text.trim() }]) }));
-  };
-  const deleteSubtask = (item: TodoItemRow, idx: number) => {
-    const { description, subtasks } = parseSubtasks(item.notes);
-    run(() => updateTodoItem(item.id, { notes: serializeSubtasks(description, subtasks.filter((_, i) => i !== idx)) }));
-  };
-
-  // Real nested subtask — a full todo_item (own priority/due date/reminders), not a checklist line.
+  // Nested subtask — a full todo_item with its own priority/due date/reminders.
   const addChildTask = (parent: TodoItemRow, title: string) => {
     if (!title.trim()) return;
     run(() => createTodoItem(userId, {
@@ -553,9 +537,6 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     classifyInBackground,
     batchClassify,
     addItem,
-    toggleSubtask,
-    addSubtask,
-    deleteSubtask,
     saveEditTitle,
     handleDragStart,
     showContextMenu,

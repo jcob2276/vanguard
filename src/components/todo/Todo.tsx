@@ -64,7 +64,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     parsedInput,
     todayItems, inboxItems, sectionsWithItems,
     run, addItem,
-    toggleSubtask, addSubtask, deleteSubtask, saveEditTitle,
+    saveEditTitle,
     handleDragStart, showContextMenu, handleComplete,
     getChildren, addChildTask,
     smartLists, searchQuery, setSearchQuery,
@@ -100,9 +100,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: item.status } : i));
         });
       }}
-      onToggleSubtask={(idx: number) => toggleSubtask(item, idx)}
-      onAddSubtask={(text: string) => addSubtask(item, text)}
-      onDeleteSubtask={(idx: number) => deleteSubtask(item, idx)}
       isLinkedToPlan={linkedPlanIds.has(item.id)}
       sections={sections}
       onMoveSection={(sId: string | null) => {

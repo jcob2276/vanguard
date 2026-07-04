@@ -77,25 +77,6 @@ export function relativeDate(dateStr: string | null | undefined, today: string) 
   return { text: format(new Date(dateStr + 'T00:00:00'), 'd MMM'), color: 'text-text-muted' };
 }
 
-export const parseSubtasks = (notes: string | null) => {
-  if (!notes) return { description: '', subtasks: [] };
-  const subtasks: Array<{ id: number; checked: boolean; text: string }> = [];
-  const descLines: string[] = [];
-  notes.split('\n').forEach((line, index) => {
-    const m = line.match(/^\s*[-*]\s+\[([ xX])\]\s*(.*)$/);
-    if (m) subtasks.push({ id: index, checked: m[1].toLowerCase() === 'x', text: m[2].trim() });
-    else descLines.push(line);
-  });
-  return { description: descLines.join('\n').trim(), subtasks };
-};
-
-export const serializeSubtasks = (description: string, subtasks: Array<{ checked: boolean; text: string }>) => {
-  const d = description.trim();
-  const s = subtasks.map(st => `- [${st.checked ? 'x' : ' '}] ${st.text}`).join('\n');
-  if (d && s) return `${d}\n\n${s}`;
-  return d || s;
-};
-
 // ── Smart query language ──
 // Tokens: tag:x priority:high due:today|week|overdue|none section:name text...
 // Unrecognized tokens and anything left over are treated as free-text title search.
