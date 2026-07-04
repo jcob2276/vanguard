@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw } from '../../lib/date';
-import { listTodoSections, listTodoItems, updateTodoItem } from '../../lib/todo';
+import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted } from '../../lib/todo';
 
 interface Props {
   session: any;
@@ -81,13 +80,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
         Object.entries(pendingUpdates).map(([id, patch]) => updateTodoItem(id, patch)),
       );
 
-      // 2. Insert weekly review marker log into vanguard_stream
-      await supabase.from('vanguard_stream').insert({
-        user_id: userId,
-        source: 'todo',
-        content: `Tygodniowy Przegląd Zadań zakończony: ${weeklyNote.trim()}`,
-        metadata: { kind: 'weekly_review', date: today, note: weeklyNote.trim() },
-      });
+      // 2. Log completion so the Dashboard card knows not to nag again this week
+      await logTaskReviewCompleted(userId, weeklyNote.trim());
 
       if (onFinished) onFinished();
       setStep(4); // Success screen

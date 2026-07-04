@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
 import { unwrap, unwrapList } from './supabaseUtils';
+import { getTodayWarsaw } from './date';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
@@ -192,5 +193,38 @@ export async function deleteAttachment(attachment: Pick<TodoAttachmentRow, 'id' 
     await supabase.storage.from('todo-attachments').remove([path]);
   }
   const { error } = await supabase.from('todo_attachments').delete().eq('id', attachment.id);
+  if (error) throw new Error(error.message);
+}
+
+// ── Weekly Task Review (Sunday inbox/section triage in WeeklyReviewModal) ──
+// Distinct from the goal/KPI "Refleksja tygodnia" in the Tydzień tab (goalSpine.mutations.completeWeeklyReview).
+const TASK_REVIEW_SOURCE = 'todo';
+const TASK_REVIEW_KIND = 'weekly_review';
+
+/** Warsaw date (YYYY-MM-DD) of the last completed weekly task review, or null if never done. */
+export async function fetchLatestTaskReviewDate(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('vanguard_stream')
+    .select('metadata')
+    .eq('user_id', userId)
+    .eq('source', TASK_REVIEW_SOURCE)
+    .eq('metadata->>kind', TASK_REVIEW_KIND)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const metadata = data?.metadata as Record<string, unknown> | null;
+  return typeof metadata?.date === 'string' ? metadata.date : null;
+}
+
+/** Canonical write path for weekly task review completion — keep in sync with fetchLatestTaskReviewDate. */
+export async function logTaskReviewCompleted(userId: string, note: string): Promise<void> {
+  const date = getTodayWarsaw();
+  const { error } = await supabase.from('vanguard_stream').insert({
+    user_id: userId,
+    source: TASK_REVIEW_SOURCE,
+    content: `Tygodniowy Przegląd Zadań zakończony: ${note}`,
+    metadata: { kind: TASK_REVIEW_KIND, date, note },
+  });
   if (error) throw new Error(error.message);
 }

@@ -37,6 +37,8 @@ import FoodEntryModal from './nutrition/FoodEntryModal';
 import MorningPlanModal from './MorningPlanModal';
 import DailyShutdownModal from './DailyShutdownModal';
 import WeeklyReviewModal from '../todo/WeeklyReviewModal';
+import { fetchLatestTaskReviewDate } from '../../lib/todo';
+import { getWeekStartWarsaw } from '../../lib/growth';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -166,12 +168,27 @@ export default function Dashboard({ session }: { session: Session }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [userId]);
 
+  // Has the Sunday inbox/section triage already been done this week? Prevents the
+  // card from nagging again after completion (it used to have no memory at all).
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    fetchLatestTaskReviewDate(userId)
+      .then((date) => {
+        if (cancelled || !date) return;
+        setTaskReviewDoneThisWeek(getWeekStartWarsaw(date) === getWeekStartWarsaw(getTodayWarsaw()));
+      })
+      .catch((err) => console.error('Error fetching task review date:', err));
+    return () => { cancelled = true; };
+  }, [userId]);
+
   const [showSaunaLogger, setShowSaunaLogger] = useState(false);
   const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey] = useState(0);
   const [showMorningPlan, setShowMorningPlan] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
+  const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [showFastCapture, setShowFastCapture] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
@@ -496,7 +513,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
-              {new Date().getDay() === 0 && (
+              {new Date().getDay() === 0 && !taskReviewDoneThisWeek && (
                 <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
@@ -535,7 +552,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 onPlanDay={handlePlanDay}
                 onFocusPlan={handleFocusPlan}
               />
-              {new Date().getDay() === 0 && (
+              {new Date().getDay() === 0 && !taskReviewDoneThisWeek && (
                 <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
@@ -817,7 +834,10 @@ export default function Dashboard({ session }: { session: Session }) {
         <WeeklyReviewModal
           session={session}
           onClose={() => setShowWeeklyReview(false)}
-          onFinished={refresh}
+          onFinished={() => {
+            setTaskReviewDoneThisWeek(true);
+            refresh();
+          }}
         />
       )}
 

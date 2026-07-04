@@ -149,6 +149,10 @@ export default function TodoCard({
 
   const { description, subtasks } = useMemo(() => parseSubtasks(item.notes), [item.notes]);
   const doneCount = subtasks.filter(s => s.checked).length;
+  // Progress must count both subtask stores (checklist-in-notes and real parent_task_id
+  // children) — a card can have either or both, and counting only one undercounts.
+  const totalSubtaskCount = subtasks.length + childTasks.length;
+  const doneSubtaskCount = doneCount + childTasks.filter((c) => c.status === 'done').length;
   const p = PRIORITY[item.priority] ?? PRIORITY.normal;
   const isDone = item.status === 'done';
 
@@ -402,8 +406,8 @@ export default function TodoCard({
                   <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
                 </span>
               )}
-              {subtasks.length > 0 && (
-                <div className="todo-progress-container" title={`${doneCount}/${subtasks.length} podzadań`}>
+              {totalSubtaskCount > 0 && (
+                <div className="todo-progress-container" title={`${doneSubtaskCount}/${totalSubtaskCount} podzadań`}>
                   <div className="todo-progress-track">
                     <div
                       className={`todo-progress-bar ${
@@ -415,10 +419,10 @@ export default function TodoCard({
                           ? 'bg-amber-500'
                           : 'bg-primary'
                       }`}
-                      style={{ width: `${(doneCount / subtasks.length) * 100}%` }}
+                      style={{ width: `${(doneSubtaskCount / totalSubtaskCount) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-text-muted/45 font-medium">{doneCount}/{subtasks.length}</span>
+                  <span className="text-[10px] text-text-muted/45 font-medium">{doneSubtaskCount}/{totalSubtaskCount}</span>
                 </div>
               )}
               {item.duration_minutes != null && item.duration_minutes > 0 && !isDone && (
