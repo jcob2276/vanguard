@@ -51,6 +51,31 @@ Deno.serve(async (req) => {
         .order('date', { ascending: false }),
     )
 
+    // Free-text reflections written in the evening shutdown ritual (day_note = "Refleksja",
+    // journal_entry = "Co realnie zrobiłeś") — previously only reached the LLM indirectly
+    // (and only if not crowded out of the 35-item stream cap below).
+    const dailyReflections = await safeExecute(
+      supabase.from('daily_wins')
+        .select('date, day_note, journal_entry, result')
+        .eq('user_id', VANGUARD_USER_ID)
+        .gte('date', weekStart)
+        .or('day_note.not.is.null,journal_entry.not.is.null')
+        .order('date', { ascending: true }),
+    )
+
+    // The deliberate "Refleksja tygodnia" from the Tydzień tab — most recent one completed
+    // in the synthesis window. Previously never read by any analysis job.
+    const weeklyReflectionRows = await safeExecute(
+      supabase.from('weekly_reviews')
+        .select('week_start, proud_of, do_differently, sabotage, obligation, week_highlight, week_regret, new_belief, bottleneck, review_completed_at')
+        .eq('user_id', VANGUARD_USER_ID)
+        .not('review_completed_at', 'is', null)
+        .gte('review_completed_at', cut7d.toISOString())
+        .order('review_completed_at', { ascending: false })
+        .limit(1),
+    )
+    const weeklyReflection = (weeklyReflectionRows || [])[0] || null
+
     const topHypotheses = await safeExecute(
       supabase.from('vanguard_curiosity_queue')
         .select('hypothesis, provocation, confidence_score, category')
@@ -131,6 +156,28 @@ Deno.serve(async (req) => {
       return `[Data: ${p.date}]\n- Plan (artefakt): ${prodArtifact} | Minimum: ${minViable}\n- Rzeczywistość (koszt): ${biggestCost} | Nazwane blokery: ${blockers}`;
     }).join('\n\n');
 
+    const dailyReflectionsText = (dailyReflections || []).length > 0
+      ? (dailyReflections || []).map((d: any) => {
+          const parts = [`[${d.date}, wynik dnia: ${d.result ?? '—'}]`];
+          if (d.day_note?.trim()) parts.push(`Refleksja: "${d.day_note.trim()}"`);
+          if (d.journal_entry?.trim()) parts.push(`Co zrobiono: "${d.journal_entry.trim()}"`);
+          return parts.join(' ');
+        }).join('\n')
+      : 'Brak refleksji wieczornych w tym tygodniu.'
+
+    const weeklyReflectionText = weeklyReflection
+      ? [
+          weeklyReflection.week_highlight?.trim() && `Highlight tygodnia: "${weeklyReflection.week_highlight.trim()}"`,
+          weeklyReflection.proud_of?.trim() && `Dumny z: "${weeklyReflection.proud_of.trim()}"`,
+          weeklyReflection.do_differently?.trim() && `Zrobiłby inaczej: "${weeklyReflection.do_differently.trim()}"`,
+          weeklyReflection.sabotage?.trim() && `Sabotaż: "${weeklyReflection.sabotage.trim()}"`,
+          weeklyReflection.obligation?.trim() && `Zobowiązanie: "${weeklyReflection.obligation.trim()}"`,
+          weeklyReflection.week_regret?.trim() && `Żal tygodnia: "${weeklyReflection.week_regret.trim()}"`,
+          weeklyReflection.new_belief?.trim() && `Nowe przekonanie: "${weeklyReflection.new_belief.trim()}"`,
+          weeklyReflection.bottleneck?.trim() && `Wąskie gardło: "${weeklyReflection.bottleneck.trim()}"`,
+        ].filter(Boolean).join('\n') || 'Refleksja tygodnia wypełniona, ale bez treści w polach tekstowych.'
+      : 'Brak ukończonej Refleksji Tygodnia w tym oknie (zakładka Tydzień).'
+
     const hypothesesText = (topHypotheses || []).length > 0
       ? (topHypotheses || []).map((h: any) =>
           `[${h.category}, conf=${h.confidence_score?.toFixed(2)}] ${h.hypothesis}`
@@ -163,6 +210,7 @@ ZASADY ABSOLUTNE:
 4. Deklaracje vs dane: Porównaj plany i nazwane blokery z rzeczywistym kosztem i tarciami. Pokaż rozjazdy i samooszukiwanie bez ogródek, posługując się cytatami z planów i kosztów. Szczególnie odnieś się do tego, czy zapowiedziane blokery faktycznie się zmaterializowały lub czy pojawiły się niespodziewane tarcia.
 5. Hipoteza systemu: wybierz jedną z kolejki TYLKO jeśli pasuje do danych tygodnia. Jeśli żadna nie pasuje — napisz "brak pasującej hipotezy".
 6. Pytanie na następne 7 dni: konkretne, operacyjne — nie motywacyjne, nie ogólne.
+7. REFLEKSJE (wieczorne + tygodniowa) to głos użytkownika, nie surowe dane — cytuj wprost gdzie pasuje (WZORZEC TYGODNIA / DEKLARACJE VS DANE), nie psychoanalizuj ich treści. Jeśli coś nazwanego w REFLEKSJI TYGODNIA (sabotaż/wąskie gardło) pokrywa się z friction/biometrią — to jest twój najmocniejszy dowód, nazwij to wprost.
 
 FORMAT (trzymaj się dokładnie tej struktury, po polsku):
 
@@ -202,6 +250,12 @@ PLANY I DEKLARACJE VS RZECZYWISTOŚĆ KOŃCA DNIA:
 ${planningsText || 'brak danych o planach'}
 
 SESJE PLANOWANIA WIECZORNEGO: ${(plannings || []).length} z 7 dni
+
+REFLEKSJE WIECZORNE (Domknięcie Dnia — dzień po dniu):
+${dailyReflectionsText}
+
+REFLEKSJA TYGODNIA (zakładka Tydzień):
+${weeklyReflectionText}
 
 HIPOTEZY Z KOLEJKI (top 3 wg confidence):
 ${hypothesesText}
