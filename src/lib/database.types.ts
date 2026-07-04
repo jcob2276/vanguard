@@ -1694,6 +1694,30 @@ export type Database = {
         }
         Relationships: []
       }
+      intervals_tokens: {
+        Row: {
+          api_key: string
+          athlete_id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          athlete_id: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          athlete_id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_insight_cards: {
         Row: {
           created_at: string | null
@@ -3027,6 +3051,8 @@ export type Database = {
           hr_frozen: boolean | null
           hr_max: number | null
           hr_source: string | null
+          icu_activity_id: string | null
+          icu_hr_zone_times: Json | null
           is_oura_duplicate: boolean | null
           manual: boolean | null
           max_heartrate: number | null
@@ -3035,6 +3061,7 @@ export type Database = {
           name: string | null
           perceived_exertion: number | null
           raw_data: Json | null
+          source: string | null
           splits_with_hr: Json | null
           sport_type: string | null
           start_date: string | null
@@ -3042,6 +3069,7 @@ export type Database = {
           suffer_score: number | null
           synced_at: string | null
           total_elevation_gain: number | null
+          trimp: number | null
           user_id: string
         }
         Insert: {
@@ -3064,6 +3092,8 @@ export type Database = {
           hr_frozen?: boolean | null
           hr_max?: number | null
           hr_source?: string | null
+          icu_activity_id?: string | null
+          icu_hr_zone_times?: Json | null
           is_oura_duplicate?: boolean | null
           manual?: boolean | null
           max_heartrate?: number | null
@@ -3072,6 +3102,7 @@ export type Database = {
           name?: string | null
           perceived_exertion?: number | null
           raw_data?: Json | null
+          source?: string | null
           splits_with_hr?: Json | null
           sport_type?: string | null
           start_date?: string | null
@@ -3079,6 +3110,7 @@ export type Database = {
           suffer_score?: number | null
           synced_at?: string | null
           total_elevation_gain?: number | null
+          trimp?: number | null
           user_id: string
         }
         Update: {
@@ -3101,6 +3133,8 @@ export type Database = {
           hr_frozen?: boolean | null
           hr_max?: number | null
           hr_source?: string | null
+          icu_activity_id?: string | null
+          icu_hr_zone_times?: Json | null
           is_oura_duplicate?: boolean | null
           manual?: boolean | null
           max_heartrate?: number | null
@@ -3109,6 +3143,7 @@ export type Database = {
           name?: string | null
           perceived_exertion?: number | null
           raw_data?: Json | null
+          source?: string | null
           splits_with_hr?: Json | null
           sport_type?: string | null
           start_date?: string | null
@@ -3116,6 +3151,7 @@ export type Database = {
           suffer_score?: number | null
           synced_at?: string | null
           total_elevation_gain?: number | null
+          trimp?: number | null
           user_id?: string
         }
         Relationships: []
@@ -3260,6 +3296,47 @@ export type Database = {
         }
         Relationships: []
       }
+      todo_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          todo_item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          todo_item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          todo_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todo_attachments_todo_item_id_fkey"
+            columns: ["todo_item_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todo_items: {
         Row: {
           ai_bucket: string | null
@@ -3272,6 +3349,7 @@ export type Database = {
           is_important: boolean
           is_milestone: boolean
           notes: string | null
+          parent_task_id: string | null
           priority: string
           project_id: string | null
           recurrence: string | null
@@ -3297,6 +3375,7 @@ export type Database = {
           is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           recurrence?: string | null
@@ -3322,6 +3401,7 @@ export type Database = {
           is_important?: boolean
           is_milestone?: boolean
           notes?: string | null
+          parent_task_id?: string | null
           priority?: string
           project_id?: string | null
           recurrence?: string | null
@@ -3337,6 +3417,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "todo_items_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "todo_items_project_id_fkey"
             columns: ["project_id"]
@@ -3393,6 +3480,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      todo_smart_lists: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          query: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          query: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          query?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       training_plan_workouts: {
         Row: {

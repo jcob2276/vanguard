@@ -124,7 +124,7 @@ export default function StravaWidget({ session }: { session: any }) {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-strava`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-intervals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ export default function StravaWidget({ session }: { session: any }) {
           onClick={handleSync}
           disabled={syncing}
           className="rounded-xl border border-border-custom bg-surface p-2.5 text-text-secondary transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 shadow-sm cursor-pointer"
-          title="Sync Strava"
+          title="Sync (Garmin/intervals.icu)"
         >
           <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
         </button>
