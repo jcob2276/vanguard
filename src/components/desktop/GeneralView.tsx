@@ -392,7 +392,7 @@ export default function GeneralView({
         <Panel title={`Wzorce zachowań (${patterns.length})`}>
           <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
             {patterns.map((p, i) => (
-              <div key={i} className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5">
+              <div key={i} className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5 hover:border-primary/20 hover:shadow-sm transition-all duration-150">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="text-[11px] font-bold text-text-primary leading-tight">{p.title || p.pattern_type}</span>
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${p.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
@@ -414,7 +414,7 @@ export default function GeneralView({
         <Panel title={`Hipotezy do zbadania (${curiosity.length})`}>
           <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
             {curiosity.map((c, i) => (
-              <div key={i} className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5">
+              <div key={i} className="rounded-xl border border-border-custom bg-surface-solid/40 p-2.5 hover:border-primary/20 hover:shadow-sm transition-all duration-150">
                 <p className="text-[10px] text-text-secondary leading-relaxed mb-1.5">{c.hypothesis}</p>
                 {c.provocation && (
                   <p className="text-[9px] text-primary italic">→ {c.provocation}</p>

@@ -112,8 +112,8 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
                   : isToday
                   ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
                   : item.isCurrentMonth
-                  ? 'text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] font-semibold hover:scale-[1.08]'
-                  : 'text-text-muted/30 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
+                  ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[1.08]'
+                  : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'
               }`}
             >
               {item.dayNum}

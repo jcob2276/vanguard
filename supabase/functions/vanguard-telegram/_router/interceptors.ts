@@ -398,7 +398,7 @@ export class CommandRouterInterceptor implements MessageInterceptor {
       return true;
     }
     if (lowerText === "/s" || lowerText === "/suplement" || lowerText === "💊 suple") {
-      await handleSuplementCommand(ctx.chatId, ctx.telegramToken);
+      await handleSuplementCommand(ctx.chatId, ctx.telegramToken, ctx.supabase, ctx.vanguardUserId);
       return true;
     }
     if (lowerText.startsWith("/keep") || lowerText.startsWith("/notatka")) {

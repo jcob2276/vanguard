@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getTodayWarsaw, combineDateTimeWarsawISO } from '../../lib/date';
+import { getTodayWarsaw, combineDateTimeWarsawISO, warsawTimeOfDay } from '../../lib/date';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import {
   archiveTodoSection,
@@ -382,12 +382,12 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     const section_id = form.section_id || activeFilterSection || null;
     const notes = form.notes || null;
     const tagsText = form.tagsText;
-    const recurrence = form.recurrence || null;
+    const recurrence = parsedInput.recurrence || form.recurrence || null;
     // scheduled_time is a timestamptz column — combine the HH:MM the UI collects with due_date
     // before persisting; a bare "14:30" fails Postgres's cast (and silently drops with no date).
     const scheduledTimeHHMM = parsedInput.scheduled_time || form.scheduled_time || null;
     const scheduled_time = scheduledTimeHHMM && due_date ? combineDateTimeWarsawISO(due_date, scheduledTimeHHMM) : null;
-    const reminder_at = form.reminder_at || null;
+    const reminder_at = form.reminder_at || (scheduled_time ? scheduled_time : null);
     const tags = tagsText.split(',').map((t) => t.trim()).filter(Boolean);
 
     // Optimistic: add instantly
@@ -441,9 +441,38 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     deleteSmartList(id).catch((err) => setError(err instanceof Error ? err.message : String(err)));
   };
   const saveEditTitle = (item: TodoItemRow) => {
-    const title = editingTitle.trim();
-    if (title && title !== item.title) run(() => updateTodoItem(item.id, { title }));
-    setEditingId(null); setEditingTitle('');
+    const rawTitle = editingTitle.trim();
+    if (!rawTitle) {
+      setEditingId(null);
+      setEditingTitle('');
+      return;
+    }
+    
+    const parsed = parseTodoQuickInput(rawTitle);
+    const title = parsed.title || rawTitle;
+    
+    const patch: any = { title };
+    
+    if (parsed.priority) patch.priority = parsed.priority;
+    if (parsed.due_date) patch.due_date = parsed.due_date;
+    if (parsed.recurrence) patch.recurrence = parsed.recurrence;
+    if (parsed.duration_minutes !== null) patch.duration_minutes = parsed.duration_minutes;
+    
+    if (parsed.scheduled_time) {
+      const activeDueDate = parsed.due_date || item.due_date || today;
+      patch.scheduled_time = combineDateTimeWarsawISO(activeDueDate, parsed.scheduled_time);
+      patch.reminder_at = patch.scheduled_time;
+      patch.reminder_sent = false;
+    }
+    
+    const hasChanges = Object.keys(patch).some(key => patch[key] !== (item as any)[key]);
+    if (hasChanges) {
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, ...patch } : i));
+      run(() => updateTodoItem(item.id, patch));
+    }
+    
+    setEditingId(null);
+    setEditingTitle('');
   };
 
   const handleDragStart = useCallback((item: TodoItemRow, x: number, y: number) => {
@@ -468,10 +497,22 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       .then(async () => {
         if (newStatus === 'done' && item.recurrence) {
           const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
+          let nextScheduledTime: string | undefined = undefined;
+          let nextReminderAt: string | undefined = undefined;
+          
+          if (item.scheduled_time && nextDate) {
+            const timeStr = warsawTimeOfDay(item.scheduled_time);
+            nextScheduledTime = combineDateTimeWarsawISO(nextDate, timeStr);
+            if (item.reminder_at) {
+              nextReminderAt = nextScheduledTime;
+            }
+          }
+
           const newItem = await createTodoItem(userId, {
             title: item.title, notes: item.notes ?? undefined, priority: item.priority || 'normal',
             tagsText: (item.tags || []).join(', '), section_id: item.section_id ?? undefined,
             due_date: nextDate || undefined, recurrence: item.recurrence ?? undefined,
+            scheduled_time: nextScheduledTime, reminder_at: nextReminderAt,
           });
           setItems(prev => [...prev, newItem]);
         }

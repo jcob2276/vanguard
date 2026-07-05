@@ -38,13 +38,13 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-colors ${
+      className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
         active ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
       }`}
     >
       <span className={active ? 'text-primary' : 'text-text-muted/60'}>{icon}</span>
       <span className="flex-1 truncate text-left">{label}</span>
-      {!!count && <span className="text-[11px] font-semibold text-text-muted/50 tabular-nums">{count}</span>}
+      {!!count && <span className="text-[10px] font-semibold text-text-muted/50 tabular-nums">{count}</span>}
     </button>
   );
 }
@@ -114,13 +114,13 @@ export default function TodoSidebar({
       <div className="flex flex-col gap-0.5">
         <p className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-text-muted/60">Workspace</p>
         <NavItem
-          icon={<StickyNote size={15} />}
+          icon={<StickyNote size={14} />}
           label="Notatki"
           active={false}
           onClick={() => onNavigateTo?.('keep')}
         />
         <NavItem
-          icon={<ListTodo size={15} />}
+          icon={<ListTodo size={14} />}
           label="Zadania"
           active={navDest === 'overview' && !activeSectionId}
           onClick={() => {
@@ -129,13 +129,13 @@ export default function TodoSidebar({
           }}
         />
         <NavItem
-          icon={<Calendar size={15} />}
+          icon={<Calendar size={14} />}
           label="Kalendarz"
           active={false}
           onClick={() => onNavigateTo?.('kalendarz')}
         />
         <NavItem
-          icon={<BookOpen size={15} />}
+          icon={<BookOpen size={14} />}
           label="Pocket"
           active={false}
           onClick={() => onNavigateTo?.('links')}
@@ -145,29 +145,29 @@ export default function TodoSidebar({
 
       <button
         onClick={onFocusSearch}
-        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary transition-colors"
+        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] font-medium text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary transition-colors"
       >
-        <Search size={15} className="text-text-muted/60" />
+        <Search size={14} className="text-text-muted/60" />
         Szukaj
       </button>
 
       <div className="border-t border-border-custom/30 pt-2 flex flex-col gap-0.5">
         <NavItem
-          icon={<Inbox size={15} />}
+          icon={<Inbox size={14} />}
           label="Skrzynka"
           count={inboxCount}
           active={navDest === 'inbox'}
           onClick={() => onNavDest('inbox')}
         />
         <NavItem
-          icon={<CalendarDays size={15} />}
+          icon={<CalendarDays size={14} />}
           label="Dziś"
           count={todayCount}
           active={navDest === 'today'}
           onClick={() => onNavDest('today')}
         />
         <NavItem
-          icon={<CalendarClock size={15} />}
+          icon={<CalendarClock size={14} />}
           label="Nadchodzące"
           count={upcomingCount}
           active={navDest === 'upcoming'}
@@ -210,13 +210,13 @@ export default function TodoSidebar({
                       if (e.key === 'Enter') commitRename(s.id);
                       if (e.key === 'Escape') setRenamingId(null);
                     }}
-                    className="flex-1 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1.5 text-[12.5px] font-semibold text-primary outline-none"
+                    className="flex-1 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-[12px] font-semibold text-primary outline-none"
                   />
                 ) : (
                   <>
                     <button
                       onClick={() => onSelectSection(s.id)}
-                      className={`flex-1 min-w-0 truncate rounded-xl px-2.5 py-1.5 text-left text-[12.5px] font-semibold transition-colors ${
+                      className={`flex-1 min-w-0 truncate rounded-xl px-2.5 py-1 text-left text-[12px] font-semibold transition-colors ${
                         navDest === 'overview' && activeSectionId === s.id
                           ? 'bg-primary/10 text-primary'
                           : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
@@ -259,7 +259,7 @@ export default function TodoSidebar({
                   if (e.key === 'Escape') { setAdding(false); setNewName(''); }
                 }}
                 placeholder="Nazwa listy…"
-                className="mt-0.5 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1.5 text-[12.5px] font-semibold text-primary outline-none"
+                className="mt-0.5 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-[12px] font-semibold text-primary outline-none"
               />
             ) : (
               <button

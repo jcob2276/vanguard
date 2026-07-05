@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload, Tag, Calendar, MessageSquare, MoreHorizontal, Folder, ChevronDown, Flag } from 'lucide-react';
 import {
   GOAL_ICON,
   PRIORITY,
@@ -10,6 +10,9 @@ import {
 } from './todoUtils';
 import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo';
 import { LIFE_SPHERES } from '../../lib/lifeSpheres';
+import TodoDatePickerPopover from './TodoDatePickerPopover';
+import TodoReminderPopover from './TodoReminderPopover';
+import NlpHighlightInput from './NlpHighlightInput';
 
 export interface TodoCardProps {
   item: any;
@@ -43,6 +46,7 @@ export interface TodoCardProps {
   onSetSphere?: (sphere: string | null) => void;
   onAiBreakdown: () => Promise<string[]>;
   onSetTitle: (title: string) => void;
+  onSetNotes?: (notes: string | null) => void;
   childTasks?: any[];
   onAddChildTask?: (title: string) => void;
   onToggleChildTask?: (child: any) => void;
@@ -80,6 +84,7 @@ export default function TodoCard({
   onSetSphere,
   onAiBreakdown,
   onSetTitle,
+  onSetNotes,
   childTasks = [],
   onAddChildTask,
   onToggleChildTask,
@@ -98,21 +103,24 @@ export default function TodoCard({
   const [completing, setCompleting] = useState(false);
   const [completingOut, setCompletingOut] = useState(false);
   const [expandMounted, setExpandMounted] = useState(false);
+  const [openPopover, setOpenPopover] = useState<'date' | 'reminder' | null>(null);
   const longPressTimer = useRef<any>(null);
   const gripLongPressTimer = useRef<any>(null);
   const prevSwipeRef = useRef(0);
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [transitionCompleted, setTransitionCompleted] = useState(false);
 
   useEffect(() => {
     if (expanded) {
       setExpandMounted(true);
-      setShowAdvanced(!!item.recurrence || !!item.reminder_at);
+      const t = setTimeout(() => setTransitionCompleted(true), 300);
+      return () => clearTimeout(t);
     } else {
+      setTransitionCompleted(false);
       const t = setTimeout(() => setExpandMounted(false), 280);
       return () => clearTimeout(t);
     }
-  }, [expanded, item.recurrence, item.reminder_at]);
+  }, [expanded]);
 
   // Lazy-load attachments only once, the first time the card is expanded.
   useEffect(() => {
@@ -328,16 +336,16 @@ export default function TodoCard({
         }}
         style={{ transform: `translateX(${swipeOffset}px)` }}
         onClick={e => e.stopPropagation()}
-        className={`relative border-b border-border-custom/10 pr-2 py-2 pl-3 transition-colors duration-150 ease-out hover:bg-surface-solid/20 ${leftBorder}`}
+        className={`relative border-b border-border-custom/15 pr-2 py-4 pl-1 transition-all duration-200 ease-out group-hover:bg-text-primary/[0.015] ${leftBorder}`}
       >
-        <div className="flex items-start gap-3.5">
+        <div className="flex items-start gap-3">
           {/* Drag grip */}
           <div
             onTouchStart={onGripTouchStart}
             onTouchEnd={onGripTouchEnd}
             onTouchMove={onGripTouchMove}
             onMouseDown={onGripMouseDown}
-            className="mt-0.5 shrink-0 touch-none cursor-grab text-transparent group-hover:text-text-muted/15 transition-colors select-none"
+            className="mt-0.5 shrink-0 touch-none cursor-grab text-text-muted/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none"
           >
             <GripVertical size={13} />
           </div>
@@ -353,7 +361,7 @@ export default function TodoCard({
               className="shrink-0 mt-0.5 btn-press"
             >
               <span
-                className={`flex h-[20px] w-[20px] items-center justify-center text-[15px] leading-none transition-all ${
+                className={`flex h-[18px] w-[18px] items-center justify-center text-[13.5px] leading-none transition-all ${
                   isDone ? 'grayscale opacity-40' : ''
                 }`}
               >
@@ -370,19 +378,19 @@ export default function TodoCard({
               className="mt-0.5 shrink-0 btn-press cursor-pointer"
             >
               <div
-                className={`h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
+                className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
                   completing || isDone
                     ? 'bg-emerald-500 border-emerald-500 scale-100'
                     : item.priority === 'urgent'
-                    ? 'todoist-checkbox-urgent border-primary'
+                    ? 'border-rose-500 hover:bg-rose-500/10'
                     : item.priority === 'high'
-                    ? 'todoist-checkbox-high border-amber-500'
+                    ? 'border-amber-400 hover:bg-amber-400/10'
                     : item.priority === 'normal'
-                    ? 'todoist-checkbox-normal border-sky-500'
-                    : 'todoist-checkbox-low border-neutral-500'
+                    ? 'border-cyan-400 hover:bg-cyan-400/10'
+                    : 'border-slate-400 hover:bg-slate-400/10'
                 }`}
               >
-                {(completing || isDone) && <Check size={10} className="text-white" strokeWidth={3.5} />}
+                {(completing || isDone) && <Check size={9} className="text-white" strokeWidth={3.5} />}
               </div>
             </button>
           )}
@@ -402,12 +410,12 @@ export default function TodoCard({
                 }}
                 onBlur={onEditSave}
                 onClick={e => e.stopPropagation()}
-                className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-1.5 text-[14px] font-semibold text-text-primary outline-none ring-2 ring-primary/15"
+                className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-1.5 text-[13px] font-semibold text-text-primary outline-none ring-2 ring-primary/15"
               />
             ) : (
               <div className="group/title flex items-center gap-1.5">
                 <p
-                  className={`text-[14px] font-semibold leading-snug transition-colors ${
+                  className={`text-[13.5px] font-semibold leading-snug transition-colors ${
                     isDone ? 'line-through text-text-muted/50' : 'text-text-primary'
                   }`}
                 >
@@ -420,10 +428,10 @@ export default function TodoCard({
             )}
 
             {/* Metadata */}
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              {dateInfo && !isDone && <span className={`text-[10px] font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {dateInfo && !isDone && <span className={`text-[9.5px] font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
               {item.recurrence && (
-                <span className="flex items-center gap-0.5 text-[10px] text-primary/40">
+                <span className="flex items-center gap-0.5 text-[9.5px] text-primary/40">
                   <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
                 </span>
               )}
@@ -443,11 +451,11 @@ export default function TodoCard({
                       style={{ width: `${(doneSubtaskCount / totalSubtaskCount) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-text-muted/45 font-medium">{doneSubtaskCount}/{totalSubtaskCount}</span>
+                  <span className="text-[9.5px] text-text-muted/45 font-medium">{doneSubtaskCount}/{totalSubtaskCount}</span>
                 </div>
               )}
               {item.duration_minutes != null && item.duration_minutes > 0 && !isDone && (
-                <span className="flex items-center gap-0.5 text-[10px] text-text-muted/40 font-medium">
+                <span className="flex items-center gap-0.5 text-[9.5px] text-text-muted/40 font-medium">
                   <Clock size={8} />
                   {item.duration_minutes >= 60
                     ? `${Math.floor(item.duration_minutes / 60)}h${item.duration_minutes % 60 > 0 ? ` ${item.duration_minutes % 60}m` : ''}`
@@ -457,7 +465,7 @@ export default function TodoCard({
               {(item.tags || []).map((tag: string) => (
                 <span
                   key={tag}
-                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/5 transition-all ${
+                  className={`inline-flex items-center gap-1 text-[9.5px] font-medium px-1 py-0.5 rounded bg-white/5 border border-white/5 transition-all opacity-70 ${
                     tag.toLowerCase() === 'finanse' || tag.toLowerCase() === 'zdrowie'
                       ? 'text-emerald-400 bg-emerald-500/10'
                       : tag.toLowerCase() === 'projekt'
@@ -472,7 +480,7 @@ export default function TodoCard({
                 </span>
               ))}
               {isLinkedToPlan && (
-                <span className="flex items-center gap-0.5 text-[10px] text-primary/50">
+                <span className="flex items-center gap-0.5 text-[9.5px] text-primary/50">
                   <Link2 size={7} /> Plan
                 </span>
               )}
@@ -487,7 +495,7 @@ export default function TodoCard({
                     ? 'bg-amber-500/8 border-amber-500/15 text-amber-600 dark:text-amber-400'
                     : 'bg-surface-solid border-border-custom/50 text-text-secondary';
                   return (
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wide transition-all ${chipBg}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-wide transition-all ${chipBg}`}>
                       {GoalIcon && <GoalIcon size={8} />}
                       <span className="uppercase">{sectionName}</span>
                       {dreamTitle && (
@@ -501,7 +509,7 @@ export default function TodoCard({
 
           {/* Hover Quick Actions */}
           {!isDone && (
-            <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+            <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ml-2">
               <button
                 onClick={e => {
                   e.stopPropagation();
@@ -553,167 +561,153 @@ export default function TodoCard({
           style={{
             display: 'grid',
             gridTemplateRows: expanded ? '1fr' : '0fr',
-            transition: 'grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)'
+            transition: 'grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)',
+            overflow: transitionCompleted ? 'visible' : 'hidden'
           }}
         >
-          <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: transitionCompleted ? 'visible' : 'hidden' }}>
             {expandMounted && (
-              <div className="mt-3 space-y-3 border-t border-border-custom/10 pt-3" onClick={e => e.stopPropagation()}>
-                {description && (
-                  <p className="rounded-xl border border-border-custom/40 bg-surface-solid/50 px-3 py-2.5 text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap">
-                    {description}
-                  </p>
-                )}
-
-                {/* Termin (Due date) - Default Visible */}
-                <div>
-                  <p className="mb-1 text-[11px] font-semibold text-text-muted">Termin</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onSetDueDate(today)}
-                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-semibold border transition-all btn-press ${
-                        item.due_date === today
-                          ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20'
-                          : 'border-border-custom/50 text-text-muted hover:text-text-primary hover:bg-surface-solid/40'
-                      }`}
-                    >
-                      Dziś
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onSetDueDate(tomorrowStr)}
-                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-semibold border transition-all btn-press ${
-                        item.due_date === tomorrowStr
-                          ? 'bg-sky-500/15 text-sky-500 border-sky-500/20'
-                          : 'border-border-custom/50 text-text-muted hover:text-text-primary hover:bg-surface-solid/40'
-                      }`}
-                    >
-                      Jutro
-                    </button>
-                    <input
-                      type="date"
-                      value={item.due_date || ''}
-                      onChange={e => onSetDueDate(e.target.value || null)}
-                      className="flex-1 min-w-[120px] rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[12px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
-                    />
-                    {item.due_date && (
-                      <button
-                        onClick={() => onSetDueDate(null)}
-                        className="shrink-0 flex items-center gap-1 rounded-xl border border-border-custom/50 px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-rose-400 transition-colors btn-press"
-                      >
-                        <X size={10} /> Usuń
-                      </button>
-                    )}
-                  </div>
+              <div className="mt-3 border border-border-custom bg-surface-solid/35 rounded-2xl p-4 flex flex-col gap-4 shadow-md" onClick={e => e.stopPropagation()}>
+                {/* Title & Description inputs */}
+                <div className="flex flex-col gap-1.5">
+                  <NlpHighlightInput
+                    value={isEditing ? editingTitle : item.title}
+                    onChange={(val) => {
+                      if (!isEditing) onEditStart(val);
+                      else onEditChange(val);
+                    }}
+                    onBlur={onEditSave}
+                    onFocus={() => onEditStart(item.title)}
+                    placeholder="Nazwa zadania"
+                    className="w-full bg-transparent text-[13px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
+                  />
+                  <textarea
+                    value={item.notes || ''}
+                    onChange={(e) => onSetNotes?.(e.target.value || null)}
+                    rows={2}
+                    placeholder="Opis"
+                    className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+                  />
                 </div>
 
-                {/* Subtasks (Podzadania) — real todo_items with their own priority/due date/reminders */}
-                {onAddChildTask && (
-                  <div>
-                    <p className="mb-1.5 text-[11px] font-semibold text-text-muted">Podzadania</p>
-                    <div className="space-y-1">
-                      {childTasks.map((child) => (
-                        <div
-                          key={child.id}
-                          className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
-                        >
-                          <button onClick={() => onToggleChildTask?.(child)} className="shrink-0 btn-press">
-                            <div
-                              className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                child.status === 'done' ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
-                              }`}
-                            >
-                              {child.status === 'done' && <Check size={8} className="text-white" strokeWidth={3} />}
-                            </div>
-                          </button>
-                          <span
-                            className={`min-w-0 flex-1 text-[11px] font-medium truncate ${
-                              child.status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'
-                            }`}
-                          >
-                            {child.title}
-                          </span>
-                        </div>
-                      ))}
-                      {childTasks.length === 0 && (
-                        <button
-                          onClick={async () => {
-                            setAiLoading(true);
-                            try {
-                              const steps = await onAiBreakdown();
-                              for (const s of steps) onAddChildTask(s);
-                            } finally {
-                              setAiLoading(false);
-                            }
-                          }}
-                          disabled={aiLoading}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 py-2 text-[11px] font-semibold text-primary/70 hover:bg-primary/10 hover:text-primary transition-all btn-press disabled:opacity-40"
-                        >
-                          {aiLoading
-                            ? <span className="animate-pulse">Rozbijam…</span>
-                            : <><Sparkles size={11} /> Rozbij z AI</>
-                          }
-                        </button>
-                      )}
-                      <div className="flex gap-2 pt-0.5">
-                        <input
-                          placeholder="Nowe podzadanie…"
-                          value={newChildTask}
-                          onChange={e => setNewChildTask(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && newChildTask.trim()) {
-                              onAddChildTask(newChildTask);
-                              setNewChildTask('');
-                            }
-                          }}
-                          className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-2 text-[11px] font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
-                        />
-                        <button
-                          onClick={() => {
-                            if (newChildTask.trim()) {
-                              onAddChildTask(newChildTask);
-                              setNewChildTask('');
-                            }
-                          }}
-                          disabled={!newChildTask.trim()}
-                          className="rounded-xl bg-primary/90 px-3 py-2 text-[9px] font-black text-white disabled:opacity-30 hover:bg-primary transition-colors btn-press"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* File attachments */}
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
-                    <Paperclip size={11} /> Załączniki
-                  </p>
-                  <div className="space-y-1">
+                {/* Attachments inline tags list */}
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
                     {attachments.map((att) => (
                       <div
                         key={att.id}
-                        className="flex items-center gap-2.5 rounded-xl border border-border-custom/30 bg-surface-solid/40 px-3 py-2"
+                        className="flex items-center gap-1.5 rounded-lg border border-border-custom/50 bg-surface-solid/40 px-2 py-0.5 text-[10px]"
                       >
-                        <Paperclip size={11} className="shrink-0 text-text-muted/50" />
+                        <Paperclip size={10} className="text-text-muted/50" />
                         <a
                           href={att.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="min-w-0 flex-1 text-[11px] font-medium text-primary truncate hover:underline"
+                          className="max-w-[120px] truncate text-primary hover:underline"
                         >
                           {att.file_name}
                         </a>
                         <button
                           onClick={() => handleDeleteAttachment(att)}
-                          className="shrink-0 text-text-muted/30 hover:text-rose-400 transition-colors btn-press"
+                          className="text-text-muted/35 hover:text-rose-400 transition-colors ml-0.5"
                         >
-                          <X size={11} />
+                          <X size={10} />
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Subtasks */}
+                {onAddChildTask && (
+                  <div className="border-t border-border-custom/20 pt-2.5 flex flex-col gap-2">
+                    {childTasks.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        {childTasks.map((child) => (
+                          <div
+                            key={child.id}
+                            className="flex items-center gap-2 rounded-xl border border-border-custom/30 bg-surface-solid/25 px-2.5 py-1"
+                          >
+                            <button onClick={() => onToggleChildTask?.(child)} className="shrink-0 btn-press">
+                              <div
+                                className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center transition-all ${
+                                  child.status === 'done' ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
+                                }`}
+                              >
+                                {child.status === 'done' && <Check size={8} className="text-white" strokeWidth={3} />}
+                              </div>
+                            </button>
+                            <span
+                              className={`min-w-0 flex-1 text-[11px] font-medium truncate ${
+                                child.status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'
+                              }`}
+                            >
+                              {child.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        placeholder="Nowe podzadanie…"
+                        value={newChildTask}
+                        onChange={e => setNewChildTask(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newChildTask.trim()) {
+                            onAddChildTask(newChildTask);
+                            setNewChildTask('');
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-2.5 py-1 text-[11px] text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+                      />
+                      <button
+                        onClick={() => {
+                          if (newChildTask.trim()) {
+                            onAddChildTask(newChildTask);
+                            setNewChildTask('');
+                          }
+                        }}
+                        disabled={!newChildTask.trim()}
+                        className="rounded-xl bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Button chips row (Termin, Załącznik, Priorytet, Przypomnienia, Tagi) */}
+                <div className="flex flex-wrap items-center gap-2 border-t border-border-custom/20 pt-2.5">
+                  {/* Date button + popover */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
+                      className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.due_date ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+                    >
+                      <Calendar size={12} className={item.due_date ? 'text-primary' : 'text-text-muted/60'} />
+                      <span>{item.due_date ? `${item.due_date}${item.scheduled_time ? ` ${item.scheduled_time.slice(11, 16)}` : ''}` : 'Termin'}</span>
+                    </button>
+                    {openPopover === 'date' && (
+                      <TodoDatePickerPopover
+                        dueDate={item.due_date || null}
+                        scheduledTime={item.scheduled_time ? item.scheduled_time.slice(11, 16) : null}
+                        recurrence={null}
+                        today={today}
+                        onChange={(patch) => {
+                          if (patch.due_date !== undefined) onSetDueDate(patch.due_date);
+                          if (patch.scheduled_time !== undefined) {
+                            // DatePicker can set scheduled time, we pass it up via parent
+                          }
+                        }}
+                        onClose={() => setOpenPopover(null)}
+                      />
+                    )}
+                  </div>
+
+                  {/* Attachment button */}
+                  <div className="relative">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -725,252 +719,141 @@ export default function TodoCard({
                       }}
                     />
                     <button
+                      type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingFile}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom/60 py-2 text-[11px] font-semibold text-text-muted hover:text-primary hover:border-primary/40 transition-all disabled:opacity-40"
+                      className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all disabled:opacity-40"
                     >
-                      <Upload size={11} /> {uploadingFile ? 'Wysyłanie…' : 'Dodaj plik'}
+                      <Paperclip size={12} className="text-text-muted/60" />
+                      <span>{uploadingFile ? 'Wysyłanie…' : 'Załącznik'}</span>
                     </button>
                   </div>
-                </div>
 
-                {/* Collapsible advanced options toggle */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1.5 btn-press"
-                  >
-                    {showAdvanced ? '− Ukryj opcje zadania' : '＋ Pokaż opcje zadania (Priorytet, Sekcja, Powtarzanie...)'}
-                  </button>
-                </div>
+                  {/* Priority Selector button */}
+                  <div className="relative">
+                    <select
+                      value={item.priority || 'normal'}
+                      onChange={(e) => onSetPriority(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    >
+                      <option value="urgent">🚩 Priorytet 1 (P1)</option>
+                      <option value="high">🚩 Priorytet 2 (P2)</option>
+                      <option value="normal">🚩 Priorytet 3 (P3)</option>
+                      <option value="low">🚩 Priorytet 4 (P4)</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
+                    >
+                      <Flag size={12} className={item.priority === 'urgent' ? 'text-rose-500' : item.priority === 'high' ? 'text-amber-500' : item.priority === 'normal' ? 'text-sky-500' : 'text-text-muted/60'} />
+                      <span>
+                        {item.priority === 'urgent' ? 'P1' : item.priority === 'high' ? 'P2' : item.priority === 'normal' ? 'P3' : 'P4'}
+                      </span>
+                    </button>
+                  </div>
 
-                {/* Advanced options wrapper */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateRows: showAdvanced ? '1fr' : '0fr',
-                    transition: 'grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)'
-                  }}
-                >
-                  <div className="overflow-hidden">
-                    <div className="space-y-3 border-t border-border-custom/10 pt-2.5 mt-1.5 pb-1">
-                      {/* Priority and Section picker row */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Priority grid */}
-                        <div>
-                          <p className="mb-1 text-[11px] font-semibold text-text-muted">Priorytet</p>
-                          <div className="flex items-center gap-1">
-                            {['urgent', 'high', 'normal', 'low'].map(pid => {
-                              const active = item.priority === pid;
-                              const cfg = {
-                                urgent: { label: 'P1', color: 'border-rose-500/20 text-rose-500 hover:bg-rose-500/10', activeColor: 'bg-rose-500 text-white border-transparent' },
-                                high: { label: 'P2', color: 'border-violet-500/20 text-violet-500 hover:bg-violet-500/10', activeColor: 'bg-violet-500 text-white border-transparent' },
-                                normal: { label: 'P3', color: 'border-sky-500/20 text-sky-500 hover:bg-sky-500/10', activeColor: 'bg-sky-500 text-white border-transparent' },
-                                low: { label: 'P4', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10', activeColor: 'bg-emerald-500 text-white border-transparent' }
-                              }[pid as 'urgent' | 'high' | 'normal' | 'low'];
-                              return (
-                                <button
-                                  key={pid}
-                                  type="button"
-                                  onClick={() => onSetPriority(pid)}
-                                  className={`w-7.5 h-7.5 rounded-xl border text-[11px] font-black flex items-center justify-center transition-all btn-press ${
-                                    active ? cfg.activeColor : `${cfg.color} bg-surface-solid/20`
-                                  }`}
-                                  title={PRIORITY[pid].label}
-                                >
-                                  {cfg.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
+                  {/* Reminder button + popover */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
+                      className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+                    >
+                      <Bell size={12} className={item.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
+                      <span>
+                        {item.reminder_at
+                          ? new Date(item.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                          : 'Przypomnienia'}
+                      </span>
+                    </button>
+                    {openPopover === 'reminder' && (
+                      <TodoReminderPopover
+                        dueDate={item.due_date || null}
+                        scheduledTime={item.scheduled_time ? item.scheduled_time.slice(11, 16) : null}
+                        onSetReminder={(iso) => onSetReminder(iso)}
+                        onClose={() => setOpenPopover(null)}
+                      />
+                    )}
+                  </div>
 
-                        {/* Section picker */}
-                        {sections.length > 0 && (
-                          <div>
-                            <p className="mb-1 text-[11px] font-semibold text-text-muted">Sekcja</p>
-                            <select
-                              value={item.section_id || ''}
-                              onChange={e => onMoveSection(e.target.value || null)}
-                              className="w-full rounded-xl border border-border-custom/50 bg-surface-solid/40 px-3 py-1.5 text-[11px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-                            >
-                              <option value="">📥 Skrzynka (brak sekcji)</option>
-                              {sections.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                      </div>
+                  {/* Tags input chip */}
+                  <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2 py-0.5 max-w-[150px]">
+                    <Tag size={11} className="text-text-muted/60" />
+                    <input
+                      value={tagInput}
+                      placeholder="Tagi"
+                      onChange={e => setTagInput(e.target.value.toLowerCase().replace(/[\s#]/g, '_'))}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && tagInput.trim()) {
+                          const t = tagInput.trim();
+                          if (!(item.tags || []).includes(t)) onSetTags([...(item.tags || []), t]);
+                          setTagInput('');
+                        }
+                      }}
+                      className="bg-transparent text-[11px] font-semibold text-text-secondary outline-none w-full placeholder:text-text-muted/30"
+                    />
+                  </div>
 
-                      {/* Recurrence and Reminder row */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Recurrence */}
-                        {onSetRecurrence && (
-                          <div>
-                            <p className="mb-1 text-[11px] font-semibold text-text-muted">Powtarzanie</p>
-                            <div className="flex gap-1">
-                              {(['', 'daily', 'weekly', 'monthly'] as const).map(r => (
-                                <button
-                                  key={r || 'none'}
-                                  type="button"
-                                  onClick={() => onSetRecurrence(r)}
-                                  className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors btn-press ${
-                                    (item.recurrence || '') === r
-                                      ? 'border-primary/20 bg-primary/10 text-primary'
-                                      : 'border-border-custom/50 text-text-muted hover:text-text-primary'
-                                  }`}
-                                >
-                                  {r === '' ? 'Nie' : r === 'daily' ? '↺ Dzień' : r === 'weekly' ? '↺ Tydzień' : '↺ Miesiąc'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Reminder */}
-                        {!isDone && (
-                          <div>
-                            <p className="mb-1 text-[11px] font-semibold text-text-muted">Przypomnienie</p>
-                            {item.reminder_at && !item.reminder_sent ? (
-                              <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-1.5">
-                                <div className="flex items-center gap-1.5">
-                                  <Bell size={11} className="text-primary" />
-                                  <span className="text-[11px] font-semibold text-primary">
-                                    {new Date(item.reminder_at).toLocaleString('pl-PL', {
-                                      timeZone: 'Europe/Warsaw',
-                                      month: 'short', day: 'numeric',
-                                      hour: '2-digit', minute: '2-digit',
-                                    })}
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={onCancelReminder}
-                                  className="flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-rose-400 transition-colors btn-press"
-                                >
-                                  <BellOff size={10} /> Anuluj
-                                </button>
-                              </div>
-                            ) : item.reminder_sent ? (
-                              <p className="text-[11px] text-text-muted/50">✓ Wysłano</p>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="datetime-local"
-                                  value={reminderInput}
-                                  onChange={e => setReminderInput(e.target.value)}
-                                  className="flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-2.5 py-1 text-[11px] text-text-primary outline-none focus:border-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (!reminderInput) return;
-                                    onSetReminder(new Date(reminderInput).toISOString());
-                                    setReminderInput('');
-                                  }}
-                                  disabled={!reminderInput}
-                                  className="shrink-0 flex items-center gap-1 rounded-xl bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
-                                >
-                                  <Bell size={10} /> Ustaw
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Life sphere — weekly balance tracking (Praca/Ciało/Duch/Finanse/Relacje/Odpoczynek) */}
-                      {onSetSphere && (
-                        <div>
-                          <p className="mb-1 text-[11px] font-semibold text-text-muted">Sfera życia</p>
-                          <div className="flex flex-wrap gap-1">
-                            <button
-                              type="button"
-                              onClick={() => onSetSphere(null)}
-                              className={`rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors btn-press ${
-                                !item.category
-                                  ? 'border-primary/20 bg-primary/10 text-primary'
-                                  : 'border-border-custom/50 text-text-muted hover:text-text-primary'
-                              }`}
-                            >
-                              Brak
-                            </button>
-                            {LIFE_SPHERES.map((s) => (
-                              <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => onSetSphere(s.id)}
-                                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors btn-press ${
-                                  item.category === s.id
-                                    ? `${s.border} ${s.bgSoft} ${s.text}`
-                                    : 'border-border-custom/50 text-text-muted hover:text-text-primary'
-                                }`}
-                              >
-                                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Tags */}
-                      <div>
-                        <p className="mb-1 text-[11px] font-semibold text-text-muted">Tagi</p>
-                        {(item.tags || []).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-1.5">
-                            {(item.tags || []).map((tag: string) => (
-                              <span key={tag} className="flex items-center gap-1 rounded-full border border-border-custom/50 bg-surface-solid/60 px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
-                                #{tag}
-                                <button
-                                  onClick={() => onSetTags((item.tags || []).filter((t: string) => t !== tag))}
-                                  className="text-text-muted/40 hover:text-rose-400 transition-colors ml-0.5 btn-press"
-                                >
-                                  <X size={9} />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <input
-                            placeholder="Nowy tag..."
-                            value={tagInput}
-                            onChange={e => setTagInput(e.target.value.toLowerCase().replace(/[\s#]/g, '_'))}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' && tagInput.trim()) {
-                                const t = tagInput.trim();
-                                if (!(item.tags || []).includes(t)) onSetTags([...(item.tags || []), t]);
-                                setTagInput('');
-                              }
-                            }}
-                            className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-2.5 py-1.5 text-[11px] font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
-                          />
+                  {/* Tag tags list */}
+                  {(item.tags || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {(item.tags || []).map((tag: string) => (
+                        <span key={tag} className="flex items-center gap-1 rounded-full border border-border-custom/50 bg-surface-solid/60 px-2 py-0.5 text-[9.5px] font-medium text-text-secondary">
+                          #{tag}
                           <button
-                            onClick={() => {
-                              const t = tagInput.trim();
-                              if (!t) return;
-                              if (!(item.tags || []).includes(t)) onSetTags([...(item.tags || []), t]);
-                              setTagInput('');
-                            }}
-                            disabled={!tagInput.trim()}
-                            className="rounded-xl bg-primary/10 px-2.5 py-1.5 text-[9px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
+                            onClick={() => onSetTags((item.tags || []).filter((t: string) => t !== tag))}
+                            className="text-text-muted/40 hover:text-rose-400 transition-colors ml-0.5"
                           >
-                            +
+                            <X size={9} />
                           </button>
-                        </div>
-                      </div>
-
-                      {/* Odpuść zadanie (Trash button) */}
-                      <div className="pt-1">
-                        <button
-                          onClick={onDrop}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/15 bg-rose-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
-                        >
-                          <Trash2 size={10} /> Odpuść zadanie
-                        </button>
-                      </div>
+                        </span>
+                      ))}
                     </div>
+                  )}
+                </div>
+
+                {/* Bottom Bar */}
+                <div className="flex items-center justify-between border-t border-border-custom/80 pt-3 mt-1.5">
+                  {/* Left: Section Selector Dropdown */}
+                  <div className="relative flex items-center">
+                    <select
+                      value={item.section_id || ''}
+                      onChange={(e) => onMoveSection(e.target.value || null)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    >
+                      <option value="">Skrzynka</option>
+                      {sections.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
+                    >
+                      <Folder size={13} className="text-text-muted/60" />
+                      <span>
+                        {sections.find(s => s.id === item.section_id)?.name || 'Skrzynka'}
+                      </span>
+                      <ChevronDown size={11} className="text-text-muted/60" />
+                    </button>
+                  </div>
+
+                  {/* Right: Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={onDrop}
+                      className="rounded-xl border border-rose-500/15 bg-rose-500/5 px-3 py-1.5 text-[11px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                    >
+                      Odpuść zadanie
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onToggleExpand(item.id)}
+                      className="todoist-btn-primary"
+                    >
+                      Zamknij
+                    </button>
                   </div>
                 </div>
               </div>

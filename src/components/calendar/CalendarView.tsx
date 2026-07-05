@@ -124,6 +124,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [editStart, setEditStart] = useState('');
   const [editEnd, setEditEnd] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editRecurrence, setEditRecurrence] = useState<'' | 'daily' | 'weekly' | 'monthly' | 'custom'>('');
+  const [editCustomDays, setEditCustomDays] = useState<string[]>([]);
+  const [editRecurrenceEndDate, setEditRecurrenceEndDate] = useState('');
   const [deleting, setDeleting] = useState(false);
 
   // Time Budgeting state
@@ -687,16 +690,20 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}T${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}${pad(local.getUTCSeconds())}Z`;
   };
 
-  const buildQuickRecurrence = (): string[] | undefined => {
-    if (!quickRecurrence) return undefined;
+  const buildRecurrenceRule = (
+    recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom',
+    customDays: string[],
+    endDate: string,
+  ): string[] | undefined => {
+    if (!recurrence) return undefined;
     let rule: string;
-    if (quickRecurrence === 'custom') {
-      if (!quickCustomDays.length) return undefined;
-      rule = `FREQ=WEEKLY;BYDAY=${quickCustomDays.join(',')}`;
+    if (recurrence === 'custom') {
+      if (!customDays.length) return undefined;
+      rule = `FREQ=WEEKLY;BYDAY=${customDays.join(',')}`;
     } else {
-      rule = { daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' }[quickRecurrence];
+      rule = { daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' }[recurrence];
     }
-    if (quickRecurrenceEndDate) rule += `;UNTIL=${formatRRuleUntil(quickRecurrenceEndDate)}`;
+    if (endDate) rule += `;UNTIL=${formatRRuleUntil(endDate)}`;
     return [`RRULE:${rule}`];
   };
 
@@ -733,7 +740,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const pad = (n: number) => String(n).padStart(2, '0');
     const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
     const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
-    const recurrence = buildQuickRecurrence();
+    const recurrence = buildRecurrenceRule(quickRecurrence, quickCustomDays, quickRecurrenceEndDate);
     const ev: CalendarEvent = {
       summary: quickTitle.trim(),
       start,
@@ -768,7 +775,10 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     setSelectedEvent(ev);
     setEditTitle(ev.summary || '');
     setEditCategory(ev.category || null);
-    
+    setEditRecurrence('');
+    setEditCustomDays([]);
+    setEditRecurrenceEndDate('');
+
     try {
       const startParts = getWarsawParts(ev.start_time);
       const endParts = getWarsawParts(ev.end_time);
@@ -806,6 +816,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       start,
       end,
       category: editCategory || undefined,
+      recurrence: buildRecurrenceRule(editRecurrence, editCustomDays, editRecurrenceEndDate),
     };
     try {
       await updateEvent(ev);
@@ -1023,7 +1034,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       <div
         key={ev.id}
         onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
-        className={`absolute rounded-md shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-105 active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
+        className={`absolute rounded-md shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-110 hover:scale-[1.01] active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
         style={{ top, height, left: `calc(${left} + 1px)`, width: `calc(${width} - 2px)` }}
         title={ev.summary || ''}
       >
@@ -1089,7 +1100,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       <div
         key={`todo-${todo.id}`}
         title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
-        className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 px-1 py-0.5 overflow-hidden transition-colors z-10 ${isCompleting ? 'opacity-50' : ''}`}
+        className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[1.01] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-150 z-10 ${isCompleting ? 'opacity-50' : ''}`}
         style={{ top, height, left: '75%', width: '24%' }}
       >
         <div className="flex items-start gap-0.5">
@@ -1128,7 +1139,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         {Array.from({ length: HOURS }, (_, i) => (
           <div
             key={i}
-            className="absolute left-0 right-0 border-t border-border-custom/35 cursor-pointer hover:bg-primary/5 transition-colors"
+            className="absolute left-0 right-0 border-t border-b border-border-custom/10 cursor-pointer hover:bg-primary/5 transition-colors"
             style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }}
             onClick={(e) => handleSlotClick(day, HOUR_START + i, e)}
             onDragOver={(e) => {
@@ -1216,6 +1227,97 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           </button>
         );
       })}
+    </div>
+  );
+
+  // Shared recurrence picker for the quick-create and edit-event modals — presets, an optional
+  // "Niestandardowe" day-of-week picker, and an optional end date, all mapped to a Google Calendar RRULE.
+  const renderRecurrencePicker = (
+    recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom',
+    setRecurrence: (r: '' | 'daily' | 'weekly' | 'monthly' | 'custom') => void,
+    customDays: string[],
+    setCustomDays: React.Dispatch<React.SetStateAction<string[]>>,
+    endDate: string,
+    setEndDate: (d: string) => void,
+    minDate: string,
+    allowCustom: boolean = true,
+    showEndDate: boolean = true,
+  ) => (
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+        <Repeat size={11} /> Powtarzanie
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {(allowCustom
+          ? (['', 'daily', 'weekly', 'monthly', 'custom'] as const)
+          : (['', 'daily', 'weekly', 'monthly'] as const)
+        ).map((r) => (
+          <button
+            key={r || 'none'}
+            type="button"
+            onClick={() => setRecurrence(r)}
+            className={`flex-1 min-w-[70px] text-[10.5px] font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+          >
+            {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
+          </button>
+        ))}
+      </div>
+      {recurrence === 'custom' && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {[
+            { key: 'MO', label: 'Pon' },
+            { key: 'TU', label: 'Wt' },
+            { key: 'WE', label: 'Śr' },
+            { key: 'TH', label: 'Czw' },
+            { key: 'FR', label: 'Pt' },
+            { key: 'SA', label: 'Sob' },
+            { key: 'SU', label: 'Ndz' },
+          ].map((day) => {
+            const isSelected = customDays.includes(day.key);
+            return (
+              <button
+                key={day.key}
+                type="button"
+                onClick={() => setCustomDays((prev) =>
+                  isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
+                )}
+                className={`w-10 text-[10.5px] font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+              >
+                {day.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setCustomDays(['MO', 'TU', 'WE', 'TH', 'FR'])}
+            className="text-[10px] font-bold text-primary px-2 py-1.5 hover:underline"
+          >
+            Dni robocze
+          </button>
+        </div>
+      )}
+      {showEndDate && recurrence !== '' && (
+        <div className="flex items-center gap-2.5 pt-1">
+          <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={minDate}
+            placeholder="Nigdy"
+            className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+          />
+          {endDate && (
+            <button
+              type="button"
+              onClick={() => setEndDate('')}
+              className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1594,83 +1696,17 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             />
           </div>
 
-          {/* Recurrence */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
-              <Repeat size={11} /> Powtarzanie
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {(quickType === 'task'
-                ? (['', 'daily', 'weekly', 'monthly'] as const)
-                : (['', 'daily', 'weekly', 'monthly', 'custom'] as const)
-              ).map((r) => (
-                <button
-                  key={r || 'none'}
-                  type="button"
-                  onClick={() => setQuickRecurrence(r)}
-                  className={`flex-1 min-w-[70px] text-[10.5px] font-bold py-2 rounded-xl border transition-all ${quickRecurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-                >
-                  {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
-                </button>
-              ))}
-            </div>
-            {quickRecurrence === 'custom' && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[
-                  { key: 'MO', label: 'Pon' },
-                  { key: 'TU', label: 'Wt' },
-                  { key: 'WE', label: 'Śr' },
-                  { key: 'TH', label: 'Czw' },
-                  { key: 'FR', label: 'Pt' },
-                  { key: 'SA', label: 'Sob' },
-                  { key: 'SU', label: 'Ndz' },
-                ].map((day) => {
-                  const isSelected = quickCustomDays.includes(day.key);
-                  return (
-                    <button
-                      key={day.key}
-                      type="button"
-                      onClick={() => setQuickCustomDays((prev) =>
-                        isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
-                      )}
-                      className={`w-10 text-[10.5px] font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-                    >
-                      {day.label}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setQuickCustomDays(['MO', 'TU', 'WE', 'TH', 'FR'])}
-                  className="text-[10px] font-bold text-primary px-2 py-1.5 hover:underline"
-                >
-                  Dni robocze
-                </button>
-              </div>
-            )}
-            {quickType === 'event' && quickRecurrence !== '' && (
-              <div className="flex items-center gap-2.5 pt-1">
-                <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
-                <input
-                  type="date"
-                  value={quickRecurrenceEndDate}
-                  onChange={(e) => setQuickRecurrenceEndDate(e.target.value)}
-                  min={date}
-                  placeholder="Nigdy"
-                  className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
-                />
-                {quickRecurrenceEndDate && (
-                  <button
-                    type="button"
-                    onClick={() => setQuickRecurrenceEndDate('')}
-                    className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {renderRecurrencePicker(
+            quickRecurrence,
+            setQuickRecurrence,
+            quickCustomDays,
+            setQuickCustomDays,
+            quickRecurrenceEndDate,
+            setQuickRecurrenceEndDate,
+            date,
+            quickType === 'event',
+            quickType === 'event',
+          )}
 
           {/* Category selection */}
           <div className="space-y-2">
@@ -1748,6 +1784,16 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             {renderCategoryPicker(editCategory, setEditCategory)}
           </div>
 
+          {renderRecurrencePicker(
+            editRecurrence,
+            setEditRecurrence,
+            editCustomDays,
+            setEditCustomDays,
+            editRecurrenceEndDate,
+            setEditRecurrenceEndDate,
+            editDate,
+          )}
+
           {/* Footer Actions */}
           <div className="flex items-center gap-3 pt-1">
             <button
@@ -1760,7 +1806,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             </button>
             <button
               onClick={handleEditSave}
-              disabled={saving || deleting || !editTitle.trim()}
+              disabled={saving || deleting || !editTitle.trim() || (editRecurrence === 'custom' && editCustomDays.length === 0)}
               className="flex-1 rounded-xl bg-primary text-white py-3 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40"
             >
               {saving ? 'Zapisuję...' : 'Zapisz zmiany'}
@@ -1993,7 +2039,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               <button
                 onClick={handleAISchedule}
                 disabled={isScheduling}
-                className="w-full relative flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/95 hover:to-violet-600/95 text-white py-2.5 text-[12px] font-black shadow-md hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] transition-all duration-200 disabled:opacity-50 cursor-pointer"
+                className="w-full relative flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/95 hover:to-violet-600/95 text-white py-2.5 text-[12px] font-black shadow-md hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] transition-all duration-200 disabled:opacity-50 cursor-pointer"
               >
                 {isScheduling ? (
                   <>
@@ -2010,7 +2056,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             </div>
 
             {/* Section 2.5: Biometrics & Activity Sync */}
-            <div className="bg-emerald-500/5 dark:bg-emerald-500/[0.02] border border-emerald-500/15 rounded-2xl p-4 space-y-4">
+            <div className="bg-emerald-500/5 dark:bg-emerald-500/[0.02] border border-emerald-500/15 rounded-2xl p-4 space-y-4 shadow-sm">
               <div className="flex items-center gap-1.5 pb-1 border-b border-emerald-500/10">
                 <Sliders size={13} className="text-emerald-500 shrink-0" />
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Synchronizacja Danych</span>
@@ -2024,7 +2070,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                     onClick={handleSyncOuraSleep}
                     disabled={syncingOuraSleep}
                     title="Synchronizuje rzeczywisty czas zasypiania i obudzenia z Oura Ring"
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 hover:scale-[1.015] active:scale-[0.985] text-emerald-500 py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 hover:scale-[1.015] active:scale-[0.985] text-emerald-500 py-2.5 text-[11px] font-black shadow-md transition-all disabled:opacity-40 cursor-pointer"
                   >
                     {syncingOuraSleep ? (
                       <>
@@ -2047,7 +2093,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                     onClick={handleSyncActivities}
                     disabled={syncingActivities}
                     title="Pobiera treningi, sauny oraz biegi i nakłada je jako kolorowe bloki"
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/15 hover:scale-[1.015] active:scale-[0.985] text-primary py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/20 hover:scale-[1.015] active:scale-[0.985] text-primary py-2.5 text-[11px] font-black shadow-md transition-all disabled:opacity-40 cursor-pointer"
                   >
                     {syncingActivities ? (
                       <>

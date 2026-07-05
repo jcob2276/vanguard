@@ -159,6 +159,35 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     }
   }
 
+  // Recurrence: "codziennie", "co dzień", "co dzien", "co tydzień", "co tydzien", "co miesiąc", "co miesiac"
+  const recurrenceMatch = title.match(/(^|\s)(codziennie|co\s+dzień|co\s+dzien|co\s+tydzień|co\s+tydzien|co\s+miesiąc|co\s+miesiac)(?=\s|$)/i);
+  let recurrence: string | null = null;
+  if (recurrenceMatch) {
+    const raw = recurrenceMatch[2].toLowerCase();
+    let value = '';
+    let label = '';
+    if (raw.includes('dzien') || raw.includes('dzień') || raw === 'codziennie') {
+      value = 'daily';
+      label = 'Codziennie';
+    } else if (raw.includes('tydzien') || raw.includes('tydzień')) {
+      value = 'weekly';
+      label = 'Co tydzień';
+    } else if (raw.includes('miesiac') || raw.includes('miesiąc')) {
+      value = 'monthly';
+      label = 'Co miesiąc';
+    }
+
+    if (value) {
+      recurrence = value;
+      tokens.push({ type: 'recurrence' as any, label, value });
+      title = consumeMatch(title, recurrenceMatch);
+      // If recurrence is daily/weekly/monthly and no due date is parsed yet, default due_date to today
+      if (!tokens.some(t => t.type === 'date')) {
+        tokens.push({ type: 'date', label: 'Dzisiaj', value: toDateKey(now) });
+      }
+    }
+  }
+
   const priority = tokens.find((token) => token.type === 'priority')?.value || null;
   const due_date = tokens.find((token) => token.type === 'date')?.value || null;
   const scheduled_time = tokens.find((token) => token.type === 'time')?.value || null;
@@ -172,6 +201,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     due_date,
     scheduled_time,
     duration_minutes,
+    recurrence,
     tokens,
   };
 }

@@ -4105,6 +4105,7 @@
         "npm:react-router-dom@^7.17.0",
         "npm:react@^19.2.5",
         "npm:recharts@^3.8.1",
+        "npm:source-map-js@^1.2.1",
         "npm:supabase@^2.98.2",
         "npm:tailwindcss@^4.2.4",
         "npm:typescript-eslint@^8.61.0",

@@ -45,7 +45,7 @@ function Delta({ cur, prev }: { cur: number | null; prev: number | null }) {
 
 function SphereRow({ s }: { s: SphereScore }) {
   return (
-    <div className="py-2 border-b border-border-custom/20 last:border-0">
+    <div className="py-2 border-b border-border-custom/20 last:border-0 rounded-lg px-1.5 -mx-1.5 hover:bg-surface-solid/40 transition-all duration-150">
       <div className="flex items-center gap-2">
         <span className="w-20 shrink-0 text-[10px] font-black uppercase tracking-wider text-text-secondary">{s.label}</span>
         <div className="flex-1 h-[4px] rounded-full bg-surface-solid overflow-hidden">

@@ -69,7 +69,7 @@ export default function CalendarSidebarTodos({
                   e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title }));
                   e.dataTransfer.effectAllowed = 'move';
                 }}
-                className={`flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all cursor-grab active:cursor-grabbing group hover:scale-[1.01] active:scale-[0.99] select-none ${isCompleted ? 'opacity-50 border-emerald-500/20 bg-emerald-500/[0.02]' : ''}`}
+                className={`flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all cursor-grab active:cursor-grabbing group hover:scale-[1.01] hover:shadow-md active:scale-[0.99] select-none ${isCompleted ? 'opacity-50 border-emerald-500/20 bg-emerald-500/[0.02]' : ''}`}
               >
                 <input
                   type="checkbox"

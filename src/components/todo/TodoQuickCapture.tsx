@@ -3,6 +3,7 @@ import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from
 import { PRIORITY } from './todoUtils';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
+import NlpHighlightInput from './NlpHighlightInput';
 
 interface TodoFormState {
   title: string;
@@ -25,7 +26,14 @@ interface TodoQuickCaptureProps {
   busy: boolean;
   addItem: () => void;
   sections: any[];
-  parsedInput: { title: string; priority: string | null; due_date: string | null; scheduled_time: string | null; tokens: Array<{ type: string; value: string; label: string }> };
+  parsedInput: {
+    title: string;
+    priority: string | null;
+    due_date: string | null;
+    scheduled_time: string | null;
+    recurrence?: string | null;
+    tokens: Array<{ type: string; value: string; label: string }>;
+  };
   today: string;
   onOpenScanText?: () => void;
 }
@@ -50,25 +58,26 @@ export default function TodoQuickCapture({
   const effectiveDueDate = parsedInput.due_date || form.due_date || '';
   const effectivePriority = parsedInput.priority || form.priority;
   const effectiveScheduledTime = parsedInput.scheduled_time || form.scheduled_time || '';
+  const effectiveRecurrence = parsedInput.recurrence || form.recurrence || '';
 
   return (
     <div ref={quickCaptureRef} className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 flex flex-col gap-4.5 shadow-lg">
       {/* Title & Description inputs */}
       <div className="flex flex-col gap-1.5">
-        <input
+        <NlpHighlightInput
           value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          onChange={(val) => setForm({ ...form, title: val })}
           onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
           onFocus={() => setIsExpanded(true)}
           placeholder="Nazwa zadania"
-          className="w-full bg-transparent text-[15px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
+          className="w-full bg-transparent text-[13px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
         />
         <textarea
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
           placeholder="Opis"
-          className="w-full resize-none bg-transparent text-[13px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+          className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
         />
       </div>
 
@@ -83,7 +92,7 @@ export default function TodoQuickCapture({
           >
             <Calendar size={12} className={effectiveDueDate ? 'text-primary' : 'text-text-muted/60'} />
             <span>{effectiveDueDate ? `${effectiveDueDate}${effectiveScheduledTime ? ` ${effectiveScheduledTime}` : ''}` : 'Termin'}</span>
-            {form.recurrence && <Repeat size={11} className="text-primary" />}
+            {effectiveRecurrence && <Repeat size={11} className="text-primary" />}
           </button>
           {openPopover === 'date' && (
             <TodoDatePickerPopover

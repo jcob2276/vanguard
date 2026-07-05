@@ -260,6 +260,13 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           setItems(prev => prev.map(i => i.id === item.id ? { ...i, title: item.title } : i));
         });
       }}
+      onSetNotes={(newNotes: string | null) => {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, notes: newNotes } : i));
+        updateTodoItem(item.id, { notes: newNotes || null } as any).catch((err) => {
+          setError(err instanceof Error ? err.message : String(err));
+          setItems(prev => prev.map(i => i.id === item.id ? { ...i, notes: item.notes } : i));
+        });
+      }}
       childTasks={getChildren(item.id)}
       onAddChildTask={(title: string) => addChildTask(item, title)}
       onToggleChildTask={(child: any) => handleComplete(child)}
@@ -635,14 +642,14 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
             })()}
 
             {/* Main List */}
-            <div className="space-y-4">
+            <div className="space-y-8">
               {navDest === 'today' ? (
                 // Dziś (flat smart view — tasks due today or ai_bucket='today', across all sections)
                 <div>
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    <span className="text-[16px] leading-none">📅</span>
-                    <span className="text-[15px] font-bold text-text-primary">Dziś</span>
-                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                  <div className="flex items-center gap-2 px-1 pt-6 pb-4">
+                    <span className="text-[20px] leading-none">📅</span>
+                    <span className="text-[24px] font-extrabold text-text-primary tracking-tight">Dziś</span>
+                    <span className="text-[13px] font-medium text-text-muted/50 ml-1">
                       {todayItems.length}
                     </span>
                   </div>
@@ -662,10 +669,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               ) : navDest === 'inbox' ? (
                 // Skrzynka (flat smart view — tasks with no section)
                 <div>
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    <span className="text-[16px] leading-none">📥</span>
-                    <span className="text-[15px] font-bold text-text-primary">Skrzynka</span>
-                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                  <div className="flex items-center gap-2 px-1 pt-6 pb-4">
+                    <span className="text-[20px] leading-none">📥</span>
+                    <span className="text-[24px] font-extrabold text-text-primary tracking-tight">Skrzynka</span>
+                    <span className="text-[13px] font-medium text-text-muted/50 ml-1">
                       {inboxItems.length}
                     </span>
                   </div>
@@ -685,10 +692,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               ) : navDest === 'upcoming' ? (
                 // Nadchodzące (flat smart view — open tasks due in the next 7 days, grouped by date)
                 <div>
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    <span className="text-[16px] leading-none">🗓️</span>
-                    <span className="text-[15px] font-bold text-text-primary">Nadchodzące</span>
-                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                  <div className="flex items-center gap-2 px-1 pt-6 pb-4">
+                    <span className="text-[20px] leading-none">🗓️</span>
+                    <span className="text-[24px] font-extrabold text-text-primary tracking-tight">Nadchodzące</span>
+                    <span className="text-[13px] font-medium text-text-muted/50 ml-1">
                       {upcomingItems.length}
                     </span>
                   </div>
@@ -730,10 +737,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
                   return (
                     <div key={sec.id} ref={el => { sectionRefs.current[sec.id] = el; }}>
-                      <div className="flex items-center gap-2 px-3 py-2">
-                        <span className="text-[16px] leading-none">📂</span>
-                        <span className="text-[15px] font-bold text-text-primary">{sec.name}</span>
-                        <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                      <div className="flex items-center gap-2 px-1 pt-6 pb-4">
+                        <span className="text-[20px] leading-none">📂</span>
+                        <span className="text-[24px] font-extrabold text-text-primary tracking-tight">{sec.name}</span>
+                        <span className="text-[13px] font-medium text-text-muted/50 ml-1">
                           {sortedItems.length}
                         </span>
                       </div>

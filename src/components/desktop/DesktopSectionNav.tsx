@@ -12,7 +12,7 @@ const SECTIONS: { id: string; label: string; href?: string }[] = [
 ];
 
 const linkClass =
-  'block rounded-lg px-2 py-1.5 text-[10px] font-bold text-text-muted hover:text-primary hover:bg-primary/[0.06] transition-colors';
+  'block rounded-lg px-2 py-1.5 text-[10px] font-bold text-text-muted hover:text-primary hover:bg-primary/[0.08] transition-all duration-150';
 
 export default function DesktopSectionNav() {
   return (

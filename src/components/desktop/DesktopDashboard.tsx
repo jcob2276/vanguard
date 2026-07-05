@@ -27,6 +27,7 @@ import HexagonPanel from './HexagonPanel';
 import FitnessScorePanel from './FitnessScorePanel';
 import HabitsPanel from './HabitsPanel';
 import BehaviorCapturePanel from './BehaviorCapturePanel';
+import SupplementsPanel from './SupplementsPanel';
 import DreamsPanel from './DreamsPanel';
 import VisionBoardPanel from './VisionBoardPanel';
 import DreamEditModal from './DreamEditModal';
@@ -463,7 +464,10 @@ export default function DesktopDashboard({ session }: { session: any }) {
           />
         </div>
 
-        <BehaviorCapturePanel userId={userId} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BehaviorCapturePanel userId={userId} />
+          <SupplementsPanel userId={userId} />
+        </div>
 
         <DreamsPanel
           dreams={dreams}

@@ -1,0 +1,5 @@
+- [x] Compact font sizes and spacings in `src/components/todo/TodoCard.tsx`
+- [x] Compact font sizes and spacings in `src/components/todo/BucketHeader.tsx`
+- [x] Compact font sizes and spacings in `src/components/todo/TodoSidebar.tsx`
+- [x] Compact font sizes and spacings in `src/components/todo/TodoQuickCapture.tsx`
+- [x] Verify everything compiles and builds successfully

@@ -51,13 +51,13 @@ export default function BucketHeader({
 
   return (
     <div
-      className={`relative flex w-full items-center gap-2 py-2.5 transition-all duration-200 group/hdr ${
+      className={`relative flex w-full items-center gap-2 py-1.5 transition-all duration-200 group/hdr ${
         isDropTarget ? 'text-primary' : 'text-text-primary'
       }`}
     >
       {renaming ? (
         <div className="flex flex-1 min-w-0 items-center gap-1.5">
-          {icon && <span className="text-[14px] leading-none shrink-0 select-none">{icon}</span>}
+          {icon && <span className="text-[13px] leading-none shrink-0 select-none">{icon}</span>}
           <input
             autoFocus
             value={draft}
@@ -70,10 +70,10 @@ export default function BucketHeader({
             className="min-w-0 flex-1 rounded-md border border-primary/40 bg-surface-solid px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary outline-none"
           />
           <button onClick={commitRename} className="p-1 text-emerald-400 hover:text-emerald-300 shrink-0" title="Zapisz">
-            <Check size={13} />
+            <Check size={12} />
           </button>
           <button onClick={() => setRenaming(false)} className="p-1 text-text-muted/40 hover:text-text-primary shrink-0" title="Anuluj">
-            <X size={13} />
+            <X size={12} />
           </button>
         </div>
       ) : (
@@ -82,14 +82,14 @@ export default function BucketHeader({
           className="flex flex-1 min-w-0 items-center gap-2 text-left transition-all duration-200 cursor-pointer"
         >
           <ChevronRight
-            size={14}
+            size={12}
             className={`text-text-muted/60 shrink-0 transition-transform duration-200 ${
               collapsed ? '' : 'rotate-90'
             }`}
           />
-          {icon && <span className="text-[14px] leading-none shrink-0 select-none">{icon}</span>}
+          {icon && <span className="text-[16px] leading-none shrink-0 select-none">{icon}</span>}
           <span
-            className={`text-[14px] font-bold text-text-primary tracking-tight truncate transition-colors ${
+            className={`text-[16px] font-bold text-text-primary tracking-tight truncate transition-colors ${
               isDropTarget ? 'text-primary' : ''
             }`}
           >
@@ -97,7 +97,7 @@ export default function BucketHeader({
           </span>
           {count > 0 && (
             <span
-              className="text-[11px] font-semibold text-text-muted/60 tabular-nums shrink-0 ml-1.5"
+              className="text-[10px] font-semibold text-text-muted/60 tabular-nums shrink-0 ml-1.5"
             >
               {count}
             </span>
@@ -106,7 +106,7 @@ export default function BucketHeader({
       )}
 
       {!renaming && (onRename || onDelete) && (
-        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/hdr:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/hdr:opacity-100 transition-opacity duration-200">
           {onRename && (
             <button
               onClick={(e) => {

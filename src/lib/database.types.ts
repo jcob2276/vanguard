@@ -662,6 +662,71 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_win_tasks: {
+        Row: {
+          category: string | null
+          checkpoint_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          day_win_id: string
+          done: boolean | null
+          id: string
+          pin_id: string | null
+          project_id: string | null
+          slot: number
+          target_value: string | null
+          time_slot: string | null
+          title: string
+          todo_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          checkpoint_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          day_win_id: string
+          done?: boolean | null
+          id?: string
+          pin_id?: string | null
+          project_id?: string | null
+          slot: number
+          target_value?: string | null
+          time_slot?: string | null
+          title: string
+          todo_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          checkpoint_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          day_win_id?: string
+          done?: boolean | null
+          id?: string
+          pin_id?: string | null
+          project_id?: string | null
+          slot?: number
+          target_value?: string | null
+          time_slot?: string | null
+          title?: string
+          todo_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_win_tasks_day_win_id_fkey"
+            columns: ["day_win_id"]
+            isOneToOne: false
+            referencedRelation: "daily_wins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_wins: {
         Row: {
           category_1: string | null
@@ -1005,78 +1070,6 @@ export type Database = {
             referencedRelation: "todo_items"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      daily_win_tasks: {
-        Row: {
-          category: string | null
-          checkpoint_id: string | null
-          completed_at: string | null
-          created_at: string | null
-          day_win_id: string
-          done: boolean | null
-          id: string
-          pin_id: string | null
-          project_id: string | null
-          slot: number
-          target_value: string | null
-          time_slot: string | null
-          title: string
-          todo_id: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          category?: string | null
-          checkpoint_id?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          day_win_id: string
-          done?: boolean | null
-          id?: string
-          pin_id?: string | null
-          project_id?: string | null
-          slot: number
-          target_value?: string | null
-          time_slot?: string | null
-          title: string
-          todo_id?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          category?: string | null
-          checkpoint_id?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          day_win_id?: string
-          done?: boolean | null
-          id?: string
-          pin_id?: string | null
-          project_id?: string | null
-          slot?: number
-          target_value?: string | null
-          time_slot?: string | null
-          title?: string
-          todo_id?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_win_tasks_day_win_id_fkey"
-            columns: ["day_win_id"]
-            isOneToOne: false
-            referencedRelation: "daily_wins"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "daily_win_tasks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
         ]
       }
       dreams: {
@@ -3296,10 +3289,15 @@ export type Database = {
           created_at: string | null
           dose_per_unit: Json
           emoji: string
+          end_date: string | null
           id: string
           name: string
+          reminder_sent_date: string | null
+          reminder_time: string | null
+          skip_qty: boolean
           slug: string
           sort_order: number
+          start_date: string | null
           unit: string
           user_id: string
         }
@@ -3308,10 +3306,15 @@ export type Database = {
           created_at?: string | null
           dose_per_unit?: Json
           emoji?: string
+          end_date?: string | null
           id?: string
           name: string
+          reminder_sent_date?: string | null
+          reminder_time?: string | null
+          skip_qty?: boolean
           slug: string
           sort_order?: number
+          start_date?: string | null
           unit?: string
           user_id: string
         }
@@ -3320,10 +3323,15 @@ export type Database = {
           created_at?: string | null
           dose_per_unit?: Json
           emoji?: string
+          end_date?: string | null
           id?: string
           name?: string
+          reminder_sent_date?: string | null
+          reminder_time?: string | null
+          skip_qty?: boolean
           slug?: string
           sort_order?: number
+          start_date?: string | null
           unit?: string
           user_id?: string
         }

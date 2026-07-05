@@ -234,33 +234,6 @@ export default function TodoDatePickerPopover({
             </button>
           </div>
         )}
-
-        {!showRecurrence ? (
-          <button
-            type="button"
-            onClick={() => setShowRecurrence(true)}
-            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-muted hover:bg-surface/60 hover:text-text-primary transition-colors"
-          >
-            <Repeat size={13} /> Powtarzanie
-          </button>
-        ) : (
-          <div className="flex items-center gap-1">
-            {(['', 'daily', 'weekly', 'monthly'] as const).map((r) => (
-              <button
-                key={r || 'none'}
-                type="button"
-                onClick={() => onChange({ recurrence: r || null })}
-                className={`flex-1 rounded-lg border px-1.5 py-1 text-[10.5px] font-semibold transition-colors ${
-                  (recurrence || '') === r
-                    ? 'border-primary/30 bg-primary/10 text-primary'
-                    : 'border-border-custom/50 text-text-muted hover:text-text-primary'
-                }`}
-              >
-                {r === '' ? 'Nie' : r === 'daily' ? 'Dzień' : r === 'weekly' ? 'Tydzień' : 'Miesiąc'}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {dueDate && (

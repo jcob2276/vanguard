@@ -441,7 +441,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {filteredLinks.map(link => {
                   const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
                   const isExpanded = expandedLinkId === link.id;
@@ -458,7 +458,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                       {viewMode === 'list' ? (
                         // List Mode
                         <div
-                          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3 transition-all hover:bg-surface-solid/15 ${
+                          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-150 hover:bg-surface-solid/30 hover:shadow-md hover:scale-[1.005] ${
                             link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                           }`}
                         >
@@ -516,7 +516,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                       ) : (
                         // Card Mode
                         <div
-                          className={`pocket-card ${
+                          className={`pocket-card group transition-all duration-150 shadow-md hover:shadow-lg hover:bg-surface-solid/80 hover:scale-[1.005] ${
                             link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                           }`}
                         >
@@ -526,7 +526,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                               <img
                                 src={link.thumbnail_url}
                                 alt={link.title}
-                                className="w-full h-[180px] object-cover"
+                                className="w-full aspect-video object-cover"
                                 loading="lazy"
                               />
                             </a>
@@ -576,7 +576,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => haptic([6])}
-                              className="btn-press shrink-0 rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-all duration-75 active:scale-[0.78] active:text-text-primary"
+                              className="btn-press shrink-0 rounded-full p-1.5 text-text-muted/60 hover:text-text-primary hover:bg-surface-solid/60 opacity-60 hover:opacity-100 transition-all duration-150 active:scale-[0.78]"
                             >
                               <ExternalLink size={14} />
                             </a>

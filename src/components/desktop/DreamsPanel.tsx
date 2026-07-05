@@ -163,12 +163,12 @@ export default function DreamsPanel({
               <div
                 key={dream.id}
                 onClick={() => openDreamModal(dream)}
-                className={`group flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5 transition-all cursor-pointer ${
+                className={`group flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5 transition-all duration-150 cursor-pointer ${
                   dream.is_done
                     ? 'border-emerald-500/15 bg-emerald-500/[0.04] opacity-60'
                     : dream.is_top5
-                    ? 'border-amber-500/15 bg-amber-500/[0.02] hover:border-amber-500/30'
-                    : 'border-border-custom bg-surface hover:border-primary/20'
+                    ? 'border-amber-500/15 bg-amber-500/[0.02] hover:border-amber-500/30 hover:shadow-sm hover:-translate-y-0.5'
+                    : 'border-border-custom bg-surface hover:border-primary/20 hover:shadow-sm hover:-translate-y-0.5'
                 }`}
               >
                 <button
