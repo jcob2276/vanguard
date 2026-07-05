@@ -8,6 +8,7 @@ export interface CalendarEvent {
   end: string;
   description?: string;
   category?: string;
+  recurrence?: string[];
 }
 
 export function useCalendarWrite({

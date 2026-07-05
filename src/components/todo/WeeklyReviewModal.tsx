@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox } from 'lucide-react';
+import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox, Mic, Pencil } from 'lucide-react';
 import { getTodayWarsaw } from '../../lib/date';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted } from '../../lib/todo';
+import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, isVoiceEntry, type StreamEntry } from '../../lib/streamReview';
 
 interface Props {
   session: any;
@@ -15,11 +16,16 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Inbox Triage, 2: Section Audit, 3: Synthesis, 4: Success
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1); // 1: Inbox Triage, 2: Section Audit, 3: Stream Review, 4: Synthesis, 5: Success
 
   const [sections, setSections] = useState<any[]>([]);
   const [inboxItems, setInboxItems] = useState<any[]>([]);
   const [sectionItems, setSectionItems] = useState<any[]>([]);
+
+  // Stream review (Krok 3) — corrections to the raw Telegram/voice log the weekly AI synthesis reads
+  const [streamEntries, setStreamEntries] = useState<StreamEntry[]>([]);
+  const [editingStreamId, setEditingStreamId] = useState<string | null>(null);
+  const [editingStreamText, setEditingStreamText] = useState('');
 
   // Track pending updates locally: itemId -> patch
   const [pendingUpdates, setPendingUpdates] = useState<Record<string, any>>({});
@@ -44,6 +50,9 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
         const allItems = (await listTodoItems(userId)).filter((item) => item.status === 'open');
         setInboxItems(allItems.filter((item) => !item.section_id));
         setSectionItems(allItems.filter((item) => !!item.section_id));
+
+        // 3. Fetch this week's raw Telegram/voice log for the correction pass
+        setStreamEntries(await listRecentStreamEntries(userId));
       } catch (err) {
         console.error('Error fetching review data:', err);
       } finally {
@@ -71,6 +80,34 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     return items.some((item) => getStagedItem(item).status === 'open');
   });
 
+  const startEditStream = (entry: StreamEntry) => {
+    setEditingStreamId(entry.id);
+    setEditingStreamText(entry.content || '');
+  };
+
+  const saveEditStream = async () => {
+    if (!editingStreamId) return;
+    const id = editingStreamId;
+    const content = editingStreamText.trim();
+    setEditingStreamId(null);
+    if (!content) return;
+    setStreamEntries((prev) => prev.map((e) => e.id === id ? { ...e, content } : e));
+    try {
+      await updateStreamEntryContent(id, content);
+    } catch (err) {
+      console.error('Error updating stream entry:', err);
+    }
+  };
+
+  const handleDeleteStream = async (id: string) => {
+    setStreamEntries((prev) => prev.filter((e) => e.id !== id));
+    try {
+      await deleteStreamEntry(id);
+    } catch (err) {
+      console.error('Error deleting stream entry:', err);
+    }
+  };
+
   const handleSaveReview = async () => {
     if (!userId) return;
     setSaving(true);
@@ -84,7 +121,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
       await logTaskReviewCompleted(userId, weeklyNote.trim());
 
       if (onFinished) onFinished();
-      setStep(4); // Success screen
+      setStep(5); // Success screen
     } catch (err) {
       console.error('Error saving weekly review:', err);
     } finally {
@@ -117,7 +154,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-semibold text-text-muted">Niedziela, {today}</span>
-              {step < 4 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 3</span>}
+              {step < 5 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 4</span>}
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
@@ -126,11 +163,12 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
         </div>
 
         {/* Progress Line */}
-        {step < 4 && (
-          <div className="grid grid-cols-3 h-1 bg-border-custom/20 shrink-0">
+        {step < 5 && (
+          <div className="grid grid-cols-4 h-1 bg-border-custom/20 shrink-0">
             <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
             <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
             <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-indigo-500' : 'bg-transparent'}`} />
           </div>
         )}
 
@@ -335,13 +373,85 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             </div>
           )}
 
-          {/* STEP 3: Weekly Synthesis */}
+          {/* STEP 3: Stream / Voice Log Review */}
           {step === 3 && (
             <div className="space-y-4">
               <div>
                 <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5">
+                  <Mic size={15} className="text-indigo-500" />
+                  Krok 3: Kontrola Wpisów
+                </h3>
+                <p className="text-[10px] text-text-muted mt-0.5">Popraw literówki z transkrypcji, dopowiedz kontekst albo usuń wpisy, które trafiły do strumienia przez przypadek. To jest dokładnie to, co przeczyta tygodniowa synteza AI.</p>
+              </div>
+
+              {streamEntries.length === 0 ? (
+                <div className="py-12 text-center text-text-muted/60 italic text-[12px] bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-dashed border-border-custom/40">
+                  Brak wpisów z Telegrama w ostatnich 7 dniach.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {streamEntries.map((entry) => {
+                    const isEditing = editingStreamId === entry.id;
+                    const voice = isVoiceEntry(entry);
+                    return (
+                      <div
+                        key={entry.id}
+                        className="p-3 rounded-xl border border-border-custom/50 bg-surface-solid/30 space-y-2"
+                      >
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                          {voice && <Mic size={10} className="text-indigo-500 shrink-0" />}
+                          <span>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                        </div>
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <textarea
+                              autoFocus
+                              value={editingStreamText}
+                              onChange={(e) => setEditingStreamText(e.target.value)}
+                              rows={3}
+                              className="w-full bg-slate-50 dark:bg-white/[0.02] border border-indigo-500/40 rounded-lg px-2.5 py-2 text-[12px] font-medium text-text-primary outline-none resize-none"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button onClick={() => setEditingStreamId(null)} className="text-[10px] font-bold text-text-muted px-2 py-1">Anuluj</button>
+                              <button onClick={saveEditStream} className="text-[10px] font-black text-white bg-indigo-600 rounded-lg px-3 py-1">Zapisz</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[12px] font-medium text-text-primary break-words flex-1">{entry.content || '(pusty wpis)'}</p>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => startEditStream(entry)}
+                                className="p-1 rounded-lg border border-border-custom/50 text-text-muted hover:text-indigo-500 hover:border-indigo-500/30 transition-colors btn-press"
+                                title="Edytuj"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStream(entry.id)}
+                                className="p-1 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                                title="Usuń"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 4: Weekly Synthesis */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5">
                   <Sparkles size={15} className="text-indigo-500" />
-                  Krok 3: Synteza Tygodnia
+                  Krok 4: Synteza Tygodnia
                 </h3>
                 <p className="text-[10px] text-text-muted mt-0.5">Podsumuj krótko ten tydzień. Jakie są Twoje najważniejsze lekcje i skupienie na kolejny tydzień?</p>
               </div>
@@ -359,8 +469,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             </div>
           )}
 
-          {/* STEP 4: Success Screen */}
-          {step === 4 && (
+          {/* STEP 5: Success Screen */}
+          {step === 5 && (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 animate-fadeIn">
               <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/5">
                 <Sparkles />
@@ -375,13 +485,15 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
-          {step > 1 && step < 4 && (
+          {step > 1 && step < 5 && (
             <button
               onClick={() => {
                 if (step === 2) {
                   setStep(1);
                 } else if (step === 3) {
                   setStep(2);
+                } else if (step === 4) {
+                  setStep(3);
                 }
               }}
               className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5"
@@ -420,6 +532,16 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
           {step === 3 && (
             <button
+              onClick={() => setStep(4)}
+              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto font-black"
+            >
+              Dalej
+              <ChevronRight size={16} />
+            </button>
+          )}
+
+          {step === 4 && (
+            <button
               onClick={handleSaveReview}
               disabled={saving}
               className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto font-black disabled:opacity-40"
@@ -429,7 +551,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             </button>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <button
               onClick={onClose}
               className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center"

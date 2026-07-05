@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
           description: event.description ?? '',
           start: { dateTime: event.start, timeZone: 'Europe/Warsaw' },
           end: { dateTime: event.end, timeZone: 'Europe/Warsaw' },
+          ...(event.recurrence?.length ? { recurrence: event.recurrence } : {}),
         }),
       })
       if (!gcalRes.ok) throw new Error(`GCal create failed: ${gcalRes.status}`)
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
           description: event.description ?? '',
           start: { dateTime: event.start, timeZone: 'Europe/Warsaw' },
           end: { dateTime: event.end, timeZone: 'Europe/Warsaw' },
+          ...(event.recurrence?.length ? { recurrence: event.recurrence } : {}),
         }),
       })
       if (!gcalRes.ok) throw new Error(`GCal update failed: ${gcalRes.status}`)

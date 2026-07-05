@@ -111,6 +111,31 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
     }
   }, [userId, newTodoTitle]);
 
+  /** Create a brand-new todo, already scheduled onto a specific day/time — used by the calendar "Zadanie" quick-create path. */
+  const createScheduledTodo = useCallback(async (params: {
+    title: string;
+    day: string;
+    startMin: number;
+    durationMinutes?: number;
+    notes?: string;
+    recurrence?: string;
+  }) => {
+    if (!userId) return;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const timeOfDay = `${pad(Math.floor(params.startMin / 60))}:${pad(params.startMin % 60)}`;
+    const scheduled_time = combineDateTimeWarsawISO(params.day, timeOfDay);
+    const created = await createTodoItem(userId, {
+      title: params.title,
+      due_date: params.day,
+      scheduled_time,
+      duration_minutes: params.durationMinutes ?? null,
+      notes: params.notes,
+      recurrence: params.recurrence,
+    });
+    setScheduledTodos((prev) => [...prev, created as CalendarTodo]);
+    return created;
+  }, [userId]);
+
   /** Schedule an inbox todo onto a specific day/time — a due_date+scheduled_time write, NOT a calendar_event or completion. */
   const scheduleTodoAt = useCallback(async (todo: { id: string }, day: string, startMin: number, durationMinutes?: number) => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -143,6 +168,7 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
     completedTodoIds,
     handleToggleTodo,
     scheduleTodoAt,
+    createScheduledTodo,
     goalChipFor,
     fetchAllTodos,
   };

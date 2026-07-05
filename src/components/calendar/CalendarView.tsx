@@ -17,8 +17,23 @@ import {
   Moon,
   StickyNote,
   Check,
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudDrizzle,
+  CloudSun,
+  CloudMoon,
+  Wind,
+  Thermometer,
+  Repeat,
+  ListChecks,
+  AlignLeft,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useStore } from '../../store/useStore';
+
 import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWrite';
 import { useTimeBudgets } from '../../hooks/useTimeBudgets';
 import { useCalendarTodos, type CalendarTodo } from '../../hooks/useCalendarTodos';
@@ -80,12 +95,26 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [calView, setCalView] = useState<CalView>('dzien');
   const [selectedDay, setSelectedDay] = useState(today);
   const [weekStart, setWeekStart] = useState(() => weekMon(today));
+
+  // Visible date range — shared by the calendar-event fetch and the todo-scheduling fetch
+  const visibleRange = useMemo(() => {
+    if (calView === 'dzien' || calView === 'tydzien') {
+      return { rangeStart: weekStart, rangeEnd: addDays(weekStart, 7) };
+    }
+    return { rangeStart: today, rangeEnd: addDays(today, 14) }; // agenda: next 14 days
+  }, [calView, weekStart, today]);
+
   const [events, setEvents] = useState<CalRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [quickCreate, setQuickCreate] = useState<QuickCreateState | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickDuration, setQuickDuration] = useState(60);
   const [quickCategory, setQuickCategory] = useState<string | null>(null);
+  const [quickType, setQuickType] = useState<'event' | 'task'>('event');
+  const [quickDescription, setQuickDescription] = useState('');
+  const [quickRecurrence, setQuickRecurrence] = useState<'' | 'daily' | 'weekly' | 'monthly' | 'custom'>('');
+  const [quickCustomDays, setQuickCustomDays] = useState<string[]>([]);
+  const [quickRecurrenceEndDate, setQuickRecurrenceEndDate] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Edit event state
@@ -111,6 +140,329 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Sidebar Collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('vanguard_calendar_sidebar_collapsed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('vanguard_calendar_sidebar_collapsed', String(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  // Weather integration
+
+  const { userSettings, fetchUserSettings } = useStore();
+  
+  interface DailyForecastItem {
+    date: string;
+    weatherCode: number;
+    tempMax: number;
+    tempMin: number;
+  }
+
+  interface WeatherState {
+    current: {
+      temp: number;
+      feelsLike: number;
+      humidity: number;
+      windSpeed: number;
+      description: string;
+      iconCode: string;
+      name: string;
+      isOWM: boolean;
+    } | null;
+    daily: Record<string, DailyForecastItem>;
+    error: boolean;
+  }
+
+  const [weather, setWeather] = useState<WeatherState | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userSettings) {
+      fetchUserSettings();
+    }
+  }, [userSettings, fetchUserSettings]);
+
+  useEffect(() => {
+    const lat = userSettings?.home_lat ?? 49.6950; // Default to Świerzowa Polska if null
+    const lng = userSettings?.home_lng ?? 21.7225;
+    const start = visibleRange.rangeStart;
+    const end = visibleRange.rangeEnd;
+    const apiKey = import.meta.env.VITE_OPENWEATHERMAP_API_KEY;
+
+    let isMounted = true;
+
+    async function fetchWeather() {
+      try {
+        let currentData = null;
+
+        // 1. Try fetching current weather from OpenWeatherMap (gives live radar/rain data)
+        if (apiKey) {
+          try {
+            const owmRes = await fetch(
+              `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=pl`
+            );
+            if (owmRes.ok) {
+              const owmData = await owmRes.json();
+              currentData = {
+                temp: Math.round(owmData.main.temp),
+                feelsLike: Math.round(owmData.main.feels_like),
+                humidity: owmData.main.humidity,
+                windSpeed: Math.round(owmData.wind.speed * 3.6), // convert m/s to km/h
+                description: owmData.weather[0]?.description || '',
+                iconCode: owmData.weather[0]?.icon || '',
+                name: getCityName(lat, lng),
+                isOWM: true
+              };
+            }
+          } catch (e) {
+            console.warn('OpenWeatherMap current weather fetch failed:', e);
+          }
+        }
+
+        // 2. Fetch Open-Meteo for daily forecast (and current as fallback)
+        const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&start_date=${start}&end_date=${end}&daily=weather_code,temperature_2m_max,temperature_2m_min&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&timezone=Europe/Warsaw`;
+        const res = await fetch(openMeteoUrl);
+        if (!res.ok) throw new Error('Failed to fetch Open-Meteo');
+        const data = await res.json();
+        
+        if (isMounted) {
+          // Fallback current weather to Open-Meteo if OWM wasn't successful
+          if (!currentData && data.current) {
+            currentData = {
+              temp: Math.round(data.current.temperature_2m),
+              feelsLike: Math.round(data.current.apparent_temperature),
+              humidity: data.current.relative_humidity_2m,
+              windSpeed: Math.round(data.current.wind_speed_10m),
+              description: getWMOWeatherDescription(data.current.weather_code),
+              iconCode: String(data.current.weather_code) + (data.current.is_day ? 'd' : 'n'),
+              name: getCityName(lat, lng),
+              isOWM: false
+            };
+          }
+
+          const daily: Record<string, DailyForecastItem> = {};
+          if (data.daily && data.daily.time) {
+            for (let i = 0; i < data.daily.time.length; i++) {
+              const dStr = data.daily.time[i];
+              daily[dStr] = {
+                date: dStr,
+                weatherCode: data.daily.weather_code[i],
+                tempMax: Math.round(data.daily.temperature_2m_max[i]),
+                tempMin: Math.round(data.daily.temperature_2m_min[i])
+              };
+            }
+          }
+
+          setWeather({
+            current: currentData,
+            daily,
+            error: false
+          });
+          setWeatherLoading(false);
+        }
+      } catch (err) {
+        console.error('Error fetching weather:', err);
+        if (isMounted) {
+          setWeather(prev => (prev ? { ...prev, error: true } : {
+            current: null,
+            daily: {},
+            error: true
+          }));
+          setWeatherLoading(false);
+        }
+      }
+    }
+
+    fetchWeather();
+    
+    // Refresh weather every 15 minutes
+    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [userSettings?.home_lat, userSettings?.home_lng, visibleRange.rangeStart, visibleRange.rangeEnd]);
+
+  const getCityName = (lat: number, lng: number) => {
+    if (Math.abs(lat - 49.6950) < 0.005 && Math.abs(lng - 21.7225) < 0.005) {
+      return 'Świerzowa Polska';
+    }
+    if (Math.abs(lat - 49.68886) < 0.05 && Math.abs(lng - 21.76466) < 0.05) {
+      return 'Krosno';
+    }
+    if (Math.abs(lat - 52.2297) < 0.05 && Math.abs(lng - 21.0122) < 0.05) {
+      return 'Warszawa';
+    }
+    return 'Moja lokalizacja';
+  };
+
+  const getWMOWeatherDescription = (code: number) => {
+    switch (code) {
+      case 0: return 'Jasno';
+      case 1:
+      case 2: return 'Zachmurzenie częściowe';
+      case 3: return 'Pochmurno';
+      case 45:
+      case 48: return 'Mgła';
+      case 51:
+      case 53:
+      case 55: return 'Mżawka';
+      case 61:
+      case 63:
+      case 65: return 'Deszcz';
+      case 71:
+      case 73:
+      case 75: return 'Śnieg';
+      case 80:
+      case 81:
+      case 82: return 'Przelotny deszcz';
+      case 95:
+      case 96:
+      case 99: return 'Burza';
+      default: return 'Umiarkowane zachmurzenie';
+    }
+  };
+
+  const getOWMWeatherIcon = (iconCode: string, size = 15) => {
+    const isNight = iconCode.endsWith('n');
+    const code = iconCode.substring(0, 2);
+
+    switch (code) {
+      case '01':
+        return isNight ? <Moon size={size} className="text-indigo-300 animate-pulse" /> : <Sun size={size} className="text-amber-400" />;
+      case '02':
+        return isNight ? <CloudMoon size={size} className="text-slate-300" /> : <CloudSun size={size} className="text-amber-300" />;
+      case '03':
+      case '04':
+        return <Cloud size={size} className="text-slate-400" />;
+      case '09':
+        return <CloudDrizzle size={size} className="text-sky-400" />;
+      case '10':
+        return <CloudRain size={size} className="text-blue-400" />;
+      case '11':
+        return <CloudLightning size={size} className="text-amber-500 animate-pulse" />;
+      case '13':
+        return <CloudSnow size={size} className="text-sky-200" />;
+      case '50':
+        return <Wind size={size} className="text-zinc-400" />;
+      default:
+        return <Cloud size={size} className="text-slate-400" />;
+    }
+  };
+
+  const getWMOWeatherIcon = (code: number, size = 12, isNight = false) => {
+    switch (code) {
+      case 0:
+        return isNight ? <Moon size={size} className="text-indigo-300 animate-pulse" /> : <Sun size={size} className="text-amber-400" />;
+      case 1:
+      case 2:
+        return isNight ? <CloudMoon size={size} className="text-slate-300" /> : <CloudSun size={size} className="text-amber-300" />;
+      case 3:
+        return <Cloud size={size} className="text-slate-400" />;
+      case 45:
+      case 48:
+        return <Wind size={size} className="text-zinc-400" />;
+      case 51:
+      case 53:
+      case 55:
+        return <CloudDrizzle size={size} className="text-sky-300" />;
+      case 61:
+      case 63:
+      case 65:
+        return <CloudRain size={size} className="text-blue-400" />;
+      case 71:
+      case 73:
+      case 75:
+        return <CloudSnow size={size} className="text-sky-200" />;
+      case 80:
+      case 81:
+      case 82:
+        return <CloudRain size={size} className="text-sky-400" />;
+      case 95:
+      case 96:
+      case 99:
+        return <CloudLightning size={size} className="text-amber-500 animate-pulse" />;
+      default:
+        return <Cloud size={size} className="text-slate-400" />;
+    }
+  };
+
+  const renderWeatherWidget = () => {
+    if (weatherLoading) {
+      return (
+        <div className="flex items-center gap-1.5 rounded-full border border-border-custom/50 bg-surface/30 px-3 py-1 text-[11px] font-bold text-text-muted animate-pulse">
+          <div className="w-3.5 h-3.5 rounded-full bg-text-muted/30" />
+          <div className="w-8 h-3.5 rounded bg-text-muted/30" />
+        </div>
+      );
+    }
+    
+    if (!weather || weather.error || !weather.current) {
+      return (
+        <div className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-3 py-1 text-[11px] font-bold text-red-500/80">
+          <Cloud size={14} />
+          <span>Brak pogody</span>
+        </div>
+      );
+    }
+
+    const current = weather.current;
+
+    return (
+      <div className="flex items-center gap-1.5 rounded-full border border-border-custom/50 bg-surface/30 px-3 py-1 text-[11.5px] font-bold text-text-primary transition-all duration-300 hover:bg-surface/50 relative group cursor-pointer shadow-sm">
+        <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12 flex items-center">
+          {current.isOWM 
+            ? getOWMWeatherIcon(current.iconCode, 15) 
+            : getWMOWeatherIcon(parseInt(current.iconCode), 15, current.iconCode.endsWith('n'))
+          }
+        </div>
+        <span>{current.temp}°C</span>
+
+        {/* Tooltip */}
+        <div className="absolute top-full mt-2 right-0 z-[100] w-52 rounded-xl border border-border-custom bg-surface p-3.5 shadow-xl opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 ease-out text-left">
+          <div className="text-[10px] font-black text-text-muted mb-0.5 uppercase tracking-wider">Pogoda teraz</div>
+          <div className="text-[14px] font-black text-text-primary mb-0.5 flex items-center justify-between">
+            <span>{current.name}</span>
+            <span className="text-primary">{current.temp}°C</span>
+          </div>
+          <div className="text-[11.5px] font-bold text-text-secondary mb-2 capitalize">{current.description}</div>
+          
+          <div className="border-t border-border-custom/40 my-2" />
+          
+          <div className="space-y-1.5 text-[10px] font-semibold text-text-muted">
+            <div className="flex justify-between">
+              <span>Odczuwalna:</span>
+              <span className="text-text-primary">{current.feelsLike}°C</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Wilgotność:</span>
+              <span className="text-text-primary">{current.humidity}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Wiatr:</span>
+              <span className="text-text-primary">{current.windSpeed} km/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
+
   const [nowMin, setNowMin] = useState(() => nowMinutes());
   useEffect(() => {
     const timer = setInterval(() => {
@@ -131,13 +483,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const { budgets, saveBudget } = useTimeBudgets(userId || '');
   const { createEvent, updateEvent, deleteEvent } = useCalendarWrite({ userId, accessToken });
 
-  // Visible date range — shared by the calendar-event fetch and the todo-scheduling fetch
-  const visibleRange = useMemo(() => {
-    if (calView === 'dzien' || calView === 'tydzien') {
-      return { rangeStart: weekStart, rangeEnd: addDays(weekStart, 7) };
-    }
-    return { rangeStart: today, rangeEnd: addDays(today, 14) }; // agenda: next 14 days
-  }, [calView, weekStart, today]);
+
 
   const {
     inboxTodos,
@@ -149,6 +495,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     completedTodoIds,
     handleToggleTodo,
     scheduleTodoAt,
+    createScheduledTodo,
     goalChipFor,
     fetchAllTodos,
   } = useCalendarTodos({ userId, rangeStart: visibleRange.rangeStart, rangeEnd: visibleRange.rangeEnd });
@@ -256,6 +603,11 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         setQuickTitle('');
         setQuickDuration(60);
         setQuickCategory(null);
+        setQuickType('event');
+        setQuickDescription('');
+        setQuickRecurrence('');
+        setQuickCustomDays([]);
+        setQuickRecurrenceEndDate('');
       }
     };
 
@@ -320,12 +672,58 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     setQuickTitle('');
     setQuickDuration(60);
     setQuickCategory(null);
+    setQuickType('event');
+    setQuickDescription('');
+    setQuickRecurrence('');
+    setQuickCustomDays([]);
+    setQuickRecurrenceEndDate('');
   }
+
+  // RRULE UNTIL wants a UTC date-time (YYYYMMDDTHHMMSSZ) — anchor it to end-of-day Warsaw time
+  // so the last occurrence on the picked date still fires before the series stops.
+  const formatRRuleUntil = (dateStr: string): string => {
+    const local = new Date(`${dateStr}T23:59:59${WARSAW_OFFSET}`);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}T${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}${pad(local.getUTCSeconds())}Z`;
+  };
+
+  const buildQuickRecurrence = (): string[] | undefined => {
+    if (!quickRecurrence) return undefined;
+    let rule: string;
+    if (quickRecurrence === 'custom') {
+      if (!quickCustomDays.length) return undefined;
+      rule = `FREQ=WEEKLY;BYDAY=${quickCustomDays.join(',')}`;
+    } else {
+      rule = { daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' }[quickRecurrence];
+    }
+    if (quickRecurrenceEndDate) rule += `;UNTIL=${formatRRuleUntil(quickRecurrenceEndDate)}`;
+    return [`RRULE:${rule}`];
+  };
 
   const handleQuickSave = async () => {
     if (!quickCreate || !quickTitle.trim()) return;
     setSaving(true);
     const { date, startMin } = quickCreate;
+
+    if (quickType === 'task') {
+      try {
+        await createScheduledTodo({
+          title: quickTitle.trim(),
+          day: date,
+          startMin,
+          durationMinutes: quickDuration,
+          notes: quickDescription.trim() || undefined,
+          recurrence: (quickRecurrence === 'custom' ? undefined : quickRecurrence) || undefined,
+        });
+        setQuickCreate(null);
+      } catch (err) {
+        console.error('create task error:', err);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const endMin = startMin + quickDuration;
     const [y, m, d] = date.split('-');
     const startH = Math.floor(startMin / 60);
@@ -335,7 +733,15 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const pad = (n: number) => String(n).padStart(2, '0');
     const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
     const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
-    const ev: CalendarEvent = { summary: quickTitle.trim(), start, end, category: quickCategory || undefined };
+    const recurrence = buildQuickRecurrence();
+    const ev: CalendarEvent = {
+      summary: quickTitle.trim(),
+      start,
+      end,
+      category: quickCategory || undefined,
+      description: quickDescription.trim() || undefined,
+      recurrence,
+    };
     try {
       const result = await createEvent(ev);
       const newRow: CalRow = {
@@ -588,6 +994,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     if (!ev.start_time || !ev.end_time) return null;
     const startMin = parseTime(ev.start_time);
     const endMin = parseTime(ev.end_time);
+    
+    // Hide events completely outside the visible grid
+    if (endMin <= HOUR_START * 60 || startMin >= HOUR_END * 60) {
+      return null;
+    }
+
     const visibleStartMin = Math.max(HOUR_START * 60, startMin);
     const visibleEndMin = Math.min(HOUR_END * 60, endMin);
     const top = (visibleStartMin - HOUR_START * 60) * PX_PER_MIN;
@@ -611,7 +1023,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       <div
         key={ev.id}
         onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
-        className={`absolute rounded-none shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-105 active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
+        className={`absolute rounded-md shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-105 active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
         style={{ top, height, left: `calc(${left} + 1px)`, width: `calc(${width} - 2px)` }}
         title={ev.summary || ''}
       >
@@ -643,7 +1055,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         {Array.from({ length: HOURS + 1 }, (_, i) => (
           <div
             key={i}
-            className="text-[10px] font-extrabold text-text-muted/40 text-right pr-2 absolute right-0"
+            className="text-[10.5px] font-black text-text-secondary/80 text-right pr-2 absolute right-0"
             style={{ 
               top: i * PX_PER_HOUR, 
               transform: 'translateY(-50%)',
@@ -716,7 +1128,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         {Array.from({ length: HOURS }, (_, i) => (
           <div
             key={i}
-            className="absolute left-0 right-0 border-t border-border-custom/20 cursor-pointer hover:bg-primary/5 transition-colors"
+            className="absolute left-0 right-0 border-t border-border-custom/35 cursor-pointer hover:bg-primary/5 transition-colors"
             style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }}
             onClick={(e) => handleSlotClick(day, HOUR_START + i, e)}
             onDragOver={(e) => {
@@ -863,20 +1275,27 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           >
             <ChevronLeft size={18} className="text-text-muted" />
           </button>
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center">
             <p className="text-[14px] font-bold text-text-primary">{monthLabel(selectedDay)}</p>
+            {weather?.daily?.[selectedDay] && (
+              <div className="flex items-center gap-1 mt-0.5 text-[10.5px] font-bold text-text-muted cursor-help" title={getWMOWeatherDescription(weather.daily[selectedDay].weatherCode)}>
+                {getWMOWeatherIcon(weather.daily[selectedDay].weatherCode, 13)}
+                <span>{weather.daily[selectedDay].tempMax}°C / {weather.daily[selectedDay].tempMin}°C</span>
+              </div>
+            )}
             {selectedDay !== today && (
               <button
                 onClick={() => {
                   setSelectedDay(today);
                   setWeekStart(weekMon(today));
                 }}
-                className="text-[10px] text-primary font-semibold"
+                className="text-[10px] text-primary font-semibold mt-0.5"
               >
                 Wróć do dziś
               </button>
             )}
           </div>
+
           <button
             onClick={() => {
               const d = addDays(selectedDay, 1);
@@ -946,21 +1365,32 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           </button>
         </div>
         {/* Day headers */}
-        <div className="flex border-b border-border-custom/20" style={{ paddingLeft: 44 }}>
+        <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 44 }}>
           {weekDays.map((day) => {
             const isToday = day === today;
+            const dayForecast = weather?.daily?.[day];
             return (
-              <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center">
-                <p className={`text-[8.5px] font-bold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+              <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center relative group">
+                <p className={`text-[10px] font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted/80'}`}>
                   {new Date(day + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'short' })}
                 </p>
-                <div className="mt-1 flex items-center justify-center h-6 w-6">
+                {dayForecast && (
+                  <div className="mt-0.5 flex flex-col items-center gap-0.5 cursor-help" title={`${getWMOWeatherDescription(dayForecast.weatherCode)}: ${dayForecast.tempMax}°C / ${dayForecast.tempMin}°C`}>
+                    <div className="flex items-center justify-center transition-transform duration-200 hover:scale-110">
+                      {getWMOWeatherIcon(dayForecast.weatherCode, 12)}
+                    </div>
+                    <span className="text-[7.5px] font-black text-text-muted leading-none">
+                      {dayForecast.tempMax}°
+                    </span>
+                  </div>
+                )}
+                <div className="mt-1 flex items-center justify-center h-8 w-8">
                   {isToday ? (
-                    <span className="h-5.5 w-5.5 rounded-full bg-primary flex items-center justify-center text-[11.5px] font-black text-white leading-none shadow-sm shadow-primary/20">
+                    <span className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-[13px] font-black text-white leading-none shadow-sm shadow-primary/20">
                       {parseInt(day.split('-')[2])}
                     </span>
                   ) : (
-                    <span className="text-[11.5px] font-bold text-text-secondary leading-none">
+                    <span className="text-[15px] font-black text-text-primary leading-none">
                       {parseInt(day.split('-')[2])}
                     </span>
                   )}
@@ -969,6 +1399,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             );
           })}
         </div>
+
         {renderAllDayTodos(weekDays)}
         {/* Grid */}
         <div ref={gridRef} className="flex-1 overflow-y-auto">
@@ -977,7 +1408,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             {weekDays.map((day) => (
               <div
                 key={day}
-                className={`flex-1 relative border-l border-border-custom/10 ${day === today ? 'bg-primary/[0.02]' : ''}`}
+                className={`flex-1 relative border-l border-border-custom/30 ${day === today ? 'bg-primary/[0.02]' : ''}`}
               >
                 {renderDayColumn(day)}
               </div>
@@ -1091,17 +1522,41 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Nowe wydarzenie</p>
+            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">
+              {quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'}
+            </p>
             <button onClick={() => setQuickCreate(null)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
               <X size={18} />
             </button>
           </div>
+
+          {/* Type toggle */}
+          <div className="flex gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-border-custom/40">
+            <button
+              type="button"
+              onClick={() => setQuickType('event')}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[12px] font-bold py-2 rounded-lg transition-all ${quickType === 'event' ? 'bg-background text-text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+            >
+              <Calendar size={13} /> Wydarzenie
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setQuickType('task');
+                if (quickRecurrence === 'custom') setQuickRecurrence('');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[12px] font-bold py-2 rounded-lg transition-all ${quickType === 'task' ? 'bg-background text-text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+            >
+              <ListChecks size={13} /> Zadanie
+            </button>
+          </div>
+
           <input
             autoFocus
             value={quickTitle}
             onChange={(e) => setQuickTitle(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickSave(); }}
-            placeholder="Tytuł wydarzenia..."
+            placeholder={quickType === 'task' ? 'Tytuł zadania...' : 'Tytuł wydarzenia...'}
             className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-4 py-3.5 text-[14px] font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-text-muted/30"
           />
           <div className="flex items-center gap-2.5 text-text-secondary bg-slate-50 dark:bg-white/[0.02] border border-border-custom/40 rounded-xl px-3.5 py-2.5">
@@ -1124,6 +1579,99 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               ))}
             </div>
           </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <AlignLeft size={11} /> Opis
+            </label>
+            <textarea
+              value={quickDescription}
+              onChange={(e) => setQuickDescription(e.target.value)}
+              placeholder="Dodaj opis..."
+              rows={2}
+              className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-4 py-2.5 text-[12.5px] font-medium text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-text-muted/30 resize-none"
+            />
+          </div>
+
+          {/* Recurrence */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <Repeat size={11} /> Powtarzanie
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {(quickType === 'task'
+                ? (['', 'daily', 'weekly', 'monthly'] as const)
+                : (['', 'daily', 'weekly', 'monthly', 'custom'] as const)
+              ).map((r) => (
+                <button
+                  key={r || 'none'}
+                  type="button"
+                  onClick={() => setQuickRecurrence(r)}
+                  className={`flex-1 min-w-[70px] text-[10.5px] font-bold py-2 rounded-xl border transition-all ${quickRecurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+                >
+                  {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
+                </button>
+              ))}
+            </div>
+            {quickRecurrence === 'custom' && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  { key: 'MO', label: 'Pon' },
+                  { key: 'TU', label: 'Wt' },
+                  { key: 'WE', label: 'Śr' },
+                  { key: 'TH', label: 'Czw' },
+                  { key: 'FR', label: 'Pt' },
+                  { key: 'SA', label: 'Sob' },
+                  { key: 'SU', label: 'Ndz' },
+                ].map((day) => {
+                  const isSelected = quickCustomDays.includes(day.key);
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => setQuickCustomDays((prev) =>
+                        isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
+                      )}
+                      className={`w-10 text-[10.5px] font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setQuickCustomDays(['MO', 'TU', 'WE', 'TH', 'FR'])}
+                  className="text-[10px] font-bold text-primary px-2 py-1.5 hover:underline"
+                >
+                  Dni robocze
+                </button>
+              </div>
+            )}
+            {quickType === 'event' && quickRecurrence !== '' && (
+              <div className="flex items-center gap-2.5 pt-1">
+                <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
+                <input
+                  type="date"
+                  value={quickRecurrenceEndDate}
+                  onChange={(e) => setQuickRecurrenceEndDate(e.target.value)}
+                  min={date}
+                  placeholder="Nigdy"
+                  className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+                />
+                {quickRecurrenceEndDate && (
+                  <button
+                    type="button"
+                    onClick={() => setQuickRecurrenceEndDate('')}
+                    className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Category selection */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kategoria</label>
@@ -1132,10 +1680,10 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
           <button
             onClick={handleQuickSave}
-            disabled={saving || !quickTitle.trim()}
+            disabled={saving || !quickTitle.trim() || (quickRecurrence === 'custom' && quickCustomDays.length === 0)}
             className="w-full rounded-xl bg-primary text-white py-3.5 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40"
           >
-            {saving ? 'Dodaję...' : 'Dodaj wydarzenie'}
+            {saving ? 'Dodaję...' : quickType === 'task' ? 'Dodaj zadanie' : 'Dodaj wydarzenie'}
           </button>
         </div>
       </div>
@@ -1348,193 +1896,207 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   return (
     <div className="flex h-screen bg-background text-text-primary overflow-hidden">
       {/* LEFT SIDEBAR (Notion Calendar / Cron Style - visible on desktop) */}
-      <div className="hidden md:flex flex-col w-80 border-r border-border-custom/50 bg-background/95 shrink-0 h-full overflow-hidden">
+      <div className={`hidden md:flex flex-col ${sidebarCollapsed ? 'w-16' : 'w-80'} border-r border-border-custom/50 bg-background/95 shrink-0 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-border-custom/50 flex items-center justify-between">
+        <div className={`p-4 border-b border-border-custom/50 flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           <div className="flex items-center gap-2">
-            <div className="w-6.5 h-6.5 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[12px] font-black shadow-sm">
+            <button 
+              onClick={toggleSidebar} 
+              className="w-6.5 h-6.5 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[12px] font-black shadow-sm shrink-0 cursor-pointer hover:bg-primary/20 active:scale-95 transition-all"
+              title={sidebarCollapsed ? "Rozwiń panel" : "Zwiń panel"}
+            >
               <Zap size={14} className="fill-primary text-primary" />
-            </div>
-            <span className="text-[13px] font-black tracking-wider uppercase text-text-primary">Vanguard OS</span>
+            </button>
+            {!sidebarCollapsed && (
+              <span className="text-[13px] font-black tracking-wider uppercase text-text-primary">Vanguard OS</span>
+            )}
           </div>
-          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] text-text-muted hover:text-text-primary transition-all" title="Wróć do pulpitu">
-            <ChevronLeft size={18} />
-          </button>
+          {!sidebarCollapsed && (
+            <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] text-text-muted hover:text-text-primary transition-all cursor-pointer" title="Wróć do pulpitu">
+              <ChevronLeft size={18} />
+            </button>
+          )}
         </div>
 
         {/* Quick View Switcher */}
-        <div className="px-4 py-3 border-b border-border-custom/25 bg-slate-500/5 dark:bg-white/[0.01] flex gap-1.5 shrink-0">
+        <div className={`px-2 py-3 border-b border-border-custom/25 bg-slate-500/5 dark:bg-white/[0.01] flex ${sidebarCollapsed ? 'flex-col items-center' : 'flex-row'} gap-1.5 shrink-0`}>
           <button
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-black bg-primary/10 text-primary border border-primary/15"
+            className={`flex-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-black bg-primary/10 text-primary border border-primary/15 ${sidebarCollapsed ? 'p-2' : ''}`}
+            title="Kalendarz"
           >
             <Calendar size={13} className="shrink-0" />
-            <span>Kalendarz</span>
+            {!sidebarCollapsed && <span>Kalendarz</span>}
           </button>
           <button
             onClick={() => onNavigateTo?.('todo')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer"
+            className={`flex-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer ${sidebarCollapsed ? 'p-2' : ''}`}
+            title="Zadania"
           >
             <List size={13} className="shrink-0" />
-            <span>Zadania</span>
+            {!sidebarCollapsed && <span>Zadania</span>}
           </button>
           <button
             onClick={() => onNavigateTo?.('keep')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer"
+            className={`flex-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all border border-transparent cursor-pointer ${sidebarCollapsed ? 'p-2' : ''}`}
+            title="Notatki"
           >
             <StickyNote size={13} className="shrink-0" />
-            <span>Notatki</span>
+            {!sidebarCollapsed && <span>Notatki</span>}
           </button>
         </div>
 
         {/* Sidebar Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
-          {/* Section 1: Monthly Mini Calendar */}
-          <MiniCalendar selectedDay={selectedDay} onSelectDay={(day) => {
-            setSelectedDay(day);
-            setWeekStart(weekMon(day));
-          }} />
+        {!sidebarCollapsed && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-5">
+            {/* Section 1: Monthly Mini Calendar */}
+            <MiniCalendar selectedDay={selectedDay} onSelectDay={(day) => {
+              setSelectedDay(day);
+              setWeekStart(weekMon(day));
+            }} />
 
-          {/* Section 2: Reclaim.ai Options & AI scheduling */}
-          <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-4">
-            <div className="flex items-center gap-1.5 pb-1 border-b border-border-custom/20">
-              <Sparkles size={14} className="text-primary animate-pulse" />
-              <span className="text-[10px] font-black text-text-primary uppercase tracking-wider">Silnik Reclaim.ai</span>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center justify-between cursor-pointer group">
-                <div className="flex flex-col">
-                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Ochrona Focus Time</span>
-                  <span className="text-[9px] text-text-muted">Blokuj poranki na Deep Work</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={focusTimeDefense}
-                  onChange={(e) => setFocusTimeDefense(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
-                />
-              </label>
-
-              <label className="flex items-center justify-between cursor-pointer group">
-                <div className="flex flex-col">
-                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Bufory Oddechu</span>
-                  <span className="text-[9px] text-text-muted">15m przerwy po spotkaniach</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={decompressionBuffer}
-                  onChange={(e) => setDecompressionBuffer(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
-                />
-              </label>
-
-            </div>
-
-            <button
-              onClick={handleAISchedule}
-              disabled={isScheduling}
-              className="w-full relative flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/95 hover:to-violet-600/95 text-white py-2.5 text-[12px] font-black shadow-md hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] transition-all duration-200 disabled:opacity-50 cursor-pointer"
-            >
-              {isScheduling ? (
-                <>
-                  <RefreshCw size={13} className="animate-spin" />
-                  <span>Planowanie...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={13} />
-                  <span>Uruchom Silnik AI</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Section 2.5: Biometrics & Activity Sync */}
-          <div className="bg-emerald-500/5 dark:bg-emerald-500/[0.02] border border-emerald-500/15 rounded-2xl p-4 space-y-4">
-            <div className="flex items-center gap-1.5 pb-1 border-b border-emerald-500/10">
-              <Sliders size={13} className="text-emerald-500 shrink-0" />
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Synchronizacja Danych</span>
-            </div>
-
-            <div className="space-y-3">
-              {/* Oura Sleep */}
-              <div className="space-y-1.5">
-                <span className="text-[9.5px] font-bold text-text-muted">Sen (Oura Ring)</span>
-                <button
-                  onClick={handleSyncOuraSleep}
-                  disabled={syncingOuraSleep}
-                  title="Synchronizuje rzeczywisty czas zasypiania i obudzenia z Oura Ring"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 hover:scale-[1.015] active:scale-[0.985] text-emerald-500 py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  {syncingOuraSleep ? (
-                    <>
-                      <RefreshCw size={13} className="animate-spin" />
-                      <span>Synchronizowanie...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Moon size={13} />
-                      <span>Dopasuj Sen z Oura</span>
-                    </>
-                  )}
-                </button>
+            {/* Section 2: Reclaim.ai Options & AI scheduling */}
+            <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border-custom/20">
+                <Sparkles size={14} className="text-primary animate-pulse" />
+                <span className="text-[10px] font-black text-text-primary uppercase tracking-wider">Silnik Reclaim.ai</span>
               </div>
 
-              {/* Gym, Sauna, Strava Activities */}
-              <div className="space-y-1.5 pt-2 border-t border-border-custom/25">
-                <span className="text-[9.5px] font-bold text-text-muted">Treningi, Sauna & Strava</span>
-                <button
-                  onClick={handleSyncActivities}
-                  disabled={syncingActivities}
-                  title="Pobiera treningi, sauny oraz biegi i nakłada je jako kolorowe bloki"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/15 hover:scale-[1.015] active:scale-[0.985] text-primary py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  {syncingActivities ? (
-                    <>
-                      <RefreshCw size={13} className="animate-spin" />
-                      <span>Synchronizowanie...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={13} />
-                      <span>Wgraj Treningi do kalendarza</span>
-                    </>
-                  )}
-                </button>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <div className="flex flex-col">
+                    <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Ochrona Focus Time</span>
+                    <span className="text-[9px] text-text-muted">Blokuj poranki na Deep Work</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={focusTimeDefense}
+                    onChange={(e) => setFocusTimeDefense(e.target.checked)}
+                    className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <div className="flex flex-col">
+                    <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Bufory Oddechu</span>
+                    <span className="text-[9px] text-text-muted">15m przerwy po spotkaniach</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={decompressionBuffer}
+                    onChange={(e) => setDecompressionBuffer(e.target.checked)}
+                    className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
+                  />
+                </label>
+
+              </div>
+
+              <button
+                onClick={handleAISchedule}
+                disabled={isScheduling}
+                className="w-full relative flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/95 hover:to-violet-600/95 text-white py-2.5 text-[12px] font-black shadow-md hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              >
+                {isScheduling ? (
+                  <>
+                    <RefreshCw size={13} className="animate-spin" />
+                    <span>Planowanie...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} />
+                    <span>Uruchom Silnik AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Section 2.5: Biometrics & Activity Sync */}
+            <div className="bg-emerald-500/5 dark:bg-emerald-500/[0.02] border border-emerald-500/15 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-emerald-500/10">
+                <Sliders size={13} className="text-emerald-500 shrink-0" />
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Synchronizacja Danych</span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Oura Sleep */}
+                <div className="space-y-1.5">
+                  <span className="text-[9.5px] font-bold text-text-muted">Sen (Oura Ring)</span>
+                  <button
+                    onClick={handleSyncOuraSleep}
+                    disabled={syncingOuraSleep}
+                    title="Synchronizuje rzeczywisty czas zasypiania i obudzenia z Oura Ring"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 hover:scale-[1.015] active:scale-[0.985] text-emerald-500 py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                  >
+                    {syncingOuraSleep ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>Synchronizowanie...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon size={13} />
+                        <span>Dopasuj Sen z Oura</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Gym, Sauna, Strava Activities */}
+                <div className="space-y-1.5 pt-2 border-t border-border-custom/25">
+                  <span className="text-[9.5px] font-bold text-text-muted">Treningi, Sauna & Strava</span>
+                  <button
+                    onClick={handleSyncActivities}
+                    disabled={syncingActivities}
+                    title="Pobiera treningi, sauny oraz biegi i nakłada je jako kolorowe bloki"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/15 hover:scale-[1.015] active:scale-[0.985] text-primary py-2.5 text-[11px] font-black shadow-sm transition-all disabled:opacity-40 cursor-pointer"
+                  >
+                    {syncingActivities ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>Synchronizowanie...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={13} />
+                        <span>Wgraj Treningi do kalendarza</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Section 3: Time Budgets */}
+            <CalendarBudgetPanel
+              categoryWeeklyTotals={categoryWeeklyTotals}
+              budgets={budgets}
+              onConfigure={() => {
+                const mins: Record<string, string> = {};
+                const maxs: Record<string, string> = {};
+                LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
+                  const b = budgets.find((item) => item.category === cat);
+                  mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
+                  maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
+                });
+                setBudgetMinInputs(mins);
+                setBudgetMaxInputs(maxs);
+                setShowBudgetConfig(true);
+              }}
+            />
+
+            {/* Section 4: Tasks (Notion Calendar Style) */}
+            <CalendarSidebarTodos
+              sidebarTodos={inboxTodos}
+              newTodoTitle={newTodoTitle}
+              setNewTodoTitle={setNewTodoTitle}
+              handleQuickAddTodo={handleQuickAddTodo}
+              handleToggleTodo={handleToggleTodo}
+              completedTodoIds={completedTodoIds}
+              goalChipFor={goalChipFor}
+            />
           </div>
-
-          {/* Section 3: Time Budgets */}
-          <CalendarBudgetPanel
-            categoryWeeklyTotals={categoryWeeklyTotals}
-            budgets={budgets}
-            onConfigure={() => {
-              const mins: Record<string, string> = {};
-              const maxs: Record<string, string> = {};
-              LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
-                const b = budgets.find((item) => item.category === cat);
-                mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
-                maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
-              });
-              setBudgetMinInputs(mins);
-              setBudgetMaxInputs(maxs);
-              setShowBudgetConfig(true);
-            }}
-          />
-
-          {/* Section 4: Tasks (Notion Calendar Style) */}
-          <CalendarSidebarTodos
-            sidebarTodos={inboxTodos}
-            newTodoTitle={newTodoTitle}
-            setNewTodoTitle={setNewTodoTitle}
-            handleQuickAddTodo={handleQuickAddTodo}
-            handleToggleTodo={handleToggleTodo}
-            completedTodoIds={completedTodoIds}
-            goalChipFor={goalChipFor}
-          />
-        </div>
+        )}
       </div>
+
 
       {/* RIGHT MAIN VIEW */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -1544,6 +2106,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
           <h1 className="text-[18px] font-black text-text-primary flex-1">Kalendarz</h1>
+          {renderWeatherWidget()}
 
           {/* View switcher */}
           <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">

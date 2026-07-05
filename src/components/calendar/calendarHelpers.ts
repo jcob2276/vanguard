@@ -2,10 +2,10 @@ import { getTodayWarsaw } from '../../lib/date';
 
 export const WARSAW_OFFSET = '+02:00'; // CEST; simplified constant
 
-export const HOUR_START = 6;
+export const HOUR_START = 5;
 export const HOUR_END = 23;
 export const HOURS = HOUR_END - HOUR_START;
-export const PX_PER_HOUR = 64;
+export const PX_PER_HOUR = 54;
 export const PX_PER_MIN = PX_PER_HOUR / 60;
 
 export interface CalRow {
@@ -149,26 +149,26 @@ export function computeBudgetBarState(
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  praca: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
-  cialo_trening: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  duch_refleksja: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
-  finanse: 'bg-amber-500/8 dark:bg-amber-500/12 border-l-amber-500 border-y-amber-500/10 border-r-amber-500/10 text-amber-600 dark:text-amber-400',
-  relacje_rodzina: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
-  odpoczynek_regeneracja: 'bg-rose-500/8 dark:bg-rose-500/12 border-l-rose-500 border-y-rose-500/10 border-r-rose-500/10 text-rose-600 dark:text-rose-400',
+  praca: 'bg-blue-600 dark:bg-blue-700 text-white font-black border border-blue-700/20 shadow-sm',
+  cialo_trening: 'bg-emerald-600 dark:bg-emerald-700 text-white font-black border border-emerald-700/20 shadow-sm',
+  duch_refleksja: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-600/20 shadow-sm',
+  finanse: 'bg-amber-600 dark:bg-amber-700 text-white font-black border border-amber-700/20 shadow-sm',
+  relacje_rodzina: 'bg-violet-500 dark:bg-violet-600 text-white font-black border border-violet-600/20 shadow-sm',
+  odpoczynek_regeneracja: 'bg-indigo-600 dark:bg-indigo-700 text-white font-black border border-indigo-700/20 shadow-sm',
 
   // Legacy Fallbacks
-  work: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
-  health: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  personal: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
-  sport: 'bg-orange-500/8 dark:bg-orange-500/12 border-l-orange-500 border-y-orange-500/10 border-r-orange-500/10 text-orange-600 dark:text-orange-400',
-  study: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
+  work: 'bg-blue-600 dark:bg-blue-700 text-white font-black border border-blue-700/20 shadow-sm',
+  health: 'bg-emerald-600 dark:bg-emerald-700 text-white font-black border border-emerald-700/20 shadow-sm',
+  personal: 'bg-violet-500 dark:bg-violet-600 text-white font-black border border-violet-600/20 shadow-sm',
+  sport: 'bg-orange-500 dark:bg-orange-600 text-white font-black border border-orange-600/20 shadow-sm',
+  study: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-600/20 shadow-sm',
 };
 
 export function eventColor(ev: CalRow) {
   const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
   if (isFocusTime) {
-    return 'bg-indigo-600 dark:bg-indigo-700 text-white border border-indigo-700/20 font-semibold';
+    return 'bg-indigo-700 dark:bg-indigo-800 text-white border border-indigo-800/20 font-black shadow-sm';
   }
 
   // 1. Explicit database category
@@ -195,7 +195,7 @@ export function eventColor(ev: CalRow) {
     }
   }
 
-  return 'bg-primary text-white border border-primary/20';
+  return 'bg-primary dark:bg-indigo-600 text-white font-black border border-primary/20 shadow-sm';
 }
 
 export function layoutDayEvents(dayEvents: CalRow[]) {
