@@ -232,7 +232,7 @@ export default function WorkoutLogger({
     setSaving(true);
     try {
       await supabase.auth.getSession();
-      await saveWorkoutSession(userId, {
+      const { queued } = await saveWorkoutSession(userId, {
         workoutName,
         exercises,
         activities,
@@ -250,6 +250,9 @@ export default function WorkoutLogger({
       }
       finalizeWorkoutSession();
       haptics.success();
+      if (queued) {
+        notify('Brak sieci — trening zapisany lokalnie, zsynchronizuje się automatycznie', 'info');
+      }
       onSaved?.();
       onBack();
     } catch (err) {

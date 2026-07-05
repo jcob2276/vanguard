@@ -7,7 +7,7 @@ Project: configured per deployment through environment variables.
 
 > **JWT** = production `verify_jwt`. Cron/webhook/Telegram/Oracle server calls use **`false`** (`--no-verify-jwt` on deploy).
 
-**Inventory:** 40 function folders (+ `_shared/`) · Last registry pass: **2026-06-30**
+**Inventory:** 43 function folders (+ `_shared/`) · Last registry pass: **2026-06-30**
 
 LOC is a navigation hint, not an invariant. Regenerate before relying on it for refactor sizing.
 
@@ -81,6 +81,7 @@ Frontend: Week Hub + Action Center resolve pending system_proposals (Istotne / O
 | `vanguard-debug-retrieval` | **dropped** | Deleted from codebase | true | none | — | 2026-06-20 |
 | `vanguard-todo-classify` | **active** | Frontend background task classifier | true | `todo_items` | 117 | 2026-06-14 |
 | `vanguard-goal-create` | **active** | Frontend Goal suggestion trigger | true | none (calls DeepSeek only) | 85 | 2026-06-20 |
+| `vanguard-task-breakdown` | **active** | Frontend task breakdown trigger | true | none (calls DeepSeek only) | ~60 | 2026-07-03 |
 | `parse-food-nl` | **active** | Frontend NL meal parser | true | none (calls DeepSeek only) | 149 | 2026-06-21 |
 | `parse-workout-nl` | **active** | Frontend `WorkoutQuickCapture` NL parser | true | `exercise_logs` (read history) | ~75 | 2026-06-26 |
 | `lookup-food` | **active** | Frontend `FoodEntryModal` food/barcode search | true | none (external food DB lookup) | 217 | 2026-06-26 |
@@ -129,6 +130,7 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 | `analyze-training-load` | **active** | Frontend / manual LLM analysis | **false** | `daily_strain`, `workout_sessions`, `strava_activities_clean`, `training_plan_workouts` | 798 | 2026-06-12 |
 | `vanguard-nutrition-coach` | **active** | pg_cron `0 6 * * *` UTC (08:00 Warsaw) + manual `{ userId?, date?, notify? }` | **false** | `nutrition_profile`, `nutrition_targets` (+ read: `body_metrics`, `daily_nutrition`, `oura_daily_summary`, `strava_activities_clean`, `workout_sessions`, `medical_lab_results`, `medical_documents`, `body_composition_measurements`) | 240 | 2026-06-13 |
 | `sync-calendar` | **active** | Frontend / manual | true | `vanguard_calendar` | 137 | 2026-06-11 |
+| `calendar-write` | **active** | Frontend / manual | true | `vanguard_calendar` | ~140 | 2026-07-03 |
 
 ---
 

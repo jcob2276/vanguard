@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
-import { Plus, Settings2, X } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from 'lucide-react';
 import { PRIORITY } from './todoUtils';
+import TodoDatePickerPopover from './TodoDatePickerPopover';
+import TodoReminderPopover from './TodoReminderPopover';
 
 interface TodoFormState {
   title: string;
@@ -10,6 +12,8 @@ interface TodoFormState {
   due_date: string;
   recurrence: string;
   section_id: string;
+  scheduled_time: string;
+  reminder_at: string;
 }
 
 interface TodoQuickCaptureProps {
@@ -21,8 +25,9 @@ interface TodoQuickCaptureProps {
   busy: boolean;
   addItem: () => void;
   sections: any[];
-  parsedInput: { title: string; priority: string | null; due_date: string | null; tokens: Array<{ type: string; value: string; label: string }> };
+  parsedInput: { title: string; priority: string | null; due_date: string | null; scheduled_time: string | null; tokens: Array<{ type: string; value: string; label: string }> };
   today: string;
+  onOpenScanText?: () => void;
 }
 
 export default function TodoQuickCapture({
@@ -36,218 +41,184 @@ export default function TodoQuickCapture({
   sections,
   parsedInput,
   today,
+  onOpenScanText,
 }: TodoQuickCaptureProps) {
-  const tomorrowStr = useMemo(() => {
-    const [y, m, d] = today.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
-  }, [today]);
+  const [openPopover, setOpenPopover] = useState<'date' | 'reminder' | null>(null);
+
+  // Live preview: NLP tokens parsed straight from the typed title (e.g. "jutro o 12:15 p1")
+  // take precedence over explicit chip picks, mirroring the same precedence addItem() commits with.
+  const effectiveDueDate = parsedInput.due_date || form.due_date || '';
+  const effectivePriority = parsedInput.priority || form.priority;
+  const effectiveScheduledTime = parsedInput.scheduled_time || form.scheduled_time || '';
 
   return (
-    <div ref={quickCaptureRef} className="border-b border-border-custom/20 pb-3">
-      <div className="flex items-center gap-2">
+    <div ref={quickCaptureRef} className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 flex flex-col gap-4.5 shadow-lg">
+      {/* Title & Description inputs */}
+      <div className="flex flex-col gap-1.5">
         <input
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
           onFocus={() => setIsExpanded(true)}
-          placeholder="Nowe zadanie..."
-          className="min-w-0 flex-1 bg-transparent py-2 text-[14px] font-medium text-text-primary outline-none placeholder:text-text-muted/25"
+          placeholder="Nazwa zadania"
+          className="w-full bg-transparent text-[15px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
         />
-        {form.title && (
-          <button
-            onClick={() => setForm({ ...form, title: '' })}
-            className="p-1 text-text-muted/40 hover:text-text-primary transition-colors"
-          >
-            <X size={16} />
-          </button>
-        )}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`rounded-full border p-2 transition-all duration-300 shrink-0 ${
-            isExpanded
-              ? 'border-primary/20 bg-primary/10 text-primary rotate-45 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-              : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid/80'
-          }`}
-          title={isExpanded ? 'Zwiń opcje' : 'Rozwiń opcje'}
-        >
-          <Settings2 size={16} />
-        </button>
-        <button
-          onClick={addItem}
-          disabled={busy || !form.title.trim()}
-          className="rounded-full bg-primary p-2 text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all shrink-0"
-        >
-          <Plus size={16} />
-        </button>
+        <textarea
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          rows={2}
+          placeholder="Opis"
+          className="w-full resize-none bg-transparent text-[13px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+        />
       </div>
 
-      <div
-        className={`grid-expand-wrapper ${(isExpanded || form.title.trim() !== '') ? 'expanded' : ''}`}
-      >
-        <div className="grid-expand-content">
-          <div className="mt-3 space-y-3 border-t border-border-custom pt-3">
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={2}
-              placeholder="Opis... (podzadania: - [ ] krok)"
-              className="w-full resize-none rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2.5 text-[12px] font-medium text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+      {/* Button chips row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Date Button + popover */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${effectiveDueDate ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+          >
+            <Calendar size={12} className={effectiveDueDate ? 'text-primary' : 'text-text-muted/60'} />
+            <span>{effectiveDueDate ? `${effectiveDueDate}${effectiveScheduledTime ? ` ${effectiveScheduledTime}` : ''}` : 'Termin'}</span>
+            {form.recurrence && <Repeat size={11} className="text-primary" />}
+          </button>
+          {openPopover === 'date' && (
+            <TodoDatePickerPopover
+              dueDate={effectiveDueDate || null}
+              scheduledTime={effectiveScheduledTime || null}
+              recurrence={form.recurrence || null}
+              today={today}
+              onChange={(patch) => setForm((f) => ({
+                ...f,
+                ...(patch.due_date !== undefined ? { due_date: patch.due_date || '' } : {}),
+                ...(patch.scheduled_time !== undefined ? { scheduled_time: patch.scheduled_time || '' } : {}),
+                ...(patch.recurrence !== undefined ? { recurrence: patch.recurrence || '' } : {}),
+              }))}
+              onClose={() => setOpenPopover(null)}
             />
-            <div className="flex flex-wrap gap-3">
-              {/* Section Selector */}
-              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                <span className="text-[10px] font-semibold text-text-muted">Sekcja</span>
-                <select
-                  value={form.section_id || ''}
-                  onChange={(e) => setForm({ ...form, section_id: e.target.value })}
-                  className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2.5 py-2 text-[12px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-                >
-                  <option value="">📥 Skrzynka (brak sekcji)</option>
-                  {sections.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
+          )}
+        </div>
 
-              {/* Priority Buttons */}
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold text-text-muted">Priorytet</span>
-                <div className="flex gap-1">
-                  {['urgent', 'high', 'normal', 'low'].map(p => {
-                    const isSelected = (parsedInput.priority || form.priority) === p;
-                    const meta = PRIORITY[p];
-                    const labelMap: Record<string, string> = { urgent: 'P1', high: 'P2', normal: 'P3', low: 'P4' };
-                    return (
-                      <button
-                        type="button"
-                        key={p}
-                        onClick={() => setForm(f => ({ ...f, priority: p }))}
-                        className={`rounded-xl px-3 py-2 text-[11px] font-bold border transition-all ${
-                          isSelected
-                            ? `${meta.chip} border-current ring-1 ring-current`
-                            : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
-                        }`}
-                      >
-                        {labelMap[p]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+        {/* Priority Selector */}
+        <div className="relative">
+          <select
+            value={form.priority}
+            onChange={(e) => setForm({ ...form, priority: e.target.value })}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+          >
+            <option value="urgent">🚩 Priorytet 1 (P1)</option>
+            <option value="high">🚩 Priorytet 2 (P2)</option>
+            <option value="normal">🚩 Priorytet 3 (P3)</option>
+            <option value="low">🚩 Priorytet 4 (P4)</option>
+          </select>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
+          >
+            <Flag size={12} className={effectivePriority === 'urgent' ? 'text-rose-500' : effectivePriority === 'high' ? 'text-amber-500' : effectivePriority === 'normal' ? 'text-sky-500' : 'text-text-muted/60'} />
+            <span>
+              {effectivePriority === 'urgent' ? 'P1' : effectivePriority === 'high' ? 'P2' : effectivePriority === 'normal' ? 'P3' : 'P4'}
+            </span>
+          </button>
+        </div>
 
-              {/* Due Date Selector */}
-              <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
-                <span className="text-[10px] font-semibold text-text-muted">Termin</span>
-                <div className="flex gap-1 items-center">
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, due_date: today }))}
-                    className={`rounded-xl px-2.5 py-2 text-[11px] font-semibold border transition-all ${
-                      (parsedInput.due_date || form.due_date) === today
-                        ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20'
-                        : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
-                    }`}
-                  >
-                    Dziś
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, due_date: tomorrowStr }))}
-                    className={`rounded-xl px-2.5 py-2 text-[11px] font-semibold border transition-all ${
-                      (parsedInput.due_date || form.due_date) === tomorrowStr
-                        ? 'bg-sky-500/15 text-sky-500 border-sky-500/20'
-                        : 'border-border-custom/60 text-text-muted hover:text-text-primary hover:bg-surface-solid'
-                    }`}
-                  >
-                    Jutro
-                  </button>
-                  <input
-                    type="date"
-                    value={parsedInput.due_date || form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                    className="min-w-0 flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2 py-1.5 text-[11px] font-bold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-                  />
-                  {(parsedInput.due_date || form.due_date) && (
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, due_date: '' })}
-                      className="p-1 text-text-muted hover:text-rose-500 transition-colors"
-                      title="Wyczyść datę"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
+        {/* Reminder Button + popover */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${form.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+          >
+            <Bell size={12} className={form.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
+            <span>
+              {form.reminder_at
+                ? new Date(form.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : 'Przypomnienia'}
+            </span>
+          </button>
+          {openPopover === 'reminder' && (
+            <TodoReminderPopover
+              dueDate={form.due_date || null}
+              scheduledTime={form.scheduled_time || null}
+              onSetReminder={(iso) => setForm((f) => ({ ...f, reminder_at: iso }))}
+              onClose={() => setOpenPopover(null)}
+            />
+          )}
+        </div>
 
-              {/* Recurrence Selector */}
-              <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
-                <span className="text-[10px] font-semibold text-text-muted">Powtarzanie</span>
-                <select
-                  value={form.recurrence || ''}
-                  onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-                  className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2.5 py-2 text-[12px] font-semibold text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-                >
-                  <option value="">Nigdy</option>
-                  <option value="daily">Codziennie</option>
-                  <option value="weekly">Co tydzień</option>
-                  <option value="monthly">Co miesiąc</option>
-                </select>
-              </div>
+        {/* Tags input chip */}
+        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[150px]">
+          <Tag size={11} className="text-text-muted/60" />
+          <input
+            value={form.tagsText}
+            onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
+            placeholder="Tagi"
+            className="bg-transparent text-[11px] font-semibold text-text-secondary outline-none w-full"
+          />
+        </div>
 
-              {/* Tags Input */}
-              <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
-                <span className="text-[10px] font-semibold text-text-muted">Tagi</span>
-                <input
-                  value={form.tagsText}
-                  onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
-                  placeholder="np. zakup, praca"
-                  className="min-w-0 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
-                />
-              </div>
-            </div>
+        {/* Skan Tekstu trigger */}
+        {onOpenScanText && (
+          <button
+            type="button"
+            onClick={onOpenScanText}
+            className="flex items-center gap-1.5 rounded-lg border border-dashed border-indigo-500/30 px-2.5 py-1 text-[11px] font-semibold text-indigo-400 hover:bg-indigo-500/10 transition-all"
+          >
+            <ScanText size={12} />
+            <span>Skan tekstu</span>
+          </button>
+        )}
+      </div>
 
-            <div className="mt-3 flex items-center justify-between border-t border-border-custom pt-3">
-              <div>
-                {parsedInput.tokens.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {parsedInput.tokens.map((token) => (
-                      <span key={`${token.type}-${token.value}`}
-                        className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                          token.type === 'priority'
-                            ? (PRIORITY[token.value]?.chip ?? 'bg-surface-solid text-text-muted')
-                            : token.type === 'duration'
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                            : 'bg-primary/10 text-primary'
-                        }`}
-                      >
-                        {token.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setIsExpanded(false); }}
-                  className="rounded-xl border border-border-custom/60 px-4 py-2 text-[12px] font-semibold text-text-muted hover:text-text-primary transition-colors"
-                >
-                  Zwiń
-                </button>
-                <button
-                  type="button"
-                  onClick={addItem}
-                  disabled={busy || !form.title.trim()}
-                  className="rounded-xl bg-primary px-5 py-2 text-[12px] font-bold text-white shadow-md shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-35 transition-all"
-                >
-                  Dodaj
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Bottom Bar */}
+      <div className="flex items-center justify-between border-t border-border-custom/80 pt-3 mt-1.5">
+        {/* Left: Section Selector Dropdown */}
+        <div className="relative flex items-center">
+          <select
+            value={form.section_id || ''}
+            onChange={(e) => setForm({ ...form, section_id: e.target.value })}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+          >
+            <option value="">Skrzynka</option>
+            {sections.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
+          >
+            <Folder size={13} className="text-text-muted/60" />
+            <span>
+              {sections.find(s => s.id === form.section_id)?.name || 'Skrzynka'}
+            </span>
+            <ChevronDown size={11} className="text-text-muted/60" />
+          </button>
+        </div>
+
+        {/* Right: Cancel & Add buttons */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '', scheduled_time: '', reminder_at: '' });
+              setIsExpanded(false);
+            }}
+            className="todoist-btn-secondary"
+          >
+            Anuluj
+          </button>
+          <button
+            type="button"
+            onClick={addItem}
+            disabled={busy || !form.title.trim()}
+            className="todoist-btn-primary"
+          >
+            Dodaj zadanie
+          </button>
         </div>
       </div>
     </div>

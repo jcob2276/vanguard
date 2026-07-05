@@ -1007,6 +1007,78 @@ export type Database = {
           },
         ]
       }
+      daily_win_tasks: {
+        Row: {
+          category: string | null
+          checkpoint_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          day_win_id: string
+          done: boolean | null
+          id: string
+          pin_id: string | null
+          project_id: string | null
+          slot: number
+          target_value: string | null
+          time_slot: string | null
+          title: string
+          todo_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          checkpoint_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          day_win_id: string
+          done?: boolean | null
+          id?: string
+          pin_id?: string | null
+          project_id?: string | null
+          slot: number
+          target_value?: string | null
+          time_slot?: string | null
+          title: string
+          todo_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          checkpoint_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          day_win_id?: string
+          done?: boolean | null
+          id?: string
+          pin_id?: string | null
+          project_id?: string | null
+          slot?: number
+          target_value?: string | null
+          time_slot?: string | null
+          title?: string
+          todo_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_win_tasks_day_win_id_fkey"
+            columns: ["day_win_id"]
+            isOneToOne: false
+            referencedRelation: "daily_wins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_win_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       dreams: {
         Row: {
           category: string
@@ -1691,6 +1763,30 @@ export type Database = {
           is_positive?: boolean | null
           name?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      intervals_tokens: {
+        Row: {
+          api_key: string
+          athlete_id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          athlete_id: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          athlete_id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3027,6 +3123,8 @@ export type Database = {
           hr_frozen: boolean | null
           hr_max: number | null
           hr_source: string | null
+          icu_activity_id: string | null
+          icu_hr_zone_times: Json | null
           is_oura_duplicate: boolean | null
           manual: boolean | null
           max_heartrate: number | null
@@ -3035,6 +3133,7 @@ export type Database = {
           name: string | null
           perceived_exertion: number | null
           raw_data: Json | null
+          source: string | null
           splits_with_hr: Json | null
           sport_type: string | null
           start_date: string | null
@@ -3042,6 +3141,7 @@ export type Database = {
           suffer_score: number | null
           synced_at: string | null
           total_elevation_gain: number | null
+          trimp: number | null
           user_id: string
         }
         Insert: {
@@ -3064,6 +3164,8 @@ export type Database = {
           hr_frozen?: boolean | null
           hr_max?: number | null
           hr_source?: string | null
+          icu_activity_id?: string | null
+          icu_hr_zone_times?: Json | null
           is_oura_duplicate?: boolean | null
           manual?: boolean | null
           max_heartrate?: number | null
@@ -3072,6 +3174,7 @@ export type Database = {
           name?: string | null
           perceived_exertion?: number | null
           raw_data?: Json | null
+          source?: string | null
           splits_with_hr?: Json | null
           sport_type?: string | null
           start_date?: string | null
@@ -3079,6 +3182,7 @@ export type Database = {
           suffer_score?: number | null
           synced_at?: string | null
           total_elevation_gain?: number | null
+          trimp?: number | null
           user_id: string
         }
         Update: {
@@ -3101,6 +3205,8 @@ export type Database = {
           hr_frozen?: boolean | null
           hr_max?: number | null
           hr_source?: string | null
+          icu_activity_id?: string | null
+          icu_hr_zone_times?: Json | null
           is_oura_duplicate?: boolean | null
           manual?: boolean | null
           max_heartrate?: number | null
@@ -3109,6 +3215,7 @@ export type Database = {
           name?: string | null
           perceived_exertion?: number | null
           raw_data?: Json | null
+          source?: string | null
           splits_with_hr?: Json | null
           sport_type?: string | null
           start_date?: string | null
@@ -3116,6 +3223,7 @@ export type Database = {
           suffer_score?: number | null
           synced_at?: string | null
           total_elevation_gain?: number | null
+          trimp?: number | null
           user_id?: string
         }
         Relationships: []

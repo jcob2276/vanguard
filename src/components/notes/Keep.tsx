@@ -49,6 +49,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [columns, setColumns] = useState(3);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [search, activeTag, sidebarTab]);
 
   const goTo = (dest: string) => {
     if (onNavigateTo) {
@@ -506,6 +511,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   const pinned = sidebarTab === 'notes' ? filtered.filter(n => n.is_pinned) : [];
   const others = sidebarTab === 'notes' ? filtered.filter(n => !n.is_pinned) : filtered;
+  const visibleOthers = others.slice(0, visibleCount);
 
   const handleTagClick = (tag: string) => {
     setSidebarTab('notes');
@@ -758,10 +764,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                     <h2 className="keep-section-label">Inne</h2>
                   )}
                   {viewMode === 'grid' ? (
-                    <MasonryGrid notes={others} {...sharedGridProps} />
+                    <MasonryGrid notes={visibleOthers} {...sharedGridProps} />
                   ) : (
                     <div className="keep-list">
-                      {others.map(note => (
+                      {visibleOthers.map(note => (
                         <NoteCard
                           key={note.id}
                           note={note}
@@ -781,7 +787,17 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
                           search={search}
                         />
                       ))}
-
+                    </div>
+                  )}
+                  {others.length > visibleCount && (
+                    <div className="flex justify-center mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount(prev => prev + 30)}
+                        className="px-6 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[11px] font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        Pokaż więcej notatek ({others.length - visibleCount} pozostało)
+                      </button>
                     </div>
                   )}
                 </section>

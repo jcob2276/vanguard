@@ -9,7 +9,7 @@ import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 
 type DashboardData = {
   weeklyCalories: number;
-  todayWin: Tables<'daily_wins'> | null;
+  todayWin: (Tables<'daily_wins'> & { daily_win_tasks?: Tables<'daily_win_tasks'>[] }) | null;
   proteinToday: number;
   hasWorkoutToday: boolean;
   ouraToday: Tables<'oura_daily_summary'>[];
@@ -56,7 +56,7 @@ export function useDashboardData() {
         lastWorkoutRes
       ] = await Promise.all([
         supabase.from('daily_nutrition').select('calories').eq('user_id', session.user.id).gte('date', monday),
-        supabase.from('daily_wins').select('*').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
+        supabase.from('daily_wins').select('*, daily_win_tasks(*)').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
         supabase.from('daily_nutrition').select('protein').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
         supabase.from('workout_sessions').select('id').eq('user_id', session.user.id).eq('date', today).limit(1).maybeSingle(),
         supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(30),

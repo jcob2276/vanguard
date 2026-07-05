@@ -45,6 +45,28 @@ export function warsawDayBoundsISO(dateStr: string): { fromISO: string; toISO: s
   };
 }
 
+/**
+ * Combines a YYYY-MM-DD date and an "HH:MM" wall-clock time into a Warsaw-offset ISO
+ * string — the format `todo_items.scheduled_time`/`reminder_at` actually need, since both
+ * columns are `timestamptz`, not a bare `time`. A raw "14:30" string fails Postgres's cast.
+ */
+export function combineDateTimeWarsawISO(dateStr: string, timeStr: string): string {
+  const probe = new Date(`${dateStr}T12:00:00Z`);
+  const offset = warsawOffsetSuffix(probe);
+  return `${dateStr}T${timeStr}:00${offset}`;
+}
+
+/** Reads the "HH:MM" wall-clock time (Warsaw) back off a stored timestamptz ISO string. */
+export function warsawTimeOfDay(isoStr: string): string {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: WARSAW_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(new Date(isoStr));
+}
+
 export function formatWarsawDate(date: Date | string | number): string {
   try {
     const d = new Date(date);

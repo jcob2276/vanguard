@@ -14,16 +14,48 @@ import {
   Sparkles,
   Shield,
   Zap,
-  CalendarDays,
   Moon,
   StickyNote,
+  Check,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWrite';
 import { useTimeBudgets } from '../../hooks/useTimeBudgets';
-import { createTodoItem, setTodoStatus } from '../../lib/todo';
+import { useCalendarTodos, type CalendarTodo } from '../../hooks/useCalendarTodos';
 import { warsawDayBoundsISO } from '../../lib/date';
-import { LIFE_SPHERES } from '../../lib/lifeSpheres';
+import { LIFE_SPHERES, LEGACY_CATEGORY_TO_SPHERE } from '../../lib/lifeSpheres';
+import { GOAL_ICON } from '../todo/todoUtils';
+
+import {
+  WARSAW_OFFSET,
+  HOUR_START,
+  HOUR_END,
+  HOURS,
+  PX_PER_HOUR,
+  PX_PER_MIN,
+  toLocalISO,
+  addDays,
+  weekMon,
+  todayStr,
+  dayLabel,
+  monthLabel,
+  getWarsawParts,
+  parseTime,
+  formatTime,
+  dateOfISO,
+  nowMinutes,
+  eventColor,
+  layoutDayEvents,
+  type CalRow,
+} from './calendarHelpers';
+
+import MiniCalendar from './MiniCalendar';
+import CalendarSidebarTodos from './CalendarSidebarTodos';
+import CalendarBudgetPanel from './CalendarBudgetPanel';
+
+import { useAIScheduling } from '../../hooks/useAIScheduling';
+import { useSyncOura } from '../../hooks/useSyncOura';
+import { useSyncActivities } from '../../hooks/useSyncActivities';
 
 interface Props {
   session: any;
@@ -35,419 +67,9 @@ interface Props {
 
 type CalView = 'dzien' | 'tydzien' | 'agenda';
 
-interface CalRow {
-  id: string;
-  event_id: string | null;
-  summary: string | null;
-  start_time: string | null;
-  end_time: string | null;
-  category: string | null;
-}
-
-interface SidebarTodo {
-  id: string;
-  title: string;
-  status: string;
-}
-
-const HOUR_START = 6;
-const HOUR_END = 23;
-const HOURS = HOUR_END - HOUR_START;
-const PX_PER_HOUR = 64;
-const PX_PER_MIN = PX_PER_HOUR / 60;
-
-const WARSAW_OFFSET = '+02:00'; // CEST; simplified constant
-
-function toLocalISO(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function addDays(dateStr: string, n: number) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  return toLocalISO(new Date(dt.getTime()));
-}
-
-function weekMon(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  const dow = (dt.getUTCDay() + 6) % 7; // Mon=0
-  dt.setUTCDate(dt.getUTCDate() - dow);
-  return toLocalISO(new Date(dt.getTime()));
-}
-
-function todayStr() {
-  return toLocalISO(new Date());
-}
-
-function dayLabel(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric' });
-}
-
-function monthLabel(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function getWarsawParts(isoStr: string) {
-  const normalized = isoStr.includes(' ') && !isoStr.includes('T') ? isoStr.replace(' ', 'T') : isoStr;
-  const date = new Date(normalized);
-  if (isNaN(date.getTime())) throw new Error(`Invalid date string: ${isoStr}`);
-
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Warsaw',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(date);
-  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
-  
-  return {
-    year: getPart('year'),
-    month: getPart('month'),
-    day: getPart('day'),
-    hour: getPart('hour'),
-    minute: getPart('minute'),
-    dateStr: `${getPart('year')}-${getPart('month')}-${getPart('day')}`,
-    timeStr: `${getPart('hour')}:${getPart('minute')}`
-  };
-}
-
-function parseTime(iso: string) {
-  try {
-    const { hour, minute } = getWarsawParts(iso);
-    return Number(hour) * 60 + Number(minute);
-  } catch (e) {
-    return 0;
-  }
-}
-
-function formatTime(iso: string) {
-  try {
-    const { timeStr } = getWarsawParts(iso);
-    return timeStr;
-  } catch (e) {
-    return '';
-  }
-}
-
-function dateOfISO(iso: string) {
-  try {
-    const { dateStr } = getWarsawParts(iso);
-    return dateStr;
-  } catch (e) {
-    return iso.split('T')[0] || iso.split(' ')[0] || '';
-  }
-}
-
-function nowMinutes() {
-  const n = new Date();
-  return n.getHours() * 60 + n.getMinutes();
-}
-
-/** Shared by the desktop sidebar and mobile collapsible budget panels — same
- * min/max-vs-actual logic, kept in one place so a fix doesn't need to land twice. */
-function computeBudgetBarState(
-  spent: number,
-  minVal: number | null | undefined,
-  maxVal: number | null | undefined,
-  baseColor: string,
-): { pct: number; statusText: string; barColor: string } {
-  if (minVal != null && minVal > 0 && maxVal != null && maxVal > 0) {
-    return {
-      pct: Math.min(100, (spent / maxVal) * 100),
-      statusText: `${spent.toFixed(1)}h / ${minVal}–${maxVal}h`,
-      barColor:
-        spent < minVal
-          ? 'bg-amber-500 dark:bg-amber-400'
-          : spent > maxVal
-          ? 'bg-rose-500 dark:bg-rose-400'
-          : 'bg-emerald-500 dark:bg-emerald-400',
-    };
-  }
-  if (minVal != null && minVal > 0) {
-    return {
-      pct: Math.min(100, (spent / minVal) * 100),
-      statusText: `${spent.toFixed(1)}h / min ${minVal}h`,
-      barColor: spent >= minVal ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400',
-    };
-  }
-  if (maxVal != null && maxVal > 0) {
-    return {
-      pct: Math.min(100, (spent / maxVal) * 100),
-      statusText: `${spent.toFixed(1)}h / max ${maxVal}h`,
-      barColor: spent > maxVal ? 'bg-rose-500 dark:bg-rose-400' : baseColor,
-    };
-  }
-  return { pct: 0, statusText: `${spent.toFixed(1)}h`, barColor: baseColor };
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  praca: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
-  cialo_trening: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  duch_refleksja: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
-  finanse: 'bg-amber-500/8 dark:bg-amber-500/12 border-l-amber-500 border-y-amber-500/10 border-r-amber-500/10 text-amber-600 dark:text-amber-400',
-  relacje_rodzina: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
-  odpoczynek_regeneracja: 'bg-rose-500/8 dark:bg-rose-500/12 border-l-rose-500 border-y-rose-500/10 border-r-rose-500/10 text-rose-600 dark:text-rose-400',
-
-  // Legacy Fallbacks
-  work: 'bg-blue-500/8 dark:bg-blue-500/12 border-l-blue-500 border-y-blue-500/10 border-r-blue-500/10 text-blue-600 dark:text-blue-400',
-  health: 'bg-emerald-500/8 dark:bg-emerald-500/12 border-l-emerald-500 border-y-emerald-500/10 border-r-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  personal: 'bg-violet-500/8 dark:bg-violet-500/12 border-l-violet-500 border-y-violet-500/10 border-r-violet-500/10 text-violet-600 dark:text-violet-400',
-  sport: 'bg-orange-500/8 dark:bg-orange-500/12 border-l-orange-500 border-y-orange-500/10 border-r-orange-500/10 text-orange-600 dark:text-orange-400',
-  study: 'bg-sky-500/8 dark:bg-sky-500/12 border-l-sky-500 border-y-sky-500/10 border-r-sky-500/10 text-sky-600 dark:text-sky-400',
-};
-
-function eventColor(ev: CalRow) {
-  const summaryLower = ev.summary?.toLowerCase() || '';
-  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
-  if (isFocusTime) {
-    return 'bg-indigo-600 dark:bg-indigo-700 text-white border border-indigo-700/20 font-semibold';
-  }
-
-  // 1. Explicit database category
-  if (ev.category && CATEGORY_COLORS[ev.category.toLowerCase()]) {
-    return CATEGORY_COLORS[ev.category.toLowerCase()];
-  }
-
-  // 2. Keyword-based fallbacks for uncategorized events
-  if (summaryLower.includes('sen') || summaryLower.includes('sleep') || summaryLower.includes('sauna')) {
-    return CATEGORY_COLORS['odpoczynek_regeneracja'];
-  }
-  if (summaryLower.includes('bieg') || summaryLower.includes('trening') || summaryLower.includes('siłownia') || summaryLower.includes('run') || summaryLower.includes('gym') || summaryLower.includes('workout')) {
-    return CATEGORY_COLORS['cialo_trening'];
-  }
-  if (summaryLower.includes('medyt') || summaryLower.includes('reflek') || summaryLower.includes('cich') || summaryLower.includes('silent') || summaryLower.includes('mindful')) {
-    return CATEGORY_COLORS['duch_refleksja'];
-  }
-  if (summaryLower.includes('budżet') || summaryLower.includes('finans') || summaryLower.includes('money') || summaryLower.includes('invest') || summaryLower.includes('giełd')) {
-    return CATEGORY_COLORS['finanse'];
-  }
-  if (summaryLower.includes('rodzin') || summaryLower.includes('randk') || summaryLower.includes('spotkan') || summaryLower.includes('koleg') || summaryLower.includes('znajom') || summaryLower.includes('dinner') || summaryLower.includes('date') || summaryLower.includes('urodzin')) {
-    if (!summaryLower.includes('pracy') && !summaryLower.includes('work') && !summaryLower.includes('daily') && !summaryLower.includes('sync')) {
-      return CATEGORY_COLORS['relacje_rodzina'];
-    }
-  }
-
-  return 'bg-primary text-white border border-primary/20';
-}
-
-function layoutDayEvents(dayEvents: CalRow[]) {
-  // 1. Filter and parse times
-  const parsed = dayEvents
-    .filter(ev => ev.start_time && ev.end_time)
-    .map(ev => {
-      const start = parseTime(ev.start_time!);
-      const end = parseTime(ev.end_time!);
-      return {
-        event: ev,
-        start: Math.max(HOUR_START * 60, start),
-        end: Math.min(HOUR_END * 60, end)
-      };
-    });
-
-  // Sort by start time, then end time (longest first)
-  parsed.sort((a, b) => {
-    if (a.start !== b.start) return a.start - b.start;
-    return (b.end - b.start) - (a.end - a.start);
-  });
-
-  // Group into columns
-  const columns: { end: number }[][] = [];
-  const eventLayouts = new Map<string, { columnIndex: number }>();
-
-  for (const item of parsed) {
-    let colIndex = 0;
-    while (colIndex < columns.length) {
-      const col = columns[colIndex];
-      const lastInCol = col[col.length - 1];
-      if (item.start >= lastInCol.end) {
-        break;
-      }
-      colIndex++;
-    }
-
-    if (colIndex === columns.length) {
-      columns.push([]);
-    }
-
-    columns[colIndex].push(item);
-    eventLayouts.set(item.event.id, { columnIndex: colIndex });
-  }
-
-  // Group into overlapping clusters to normalize column counts
-  const clusters: typeof parsed[] = [];
-  let currentCluster: typeof parsed = [];
-  let clusterEnd = 0;
-
-  for (const item of parsed) {
-    if (currentCluster.length === 0 || item.start < clusterEnd) {
-      currentCluster.push(item);
-      clusterEnd = Math.max(clusterEnd, item.end);
-    } else {
-      clusters.push(currentCluster);
-      currentCluster = [item];
-      clusterEnd = item.end;
-    }
-  }
-  if (currentCluster.length > 0) {
-    clusters.push(currentCluster);
-  }
-
-  const styles = new Map<string, { left: string; width: string }>();
-
-  for (const cluster of clusters) {
-    let maxCol = 0;
-    for (const item of cluster) {
-      const layout = eventLayouts.get(item.event.id);
-      if (layout && layout.columnIndex > maxCol) {
-        maxCol = layout.columnIndex;
-      }
-    }
-    const colsCount = maxCol + 1;
-
-    for (const item of cluster) {
-      const layout = eventLayouts.get(item.event.id);
-      const colIdx = layout ? layout.columnIndex : 0;
-      const width = `${100 / colsCount}%`;
-      const left = `${(colIdx * 100) / colsCount}%`;
-      styles.set(item.event.id, { left, width });
-    }
-  }
-
-  return styles;
-}
-
 interface QuickCreateState {
   date: string;
   startMin: number; // minutes from midnight
-}
-
-function MiniCalendar({ selectedDay, onSelectDay }: { selectedDay: string; onSelectDay: (day: string) => void }) {
-  const [currentDate, setCurrentDate] = useState(() => {
-    const [y, m] = selectedDay.split('-').map(Number);
-    return new Date(y, m - 1, 1);
-  });
-
-  useEffect(() => {
-    const [y, m] = selectedDay.split('-').map(Number);
-    setCurrentDate(new Date(y, m - 1, 1));
-  }, [selectedDay]);
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
-
-  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  const prevMonthTotalDays = new Date(year, month, 0).getDate();
-
-  const daysGrid: { dayStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
-
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    const dNum = prevMonthTotalDays - i;
-    const prevMonthDate = new Date(year, month - 1, dNum);
-    daysGrid.push({
-      dayStr: toLocalISO(prevMonthDate),
-      dayNum: dNum,
-      isCurrentMonth: false,
-    });
-  }
-
-  for (let i = 1; i <= totalDays; i++) {
-    const curDate = new Date(year, month, i);
-    daysGrid.push({
-      dayStr: toLocalISO(curDate),
-      dayNum: i,
-      isCurrentMonth: true,
-    });
-  }
-
-  const remainingSlots = 42 - daysGrid.length;
-  for (let i = 1; i <= remainingSlots; i++) {
-    const nextMonthDate = new Date(year, month + 1, i);
-    daysGrid.push({
-      dayStr: toLocalISO(nextMonthDate),
-      dayNum: i,
-      isCurrentMonth: false,
-    });
-  }
-
-  const monthNames = [
-    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
-    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
-  ];
-
-  const today = todayStr();
-
-  return (
-    <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-3.5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] font-black text-text-primary tracking-wide">
-          {monthNames[month]} {year}
-        </span>
-        <div className="flex gap-1">
-          <button
-            onClick={handlePrevMonth}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
-          >
-            <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
-          </button>
-          <button
-            onClick={handleNextMonth}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
-          >
-            <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-7 gap-y-1.5 text-center">
-        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
-          <span key={idx} className="text-[9px] font-bold text-text-muted/50 uppercase tracking-wider">
-            {d}
-          </span>
-        ))}
-        {daysGrid.map((item, idx) => {
-          const isSelected = item.dayStr === selectedDay;
-          const isToday = item.dayStr === today;
-          return (
-            <button
-              key={idx}
-              onClick={() => onSelectDay(item.dayStr)}
-              className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-[10.5px] transition-all duration-150 active:scale-90 ${
-                isSelected
-                  ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
-                  : isToday
-                  ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
-                  : item.isCurrentMonth
-                  ? 'text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] font-semibold hover:scale-[1.08]'
-                  : 'text-text-muted/30 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
-              }`}
-            >
-              {item.dayNum}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 export default function CalendarView({ session, onBack, onSyncCalendar, isSyncing, onNavigateTo }: Props) {
@@ -484,10 +106,6 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   // Reclaim.ai features states
   const [focusTimeDefense, setFocusTimeDefense] = useState(true);
   const [decompressionBuffer, setDecompressionBuffer] = useState(true);
-  const [smartHabitsFlex, setSmartHabitsFlex] = useState(true);
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [syncingOuraSleep, setSyncingOuraSleep] = useState(false);
-  const [syncingActivities, setSyncingActivities] = useState(false);
 
   // Custom dialogs & notification states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -513,86 +131,39 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const { budgets, saveBudget } = useTimeBudgets(userId || '');
   const { createEvent, updateEvent, deleteEvent } = useCalendarWrite({ userId, accessToken });
 
-  // Sidebar Tasks states
-  const [sidebarTodos, setSidebarTodos] = useState<SidebarTodo[]>([]);
-  const [newTodoTitle, setNewTodoTitle] = useState('');
-  const [completedTodoIds, setCompletedTodoIds] = useState<Set<string>>(new Set());
-
-  const fetchSidebarTodos = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const { data, error } = await supabase
-        .from('todo_items')
-        .select('id, title, status')
-        .eq('user_id', userId)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(30);
-
-      if (error) throw error;
-      setSidebarTodos((data as SidebarTodo[]) || []);
-    } catch (e) {
-      console.error('Error fetching sidebar todos:', e);
+  // Visible date range — shared by the calendar-event fetch and the todo-scheduling fetch
+  const visibleRange = useMemo(() => {
+    if (calView === 'dzien' || calView === 'tydzien') {
+      return { rangeStart: weekStart, rangeEnd: addDays(weekStart, 7) };
     }
-  }, [userId]);
+    return { rangeStart: today, rangeEnd: addDays(today, 14) }; // agenda: next 14 days
+  }, [calView, weekStart, today]);
 
-  const handleToggleTodo = async (id: string) => {
-    try {
-      // Mark as completed locally to trigger strikethrough animation
-      setCompletedTodoIds((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-
-      // Delay removal from UI and database update to let the user see the completion state
-      setTimeout(async () => {
-        setSidebarTodos((prev) => prev.filter((t) => t.id !== id));
-        setCompletedTodoIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-        await setTodoStatus({ id }, 'done');
-      }, 1000);
-    } catch (e) {
-      console.error('Error completing todo:', e);
-      fetchSidebarTodos();
-    }
-  };
-
-  const handleQuickAddTodo = async () => {
-    if (!userId || !newTodoTitle.trim()) return;
-    const title = newTodoTitle.trim();
-    setNewTodoTitle('');
-    try {
-      const created = await createTodoItem(userId, { title });
-      setSidebarTodos((prev) => [created as SidebarTodo, ...prev]);
-    } catch (e) {
-      console.error('Error creating quick todo:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchSidebarTodos();
-  }, [fetchSidebarTodos]);
+  const {
+    inboxTodos,
+    scheduledTodos,
+    todosForDay,
+    newTodoTitle,
+    setNewTodoTitle,
+    handleQuickAddTodo,
+    completedTodoIds,
+    handleToggleTodo,
+    scheduleTodoAt,
+    goalChipFor,
+    fetchAllTodos,
+  } = useCalendarTodos({ userId, rangeStart: visibleRange.rangeStart, rangeEnd: visibleRange.rangeEnd });
 
   // Sum event durations for the current week per category
   const categoryWeeklyTotals = useMemo(() => {
     const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
     events.forEach((ev) => {
       if (!ev.start_time || !ev.end_time || !ev.category) return;
-      
+
       // Exclude sleep from the active budget calculations
       const isSleep = ev.summary?.toLowerCase()?.includes('sen') || ev.summary?.toLowerCase()?.includes('sleep');
       if (isSleep) return;
 
-      let cat = ev.category.toLowerCase();
-      if (cat === 'work') cat = 'praca';
-      else if (cat === 'health') cat = 'cialo_trening';
-      else if (cat === 'personal') cat = 'relacje_rodzina';
-      else if (cat === 'sport') cat = 'cialo_trening';
-      else if (cat === 'study') cat = 'duch_refleksja';
+      const cat = LEGACY_CATEGORY_TO_SPHERE[ev.category.toLowerCase()] || ev.category.toLowerCase();
 
       if (!(cat in totals)) return;
       try {
@@ -613,16 +184,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   // Fetch events for visible date range
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
-    let rangeStart = '';
-    let rangeEnd = '';
-    if (calView === 'dzien' || calView === 'tydzien') {
-      rangeStart = weekStart;
-      rangeEnd = addDays(weekStart, 7);
-    } else {
-      // agenda: next 14 days
-      rangeStart = today;
-      rangeEnd = addDays(today, 14);
-    }
+    const { rangeStart, rangeEnd } = visibleRange;
     setLoading(true);
     try {
       const { fromISO } = warsawDayBoundsISO(rangeStart);
@@ -641,7 +203,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     } finally {
       setLoading(false);
     }
-  }, [userId, calView, selectedDay, weekStart, today]);
+  }, [userId, visibleRange]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
@@ -719,308 +281,36 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     return events.filter((e) => e.start_time && dateOfISO(e.start_time) === day);
   }, [events]);
 
-  const handleAISchedule = async () => {
-    if (sidebarTodos.length === 0) {
-      setToastMessage('Brak zadań w skrzynce Inbox do zaplanowania.');
-      return;
-    }
-    setIsScheduling(true);
-    try {
-      const dayEvents = eventsForDay(selectedDay);
-      let busyIntervals = dayEvents.map(ev => {
-        const start = parseTime(ev.start_time || '');
-        const end = parseTime(ev.end_time || '');
-        return { start, end };
-      }).sort((a, b) => a.start - b.start);
+  const { isScheduling, handleAISchedule } = useAIScheduling({
+    userId,
+    selectedDay,
+    eventsForDay,
+    focusTimeDefense,
+    decompressionBuffer,
+    inboxTodos,
+    createEvent,
+    scheduleTodoAt,
+    fetchEvents,
+    fetchAllTodos,
+    setToastMessage,
+  });
 
-      // Focus Time Defense: check 8:00 - 10:00 (480 to 600 min)
-      if (focusTimeDefense) {
-        const overlapsFocus = busyIntervals.some(i => (i.start < 600 && i.end > 480));
-        if (!overlapsFocus) {
-          const startISO = `${selectedDay}T08:00:00${WARSAW_OFFSET}`;
-          const endISO = `${selectedDay}T10:00:00${WARSAW_OFFSET}`;
-          await createEvent({
-            summary: 'Focus Time 🛡️',
-            start: startISO,
-            end: endISO,
-            category: 'praca'
-          });
-          busyIntervals.push({ start: 480, end: 600 });
-          busyIntervals.sort((a, b) => a.start - b.start);
-        }
-      }
+  const { syncingOuraSleep, handleSyncOuraSleep } = useSyncOura({
+    userId,
+    selectedDay,
+    updateEvent,
+    createEvent,
+    fetchEvents,
+    setToastMessage,
+  });
 
-      // Schedule inbox tasks
-      let currentPointer = 540; // Start at 9:00 AM (540 mins)
-      const workEnd = 1080; // End at 6:00 PM (1080 mins)
-      const pad = (n: number) => String(n).padStart(2, '0');
-
-      for (const todo of sidebarTodos) {
-        if (currentPointer >= workEnd) break;
-        const duration = 60; // 1 hour per task
-        let foundSlot = false;
-
-        while (currentPointer + duration <= workEnd && !foundSlot) {
-          const slotStart = currentPointer;
-          const slotEnd = slotStart + duration;
-          const collision = busyIntervals.some(i => (i.start < slotEnd && i.end > slotStart));
-
-          if (!collision) {
-            const startH = Math.floor(slotStart / 60);
-            const startM = slotStart % 60;
-            const endH = Math.floor(slotEnd / 60);
-            const endM = slotEnd % 60;
-
-            const startISO = `${selectedDay}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
-            const endISO = `${endH === 24 ? selectedDay : selectedDay}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`; // safeguard against 24:00 offset
-
-            await createEvent({
-              summary: `✨ [AI] ${todo.title}`,
-              start: startISO,
-              end: endISO,
-              category: 'praca'
-            });
-
-            await setTodoStatus({ id: todo.id }, 'done');
-
-            let bufferMins = decompressionBuffer ? 15 : 0;
-            busyIntervals.push({ start: slotStart, end: slotEnd + bufferMins });
-            busyIntervals.sort((a, b) => a.start - b.start);
-
-            currentPointer = slotEnd + bufferMins;
-            foundSlot = true;
-          } else {
-            currentPointer += 15; // Scan next 15-minute alignment
-          }
-        }
-      }
-
-      await fetchEvents();
-      await fetchSidebarTodos();
-      setToastMessage('Zadania zostały pomyślnie zaplanowane przez AI! ✨');
-    } catch (e) {
-      console.error('Error during AI scheduling:', e);
-      setToastMessage('Wystąpił błąd podczas planowania.');
-    } finally {
-      setIsScheduling(false);
-    }
-  };
-
-  const handleSyncOuraSleep = async () => {
-    if (!userId) return;
-    setSyncingOuraSleep(true);
-    setToastMessage('Pobieram dane snu z Oura... 🔄');
-    try {
-      // Fetch Oura daily summaries
-      const { data: ouraRows, error: ouraErr } = await supabase
-        .from('oura_daily_summary')
-        .select('date, bedtime_timestamp, total_sleep_hours')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(14);
-
-      if (ouraErr) throw ouraErr;
-      if (!ouraRows || ouraRows.length === 0) {
-        setToastMessage('Brak danych snu w oura_daily_summary! ❌');
-        setSyncingOuraSleep(false);
-        return;
-      }
-
-      // Fetch current calendar events for the active range
-      const fromISO = addDays(selectedDay, -7) + 'T00:00:00Z';
-      const toISO = addDays(selectedDay, 7) + 'T23:59:59Z';
-      const { data: currentEvents, error: eventsErr } = await supabase
-        .from('vanguard_calendar')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('start_time', fromISO)
-        .lt('start_time', toISO);
-
-      if (eventsErr) throw eventsErr;
-
-      let updatedCount = 0;
-      let createdCount = 0;
-
-      for (const row of ouraRows) {
-        if (!row.bedtime_timestamp || !row.total_sleep_hours) continue;
-
-        // Oura stores bedtime_timestamp in UTC/Warsaw timezone context
-        const startISO = new Date(row.bedtime_timestamp).toISOString();
-        const endISO = new Date(
-          new Date(row.bedtime_timestamp).getTime() + row.total_sleep_hours * 3600 * 1000
-        ).toISOString();
-
-        // Oura date represents the morning of wake up (e.g. "2026-07-04" for sleep ending July 4th morning)
-        const wakeDateStr = row.date;
-
-        // Find existing "Sen" / "Sleep" event that ends on this date
-        const existingEvent = currentEvents?.find((ev) => {
-          const isSen = ev.summary?.toLowerCase() === 'sen' || ev.summary?.toLowerCase()?.includes('sen ') || ev.summary?.toLowerCase() === 'sleep';
-          if (!isSen) return false;
-          const evEndDateStr = ev.end_time?.split('T')[0];
-          return evEndDateStr === wakeDateStr;
-        });
-
-        if (existingEvent) {
-          await updateEvent({
-            id: existingEvent.event_id || existingEvent.id,
-            summary: 'Sen 🛌',
-            start: startISO,
-            end: endISO,
-            category: 'odpoczynek_regeneracja',
-          });
-          updatedCount++;
-        } else {
-          await createEvent({
-            summary: 'Sen 🛌',
-            start: startISO,
-            end: endISO,
-            category: 'odpoczynek_regeneracja',
-          });
-          createdCount++;
-        }
-      }
-
-      if (updatedCount === 0 && createdCount === 0) {
-        setToastMessage('Dane snu Oura są już aktualne! 🛌✨');
-      } else {
-        setToastMessage(`Zsynchronizowano sen: zaktualizowano ${updatedCount}, dodano ${createdCount}! 🛌✨`);
-      }
-      await fetchEvents();
-    } catch (err) {
-      console.error('Error syncing Oura sleep:', err);
-      setToastMessage('Nie udało się zsynchronizować snu z Oura.');
-    } finally {
-      setSyncingOuraSleep(false);
-    }
-  };
-
-  const handleSyncActivities = async () => {
-    if (!userId) return;
-    setSyncingActivities(true);
-    setToastMessage('Pobieram aktywności... 🔄');
-    try {
-      // 1. Fetch workout sessions with exercise logs
-      const { data: sessions, error: sessionErr } = await supabase
-        .from('workout_sessions')
-        .select('*, exercise_logs(exercise_name)')
-        .eq('user_id', userId)
-        .order('workout_day', { ascending: false })
-        .limit(30);
-
-      if (sessionErr) throw sessionErr;
-
-      // 2. Fetch Strava activities
-      const { data: strava, error: stravaErr } = await supabase
-        .from('strava_activities_clean')
-        .select('*')
-        .eq('user_id', userId)
-        .order('start_date', { ascending: false })
-        .limit(30);
-
-      if (stravaErr) throw stravaErr;
-
-      // 3. Fetch current calendar events for range
-      const fromISO = addDays(selectedDay, -10) + 'T00:00:00Z';
-      const toISO = addDays(selectedDay, 10) + 'T23:59:59Z';
-      const { data: currentEvents, error: eventsErr } = await supabase
-        .from('vanguard_calendar')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('start_time', fromISO)
-        .lt('start_time', toISO);
-
-      if (eventsErr) throw eventsErr;
-
-      let createdCount = 0;
-      let skippedCount = 0;
-
-      const eventExists = (startTime: string, summarySub: string) => {
-        const startSec = new Date(startTime).getTime();
-        return currentEvents?.some((ev) => {
-          const startEvSec = new Date(ev.start_time || '').getTime();
-          const matchTime = Math.abs(startSec - startEvSec) < 5 * 60 * 1000; // 5 mins threshold
-          const matchSummary = ev.summary?.toLowerCase()?.includes(summarySub.toLowerCase());
-          return matchTime && matchSummary;
-        });
-      };
-
-      // Sync Gym & Sauna
-      if (sessions) {
-        for (const session of sessions) {
-          if (!session.start_time) continue;
-
-          const isSauna = session.exercise_logs?.some(
-            (el: any) => el.exercise_name?.toLowerCase() === 'sauna'
-          );
-
-          const summary = isSauna ? 'Sauna 🧖' : 'Siłownia 🏋️';
-          const category = isSauna ? 'odpoczynek_regeneracja' : 'cialo_trening';
-          const startISO = new Date(session.start_time).toISOString();
-
-          let duration = session.duration_minutes || 60;
-          if (session.end_time && session.start_time) {
-            const diffMs = new Date(session.end_time).getTime() - new Date(session.start_time).getTime();
-            if (diffMs > 0 && diffMs < 5 * 3600 * 1000) {
-              duration = diffMs / (60 * 1000);
-            }
-          }
-
-          const endISO = new Date(new Date(startISO).getTime() + duration * 60 * 1000).toISOString();
-
-          if (eventExists(startISO, isSauna ? 'sauna' : 'siłownia')) {
-            skippedCount++;
-            continue;
-          }
-
-          await createEvent({
-            summary,
-            start: startISO,
-            end: endISO,
-            category,
-          });
-          createdCount++;
-        }
-      }
-
-      // Sync Strava runs
-      if (strava) {
-        for (const act of strava) {
-          if (!act.start_date) continue;
-
-          const summary = `Bieg 🏃 (${act.name || 'Strava'})`;
-          const startISO = new Date(act.start_date).toISOString();
-          const durationSec = act.elapsed_time || 3600;
-          const endISO = new Date(new Date(startISO).getTime() + durationSec * 1000).toISOString();
-
-          if (eventExists(startISO, 'bieg')) {
-            skippedCount++;
-            continue;
-          }
-
-          await createEvent({
-            summary,
-            start: startISO,
-            end: endISO,
-            category: 'cialo_trening',
-          });
-          createdCount++;
-        }
-      }
-
-      if (createdCount === 0) {
-        setToastMessage('Wszystkie aktywności są już aktualne! 🏃🏋️🧖');
-      } else {
-        setToastMessage(`Zsynchronizowano aktywności: dodano ${createdCount} nowych wpisów! 🏃🏋️🧖`);
-      }
-      await fetchEvents();
-    } catch (err) {
-      console.error('Error syncing activities:', err);
-      setToastMessage('Nie udało się zsynchronizować aktywności.');
-    } finally {
-      setSyncingActivities(false);
-    }
-  };
+  const { syncingActivities, handleSyncActivities } = useSyncActivities({
+    userId,
+    selectedDay,
+    createEvent,
+    fetchEvents,
+    setToastMessage,
+  });
 
   const handleSlotClick = (date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1368,8 +658,52 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
+  // Timed todos (due_date + scheduled_time) render in a slim lane on the right edge of the
+  // day column — kept out of layoutDayEvents' column algorithm since they aren't draggable
+  // calendar_event rows and shouldn't compete with real events for width.
+  const renderTodoBlock = (todo: CalendarTodo) => {
+    if (!todo.scheduled_time) return null;
+    const startMin = parseTime(todo.scheduled_time);
+    const duration = todo.duration_minutes || 30;
+    const visibleStartMin = Math.max(HOUR_START * 60, startMin);
+    const visibleEndMin = Math.min(HOUR_END * 60, startMin + duration);
+    if (visibleEndMin <= visibleStartMin) return null;
+    const top = (visibleStartMin - HOUR_START * 60) * PX_PER_MIN;
+    const height = Math.max(18, (visibleEndMin - visibleStartMin) * PX_PER_MIN);
+    const chip = goalChipFor(todo.section_id);
+    const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
+    const isCompleting = completedTodoIds.has(todo.id);
+    return (
+      <div
+        key={`todo-${todo.id}`}
+        title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
+        className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 px-1 py-0.5 overflow-hidden transition-colors z-10 ${isCompleting ? 'opacity-50' : ''}`}
+        style={{ top, height, left: '75%', width: '24%' }}
+      >
+        <div className="flex items-start gap-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleTodo(todo.id);
+              setToastMessage(`Ukończono: "${todo.title}" ✅`);
+            }}
+            className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+          >
+            {isCompleting && <Check size={6} className="text-white" strokeWidth={4} />}
+          </button>
+          <p className={`flex items-center gap-0.5 text-[8px] font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
+            {GoalIcon && <GoalIcon size={7} className="shrink-0" />}
+            <span className="truncate">{todo.title}</span>
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   const renderDayColumn = (day: string, colClass = '') => {
     const dayEvents = eventsForDay(day);
+    const dayTodos = todosForDay(day).filter((t) => t.scheduled_time);
     const isToday = day === today;
     const nowLine = isToday ? (nowMin - HOUR_START * 60) * PX_PER_MIN : null;
     return (
@@ -1404,29 +738,13 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 const offsetY = e.clientY - rect.top;
                 const clickedMin = Math.round((offsetY / PX_PER_HOUR) * 60 / 15) * 15;
                 const startMin = (HOUR_START + i) * 60 + clickedMin;
-                const endMin = startMin + 60; // default to 1 hour duration
-
-                const pad = (n: number) => String(n).padStart(2, '0');
-                const startH = Math.floor(startMin / 60);
-                const startM = startMin % 60;
-                const endH = Math.floor(endMin / 60);
-                const endM = endMin % 60;
-
-                const startISO = `${day}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
-                const endISO = `${day}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
 
                 setSaving(true);
-                await createEvent({
-                  summary: todo.title,
-                  start: startISO,
-                  end: endISO,
-                  category: 'praca'
-                });
-
-                // Complete the task from the inbox (shows strikethrough animation first)
-                handleToggleTodo(todo.id);
-                setToastMessage(`Zaplanowano zadanie: "${todo.title}"! 📅`);
-                await fetchEvents();
+                // Write due_date + scheduled_time straight onto the todo — it stays open and
+                // shows up on the grid via todosForDay(), instead of spawning a disconnected
+                // calendar_event and silently completing the task.
+                await scheduleTodoAt(todo, day, startMin, 60);
+                setToastMessage(`Zaplanowano zadanie: "${todo.title}" 📅`);
               } catch (err) {
                 console.error('Failed to drop and schedule task:', err);
                 setToastMessage('Nie udało się zaplanować zadania.');
@@ -1444,6 +762,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             return renderEventBlock(ev, layout.left, layout.width);
           });
         })()}
+        {/* Timed todos (due_date + scheduled_time) */}
+        {dayTodos.map(renderTodoBlock)}
         {/* Now line */}
         {nowLine !== null && nowLine >= 0 && (
           <div
@@ -1459,6 +779,74 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   }
 
   // ── Views ──
+
+  // Shared category picker for the quick-create and edit-event modals — one list, sourced
+  // from LIFE_SPHERES, instead of two hand-maintained copies that could drift apart.
+  const renderCategoryPicker = (selected: string | null, onSelect: (key: string | null) => void) => (
+    <div className="flex flex-wrap gap-1.5">
+      {[{ id: null as string | null, label: 'Brak', dot: 'bg-slate-400', border: 'border-border-custom', bgSoft: 'bg-surface-solid' }, ...LIFE_SPHERES].map((cat) => {
+        const isSelected = selected === cat.id;
+        return (
+          <button
+            key={cat.id || 'none'}
+            type="button"
+            onClick={() => onSelect(cat.id)}
+            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+              isSelected
+                ? cat.id
+                  ? `${cat.bgSoft.replace('/8', '/20')} ${cat.border} text-text-primary font-black shadow-sm`
+                  : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
+                : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
+            <span>{cat.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // "Due today, no specific time" todos — a slim all-day strip above the hourly grid,
+  // aligned with renderTimeGutter's 44px width so it lines up with the timed columns below.
+  const renderAllDayTodos = (days: string[]) => {
+    const untimedByDay = days.map((day) => todosForDay(day).filter((t) => !t.scheduled_time));
+    if (!untimedByDay.some((list) => list.length > 0)) return null;
+    return (
+      <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 44 }}>
+        {days.map((day, idx) => (
+          <div key={day} className="flex-1 min-w-0 p-1 space-y-1 border-l border-border-custom/10 first:border-l-0">
+            {untimedByDay[idx].map((todo) => {
+              const chip = goalChipFor(todo.section_id);
+              const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
+              const isCompleting = completedTodoIds.has(todo.id);
+              return (
+                <div
+                  key={todo.id}
+                  title={chip?.dreamTitle ? `${todo.title} · ${chip.dreamTitle}` : todo.title}
+                  className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-[9px] font-bold text-primary transition-colors ${isCompleting ? 'opacity-50' : ''}`}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleTodo(todo.id);
+                      setToastMessage(`Ukończono: "${todo.title}" ✅`);
+                    }}
+                    className={`h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+                  >
+                    {isCompleting && <Check size={7} className="text-white" strokeWidth={4} />}
+                  </button>
+                  {GoalIcon && <GoalIcon size={8} className="shrink-0" />}
+                  <span className={`truncate ${isCompleting ? 'line-through' : ''}`}>{todo.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderDayView = () => {
     return (
@@ -1500,6 +888,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             <ChevronRight size={18} className="text-text-muted" />
           </button>
         </div>
+        {renderAllDayTodos([selectedDay])}
         {/* Grid */}
         <div ref={gridRef} className="flex-1 overflow-y-auto">
           <div className="flex" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
@@ -1580,6 +969,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             );
           })}
         </div>
+        {renderAllDayTodos(weekDays)}
         {/* Grid */}
         <div ref={gridRef} className="flex-1 overflow-y-auto">
           <div className="flex" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
@@ -1604,14 +994,15 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       <div className="flex-1 overflow-y-auto pb-20">
         {days.map((day) => {
           const dayEv = eventsForDay(day);
-          if (dayEv.length === 0 && day !== today) return null;
+          const dayTodos = todosForDay(day);
+          if (dayEv.length === 0 && dayTodos.length === 0 && day !== today) return null;
           return (
             <div key={day} className="px-4 pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className={`text-[11px] font-black ${day === today ? 'text-primary' : 'text-text-muted'}`}>
                   {day === today ? 'Dziś' : dayLabel(day)}
                 </span>
-                {dayEv.length === 0 && (
+                {dayEv.length === 0 && dayTodos.length === 0 && (
                   <span className="text-[9px] text-text-muted/40">brak wydarzeń</span>
                 )}
               </div>
@@ -1633,12 +1024,42 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                     </div>
                   </div>
                 ))}
+                {dayTodos.map((todo) => {
+                  const chip = goalChipFor(todo.section_id);
+                  const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
+                  const isCompleting = completedTodoIds.has(todo.id);
+                  return (
+                    <div
+                      key={todo.id}
+                      className={`flex items-center gap-3 rounded-xl border border-dashed border-primary/30 px-3 py-2.5 transition-all bg-primary/[0.03] ${isCompleting ? 'opacity-50' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleToggleTodo(todo.id);
+                          setToastMessage(`Ukończono: "${todo.title}" ✅`);
+                        }}
+                        className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/40 hover:bg-primary/10'}`}
+                      >
+                        {isCompleting && <Check size={10} className="text-white" strokeWidth={3} />}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[12px] font-semibold text-text-primary line-clamp-1 ${isCompleting ? 'line-through' : ''}`}>{todo.title}</p>
+                        <p className="text-[9px] text-text-muted mt-0.5">
+                          {todo.scheduled_time ? formatTime(todo.scheduled_time) : 'Cały dzień'}
+                          {chip?.dreamTitle && <span className="opacity-70"> · {chip.dreamTitle}</span>}
+                        </p>
+                      </div>
+                      {GoalIcon && <GoalIcon size={11} className="shrink-0 opacity-60" />}
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-4 border-b border-border-custom/10" />
             </div>
           );
         })}
-        {events.length === 0 && !loading && (
+        {events.length === 0 && scheduledTodos.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Calendar size={32} className="text-text-muted/30" />
             <div className="text-center">
@@ -1706,37 +1127,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           {/* Category selection */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kategoria</label>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
-                { key: 'praca', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
-                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
-                { key: 'finanse', label: 'Finanse', color: 'border-amber-500/20 bg-amber-500/8 text-amber-500', dot: 'bg-amber-500' },
-                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
-                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'border-rose-500/20 bg-rose-500/8 text-rose-500', dot: 'bg-rose-500' },
-              ].map((cat) => {
-                const isSelected = quickCategory === cat.key;
-                const baseColors = cat.color.split(' ');
-                return (
-                  <button
-                    key={cat.key || 'none'}
-                    type="button"
-                    onClick={() => setQuickCategory(cat.key)}
-                    className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                      isSelected
-                        ? cat.key
-                          ? `${baseColors[0]} ${baseColors[1].replace('/8', '/20')} text-text-primary font-black shadow-sm`
-                          : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
-                        : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {renderCategoryPicker(quickCategory, setQuickCategory)}
           </div>
 
           <button
@@ -1806,37 +1197,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           {/* Category selection */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kategoria</label>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { key: null, label: 'Brak', color: 'border-border-custom bg-surface-solid text-text-muted', dot: 'bg-slate-400' },
-                { key: 'praca', label: 'Praca', color: 'border-blue-500/20 bg-blue-500/8 text-blue-500', dot: 'bg-blue-500' },
-                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'border-sky-500/20 bg-sky-500/8 text-sky-500', dot: 'bg-sky-500' },
-                { key: 'finanse', label: 'Finanse', color: 'border-amber-500/20 bg-amber-500/8 text-amber-500', dot: 'bg-amber-500' },
-                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'border-violet-500/20 bg-violet-500/8 text-violet-500', dot: 'bg-violet-500' },
-                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'border-rose-500/20 bg-rose-500/8 text-rose-500', dot: 'bg-rose-500' },
-              ].map((cat) => {
-                const isSelected = editCategory === cat.key;
-                const baseColors = cat.color.split(' ');
-                return (
-                  <button
-                    key={cat.key || 'none'}
-                    type="button"
-                    onClick={() => setEditCategory(cat.key)}
-                    className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                      isSelected
-                        ? cat.key
-                          ? `${baseColors[0]} ${baseColors[1].replace('/8', '/20')} text-text-primary font-black shadow-sm`
-                          : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
-                        : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {renderCategoryPicker(editCategory, setEditCategory)}
           </div>
 
           {/* Footer Actions */}
@@ -2067,18 +1428,6 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer group">
-                <div className="flex flex-col">
-                  <span className="text-[11.5px] font-bold text-text-primary group-hover:text-primary transition-colors">Elastyczne Nawyki</span>
-                  <span className="text-[9px] text-text-muted">Dynamiczna relokacja rutyn</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={smartHabitsFlex}
-                  onChange={(e) => setSmartHabitsFlex(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-border-custom bg-transparent checked:bg-primary accent-primary cursor-pointer"
-                />
-              </label>
             </div>
 
             <button
@@ -2157,121 +1506,33 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           </div>
 
           {/* Section 3: Time Budgets */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
-              <button
-                onClick={() => {
-                  const mins: Record<string, string> = {};
-                  const maxs: Record<string, string> = {};
-                  LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
-                    const b = budgets.find((item) => item.category === cat);
-                    mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
-                    maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
-                  });
-                  setBudgetMinInputs(mins);
-                  setBudgetMaxInputs(maxs);
-                  setShowBudgetConfig(true);
-                }}
-                className="text-[10px] text-primary font-black hover:underline"
-              >
-                Konfiguruj
-              </button>
-            </div>
-            <div className="space-y-2">
-              {[
-                { key: 'praca', label: 'Praca', color: 'bg-blue-500', dot: 'bg-blue-500' },
-                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'bg-emerald-500', dot: 'bg-emerald-500' },
-                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'bg-sky-500', dot: 'bg-sky-500' },
-                { key: 'finanse', label: 'Finanse', color: 'bg-amber-500', dot: 'bg-amber-500' },
-                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'bg-violet-500', dot: 'bg-violet-500' },
-                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'bg-rose-500', dot: 'bg-rose-500' },
-              ].map((cat) => {
-                const spent = categoryWeeklyTotals[cat.key] || 0;
-                const b = budgets.find((item) => item.category === cat.key);
-                const minVal = b?.min_hours;
-                const maxVal = b?.max_hours;
-                const { pct, statusText, barColor } = computeBudgetBarState(spent, minVal, maxVal, cat.color);
-
-                return (
-                  <div key={cat.key} className="space-y-1 p-2.5 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl">
-                    <div className="flex items-center justify-between text-[10px] font-bold">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
-                        <span className="text-text-primary">{cat.label}</span>
-                      </div>
-                      <span className="text-text-muted">{statusText}</span>
-                    </div>
-                    {(minVal || maxVal) ? (
-                      <div className="w-full h-1 bg-border-custom/40 rounded-full overflow-hidden mt-1">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-[9px] text-text-muted/40 italic mt-0.5">Brak limitu</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CalendarBudgetPanel
+            categoryWeeklyTotals={categoryWeeklyTotals}
+            budgets={budgets}
+            onConfigure={() => {
+              const mins: Record<string, string> = {};
+              const maxs: Record<string, string> = {};
+              LIFE_SPHERES.map((s) => s.id).forEach((cat) => {
+                const b = budgets.find((item) => item.category === cat);
+                mins[cat] = b?.min_hours !== null && b?.min_hours !== undefined ? String(b.min_hours) : '';
+                maxs[cat] = b?.max_hours !== null && b?.max_hours !== undefined ? String(b.max_hours) : '';
+              });
+              setBudgetMinInputs(mins);
+              setBudgetMaxInputs(maxs);
+              setShowBudgetConfig(true);
+            }}
+          />
 
           {/* Section 4: Tasks (Notion Calendar Style) */}
-          <div className="space-y-3 pt-4 border-t border-border-custom/40">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
-            
-            {/* Quick add task input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Dodaj szybkie zadanie..."
-                value={newTodoTitle}
-                onChange={(e) => setNewTodoTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAddTodo(); }}
-                className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl pl-3 pr-8 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/30"
-              />
-              <button
-                onClick={handleQuickAddTodo}
-                disabled={!newTodoTitle.trim()}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 disabled:opacity-30"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-
-            <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
-              {sidebarTodos.length === 0 ? (
-                <p className="text-[11px] text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
-              ) : (
-                sidebarTodos.map((todo) => {
-                  const isCompleted = completedTodoIds.has(todo.id);
-                  return (
-                    <div
-                      key={todo.id}
-                      draggable="true"
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title }));
-                        e.dataTransfer.effectAllowed = 'move';
-                      }}
-                      className={`flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all cursor-grab active:cursor-grabbing group hover:scale-[1.01] active:scale-[0.99] select-none ${isCompleted ? 'opacity-50 border-emerald-500/20 bg-emerald-500/[0.02]' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isCompleted}
-                        onChange={() => handleToggleTodo(todo.id)}
-                        className="mt-0.5 w-3.5 h-3.5 border-border-custom/80 rounded bg-transparent checked:bg-emerald-500 checked:border-emerald-500 transition-all cursor-pointer accent-emerald-500 shrink-0"
-                      />
-                      <span className={`text-[12px] font-semibold flex-1 break-words transition-all duration-300 ${isCompleted ? 'line-through text-text-muted/50' : 'text-text-primary group-hover:text-primary'}`}>
-                        {todo.title}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <CalendarSidebarTodos
+            sidebarTodos={inboxTodos}
+            newTodoTitle={newTodoTitle}
+            setNewTodoTitle={setNewTodoTitle}
+            handleQuickAddTodo={handleQuickAddTodo}
+            handleToggleTodo={handleToggleTodo}
+            completedTodoIds={completedTodoIds}
+            goalChipFor={goalChipFor}
+          />
         </div>
       </div>
 
@@ -2355,41 +1616,11 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           </button>
 
           {budgetPanelExpanded && (
-            <div className="px-4 pb-3.5 pt-1 grid grid-cols-2 gap-3.5">
-              {[
-                { key: 'praca', label: 'Praca', color: 'bg-blue-500', text: 'text-blue-500' },
-                { key: 'cialo_trening', label: 'Ciało / Trening', color: 'bg-emerald-500', text: 'text-emerald-500' },
-                { key: 'duch_refleksja', label: 'Duch / Refleksja', color: 'bg-sky-500', text: 'text-sky-500' },
-                { key: 'finanse', label: 'Finanse', color: 'bg-amber-500', text: 'text-amber-500' },
-                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', color: 'bg-violet-500', text: 'text-violet-500' },
-                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', color: 'bg-rose-500', text: 'text-rose-500' },
-              ].map((cat) => {
-                const spent = categoryWeeklyTotals[cat.key] || 0;
-                const b = budgets.find((item) => item.category === cat.key);
-                const minVal = b?.min_hours;
-                const maxVal = b?.max_hours;
-                const { pct, statusText, barColor } = computeBudgetBarState(spent, minVal, maxVal, cat.color);
-
-                return (
-                  <div key={cat.key} className="space-y-1.5 p-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
-                    <div className="flex items-center justify-between text-[10px] font-bold">
-                      <span className="text-text-primary">{cat.label}</span>
-                      <span className="text-text-muted">{statusText}</span>
-                    </div>
-                    {(minVal || maxVal) ? (
-                      <div className="w-full h-1.5 bg-border-custom/40 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-[9px] text-text-muted/40 italic">Brak limitu</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <CalendarBudgetPanel
+              categoryWeeklyTotals={categoryWeeklyTotals}
+              budgets={budgets}
+              isMobile={true}
+            />
           )}
         </div>
 

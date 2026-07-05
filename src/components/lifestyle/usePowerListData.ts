@@ -330,7 +330,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     const yesterday = getYesterdayWarsaw();
     supabase
       .from('daily_wins')
-      .select('id, date, day_note, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5')
+      .select('id, date, day_note, daily_win_tasks(*)')
       .eq('user_id', userId)
       .eq('date', yesterday)
       .maybeSingle()
@@ -626,33 +626,41 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         await updateDailyWin(userId, yesterdayWin.id, { day_note: yesterdayNote.trim() });
       }
 
-      const entry = {
+      // 1. Create the parent daily_wins entry
+      const parentWin = await insertDailyWin(userId, {
         user_id: userId,
         date: today,
-        task_1: newTaskForm[0].task, category_1: 'cialo',
-        task_1_todo_id: newTaskForm[0].todoId, task_1_checkpoint_id: newTaskForm[0].checkpointId,
-        task_1_project_id: newTaskForm[0].projectId, task_1_pin_id: newTaskForm[0].pinId,
-        task_1_target_value: newTaskForm[0].targetValue?.trim() || null, task_1_time_slot: newTaskForm[0].timeSlot ?? null,
-        task_2: newTaskForm[1].task, category_2: 'duch',
-        task_2_todo_id: newTaskForm[1].todoId, task_2_checkpoint_id: newTaskForm[1].checkpointId,
-        task_2_project_id: newTaskForm[1].projectId, task_2_pin_id: newTaskForm[1].pinId,
-        task_2_target_value: newTaskForm[1].targetValue?.trim() || null, task_2_time_slot: newTaskForm[1].timeSlot ?? null,
-        task_3: newTaskForm[2].task, category_3: 'konto',
-        task_3_todo_id: newTaskForm[2].todoId, task_3_checkpoint_id: newTaskForm[2].checkpointId,
-        task_3_project_id: newTaskForm[2].projectId, task_3_pin_id: newTaskForm[2].pinId,
-        task_3_target_value: newTaskForm[2].targetValue?.trim() || null, task_3_time_slot: newTaskForm[2].timeSlot ?? null,
-        task_4: newTaskForm[3].task, category_4: 'general',
-        task_4_todo_id: newTaskForm[3].todoId, task_4_checkpoint_id: newTaskForm[3].checkpointId,
-        task_4_project_id: newTaskForm[3].projectId, task_4_pin_id: newTaskForm[3].pinId,
-        task_4_target_value: newTaskForm[3].targetValue?.trim() || null, task_4_time_slot: newTaskForm[3].timeSlot ?? null,
-        task_5: newTaskForm[4].task, category_5: 'general',
-        task_5_todo_id: newTaskForm[4].todoId, task_5_checkpoint_id: newTaskForm[4].checkpointId,
-        task_5_project_id: newTaskForm[4].projectId, task_5_pin_id: newTaskForm[4].pinId,
-        task_5_target_value: newTaskForm[4].targetValue?.trim() || null, task_5_time_slot: newTaskForm[4].timeSlot ?? null,
         result: null,
+      });
+
+      // 2. Insert tasks dynamically into daily_win_tasks
+      const taskEntries = newTaskForm.map((slot, idx) => ({
+        day_win_id: parentWin.id,
+        slot: idx + 1,
+        user_id: userId,
+        title: slot.task,
+        category: idx === 0 ? 'cialo' : idx === 1 ? 'duch' : idx === 2 ? 'konto' : 'general',
+        todo_id: slot.todoId,
+        checkpoint_id: slot.checkpointId,
+        project_id: slot.projectId,
+        pin_id: slot.pinId,
+        target_value: slot.targetValue?.trim() || null,
+        time_slot: slot.timeSlot ?? null,
+        done: false
+      }));
+
+      const { data: insertedTasks, error: tasksErr } = await supabase
+        .from('daily_win_tasks')
+        .insert(taskEntries)
+        .select();
+      
+      if (tasksErr) throw tasksErr;
+
+      const data = {
+        ...parentWin,
+        daily_win_tasks: insertedTasks
       };
 
-      const data = await insertDailyWin(userId, entry);
       try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Bell,
   ChevronLeft,
@@ -14,6 +14,9 @@ import {
   Search,
   X,
   Bookmark,
+  PanelLeft,
+  Trash2,
+  Check,
 } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
@@ -23,14 +26,17 @@ import {
   renameTodoSection,
   setTodoStatus,
   updateTodoItem,
+  deleteTodoItem,
+  createTodoItem,
 } from '../../lib/todo';
 import { supabase } from '../../lib/supabase';
 import ContextMenu from './ContextMenu';
 import DragGhost from './DragGhost';
 import BucketHeader from './BucketHeader';
 import TodoCard from './TodoCard';
-import SectionTabs from './SectionTabs';
+import TodoSidebar, { type TodoNavDest } from './TodoSidebar';
 import TodoQuickCapture from './TodoQuickCapture';
+import TodoScanTextModal from './TodoScanTextModal';
 import EisenhowerMatrix from './EisenhowerMatrix';
 import KanbanView from './KanbanView';
 import TimelineView from './TimelineView';
@@ -62,8 +68,8 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
     today,
     sectionById, sectionGoalMap, sectionDreamMap,
     parsedInput,
-    todayItems, inboxItems, sectionsWithItems,
-    run, addItem,
+    todayItems, inboxItems, upcomingItems, sectionsWithItems,
+    run, addItem, fetchAll,
     saveEditTitle,
     handleDragStart, showContextMenu, handleComplete,
     getChildren, addChildTask,
@@ -73,10 +79,81 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   } = useTodoData({ session, onNavigateTo });
 
   const [todoView, setTodoView] = useState<'lista' | 'eisenhower' | 'kanban' | 'timeline'>('lista');
+  const [activeAddSectionId, setActiveAddSectionId] = useState<string | null>(null);
+  const [addingSectionIndex, setAddingSectionIndex] = useState<number | null>(null);
+  const [newSectionForm, setNewSectionForm] = useState({ name: '', notes: '' });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSaveSmartList, setShowSaveSmartList] = useState(false);
   const [newSmartListName, setNewSmartListName] = useState('');
+  const [visibleDoneCount, setVisibleDoneCount] = useState(30);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    isDanger?: boolean;
+  } | null>(null);
+  const [navDest, setNavDest] = useState<TodoNavDest>('overview');
+  const [scanTextOpen, setScanTextOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const renderCard = (item: any, { inToday = false }: { inToday?: boolean } = {}) => (
+  const renderInlineQuickCapture = (sectionId: string) => {
+    if (activeAddSectionId !== sectionId) return null;
+    return (
+      <div className="pt-2">
+        <TodoQuickCapture
+          quickCaptureRef={quickCaptureRef}
+          form={form}
+          setForm={setForm}
+          isExpanded={isExpanded}
+          setIsExpanded={(val) => {
+            setIsExpanded(val);
+            if (!val) setActiveAddSectionId(null);
+          }}
+          busy={busy}
+          addItem={() => {
+            addItem();
+            setActiveAddSectionId(null);
+          }}
+          sections={sections}
+          parsedInput={parsedInput}
+          today={today}
+          onOpenScanText={() => setScanTextOpen(true)}
+        />
+      </div>
+    );
+  };
+
+  const renderAddTodoButton = (sectionId: string) => {
+    if (activeAddSectionId === sectionId) return null;
+    return (
+      <button
+        onClick={() => {
+          setActiveAddSectionId(sectionId);
+          setIsExpanded(true);
+          const defaultDate = sectionId === 'today' ? today : '';
+          const defaultSec = sectionId === 'today' || sectionId === 'inbox' ? '' : sectionId;
+          setForm({
+            title: '',
+            notes: '',
+            priority: 'normal',
+            tagsText: '',
+            due_date: defaultDate,
+            recurrence: '',
+            section_id: defaultSec,
+            scheduled_time: '',
+            reminder_at: '',
+          });
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] font-semibold text-text-secondary hover:text-primary transition-colors cursor-pointer group mt-2"
+      >
+        <span className="text-[16px] text-primary group-hover:text-primary font-bold">+</span>
+        <span>Dodaj zadanie</span>
+      </button>
+    );
+  };
+
+  const renderCard = (item: any, { inToday = false, hideSectionChip = false }: { inToday?: boolean; hideSectionChip?: boolean } = {}) => (
     <TodoCard
       key={item.id}
       item={item}
@@ -115,7 +192,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
       onEditStart={(t: string) => { setEditingId(item.id); setEditingTitle(t); }}
       onEditChange={setEditingTitle}
       onEditSave={() => saveEditTitle(item)}
-      sectionName={item.section_id ? sectionById[item.section_id]?.name : null}
+      sectionName={!hideSectionChip && item.section_id ? sectionById[item.section_id]?.name : null}
       sectionGoalKey={item.section_id ? sectionGoalMap[item.section_id] ?? null : null}
       dreamTitle={item.section_id ? sectionDreamMap[item.section_id] ?? null : null}
       onDragStart={handleDragStart}
@@ -198,7 +275,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-text-primary">
+    <div className="todoist-theme flex h-screen overflow-hidden bg-background text-text-primary">
       {draggingItem && <DragGhost item={draggingItem} posRef={dragPosRef} />}
 
       {contextMenu && (
@@ -214,13 +291,21 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
             setContextMenu(null);
             handleComplete(cm.item);
           }}
-          onDrop={() => {
+          onDelete={() => {
             const cm = contextMenu;
             setContextMenu(null);
-            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, status: 'dropped' } : i));
-            setTodoStatus(cm.item, 'dropped').catch((err) => {
-              setError(err instanceof Error ? err.message : String(err));
-              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, status: cm.item.status } : i));
+            setConfirmModal({
+              title: 'Usunąć zadanie?',
+              message: `Czy na pewno chcesz usunąć na stałe zadanie "${cm.item.title}"? Tego nie można cofnąć.`,
+              confirmText: 'Usuń',
+              isDanger: true,
+              onConfirm: () => {
+                setItems(prev => prev.filter(i => i.id !== cm.item.id));
+                deleteTodoItem(cm.item.id).catch((err) => {
+                  setError(err instanceof Error ? err.message : String(err));
+                  setItems(prev => [...prev, cm.item]);
+                });
+              }
             });
           }}
           onMoveToToday={() => {
@@ -232,11 +317,11 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: cm.item.due_date, ai_bucket: cm.item.ai_bucket, ai_classified_at: cm.item.ai_classified_at } : i));
             });
           }}
-          onClearDueDate={() => {
+          onSetDueDate={(dateStr) => {
             const cm = contextMenu;
             setContextMenu(null);
-            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: null, ai_bucket: null } : i));
-            updateTodoItem(cm.item.id, { due_date: null, ai_bucket: null }).catch((err) => {
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: dateStr, ai_bucket: dateStr ? i.ai_bucket : null } : i));
+            updateTodoItem(cm.item.id, { due_date: dateStr, ...(dateStr ? {} : { ai_bucket: null }) }).catch((err) => {
               setError(err instanceof Error ? err.message : String(err));
               setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, due_date: cm.item.due_date, ai_bucket: cm.item.ai_bucket } : i));
             });
@@ -250,38 +335,95 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
               setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, section_id: cm.item.section_id } : i));
             });
           }}
+          onEditStart={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setEditingId(cm.item.id);
+            setEditingTitle(cm.item.title);
+          }}
+          onSetPriority={(priority) => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, priority } : i));
+            updateTodoItem(cm.item.id, { priority }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, priority: cm.item.priority } : i));
+            });
+          }}
+          onDuplicate={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            createTodoItem(userId, {
+              title: `${cm.item.title} (Kopia)`,
+              notes: cm.item.notes || undefined,
+              priority: cm.item.priority,
+              due_date: cm.item.due_date || undefined,
+              section_id: cm.item.section_id || undefined,
+              recurrence: cm.item.recurrence || undefined,
+              tagsText: (cm.item.tags || []).join(', ')
+            }).then((newItem) => {
+              setItems(prev => [...prev, newItem]);
+            }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+            });
+          }}
+          onToggleImportant={() => {
+            const cm = contextMenu;
+            setContextMenu(null);
+            const nextVal = !cm.item.is_important;
+            setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, is_important: nextVal } : i));
+            updateTodoItem(cm.item.id, { is_important: nextVal }).catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+              setItems(prev => prev.map(i => i.id === cm.item.id ? { ...i, is_important: cm.item.is_important } : i));
+            });
+          }}
         />
       )}
 
-      {/* Sidebar */}
-      <aside className="keep-sidebar">
-        <p className="keep-sidebar-section-label">Workspace</p>
-        <button className="keep-sidebar-item" onClick={() => goTo('keep')}>
-          <StickyNote size={15} />
-          <span>Notatki</span>
-        </button>
-        <button className="keep-sidebar-item active">
-          <ListTodo size={15} />
-          <span>Zadania</span>
-        </button>
-        <button className="keep-sidebar-item" onClick={() => goTo('kalendarz')}>
-          <Calendar size={15} />
-          <span>Kalendarz</span>
-        </button>
-        <button className="keep-sidebar-item" onClick={() => goTo('links')}>
-          <BookOpen size={15} />
-          <span>Pocket</span>
-        </button>
-      </aside>
+      {/* Todo nav sidebar */}
+      <TodoSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        navDest={navDest}
+        onNavDest={(d) => { setNavDest(d); setActiveFilterSection(null); }}
+        inboxCount={inboxItems.length}
+        todayCount={todayItems.length}
+        upcomingCount={upcomingItems.length}
+        sections={sections}
+        activeSectionId={activeFilterSection}
+        onSelectSection={(id) => { setNavDest('overview'); setActiveFilterSection(id); }}
+        onAddSection={(name) => run(() => createTodoSection(userId, name))}
+        onRenameSection={(id, name) => run(() => renameTodoSection(id, name))}
+        onDeleteSection={(id) => { setActiveFilterSection(null); run(() => archiveTodoSection(id)); }}
+        onQuickAdd={() => {
+          setIsExpanded(true);
+          quickCaptureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => quickCaptureRef.current?.querySelector('input')?.focus(), 50);
+        }}
+        onFocusSearch={() => {
+          searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          searchInputRef.current?.focus();
+        }}
+        onNavigateTo={onNavigateTo}
+      />
 
       {/* Main column */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
 
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
-          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px]">
+          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px] shrink-0">
             <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
+          {sidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer shrink-0"
+              title="Rozwiń panel boczny"
+            >
+              <PanelLeft size={16} />
+            </button>
+          )}
           <div className="min-w-0 flex-1">
             <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Zadania</h1>
           </div>
@@ -342,6 +484,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50 pointer-events-none" />
             <input
+              ref={searchInputRef}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setActiveSmartListId(null); }}
               placeholder="Szukaj… tag:x priority:high due:week section:nazwa"
@@ -363,7 +506,16 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                 <button
                   key={sl.id}
                   onClick={() => { setSearchQuery(''); setActiveSmartListId(cur => cur === sl.id ? null : sl.id); }}
-                  onContextMenu={(e) => { e.preventDefault(); if (confirm(`Usunąć Smart Listę "${sl.name}"?`)) removeSmartList(sl.id); }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setConfirmModal({
+                      title: 'Usunąć Smart Listę?',
+                      message: `Czy na pewno chcesz usunąć Smart Listę "${sl.name}"?`,
+                      confirmText: 'Usuń',
+                      isDanger: true,
+                      onConfirm: () => removeSmartList(sl.id)
+                    });
+                  }}
                   className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all ${
                     activeSmartListId === sl.id
                       ? 'bg-primary/15 border-primary/30 text-primary'
@@ -418,16 +570,6 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           )}
         </div>
 
-        {/* Section tabs */}
-        <SectionTabs
-          sections={sections}
-          active={activeFilterSection}
-          onSelect={setActiveFilterSection}
-          onAdd={(name) => run(() => createTodoSection(userId, name))}
-          onRename={(id, name) => run(() => renameTodoSection(id, name))}
-          onDelete={(id) => { setActiveFilterSection(null); run(() => archiveTodoSection(id)); }}
-        />
-
         {todoView === 'eisenhower' && (
           <main className="flex-1 overflow-y-auto" onClick={() => setExpandedId(null)}>
             <EisenhowerMatrix items={items as any} setItems={setItems as any} />
@@ -460,19 +602,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
             {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-            {/* Quick capture */}
-            <TodoQuickCapture
-              quickCaptureRef={quickCaptureRef}
-              form={form}
-              setForm={setForm}
-              isExpanded={isExpanded}
-              setIsExpanded={setIsExpanded}
-              busy={busy}
-              addItem={addItem}
-              sections={sections}
-              parsedInput={parsedInput}
-              today={today}
-            />
+
 
             {/* Batch classify chip */}
             {(() => {
@@ -506,7 +636,92 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
 
             {/* Main List */}
             <div className="space-y-4">
-              {activeFilterSection ? (
+              {navDest === 'today' ? (
+                // Dziś (flat smart view — tasks due today or ai_bucket='today', across all sections)
+                <div>
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <span className="text-[16px] leading-none">📅</span>
+                    <span className="text-[15px] font-bold text-text-primary">Dziś</span>
+                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                      {todayItems.length}
+                    </span>
+                  </div>
+                  <div className="pt-1">
+                    {todayItems.length === 0 ? (
+                      <div className="mx-1 my-2 rounded-xl border border-dashed border-border-custom/25 p-6 text-center text-text-muted/30 bg-surface-solid/10">
+                        <span className="block text-[14px] mb-1">📅</span>
+                        <span className="text-[11px] font-bold tracking-wide">Brak zadań na dziś.</span>
+                      </div>
+                    ) : (
+                      todayItems.map((i: any) => renderCard(i, { inToday: true }))
+                    )}
+                    {renderInlineQuickCapture('today')}
+                    {renderAddTodoButton('today')}
+                  </div>
+                </div>
+              ) : navDest === 'inbox' ? (
+                // Skrzynka (flat smart view — tasks with no section)
+                <div>
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <span className="text-[16px] leading-none">📥</span>
+                    <span className="text-[15px] font-bold text-text-primary">Skrzynka</span>
+                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                      {inboxItems.length}
+                    </span>
+                  </div>
+                  <div className="pt-1">
+                    {inboxItems.length === 0 ? (
+                      <div className="mx-1 my-2 rounded-xl border border-dashed border-border-custom/25 p-6 text-center text-text-muted/30 bg-surface-solid/10">
+                        <span className="block text-[14px] mb-1">📥</span>
+                        <span className="text-[11px] font-bold tracking-wide">Skrzynka pusta.</span>
+                      </div>
+                    ) : (
+                      inboxItems.map((i: any) => renderCard(i))
+                    )}
+                    {renderInlineQuickCapture('inbox')}
+                    {renderAddTodoButton('inbox')}
+                  </div>
+                </div>
+              ) : navDest === 'upcoming' ? (
+                // Nadchodzące (flat smart view — open tasks due in the next 7 days, grouped by date)
+                <div>
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <span className="text-[16px] leading-none">🗓️</span>
+                    <span className="text-[15px] font-bold text-text-primary">Nadchodzące</span>
+                    <span className="rounded-full bg-text-primary/[0.07] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-text-secondary">
+                      {upcomingItems.length}
+                    </span>
+                  </div>
+                  <div className="pt-1">
+                    {upcomingItems.length === 0 ? (
+                      <div className="mx-1 my-2 rounded-xl border border-dashed border-border-custom/25 p-6 text-center text-text-muted/30 bg-surface-solid/10">
+                        <span className="block text-[14px] mb-1">🗓️</span>
+                        <span className="text-[11px] font-bold tracking-wide">Brak zadań w najbliższych 7 dniach.</span>
+                      </div>
+                    ) : (
+                      (() => {
+                        let lastDate: string | null = null;
+                        return upcomingItems.map((i: any) => {
+                          const showDateHeader = i.due_date !== lastDate;
+                          lastDate = i.due_date;
+                          return (
+                            <React.Fragment key={i.id}>
+                              {showDateHeader && i.due_date && (
+                                <div className="px-3 pt-3 pb-1 text-[10px] font-black uppercase tracking-wider text-text-muted/50">
+                                  {new Date(`${i.due_date}T12:00:00Z`).toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </div>
+                              )}
+                              {renderCard(i)}
+                            </React.Fragment>
+                          );
+                        });
+                      })()
+                    )}
+                    {renderInlineQuickCapture('upcoming')}
+                    {renderAddTodoButton('upcoming')}
+                  </div>
+                </div>
+              ) : activeFilterSection ? (
                 // Active Section View
                 (() => {
                   const sec = sectionsWithItems.find(s => s.id === activeFilterSection);
@@ -529,8 +744,10 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                             <span className="text-[11px] font-bold tracking-wide">Brak otwartych zadań w tej sekcji.</span>
                           </div>
                         ) : (
-                          sortedItems.map((i: any) => renderCard(i))
+                          sortedItems.map((i: any) => renderCard(i, { hideSectionChip: true }))
                         )}
+                        {renderInlineQuickCapture(sec.id)}
+                        {renderAddTodoButton(sec.id)}
                       </div>
                     </div>
                   );
@@ -618,6 +835,8 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                               {todayItems.map((i: any) => renderCard(i, { inToday: true }))}
                             </>
                           )}
+                          {renderInlineQuickCapture('today')}
+                          {renderAddTodoButton('today')}
                         </div>
                       )}
                     </div>
@@ -657,56 +876,173 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                           ) : (
                             inboxItems.map((i: any) => renderCard(i))
                           )}
+                          {renderInlineQuickCapture('inbox')}
+                          {renderAddTodoButton('inbox')}
                         </div>
                       )}
                     </div>
                   )}
 
                   {/* 3. Sections */}
-                  {sectionsWithItems.map((sec) => {
+                  {sectionsWithItems.map((sec, idx) => {
                     const isCollapsed = !!collapsedSections[sec.id];
                     const hasItems = sec.items.length > 0;
                     if (!hasItems && draggingItem === null) return null;
 
                     return (
-                      <div
-                        key={sec.id}
-                        ref={el => { sectionRefs.current[sec.id] = el; }}
-                        className={`rounded-2xl p-2 transition-all duration-200 ${
-                          draggingItem !== null
-                            ? dragTarget === sec.id
-                              ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[0_4px_25px_rgba(99,102,241,0.12)]'
-                              : 'border border-dashed border-primary/20 bg-primary/5'
-                            : 'border border-transparent bg-transparent'
-                        }`}
-                      >
-                        <BucketHeader
-                          icon="📂"
-                          title={sec.name}
-                          count={sec.items.length}
-                          collapsed={isCollapsed}
-                          onToggle={() => toggleSectionCollapse(sec.id)}
-                          isDropTarget={dragTarget === sec.id}
-                        />
-                        {!isCollapsed && (
-                          <div className="pt-1">
-                            {sec.items.length === 0 ? (
-                              <div className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
-                                dragTarget === sec.id
-                                  ? 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5'
-                                  : 'border-border-custom/25 text-text-muted/30 bg-surface-solid/10'
-                              }`}>
-                                <span className="block text-[14px] mb-1">📂</span>
-                                <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby przypisać do sekcji</span>
-                              </div>
-                            ) : (
-                              sec.items.map((i: any) => renderCard(i))
-                            )}
+                      <React.Fragment key={sec.id}>
+                        {/* Hover separator BEFORE section */}
+                        {idx > 0 && (
+                          <div
+                            onClick={() => {
+                              setAddingSectionIndex(idx);
+                              setNewSectionForm({ name: '', notes: '' });
+                            }}
+                            className="todoist-section-divider-line animate-fade-in"
+                          />
+                        )}
+
+                        {/* Inline Add Section Form */}
+                        {addingSectionIndex === idx && (
+                          <div className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 mb-3 flex flex-col gap-3 shadow-lg">
+                            <input
+                              autoFocus
+                              value={newSectionForm.name}
+                              onChange={(e) => setNewSectionForm({ ...newSectionForm, name: e.target.value })}
+                              placeholder="Nazwij tę sekcję"
+                              className="w-full bg-transparent text-[14px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
+                            />
+                            <textarea
+                              value={newSectionForm.notes}
+                              onChange={(e) => setNewSectionForm({ ...newSectionForm, notes: e.target.value })}
+                              rows={2}
+                              placeholder="Dodaj opis"
+                              className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+                            />
+                            <div className="flex gap-2 justify-start mt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  run(async () => {
+                                    if (newSectionForm.name.trim()) {
+                                      await createTodoSection(userId, newSectionForm.name.trim());
+                                      fetchAll();
+                                    }
+                                    setAddingSectionIndex(null);
+                                  });
+                                }}
+                                disabled={!newSectionForm.name.trim()}
+                                className="todoist-btn-primary"
+                              >
+                                Dodaj sekcję
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAddingSectionIndex(null)}
+                                className="todoist-btn-secondary"
+                              >
+                                Anuluj
+                              </button>
+                            </div>
                           </div>
                         )}
-                      </div>
+
+                        <div
+                          ref={el => { sectionRefs.current[sec.id] = el; }}
+                          className={`rounded-2xl p-2 transition-all duration-200 ${
+                            draggingItem !== null
+                              ? dragTarget === sec.id
+                                ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[0_4px_25px_rgba(99,102,241,0.12)]'
+                                : 'border border-dashed border-primary/20 bg-primary/5'
+                              : 'border border-transparent bg-transparent'
+                          }`}
+                        >
+                          <BucketHeader
+                            icon="📂"
+                            title={sec.name}
+                            count={sec.items.length}
+                            collapsed={isCollapsed}
+                            onToggle={() => toggleSectionCollapse(sec.id)}
+                            isDropTarget={dragTarget === sec.id}
+                            onRename={(name) => run(() => renameTodoSection(sec.id, name))}
+                            onDelete={() => run(() => archiveTodoSection(sec.id))}
+                          />
+                          {!isCollapsed && (
+                            <div className="pt-1">
+                              {sec.items.length === 0 ? (
+                                <div className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
+                                  dragTarget === sec.id
+                                    ? 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5'
+                                    : 'border-border-custom/25 text-text-muted/30 bg-surface-solid/10'
+                                }`}>
+                                  <span className="block text-[14px] mb-1">📂</span>
+                                  <span className="text-[11px] font-bold tracking-wide">Upuść tutaj, aby przypisać do sekcji</span>
+                                </div>
+                              ) : (
+                                sec.items.map((i: any) => renderCard(i, { hideSectionChip: true }))
+                              )}
+                              {renderInlineQuickCapture(sec.id)}
+                              {renderAddTodoButton(sec.id)}
+                            </div>
+                          )}
+                        </div>
+                      </React.Fragment>
                     );
                   })}
+
+                  {/* Hover separator at the end */}
+                  {sectionsWithItems.length > 0 && (
+                    <div
+                      onClick={() => {
+                        setAddingSectionIndex(sectionsWithItems.length);
+                        setNewSectionForm({ name: '', notes: '' });
+                      }}
+                      className="todoist-section-divider-line animate-fade-in"
+                    />
+                  )}
+                  {addingSectionIndex === sectionsWithItems.length && (
+                    <div className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 mb-3 flex flex-col gap-3 shadow-lg">
+                      <input
+                        autoFocus
+                        value={newSectionForm.name}
+                        onChange={(e) => setNewSectionForm({ ...newSectionForm, name: e.target.value })}
+                        placeholder="Nazwij tę sekcję"
+                        className="w-full bg-transparent text-[14px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
+                      />
+                      <textarea
+                        value={newSectionForm.notes}
+                        onChange={(e) => setNewSectionForm({ ...newSectionForm, notes: e.target.value })}
+                        rows={2}
+                        placeholder="Dodaj opis"
+                        className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+                      />
+                      <div className="flex gap-2 justify-start mt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            run(async () => {
+                              if (newSectionForm.name.trim()) {
+                                await createTodoSection(userId, newSectionForm.name.trim());
+                                fetchAll();
+                              }
+                              setAddingSectionIndex(null);
+                            });
+                          }}
+                          disabled={!newSectionForm.name.trim()}
+                          className="todoist-btn-primary"
+                        >
+                          Dodaj sekcję
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAddingSectionIndex(null)}
+                          className="todoist-btn-secondary"
+                        >
+                          Anuluj
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -721,9 +1057,20 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
                     onToggle={() => setShowDone(false)}
                     isDropTarget={false}
                   />
-                  <div className="pt-1">
-                    {doneItems.slice(0, 30).map((i: any) => renderCard(i))}
+                  <div className="pt-1 space-y-1">
+                    {doneItems.slice(0, visibleDoneCount).map((i: any) => renderCard(i))}
                   </div>
+                  {doneItems.length > visibleDoneCount && (
+                    <div className="flex justify-center mt-3 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleDoneCount(prev => prev + 30)}
+                        className="px-4 py-2 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[10.5px] font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                      >
+                        Pokaż więcej ukończonych ({doneItems.length - visibleDoneCount} pozostało)
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -754,6 +1101,54 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: any; 
           <span className="text-[11px] font-semibold">Pocket</span>
         </button>
       </nav>
+
+      {scanTextOpen && (
+        <TodoScanTextModal
+          userId={userId}
+          sectionId={['today', 'inbox', 'upcoming', null].includes(activeAddSectionId) ? null : activeAddSectionId}
+          onClose={() => setScanTextOpen(false)}
+          onCreated={(created) => setItems((prev) => [...created, ...prev])}
+        />
+      )}
+
+      {confirmModal && (
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-surface/95 border border-border-custom rounded-3xl p-6 shadow-2xl backdrop-blur-xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+            <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center ${
+              confirmModal.isDanger 
+                ? 'bg-rose-500/10 border border-rose-500/20 text-rose-500' 
+                : 'bg-primary/10 border border-primary/20 text-primary'
+            }`}>
+              {confirmModal.isDanger ? <Trash2 size={20} /> : <Check size={20} />}
+            </div>
+            <div className="text-center">
+              <h3 className="text-[15px] font-bold text-text-primary">{confirmModal.title}</h3>
+              <p className="mt-1.5 text-[12px] text-text-secondary leading-relaxed px-1">
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="flex gap-2.5 mt-2">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 py-2 rounded-xl border border-border-custom hover:bg-text-primary/[0.04] text-[12px] font-bold transition-all cursor-pointer text-center text-text-secondary outline-none"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className={`flex-1 py-2 rounded-xl text-white text-[12px] font-bold transition-all cursor-pointer text-center outline-none ${
+                  confirmModal.isDanger ? 'bg-rose-500 hover:bg-rose-600' : 'bg-primary hover:bg-primary/90'
+                }`}
+              >
+                {confirmModal.confirmText || 'Potwierdź'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

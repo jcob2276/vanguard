@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload } from 'lucide-react';
+import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
 import {
   GOAL_ICON,
   PRIORITY,
@@ -148,17 +148,7 @@ export default function TodoCard({
   const p = PRIORITY[item.priority] ?? PRIORITY.normal;
   const isDone = item.status === 'done';
 
-  const leftBorder = sectionGoalKey === 'cialo'
-    ? 'border-l-[3px] border-l-emerald-500/70'
-    : sectionGoalKey === 'duch'
-    ? 'border-l-[3px] border-l-violet-500/70'
-    : sectionGoalKey === 'konto'
-    ? 'border-l-[3px] border-l-amber-500/70'
-    : item.priority === 'urgent'
-    ? 'border-l-[3px] border-l-rose-500/60'
-    : item.priority === 'high'
-    ? 'border-l-[3px] border-l-orange-400/50'
-    : 'border-l-[3px] border-l-border-custom/10';
+  const leftBorder = '';
   const { icon, label } = splitEmoji(item.title);
   const dateInfo = relativeDate(item.due_date, today);
   const tomorrowStr = useMemo(() => {
@@ -257,6 +247,46 @@ export default function TodoCard({
     onDragStart?.(item, e.clientX, e.clientY);
   };
 
+  const handleContentMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if (isEditing) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragStarted = false;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance > 5) {
+        dragStarted = true;
+        cleanup();
+        onDragStart?.(item, moveEvent.clientX, moveEvent.clientY);
+      }
+    };
+
+    const onMouseUp = (upEvent: MouseEvent) => {
+      cleanup();
+      if (!dragStarted) {
+        if (expanded) {
+          if (!isEditing) onEditStart(item.title);
+        } else {
+          onToggleExpand(item.id);
+        }
+      }
+    };
+
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   return (
     <div
       className={`group relative ${isDone ? 'opacity-40' : ''} ${isDragging ? 'opacity-0 pointer-events-none' : ''}`}
@@ -298,7 +328,7 @@ export default function TodoCard({
         }}
         style={{ transform: `translateX(${swipeOffset}px)` }}
         onClick={e => e.stopPropagation()}
-        className={`relative border-b border-border-custom/10 pr-2 py-3.5 pl-3 transition-colors duration-150 ease-out hover:bg-surface-solid/20 ${leftBorder}`}
+        className={`relative border-b border-border-custom/10 pr-2 py-2 pl-3 transition-colors duration-150 ease-out hover:bg-surface-solid/20 ${leftBorder}`}
       >
         <div className="flex items-start gap-3.5">
           {/* Drag grip */}
@@ -337,16 +367,22 @@ export default function TodoCard({
                 handleComplete();
               }}
               disabled={busy}
-              className="mt-0.5 shrink-0 btn-press"
+              className="mt-0.5 shrink-0 btn-press cursor-pointer"
             >
               <div
-                className={`h-[15px] w-[15px] rounded-full border-[1.5px] flex items-center justify-center transition-all duration-200 ${
+                className={`h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
                   completing || isDone
-                    ? `bg-emerald-500 border-transparent todo-checkbox-pop ${completing && !completingOut ? 'scale-[1.35]' : 'scale-100'}`
-                    : `${p.ring} bg-transparent`
+                    ? 'bg-emerald-500 border-emerald-500 scale-100'
+                    : item.priority === 'urgent'
+                    ? 'todoist-checkbox-urgent border-primary'
+                    : item.priority === 'high'
+                    ? 'todoist-checkbox-high border-amber-500'
+                    : item.priority === 'normal'
+                    ? 'todoist-checkbox-normal border-sky-500'
+                    : 'todoist-checkbox-low border-neutral-500'
                 }`}
               >
-                {(completing || isDone) && <Check size={7} className="text-white" strokeWidth={3} />}
+                {(completing || isDone) && <Check size={10} className="text-white" strokeWidth={3.5} />}
               </div>
             </button>
           )}
@@ -354,14 +390,7 @@ export default function TodoCard({
           {/* Content */}
           <div
             className="min-w-0 flex-1 cursor-pointer"
-            onClick={(e) => {
-              if (expanded) {
-                e.stopPropagation();
-                if (!isEditing) onEditStart(item.title);
-              } else {
-                onToggleExpand(item.id);
-              }
-            }}
+            onMouseDown={handleContentMouseDown}
           >
             {isEditing ? (
               <input
@@ -426,8 +455,20 @@ export default function TodoCard({
                 </span>
               )}
               {(item.tags || []).map((tag: string) => (
-                <span key={tag} className="inline-flex items-center rounded-full bg-surface-solid border border-border-custom/30 px-1.5 py-px text-[9px] font-medium text-text-muted/55">
-                  {tag}
+                <span
+                  key={tag}
+                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/5 transition-all ${
+                    tag.toLowerCase() === 'finanse' || tag.toLowerCase() === 'zdrowie'
+                      ? 'text-emerald-400 bg-emerald-500/10'
+                      : tag.toLowerCase() === 'projekt'
+                      ? 'text-indigo-400 bg-indigo-500/10'
+                      : tag.toLowerCase() === 'egzamin'
+                      ? 'text-pink-400 bg-pink-500/10'
+                      : 'text-text-muted bg-white/5'
+                  }`}
+                >
+                  <Tag size={9} className="shrink-0" />
+                  <span>{tag}</span>
                 </span>
               ))}
               {isLinkedToPlan && (
@@ -458,18 +499,52 @@ export default function TodoCard({
             </div>
           </div>
 
-          {/* Quick "→ Dziś" action */}
-          {onMoveToToday && !isDone && (
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                onMoveToToday();
-              }}
-              className="shrink-0 text-[11px] font-medium text-text-muted/30 hover:text-orange-500 transition-colors btn-press"
-              title="Przesuń na dziś"
-            >
-              →
-            </button>
+          {/* Hover Quick Actions */}
+          {!isDone && (
+            <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  onEditStart(item.title);
+                }}
+                className="p-1 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer"
+                title="Edytuj zadanie (Ctrl E)"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onShowContextMenu(item, rect.left, rect.bottom + 5);
+                }}
+                className="p-1 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer"
+                title="Ustaw termin (T)"
+              >
+                <Calendar size={13} />
+              </button>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  onToggleExpand(item.id);
+                }}
+                className="p-1 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer"
+                title="Szczegóły i komentarze"
+              >
+                <MessageSquare size={13} />
+              </button>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onShowContextMenu(item, rect.left, rect.bottom + 5);
+                }}
+                className="p-1 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer"
+                title="Więcej opcji"
+              >
+                <MoreHorizontal size={13} />
+              </button>
+            </div>
           )}
         </div>
 

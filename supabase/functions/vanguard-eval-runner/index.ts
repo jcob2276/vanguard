@@ -1,6 +1,7 @@
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
+import { openaiChat } from "../_shared/openai.ts"
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 
@@ -37,32 +38,22 @@ Odpowiedz TYLKO w JSON:
 
 PRÓG ZALICZENIA: score >= 0.7`;
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: prompt }]
-    }),
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    return { score: 0, passed: false, notes: `Judge API error: ${err.substring(0, 100)}` };
-  }
-
-  const data = await res.json();
   try {
-    const parsed = JSON.parse(data.choices[0].message.content);
+    const { content } = await openaiChat({
+      apiKey: OPENAI_API_KEY,
+      model: 'gpt-4o-mini',
+      responseFormat: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+      timeoutMs: 15000,
+    });
+    const parsed = JSON.parse(content);
     return {
       score: Number(parsed.score ?? 0),
       passed: Boolean(parsed.passed ?? false),
       notes: String(parsed.notes ?? '')
     };
-  } catch {
-    return { score: 0, passed: false, notes: 'Failed to parse judge response' };
+  } catch (err: any) {
+    return { score: 0, passed: false, notes: `Judge API error: ${String(err?.message || err).substring(0, 100)}` };
   }
 }
 

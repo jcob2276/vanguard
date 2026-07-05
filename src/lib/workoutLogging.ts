@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { scheduleStrainRecompute } from './strainRefresh'
 import { getTodayWarsaw } from './date'
+import { rpcWithOfflineFallback } from './offlineQueue'
 import {
   newActivity,
   newExercise,
@@ -287,7 +288,7 @@ export async function saveWorkoutSession(
     endTimeManual: string
     plyoLogs?: PlyoSetLog[]
   },
-): Promise<void> {
+): Promise<{ queued: boolean }> {
   const validEx = opts.exercises.filter((e) => e.name.trim())
   const validAc = opts.activities.filter((a) => a.name.trim())
   const plyoLogs = opts.plyoLogs ?? []
@@ -354,20 +355,28 @@ export async function saveWorkoutSession(
     opts.workoutName.trim() ||
     (validEx.every((e) => (e.tags ?? []).includes('wellness')) && validEx.length > 0 ? 'Sauna' : 'Trening')
 
-  const { error } = await supabase.rpc('save_workout_atomic', {
-    p_user_id: userId,
-    p_day_key: dayKey,
-    p_start_time: finalStart as string,
-    p_end_time: finalEnd as string,
-    p_notes: opts.notes,
-    p_msp_passed: mspPassed,
-    p_logs: [...plyoLogs, ...exLogs, ...acLogs],
-    p_session_rpe: opts.sessionRpe ?? undefined,
+  const { queued } = await rpcWithOfflineFallback(
+    'save_workout_atomic',
+    {
+      p_user_id: userId,
+      p_day_key: dayKey,
+      p_start_time: finalStart as string,
+      p_end_time: finalEnd as string,
+      p_notes: opts.notes,
+      p_msp_passed: mspPassed,
+      p_logs: [...plyoLogs, ...exLogs, ...acLogs],
+      p_session_rpe: opts.sessionRpe ?? undefined,
+    },
+    'Trening',
+  ).catch((err) => {
+    throw new Error(err.message || 'Nie udało się zapisać treningu')
   })
-  if (error) throw new Error(error.message || 'Nie udało się zapisać treningu')
 
-  scheduleTrainingLoadAnalysis(userId, opts.workoutDate)
-  scheduleStrainRecompute(userId)
+  if (!queued) {
+    scheduleTrainingLoadAnalysis(userId, opts.workoutDate)
+    scheduleStrainRecompute(userId)
+  }
+  return { queued }
 }
 
 const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling']

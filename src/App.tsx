@@ -46,6 +46,14 @@ function AppRoutes() {
     return () => subscription.unsubscribe();
   }, [setSession, fetchUserSettings]);
 
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('[sw] Registered successfully:', reg.scope))
+        .catch((err) => console.error('[sw] Registration failed:', err));
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

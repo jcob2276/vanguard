@@ -5,6 +5,7 @@ import { useCalendarWrite } from '../../hooks/useCalendarWrite';
 import { getTodayWarsaw } from '../../lib/date';
 import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth';
 import { updateDailyWin, insertDailyWin } from '../../lib/goalSpine.mutations';
+import { notify } from '../../lib/notify';
 import DayTimeline, { type TimelineBlock } from '../shared/DayTimeline';
 
 interface Props {
@@ -170,7 +171,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
         // 4. Fetch the planning date's daily win row (Power List)
         const { data: winData } = await supabase
           .from('daily_wins')
-          .select('*')
+          .select('*, daily_win_tasks(*)')
           .eq('user_id', userId)
           .eq('date', planningDate)
           .maybeSingle();
@@ -179,20 +180,19 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           setTodayWinId(winData.id);
           // Match existing power list items if any
           const presetList: (TodoSlot | null)[] = [null, null, null, null, null];
-          for (let i = 1; i <= 5; i++) {
-            const taskId = winData[`task_${i}_todo_id`];
-            const taskTitle = winData[`task_${i}`];
-            if (taskId) {
-              // Try to find the task in today's list or create a stub
-              const found = allTasks.find((t) => t.id === taskId);
+          const tasks = (winData as any).daily_win_tasks || [];
+          for (const t of tasks) {
+            const i = t.slot; // 1-indexed slot
+            if (i >= 1 && i <= 5 && t.todo_id) {
+              const found = allTasks.find((item) => item.id === t.todo_id);
               presetList[i - 1] = found || {
-                id: taskId,
-                title: taskTitle || 'Zadanie',
+                id: t.todo_id,
+                title: t.title || 'Zadanie',
                 priority: 'normal',
                 duration_minutes: 30,
                 due_date: planningDate,
                 scheduled_time: null,
-                status: 'open',
+                status: t.done ? 'done' : 'open',
               };
             }
           }
@@ -237,29 +237,39 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
 
   // Yesterday reviews actions
   const handleYesterdayAction = async (taskId: string, action: 'today' | 'later' | 'backlog' | 'drop' | 'done') => {
+    const target = yesterdayTasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    // Optimistic update
+    setYesterdayTasks((prev) => prev.filter((t) => t.id !== taskId));
+    if (action === 'today') setTodayTasks((prev) => [...prev, { ...target, due_date: planningDate }]);
+    if (action === 'backlog') setInboxTasks((prev) => [...prev, { ...target, due_date: null }]);
+
+    const revert = () => {
+      setYesterdayTasks((prev) => [...prev, target]);
+      if (action === 'today') setTodayTasks((prev) => prev.filter((t) => t.id !== taskId));
+      if (action === 'backlog') setInboxTasks((prev) => prev.filter((t) => t.id !== taskId));
+    };
+
     try {
-      // Optimistic update
-      const target = yesterdayTasks.find((t) => t.id === taskId);
-      if (!target) return;
-
-      setYesterdayTasks((prev) => prev.filter((t) => t.id !== taskId));
-
+      let error;
       if (action === 'today') {
-        setTodayTasks((prev) => [...prev, { ...target, due_date: planningDate }]);
-        await supabase.from('todo_items').update({ due_date: planningDate }).eq('id', taskId);
+        ({ error } = await supabase.from('todo_items').update({ due_date: planningDate }).eq('id', taskId));
       } else if (action === 'later') {
         const laterDate = shiftDateStr(planningDate, 1);
-        await supabase.from('todo_items').update({ due_date: laterDate }).eq('id', taskId);
+        ({ error } = await supabase.from('todo_items').update({ due_date: laterDate }).eq('id', taskId));
       } else if (action === 'backlog') {
-        setInboxTasks((prev) => [...prev, { ...target, due_date: null }]);
-        await supabase.from('todo_items').update({ due_date: null }).eq('id', taskId);
+        ({ error } = await supabase.from('todo_items').update({ due_date: null }).eq('id', taskId));
       } else if (action === 'drop') {
-        await supabase.from('todo_items').update({ status: 'dropped' }).eq('id', taskId);
+        ({ error } = await supabase.from('todo_items').update({ status: 'dropped' }).eq('id', taskId));
       } else if (action === 'done') {
-        await supabase.from('todo_items').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', taskId);
+        ({ error } = await supabase.from('todo_items').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', taskId));
       }
+      if (error) throw error;
     } catch (e) {
       console.error('Error handling yesterday task action:', e);
+      notify('Nie udało się zaktualizować zadania', 'error');
+      revert();
     }
   };
 
@@ -352,22 +362,46 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
     if (!userId) return;
     setSending(true);
     try {
-      // 1. Save Power List (daily_wins)
-      const patch: any = {
-        date: planningDate,
-        user_id: userId,
-      };
-      powerList.forEach((task, idx) => {
-        const num = idx + 1;
-        patch[`task_${num}`] = task ? task.title : null;
-        patch[`task_${num}_todo_id`] = task ? task.id : null;
-        patch[`done_${num}`] = false;
-      });
+      // 1. Save Power List (daily_wins + daily_win_tasks)
+      let currentWinId = todayWinId;
+      if (!currentWinId) {
+        const parentWin = await insertDailyWin(userId, {
+          user_id: userId,
+          date: planningDate,
+          result: null,
+        });
+        currentWinId = parentWin.id;
+      }
 
-      if (todayWinId) {
-        await updateDailyWin(userId, todayWinId, patch);
-      } else {
-        await insertDailyWin(userId, patch);
+      // Delete existing tasks for this daily win in the tasks table to rebuild
+      const { error: deleteErr } = await supabase
+        .from('daily_win_tasks')
+        .delete()
+        .eq('day_win_id', currentWinId);
+      if (deleteErr) throw deleteErr;
+
+      // Insert new tasks dynamically
+      const taskEntries = [];
+      for (let idx = 0; idx < powerList.length; idx++) {
+        const task = powerList[idx];
+        if (task) {
+          taskEntries.push({
+            day_win_id: currentWinId,
+            slot: idx + 1,
+            user_id: userId,
+            title: task.title,
+            category: idx === 0 ? 'cialo' : idx === 1 ? 'duch' : idx === 2 ? 'konto' : 'general',
+            todo_id: task.id,
+            done: false,
+          });
+        }
+      }
+
+      if (taskEntries.length > 0) {
+        const { error: tasksErr } = await supabase
+          .from('daily_win_tasks')
+          .insert(taskEntries);
+        if (tasksErr) throw tasksErr;
       }
 
       // 2. Schedule events in Calendar & Update Todo items

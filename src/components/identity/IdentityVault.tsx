@@ -112,8 +112,19 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         totalTriads += data?.triads ?? 0;
       }
       console.debug(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
+      
+      const { error: dbError } = await supabase
+        .from('user_fundament')
+        .upsert({
+          user_id: uid,
+          ...nonEmpty,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      
+      if (dbError) throw dbError;
+
       setSaveStatus('success');
-      setVault({ identity: '', philosophy: '', finances: '' });
+      setVault({ identity: '', philosophy: '', finances: '', vision: '', knowledge: '', relationships: '', work_edu: '' });
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err) {
       console.error('Save error:', err);

@@ -163,8 +163,9 @@ export default function PowerList({
             Dzień wygrany
           </div>
         ) : todayWin && (() => {
-          const total = [1, 2, 3, 4, 5].filter((i) => todayWin[`task_${i}`]).length;
-          const doneCount = [1, 2, 3, 4, 5].filter((i) => todayWin[`task_${i}`] && todayWin[`done_${i}`]).length;
+          const tasks = todayWin.daily_win_tasks || [];
+          const total = tasks.length;
+          const doneCount = tasks.filter((t: any) => t.done).length;
           return total > 0 ? (
             <div className="flex items-center gap-1.5">
               <div className="flex gap-1">
@@ -186,11 +187,11 @@ export default function PowerList({
                 Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
               </p>
               <ul className="space-y-1">
-                {[1, 2, 3, 4, 5].map((i) => yesterdayWin[`task_${i}`] && (
-                  <li key={i} className="flex items-center gap-2 text-[11px] font-medium">
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${yesterdayWin[`done_${i}`] ? 'bg-dayC' : 'bg-text-muted/30'}`} />
-                    <span className={yesterdayWin[`done_${i}`] ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
-                      {yesterdayWin[`task_${i}`]}
+                {(yesterdayWin.daily_win_tasks || []).map((t: any) => (
+                  <li key={t.id} className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.done ? 'bg-dayC' : 'bg-text-muted/30'}`} />
+                    <span className={t.done ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
+                      {t.title}
                     </span>
                   </li>
                 ))}
@@ -384,32 +385,22 @@ export default function PowerList({
             </div>
           )}
 
-          {[0, 1, 2, 3, 4].map((i) => {
-            const task = todayWin[`task_${i + 1}`];
-            const done = todayWin[`done_${i + 1}`];
-            const completedAt = todayWin[`completed_at_${i + 1}`];
-            const linkedTodoId = todayWin[`task_${i + 1}_todo_id`];
-            const linkedProjectId = todayWin[`task_${i + 1}_project_id`] as string | null;
-            if (!task) return null;
-
-            const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
-            const targetValue = todayWin[`task_${i + 1}_target_value`] as string | null;
-            const timeSlot = todayWin[`task_${i + 1}_time_slot`] as any;
-
+          {(todayWin.daily_win_tasks || []).sort((a: any, b: any) => a.slot - b.slot).map((t: any, i: number) => {
+            const sphere = t.slot <= 3 ? SPHERE_SLOTS[t.slot - 1] : null;
             return (
               <PowerListTask
-                key={i}
-                index={i}
-                task={task}
-                done={done}
-                completedAt={completedAt}
-                linkedTodoId={linkedTodoId}
-                linkedProjectId={linkedProjectId}
+                key={t.id}
+                index={t.slot - 1}
+                task={t.title}
+                done={t.done}
+                completedAt={t.completed_at}
+                linkedTodoId={t.todo_id}
+                linkedProjectId={t.project_id}
                 projectMap={projectMap}
                 toggleTask={toggleTask}
                 sphere={sphere}
-                targetValue={targetValue}
-                timeSlot={timeSlot}
+                targetValue={t.target_value}
+                timeSlot={t.time_slot}
               />
             );
           })}

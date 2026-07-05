@@ -53,6 +53,7 @@ interface CreateTodoItemFields {
   section_id?: string;
   duration_minutes?: number | null;
   scheduled_time?: string | null;
+  reminder_at?: string | null;
   is_important?: boolean;
   parent_task_id?: string | null;
 }
@@ -77,6 +78,7 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
         recurrence: fields.recurrence || null,
         duration_minutes: fields.duration_minutes ?? null,
         scheduled_time: fields.scheduled_time ?? null,
+        reminder_at: fields.reminder_at ?? null,
         is_important: fields.is_important ?? false,
         parent_task_id: fields.parent_task_id ?? null,
       })
@@ -103,6 +105,11 @@ export async function setTodoStatus(item: { id: string }, status: string): Promi
   });
 }
 
+export async function deleteTodoItem(id: string): Promise<void> {
+  const { error } = await supabase.from('todo_items').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function renameTodoSection(id: string, name: string): Promise<TodoSectionRow> {
   return unwrap(
     await supabase
@@ -115,6 +122,16 @@ export async function renameTodoSection(id: string, name: string): Promise<TodoS
 }
 
 export async function archiveTodoSection(id: string): Promise<TodoSectionRow> {
+  // Sections are never unarchived anywhere in the UI, so this is effectively a
+  // delete — reassign its tasks to the inbox first, otherwise they keep
+  // pointing at a section_id that no longer appears in any list and silently
+  // vanish from the whole app (not shown as inbox, not shown anywhere).
+  const { error: reassignErr } = await supabase
+    .from('todo_items')
+    .update({ section_id: null })
+    .eq('section_id', id);
+  if (reassignErr) throw new Error(reassignErr.message);
+
   return unwrap(
     await supabase
       .from('todo_sections')

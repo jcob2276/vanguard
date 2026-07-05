@@ -327,7 +327,7 @@ export async function insertDailyWin(
 ): Promise<DailyWinRow> {
   const { data, error } = await supabase
     .from('daily_wins')
-    .insert({ ...entry, user_id: userId })
+    .upsert({ ...entry, user_id: userId }, { onConflict: 'user_id,date' })
     .select()
     .single();
   if (error) throw new Error(error.message);

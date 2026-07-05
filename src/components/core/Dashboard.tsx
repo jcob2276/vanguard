@@ -32,13 +32,16 @@ import NutritionCard from './NutritionCard';
 import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
-import { markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
-import FoodEntryModal from './nutrition/FoodEntryModal';
-import MorningPlanModal from './MorningPlanModal';
-import DailyShutdownModal from './DailyShutdownModal';
-import WeeklyReviewModal from '../todo/WeeklyReviewModal';
+import { markWorkoutSessionActive, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { fetchLatestTaskReviewDate } from '../../lib/todo';
 import { getWeekStartWarsaw } from '../../lib/growth';
+
+import { usePendingActionCount } from '../shared/ActionCenterSheet';
+import { useWorkoutResume } from '../../hooks/useWorkoutResume';
+import { useDashboardSwipeNav } from '../../hooks/useDashboardSwipeNav';
+import { DashboardHeader } from './DashboardHeader';
+import { DashboardNavBar } from './DashboardNavBar';
+import { DashboardModals } from './DashboardModals';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -54,9 +57,7 @@ const LinksInbox = lazy(() => import('../lifestyle/LinksInbox'));
 const Keep = lazy(() => import('../notes/Keep'));
 const CalendarView = lazy(() => import('../calendar/CalendarView'));
 
-import { BrandTitle } from '../ui/BrandTitle';
-import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
-import { ActionCenterSheet, usePendingActionCount } from '../shared/ActionCenterSheet';
+
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const TaskAnalyticsCard = lazy(() => import('../insights/TaskAnalyticsCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
@@ -120,53 +121,11 @@ export default function Dashboard({ session }: { session: Session }) {
     }
     return normalizeView(localStorage.getItem('vanguard_view'));
   });
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set(['dzis', 'tydzien', 'projekty', 'historia']));
-  const [actionCenterOpen, setActionCenterOpen] = useState(false);
+    const [actionCenterOpen, setActionCenterOpen] = useState(false);
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
   const [historySubTab, setHistorySubTab] = useState<'chronicle' | 'bio'>('chronicle');
-
-  useEffect(() => {
-    setMountedTabs((prev) => {
-      if (prev.has(view)) return prev;
-      const next = new Set(prev);
-      next.add(view);
-      return next;
-    });
-  }, [view]);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
-  const resumedWorkoutDraft = useRef(false);
-
-  // Android frequently kills a backgrounded PWA tab to reclaim memory; on return the app
-  // does a fresh mount and this in-memory flag defaults back to false, stranding the
-  // (still-persisted) workout draft with no UI to reach it. Auto-resume into the logger
-  // instead of silently landing back on the dashboard.
-  useEffect(() => {
-    if (resumedWorkoutDraft.current || !userId) return;
-    resumedWorkoutDraft.current = true;
-    purgeStaleWorkoutDraft(userId);
-    if (shouldAutoResumeWorkout(userId)) {
-      markWorkoutSessionActive(userId);
-      setShowWorkoutLogger(true);
-    }
-  }, [userId]);
-
-  // Some Android/WebView builds suspend the page in place (no remount) when the
-  // user switches to another app and back, but still drop in-memory UI state.
-  // Re-check on visibility return so an unfinished workout never silently strands.
-  useEffect(() => {
-    if (!userId) return;
-    const onVisible = () => {
-      if (document.visibilityState !== 'visible') return;
-      setShowWorkoutLogger((prev) => {
-        if (prev) return prev;
-        if (!shouldAutoResumeWorkout(userId)) return prev;
-        markWorkoutSessionActive(userId);
-        return true;
-      });
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [userId]);
+  useWorkoutResume(userId, setShowWorkoutLogger);
 
   // Has the Sunday inbox/section triage already been done this week? Prevents the
   // card from nagging again after completion (it used to have no memory at all).
@@ -247,38 +206,11 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, [view, haptics]);
 
-  // Swipe left/right between the 4 main tabs, in addition to tapping the bottom nav.
-  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
-
-  const handleMainTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    swipeStart.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
-  }, []);
-
-  const handleMainTouchEnd = useCallback((e: React.TouchEvent) => {
-    const start = swipeStart.current;
-    swipeStart.current = null;
-    if (!start) return;
-    if ((e.target as HTMLElement)?.closest?.('[data-no-swipe-nav]')) return;
-
-    const touch = e.changedTouches[0];
-    if (!touch) return;
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    const deltaT = Date.now() - start.t;
-
-    const isHorizontalEnough = Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
-    const isFarEnough = Math.abs(deltaX) >= 45;
-    const isFastEnough = deltaT < 1000;
-    if (!isHorizontalEnough || !isFarEnough || !isFastEnough) return;
-
-    const idx = TAB_ORDER.indexOf(view);
-    if (idx === -1) return;
-    const nextIdx = deltaX < 0 ? idx + 1 : idx - 1;
-    if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return;
-    navigateTo(TAB_ORDER[nextIdx]);
-  }, [view, navigateTo]);
+  const { handleMainTouchStart, handleMainTouchEnd } = useDashboardSwipeNav({
+    view,
+    navigateTo,
+    tabOrder: TAB_ORDER,
+  });
 
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
     try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
@@ -466,102 +398,20 @@ export default function Dashboard({ session }: { session: Session }) {
   return (
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
       <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]">
-          <div className="min-w-0 shrink-0">
-            <h1
-              className="font-display text-sm text-primary select-none cursor-pointer flex items-center gap-1.5"
-              title="Przytrzymaj, żeby szybko dodać posiłek"
-              onPointerDown={handleLogoPressStart}
-              onPointerUp={handleLogoPressEnd}
-              onPointerLeave={handleLogoPressEnd}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <BrandTitle />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" title="System Online" />
-            </h1>
-            <p className="mt-1 text-[8.5px] font-black uppercase tracking-wider text-text-muted/65">
-              {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
-            </p>
-          </div>
-          <div className="header-icon-row flex min-w-0 items-center gap-2 overflow-x-auto">
-            {session?.user?.id && (
-              <PersonaAvatarButton
-                userId={session.user.id}
-                unreadCount={pendingActionCount}
-                onLongPress={() => setActionCenterOpen(true)}
-                onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('fundament'); }}
-              />
-            )}
-            <button
-              onClick={toggleTheme}
-              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-90 cursor-pointer flex items-center justify-center"
-              title="Przełącz motyw"
-            >
-              {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
-            </button>
-            {!showLock && (
-              <>
-                <button
-                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('todo'); }}
-                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
-                    view === 'todo'
-                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
-                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-                  }`}
-                  title="Zadania"
-                >
-                  <CheckSquare size={15} />
-                </button>
-                <button
-                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('kalendarz'); }}
-                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
-                    view === 'kalendarz'
-                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
-                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-                  }`}
-                  title="Kalendarz"
-                >
-                  <Calendar size={15} />
-                </button>
-                <button
-                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('keep'); }}
-                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
-                    view === 'keep'
-                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
-                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-                  }`}
-                  title="Notatki"
-                >
-                  <StickyNote size={15} />
-                  {staleNoteCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[8px] font-black text-white shadow-sm ring-1 ring-background">
-                      {staleNoteCount > 9 ? '9+' : staleNoteCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('links'); }}
-                  className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
-                    view === 'links'
-                      ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
-                      : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-                  }`}
-                  title="Zapisane linki"
-                >
-                  <Bookmark size={15} />
-                </button>
-
-                <Link
-                  to="/dashboard"
-                  className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center"
-                  title="Desktop dashboard"
-                >
-                  <LayoutDashboard size={15} />
-                </Link>
-              </>
-            )}
-          </div>
-        </header>
+        <DashboardHeader
+          userId={userId}
+          unreadCount={pendingActionCount}
+          onAvatarLongPress={() => setActionCenterOpen(true)}
+          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('fundament'); }}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          showLock={showLock}
+          view={view}
+          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          staleNoteCount={staleNoteCount}
+          handleLogoPressStart={handleLogoPressStart}
+          handleLogoPressEnd={handleLogoPressEnd}
+        />
 
         <main
           className="flex-1 overflow-hidden vt-tab-main"
@@ -591,10 +441,10 @@ export default function Dashboard({ session }: { session: Session }) {
             </div>
           ) : (
             <>
-              {/* Each tab is always mounted but hidden when inactive — prevents full remount/freeze on switch */}
+              {/* Render only active tab to save CPU/memory and avoid background charts rendering */}
               <ErrorBoundary>
-              {mountedTabs.has('dzis') && (
-              <div className={`p-5 pb-8 ${view === 'dzis' ? '' : 'hidden'}`}>
+              {view === 'dzis' && (
+              <div className="p-5 pb-8">
                 <div className="space-y-5">
               <OrientationFooter session={session} />
               <SpineGuideStrip
@@ -654,8 +504,8 @@ export default function Dashboard({ session }: { session: Session }) {
 
           </ErrorBoundary>
           <ErrorBoundary>
-          {mountedTabs.has('tydzien') && (
-          <div className={`p-5 pb-8 ${view === 'tydzien' ? '' : 'hidden'}`}>
+          {view === 'tydzien' && (
+          <div className="p-5 pb-8">
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-7">
                 <NutritionTrainingBarCard session={session} refreshSignal={nutritionKey} />
@@ -672,8 +522,8 @@ export default function Dashboard({ session }: { session: Session }) {
 
           </ErrorBoundary>
           <ErrorBoundary>
-          {mountedTabs.has('historia') && (
-          <div className={`p-5 pb-8 ${view === 'historia' ? '' : 'hidden'}`}>
+          {view === 'historia' && (
+          <div className="p-5 pb-8">
             <Suspense fallback={<ViewFallback />}>
               <div className="space-y-6">
                 <div className="flex justify-center px-1">
@@ -712,8 +562,8 @@ export default function Dashboard({ session }: { session: Session }) {
 
           </ErrorBoundary>
           <ErrorBoundary>
-          {mountedTabs.has('projekty') && (
-          <div className={`p-5 pb-8 ${view === 'projekty' ? '' : 'hidden'}`}>
+          {view === 'projekty' && (
+          <div className="p-5 pb-8">
             <Suspense fallback={<ViewFallback />}>
               <Projects
                 session={session}
@@ -782,55 +632,13 @@ export default function Dashboard({ session }: { session: Session }) {
       )}
 
       {!showLock && (
-        <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'max(2rem, calc(1rem + env(safe-area-inset-bottom)))' }}>
-          {/* Sliding background indicator pill */}
-          <div 
-            className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-300"
-            style={{
-              width: 'calc(20% - 3px)',
-              left: (() => {
-                const idx = TAB_ORDER.indexOf(view);
-                const slotIndex = idx < 2 ? idx : idx + 1;
-                return `calc(${slotIndex * 20}% + 1.5px)`;
-              })(),
-              transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-          />
-          {(() => {
-            const elements: React.ReactNode[] = [];
-            navItems.forEach((item, idx) => {
-              elements.push(
-                <button
-                  key={item.id}
-                  onClick={() => navigateTo(item.id)}
-                  disabled={false}
-                  className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
-                    view === item.id
-                      ? 'text-primary font-black'
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  <div className="relative">
-                    <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
-                    {item.id === 'dzis' && urgentTodoCount > 0 && (
-                      <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-                        {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-                </button>
-              );
-
-              if (idx === 1) {
-                elements.push(
-                  <div key="fab-slot" className="relative flex-1 flex items-center justify-center h-full" />
-                );
-              }
-            });
-            return elements;
-          })()}
-        </nav>
+        <DashboardNavBar
+          view={view}
+          navigateTo={navigateTo}
+          urgentTodoCount={urgentTodoCount}
+          navItems={navItems}
+          tabOrder={TAB_ORDER}
+        />
       )}
 
       {!showLock && (
@@ -847,61 +655,27 @@ export default function Dashboard({ session }: { session: Session }) {
         </button>
       )}
 
-      {showMorningPlan && (
-        <MorningPlanModal
-          session={session}
-          targetDate={morningPlanTargetDate ?? undefined}
-          onClose={() => { setShowMorningPlan(false); setMorningPlanTargetDate(null); }}
-        />
-      )}
-
-      {showShutdown && (
-        <DailyShutdownModal
-          session={session}
-          onClose={() => {
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
-            setShowShutdown(false);
-          }}
-          onSaved={refresh}
-          onPlanTomorrow={() => {
-            const tomorrow = new Date(`${getTodayWarsaw()}T12:00:00Z`);
-            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
-            setShowShutdown(false);
-            setMorningPlanTargetDate(tomorrow.toISOString().slice(0, 10));
-            setShowMorningPlan(true);
-          }}
-        />
-      )}
-
-      {showWeeklyReview && (
-        <WeeklyReviewModal
-          session={session}
-          onClose={() => setShowWeeklyReview(false)}
-          onFinished={() => {
-            setTaskReviewDoneThisWeek(true);
-            refresh();
-          }}
-        />
-      )}
-
-      {showQuickFoodEntry && (
-        <FoodEntryModal
-          session={session}
-          onClose={() => { setShowQuickFoodEntry(false); setFoodEditEntry(null); }}
-          onSaved={() => { refresh(); setNutritionKey(k => k + 1); }}
-          initialEditEntry={foodEditEntry ?? undefined}
-        />
-      )}
-
-      {session && (
-        <ActionCenterSheet
-          session={session}
-          open={actionCenterOpen}
-          onClose={() => setActionCenterOpen(false)}
-          onUpdated={() => void reloadPendingActions()}
-        />
-      )}
+      <DashboardModals
+        session={session}
+        showMorningPlan={showMorningPlan}
+        setShowMorningPlan={setShowMorningPlan}
+        morningPlanTargetDate={morningPlanTargetDate}
+        setMorningPlanTargetDate={setMorningPlanTargetDate}
+        showShutdown={showShutdown}
+        setShowShutdown={setShowShutdown}
+        showWeeklyReview={showWeeklyReview}
+        setShowWeeklyReview={setShowWeeklyReview}
+        setTaskReviewDoneThisWeek={setTaskReviewDoneThisWeek}
+        showQuickFoodEntry={showQuickFoodEntry}
+        setShowQuickFoodEntry={setShowQuickFoodEntry}
+        foodEditEntry={foodEditEntry}
+        setFoodEditEntry={setFoodEditEntry}
+        actionCenterOpen={actionCenterOpen}
+        setActionCenterOpen={setActionCenterOpen}
+        reloadPendingActions={reloadPendingActions}
+        refresh={refresh}
+        setNutritionKey={setNutritionKey}
+      />
     </div>
   );
 }

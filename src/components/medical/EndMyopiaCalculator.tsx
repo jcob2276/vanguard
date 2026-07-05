@@ -5,36 +5,15 @@ import { Check, ArrowLeft, Ruler, ZoomIn, ZoomOut, AlertCircle, RotateCcw } from
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
+import StabilityRing from './StabilityRing';
 
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 
-// SVG stability ring
-function StabilityRing({ progress, size = 64 }: { progress: number; size?: number }) {
-  const r = (size - 8) / 2;
-  const circ = 2 * Math.PI * r;
-  const dash = circ * progress;
-  const color = progress === 1 ? '#22c55e' : progress > 0.5 ? '#f59e0b' : '#3b82f6';
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={4} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={4}
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dasharray 0.1s linear, stroke 0.3s' }}
-      />
-    </svg>
-  );
-}
-
 export default function EndMyopiaCalculator() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pipVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { distance, stability, isReady, calibrationFactor, calibrate, resetCalibration, resetStability } = useFaceDistance(videoRef);
 
   const [phase, setPhase] = useState<Phase>('calibrate');
@@ -100,6 +79,7 @@ export default function EndMyopiaCalculator() {
     async function setupCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
         if (pipVideoRef.current) pipVideoRef.current.srcObject = stream;
       } catch (err) {
@@ -109,6 +89,14 @@ export default function EndMyopiaCalculator() {
     setupCamera();
     return () => { stream?.getTracks().forEach(t => t.stop()); };
   }, []);
+
+  // PIP <video> unmounts/remounts every time we leave/re-enter the measure phase
+  // (it's only rendered inside that phase) — reattach the live stream each time.
+  useEffect(() => {
+    if (phase === 'measure' && pipVideoRef.current && streamRef.current) {
+      pipVideoRef.current.srcObject = streamRef.current;
+    }
+  }, [phase]);
 
   const handleCalibrate = () => {
     calibrate(40);

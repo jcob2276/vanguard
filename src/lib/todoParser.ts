@@ -67,7 +67,7 @@ function consumeMatch(text: string, match: RegExpMatchArray): string {
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
-  const tokens: Array<{ type: 'priority' | 'date' | 'duration'; label: string; value: string }> = [];
+  const tokens: Array<{ type: 'priority' | 'date' | 'duration' | 'time'; label: string; value: string }> = [];
 
   const priorityMatch = title.match(/(^|\s)(p[1-4])(?=\s|$)/i);
   if (priorityMatch) {
@@ -127,6 +127,18 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     }
   }
 
+  // Clock time: "o 12:15", "o 8", "12:15" (not confused with duration, which requires an h/min suffix)
+  const timeMatch = title.match(/(^|\s)o\s+([01]?\d|2[0-3])(?:[:.]([0-5]\d))?(?=\s|$)/i)
+    || title.match(/(^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/);
+  if (timeMatch) {
+    const hour = Number(timeMatch[2]);
+    const minute = timeMatch[3] ? Number(timeMatch[3]) : 0;
+    const hh = String(hour).padStart(2, '0');
+    const mm = String(minute).padStart(2, '0');
+    tokens.push({ type: 'time', label: `${hh}:${mm}`, value: `${hh}:${mm}` });
+    title = consumeMatch(title, timeMatch);
+  }
+
   // Duration: "30min", "1h", "1.5h", "2h30min", "90min", "45m"
   const durationMatch = title.match(/(^|\s)(\d+(?:[.,]\d+)?)\s*h(?:(?:our|rs?)?(?:\s*(\d+)\s*m(?:in)?)?)?(?=\s|$)|(^|\s)(\d+)\s*m(?:in)?(?=\s|$)/i);
   if (durationMatch) {
@@ -149,6 +161,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
 
   const priority = tokens.find((token) => token.type === 'priority')?.value || null;
   const due_date = tokens.find((token) => token.type === 'date')?.value || null;
+  const scheduled_time = tokens.find((token) => token.type === 'time')?.value || null;
   const duration_minutes = tokens.find((token) => token.type === 'duration')?.value
     ? parseInt(tokens.find((token) => token.type === 'duration')!.value)
     : null;
@@ -157,6 +170,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     title: cleanTitle(title),
     priority,
     due_date,
+    scheduled_time,
     duration_minutes,
     tokens,
   };

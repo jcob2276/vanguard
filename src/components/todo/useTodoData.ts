@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, combineDateTimeWarsawISO } from '../../lib/date';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import {
   archiveTodoSection,
@@ -15,6 +15,7 @@ import {
   updateTodoItem,
 } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
+import { buildSectionGoalMaps } from '../../lib/goalLineage';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
 import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
@@ -70,7 +71,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   // Persisted quick-add draft
   const [form, setForm] = usePersistentDraft(
     userId ? `vanguard_todo_quickadd_draft_${userId}` : null,
-    { title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' },
+    { title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '', scheduled_time: '', reminder_at: '' },
   );
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: TodoItemRow } | null>(null);
@@ -110,7 +111,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       const [s, i, { data: winData }, p, { data: d }, sl] = await Promise.all([
         listTodoSections(userId),
         listTodoItems(userId),
-        supabase.from('daily_wins').select('task_1_todo_id,task_2_todo_id,task_3_todo_id,task_4_todo_id,task_5_todo_id').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
+        supabase.from('daily_wins').select('id, daily_win_tasks(todo_id)').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
         listProjects(userId),
         supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId),
         listSmartLists(userId),
@@ -121,8 +122,8 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       setDreams((d as any) || []);
       setSmartLists(sl || []);
       if (winData) {
-        const winDataAny = winData as any;
-        setLinkedPlanIds(new Set([1,2,3,4,5].map((n) => winDataAny[`task_${n}_todo_id`]).filter(Boolean)));
+        const winTasks = (winData as any).daily_win_tasks || [];
+        setLinkedPlanIds(new Set(winTasks.map((t: any) => t.todo_id).filter(Boolean)));
       }
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
   }, [userId]);
@@ -258,30 +259,10 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   // ── Derived ──
   const sectionById = useMemo(() => Object.fromEntries(sections.map((s) => [s.id, s])), [sections]);
 
-  const sectionGoalMap = useMemo(() => {
-    const result: Record<string, string> = {};
-    for (const sec of sections) {
-      if (!sec.project_id) continue;
-      const proj = projects.find(p => p.id === sec.project_id);
-      if (!proj || !proj.dream_id) continue;
-      const dream = dreams.find(d => d.id === proj.dream_id);
-      const goal = dream?.life_goal;
-      if (goal) result[sec.id] = goal;
-    }
-    return result;
-  }, [sections, projects, dreams]);
-
-  const sectionDreamMap = useMemo(() => {
-    const result: Record<string, string> = {};
-    for (const sec of sections) {
-      if (!sec.project_id) continue;
-      const proj = projects.find(p => p.id === sec.project_id);
-      if (!proj || !proj.dream_id) continue;
-      const dream = dreams.find(d => d.id === proj.dream_id);
-      if (dream?.title) result[sec.id] = dream.title;
-    }
-    return result;
-  }, [sections, projects, dreams]);
+  const { sectionGoalMap, sectionDreamMap } = useMemo(
+    () => buildSectionGoalMaps(sections, projects as any, dreams as any),
+    [sections, projects, dreams],
+  );
 
   const parsedInput = useMemo(() => parseTodoQuickInput(form.title), [form.title]);
   // Nested subtasks (parent_task_id) are rendered under their parent card, not as top-level list rows.
@@ -311,7 +292,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     return true;
   }), [activeFilterTag, activeFilterSection, activeSmartQuery, today, sectionNameById]);
 
-  const { todayItems, inboxItems, sectionsWithItems } = useMemo(() => {
+  const { todayItems, inboxItems, upcomingItems, sectionsWithItems } = useMemo(() => {
     const todayList = openItems
       .filter((i) => (i.due_date && i.due_date <= today) || i.ai_bucket === 'today')
       .sort((a, b) => {
@@ -326,6 +307,16 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     const todaySet = new Set(todayList.map((i) => i.id));
     const remainingItems = openItems.filter((i) => !todaySet.has(i.id));
     const inbox = applyFilter(remainingItems.filter((i) => i.section_id === null));
+
+    const upcomingCutoff = new Date(`${today}T12:00:00Z`);
+    upcomingCutoff.setUTCDate(upcomingCutoff.getUTCDate() + 7);
+    const upcomingCutoffStr = upcomingCutoff.toISOString().slice(0, 10);
+    const upcoming = applyFilter(
+      remainingItems
+        .filter((i) => i.due_date && i.due_date > today && i.due_date <= upcomingCutoffStr)
+        .sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')),
+    );
+
     const sectionsMap: Record<string, TodoItemRow[]> = {};
     sections.forEach(s => { sectionsMap[s.id] = []; });
     remainingItems.forEach((i) => {
@@ -340,6 +331,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     return {
       todayItems: applyFilter(todayList),
       inboxItems: inbox,
+      upcomingItems: upcoming,
       sectionsWithItems: sectionsList
     };
   }, [openItems, sections, today, applyFilter]);
@@ -391,6 +383,11 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     const notes = form.notes || null;
     const tagsText = form.tagsText;
     const recurrence = form.recurrence || null;
+    // scheduled_time is a timestamptz column — combine the HH:MM the UI collects with due_date
+    // before persisting; a bare "14:30" fails Postgres's cast (and silently drops with no date).
+    const scheduledTimeHHMM = parsedInput.scheduled_time || form.scheduled_time || null;
+    const scheduled_time = scheduledTimeHHMM && due_date ? combineDateTimeWarsawISO(due_date, scheduledTimeHHMM) : null;
+    const reminder_at = form.reminder_at || null;
     const tags = tagsText.split(',').map((t) => t.trim()).filter(Boolean);
 
     // Optimistic: add instantly
@@ -401,14 +398,15 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       ai_bucket: null, ai_classified_at: null, sort_order: 0,
       created_at: new Date().toISOString(), completed_at: null,
       updated_at: new Date().toISOString(), is_milestone: false,
-      project_id: null, reminder_at: null, reminder_sent: false,
-      scheduled_time: null, duration_minutes, is_important: false,
+      project_id: null, reminder_at, reminder_sent: false,
+      scheduled_time, duration_minutes, is_important: false,
+      category: null,
     };
     setItems((prev) => [optimistic, ...prev]);
-    setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '' });
+    setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '', scheduled_time: '', reminder_at: '' });
     setIsExpanded(false);
 
-    createTodoItem(userId, { title, notes: notes || undefined, priority, due_date: due_date || undefined, duration_minutes: duration_minutes || undefined, section_id: section_id || undefined, recurrence: recurrence || undefined, tagsText })
+    createTodoItem(userId, { title, notes: notes || undefined, priority, due_date: due_date || undefined, duration_minutes: duration_minutes || undefined, section_id: section_id || undefined, recurrence: recurrence || undefined, tagsText, scheduled_time: scheduled_time || undefined, reminder_at: reminder_at || undefined })
       .then((newItem) => {
         setItems((prev) => prev.map((i) => i.id === tempId ? newItem : i));
         if (!due_date && priority === 'normal') classifyInBackground(newItem);
@@ -531,6 +529,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     doneItems,
     todayItems,
     inboxItems,
+    upcomingItems,
     sectionsWithItems,
     applyFilter,
     run,

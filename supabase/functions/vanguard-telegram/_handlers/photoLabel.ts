@@ -1,6 +1,7 @@
 import { encodeBase64 } from "https://deno.land/std@0.223.0/encoding/base64.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getTelegramFilePath, telegramFileUrl } from "../../_shared/telegram.ts";
+import { openaiChat } from "../../_shared/openai.ts";
 
 export async function handlePhotoLabel(
   photoArray: any[],
@@ -59,41 +60,28 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
   "sugar": 1.5
 }`;
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openAiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        max_tokens: 400,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: systemPrompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
+    const { content } = await openaiChat({
+      apiKey: openAiKey,
+      model: "gpt-4o-mini",
+      temperature: 0.1,
+      maxTokens: 400,
+      responseFormat: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: systemPrompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
               }
-            ]
-          }
-        ]
-      })
+            }
+          ]
+        }
+      ]
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenAI Vision failed: HTTP ${res.status} - ${errText}`);
-    }
-
-    const oaiData = await res.json();
-    const content = oaiData.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error("OpenAI returned empty message content");
     }

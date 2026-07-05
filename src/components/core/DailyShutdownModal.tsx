@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronLeft, Send, Sparkles, Smile, Flame, Award } fro
 import { supabase } from "../../lib/supabase";
 import { getTodayWarsaw } from "../../lib/date";
 import { notify } from "../../lib/notify";
+import { updateDailyWin } from "../../lib/goalSpine.mutations";
 
 interface Props {
   session: any;
@@ -91,43 +92,43 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
         daily_rpe: rpeScore,
         result,
       };
-      
-      const { error: winErr } = await supabase
-        .from("daily_wins")
-        .update(patch)
-        .eq("id", todayWin.id);
-      
-      if (winErr) throw winErr;
+
+      await updateDailyWin(userId, todayWin.id, patch);
 
       // 2. Update daily_reconciliations
-      const { data: recon } = await supabase
+      const { data: recon, error: reconFetchErr } = await supabase
         .from("daily_reconciliations")
         .select("id")
         .eq("user_id", userId)
         .eq("date", today)
         .maybeSingle();
 
+      if (reconFetchErr) throw reconFetchErr;
+
       if (recon) {
-        await supabase
+        const { error: reconUpdErr } = await supabase
           .from("daily_reconciliations")
           .update({ day_score: dayScore })
           .eq("id", recon.id);
+        if (reconUpdErr) throw reconUpdErr;
       } else {
-        await supabase
+        const { error: reconInsErr } = await supabase
           .from("daily_reconciliations")
           .insert({ user_id: userId, date: today, day_score: dayScore });
+        if (reconInsErr) throw reconInsErr;
       }
 
       // 3. Insert stream log
       const reflectionPart = reflectionText.trim() ? " | Refleksja: " + reflectionText.trim() : "";
       const accomplishmentPart = actualAccomplishmentText.trim() ? " | Co zrobiono: " + actualAccomplishmentText.trim() : "";
-      
-      await supabase.from("vanguard_stream").insert({
+
+      const { error: streamErr } = await supabase.from("vanguard_stream").insert({
         user_id: userId,
         source: "daily_shutdown",
         content: "Domknięcie dnia: Wynik " + dayScore + "/10 (Samopoczucie: " + moodScore + "/5, RPE: " + rpeScore + "/10)" + reflectionPart + accomplishmentPart,
         metadata: { kind: "day_close", date: today, day_score: dayScore, mood: moodScore, rpe: rpeScore },
       });
+      if (streamErr) throw streamErr;
 
       if (onSaved) onSaved();
       setStep(3); // Go to success screen

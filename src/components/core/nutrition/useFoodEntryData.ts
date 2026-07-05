@@ -12,6 +12,8 @@ import {
 } from '../../../lib/foodLogging';
 import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
 import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
+import { rpcWithOfflineFallback } from '../../../lib/offlineQueue';
+import { notify } from '../../../lib/notify';
 
 export interface FoodBase {
   barcode: string | null;
@@ -289,17 +291,20 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     setSaving(true);
     setError(null);
     try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+      const { queued } = await rpcWithOfflineFallback('add_food_entry', {
         p_user_id: userId, p_date: getTodayWarsaw(), p_grams: gramsNum,
         p_entry: {
           name: selected.name, brand: selected.brand, barcode: selected.barcode,
           calories: selected.calories, protein: selected.protein, carbs: selected.carbs,
           fat: selected.fat, fiber: selected.fiber, sugar: selected.sugar, meal_type: mealType,
         },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary(selected, gramsNum);
-      afterFoodLog();
+      }, 'Posiłek');
+      if (queued) {
+        notify('Brak sieci — posiłek zapisany lokalnie, zsynchronizuje się automatycznie', 'info');
+      } else {
+        cacheToLibrary(selected, gramsNum);
+        afterFoodLog();
+      }
       flashSaved();
       onSaved?.();
       setSelected(null); setQuery(''); setGrams('100');
@@ -317,17 +322,20 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     setQuickAddingId(key);
     setError(null);
     try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+      const { queued } = await rpcWithOfflineFallback('add_food_entry', {
         p_user_id: userId, p_date: getTodayWarsaw(), p_grams: food.defaultGrams ?? 100,
         p_entry: {
           name: food.name, brand: food.brand, barcode: food.barcode,
           calories: food.calories, protein: food.protein, carbs: food.carbs,
           fat: food.fat, fiber: food.fiber, sugar: food.sugar, meal_type: mealType,
         },
-      });
-      if (rpcError) throw rpcError;
-      cacheToLibrary(food, food.defaultGrams ?? 100);
-      afterFoodLog();
+      }, 'Posiłek');
+      if (queued) {
+        notify('Brak sieci — posiłek zapisany lokalnie, zsynchronizuje się automatycznie', 'info');
+      } else {
+        cacheToLibrary(food, food.defaultGrams ?? 100);
+        afterFoodLog();
+      }
       flashSaved();
       onSaved?.();
       loadLists();
@@ -343,16 +351,19 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     setQuickAddingId(fav.id);
     setError(null);
     try {
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+      const { queued } = await rpcWithOfflineFallback('add_food_entry', {
         p_user_id: userId, p_date: getTodayWarsaw(), p_grams: fav.default_grams,
         p_entry: {
           name: fav.name, brand: fav.brand, barcode: fav.barcode,
           calories: fav.calories, protein: fav.protein, carbs: fav.carbs,
           fat: fav.fat, fiber: fav.fiber, sugar: fav.sugar, meal_type: mealType,
         },
-      });
-      if (rpcError) throw rpcError;
-      afterFoodLog();
+      }, 'Posiłek');
+      if (queued) {
+        notify('Brak sieci — posiłek zapisany lokalnie, zsynchronizuje się automatycznie', 'info');
+      } else {
+        afterFoodLog();
+      }
       flashSaved();
       onSaved?.();
       loadLists();
@@ -370,7 +381,7 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     try {
       const grams = Math.max(1, parseGrams(entry.amount));
       const per100 = derivePer100(entry);
-      const { error: rpcError } = await supabase.rpc('add_food_entry', {
+      const { queued } = await rpcWithOfflineFallback('add_food_entry', {
         p_user_id: userId, p_date: getTodayWarsaw(), p_grams: grams,
         p_entry: {
           name: entry.name, brand: entry.brand, barcode: null,
@@ -380,9 +391,12 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
           fat: per100.fat != null ? Math.round(per100.fat * 10) / 10 : null,
           fiber: null, sugar: null, meal_type: mealType,
         },
-      });
-      if (rpcError) throw rpcError;
-      afterFoodLog();
+      }, 'Posiłek');
+      if (queued) {
+        notify('Brak sieci — posiłek zapisany lokalnie, zsynchronizuje się automatycznie', 'info');
+      } else {
+        afterFoodLog();
+      }
       flashSaved();
       onSaved?.();
       loadLists();

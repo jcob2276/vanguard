@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { initOfflineSync } from './lib/offlineQueue'
+
+// Flush anything queued while offline and retry automatically on reconnect.
+initOfflineSync()
 
 // Auto-unregister service workers in development mode to prevent stale cache issues on localhost
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {

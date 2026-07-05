@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, BrainCircuit, ChevronLeft, ChevronRight, Cpu, Link2, ListTodo, Loader2, MoreHorizontal, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import RichEditor from './RichEditor';
 import { COLORS, getColor, Note } from './keepUtils';
@@ -149,8 +149,14 @@ export default function EditNoteModal({
         setAiLoading(null);
         return;
       }
-      const inserts = tasks.map((t: string) => ({ title: t.trim(), completed: false, created_at: new Date().toISOString() }));
-      const { error: insertErr } = await supabase.from('vanguard_todos').insert(inserts);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Brak zalogowanego użytkownika');
+      const inserts = tasks.map((t: string) => ({
+        user_id: user.id,
+        title: t.trim(),
+        status: 'open',
+      }));
+      const { error: insertErr } = await supabase.from('todo_items').insert(inserts);
       if (insertErr) throw insertErr;
       notify(`Dodano ${tasks.length} zadan do listy!`, 'success');
       setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadan:\n- ${tasks.join('\n- ')}` });
