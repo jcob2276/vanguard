@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { getTodayWarsaw, warsawDayBoundsISO } from './date';
 import type { TodayNutritionSnapshot } from './foodLogging';
 
-export type NutritionTrajectory = 'on_track' | 'behind' | 'ahead';
+type NutritionTrajectory = 'on_track' | 'behind' | 'ahead';
 
 export interface NutritionDayContext extends TodayNutritionSnapshot {
   date: string;
@@ -30,7 +30,7 @@ export interface NutritionDayContext extends TodayNutritionSnapshot {
 }
 
 /** Implied goal weight from constant lean mass + target BF% (same model as nutrition-coach). */
-export function impliedGoalWeightKg(
+function impliedGoalWeightKg(
   currentWeightKg: number | null,
   currentBfPct: number | null,
   goalBfPct: number | null,
@@ -100,7 +100,7 @@ function buildTrainingLabel(runKmToday: number, gymToday: boolean, addBackKcal: 
   return 'Dzień lekki — deficyt tu';
 }
 
-export async function ensureNutritionTargetForDate(
+async function ensureNutritionTargetForDate(
   userId: string,
   date: string,
   accessToken: string | undefined,
@@ -127,9 +127,9 @@ export async function ensureNutritionTargetForDate(
       body: JSON.stringify({ userId, date, notify: false }),
       signal: AbortSignal.timeout(45000),
     });
-  } catch (e) {
-    console.warn('[nutritionContext] coach refresh failed', e);
-  }
+  } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
 }
 
 export async function fetchNutritionDayContext(
@@ -258,7 +258,7 @@ function num(v: unknown): number | null {
   return n > 0 ? n : null;
 }
 
-export function foodLogClosedKey(userId: string, date: string): string {
+function foodLogClosedKey(userId: string, date: string): string {
   return `vanguard_food_closed_${userId}_${date}`;
 }
 

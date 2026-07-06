@@ -76,8 +76,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
           work_edu: data.work_edu || ''
         });
       }
-    } catch (err) {
-      console.error('Fetch error:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     }
   }, [userId]);
 
@@ -126,7 +126,7 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
       setSaveStatus('success');
       setVault({ identity: '', philosophy: '', finances: '', vision: '', knowledge: '', relationships: '', work_edu: '' });
       setTimeout(() => setSaveStatus(null), 3000);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Save error:', err);
       setSaveStatus('error');
     } finally {

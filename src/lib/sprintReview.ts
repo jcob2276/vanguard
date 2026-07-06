@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 import type { Json } from './database.types';
 import type { MonthPillarAverages } from './monthReview';
 
-export type SprintKpiSummary = {
+type SprintKpiSummary = {
   name: string;
   projectName: string | null;
   target: number | null;

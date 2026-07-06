@@ -6,4 +6,4 @@
  * Ten plik jedynie re-eksportuje te funkcje dla frontendu, zapobiegając duplikacji.
  */
 
-export { VANGUARD_STATES, computeSignals, VanguardCore } from '../../supabase/functions/_shared/vanguardCore.ts';
+export {  computeSignals, VanguardCore } from '../../supabase/functions/_shared/vanguardCore.ts';

@@ -21,7 +21,8 @@
     "oss:audit": "node scripts/ops/oss-audit.mjs",
     "smoke": "node scripts/ops/smoke-vanguard.mjs --with-service-role",
     "smoke:safe": "node scripts/ops/smoke-vanguard.mjs --with-service-role --invoke-safe",
-    "e2e:loop": "node scripts/ops/e2e-daily-loop.mjs"
+    "e2e:loop": "node scripts/ops/e2e-daily-loop.mjs",
+    "audit:knip": "knip"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.35",

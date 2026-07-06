@@ -10,7 +10,7 @@ import {
   type RetestSuggestion,
 } from '../lib/medicalRetestSuggestions';
 
-export function useMedicalUserContext(userId: string | undefined) {
+function useMedicalUserContext(userId: string | undefined) {
   const [ctx, setCtx] = useState<MedicalUserContext>({
     age: null,
     sex: null,

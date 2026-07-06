@@ -75,8 +75,8 @@ export default function CorrelationsPage({ session }: { session: Session }) {
       setCoverage(corrRes.data?.coverage ?? {});
       setStats(corrRes.data?.stats ?? null);
       setBehaviors(behRes.data?.results ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Błąd ładowania korelacji');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? (e as Error).message : 'Błąd ładowania korelacji');
     } finally {
       setLoading(false);
     }

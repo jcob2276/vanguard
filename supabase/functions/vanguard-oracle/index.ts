@@ -1,4 +1,4 @@
-import { deepseekChat } from "../_shared/deepseek.ts";
+import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../_shared/time.ts";
@@ -6,7 +6,8 @@ import { logCriticalError } from "../_shared/errorLogging.ts";
 import { compressHistoryIfNeeded } from "../_shared/contextCompression.ts";
 import { mintRecordFactId } from "../_shared/mintRecordFactId.ts";
 
-import { retrieveRagContext, stripJsonFence } from "./oracle/rag.ts";
+import { z } from "npm:zod";
+import { retrieveRagContext } from "./oracle/rag.ts";
 import { buildSystemPrompt } from "./oracle/systemPrompt.ts";
 import {
   logOracleRun,
@@ -14,6 +15,21 @@ import {
   createPendingAction,
   applyInsightCardsMutation,
 } from "./oracle/mutations.ts";
+
+
+const OracleResponseSchema = z.object({
+  answer: z.string().optional(),
+  text: z.string().optional(),
+  odpowiedz: z.string().optional(),
+  response: z.string().optional(),
+  confidence: z.string().optional(),
+  intent_confirmed: z.string().optional(),
+  claims: z.array(z.any()).optional(),
+  clarification_request: z.any().optional(),
+  schedule_mutation: z.any().optional(),
+  insight_cards_mutation: z.any().optional(),
+  mint_fact_id: z.boolean().optional()
+}).catchall(z.any());
 
 Deno.serve(async (req) => {
   const t0 = Date.now();
@@ -97,9 +113,9 @@ Deno.serve(async (req) => {
 
     console.log(`[oracle] deepseek start`, Date.now() - t0);
 
-    let structuredResponse;
+    let structuredResponse: z.infer<typeof OracleResponseSchema>;
     try {
-      const { content: rawOutput } = await deepseekChat({
+      const { content: rawOutput, reasoning_content } = await deepseekChat({
         apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
         model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
         messages: messages,
@@ -109,21 +125,27 @@ Deno.serve(async (req) => {
         timeoutMs: 25000,
       });
       console.log(`[oracle] deepseek done`, Date.now() - t0);
-      try {
-        structuredResponse = JSON.parse(stripJsonFence(rawOutput));
-      } catch (_parseError) {
-        const thinkStripped = rawOutput.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        if (!thinkStripped) {
-          console.warn('[oracle] model returned only <think> block — using fallback');
-        } else {
-          console.log('[oracle] JSON parse failed, using text as answer');
-        }
+      
+      const parsedObj = parseJsonFromContent(rawOutput) || {};
+      const validation = OracleResponseSchema.safeParse(parsedObj);
+
+      if (!validation.success) {
+        console.warn('[oracle] Zod validation failed, using raw output as fallback. Error:', validation.error.message);
         structuredResponse = {
-          answer: thinkStripped || 'Nie udało się wygenerować odpowiedzi. Spróbuj ponownie.',
-          confidence: thinkStripped ? 'medium' : 'low',
+          answer: rawOutput.trim() || 'Nie udało się poprawnie zinterpretować odpowiedzi.',
+          confidence: 'low',
           intent_confirmed: rag.intent,
           claims: []
         };
+      } else {
+        structuredResponse = validation.data;
+        if (!structuredResponse.answer && !structuredResponse.text && rawOutput.trim() && Object.keys(parsedObj).length === 0) {
+           structuredResponse.answer = rawOutput.trim();
+        }
+      }
+      
+      if (reasoning_content) {
+         console.log('[oracle] Extracted reasoning_content length:', reasoning_content.length);
       }
     } catch (e) {
       console.error("DeepSeek response failed:", e);

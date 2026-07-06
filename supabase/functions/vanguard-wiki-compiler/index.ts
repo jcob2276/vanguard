@@ -675,9 +675,13 @@ Priorytet:
             console.warn(`[wiki-compiler] Failed to generate embedding for page ${slug}, skipping vanguard_knowledge sync`);
           }
         }
-      } catch (knSyncErr: any) {
-        console.error(`[wiki-compiler] Exception during vanguard_knowledge sync for page ${slug}:`, knSyncErr.message || knSyncErr);
-      }
+      } catch (knSyncErr: unknown) {
+    console.error('[Edge Function Error]', knSyncErr);
+    return new Response(JSON.stringify({ error: knSyncErr instanceof Error ? knSyncErr.message : String(knSyncErr) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
       for (const ref of refs) {
         if (!ref.table || !ref.id) continue;
@@ -692,9 +696,13 @@ Priorytet:
         }, { onConflict: "page_id,source_table,source_id" });
         if (sourceErr) console.error(`[wiki-compiler] Failed to upsert source for page ${data.slug}:`, sourceErr);
       }
-    } catch (err: any) {
-      console.error(`[wiki-compiler] Failed to upsert page "${slug}", skipping:`, err?.message || err);
-    }
+    } catch (err: unknown) {
+    console.error('[Edge Function Error]', err);
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
   }
 
   if (archivedPages.length > 0) {

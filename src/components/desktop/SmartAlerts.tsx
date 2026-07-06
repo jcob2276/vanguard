@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export interface AlertItem {
+interface AlertItem {
   type: 'warn' | 'info' | 'ok';
   msg: string;
 }

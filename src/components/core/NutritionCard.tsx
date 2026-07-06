@@ -3,10 +3,11 @@ import { Plus, RefreshCw, X, Loader2, Zap, Flame, Droplet } from 'lucide-react';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 import { useNutritionData, type TodayEntry } from './useNutritionData';
 import NutritionChart from './NutritionChart';
+import { Session } from '@supabase/supabase-js';
 
 interface NutritionCardProps {
   weeklyCalories: number;
-  session: any;
+  session: Session;
   refreshSignal?: number;
 }
 

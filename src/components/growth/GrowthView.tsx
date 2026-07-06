@@ -212,8 +212,8 @@ export default function GrowthView({ session }: { session: Session }) {
       if (error) throw error;
       notify('Zapisano focus tygodnia', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd zapisu', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');
       throw e;
     }
   };
@@ -235,8 +235,8 @@ export default function GrowthView({ session }: { session: Session }) {
 
       notify('Gotowe!', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
     }
   };
 
@@ -246,8 +246,8 @@ export default function GrowthView({ session }: { session: Session }) {
       if (error) throw error;
       notify('Odpięto element', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
     }
   };
 
@@ -280,8 +280,8 @@ export default function GrowthView({ session }: { session: Session }) {
       if (error) throw error;
       notify('Przypięto link', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
     }
   };
 
@@ -299,8 +299,8 @@ export default function GrowthView({ session }: { session: Session }) {
       if (error) throw error;
       notify('Przypięto zadanie', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
     }
   };
 
@@ -328,8 +328,8 @@ export default function GrowthView({ session }: { session: Session }) {
       setEditingScores(false);
       notify('Zapisano oceny skilli', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd zapisu', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');
     } finally {
       setSavingScores(false);
     }
@@ -340,8 +340,8 @@ export default function GrowthView({ session }: { session: Session }) {
       await restoreDefaultSkillTree(supabase, userId);
       notify('Przywrócono domyślne skilli', 'success');
       await refresh();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
     }
   };
 
@@ -511,8 +511,8 @@ export default function GrowthView({ session }: { session: Session }) {
               notify('Przypięto link', 'success');
               closePicker();
               await refresh();
-            } catch (e) {
-              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            } catch (e: unknown) {
+              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
             }
           }}
           onPickTodo={async (todoId, skillId, projectId) => {
@@ -531,8 +531,8 @@ export default function GrowthView({ session }: { session: Session }) {
               notify('Przypięto zadanie', 'success');
               closePicker();
               await refresh();
-            } catch (e) {
-              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            } catch (e: unknown) {
+              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
             }
           }}
           onPickManual={async (title, type, skillId, projectId) => {
@@ -552,8 +552,8 @@ export default function GrowthView({ session }: { session: Session }) {
               notify('Dodano element do planu', 'success');
               closePicker();
               await refresh();
-            } catch (e) {
-              notify(e instanceof Error ? e.message : 'Błąd', 'error');
+            } catch (e: unknown) {
+              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
             }
           }}
         />

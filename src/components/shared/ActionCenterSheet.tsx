@@ -21,7 +21,7 @@ interface PendingClarification {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function usePendingActionCount(session: Session | null) {
+export function usePendingActionCount(session: Session) {
   const [count, setCount] = useState(0);
 
   const reload = useCallback(async () => {

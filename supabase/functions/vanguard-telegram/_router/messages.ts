@@ -17,7 +17,7 @@ import {
   OracleResponseInterceptor,
 } from "./interceptors.ts";
 
-export { DEFAULT_REPLY_KEYBOARD };
+;
 
 export async function handleIncomingMessage(
   message: {

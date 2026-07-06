@@ -26,7 +26,7 @@ function sourceTag(item: ParsedFoodItem): string {
   return '✓'
 }
 
-export function formatFoodPreviewMessage(
+function formatFoodPreviewMessage(
   items: ParsedFoodItem[],
   mealType: string,
 ): string {
@@ -40,7 +40,7 @@ export function formatFoodPreviewMessage(
   return `🍽 Podgląd (${label}):\n${lines.join('\n')}\nRazem: ${total} kcal\n\nSprawdź i zapisz, albo anuluj.`
 }
 
-export async function saveParsedFoodEntries(
+async function saveParsedFoodEntries(
   supabase: any,
   userId: string,
   date: string,
@@ -90,7 +90,7 @@ async function pruneStalePending(supabase: any, userId: string): Promise<void> {
     .lt('created_at', cutoff)
 }
 
-export async function storePendingFoodLog(
+async function storePendingFoodLog(
   supabase: any,
   userId: string,
   date: string,
@@ -115,7 +115,7 @@ export async function storePendingFoodLog(
   return data.id as string
 }
 
-export async function loadPendingFoodLog(
+async function loadPendingFoodLog(
   supabase: any,
   userId: string,
   pendingId: string,
@@ -145,11 +145,11 @@ export async function loadPendingFoodLog(
   }
 }
 
-export async function deletePendingFoodLog(supabase: any, pendingId: string): Promise<void> {
+async function deletePendingFoodLog(supabase: any, pendingId: string): Promise<void> {
   await supabase.from('food_parse_pending').delete().eq('id', pendingId)
 }
 
-export { needsFoodReview }
+
 
 export async function handleFoodMealCallback(
   callbackData: string,

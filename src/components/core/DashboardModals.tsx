@@ -66,14 +66,18 @@ export function DashboardModals({
         <DailyShutdownModal
           session={session}
           onClose={() => {
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
+            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
             setShowShutdown(false);
           }}
           onSaved={refresh}
           onPlanTomorrow={() => {
             const tomorrow = new Date(`${getTodayWarsaw()}T12:00:00Z`);
             tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e) {}
+            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
             setShowShutdown(false);
             setMorningPlanTargetDate(tomorrow.toISOString().slice(0, 10));
             setShowMorningPlan(true);

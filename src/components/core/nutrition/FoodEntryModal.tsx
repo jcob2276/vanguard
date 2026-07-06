@@ -4,6 +4,7 @@ import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Sparkles, T
 import { confidenceLabel } from '../../../lib/foodLogging';
 import BarcodeScanner from './BarcodeScanner';
 import FoodRow from './FoodRow';
+import { Session } from '@supabase/supabase-js';
 import {
   useFoodEntryData,
   parseGrams,
@@ -13,7 +14,7 @@ import {
 } from './useFoodEntryData';
 
 export interface FoodEntryModalProps {
-  session: any;
+  session: Session;
   onClose: () => void;
   onSaved?: () => void;
   initialEditEntry?: RecentEntry;

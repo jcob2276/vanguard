@@ -16,6 +16,7 @@ import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '.
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection, type FoodQualityItem, type ProteinDistribution, type FoodAnalysisDay, type FoodAnalysisResult } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { Session } from '@supabase/supabase-js';
 
 type BodyMetricRow = Tables<'body_metrics'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
@@ -31,7 +32,7 @@ type ProjectionState = Partial<Record<'weight' | 'waist', ProjectionResult>>;
 type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
 type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
-export default function Stats({ session, topSlot = null, runningSlot = null }: { session: any; topSlot?: any; runningSlot?: any }) {
+export default function Stats({ session, topSlot = null, runningSlot = null }: { session: Session; topSlot?: any; runningSlot?: any }) {
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
@@ -114,8 +115,9 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       }
 
 
-    } catch (err) {
-      console.error('Fetch Stats Error:', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     } finally {
       setLoading(false);
     }
@@ -125,7 +127,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
     fetchStats();
   }, [fetchStats]);
 
-  async function saveMetrics(e: any) {
+  async function saveMetrics(e: React.FormEvent) {
     e.preventDefault();
     const today = getTodayWarsaw();
     const existingToday = bodyData.find((row) => row.date === today) ?? null;
@@ -167,8 +169,8 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       } else {
         notify('Błąd analizy: ' + (res.error || 'Nieznany błąd'), 'error');
       }
-    } catch (err) {
-      notify('Błąd połączenia: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    } catch (err: unknown) {
+      notify('Błąd połączenia: ' + (err instanceof Error ? (err as Error).message : String(err)), 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -187,14 +189,14 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       });
       if (res.success) setTrainingAnalysis(res);
       else throw new Error(res.error || 'Nieznany błąd');
-    } catch (err) {
-      notify('Błąd analizy treningu: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    } catch (err: unknown) {
+      notify('Błąd analizy treningu: ' + (err instanceof Error ? (err as Error).message : String(err)), 'error');
     } finally {
       setIsAnalyzingTraining(false);
     }
   }
 
-  async function startEditing(session: any) {
+  async function startEditing(session: WorkoutSessionRow) {
     if (!session) return;
     setEditingSession(session.id);
     setEditForm({
@@ -238,7 +240,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       notify('Trening zaktualizowany!', 'success');
       setEditingSession(null);
       fetchStats();
-    } catch (_err) {
+    } catch (err: unknown) {
       notify('Błąd podczas aktualizacji', 'error');
     }
   }
@@ -265,7 +267,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         includeBody,
         includeActivityWatch,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Export markdown error:', err);
       notify('Błąd podczas generowania raportu: ' + (err?.message || err), 'error');
     } finally {
@@ -277,7 +279,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
     setIsExportingOura(true);
     try {
       await exportOuraCsv({ supabase, session, dateRange });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Export Oura CSV error:', err);
       notify('Błąd podczas generowania CSV Oura: ' + (err?.message || err), 'error');
     } finally {

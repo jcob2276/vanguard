@@ -43,8 +43,8 @@ export default function Auth() {
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? (error as Error).message : String(error);
       setError(msg === 'Invalid login credentials' ? 'Błędne poświadczenia dostępu.' : msg);
     } finally {
       setLoading(false);

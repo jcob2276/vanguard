@@ -128,9 +128,10 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
             Object.entries(exerciseSets).map(([tag, names]) => [tag, [...names].sort()]),
           ),
         );
-      } catch (err) {
-        console.error('Heatmap fetch error:', err);
-      } finally {
+      } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+    } finally {
         setLoading(false);
       }
     };

@@ -53,7 +53,7 @@ export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPres
       if (error) throw error;
       onSaved();
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
       alert('Błąd zapisu.');
     } finally {

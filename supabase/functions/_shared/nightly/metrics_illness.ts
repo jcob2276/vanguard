@@ -1,8 +1,8 @@
 // Etap 4 (docs/PLAN_READINESS_NOOP.md, sekcja 4.4): NOOP port IllnessSignalEngine.
 // Multi-signal anomaly (RHR↑, skin temp↑, HRV↓, resp↑) z confounder suppression —
 // alert wycisza się jeśli behavior_log/exercise_logs (sauna) wyjaśnia anomalię tego dnia.
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
-import { getWarsawDateString } from "../_shared/time.ts"
+import { createServiceClient, corsHeaders, resolveUserScope } from '../supabase.ts'
+import { getWarsawDateString } from '../time.ts'
 
 // Ten samy EWMA port jak compute-daily-strain (Baselines.swift) — duplikat świadomy,
 // żeby ta funkcja była niezależna i nie zależała od wewnętrznej struktury components innej funkcji.
@@ -34,7 +34,7 @@ const RAISE_THRESHOLD = 50.0, MILD_THRESHOLD = 25.0
 const CONFOUNDER_KEYS = /alkohol|alcohol|podroz|podróż|travel|stres|stress|sauna/i
 const UNWELL_KEYS = /chorob|illness|unwell|sick|przezi|grypa|flu/i
 
-Deno.serve(async (req) => {
+export const runComputeIllnessSignal = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -159,4 +159,4 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

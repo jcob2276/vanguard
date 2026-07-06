@@ -127,7 +127,7 @@ export default function EditNoteModal({
       if (error) throw error;
       const summary = data?.summary || data?.response || data?.content || 'Brak odpowiedzi.';
       setAiResult({ type: 'summary', text: summary });
-    } catch (e: any) {
+    } catch (e: unknown) {
       notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
     }
     setAiLoading(null);
@@ -160,7 +160,7 @@ export default function EditNoteModal({
       if (insertErr) throw insertErr;
       notify(`Dodano ${tasks.length} zadan do listy!`, 'success');
       setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadan:\n- ${tasks.join('\n- ')}` });
-    } catch (e: any) {
+    } catch (e: unknown) {
       notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
     }
     setAiLoading(null);
@@ -178,7 +178,7 @@ export default function EditNoteModal({
       if (error) throw error;
       const suggestions = data?.suggestions || data?.response || 'Brak sugestii.';
       setAiResult({ type: 'connect', text: suggestions });
-    } catch (e: any) {
+    } catch (e: unknown) {
       notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
     }
     setAiLoading(null);

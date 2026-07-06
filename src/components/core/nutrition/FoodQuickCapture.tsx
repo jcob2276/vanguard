@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { fetchNutritionDayContext } from '../../../lib/nutritionContext'
 import {
   MEAL_TYPES,
+  QUICK_CAPTURE_FAVORITES,
   defaultMealType,
   needsReview,
   parseFoodNL,
@@ -16,48 +17,6 @@ import {
   type ParsedFoodItem,
   confidenceLabel,
 } from '../../../lib/foodLogging'
-
-const FIXED_FAVORITES: any[] = [
-  {
-    id: 'fixed-kawa',
-    name: 'Kawa domowa',
-    brand: 'espresso 60ml + 340ml mleko 3.2%',
-    calories: 51,
-    protein: 2.6,
-    carbs: 4,
-    fat: 2.7,
-    fiber: 0,
-    sugar: 4,
-    default_grams: 400,
-    is_pinned: true,
-  },
-  {
-    id: 'fixed-banan',
-    name: 'Banan',
-    brand: 'staple',
-    calories: 89,
-    protein: 1.1,
-    carbs: 23,
-    fat: 0.3,
-    fiber: 2.6,
-    sugar: 12,
-    default_grams: 120,
-    is_pinned: true,
-  },
-  {
-    id: 'fixed-odzywka',
-    name: 'Odżywka białkowa 25g białka',
-    brand: 'staple',
-    calories: 380,
-    protein: 80,
-    carbs: 6,
-    fat: 6,
-    fiber: 0,
-    sugar: 3,
-    default_grams: 30,
-    is_pinned: true,
-  }
-];
 
 const getYesterdayLabel = (targetDate: string, mealType: string) => {
   const yesterday = getYesterdayWarsaw()
@@ -217,8 +176,8 @@ export default function FoodQuickCapture({
         return
       }
       setPreview(items)
-    } catch (e: any) {
-      notify(e.message || 'Parsowanie nie powiodło się', 'error')
+    } catch (e: unknown) {
+      notify((e as Error).message || 'Parsowanie nie powiodło się', 'error')
     } finally {
       setParsing(false)
     }
@@ -236,8 +195,8 @@ export default function FoodQuickCapture({
       bumpQualityRefresh()
       onSaved?.()
       notify(`Zapisano ${activePreview.length} pozycji`, 'success')
-    } catch (e: any) {
-      notify(e.message || 'Zapis nie powiódł się', 'error')
+    } catch (e: unknown) {
+      notify((e as Error).message || 'Zapis nie powiódł się', 'error')
     } finally {
       setSaving(false)
     }
@@ -252,8 +211,8 @@ export default function FoodQuickCapture({
       bumpQualityRefresh()
       onSaved?.()
       notify(fav.name, 'success')
-    } catch (e: any) {
-      notify(e.message || 'Błąd', 'error')
+    } catch (e: unknown) {
+      notify((e as Error).message || 'Błąd', 'error')
     } finally {
       setSaving(false)
     }
@@ -273,8 +232,8 @@ export default function FoodQuickCapture({
       bumpQualityRefresh()
       onSaved?.()
       notify(`Dodano: ${entry.name}`, 'success')
-    } catch (e: any) {
-      notify(e.message || 'Błąd', 'error')
+    } catch (e: unknown) {
+      notify((e as Error).message || 'Błąd', 'error')
     } finally {
       setSaving(false)
     }
@@ -375,9 +334,9 @@ export default function FoodQuickCapture({
         </button>
       </div>
 
-      {FIXED_FAVORITES.length > 0 && (
+      {QUICK_CAPTURE_FAVORITES.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1.5">
-          {FIXED_FAVORITES.map((f) => {
+          {QUICK_CAPTURE_FAVORITES.map((f) => {
             const shortName = f.name.replace(/\s*\(\d+mg kofeiny\)/i, '')
             const label = f.is_pinned
               ? `★ ${shortName.length > 18 ? `${shortName.slice(0, 16)}…` : shortName}`

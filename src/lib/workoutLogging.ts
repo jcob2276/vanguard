@@ -75,7 +75,7 @@ export function markWorkoutSessionActive(userId: string): void {
   }
 }
 
-export function clearWorkoutSessionActive(userId: string): void {
+function clearWorkoutSessionActive(userId: string): void {
   try {
     localStorage.removeItem(ACTIVE_SESSION_KEY(userId))
   } catch {
@@ -146,7 +146,7 @@ export function saveWorkoutDraft(userId: string, draft: WorkoutDraft): void {
   }
 }
 
-export function clearWorkoutDraft(userId: string): void {
+function clearWorkoutDraft(userId: string): void {
   try {
     localStorage.removeItem(DRAFT_KEY(userId))
   } catch {
@@ -397,7 +397,7 @@ export function sessionDateKey(date: string | null | undefined): string {
   return date.slice(0, 10)
 }
 
-export function isSaunaSession(session: {
+function isSaunaSession(session: {
   workout_day?: string | null
   exercise_logs?: Array<{ exercise_name?: string | null; muscle_tags?: string[] | null; reps?: number | null }> | null
 }): boolean {
@@ -412,7 +412,7 @@ export function isSaunaSession(session: {
   )
 }
 
-export function sumSaunaMinutes(session: {
+function sumSaunaMinutes(session: {
   exercise_logs?: Array<{ exercise_name?: string | null; reps?: number | null }> | null
 }): number {
   return (session.exercise_logs ?? [])
@@ -534,13 +534,13 @@ async function runTrainingLoadAnalysis(userId: string, date: string): Promise<vo
       json.strength_note ||
       (json.load_status ? `Obciążenie: ${json.load_status}` : null)
     if (line) storeTrainingInsight(userId, date, String(line))
-  } catch (e) {
-    console.warn('[workoutLogging] analyze-training-load failed', e)
-  }
+  } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
 }
 
 /** Debounced background training insight — max ~1 heavy call after logging. */
-export function scheduleTrainingLoadAnalysis(userId: string, date: string): void {
+function scheduleTrainingLoadAnalysis(userId: string, date: string): void {
   const key = `${userId}:${date}`
   const existing = loadTimers.get(key)
   if (existing) clearTimeout(existing)

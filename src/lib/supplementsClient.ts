@@ -111,7 +111,7 @@ export async function addSupplementLog(
   if (error) throw error;
 }
 
-export async function deleteSupplementLogs(
+async function deleteSupplementLogs(
   userId: string,
   supplementId: string,
   date: string

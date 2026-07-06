@@ -14,7 +14,7 @@ export function fmtPace(sec: number, distM: number): string {
   return `${Math.floor(spk / 60)}:${String(Math.round(spk % 60)).padStart(2, '0')} /km`;
 }
 
-export function pct(curr: number | null, base: number | null): string {
+function pct(curr: number | null, base: number | null): string {
   if (curr == null || base == null || base === 0) return '';
   const p = ((curr - base) / base) * 100;
   return ` (${p > 0 ? '+' : ''}${p.toFixed(0)}%)`;
@@ -139,7 +139,7 @@ export function classifyFatigue(patterns: string[], rir: number | null, sets: nu
   return 'low';
 }
 
-export function roundTo2_5(v: number): number {
+function roundTo2_5(v: number): number {
   return Math.round(v / 2.5) * 2.5;
 }
 

@@ -1,7 +1,7 @@
 // Etap 6 (docs/PLAN_READINESS_NOOP.md, sekcja 4.10): NOOP port RecoveryForecast.
 // Wieczorna projekcja recovery na jutro rano: strain debt + sleep adequacy + mean reversion.
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
-import { getWarsawDateString } from "../_shared/time.ts"
+import { createServiceClient, corsHeaders, resolveUserScope } from '../supabase.ts'
+import { getWarsawDateString } from '../time.ts'
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 const mean = (xs: number[]): number | null => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
@@ -21,7 +21,7 @@ function slopePerDay(xs: number[]): number {
   return sxx > 0 ? sxy / sxx : 0
 }
 
-Deno.serve(async (req) => {
+export const runComputeRecoveryForecast = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -98,4 +98,4 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

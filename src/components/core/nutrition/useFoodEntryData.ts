@@ -14,6 +14,7 @@ import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
 import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
 import { rpcWithOfflineFallback } from '../../../lib/offlineQueue';
 import { notify } from '../../../lib/notify';
+import { Session } from '@supabase/supabase-js';
 
 export interface FoodBase {
   barcode: string | null;
@@ -56,7 +57,7 @@ export function parseGrams(amount: string | null): number {
   return Math.round(parseFloat(m[1].replace(',', '.')));
 }
 
-export function derivePer100(entry: RecentEntry) {
+function derivePer100(entry: RecentEntry) {
   const g = Math.max(1, parseGrams(entry.amount));
   return {
     calories: (entry.calories ?? 0) * 100 / g,
@@ -66,7 +67,7 @@ export function derivePer100(entry: RecentEntry) {
   };
 }
 
-export function defaultMealType(): string {
+function defaultMealType(): string {
   const hour = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).getHours();
   if (hour < 11) return 'breakfast';
   if (hour < 16) return 'lunch';
@@ -87,7 +88,7 @@ export function dayLabel(dateStr: string, todayStr: string, yesterdayStr: string
 }
 
 export interface UseFoodEntryDataProps {
-  session: any;
+  session: Session;
   onClose: () => void;
   onSaved?: () => void;
   initialEditEntry?: RecentEntry;
@@ -211,7 +212,7 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
         const seen = new Set(libraryResults.map((r) => r.name.toLowerCase()));
         const offResults: FoodBase[] = (offJson.results || []).filter((r: FoodBase) => !seen.has(r.name.toLowerCase()));
         setSearchResults([...libraryResults, ...offResults]);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('[FoodEntryModal] search failed', err);
         setError('Wyszukiwanie nie powiodło się');
       } finally {
@@ -244,7 +245,7 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
         setTimeout(() => { searchInputRef.current?.focus(); }, 50);
         setTimeout(() => setError(null), 3000);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[FoodEntryModal] barcode lookup failed', err);
       haptics.error();
       setError('Wyszukiwanie po kodzie nie powiodło się');
@@ -309,8 +310,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       onSaved?.();
       setSelected(null); setQuery(''); setGrams('100');
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Zapis nie powiódł się');
     } finally {
       setSaving(false);
     }
@@ -339,8 +340,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       flashSaved();
       onSaved?.();
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Zapis nie powiódł się');
     } finally {
       setQuickAddingId(null);
     }
@@ -367,8 +368,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       flashSaved();
       onSaved?.();
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Zapis nie powiódł się');
     } finally {
       setQuickAddingId(null);
     }
@@ -400,8 +401,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       flashSaved();
       onSaved?.();
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Zapis nie powiódł się');
     } finally {
       setQuickAddingId(null);
     }
@@ -429,7 +430,7 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
         return;
       }
       setNlItems(items);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[FoodEntryModal] NL parse failed', err);
       setError('Parsowanie nie powiodło się — spróbuj ponownie');
     } finally {
@@ -449,8 +450,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       onSaved?.();
       setNlText(''); setNlItems(null); setNlRemovedIdx(new Set()); setNlMode(false);
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapis nie powiódł się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Zapis nie powiódł się');
     } finally {
       setNlSaving(false);
     }
@@ -500,8 +501,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       setEditingEntry(null);
       onSaved?.();
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Aktualizacja nie powiodła się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Aktualizacja nie powiodła się');
     } finally {
       setEditSaving(false);
     }
@@ -520,8 +521,8 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
       setEditingEntry(null);
       onSaved?.();
       loadLists();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Usunięcie nie powiodło się');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : 'Usunięcie nie powiodło się');
     } finally {
       setEditDeleting(false);
     }

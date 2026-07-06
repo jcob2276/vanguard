@@ -23,7 +23,7 @@ export const GOAL_ICON: Record<string, typeof Shield> = {
   konto: Wallet
 };
 
-export const GOAL_COLOR: Record<string, string> = {
+const GOAL_COLOR: Record<string, string> = {
   cialo: 'text-emerald-500/50',
   duch: 'text-indigo-500/50',
   konto: 'text-amber-500/50'

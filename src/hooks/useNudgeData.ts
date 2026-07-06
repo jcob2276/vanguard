@@ -49,9 +49,9 @@ export function useNudgeData(userId: string | undefined) {
         if (unreadCount != null) setUnreadLinkCount(unreadCount);
         if (staleCount != null) setStaleNoteCount(staleCount);
         if (growthMustCount != null) setPendingGrowthMustCount(growthMustCount);
-      } catch (e) {
-        console.error('fetchNudgeData failed', e);
-      }
+      } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
     };
     run();
   }, [userId, key]);

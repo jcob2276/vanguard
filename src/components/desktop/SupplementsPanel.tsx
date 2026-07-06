@@ -62,7 +62,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
 
       setSupplements(sups);
       setLogs(logRows);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[supplements] Load failed:', err);
       setError('Nie udało się załadować suplementów.');
     } finally {
@@ -83,8 +83,8 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       const sinceDate = new Date(baseDate.getTime() - 14 * 86400000).toISOString().slice(0, 10);
       const logRows = await fetchSupplementLogsSince(userId, sinceDate);
       setLogs(logRows);
-    } catch (err) {
-      console.error('[supplements] Toggle failed:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     }
   }
 
@@ -97,8 +97,8 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
         active: false,
       });
       await loadData();
-    } catch (err) {
-      console.error('[supplements] Deactivate failed:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     }
   }
 
@@ -140,7 +140,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       setShowAddForm(false);
 
       await loadData();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[supplements] Save failed:', err);
       alert('Wystąpił błąd podczas zapisywania suplementu.');
     } finally {

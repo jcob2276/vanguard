@@ -9,7 +9,7 @@ import {
 import { shiftWeekStart } from '../lib/growth';
 import { warsawDayBoundsISO } from '../lib/date';
 
-export interface GrowthWeekRecap {
+interface GrowthWeekRecap {
   weekStart: string;
   focusSkillLabel: string | null;
   focusTarget: number | null;
@@ -23,7 +23,7 @@ export interface GrowthWeekRecap {
   loading: boolean;
 }
 
-export function useGrowthWeekRecap(userId: string | undefined, weekStart: string) {
+function useGrowthWeekRecap(userId: string | undefined, weekStart: string) {
   const [recap, setRecap] = useState<GrowthWeekRecap>({
     weekStart,
     focusSkillLabel: null,
@@ -89,7 +89,7 @@ export function useGrowthWeekRecap(userId: string | undefined, weekStart: string
         focusScore: focusScoreForWeek(parents, snapshots, weekStart, focus),
         loading: false,
       });
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('[useGrowthWeekRecap]', e);
       setRecap((r) => ({ ...r, loading: false }));
     }

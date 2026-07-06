@@ -1,7 +1,20 @@
 import { getTodayWarsaw } from '../../lib/date';
 
-export const WARSAW_OFFSET = '+02:00'; // CEST; simplified constant
-
+export function getWarsawOffset(date?: string | Date): string {
+  const d = date ? new Date(date) : new Date();
+  if (isNaN(d.getTime())) return '+02:00';
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Warsaw', timeZoneName: 'shortOffset' });
+  const tzPart = f.formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
+  if (!tzPart) return '+02:00';
+  let numStr = tzPart.replace('GMT', '');
+  if (numStr === '') return '+00:00';
+  if (numStr.includes(':')) {
+    return numStr.length === 5 ? numStr[0] + '0' + numStr.slice(1) : numStr;
+  }
+  const sign = numStr[0];
+  const hour = parseInt(numStr.slice(1), 10);
+  return sign + String(hour).padStart(2, '0') + ':00';
+}
 export const HOUR_START = 5;
 export const HOUR_END = 23;
 export const HOURS = HOUR_END - HOUR_START;
@@ -85,7 +98,7 @@ export function parseTime(iso: string) {
   try {
     const { hour, minute } = getWarsawParts(iso);
     return Number(hour) * 60 + Number(minute);
-  } catch (e) {
+  } catch (e: unknown) {
     return 0;
   }
 }
@@ -94,7 +107,7 @@ export function formatTime(iso: string) {
   try {
     const { timeStr } = getWarsawParts(iso);
     return timeStr;
-  } catch (e) {
+  } catch (e: unknown) {
     return '';
   }
 }
@@ -103,7 +116,7 @@ export function dateOfISO(iso: string) {
   try {
     const { dateStr } = getWarsawParts(iso);
     return dateStr;
-  } catch (e) {
+  } catch (e: unknown) {
     return iso.split('T')[0] || iso.split(' ')[0] || '';
   }
 }
@@ -148,7 +161,7 @@ export function computeBudgetBarState(
   return { pct: 0, statusText: `${spent.toFixed(1)}h`, barColor: baseColor };
 }
 
-export const CATEGORY_COLORS: Record<string, string> = {
+const CATEGORY_COLORS: Record<string, string> = {
   praca: 'bg-blue-600 dark:bg-blue-700 text-white font-black border border-blue-700/20 shadow-sm',
   cialo_trening: 'bg-emerald-600 dark:bg-emerald-700 text-white font-black border border-emerald-700/20 shadow-sm',
   duch_refleksja: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-600/20 shadow-sm',

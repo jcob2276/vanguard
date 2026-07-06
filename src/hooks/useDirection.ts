@@ -287,12 +287,12 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
           await markDailyWinsPartial(userId, pastUnfinished.map((d) => d.id));
           const { data: updated } = await supabase.from('daily_wins').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60);
           setHistory(updated || []);
-        } catch (err) {
-          console.error('Failed to mark past unfinished days as P:', err);
-        }
+        } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
       }
-    } catch (err) {
-      console.error('Direction fetch error:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }
@@ -427,8 +427,8 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
       const data = await updateDailyWin(userId, dayWin.id, updates);
       setHistory((prev) => prev.map((d) => d.id === data.id ? data : d));
       if (allDone) haptics.success();
-    } catch (e) {
-      console.error('[Direction] togglePowerListTask failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }
 
@@ -458,8 +458,8 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
       if (recap.phase2 && Array.isArray(recap.phase2.deepening_questions)) {
         setPhase2(recap.phase2);
       }
-    } catch (err) {
-      console.error('Phase after failed:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setPhase2Loading(false);
     }
@@ -493,8 +493,8 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         );
         void fetchData({ silent: true });
       }
-    } catch (e) {
-      console.error('completeMonthly failed:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setMonthCompleting(false);
     }
@@ -511,8 +511,8 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
       });
       setSprintReview(await fetchSprintReview(userId));
       void fetchData({ silent: true });
-    } catch (e) {
-      console.error('completeSprint failed:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setSprintCompleting(false);
     }
@@ -541,8 +541,8 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         setForceWeeklyReview(false);
         void fetchData({ silent: true });
       }
-    } catch (e) {
-      console.error('completeReview failed:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setCompleting(false);
     }

@@ -19,7 +19,7 @@ export type MedicalLabRow = {
   notes: string | null;
 };
 
-export type MedicalDocumentRow = {
+type MedicalDocumentRow = {
   id: string;
   document_date: string;
   document_type: string;
@@ -61,7 +61,7 @@ export type MarkerSeries = {
   history: MedicalLabRow[];
 };
 
-export const CATEGORY_LABELS: Record<string, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   hematology: 'Morfologia / hematologia',
   lipids: 'Lipidogram',
   metabolic: 'Metabolizm',

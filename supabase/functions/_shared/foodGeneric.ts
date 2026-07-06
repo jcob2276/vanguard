@@ -66,7 +66,7 @@ export const GENERIC_FOODS: GenericFoodPer100g[] = [
   { name: 'Kotlet schabowy smażony', calories: 270, protein: 17, carbs: 8, fat: 19, fiber: 0.5, sugar: 0 },
 ]
 
-export function normalizePlFood(s: string): string {
+function normalizePlFood(s: string): string {
   return s
     .toLowerCase()
     .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')

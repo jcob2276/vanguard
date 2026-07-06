@@ -1,7 +1,7 @@
-import { createServiceClient } from "../_shared/supabase.ts"
-import { resolveUserScope } from "../_shared/supabase.ts"
-import { estimateCaffeineMg } from "../_shared/caffeineEstimate.ts"
-import { getWarsawDateString } from "../_shared/time.ts"
+import { createServiceClient } from '../supabase.ts'
+import { resolveUserScope } from '../supabase.ts'
+import { estimateCaffeineMg } from '../caffeineEstimate.ts'
+import { getWarsawDateString } from '../time.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -155,7 +155,7 @@ function serviceClient() {
   return createServiceClient()
 }
 
-Deno.serve(async (req) => {
+export const runComputeDailyStrain = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -621,4 +621,4 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

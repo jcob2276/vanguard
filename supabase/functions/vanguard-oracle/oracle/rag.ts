@@ -11,21 +11,21 @@ import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getRecentStrongBehavioralPatterns } from "../../_shared/vanguardPatterns.ts";
 import { fetchMedicalContext, formatMedicalContextBlock } from "../../_shared/medicalContext.ts";
 
-export function avg(items: any[] = [], key: string) {
+function avg(items: any[] = [], key: string) {
   const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
   return values.length
     ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
     : null;
 }
 
-export function stripJsonFence(text = '') {
+function stripJsonFence(text = '') {
   return text
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
 }
 
-export function buildGraphSeeds(query = '', intent = 'open_reflection', mentionedEntities: string[] = []) {
+function buildGraphSeeds(query = '', intent = 'open_reflection', mentionedEntities: string[] = []) {
   const q = query.toLowerCase();
   const seeds = new Set<string>((mentionedEntities || []).filter(Boolean));
   const selfReference = /\b(ja|mnie|mi|moje|moja|moj|u mnie|o mnie|mój)\b/.test(q);
@@ -38,7 +38,7 @@ export function buildGraphSeeds(query = '', intent = 'open_reflection', mentione
   return Array.from(seeds);
 }
 
-export function classifyIntentSafe(query = '') {
+function classifyIntentSafe(query = '') {
   const q = query.toLowerCase();
   if (/wiek|urodzin|studi|kim jestem|fundament|identity|tozsamosc|tożsamość/.test(q)) return 'identity';
   if (/jul|toman|tomań|ekiert|klaud|pawel|paweł|osob|relac|dziewczyn|babci|rodzin/.test(q)) return 'person';

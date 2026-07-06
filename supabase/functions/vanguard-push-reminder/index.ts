@@ -31,8 +31,12 @@ async function sendTelegramMessage(token: string, chatId: string, text: string, 
     if (!res.ok) {
       console.error(`[push-reminder] Telegram send failed: ${res.status} ${await res.text()}`);
     }
-  } catch (err) {
-    console.error("[push-reminder] Telegram send error:", err);
+  } catch (err: unknown) {
+    console.error('[Edge Function Error]', err);
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 

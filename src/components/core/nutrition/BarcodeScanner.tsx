@@ -38,7 +38,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
           rafId = requestAnimationFrame(() => { scan(); });
         };
         scan();
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('[BarcodeScanner] camera failed', err);
         setCameraError('Brak dostępu do kamery — wpisz kod ręcznie');
       }

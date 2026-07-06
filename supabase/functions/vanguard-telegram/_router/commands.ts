@@ -3,7 +3,7 @@
  * Imports handlers from modular files in `_commands/`.
  */
 
-export { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
+;
 
 export { handleStartMenuCommand } from "../_commands/start.ts";
 export { handleKoniecCommand } from "../_commands/koniec.ts";

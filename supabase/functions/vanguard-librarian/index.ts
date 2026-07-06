@@ -84,9 +84,13 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
         
         results.push({ name, macro: insertData })
       }
-    } catch (e) {
-      console.error(`Error estimating macro for ${name}:`, e)
-    }
+    } catch (e: unknown) {
+    console.error('[Edge Function Error]', e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
   }
 
   if (results.length === 0) return { count: 0, items: [] }

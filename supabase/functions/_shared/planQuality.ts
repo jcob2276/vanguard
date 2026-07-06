@@ -5,7 +5,7 @@
  * Goal: Have ONE place that decides "how good was this plan signal?"
  */
 
-export type PlanQuality = 'good' | 'rescue' | 'minimum' | 'unknown';
+type PlanQuality = 'good' | 'rescue' | 'minimum' | 'unknown';
 
 export interface PlanQualitySignal {
   quality: PlanQuality;

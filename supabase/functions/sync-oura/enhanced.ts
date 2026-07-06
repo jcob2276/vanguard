@@ -1,4 +1,3 @@
-
 import { createServiceClient } from "../_shared/supabase.ts"
 import { resolveUserScope } from "../_shared/supabase.ts"
 
@@ -37,7 +36,7 @@ async function fetchOura(url: string, headers: Record<string, string>, attempt =
   }
 }
 
-Deno.serve(async (req) => {
+export const runEnhanced = async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -229,4 +228,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

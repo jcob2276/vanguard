@@ -329,7 +329,7 @@ async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
   };
 }
 
-export async function fetchWeekGoals(
+async function fetchWeekGoals(
   userId: string,
   weekStart: string,
 ): Promise<ResolvedWeekGoals> {

@@ -1,5 +1,5 @@
 export const ALLOWED_CATEGORIES = ['Ciało', 'Konto', 'Duch', 'Chaos', 'Relacje'] as const;
-export type VanguardCategory = typeof ALLOWED_CATEGORIES[number];
+type VanguardCategory = typeof ALLOWED_CATEGORIES[number];
 
 export const ALLOWED_EVENT_KINDS = [
   'friction_event', 
@@ -9,7 +9,7 @@ export const ALLOWED_EVENT_KINDS = [
   'micro_behavior_observation',
   'reflection'
 ] as const;
-export type EventKind = typeof ALLOWED_EVENT_KINDS[number];
+type EventKind = typeof ALLOWED_EVENT_KINDS[number];
 
 export const ALLOWED_FRICTION_TYPES = [
   'sleep_disruption', 

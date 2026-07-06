@@ -40,8 +40,8 @@ export function PatternCard({ pattern, userId, onFeedback }: PatternCardProps) {
       await supabase.from('vanguard_behavioral_patterns').update({ status: newStatus }).eq('id', pattern.id);
       setDone(feedback);
       onFeedback?.(pattern.id, feedback);
-    } catch (e) {
-      console.error('[PatternCard] feedback error:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setLoading(null);
     }

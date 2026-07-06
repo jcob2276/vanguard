@@ -7,7 +7,7 @@ import { sweepPastEventsInState } from '../types/schedule';
 import { formatSprintWeekBridge } from './goalSpine';
 import { formatSprintFromLongTerm } from './longTermBridge';
 
-export const SCHEDULE_STORAGE_KEY = 'vanguard_schedule_view';
+const SCHEDULE_STORAGE_KEY = 'vanguard_schedule_view';
 
 export function loadOracleScheduleOverride(): ScheduleViewData | null {
   try {
@@ -27,7 +27,7 @@ function dayLabel(dayDate: string, today: string): string {
   return format(new Date(dayDate + 'T12:00:00Z'), 'EEE d MMM', { locale: pl }).toUpperCase();
 }
 
-export function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleViewData {
+function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleViewData {
   const today = getTodayWarsaw();
   const editorialIntro =
     ctx.weekGoals.intention?.trim() ||

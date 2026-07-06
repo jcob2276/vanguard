@@ -136,8 +136,8 @@ export default function TodoCard({
     try {
       const created = await uploadAttachment(item.user_id, item.id, file);
       setAttachments((prev) => [...prev, created]);
-    } catch (e) {
-      console.error('Attachment upload failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setUploadingFile(false);
     }
@@ -145,7 +145,9 @@ export default function TodoCard({
 
   const handleDeleteAttachment = async (att: any) => {
     setAttachments((prev) => prev.filter((a) => a.id !== att.id));
-    try { await deleteAttachment(att); } catch (e) { console.error('Attachment delete failed', e); }
+    try { await deleteAttachment(att); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
   };
 
   const [reminderInput, setReminderInput] = useState('');

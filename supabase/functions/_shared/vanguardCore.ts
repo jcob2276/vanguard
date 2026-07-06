@@ -22,7 +22,7 @@ function getWarsawDateMinusDays(dateStr: string, days: number): string {
 }
 
 // Jedyna taksonomia stanów w systemie
-export const VANGUARD_STATES = {
+const VANGUARD_STATES = {
   LOCKED_IN:   'LOCKED_IN',   // Optymalna egzekucja + dobra biometria
   MOMENTUM:    'MOMENTUM',    // Konsekwentna egzekucja, stabilna biometria
   RECOVERY:    'RECOVERY',    // Niska biometria, celowy deload

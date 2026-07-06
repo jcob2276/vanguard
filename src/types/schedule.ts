@@ -10,7 +10,7 @@ export interface ScheduleItem {
   done?: boolean;
 }
 
-export interface CompletedItem {
+interface CompletedItem {
   id: string;
   title: string;
   completedAt: string;

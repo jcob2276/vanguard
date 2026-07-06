@@ -44,7 +44,7 @@ export type MonthlyReviewFields = {
 const MONTHLY_GRACE_DAYS = 14;
 const MONTHLY_HARD_GATE_DAYS = 0; // Never hard-block — monthly review is soft cue only
 
-export function monthEndDate(monthStart: string): string {
+function monthEndDate(monthStart: string): string {
   return format(endOfMonth(parseISO(`${monthStart}T12:00:00`)), 'yyyy-MM-dd');
 }
 
@@ -61,7 +61,7 @@ export function monthThemeSourceStart(today: string = getTodayWarsaw()): string 
   return format(startOfMonth(subMonths(parseISO(`${today}T12:00:00`), 1)), 'yyyy-MM-dd');
 }
 
-export function monthThemeSourceForWeek(weekStart: string): string {
+function monthThemeSourceForWeek(weekStart: string): string {
   return format(startOfMonth(subMonths(parseISO(`${weekStart}T12:00:00`), 1)), 'yyyy-MM-dd');
 }
 

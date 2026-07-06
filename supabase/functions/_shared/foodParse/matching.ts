@@ -1,9 +1,9 @@
 import type { ParsedFoodItem } from "../foodParseCore.ts";
 
-export const COMPLEX_MEAL_RE = /\b(obiad|restaurac|u mamy|potrawa domow|karkowka domow|bigos domow)\b/i;
+const COMPLEX_MEAL_RE = /\b(obiad|restaurac|u mamy|potrawa domow|karkowka domow|bigos domow)\b/i;
 
 /** Waga 1 szt. — do przeliczania "4 naleśniki" → grams łącznie. */
-export const PIECE_GRAMS_RULES: Array<{ test: (n: string) => boolean; grams: number; label: string }> = [
+const PIECE_GRAMS_RULES: Array<{ test: (n: string) => boolean; grams: number; label: string }> = [
   { test: (n) => /nalesnik|placek|racuch/.test(n), grams: 75, label: 'naleśnik/placki' },
   { test: (n) => /\bjaj/.test(n), grams: 60, label: 'jajko' },
   { test: (n) => /pierog/.test(n), grams: 55, label: 'pieróg' },
@@ -19,7 +19,7 @@ export function normalizePl(s: string): string {
     .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/ź|ż/g, 'z');
 }
 
-export function pieceGramsForName(name: string): number | null {
+function pieceGramsForName(name: string): number | null {
   const n = normalizePl(name);
   for (const rule of PIECE_GRAMS_RULES) {
     if (rule.test(n)) return rule.grams;
@@ -28,7 +28,7 @@ export function pieceGramsForName(name: string): number | null {
 }
 
 /** "4 naleśniki", "3 jajka", "2x pieróg" → liczba sztuk z tekstu użytkownika. */
-export function parseDeclaredPieceCount(text: string): number | null {
+function parseDeclaredPieceCount(text: string): number | null {
   const n = normalizePl(text);
   const m = n.match(
     /\b(\d{1,2})\s*(?:x\s*)?(?:szt\.?\s*)?(?:nalesnik\w*|placek\w*|racuch\w*|jaj\w*|pierog\w*|kromk\w*|bul\w*|plaster\w*)/,
@@ -87,7 +87,7 @@ export function applyDeclaredPieceCount(text: string, items: ParsedFoodItem[]): 
   return items;
 }
 
-export function isHomemadeContext(text: string): boolean {
+function isHomemadeContext(text: string): boolean {
   const n = normalizePl(text);
   return /\b(domow\w*|wlasn\w*|babci|babcia|mamy|tesciow\w*|gotowane w domu)\b/.test(n);
 }

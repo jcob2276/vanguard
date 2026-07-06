@@ -17,7 +17,7 @@ export type MarkerBridgeEntry = {
 const byFactor = (factor: number) => (v: number) => v / factor;
 
 /** Vanguard `medical_lab_results.marker_key` → getbased dot path + unit normalization */
-export const VANGUARD_MARKER_BRIDGE: Record<string, MarkerBridgeEntry> = {
+const VANGUARD_MARKER_BRIDGE: Record<string, MarkerBridgeEntry> = {
   glucose: {
     path: 'biochemistry.glucose',
     canonicalUnit: 'mmol/l',
@@ -116,7 +116,7 @@ export function bridgeForMarkerKey(markerKey: string): MarkerBridgeEntry | null 
   return VANGUARD_MARKER_BRIDGE[markerKey] ?? null;
 }
 
-export function optimalForMarkerKey(markerKey: string): OptimalRange | null {
+function optimalForMarkerKey(markerKey: string): OptimalRange | null {
   const bridge = bridgeForMarkerKey(markerKey);
   if (!bridge) return null;
   return GETBASED_OPTIMAL[bridge.path] ?? null;

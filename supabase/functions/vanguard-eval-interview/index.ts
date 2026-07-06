@@ -85,7 +85,13 @@ Deno.serve(async (req) => {
       try {
         const payload = await req.json();
         manual = payload?.manual === true;
-      } catch (_) {}
+      } catch (_: unknown) {
+    console.error('[Edge Function Error]', _);
+    return new Response(JSON.stringify({ error: _ instanceof Error ? _.message : String(_) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
     }
 
     const supabase = createServiceClient();
@@ -329,9 +335,13 @@ Zwróć tylko treść pytania, bez komentarza.`,
         if (isUsableQuestion(candidate)) {
           generatedPrompt = candidate;
         }
-      } catch (err) {
-        console.warn("[eval-interview] deepening question generation failed:", err);
-      }
+      } catch (err: unknown) {
+    console.error('[Edge Function Error]', err);
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
       if (!isUsableQuestion(generatedPrompt)) {
         generatedPrompt = buildDeterministicMemoryQuestion(memoryContext);

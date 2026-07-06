@@ -42,8 +42,9 @@ import KanbanView from './KanbanView';
 import TimelineView from './TimelineView';
 import TodayEventsPanel from './TodayEventsPanel';
 import { useTodoData } from './useTodoData';
+import { Session } from '@supabase/supabase-js';
 
-export default function Todo({ session, onBack, onNavigateTo }: { session: any; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
+export default function Todo({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const {
     userId,
     push, pushSubscribed, setPushSubscribed,

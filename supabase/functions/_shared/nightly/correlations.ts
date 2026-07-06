@@ -1,15 +1,15 @@
-import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { createServiceClient, corsHeaders, resolveUserScope } from '../supabase.ts'
 import {
   confidenceTier, dualCorrelation, interpretR, laggedPairs, type CorrelationMethod, type ScatterPoint,
-} from '../_shared/correlationEngine.ts'
-import { METRIC_LABELS, type CorrelationCategory } from '../_shared/correlationCatalog.ts'
+} from '../correlationEngine.ts'
+import { METRIC_LABELS, type CorrelationCategory } from '../correlationCatalog.ts'
 import {
   appendBehaviorLogMetrics, appendHabitLogMetrics, discoveryScore, DISCOVERY_LAGS, DISCOVERY_MAX_RESULTS,
   inferMetricCategory, isCrossDomainPair, passesDiscoveryGate, scannableMetrics, shouldSkipDiscoveryPair,
-} from '../_shared/correlationDiscovery.ts'
-import { aggregateStravaRuns, buildMetricSeries } from '../_shared/correlationSeries.ts'
-import { correlationInterestScore, isInterestingCorrelation } from '../_shared/correlationInterest.ts'
-import { getWarsawDateString } from '../_shared/time.ts'
+} from '../correlationDiscovery.ts'
+import { aggregateStravaRuns, buildMetricSeries } from '../correlationSeries.ts'
+import { correlationInterestScore, isInterestingCorrelation } from '../correlationInterest.ts'
+import { getWarsawDateString } from '../time.ts'
 
 interface CorrelationResult {
   id: string
@@ -108,7 +108,7 @@ function computePair(
   return dual.primary ? { dual, scatter } : null
 }
 
-Deno.serve(async (req) => {
+export const runComputeCorrelations = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -311,4 +311,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
-})
+}

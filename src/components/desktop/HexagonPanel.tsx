@@ -204,8 +204,9 @@ export default function HexagonPanel({
         setDraftScores(DEFAULT_SCORES);
         setSavedAt(null);
       }
-    } catch (err) {
-      console.error('[HexagonPanel] load failed', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     } finally {
       setLoading(false);
     }
@@ -259,7 +260,7 @@ export default function HexagonPanel({
       setEditing(false);
       notify('Zapisano oceny sfer życia', 'success');
       onSaved?.();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[HexagonPanel] save failed', err);
       notify('Błąd zapisu ocen', 'error');
     } finally {

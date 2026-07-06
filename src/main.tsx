@@ -38,6 +38,6 @@ try {
       <App />
     </StrictMode>
   );
-} catch (e) {
-  console.error("Vanguard: Mount Crash", e);
-}
+} catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }

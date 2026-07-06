@@ -92,7 +92,10 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   };
 
   const goTo = (view: string) => {
-    try { localStorage.setItem('vanguard_view', view); } catch (e) {}
+    try { localStorage.setItem('vanguard_view', view); } catch (e: unknown) {
+      console.error('[Action Error]', e);
+      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
+    }
     if (onNavigateTo) onNavigateTo(view);
   };
 
@@ -105,8 +108,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false }));
       setLinks(data as any);
-    } catch (err) {
-      console.error('[LinksInbox] Error fetching links:', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     } finally {
       setLoading(false);
     }
@@ -129,7 +133,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       }
       setSharingStatus('Zapisano!');
       setTimeout(() => setSharingStatus(null), 2500);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[LinksInbox] Failed to process shared link:', err);
       notify(`Błąd zapisu linku: ${(err as Error).message}`, 'error');
       setSharingStatus(null);
@@ -158,7 +162,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       setAddUrl('');
       setShowAddForm(false);
       await fetchLinks();
-    } catch (err) {
+    } catch (err: unknown) {
       notify(`Błąd: ${(err as Error).message}`, 'error');
     } finally {
       setAddLoading(false);
@@ -222,8 +226,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         .eq('id', id);
       if (error) throw error;
       setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
-    } catch (err) {
-      console.error('[LinksInbox] Failed to update category:', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     }
   };
 
@@ -233,7 +238,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       await convertLinkToTodoItem(session.user.id, link);
       setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
       notify('Dodano do zadań', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       notify((err as Error).message || 'Nie udało się dodać do zadań', 'error');
     } finally {
       setConvertingLinkId(null);
@@ -246,7 +251,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       await convertLinkToKeepNote(session.user.id, link);
       setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
       notify('Zapisano w notatkach', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       notify((err as Error).message || 'Nie udało się zapisać notatki', 'error');
     } finally {
       setConvertingLinkId(null);

@@ -49,7 +49,7 @@ function TrendBadge({ series }: { series: MarkerSeries }) {
   );
 }
 
-export function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
+function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
   return (
     <div className="overflow-x-auto -mx-1">
       <table className="w-full min-w-[520px] text-left border-collapse">

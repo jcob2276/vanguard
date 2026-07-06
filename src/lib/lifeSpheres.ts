@@ -47,7 +47,7 @@ export const LEGACY_CATEGORY_TO_SPHERE: Record<string, LifeSphereId> = {
   study: 'duch_refleksja',
 };
 
-export function sphereById(id: string | null | undefined): LifeSphere | undefined {
+function sphereById(id: string | null | undefined): LifeSphere | undefined {
   return LIFE_SPHERES.find((s) => s.id === id);
 }
 

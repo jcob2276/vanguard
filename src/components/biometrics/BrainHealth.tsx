@@ -22,8 +22,8 @@ export default function BrainHealth({ session }: { session: Session }) {
         user_id_param: session.user.id
       }));
       setReport(data);
-    } catch (err) {
-      console.error('Error fetching brain health:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }

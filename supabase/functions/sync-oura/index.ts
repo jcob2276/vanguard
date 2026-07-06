@@ -1,4 +1,6 @@
 import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { runEnhanced } from './enhanced.ts'
+import { runTimeseries } from './timeseries.ts'
 
 const OURA_BASE_URL = 'https://api.ouraring.com/v2/usercollection'
 
@@ -152,7 +154,16 @@ Deno.serve(async (req) => {
       }
     } // end batch loop
 
+    
+    // Run Stage 2 and 3
+    console.log('[OURA] Running Enhanced...');
+    await runEnhanced(req).catch(e => console.error('[OURA] Enhanced Error', e));
+    
+    console.log('[OURA] Running Timeseries...');
+    await runTimeseries(req).catch(e => console.error('[OURA] Timeseries Error', e));
+
     return new Response(JSON.stringify({
+
       success: true,
       total_upserted: totalUpserted,
       batches: batches.length,

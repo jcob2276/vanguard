@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { GOAL_ICON } from '../todo/todoUtils';
 import type { CalendarTodo } from '../../hooks/useCalendarTodos';
 
-export type SidebarTodo = CalendarTodo;
+type SidebarTodo = CalendarTodo;
 
 const PILLAR_CHIP: Record<string, string> = {
   cialo: 'bg-emerald-500/8 border-emerald-500/15 text-emerald-600 dark:text-emerald-400',

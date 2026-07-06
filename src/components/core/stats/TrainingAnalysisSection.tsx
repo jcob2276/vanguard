@@ -79,7 +79,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[8px] font-black uppercase text-text-muted w-20 shrink-0 tracking-widest">Km/tydz</span>
                   <div className="flex items-end gap-1.5 h-6">
-                    {s.km_trend.map((v: any, i: number) => {
+                    {s.km_trend.map((v: number, i: number) => {
                       const maxV = Math.max(...s.km_trend.filter(Boolean), 1);
                       const h = Math.max(2, Math.round((v / maxV) * 20));
                       return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_rgba(79,70,229,0.3)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;

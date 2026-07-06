@@ -5,8 +5,8 @@ import { addDays } from '../components/calendar/calendarHelpers';
 interface UseSyncOuraProps {
   userId: string | undefined;
   selectedDay: string;
-  updateEvent: (ev: any) => Promise<any>;
-  createEvent: (ev: any) => Promise<any>;
+  updateEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
   fetchEvents: () => Promise<void>;
   setToastMessage: (msg: string | null) => void;
 }
@@ -102,7 +102,7 @@ export function useSyncOura({
         setToastMessage(`Zsynchronizowano sen: zaktualizowano ${updatedCount}, dodano ${createdCount}! 🛌✨`);
       }
       await fetchEvents();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error syncing Oura sleep:', err);
       setToastMessage('Nie udało się zsynchronizować snu z Oura.');
     } finally {

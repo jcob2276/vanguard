@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { VanguardCore, computeSignals } from './vanguardCore';
 import { getTodayWarsaw, getDaysAgoWarsaw } from './date';
+import { Session } from '@supabase/supabase-js';
 import {
   currentWeekStart,
   fetchGoalSpine,
@@ -26,7 +27,7 @@ type FootprintPayload = {
 const contextCache = new Map<string, { data: unknown; ts: number }>();
 const CACHE_TTL_MS = 60_000;
 
-export async function gatherUserContext(session: any) {
+export async function gatherUserContext(session: Session) {
   if (!session?.user?.id) return "Brak sesji użytkownika.";
 
   const userId = session.user.id;
@@ -214,7 +215,7 @@ export async function gatherUserContext(session: any) {
     contextCache.set(cacheKey, { data: stateVector, ts: Date.now() });
     return stateVector;
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Context Gathering Error:", error);
     return "Błąd podczas zbierania kontekstu Vanguard.";
   }

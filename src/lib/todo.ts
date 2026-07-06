@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import type { Database } from './database.types';
 import { unwrap, unwrapList } from './supabaseUtils';
 import { getTodayWarsaw } from './date';
+import { isOfflineError, queueOfflineWrite } from './offlineQueue';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
@@ -64,41 +65,61 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
     .map((t) => t.trim())
     .filter(Boolean);
 
-  return unwrap(
-    await supabase
-      .from('todo_items')
-      .insert({
-        user_id: userId,
-        section_id: fields.section_id || null,
-        title: fields.title.trim(),
-        notes: fields.notes?.trim() || null,
-        priority: fields.priority || 'normal',
-        tags,
-        due_date: fields.due_date || null,
-        recurrence: fields.recurrence || null,
-        duration_minutes: fields.duration_minutes ?? null,
-        scheduled_time: fields.scheduled_time ?? null,
-        reminder_at: fields.reminder_at ?? null,
-        is_important: fields.is_important ?? false,
-        parent_task_id: fields.parent_task_id ?? null,
-      })
-      .select()
-      .single(),
-  );
+  const payload = {
+    user_id: userId,
+    section_id: fields.section_id || null,
+    title: fields.title.trim(),
+    notes: fields.notes?.trim() || null,
+    priority: fields.priority || 'normal',
+    tags,
+    due_date: fields.due_date || null,
+    recurrence: fields.recurrence || null,
+    duration_minutes: fields.duration_minutes ?? null,
+    scheduled_time: fields.scheduled_time ?? null,
+    reminder_at: fields.reminder_at ?? null,
+    is_important: fields.is_important ?? false,
+    parent_task_id: fields.parent_task_id ?? null,
+  };
+
+  try {
+    return unwrap(
+      await supabase
+        .from('todo_items')
+        .insert(payload)
+        .select()
+        .single(),
+    );
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      const id = crypto.randomUUID(); // optimistic ID
+      const fullPayload = { id, ...payload, status: 'open' };
+      await queueOfflineWrite('table:insert:todo_items', { payload: fullPayload }, 'Dodanie zadania');
+      return fullPayload as unknown as TodoItemRow;
+    }
+    throw err;
+  }
 }
 
-export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise<TodoItemRow> {
-  return unwrap(
-    await supabase
-      .from('todo_items')
-      .update(patch)
-      .eq('id', id)
-      .select()
-      .single(),
-  );
+export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise<TodoItemRow | void> {
+  try {
+    return unwrap(
+      await supabase
+        .from('todo_items')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single(),
+    );
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite('table:update:todo_items', { match: { id }, payload: patch }, 'Edycja zadania');
+      return;
+    }
+    throw err;
+  }
 }
 
-export async function setTodoStatus(item: { id: string }, status: string): Promise<TodoItemRow> {
+export async function setTodoStatus(item: { id: string }, status: string): Promise<TodoItemRow | void> {
   return updateTodoItem(item.id, {
     status,
     completed_at: status === 'done' ? new Date().toISOString() : null,
@@ -106,8 +127,16 @@ export async function setTodoStatus(item: { id: string }, status: string): Promi
 }
 
 export async function deleteTodoItem(id: string): Promise<void> {
-  const { error } = await supabase.from('todo_items').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  try {
+    const { error } = await supabase.from('todo_items').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite('table:delete:todo_items', { match: { id } }, 'Usunięcie zadania');
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function renameTodoSection(id: string, name: string): Promise<TodoSectionRow> {

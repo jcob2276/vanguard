@@ -10,6 +10,7 @@ import type { TablesUpdate } from '../../lib/database.types';
 import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import { markCheckpointDone } from '../../lib/checkpoints';
+import { Session } from '@supabase/supabase-js';
 import {
   buildDailyPlanProposal,
   suggestDailyKpiTarget,
@@ -39,13 +40,13 @@ export interface TaskSlot {
   timeSlot?: 'morning' | 'noon' | 'afternoon' | 'evening';
 }
 
-export interface PowerListDraft {
+interface PowerListDraft {
   tasks: TaskSlot[];
   yesterdayNote: string;
   savedAt: number;
 }
 
-export const EMPTY_SLOT: TaskSlot = {
+const EMPTY_SLOT: TaskSlot = {
   task: '',
   todoId: null,
   checkpointId: null,
@@ -62,18 +63,18 @@ export const TIME_SLOT_LABELS = {
   evening: '🌙 Wieczór',
 };
 
-export function powerListDraftKey(userId: string, date: string) {
+function powerListDraftKey(userId: string, date: string) {
   return `vanguard_powerlist_draft_${userId}_${date}`;
 }
 
-export function powerListKpiKey(userId: string, date: string) {
+function powerListKpiKey(userId: string, date: string) {
   return `vanguard_powerlist_kpi_${userId}_${date}`;
 }
 
 export interface UsePowerListDataProps {
-  session: any;
+  session: Session;
   todayWin: any;
-  onUpdate?: (data: any) => void;
+  onUpdate?: (data: Record<string, unknown>) => void;
   planDaySignal?: number;
 }
 
@@ -233,8 +234,8 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
       notify('Checkpoint zamknięty', 'success');
       setCheckpointPrompt(null);
       void direction.reload();
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd', 'error');
+    } catch (err: unknown) {
+      notify(err instanceof Error ? (e as Error).message : 'Błąd', 'error');
     } finally {
       setMarkingCheckpoint(false);
     }
@@ -269,9 +270,9 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       if (error) throw error;
       const reply = data?.text ?? data?.answer ?? '';
       setAiQuestions(reply);
-    } catch (e: any) {
+    } catch (err: unknown) {
       console.error('generateQuestions failed', e);
-      notify('Błąd pomocy AI: ' + e.message, 'error');
+      notify('Błąd pomocy AI: ' + (e as Error).message, 'error');
     } finally {
       setAiLoading(false);
     }
@@ -504,7 +505,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       });
       haptics.light();
       if (onUpdate) onUpdate(data);
-    } catch (e) {
+    } catch (err: unknown) {
       console.error('[saveEveningClose]', e);
       notify('Nie udało się zapisać domknięcia dnia.', 'error');
     } finally {
@@ -587,9 +588,10 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
             if (decision) {
               await applyKpiRollup(userId, decision.kpiId, currentWeekStart(), decision.delta);
             }
-          } catch (e) {
-            console.error('[PowerList] KPI rollup failed', e);
-          }
+          } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+    }
         })();
       }
 
@@ -599,11 +601,11 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
           status: newValue ? 'done' : 'open',
           completed_at: newValue ? new Date().toISOString() : null,
         }).catch((e: Error) => {
-          console.error('[PowerList] todo sync failed for', linkedTodoId, e.message);
+          console.error('[PowerList] todo sync failed for', linkedTodoId, (e as Error).message);
           notify('Błąd synchronizacji z Todo — odśwież stronę.', 'error');
         });
       }
-    } catch (e) {
+    } catch (err: unknown) {
       console.error('[PowerList] toggleTask failed', e);
       notify('Nie udało się zapisać zadania.', 'error');
     }
@@ -664,7 +666,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       try { localStorage.removeItem(powerListDraftKey(userId, today)); } catch { /* ignore */ }
       haptics.success();
       if (onUpdate) onUpdate(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[startNewDay]', err);
       haptics.error();
       notify('Błąd startu dnia: ' + (err?.message ?? 'nieznany błąd'), 'error');

@@ -116,7 +116,7 @@ export default function DreamEditModal({
             <Check size={11} strokeWidth={2.5} /> Zapisz wizję
           </button>
           <button
-            onClick={() => { toggleTop5(editingDream); setEditingDream((prev: any) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
+            onClick={() => { toggleTop5(editingDream); setEditingDream((prev: Record<string, any> | null) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
             className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
               editingDream.is_top5
                 ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'

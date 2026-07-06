@@ -9,14 +9,14 @@ import {
 } from './bodyMetrics';
 import { BMI_NORMAL_LOW, BMI_NORMAL_HIGH } from './constants';
 
-export function epley1rm(weight: number, reps: number): number | null {
+function epley1rm(weight: number, reps: number): number | null {
   if (!weight || weight <= 0 || !reps || reps <= 0) return null;
   if (reps === 1) return weight;
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
 }
 
 /** Pełna waga do ~18 mies., potem liniowy spadek; po 36 mies. PR nie liczy się. */
-export function prDecayWeight(daysAgo: number): number {
+function prDecayWeight(daysAgo: number): number {
   if (daysAgo < 0 || !Number.isFinite(daysAgo)) return 0;
   if (daysAgo <= 548) return 1; // ~18 mies.
   if (daysAgo >= 1095) return 0; // 3 lata — poza oknem

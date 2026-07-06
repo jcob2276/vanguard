@@ -1,4 +1,4 @@
-export interface DeepSeekMessage {
+interface DeepSeekMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
@@ -15,6 +15,7 @@ export interface DeepSeekChatParams {
 
 export interface DeepSeekChatResult {
   content: string;
+  reasoning_content?: string;
   raw: unknown;
 }
 
@@ -48,10 +49,10 @@ export async function deepseekChat(
     }
 
     const raw = await res.json();
-    const content: string = (raw as { choices?: Array<{ message?: { content?: string } }> })
-      ?.choices?.[0]?.message?.content || "";
+    const content: string = (raw as any)?.choices?.[0]?.message?.content || "";
+    const reasoning_content: string | undefined = (raw as any)?.choices?.[0]?.message?.reasoning_content;
 
-    return { content, raw };
+    return { content, reasoning_content, raw };
   } finally {
     clearTimeout(timeoutId);
   }

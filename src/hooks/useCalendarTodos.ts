@@ -14,9 +14,10 @@ export interface CalendarTodo {
   section_id: string | null;
   category: string | null;
   priority: string | null;
+  notes?: string | null;
 }
 
-const TODO_FIELDS = 'id, title, status, due_date, scheduled_time, duration_minutes, section_id, category, priority';
+const TODO_FIELDS = 'id, title, status, due_date, scheduled_time, duration_minutes, section_id, category, priority, notes';
 
 interface UseCalendarTodosProps {
   userId: string | undefined;
@@ -44,8 +45,8 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
         .limit(30);
       if (error) throw error;
       setInboxTodos((data as CalendarTodo[]) || []);
-    } catch (e) {
-      console.error('Error fetching inbox todos:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }, [userId]);
 
@@ -56,14 +57,14 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
         .from('todo_items')
         .select(TODO_FIELDS)
         .eq('user_id', userId)
-        .eq('status', 'open')
+        .in('status', ['open', 'done'])
         .gte('due_date', rangeStart)
         .lt('due_date', rangeEnd)
         .not('due_date', 'is', null);
       if (error) throw error;
       setScheduledTodos((data as CalendarTodo[]) || []);
-    } catch (e) {
-      console.error('Error fetching scheduled todos:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }, [userId, rangeStart, rangeEnd]);
 
@@ -81,23 +82,44 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
   const todosForDay = useCallback((day: string) => scheduledTodos.filter((t) => t.due_date === day), [scheduledTodos]);
 
   const handleToggleTodo = useCallback((id: string) => {
-    setCompletedTodoIds((prev) => new Set(prev).add(id));
+    const todo = scheduledTodos.find((t) => t.id === id) || inboxTodos.find((t) => t.id === id);
+    if (!todo) return;
+    const isDone = todo.status === 'done';
+    const nextStatus = isDone ? 'open' : 'done';
+
+    if (nextStatus === 'done') {
+      setCompletedTodoIds((prev) => new Set(prev).add(id));
+    }
+
     setTimeout(async () => {
-      setInboxTodos((prev) => prev.filter((t) => t.id !== id));
-      setScheduledTodos((prev) => prev.filter((t) => t.id !== id));
+      if (nextStatus === 'done') {
+        setInboxTodos((prev) => prev.filter((t) => t.id !== id));
+        setScheduledTodos((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, status: 'done' } : t))
+        );
+      } else {
+        setScheduledTodos((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, status: 'open' } : t))
+        );
+        if (!todo.due_date) {
+          await fetchInboxTodos();
+        }
+      }
+
       setCompletedTodoIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
+
       try {
-        await setTodoStatus({ id }, 'done');
-      } catch (e) {
-        console.error('Error completing todo:', e);
+        await setTodoStatus({ id }, nextStatus);
+      } catch (e: unknown) {
+        console.error('Error toggling todo:', e);
         fetchAllTodos();
       }
-    }, 1000);
-  }, [fetchAllTodos]);
+    }, nextStatus === 'done' ? 1000 : 0);
+  }, [scheduledTodos, inboxTodos, fetchInboxTodos, fetchAllTodos]);
 
   const handleQuickAddTodo = useCallback(async () => {
     if (!userId || !newTodoTitle.trim()) return;
@@ -106,8 +128,8 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
     try {
       const created = await createTodoItem(userId, { title });
       setInboxTodos((prev) => [created as CalendarTodo, ...prev]);
-    } catch (e) {
-      console.error('Error creating quick todo:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }, [userId, newTodoTitle]);
 

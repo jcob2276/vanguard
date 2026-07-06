@@ -37,7 +37,7 @@ import type {
 
 
 
-export type { DirectionContextData, DirectionMustPin, DirectionUrgentTodo, DirectionProjectSummary, DirectionFocus };
+export type { DirectionContextData,     };
 
 
 
@@ -515,7 +515,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
       });
 
-    } catch (e) {
+    } catch (e: unknown) {
 
       console.error('[useDirectionContext]', e);
 

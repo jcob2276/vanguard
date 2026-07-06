@@ -67,7 +67,7 @@ export function computePowerListWeekStats(
 }
 
 /** Najbliższy snapshot w obrębie tygodnia (date >= weekStart, < weekEnd). */
-export function pickSnapshotInWeek(
+function pickSnapshotInWeek(
   snapshots: { snapshot_date: string; scores: Record<string, number> }[],
   weekStart: string,
 ): { snapshot_date: string; scores: Record<string, number> } | null {

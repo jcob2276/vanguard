@@ -84,14 +84,14 @@ export function formatWarsawDate(date: Date | string | number): string {
     if (year && month && day) {
       return `${year}-${month}-${day}`;
     }
-  } catch (e) {
+  } catch (e: unknown) {
     // Ignore formatting error and fallback
   }
 
   try {
     const raw = new Date(date).toLocaleDateString('en-CA', { timeZone: WARSAW_TZ });
     return raw.replace(/[^\d-/]/g, '').replace(/\//g, '-');
-  } catch (e) {
+  } catch (e: unknown) {
     return '';
   }
 }

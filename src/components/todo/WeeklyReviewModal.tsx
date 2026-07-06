@@ -3,9 +3,10 @@ import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles
 import { getTodayWarsaw } from '../../lib/date';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted } from '../../lib/todo';
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, isVoiceEntry, type StreamEntry } from '../../lib/streamReview';
+import { Session } from '@supabase/supabase-js';
 
 interface Props {
-  session: any;
+  session: Session;
   onClose: () => void;
   onFinished?: () => void;
 }
@@ -53,9 +54,9 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
         // 3. Fetch this week's raw Telegram/voice log for the correction pass
         setStreamEntries(await listRecentStreamEntries(userId));
-      } catch (err) {
-        console.error('Error fetching review data:', err);
-      } finally {
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    } finally {
         setLoading(false);
       }
     })();
@@ -94,8 +95,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     setStreamEntries((prev) => prev.map((e) => e.id === id ? { ...e, content } : e));
     try {
       await updateStreamEntryContent(id, content);
-    } catch (err) {
-      console.error('Error updating stream entry:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     }
   };
 
@@ -103,8 +104,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     setStreamEntries((prev) => prev.filter((e) => e.id !== id));
     try {
       await deleteStreamEntry(id);
-    } catch (err) {
-      console.error('Error deleting stream entry:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     }
   };
 
@@ -122,8 +123,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
       if (onFinished) onFinished();
       setStep(5); // Success screen
-    } catch (err) {
-      console.error('Error saving weekly review:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setSaving(false);
     }

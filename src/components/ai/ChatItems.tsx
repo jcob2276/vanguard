@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
-export type ToolItem = {
+type ToolItem = {
   name: string;
   args: string;
   result?: string;

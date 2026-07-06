@@ -25,7 +25,7 @@ export function useNotifications() {
       if (hour === 20 && minute === 30) {
         if (Notification.permission === "granted") {
           let lastNotified: string | null = null;
-          try { lastNotified = localStorage.getItem('last_reminder_date'); } catch (_e) { /* unavailable */ }
+          try { lastNotified = localStorage.getItem('last_reminder_date'); } catch (_e: unknown) { /* unavailable */ }
           const today = getTodayWarsaw();
 
           if (lastNotified !== today) {
@@ -35,7 +35,7 @@ export function useNotifications() {
               tag: 'daily-reminder',
               requireInteraction: true
             });
-            try { localStorage.setItem('last_reminder_date', today); } catch (_e) { /* unavailable */ }
+            try { localStorage.setItem('last_reminder_date', today); } catch (_e: unknown) { /* unavailable */ }
           }
         }
       }

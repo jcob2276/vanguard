@@ -7,9 +7,10 @@ import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth';
 import { updateDailyWin, insertDailyWin } from '../../lib/goalSpine.mutations';
 import { notify } from '../../lib/notify';
 import DayTimeline, { type TimelineBlock } from '../shared/DayTimeline';
+import { Session } from '@supabase/supabase-js';
 
 interface Props {
-  session: any;
+  session: Session;
   onClose: () => void;
   /** Date being planned (YYYY-MM-DD). Defaults to today; pass tomorrow's date
    * to chain this straight out of the evening shutdown ritual. */
@@ -227,9 +228,10 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           if (t.due_date) counts[t.due_date] = (counts[t.due_date] || 0) + 1;
         });
         setWeekTaskCounts(counts);
-      } catch (err) {
-        console.error('Failed to load morning planning data:', err);
-      } finally {
+      } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+    } finally {
         setLoading(false);
       }
     })();
@@ -266,7 +268,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
         ({ error } = await supabase.from('todo_items').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', taskId));
       }
       if (error) throw error;
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error handling yesterday task action:', e);
       notify('Nie udało się zaktualizować zadania', 'error');
       revert();
@@ -437,8 +439,9 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
       }
 
       onClose();
-    } catch (err) {
-      console.error('Failed to submit daily plan:', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     } finally {
       setSending(false);
     }

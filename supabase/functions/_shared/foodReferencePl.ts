@@ -1,7 +1,7 @@
 /** Polish reference dishes (PZH-style potrawy). SSOT until full PZH XLSX import. */
 import { type GenericFoodPer100g, pickBestGenericMatch } from './foodGeneric.ts'
 
-export const REFERENCE_PL_FOODS: GenericFoodPer100g[] = [
+const REFERENCE_PL_FOODS: GenericFoodPer100g[] = [
   { name: 'Bigos', calories: 61, protein: 4, carbs: 3, fat: 4 },
   { name: 'Gołąbki', calories: 108, protein: 6, carbs: 9, fat: 5.5 },
   { name: 'Lazania', calories: 132, protein: 8.5, carbs: 12, fat: 5.5 },

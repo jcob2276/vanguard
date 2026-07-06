@@ -82,9 +82,9 @@ export default function EndMyopiaCalculator() {
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
         if (pipVideoRef.current) pipVideoRef.current.srcObject = stream;
-      } catch (err) {
-        console.error('Camera error:', err);
-      }
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
     }
     setupCamera();
     return () => { stream?.getTracks().forEach(t => t.stop()); };

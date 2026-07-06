@@ -13,7 +13,7 @@ export const C = {
   violet: '#a78bfa'
 };
 
-export const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
+const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
 
 export const isLogWellness = (l: any) =>
   (l.muscle_tags || []).includes('wellness') ||
@@ -29,7 +29,7 @@ export const daysBefore = (n: number) => {
 export const avg = (arr: number[]) =>
   arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
 
-export function sessionVol(s: any) {
+function sessionVol(s: any) {
   return (s.exercise_logs || []).reduce((sum: number, l: any) => {
     if (isLogWellness(l)) return sum;
     return sum + (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
@@ -79,9 +79,9 @@ export function computeAlerts(oura: any[], _sessions: any[], _nutrition: any[]) 
 }
 
 // ── Insights helpers ──────────────────────────────────────────────────────────
-export const DOW_PL = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
+const DOW_PL = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
 
-export function computeDayOfWeekReadiness(oura: any[]) {
+function computeDayOfWeekReadiness(oura: any[]) {
   const groups: Record<number, number[]> = {};
   for (const o of oura) {
     if (!o.readiness_score) continue;
@@ -96,7 +96,7 @@ export function computeDayOfWeekReadiness(oura: any[]) {
   }));
 }
 
-export function computeSleepBuckets(oura: any[]) {
+function computeSleepBuckets(oura: any[]) {
   const BUCKETS: Array<[string, (h: number) => boolean]> = [
     ['<6h', h => h < 6],
     ['6-7h', h => h >= 6 && h < 7],
@@ -118,7 +118,7 @@ export function computeSleepBuckets(oura: any[]) {
   }));
 }
 
-export function computeNutritionImpact(oura: any[], nutrition: any[]) {
+function computeNutritionImpact(oura: any[], nutrition: any[]) {
   const nutrMap = Object.fromEntries((nutrition || []).map((n: any) => [n.date, n]));
   const nextDay = (d: string) => {
     const dt = new Date(d + 'T12:00:00Z');
@@ -235,7 +235,7 @@ export function computeNarrativeInsights(oura: any[], sessions: any[], nutrition
 
 // ── Sprint logic (personal year = March 1) ────────────────────────────────────
 export const SPRINT_SEASON = ['', 'Wiosna', 'Lato', 'Jesień', 'Zima'];
-export const SPRINT_DAYS = 84; // 12 × 7
+const SPRINT_DAYS = 84; // 12 × 7
 
 export function getSprintInfo() {
   const ds = getTodayWarsaw();
@@ -339,14 +339,14 @@ export const INTEL_CFG: Record<
   }
 };
 
-export const LOW_VALUE_INTEL_TYPES = new Set(['person', 'source_summary', 'operating_model', 'lesson', 'osoba']);
-export const LOW_VALUE_INTEL_TITLES = new Set([
+const LOW_VALUE_INTEL_TYPES = new Set(['person', 'source_summary', 'operating_model', 'lesson', 'osoba']);
+const LOW_VALUE_INTEL_TITLES = new Set([
   'jakub',
   'poprawka użytkownika',
   'aktualny snapshot operacyjny',
   'aktualne tematy ze streamu'
 ]);
-export const LOW_VALUE_INTEL_TEXT = [
+const LOW_VALUE_INTEL_TEXT = [
   'osoba analizowana',
   'poprawka:',
   'desktop footprint',

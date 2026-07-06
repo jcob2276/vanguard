@@ -74,7 +74,7 @@ async function removeQueuedWrite(id: string): Promise<void> {
   db.close();
 }
 
-export async function getQueuedWriteCount(): Promise<number> {
+async function getQueuedWriteCount(): Promise<number> {
   try {
     return (await getQueuedWrites()).length;
   } catch {
@@ -97,7 +97,7 @@ export async function rpcWithOfflineFallback(
     const { error } = await supabase.rpc(fn as any, args as any);
     if (error) throw error;
     return { queued: false };
-  } catch (err) {
+  } catch (err: unknown) {
     if (isOfflineError(err)) {
       await queueOfflineWrite(fn, args, label);
       return { queued: true };
@@ -106,9 +106,37 @@ export async function rpcWithOfflineFallback(
   }
 }
 
+/**
+ * Executes a basic table mutation. On a genuine network failure, queues it for replay.
+ */
+async function writeWithOfflineFallback(
+  table: string,
+  action: 'insert' | 'update' | 'delete',
+  match: Record<string, unknown>,
+  payload: Record<string, unknown> | null,
+  label: string,
+): Promise<{ queued: boolean }> {
+  try {
+    let query = supabase.from(table as any) as any;
+    if (action === 'insert') query = query.insert(payload);
+    if (action === 'update') query = query.update(payload).match(match);
+    if (action === 'delete') query = query.delete().match(match);
+    
+    const { error } = await query;
+    if (error) throw error;
+    return { queued: false };
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite(`table:${action}:${table}`, { match, payload }, label);
+      return { queued: true };
+    }
+    throw err;
+  }
+}
+
 let flushing = false;
 
-export async function flushOfflineQueue(): Promise<void> {
+async function flushOfflineQueue(): Promise<void> {
   if (flushing) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   flushing = true;
@@ -117,7 +145,20 @@ export async function flushOfflineQueue(): Promise<void> {
     if (!entries.length) return;
     let synced = 0;
     for (const entry of entries) {
-      const { error } = await supabase.rpc(entry.fn as any, entry.args as any);
+      let error = null;
+      if (entry.fn.startsWith('table:')) {
+        const [_, action, table] = entry.fn.split(':');
+        let query = supabase.from(table as any) as any;
+        if (action === 'insert') query = query.insert(entry.args.payload);
+        if (action === 'update') query = query.update(entry.args.payload).match(entry.args.match);
+        if (action === 'delete') query = query.delete().match(entry.args.match);
+        const res = await query;
+        error = res.error;
+      } else {
+        const res = await supabase.rpc(entry.fn as any, entry.args as any);
+        error = res.error;
+      }
+      
       if (error) {
         console.error(`[offlineQueue] Replay failed for ${entry.fn}:`, error);
         break; // stop — likely still offline or a persistent error; keep the rest queued in order

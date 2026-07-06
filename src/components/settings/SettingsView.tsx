@@ -41,8 +41,8 @@ export default function SettingsView({ session }: { session: Session }) {
       if (error) throw error;
       await fetchUserSettings();
       notify('Ustawienia zapisane.', 'success');
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Błąd zapisu', 'error');
+    } catch (e: unknown) {
+      notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');
     } finally {
       setSaving(false);
     }

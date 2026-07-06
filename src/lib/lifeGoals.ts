@@ -3,9 +3,9 @@ import { Shield, Wallet, Zap, type LucideIcon } from 'lucide-react';
 import { getTodayWarsaw } from './date';
 import type { Tables } from './database.types';
 
-export type LifeGoalPillarId = 'cialo' | 'duch' | 'konto';
-export type LifeGoalKey = 'goal_cialo' | 'goal_duch' | 'goal_konto';
-export type LifeGoalDateKey = 'date_cialo' | 'date_duch' | 'date_konto';
+type LifeGoalPillarId = 'cialo' | 'duch' | 'konto';
+type LifeGoalKey = 'goal_cialo' | 'goal_duch' | 'goal_konto';
+type LifeGoalDateKey = 'date_cialo' | 'date_duch' | 'date_konto';
 
 export type LifeGoalDisplayRow = {
   id: LifeGoalPillarId;
@@ -43,7 +43,7 @@ const PROJECT_COLOR_PILLAR: Record<string, LifeGoalPillarId> = {
   rose: 'konto',
 };
 
-export function projectPillar(
+function projectPillar(
   project: ProjectGoalSource,
   dreamById: Record<string, DreamPillarSource>,
 ): LifeGoalPillarId | null {
@@ -52,7 +52,7 @@ export function projectPillar(
   return PROJECT_COLOR_PILLAR[project.color] ?? null;
 }
 
-export const LIFE_GOAL_PILLARS: Array<{
+const LIFE_GOAL_PILLARS: Array<{
   id: LifeGoalPillarId;
   goalKey: LifeGoalKey;
   dateKey: LifeGoalDateKey;
@@ -154,14 +154,14 @@ export function lifeGoalDisplayRowsFromProjects(
   });
 }
 
-export function daysBadgeClass(days: number | null, badge: string): string {
+function daysBadgeClass(days: number | null, badge: string): string {
   if (days === null) return badge;
   if (days < 0) return 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400';
   if (days <= 30) return 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400';
   return badge;
 }
 
-export function formatDaysLabel(days: number | null): string | null {
+function formatDaysLabel(days: number | null): string | null {
   if (days === null) return null;
   return days < 0 ? `${Math.abs(days)}d po terminie` : `${days}d`;
 }

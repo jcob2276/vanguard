@@ -2,14 +2,14 @@
  * Shared OpenAI helpers.
  */
 
-export type OpenAIMessageContent =
+type OpenAIMessageContent =
   | string
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string } }
     >;
 
-export interface OpenAIMessage {
+interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
   content: OpenAIMessageContent;
 }

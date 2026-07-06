@@ -69,11 +69,6 @@ export default function PowerListTask({
             <p className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
               {task}
             </p>
-            {(targetValueLabel || timeSlot) && (
-              <span className="flex shrink-0 items-center gap-0.5 rounded border border-border-custom bg-surface-solid px-1 py-0.5 text-[7px] font-black uppercase tracking-widest text-text-muted">
-                {targetValueLabel && `${targetValueLabel} `}{timeSlot && TIME_SLOT_LABELS[timeSlot]}
-              </span>
-            )}
           </div>
           {done && completedAt && (
             <p className="mt-0.5 text-[9px] font-semibold text-dayC/80">

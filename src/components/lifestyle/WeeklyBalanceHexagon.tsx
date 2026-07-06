@@ -73,8 +73,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       setBudgets(map);
       setActuals(actualHours);
       setTasks(items.filter((t) => t.status === 'open' && t.is_important));
-    } catch (err) {
-      console.error('WeeklyBalanceHexagon load failed', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }
@@ -112,8 +112,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       await saveSphereBudget(userId, editingSphere, currentMin, hours);
       setBudgets((prev) => ({ ...prev, [editingSphere]: { min: currentMin, max: hours } }));
       setEditingSphere(null);
-    } catch (err) {
-      console.error('WeeklyBalanceHexagon save target failed', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setSaving(false);
     }
@@ -126,8 +126,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, category: sphere } : t)));
     try {
       await updateTodoItem(taskId, { category: sphere } as any);
-    } catch (err) {
-      console.error('WeeklyBalanceHexagon task assign failed', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setSelectedTaskId(null);
       setAssigning(false);

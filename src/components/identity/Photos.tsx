@@ -5,8 +5,9 @@ import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
 import { notify, confirmDialog } from '../../lib/notify';
+import { Session } from '@supabase/supabase-js';
 
-export default function Photos({ session }: { session: any }) {
+export default function Photos({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -66,9 +67,10 @@ export default function Photos({ session }: { session: any }) {
           occurredDate = format(new Date(dateObj), 'yyyy-MM-dd');
           console.log('[EXIF] extracted date taken:', occurredDate);
         }
-      } catch (exifErr) {
-        console.warn('[EXIF] failed to extract date taken, using fallback:', exifErr);
-      }
+      } catch (exifErr: unknown) {
+      console.error('[Action Error]', exifErr);
+      notify(exifErr instanceof Error ? exifErr.message : 'Wystąpił błąd', 'error');
+    }
 
       const fileName = `${session.user.id}/${Date.now()}.${file.name.split('.').pop()}`;
       await supabase.storage.from('progress-photos').upload(fileName, file);
@@ -80,8 +82,8 @@ export default function Photos({ session }: { session: any }) {
       });
       if (insertErr) throw insertErr;
       fetchPhotos();
-    } catch (error) {
-      notify('Błąd: ' + (error instanceof Error ? error.message : String(error)), 'error');
+    } catch (error: unknown) {
+      notify('Błąd: ' + (error instanceof Error ? (error as Error).message : String(error)), 'error');
     } finally { setUploading(false); }
   }
 

@@ -1,6 +1,6 @@
-import { createServiceClient, corsHeadersFor, resolveUserScope } from "../_shared/supabase.ts";
-import { getVanguardUserId } from "../_shared/constants.ts";
-import { getWarsawDateString } from "../_shared/time.ts";
+import { createServiceClient, corsHeadersFor, resolveUserScope } from '../supabase.ts';
+import { getVanguardUserId } from '../constants.ts';
+import { getWarsawDateString } from '../time.ts';
 import {
   detectRecurringBlockers,
   detectPlanAdherenceGaps,
@@ -9,7 +9,7 @@ import {
   detectEarlyWarningSignals,
   detectNarrativeBiometricMismatch,
   type PatternInsight,
-} from "../_shared/vanguardPatterns.ts";
+} from '../vanguardPatterns.ts';
 
 const supabase = createServiceClient();
 
@@ -48,7 +48,7 @@ function insightToDetector(insight: PatternInsight): DetectorResult {
   };
 }
 
-async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"inserted" | "updated"> {
+async function upsertPattern(userId: string, pattern: DetectorResult): Promise<string> {
   const { data: existing } = await supabase
     .from("vanguard_behavioral_patterns")
     .select("id, status")
@@ -75,10 +75,10 @@ async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"
       console.error("[detect-patterns] update error:", error.message);
       throw new Error(error.message);
     }
-    return "updated";
+    return existing.id;
   }
 
-  const { error } = await supabase.from("vanguard_behavioral_patterns").insert({
+  const { data, error } = await supabase.from("vanguard_behavioral_patterns").insert({
     user_id: userId,
     pattern_type: pattern.pattern_type,
     signature: pattern.signature,
@@ -90,15 +90,15 @@ async function upsertPattern(userId: string, pattern: DetectorResult): Promise<"
     occurrence_count: pattern.occurrence_count,
     confidence: pattern.confidence,
     status: pattern.status,
-  });
+  }).select('id').single();
   if (error) {
     console.error("[detect-patterns] insert error:", error.message);
     throw new Error(error.message);
   }
-  return "inserted";
+  return data.id;
 }
 
-Deno.serve(async (req: Request) => {
+export const runDetectPatterns = async (req: Request): Promise<Response> => {
   const cors = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: cors });
@@ -132,10 +132,15 @@ Deno.serve(async (req: Request) => {
 
     let inserted = 0;
     let updated = 0;
+    const today = getWarsawDateString(new Date());
     for (const p of all) {
-      const result = await upsertPattern(userId, p);
-      if (result === "inserted") inserted++;
-      else updated++;
+      const patternId = await upsertPattern(userId, p);
+      const { error: evErr } = await supabase.from("pattern_events").upsert({
+         pattern_id: patternId,
+         occurred_on: today
+      }, { onConflict: "pattern_id,occurred_on" });
+      if (evErr) console.warn("Failed to insert pattern_event", evErr.message);
+      updated++;
     }
 
     return new Response(
@@ -153,4 +158,4 @@ Deno.serve(async (req: Request) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}

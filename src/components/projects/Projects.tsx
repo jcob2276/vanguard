@@ -47,6 +47,7 @@ import GoalCreateModal from './GoalCreateModal';
 import RetroModal from './RetroModal';
 import ProjectCard from './ProjectCard';
 import { notify, confirmDialog } from '../../lib/notify';
+import { Session } from '@supabase/supabase-js';
 
 type PillarFilter = PillarId | 'all';
 
@@ -61,7 +62,7 @@ export default function Projects({
   onNavigateTo,
   reviewOverdueDays = null,
 }: {
-  session: any;
+  session: Session;
   onNavigateTo?: (view: string) => void;
   reviewOverdueDays?: number | null;
 }) {
@@ -110,8 +111,8 @@ export default function Projects({
       setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: 'done', completed_at: new Date().toISOString() } : i));
       await setTodoStatus(task, 'done');
       notify('Zadanie ukończone', 'success');
-    } catch (e: any) {
-      setError(e.message || 'Nie udało się ukończyć zadania');
+    } catch (e: unknown) {
+      setError((e as Error).message || 'Nie udało się ukończyć zadania');
       setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: task.status, completed_at: task.completed_at } : i));
     } finally {
       setBusy(false);
@@ -161,7 +162,7 @@ export default function Projects({
       setLifeGoals(longTerm.declarations ?? null);
       setKpis(kpisWithCurrent);
       setParentSkills((skillsRes.data ?? []).map((sk) => ({ id: sk.id, label: sk.label })));
-    } catch (err: any) { setError(err.message); }
+    } catch (err: unknown) { setError((err as Error).message); }
   }, [userId]);
 
   useEffect(() => {
@@ -173,7 +174,7 @@ export default function Projects({
   const run = async (fn: () => Promise<any>) => {
     setBusy(true);
     try { await fn(); await fetchAll(); }
-    catch (err: any) { setError(err.message); }
+    catch (err: unknown) { setError((err as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -250,7 +251,7 @@ export default function Projects({
         }
         setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
         setShowForm(false);
-      } catch (err) {
+      } catch (err: unknown) {
         if (section?.id) {
           await supabase.from('todo_sections').delete().eq('id', section.id);
         }

@@ -1,7 +1,7 @@
 import { Clock, Star } from 'lucide-react';
 import type { ScheduleViewData } from '../../types/schedule';
 
-export function MagazineHeroCard({
+function MagazineHeroCard({
   hero,
 }: {
   hero: NonNullable<ScheduleViewData['hero']>;

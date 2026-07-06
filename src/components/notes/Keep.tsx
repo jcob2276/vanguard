@@ -26,8 +26,9 @@ import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../lib/captureBridge';
 import { notify, dismissToast } from '../../lib/notify';
+import { Session } from '@supabase/supabase-js';
 
-export default function Keep({ session, onBack, onNavigateTo }: { session: any; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
+export default function Keep({ session, onBack, onNavigateTo }: { session: Session; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = session.user.id;
   const navigate = useNavigate();
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1'
@@ -35,7 +36,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
   useEffect(() => {
     if (localStorage.getItem('vanguard_keep_new') === '1') {
-      try { localStorage.removeItem('vanguard_keep_new'); } catch (e) {}
+      try { localStorage.removeItem('vanguard_keep_new'); } catch (e: unknown) {
+      console.error('[Action Error]', e);
+      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
+    }
     }
   }, []);
 
@@ -59,7 +63,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     if (onNavigateTo) {
       onNavigateTo(dest);
     } else {
-      try { localStorage.setItem('vanguard_view', dest); } catch (e) {}
+      try { localStorage.setItem('vanguard_view', dest); } catch (e: unknown) {
+      console.error('[Action Error]', e);
+      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
+    }
       navigate('/');
     }
   };
@@ -120,7 +127,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
           const local = localStorage.getItem('vanguard_local_keep_notes');
           try {
             setNotes(local ? JSON.parse(local) : []);
-          } catch (e) {
+          } catch (e: unknown) {
             setNotes([]);
           }
           return;
@@ -128,17 +135,17 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         throw err;
       }
       setNotes(data || []);
-    } catch (e: any) {
+    } catch (e: unknown) {
       const local = localStorage.getItem('vanguard_local_keep_notes');
       try {
         setNotes(local ? JSON.parse(local) : []);
-      } catch (e2) {
+      } catch (e2: unknown) {
         setNotes([]);
       }
       if (!navigator.onLine) {
         setError('Brak połączenia sieciowego. Załadowano notatki lokalne.');
       } else {
-        setError(e.message || 'Błąd połączenia. Załadowano wersję lokalną.');
+        setError((e as Error).message || 'Błąd połączenia. Załadowano wersję lokalną.');
       }
     }
   }, [userId, isNetworkOrTableError]);
@@ -190,7 +197,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         throw err;
       }
       setNotes(prev => sortNotes([data, ...prev]));
-    } catch (e: any) {
+    } catch (e: unknown) {
       const local: Note = {
         id: Math.random().toString(36).slice(2),
         title: partial.title || '',
@@ -254,7 +261,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -315,7 +322,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -344,7 +351,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       }
       setNotes(prev => [data, ...prev]);
       setEditingId(data.id);
-    } catch (e: any) {
+    } catch (e: unknown) {
       const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       setNotes(prev => [local, ...prev]);
       setEditingId(local.id);
@@ -444,9 +451,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
       if (activeTag === tagToDelete) {
         setActiveTag(null);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error deleting tag:', e);
-      setError(e.message || 'Nie udało się usunąć tagu.');
+      setError((e as any).message || 'Nie udało się usunąć tagu.');
     } finally {
       setBusy(false);
     }
@@ -489,9 +496,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
 
       setNotes(prev => sortNotes([data, ...prev]));
       notify(`Utworzono tag: "${newTag}"!`, 'info');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error creating tag:', e);
-      setError(e.message || 'Nie udało się utworzyć tagu.');
+      setError((e as any).message || 'Nie udało się utworzyć tagu.');
     } finally {
       setBusy(false);
     }
@@ -527,8 +534,8 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
         n.id === note.id ? { ...n, is_archived: true, is_pinned: false } : n
       )));
       notify('Dodano do zadań', 'success');
-    } catch (e: any) {
-      notify(e.message || 'Nie udało się dodać do zadań', 'error');
+    } catch (e: unknown) {
+      notify((e as any).message || 'Nie udało się dodać do zadań', 'error');
     } finally {
       setBusy(false);
     }
@@ -539,8 +546,8 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: any; 
     try {
       const created = await exportNoteChecklistsToTodos(userId, note);
       notify(`Dodano ${created.length} zadań`, 'success');
-    } catch (e: any) {
-      notify(e.message || 'Eksport nie powiódł się', 'error');
+    } catch (e: unknown) {
+      notify((e as any).message || 'Eksport nie powiódł się', 'error');
     } finally {
       setBusy(false);
     }

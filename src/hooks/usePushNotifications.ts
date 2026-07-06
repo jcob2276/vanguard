@@ -48,7 +48,7 @@ export function usePushNotifications(userId: string) {
       }, { onConflict: 'user_id,endpoint' });
 
       return true;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[push] subscribe failed:', err);
       return false;
     }

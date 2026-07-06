@@ -54,9 +54,9 @@ export default function SaunaLoggerModal({
       notify('Zapisano saunę', 'success');
       onSaved?.();
       onBack();
-    } catch (err) {
+    } catch (err: unknown) {
       haptics.error();
-      notify(err instanceof Error ? err.message : String(err), 'error');
+      notify(err instanceof Error ? (err as Error).message : String(err), 'error');
     } finally {
       setSaving(false);
     }

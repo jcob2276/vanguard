@@ -1,8 +1,8 @@
 /** Maraton Gdańsk 04.10.2026 — autopilot plyo przed siłownią */
 
-export const PLYO_PROGRAM_START = '2026-06-30'
+const PLYO_PROGRAM_START = '2026-06-30'
 
-export type PlyoSlotId = 'A' | 'B' | 'C' | 'D'
+type PlyoSlotId = 'A' | 'B' | 'C' | 'D'
 
 export interface PlyoExercisePrescription {
   name: string
@@ -29,7 +29,7 @@ export interface PlyoSessionPlan {
   exercises: PlyoExercisePrescription[]
 }
 
-export interface PlyoProgramState {
+interface PlyoProgramState {
   slotIndex: number
   sessionsCompleted: number
 }
@@ -95,7 +95,7 @@ function draftKey(userId: string) {
   return `vanguard_plyo_checkoff_${userId}`
 }
 
-export function loadPlyoProgramState(userId: string): PlyoProgramState {
+function loadPlyoProgramState(userId: string): PlyoProgramState {
   try {
     const raw = localStorage.getItem(stateKey(userId))
     if (!raw) return { slotIndex: 0, sessionsCompleted: 0 }
@@ -109,7 +109,7 @@ export function loadPlyoProgramState(userId: string): PlyoProgramState {
   }
 }
 
-export function savePlyoProgramState(userId: string, state: PlyoProgramState): void {
+function savePlyoProgramState(userId: string, state: PlyoProgramState): void {
   try {
     localStorage.setItem(stateKey(userId), JSON.stringify(state))
   } catch { /* quota */ }
@@ -124,7 +124,7 @@ export function advancePlyoProgram(userId: string): void {
   clearPlyoCheckoff(userId)
 }
 
-export function loadPlyoCheckoff(userId: string, sessionKey: string): boolean[][] | null {
+function loadPlyoCheckoff(userId: string, sessionKey: string): boolean[][] | null {
   try {
     const raw = localStorage.getItem(draftKey(userId))
     if (!raw) return null
@@ -148,7 +148,7 @@ export function clearPlyoCheckoff(userId: string): void {
   } catch { /* noop */ }
 }
 
-export function programWeek(today: string): number {
+function programWeek(today: string): number {
   const start = new Date(`${PLYO_PROGRAM_START}T12:00:00Z`)
   const d = new Date(`${today}T12:00:00Z`)
   const diff = Math.floor((d.getTime() - start.getTime()) / (7 * 86400000))

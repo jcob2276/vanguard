@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
+import { Session } from '@supabase/supabase-js';
 
 function SectionHeader({ icon: Icon, title, detail }: { icon: React.ComponentType<any>; title: string; detail?: string | null }) {
   return (
@@ -47,7 +48,7 @@ function TextAreaBlock({ label, value, onChange, placeholder, danger = false, ro
   );
 }
 
-export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }: { onBack: () => void; session: any; onSyncCalendar: () => Promise<void> | void; isSyncing: boolean }) {
+export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }: { onBack: () => void; session: Session; onSyncCalendar: () => Promise<void> | void; isSyncing: boolean }) {
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
@@ -111,9 +112,9 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
 
       if (error) throw error;
       notify('Fundament zapisany.', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Save Identity Error:', err);
-      notify(`Błąd zapisu: ${err instanceof Error ? err.message : String(err)}`, 'error');
+      notify(`Błąd zapisu: ${err instanceof Error ? (err as Error).message : String(err)}`, 'error');
     } finally {
       setSaving(false);
     }

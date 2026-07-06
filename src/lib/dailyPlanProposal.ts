@@ -74,7 +74,7 @@ export type ProposedTaskSlot = {
   source: string;
 };
 
-export const EMPTY_TASK_SLOT: ProposedTaskSlot = {
+const EMPTY_TASK_SLOT: ProposedTaskSlot = {
   task: '',
   category: 'general',
   checkpointId: null,
@@ -185,7 +185,7 @@ export function kpiSlotHint(
   };
 }
 
-export function enrichProposalSlot(
+function enrichProposalSlot(
   slot: ProposedTaskSlot,
   ctx: DirectionContextData,
 ): ProposedTaskSlot {
@@ -199,7 +199,7 @@ export function enrichProposalSlot(
   return { ...slot, targetValue };
 }
 
-export function enrichProposalSlotWithPillarProjects(
+function enrichProposalSlotWithPillarProjects(
   slot: ProposedTaskSlot,
   pillarProjects: Array<{
     pillar: 'cialo' | 'duch' | 'konto';

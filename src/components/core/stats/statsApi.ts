@@ -25,7 +25,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('analyzeFoodQuality error:', err);
     throw err;
   }
@@ -46,7 +46,7 @@ export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from,
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('analyzeTrainingLoad error:', err);
     throw err;
   }

@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { Trash2, Zap } from 'lucide-react';
+import { Session } from '@supabase/supabase-js';
 
 export function WorkoutHistorySection({
   recentSessions,

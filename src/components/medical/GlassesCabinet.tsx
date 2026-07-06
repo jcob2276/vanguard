@@ -43,8 +43,8 @@ export default function GlassesCabinet() {
 
       if (error) throw error;
       setPrescriptions((data || []) as Prescription[]);
-    } catch (error) {
-      console.error('Error loading prescriptions:', error);
+    } catch (error: unknown) {
+      console.error('[Background Error]', error);
     } finally {
       setLoading(false);
     }
@@ -67,8 +67,8 @@ export default function GlassesCabinet() {
       if (error) throw error;
       
       await loadPrescriptions();
-    } catch (error) {
-      console.error('Error seeding from excel:', error);
+    } catch (error: unknown) {
+      console.error('[Background Error]', error);
     }
   };
 

@@ -70,9 +70,13 @@ Deno.serve(async (req) => {
           .from("vanguard_telegram_inbox")
           .update({ status: "failed", error_log: trace, updated_at: new Date().toISOString() })
           .eq("id", recordId);
-      } catch (dbErr) {
-        console.error("[telegram-worker] failed to write error log to DB:", dbErr);
-      }
+      } catch (dbErr: unknown) {
+    console.error('[Edge Function Error]', dbErr);
+    return new Response(JSON.stringify({ error: dbErr instanceof Error ? dbErr.message : String(dbErr) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
     }
 
     await logCriticalError({

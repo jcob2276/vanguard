@@ -14,9 +14,9 @@ import {
 } from "./normalize.ts";
 import { buildSystemPrompt } from "./prompts.ts";
 
-export const MIN_RECONCILE_SCORE = 0.52;
+const MIN_RECONCILE_SCORE = 0.52;
 
-export interface Per100gFood {
+interface Per100gFood {
   name: string;
   calories: number | null;
   protein: number | null;
@@ -29,7 +29,7 @@ export interface Per100gFood {
 
 export type ReconcileOpts = { supabaseUrl: string; serviceKey: string; userId?: string; db?: unknown; apiKey?: string };
 
-export function pickBestMatchScored(query: string, results: Per100gFood[]): { match: Per100gFood; score: number } | null {
+function pickBestMatchScored(query: string, results: Per100gFood[]): { match: Per100gFood; score: number } | null {
   if (!results.length) return null;
 
   let best: Per100gFood | null = null;
@@ -46,11 +46,11 @@ export function pickBestMatchScored(query: string, results: Per100gFood[]): { ma
   return best ? { match: best, score: bestScore } : null;
 }
 
-export function pickBestMatch(query: string, results: Per100gFood[]): Per100gFood | null {
+function pickBestMatch(query: string, results: Per100gFood[]): Per100gFood | null {
   return pickBestMatchScored(query, results)?.match ?? null;
 }
 
-export function findCorrectionForItem(
+function findCorrectionForItem(
   item: ParsedFoodItem,
   corrections: FoodCorrection[],
   originalText: string,
@@ -106,7 +106,7 @@ export function applyUserCorrections(
   });
 }
 
-export function splitCompoundName(name: string): [string, string] | null {
+function splitCompoundName(name: string): [string, string] | null {
   const parts = normalizePl(name).split(/\s+(?:z|ze)\s+/);
   if (parts.length !== 2) return null;
   const [a, b] = parts.map((p) => p.trim());
@@ -114,7 +114,7 @@ export function splitCompoundName(name: string): [string, string] | null {
   return [a, b];
 }
 
-export function titleCasePl(fragment: string): string {
+function titleCasePl(fragment: string): string {
   const trimmed = fragment.trim();
   if (!trimmed) return fragment;
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
@@ -163,7 +163,7 @@ export async function tryExpandCompoundItems(
   ];
 }
 
-export function recalcFromPer100g(grams: number, per100: Per100gFood): Pick<ParsedFoodItem, 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar'> {
+function recalcFromPer100g(grams: number, per100: Per100gFood): Pick<ParsedFoodItem, 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar'> {
   const factor = grams / 100;
   const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -177,7 +177,7 @@ export function recalcFromPer100g(grams: number, per100: Per100gFood): Pick<Pars
   };
 }
 
-export async function lookupOffFast(
+async function lookupOffFast(
   name: string,
 ): Promise<{ match: Per100gFood; score: number; macroSource: 'off' } | null> {
   const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=5&tagtype_0=languages&tag_contains_0=contains&tag_0=polish`;
@@ -208,7 +208,7 @@ export async function lookupOffFast(
   }
 }
 
-export async function verifyMatchWithLLM(
+async function verifyMatchWithLLM(
   query: string,
   candidate: string,
   apiKey: string,
@@ -244,7 +244,7 @@ Decyzja:`;
   }
 }
 
-export async function lookupViaLibraryRaw(
+async function lookupViaLibraryRaw(
   name: string,
   userId: string,
   db: any,
@@ -260,7 +260,7 @@ export async function lookupViaLibraryRaw(
   return data as Per100gFood[];
 }
 
-export async function reconcileOne(
+async function reconcileOne(
   item: ParsedFoodItem,
   opts: ReconcileOpts,
 ): Promise<ParsedFoodItem> {

@@ -16,7 +16,7 @@ const DOT_COLOR: Record<string, string> = {
   rose: 'bg-rose-500',
 };
 
-export type CheckpointFillPayload = {
+type CheckpointFillPayload = {
   title: string;
   checkpointId: string;
   projectId: string;

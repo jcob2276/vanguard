@@ -3,12 +3,13 @@ import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import type { Database } from '../../lib/database.types';
+import { Session } from '@supabase/supabase-js';
 
 export type TodayEntry = Database['public']['Tables']['daily_food_entries']['Row'];
 export type DailyNutritionRow = Database['public']['Tables']['daily_nutrition']['Row'];
 
 export interface UseNutritionDataProps {
-  session: any;
+  session: Session;
   weeklyCalories: number;
   refreshSignal?: number;
 }
@@ -51,8 +52,8 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         .gte('date', since)
         .order('date', { ascending: true });
       if (data) setRows(data);
-    } catch (e) {
-      console.error('daily_nutrition fetch failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }, [userId, todayRaw]);
 
@@ -67,8 +68,8 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         .order('logged_at', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
       if (data) setTodayEntries(data);
-    } catch (e) {
-      console.error('daily_food_entries fetch failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     }
   }, [userId, todayRaw]);
 
@@ -107,9 +108,9 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         const suggestions = verdictObj?.food_suggestions;
         if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
         if (typeof verdictObj?.forecast_note === 'string') setForecastNote(verdictObj.forecast_note);
-      } catch (e) {
-        console.error('nutrition_targets fetch failed', e);
-      }
+      } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
     })();
     void fetchRows();
     void fetchTodayEntries();
@@ -128,8 +129,8 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
       const { error } = await supabase.rpc('remove_food_entry', { p_user_id: userId, p_entry_id: id });
       if (error) throw new Error(error.message);
       await Promise.all([fetchRows(), fetchTodayEntries()]);
-    } catch (e) {
-      console.error('[NutritionCard] delete entry failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setDeletingId(null);
     }

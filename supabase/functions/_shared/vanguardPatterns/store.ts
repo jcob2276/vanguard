@@ -9,7 +9,7 @@ import type { PatternInsight, BehavioralPattern } from './types.ts';
 /**
  * Helper: czy warto pokazać insight w danym kontekście (bridge / brief).
  */
-export function shouldSurfaceInsight(insight: PatternInsight, minConfidence = 0.55, minSample = 3): boolean {
+function shouldSurfaceInsight(insight: PatternInsight, minConfidence = 0.55, minSample = 3): boolean {
   if (insight.type === 'plan_adherence_gap') {
     return insight.confidence >= 0.6; // dla adherence nawet pojedynczy mocny dzień ma wartość
   }
@@ -20,7 +20,7 @@ export function shouldSurfaceInsight(insight: PatternInsight, minConfidence = 0.
  * Zapisuje wykryty wzorzec do dedykowanej tabeli vanguard_behavioral_patterns (Etap 1).
  * Zwraca id stworzonego wiersza (lub null przy błędzie).
  */
-export async function recordBehavioralPattern(
+async function recordBehavioralPattern(
   supabase: any,
   userId: string,
   insight: PatternInsight
@@ -196,7 +196,7 @@ export async function updatePatternFeedback(
  * Zaznacza, że dany wzorzec (szczególnie early warning) został faktycznie pokazany użytkownikowi.
  * Aktualizuje last_seen oraz last_shown w metadanych.
  */
-export async function markPatternAsShown(
+async function markPatternAsShown(
   supabase: any,
   patternId: string,
   date: string = getWarsawDateString()
@@ -227,7 +227,7 @@ export async function markPatternAsShown(
  * Mały helper do pobierania recent early warningów.
  * Używany w morning-brief i komendzie `wzorce` dla czystszego kodu.
  */
-export async function getRecentEarlyWarnings(
+async function getRecentEarlyWarnings(
   supabase: any,
   userId: string,
   limit = 5

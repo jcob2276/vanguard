@@ -1,7 +1,7 @@
 import type { SeriesPoint } from './correlationEngine.ts'
 import type { CorrelationCategory } from './correlationCatalog.ts'
 
-export const DISCOVERY_MIN_COVERAGE = 5
+const DISCOVERY_MIN_COVERAGE = 5
 export const DISCOVERY_LAGS = [0, 1, 2] as const
 export const DISCOVERY_MAX_RESULTS = 80
 
@@ -43,12 +43,12 @@ const ZACHOWANIE_METRICS = new Set([
   'stress_manual', 'habit_count', 'weight_kg',
 ])
 
-export function behaviorMetricId(behaviorKey: string): string {
+function behaviorMetricId(behaviorKey: string): string {
   const slug = behaviorKey.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
   return `behav__${slug || 'unknown'}`
 }
 
-export function behaviorMetricLabel(behaviorKey: string): string {
+function behaviorMetricLabel(behaviorKey: string): string {
   return behaviorKey.replace(/_/g, ' ')
 }
 
@@ -69,7 +69,7 @@ export function appendHabitLogMetrics(
   }
 }
 
-export function habitMetricId(habitName: string): string {
+function habitMetricId(habitName: string): string {
   const slug = habitName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
   return `habit__${slug || 'unknown'}`
 }

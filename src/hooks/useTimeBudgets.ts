@@ -19,8 +19,8 @@ export function useTimeBudgets(userId: string) {
 
       if (error) throw error;
       setBudgets(data || []);
-    } catch (err) {
-      console.error('Error fetching time budgets:', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export function useTimeBudgets(userId: string) {
           return [...prev, data[0]];
         }
       });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error saving time budget:', err);
       throw err;
     }

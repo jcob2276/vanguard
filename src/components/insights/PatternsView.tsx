@@ -56,8 +56,8 @@ export function PatternsView({ session }: PatternsViewProps) {
         body: { user_id: userId },
       });
       await fetchPatterns();
-    } catch (e) {
-      console.error('[PatternsView] detect error:', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setRunning(false);
     }

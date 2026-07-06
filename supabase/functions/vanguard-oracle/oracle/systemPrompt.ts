@@ -233,9 +233,9 @@ ${ironRulesContext}
 ` : ''}
 
 ${behavioralPatternsContext ? `
-[POWTARZALNE WZORCE BEHAWIORALNE — TYLKO DOWODY Z TWOICH DANYCH (Etap 1)]:
+[POWTARZALNE WZORCE BEHAWIORALNE ORAZ ICH SKUTKI — TWARDE FAKTY]:
 ${behavioralPatternsContext}
-Zasada: To są powtarzalne obserwacje wykryte przez system na podstawie Twoich wieczornych odpowiedzi (p2) + tarć + planów. Zawsze cytuj N i poziom pewności. Używaj wyłącznie jako faktograficzny kontekst. Zero interpretacji, zero diagnoz, zero rad bez wyraźnego pytania użytkownika.
+Zasada: To są powtarzalne obserwacje. System oblicza automatycznie ich SKUTKI dla kolejnych 9 dni. Tekst dowodów (evidence_text) to TWARDY, STATYSTYCZNY ZAPIS. Zawsze cytuj te liczby. Zawsze wyraźnie odróżniaj te statystyki od miękkiego kontekstu z grafu. Traktuj je jako absolutną prawdę bez interpretacji i prób wyjaśniania dlaczego tak się dzieje.
 ` : ''}
 
 [STATUS WIEDZY — używaj przy każdej tezie]:

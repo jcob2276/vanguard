@@ -12,7 +12,7 @@ export const MEAL_TYPES = [
 
 export type MealTypeId = (typeof MEAL_TYPES)[number]['id']
 
-export interface FoodParseMeta {
+interface FoodParseMeta {
   macroSource: 'library' | 'generic' | 'reference_pl' | 'off' | 'llm_estimate' | 'user_correction'
   matchScore?: number
   matchedName?: string
@@ -59,9 +59,9 @@ async function runFoodQualityAnalysis(userId: string, date: string): Promise<voi
       body: JSON.stringify({ userId, date }),
       signal: AbortSignal.timeout(55000),
     })
-  } catch (e) {
-    console.warn('[foodLogging] analyze-food-quality failed', e)
-  }
+  } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
 }
 
 /** Debounced background quality score — call after any food log for that date. */
@@ -95,8 +95,8 @@ export async function parseFoodNL(text: string, userId: string, accessToken: str
       body: JSON.stringify({ text: text.trim(), userId, clientTime: new Date().toISOString() }),
       signal: AbortSignal.timeout(120000),
     })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? (e as Error).message : String(e)
     if (/timed out|timeout|abort/i.test(msg)) {
       throw new Error('Parsowanie trwało za długo — spróbuj ponownie za chwilę.', { cause: e })
     }
@@ -179,7 +179,7 @@ export interface FoodFavoriteRow {
 }
 
 /** Per-100g base values; default_grams = typical portion size. */
-export const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
+const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
   {
     name: 'Kawa domowa (70mg kofeiny)',
     brand: 'espresso 60ml + 340ml mleko 3.2%',
@@ -218,7 +218,50 @@ export const FOOD_STAPLES: Omit<FoodFavoriteRow, 'id' | 'barcode'>[] = [
   },
 ]
 
-export async function ensureFoodStaples(userId: string): Promise<void> {
+/** Always-visible quick-add chips in FoodQuickCapture, independent of the user's saved food_favorites rows. */
+export const QUICK_CAPTURE_FAVORITES: (Omit<FoodFavoriteRow, 'id' | 'barcode'> & { id: string })[] = [
+  {
+    id: 'fixed-kawa',
+    name: 'Kawa domowa',
+    brand: 'espresso 60ml + 340ml mleko 3.2%',
+    calories: 51,
+    protein: 2.6,
+    carbs: 4,
+    fat: 2.7,
+    fiber: 0,
+    sugar: 4,
+    default_grams: 400,
+    is_pinned: true,
+  },
+  {
+    id: 'fixed-banan',
+    name: 'Banan',
+    brand: 'staple',
+    calories: 89,
+    protein: 1.1,
+    carbs: 23,
+    fat: 0.3,
+    fiber: 2.6,
+    sugar: 12,
+    default_grams: 120,
+    is_pinned: true,
+  },
+  {
+    id: 'fixed-odzywka',
+    name: 'Odżywka białkowa 25g białka',
+    brand: 'staple',
+    calories: 380,
+    protein: 80,
+    carbs: 6,
+    fat: 6,
+    fiber: 0,
+    sugar: 3,
+    default_grams: 30,
+    is_pinned: true,
+  },
+]
+
+async function ensureFoodStaples(userId: string): Promise<void> {
   for (const staple of FOOD_STAPLES) {
     const query = supabase
       .from('food_favorites')
@@ -263,7 +306,7 @@ export async function ensureFoodStaples(userId: string): Promise<void> {
   }
 }
 
-export async function fetchQuickFavorites(userId: string, limit = 8): Promise<FoodFavoriteRow[]> {
+async function fetchQuickFavorites(userId: string, limit = 8): Promise<FoodFavoriteRow[]> {
   return unwrapList<FoodFavoriteRow>(await supabase
     .from('food_favorites')
     .select('id, name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams, is_pinned')
@@ -301,7 +344,7 @@ export async function quickAddFavorite(
   scheduleStrainRecompute(userId)
 }
 
-export async function repeatYesterdayMeal(
+async function repeatYesterdayMeal(
   userId: string,
   targetDate: string,
   mealType: string

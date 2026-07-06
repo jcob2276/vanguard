@@ -1,7 +1,7 @@
 import React from 'react';
 import { computeLenieInsight, daysBefore } from './desktopUtils';
 
-export type LenieLog = {
+type LenieLog = {
   date: string;
   final_stimulus?: string | null;
   context_note?: string | null;

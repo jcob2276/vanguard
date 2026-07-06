@@ -1,13 +1,13 @@
 import { deepseekChat, parseJsonFromContent } from './deepseek.ts'
 
-export interface ParsedWorkoutSet {
+interface ParsedWorkoutSet {
   kg: number
   reps: number
   rir?: number | null
   count?: number
 }
 
-export interface ParsedWorkoutExercise {
+interface ParsedWorkoutExercise {
   name: string
   tags?: string[]
   sets: ParsedWorkoutSet[]
@@ -15,7 +15,7 @@ export interface ParsedWorkoutExercise {
   assumptions?: string[]
 }
 
-export interface ParsedWorkoutActivity {
+interface ParsedWorkoutActivity {
   name: string
   minutes: number
   note?: string

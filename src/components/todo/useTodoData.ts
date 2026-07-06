@@ -1,3 +1,4 @@
+import { Session } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getTodayWarsaw, combineDateTimeWarsawISO, warsawTimeOfDay } from '../../lib/date';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
@@ -34,7 +35,7 @@ export type DreamRow = Database['public']['Tables']['dreams']['Row'];
 export type SmartListRow = Database['public']['Tables']['todo_smart_lists']['Row'];
 
 export interface UseTodoDataProps {
-  session: any;
+  session: Session;
   onNavigateTo?: (dest: string) => void;
 }
 
@@ -125,7 +126,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
         const winTasks = (winData as any).daily_win_tasks || [];
         setLinkedPlanIds(new Set(winTasks.map((t: any) => t.todo_id).filter(Boolean)));
       }
-    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    } catch (err: unknown) { setError(err instanceof Error ? (err as Error).message : String(err)); }
   }, [userId]);
 
   useEffect(() => {
@@ -207,14 +208,14 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
 
   useEffect(() => {
     if (!draggingItem) return;
-    const onMove = (e: any) => {
+    const onMove = (e: TouchEvent | MouseEvent | any) => {
       e.preventDefault();
       const t = e.touches?.[0] ?? e;
       dragPosRef.current = { x: t.clientX, y: t.clientY };
       const b = getSectionAtPoint(t.clientX, t.clientY);
       setDragTarget((prev) => prev !== b ? b : prev);
     };
-    const onEnd = (e: any) => {
+    const onEnd = (e: TouchEvent | MouseEvent | any) => {
       const t = e.changedTouches?.[0] ?? e;
       const target = getSectionAtPoint(t.clientX, t.clientY);
       const item = dragItemRef.current;
@@ -340,7 +341,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
   const run = async (fn: () => Promise<any> | any) => {
     setBusy(true);
     try { await fn(); await fetchAll(); }
-    catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    catch (err: unknown) { setError(err instanceof Error ? (err as Error).message : String(err)); }
     finally { setBusy(false); }
   };
 

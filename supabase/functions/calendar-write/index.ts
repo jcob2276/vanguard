@@ -77,35 +77,75 @@ Deno.serve(async (req) => {
           start_time: event.start,
           end_time: event.end,
           category: event.category ?? 'vanguard',
-        })
+        }, { onConflict: 'event_id' })
       )
       return new Response(JSON.stringify({ success: true, eventId: created.id }), { headers: corsHeaders })
     }
 
     if (action === 'update') {
       if (!event.id) throw new Error('Missing event.id for update')
+
+      // Google Calendar API ignores the `recurrence` field on PATCH requests for
+      // non-recurring events — only a full PUT (replace) propagates it correctly.
+      // We always use PUT here so that adding/removing recurrence works reliably.
+      // First fetch the current event to preserve any fields we don't touch.
+      const getRes = await fetch(`${gcalBase}/${event.id}`, {
+        signal: AbortSignal.timeout(10000),
+        method: 'GET',
+        headers,
+      })
+      if (!getRes.ok) throw new Error(`GCal get failed: ${getRes.status}`)
+      const existing = await getRes.json()
+
+      // Build the PUT body — merge existing fields with our updates
+      const putBody: Record<string, unknown> = {
+        ...existing,
+        summary: event.summary,
+        description: event.description ?? existing.description ?? '',
+        start: { dateTime: event.start, timeZone: 'Europe/Warsaw' },
+        end: { dateTime: event.end, timeZone: 'Europe/Warsaw' },
+      }
+
+      if (event.recurrence?.length) {
+        // Adding or replacing recurrence
+        putBody.recurrence = event.recurrence
+      } else {
+        // Explicitly remove recurrence (convert recurring → one-time)
+        delete putBody.recurrence
+      }
+
       const gcalRes = await fetch(`${gcalBase}/${event.id}`, {
         signal: AbortSignal.timeout(15000),
-        method: 'PATCH',
+        method: 'PUT',
         headers,
-        body: JSON.stringify({
-          summary: event.summary,
-          description: event.description ?? '',
-          start: { dateTime: event.start, timeZone: 'Europe/Warsaw' },
-          end: { dateTime: event.end, timeZone: 'Europe/Warsaw' },
-          ...(event.recurrence?.length ? { recurrence: event.recurrence } : {}),
-        }),
+        body: JSON.stringify(putBody),
       })
-      if (!gcalRes.ok) throw new Error(`GCal update failed: ${gcalRes.status}`)
+      if (!gcalRes.ok) {
+        const errText = await gcalRes.text()
+        throw new Error(`GCal update failed: ${gcalRes.status} — ${errText}`)
+      }
+      const updated = await gcalRes.json()
+      const returnedId: string = updated.id ?? event.id
 
+      // Update the local row. If the returned ID differs from the sent ID (rare but
+      // possible), delete the stale row and upsert the fresh one so no orphan stays.
+      if (returnedId !== event.id) {
+        await safeExecute(
+          supabase.from('vanguard_calendar').delete()
+            .eq('user_id', userId).eq('event_id', event.id)
+        )
+      }
       await safeExecute(
-        supabase
-          .from('vanguard_calendar')
-          .update({ summary: event.summary, start_time: event.start, end_time: event.end, category: event.category })
-          .eq('user_id', userId)
-          .eq('event_id', event.id)
+        supabase.from('vanguard_calendar').upsert({
+          user_id: userId,
+          event_id: returnedId,
+          summary: event.summary,
+          start_time: event.start,
+          end_time: event.end,
+          category: event.category ?? 'vanguard',
+        }, { onConflict: 'event_id' })
       )
-      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ success: true, eventId: returnedId }), { headers: corsHeaders })
     }
 
     if (action === 'delete') {

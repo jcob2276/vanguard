@@ -92,7 +92,7 @@ function isAfter20(): boolean {
     });
     const hour = parseInt(formatter.format(new Date()), 10);
     return hour >= 20;
-  } catch (e) {
+  } catch (e: unknown) {
     return new Date().getHours() >= 20;
   }
 }
@@ -104,11 +104,15 @@ export default function Dashboard({ session }: { session: Session }) {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view');
     if (viewParam === 'kariera') {
-      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e) {}
+      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
       return 'projekty';
     }
     if (viewParam && TAB_ORDER.includes(viewParam)) {
-      try { localStorage.setItem('vanguard_view', viewParam); } catch (e) {}
+      try { localStorage.setItem('vanguard_view', viewParam); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
       return viewParam;
     }
     if (params.get('todo') === 'new') {
@@ -165,7 +169,9 @@ export default function Dashboard({ session }: { session: Session }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
+    try { localStorage.setItem('vanguard_theme', theme); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
   }, [theme]);
 
   const haptics = useHaptics();
@@ -213,7 +219,9 @@ export default function Dashboard({ session }: { session: Session }) {
   });
 
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
-    try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
+    try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
     if (target === 'dashboard') {
       routerNavigate('/dashboard');
       return;
@@ -224,7 +232,9 @@ export default function Dashboard({ session }: { session: Session }) {
   const goBack = useCallback(() => {
     const prev = localStorage.getItem('vanguard_previous_view');
     if (prev) {
-      try { localStorage.removeItem('vanguard_previous_view'); } catch (e) {}
+      try { localStorage.removeItem('vanguard_previous_view'); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
     }
     setView(normalizeView(prev) || 'dzis');
   }, []);
@@ -232,7 +242,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
   const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
-  const { startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
+  const { syncCalendar, startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
 
   // Auto-suggest Evening Shutdown after 20:00 Warsaw time — once per day, not on every refresh.
   useEffect(() => {
@@ -242,7 +252,9 @@ export default function Dashboard({ session }: { session: Session }) {
     const today = getTodayWarsaw();
     try {
       if (localStorage.getItem('vanguard_shutdown_dismissed') === today) return;
-    } catch (e) {}
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
 
     const warsawHour = parseInt(
       new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }),
@@ -268,7 +280,9 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !todayWin;
 
   useEffect(() => {
-    try { localStorage.setItem('vanguard_view', view); } catch (e) {}
+    try { localStorage.setItem('vanguard_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
   }, [view]);
 
   if (view === 'fundament') {
@@ -285,7 +299,9 @@ export default function Dashboard({ session }: { session: Session }) {
         <Keep
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView(dest); }}
         />
       </Suspense>
     );
@@ -297,7 +313,9 @@ export default function Dashboard({ session }: { session: Session }) {
         <Todo
           session={session}
           onBack={() => { refreshNudge(); goBack(); }}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView(dest); }}
         />
       </Suspense>
     );
@@ -309,7 +327,9 @@ export default function Dashboard({ session }: { session: Session }) {
         <LinksInbox
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView(dest); }}
         />
       </Suspense>
     );
@@ -322,8 +342,11 @@ export default function Dashboard({ session }: { session: Session }) {
           session={session}
           onBack={goBack}
           onSyncCalendar={startGoogleAuth}
+          onResyncCalendar={syncCalendar}
           isSyncing={isSyncing}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView(dest); }}
         />
       </Suspense>
     );
@@ -402,12 +425,16 @@ export default function Dashboard({ session }: { session: Session }) {
           userId={userId}
           unreadCount={pendingActionCount}
           onAvatarLongPress={() => setActionCenterOpen(true)}
-          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView('fundament'); }}
+          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView('fundament'); }}
           theme={theme}
           toggleTheme={toggleTheme}
           showLock={showLock}
           view={view}
-          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {} setView(dest); }}
+          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } setView(dest); }}
           staleNoteCount={staleNoteCount}
           handleLogoPressStart={handleLogoPressStart}
           handleLogoPressEnd={handleLogoPressEnd}
@@ -569,7 +596,9 @@ export default function Dashboard({ session }: { session: Session }) {
                 session={session}
                 reviewOverdueDays={reviewOverdueDays}
                 onNavigateTo={(dest) => {
-                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e) {}
+                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
                   setView(dest);
                 }}
               />

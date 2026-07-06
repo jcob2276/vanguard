@@ -1,6 +1,6 @@
 /** Drzewo domyślnych skilli życiowych + pod-skilli (SSOT nazewnictwa). */
 
-export interface DefaultSubSkill {
+interface DefaultSubSkill {
   key: string;
   label: string;
 }
@@ -88,4 +88,4 @@ export const DEFAULT_SKILL_TREE: DefaultSkillTreeNode[] = [
   },
 ];
 
-export const MAX_PARENT_SKILLS = 10;
+const MAX_PARENT_SKILLS = 10;

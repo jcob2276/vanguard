@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseTime, WARSAW_OFFSET, type CalRow } from '../components/calendar/calendarHelpers';
+import { parseTime, getWarsawOffset, type CalRow } from '../components/calendar/calendarHelpers';
 import type { CalendarTodo } from './useCalendarTodos';
 
 interface UseAISchedulingProps {
@@ -9,7 +9,7 @@ interface UseAISchedulingProps {
   focusTimeDefense: boolean;
   decompressionBuffer: boolean;
   inboxTodos: CalendarTodo[];
-  createEvent: (ev: any) => Promise<any>;
+  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
   scheduleTodoAt: (todo: { id: string }, day: string, startMin: number, durationMinutes?: number) => Promise<void>;
   fetchEvents: () => Promise<void>;
   fetchAllTodos: () => Promise<void>;
@@ -50,8 +50,8 @@ export function useAIScheduling({
       if (focusTimeDefense) {
         const overlapsFocus = busyIntervals.some(i => (i.start < 600 && i.end > 480));
         if (!overlapsFocus) {
-          const startISO = `${selectedDay}T08:00:00${WARSAW_OFFSET}`;
-          const endISO = `${selectedDay}T10:00:00${WARSAW_OFFSET}`;
+          const startISO = `${selectedDay}T08:00:00${getWarsawOffset(selectedDay)}`;
+          const endISO = `${selectedDay}T10:00:00${getWarsawOffset(selectedDay)}`;
           await createEvent({
             summary: 'Focus Time 🛡️',
             start: startISO,
@@ -96,7 +96,7 @@ export function useAIScheduling({
       await fetchEvents();
       await fetchAllTodos();
       setToastMessage('Zadania zostały pomyślnie zaplanowane przez AI! ✨');
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error during AI scheduling:', e);
       setToastMessage('Wystąpił błąd podczas planowania.');
     } finally {

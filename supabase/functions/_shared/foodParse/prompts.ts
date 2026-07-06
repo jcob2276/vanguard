@@ -1,7 +1,7 @@
 import type { UserParseContext } from "../foodParseCore.ts";
 
 // Per-100g reference so DeepSeek anchors to the same values as our generic list.
-export const FOOD_REF = `Per 100g (kcal / B g / W g / T g):
+const FOOD_REF = `Per 100g (kcal / B g / W g / T g):
 jajko ugotowane: 155/13/1.1/11
 kurczak pierś pieczona: 165/31/0/3.6
 kurczak pierś surowa: 110/22/0/1.2
@@ -79,7 +79,7 @@ borówki: 57/0.7/14/0.3
 kaszanka: 379/14/1/35
 karkówka wieprzowa pieczona: 250/24/0/17`
 
-export function portionRulesBlock(): string {
+function portionRulesBlock(): string {
   return `ZASADY SZACOWANIA GRAMATURY (Spersonalizowane dla profilu użytkownika):
 Jeśli użytkownik podaje ilość/gramaturę (np. "130 g", "50g", "2 kromki", "pół kostki") -> MASZ BEZWZGLĘDNIE UŻYĆ TEJ ILOŚCI.
 Jeśli podaje "porcja", "standardowa porcja", lub nie podaje gramatury wcale, zastosuj poniższe spersonalizowane porcje domyślne dla 1 osoby:
@@ -109,7 +109,7 @@ Jeśli podaje "porcja", "standardowa porcja", lub nie podaje gramatury wcale, za
 - Gdy użytkownik podaje liczbę sztuk przed produktem (np. "4 naleśniki", "3 jajka") — ZMNOŻ wagę 1 sztuki przez liczbę w polu grams.`
 }
 
-export function complexDishRulesBlock(): string {
+function complexDishRulesBlock(): string {
   return `ZASADY DOTYCZĄCE DAŃ ZŁOŻONYCH I SZACOWANIA:
 - "domowe", "od babci", "własne" przy pojedynczym produkcie (np. naleśniki, pierogi) = jedno entry, realistyczna gramatura × liczba sztuk; lekko niższy cukier/tłuszcz niż wersja sklepowa (mniej cukru w cieście, bez frytki głębokiej).
 - Jeśli produkt jest domowy / złożony (np. "karkówka domowa", "sałata ze śmietaną"), rozbij go na składowe lub oszacuj jako jedno entry o realistycznych wartościach:
@@ -118,7 +118,7 @@ export function complexDishRulesBlock(): string {
 - Jeśli produkt nie znajduje się w bazie, oszacuj wartości na 100g na podstawie ogólnej wiedzy dietetycznej (np. chude ryby ~100kcal, tłuste ryby ~200kcal, słodycze ~500kcal, sosy tłuste ~300kcal).`
 }
 
-export function rawVsCookedBlock(): string {
+function rawVsCookedBlock(): string {
   return `ZASADA SUROWY VS GOTOWANY (BARDZO WAŻNE):
 - Ryż, kasza, makaron, płatki owsiane i mięso drastycznie zmieniają wagę po ugotowaniu/usmażeniu.
 - Jeśli użytkownik podaje wprost stan, np. "suchy ryż", "surowa pierś z kurczaka" -> używaj wartości dla produktu suchego/surowego.
@@ -126,13 +126,13 @@ export function rawVsCookedBlock(): string {
 - Jeśli podaje małą gramaturę, np. "50g ryżu" lub "60g kaszy" (co w stanie gotowanym byłoby miniaturową porcją) -> załóż, że to masa suchego produktu przed gotowaniem i przelicz według wartości suchego produktu (np. 350 kcal/100g).`
 }
 
-export function hiddenFatBlock(): string {
+function hiddenFatBlock(): string {
   return `ZASADA UKRYTEGO TŁUSZCZU (BARDZO WAŻNE):
 - Jeśli potrawa jest smażona (np. "jajecznica", "smażona pierś z kurczaka", "schabowy") i użytkownik nie napisał wprost "bez tłuszczu" oraz nie wyszczególnił oleju/masła:
   - Dodaj do kalkulacji tłuszcz użyty do przygotowania (np. 5g masła na każde 2 jajka w jajecznicy, 5g oleju rzepakowego na porcję mięsa). Zwróć go jako osobny produkt (np. "masło do smażenia" / "olej do smażenia") lub uwzględnij w wartościach dania głównego.`
 }
 
-export function confidenceRulesBlock(): string {
+function confidenceRulesBlock(): string {
   return `ZASADY PEWNOŚCI (confidence + assumptions):
 - confidence: "high" — gramatura podana wprost LUB dopasowanie do bazy/FOOD_REF bez zgadywania porcji.
 - confidence: "medium" — rozsądne domyślne porcje (np. 1 jajko, standardowy dodatek).
@@ -140,7 +140,7 @@ export function confidenceRulesBlock(): string {
 - Jeśli confidence to "low" lub "medium" z domyślną porcją — ZAWSZE dodaj assumptions (np. "domyślna porcja mięsa 150g", "nie podano gramatury — szacunek 130g ryżu gotowanego").`
 }
 
-export function jsonSchemaBlock(mode: 'full' | 'grams_only' | 'macros_only'): string {
+function jsonSchemaBlock(mode: 'full' | 'grams_only' | 'macros_only'): string {
   if (mode === 'grams_only') {
     return `Zwróć WYŁĄCZNIE poprawny format JSON (żadnego dodatkowego tekstu ani markdownu poza JSON):
 {"items":[{"name":"dokładna nazwa produktu gotowego/potrawy","grams":130,"confidence":"high|medium|low","assumptions":["opcjonalna lista założeń gdy szacujesz gramaturę"]}]}`
@@ -153,7 +153,7 @@ export function jsonSchemaBlock(mode: 'full' | 'grams_only' | 'macros_only'): st
 {"items":[{"name":"dokładna nazwa produktu gotowego/potrawy","grams":130,"calories":113,"protein":2.5,"carbs":26.0,"fat":0.1,"fiber":1.8,"sugar":0.6,"confidence":"high|medium|low","assumptions":["opcjonalna lista założeń"]}]}`
 }
 
-export function contextBlocks(ctx: UserParseContext): string {
+function contextBlocks(ctx: UserParseContext): string {
   const blocks: string[] = []
   if (ctx.favoritesBlock.trim()) {
     blocks.push(`ULUBIONE PRODUKTY UŻYTKOWNIKA (preferuj te nazwy i porcje gdy pasują):
@@ -174,7 +174,7 @@ ${ctx.portionsBlock.trim()}`)
   return blocks.length ? `\n\n${blocks.join('\n\n')}` : ''
 }
 
-export function parsingRulesBlock(mode: 'full' | 'grams_only' | 'macros_only'): string {
+function parsingRulesBlock(mode: 'full' | 'grams_only' | 'macros_only'): string {
   const gramsRule = mode === 'grams_only'
     ? `0. POLE "grams" ZAWSZE ZAWIERA MASĘ W GRAMACH — nigdy liczbę sztuk. Jeśli użytkownik podaje "7 sztuk", "3 kawałki", "2 kostki" itp., przelicz na gramy (korzystając z przeliczników powyżej lub własnej wiedzy) i wpisz masę w gramach. Przykład: "7 sztuk ptasiego mleczka" → grams: 91 (7 x 13g).
 1. GRAMATURA EXPLICITE JEST ŚWIĘTA. Jeśli tekst zawiera "130 g ziemniaki", gramatura ziemniaków MUSI wynosić dokładnie 130g. Nie zaokrąglaj do 150g ani 200g.

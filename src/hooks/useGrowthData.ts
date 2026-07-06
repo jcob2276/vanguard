@@ -345,8 +345,8 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         scores: (r.scores as Record<string, number>) ?? {},
       }));
       setWeekFocusScore(focusScoreForWeek(parents, snapRows, weekStart, focusRes.data));
-    } catch (err) {
-      console.error('[useGrowthData] refresh failed', err);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }

@@ -20,7 +20,7 @@ function isPrivateOrBlockedHost(hostname: string): boolean {
 }
 
 /** Reject SSRF targets (private IPs, localhost, non-http schemes). */
-export function assertSafePublicUrl(raw: string): URL {
+function assertSafePublicUrl(raw: string): URL {
   let parsed: URL;
   try {
     parsed = new URL(raw);

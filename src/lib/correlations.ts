@@ -2,7 +2,7 @@ export type CorrelationCategory = 'sen' | 'zywienie' | 'trening' | 'regeneracja'
 export type ConfidenceTier = 'calibrating' | 'building' | 'solid';
 export type CorrelationMethod = 'pearson' | 'spearman';
 
-export interface ScatterPoint {
+interface ScatterPoint {
   day: string;
   x: number;
   y: number;

@@ -25,6 +25,7 @@ import {
 import ExerciseCard from './workout/ExerciseCard';
 import VolumeBar from './workout/VolumeBar';
 import PlyoBlock from './workout/PlyoBlock';
+import { Session } from '@supabase/supabase-js';
 import {
   advancePlyoProgram,
   clearPlyoCheckoff,
@@ -41,7 +42,7 @@ export default function WorkoutLogger({
   initial,
   onSaved,
 }: {
-  session: any;
+  session: Session;
   onBack: () => void;
   initial?: WorkoutLoggerInitial | null;
   onSaved?: () => void;
@@ -255,9 +256,9 @@ export default function WorkoutLogger({
       }
       onSaved?.();
       onBack();
-    } catch (err) {
+    } catch (err: unknown) {
       haptics.error();
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error ? (err as Error).message : String(err);
       if (message.includes('Not authorized') || message.includes('JWT')) {
         notify('Sesja wygasła — odśwież stronę (draft treningu zostaje lokalnie)', 'error');
       } else {

@@ -35,6 +35,7 @@ import GeneralView from './GeneralView';
 import ScoreboardPanel from './ScoreboardPanel';
 import { useHabitsData } from './useHabitsData';
 import { useDreamsData } from './useDreamsData';
+import { Session } from '@supabase/supabase-js';
 
 import {
   C,
@@ -50,7 +51,7 @@ const Fundament = lazy(() => import('../core/Fundament'));
 const MuscleHeatmap = lazy(() => import('../biometrics/MuscleHeatmap'));
 const MedicalDesktopTeaser = lazy(() => import('../medical/MedicalDesktopTeaser'));
 
-export default function DesktopDashboard({ session }: { session: any }) {
+export default function DesktopDashboard({ session }: { session: Session }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
   const { pendingGrowthMustCount } = useNudgeData(userId);
@@ -123,7 +124,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    try { localStorage.setItem('vanguard_theme', theme); } catch (e) {}
+    try { localStorage.setItem('vanguard_theme', theme); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
   }, [theme]);
 
   const grid = theme === 'dark' ? '#2d3748' : '#e5e7eb';
@@ -160,7 +163,9 @@ export default function DesktopDashboard({ session }: { session: any }) {
       await call('sync-strava', {}).catch(e => console.error('[sync] strava failed:', e));
       await call('compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
       refresh();
-    } catch (e) { console.error('[sync]', e); }
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
     finally { setSyncing(false); }
   }, [syncing, accessToken, userId, refresh]);
 

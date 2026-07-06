@@ -5,7 +5,7 @@ import { addDays } from '../components/calendar/calendarHelpers';
 interface UseSyncActivitiesProps {
   userId: string | undefined;
   selectedDay: string;
-  createEvent: (ev: any) => Promise<any>;
+  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
   fetchEvents: () => Promise<void>;
   setToastMessage: (msg: string | null) => void;
 }
@@ -138,7 +138,7 @@ export function useSyncActivities({
         setToastMessage(`Zsynchronizowano aktywności: dodano ${createdCount} nowych wpisów! 🏃🏋️🧖`);
       }
       await fetchEvents();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error syncing activities:', err);
       setToastMessage('Nie udało się zsynchronizować aktywności.');
     } finally {

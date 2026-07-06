@@ -121,7 +121,10 @@ export default function RichEditor({
             left: rects[0].left - parentRect.left
           });
         }
-      } catch (e) {}
+      } catch (e: unknown) {
+      console.error('[Action Error]', e);
+      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
+    }
       return;
     } else {
       setShowWikiMenu(false);
@@ -151,7 +154,10 @@ export default function RichEditor({
               left: rects[0].left - parentRect.left
             });
           }
-        } catch (e) {}
+        } catch (e: unknown) {
+      console.error('[Action Error]', e);
+      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
+    }
         return;
       }
     }
@@ -279,7 +285,7 @@ export default function RichEditor({
           }
           handleInput();
           return;
-        } catch (_) { /* fall through to innerHTML append */ }
+        } catch (_: unknown) { /* fall through to innerHTML append */ }
       }
     }
     // Fallback: append at end
@@ -546,7 +552,7 @@ export default function RichEditor({
           let frag: DocumentFragment;
           try {
             frag = afterRange.extractContents();
-          } catch (err) {
+          } catch (err: unknown) {
             frag = document.createDocumentFragment();
           }
 

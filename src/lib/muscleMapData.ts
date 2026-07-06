@@ -46,7 +46,7 @@ export const HEAT_SCALE = [
 
 export const BODY_BASE = 'rgba(148, 163, 184, 0.22)';
 
-export function tagToRbMuscles(tag: string, view: 'anterior' | 'posterior'): Muscle[] {
+function tagToRbMuscles(tag: string, view: 'anterior' | 'posterior'): Muscle[] {
   const map = view === 'anterior' ? ANTERIOR : POSTERIOR;
   return map[tag] ?? [];
 }

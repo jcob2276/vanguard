@@ -101,8 +101,8 @@ export function KpiTrendSparkline({
       });
 
       onValueChange(next);
-    } catch (e) {
-      console.warn('[KpiTrendSparkline] increment failed', e);
+    } catch (e: unknown) {
+      console.error('[Background Error]', e);
     } finally {
       setLogging(false);
     }

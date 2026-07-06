@@ -18,7 +18,7 @@ export interface SessionItem {
   exercise_logs: ExerciseLog[];
 }
 
-export interface StravaActivity {
+interface StravaActivity {
   sport_type: string | null;
   distance: number | null;
   start_date: string | null;

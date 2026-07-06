@@ -106,7 +106,7 @@ export const EXERCISES = [
 ];
 
 // Exercise name → tags lookup (normalized keys)
-export const EXERCISE_MAP = new Map(
+const EXERCISE_MAP = new Map(
   EXERCISES.map(e => [normalize(e.name), e.tags])
 );
 
@@ -124,7 +124,7 @@ export const MUSCLE_TAGS = [
   'przedramiona',
 ];
 
-export const TAG_SET_WEIGHTS = [1, 0.55, 0.35, 0.25];
+const TAG_SET_WEIGHTS = [1, 0.55, 0.35, 0.25];
 
 const STIMULUS_PROFILES: Array<{ patterns: string[]; stimulus: Record<string, { direct?: number; indirect?: number }> }> = [
   {
@@ -323,7 +323,7 @@ export function rirEffectiveness(rir: number | null | undefined): number {
   return 0.25;
 }
 
-export const TAG_COLOR: Record<string, string> = {
+const TAG_COLOR: Record<string, string> = {
   klatka:        'bg-blue-500/15 text-blue-300 border-blue-500/25',
   plecy:         'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
   barki:         'bg-violet-500/15 text-violet-300 border-violet-500/25',

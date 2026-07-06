@@ -110,31 +110,31 @@ BEGIN
     ) LOOP
         IF i = 1 THEN
             UPDATE public.daily_wins SET
-                task_1 = r_task.title, done_1 = r_task.done, category_1 = r_task.category, completed_at_1 = r_task.completed_at::text,
+                task_1 = r_task.title, done_1 = r_task.done, category_1 = r_task.category, completed_at_1 = r_task.completed_at,
                 task_1_todo_id = r_task.todo_id, task_1_checkpoint_id = r_task.checkpoint_id, task_1_pin_id = r_task.pin_id,
                 task_1_project_id = r_task.project_id, task_1_target_value = r_task.target_value, task_1_time_slot = r_task.time_slot
             WHERE id = v_day_win_id;
         ELSIF i = 2 THEN
             UPDATE public.daily_wins SET
-                task_2 = r_task.title, done_2 = r_task.done, category_2 = r_task.category, completed_at_2 = r_task.completed_at::text,
+                task_2 = r_task.title, done_2 = r_task.done, category_2 = r_task.category, completed_at_2 = r_task.completed_at,
                 task_2_todo_id = r_task.todo_id, task_2_checkpoint_id = r_task.checkpoint_id, task_2_pin_id = r_task.pin_id,
                 task_2_project_id = r_task.project_id, task_2_target_value = r_task.target_value, task_2_time_slot = r_task.time_slot
             WHERE id = v_day_win_id;
         ELSIF i = 3 THEN
             UPDATE public.daily_wins SET
-                task_3 = r_task.title, done_3 = r_task.done, category_3 = r_task.category, completed_at_3 = r_task.completed_at::text,
+                task_3 = r_task.title, done_3 = r_task.done, category_3 = r_task.category, completed_at_3 = r_task.completed_at,
                 task_3_todo_id = r_task.todo_id, task_3_checkpoint_id = r_task.checkpoint_id, task_3_pin_id = r_task.pin_id,
                 task_3_project_id = r_task.project_id, task_3_target_value = r_task.target_value, task_3_time_slot = r_task.time_slot
             WHERE id = v_day_win_id;
         ELSIF i = 4 THEN
             UPDATE public.daily_wins SET
-                task_4 = r_task.title, done_4 = r_task.done, category_4 = r_task.category, completed_at_4 = r_task.completed_at::text,
+                task_4 = r_task.title, done_4 = r_task.done, category_4 = r_task.category, completed_at_4 = r_task.completed_at,
                 task_4_todo_id = r_task.todo_id, task_4_checkpoint_id = r_task.checkpoint_id, task_4_pin_id = r_task.pin_id,
                 task_4_project_id = r_task.project_id, task_4_target_value = r_task.target_value, task_4_time_slot = r_task.time_slot
             WHERE id = v_day_win_id;
         ELSIF i = 5 THEN
             UPDATE public.daily_wins SET
-                task_5 = r_task.title, done_5 = r_task.done, category_5 = r_task.category, completed_at_5 = r_task.completed_at::text,
+                task_5 = r_task.title, done_5 = r_task.done, category_5 = r_task.category, completed_at_5 = r_task.completed_at,
                 task_5_todo_id = r_task.todo_id, task_5_checkpoint_id = r_task.checkpoint_id, task_5_pin_id = r_task.pin_id,
                 task_5_project_id = r_task.project_id, task_5_target_value = r_task.target_value, task_5_time_slot = r_task.time_slot
             WHERE id = v_day_win_id;

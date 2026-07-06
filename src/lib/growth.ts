@@ -2,7 +2,7 @@ import { addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw, formatWarsawDate } from './date';
 
-export type { DefaultSkillTreeNode, DefaultSubSkill } from './growthSkills';
+;
 
 export type GrowthResourceType =
   | 'book'
@@ -13,7 +13,7 @@ export type GrowthResourceType =
   | 'exercise';
 
 export type GrowthPinSlot = 'must' | 'active';
-export type GrowthPinEntityType = 'link' | 'todo' | 'manual';
+type GrowthPinEntityType = 'link' | 'todo' | 'manual';
 
 export interface LearningSkill {
   id: string;

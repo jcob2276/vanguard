@@ -4,9 +4,10 @@ import { supabase } from "../../lib/supabase";
 import { getTodayWarsaw } from "../../lib/date";
 import { notify } from "../../lib/notify";
 import { updateDailyWin } from "../../lib/goalSpine.mutations";
+import { Session } from '@supabase/supabase-js';
 
 interface Props {
-  session: any;
+  session: Session;
   onClose: () => void;
   onSaved?: () => void;
   onPlanTomorrow?: () => void;
@@ -67,9 +68,10 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
         if (recon && recon.day_score !== null) {
           setDayScore(recon.day_score);
         }
-      } catch (err) {
-        console.error("Error fetching today win for shutdown:", err);
-      } finally {
+      } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+    } finally {
         setLoading(false);
       }
     })();
@@ -132,7 +134,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
       if (onSaved) onSaved();
       setStep(3); // Go to success screen
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error saving daily shutdown:", err);
       notify("Nie udało się zamknąć dnia", "error");
     } finally {

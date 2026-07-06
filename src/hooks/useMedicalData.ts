@@ -56,9 +56,9 @@ export function useMedicalData(userId: string | undefined) {
           bmr_kcal: r.bmr_kcal == null ? null : Number(r.bmr_kcal),
         })) as BodyCompositionRow[],
       );
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('[useMedicalData]', e);
-      setError(e instanceof Error ? e.message : 'Błąd ładowania badań');
+      setError(e instanceof Error ? (e as Error).message : 'Błąd ładowania badań');
     } finally {
       setLoading(false);
     }

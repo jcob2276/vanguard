@@ -1,8 +1,8 @@
-import { VanguardCore, computeSignals } from '../_shared/vanguardCore.ts'
-import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
-import { getWarsawDayBoundaries, getWarsawDateString } from '../_shared/time.ts'
+import { VanguardCore, computeSignals } from '../vanguardCore.ts'
+import { safeExecute, createServiceClient, corsHeaders } from '../supabase.ts'
+import { getWarsawDayBoundaries, getWarsawDateString } from '../time.ts'
 
-Deno.serve(async (req) => {
+export const runSaveDailyAggregate = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -186,4 +186,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

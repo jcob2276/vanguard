@@ -1,5 +1,5 @@
 /** Safe HTML card templates (Memex pattern library → Vanguard). Placeholders: {{key}} */
-export const HTML_CARD_TEMPLATES: Record<string, string> = {
+const HTML_CARD_TEMPLATES: Record<string, string> = {
   metric_signal_dashboard: `
 <div style="font-family:system-ui,sans-serif;padding:4px 0">
   <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#5B6CFF">{{title}}</p>
@@ -45,7 +45,7 @@ export const HTML_CARD_TEMPLATES: Record<string, string> = {
 </div>`,
 };
 
-export const HTML_CARD_TEMPLATE_IDS = Object.keys(HTML_CARD_TEMPLATES);
+const HTML_CARD_TEMPLATE_IDS = Object.keys(HTML_CARD_TEMPLATES);
 
 export function resolveHtmlTemplate(templateOrHtml: string): string {
   return HTML_CARD_TEMPLATES[templateOrHtml] ?? templateOrHtml;

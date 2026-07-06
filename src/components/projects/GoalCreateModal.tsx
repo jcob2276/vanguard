@@ -53,8 +53,8 @@ export default function GoalCreateModal({
       if (error) throw error;
       setGoalCreatePreview(data);
       setGoalCreateStep('preview');
-    } catch (err: any) {
-      onError('AI: ' + err.message);
+    } catch (err: unknown) {
+      onError('AI: ' + (err as Error).message);
       setGoalCreateStep(GOAL_QUESTIONS.length - 1);
     }
   };

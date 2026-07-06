@@ -68,7 +68,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
       } as LifeGoalDeclarations);
       notify('Zapisano cele roczne', 'success');
       setEditing(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[LifeGoalsCard] save failed', err);
       notify('Błąd zapisu celów rocznych', 'error');
     } finally {

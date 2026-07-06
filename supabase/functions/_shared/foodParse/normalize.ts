@@ -3,13 +3,13 @@ import { normalizePl } from "./matching.ts";
 
 export const PARSER_VERSION = '2026-06-28';
 
-export function parseConfidence(value: unknown): 'high' | 'medium' | 'low' {
+function parseConfidence(value: unknown): 'high' | 'medium' | 'low' {
   const v = String(value || '').toLowerCase();
   if (v === 'high' || v === 'medium' || v === 'low') return v;
   return 'medium';
 }
 
-export function parseAssumptions(value: unknown): string[] | undefined {
+function parseAssumptions(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const items = value.map((a) => String(a).trim()).filter(Boolean);
   return items.length ? items : undefined;
@@ -119,7 +119,7 @@ interface GuardrailRule {
   defaultGrams: number;
 }
 
-export const NUTRITION_GUARDRAILS: GuardrailRule[] = [
+const NUTRITION_GUARDRAILS: GuardrailRule[] = [
   { keywords: ['maslo', 'masla'], maxGrams: 35, defaultGrams: 10 },
   { keywords: ['olej', 'oleju', 'rzepakow', 'slonecznik'], maxGrams: 35, defaultGrams: 10 },
   { keywords: ['oliwa', 'oliwy'], maxGrams: 35, defaultGrams: 10 },
@@ -173,7 +173,7 @@ export function needsFoodReview(items: ParsedFoodItem[]): boolean {
   return items.some((i) => i.confidence !== 'high');
 }
 
-export const MACRO_MISMATCH_TOLERANCE = 0.15;
+const MACRO_MISMATCH_TOLERANCE = 0.15;
 
 export function caloriesFromMacros(protein: number, carbs: number, fat: number): number {
   return Math.round(protein * 4 + carbs * 4 + fat * 9);

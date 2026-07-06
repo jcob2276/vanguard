@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getTodayWarsaw } from '../lib/date';
 import type { Session } from '@supabase/supabase-js';
 
-export interface DailyStatPoint {
+interface DailyStatPoint {
   date: string;
   inputs: number;
   cards: number;
@@ -19,7 +19,7 @@ export interface UserStatsSnapshot {
   daily: DailyStatPoint[];
 }
 
-export function useUserStatsSnapshot(session: Session | null) {
+export function useUserStatsSnapshot(session: Session) {
   const [data, setData] = useState<UserStatsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,9 +81,9 @@ export function useUserStatsSnapshot(session: Session | null) {
         }
 
         setData({ totalInputs, totalCards, totalCompletedTodos, activeDays, currentStreakDays, daily });
-      } catch (e) {
-        console.error('[useUserStatsSnapshot]', e);
-      } finally {
+      } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    } finally {
         setLoading(false);
       }
     }

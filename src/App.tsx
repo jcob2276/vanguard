@@ -21,9 +21,15 @@ function KorelacjeRedirect() {
 }
 
 function KeepRedirect() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('new') === '1') try { localStorage.setItem('vanguard_keep_new', '1'); } catch (e) {}
-  try { localStorage.setItem('vanguard_view', 'keep'); } catch (e) {}
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') try { localStorage.setItem('vanguard_keep_new', '1'); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
+    try { localStorage.setItem('vanguard_view', 'keep'); } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
+  }, []);
   return <Navigate to="/" replace />;
 }
 
@@ -47,7 +53,7 @@ function AppRoutes() {
   }, [setSession, fetchUserSettings]);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => console.log('[sw] Registered successfully:', reg.scope))
         .catch((err) => console.error('[sw] Registration failed:', err));

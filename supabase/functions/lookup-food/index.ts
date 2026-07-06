@@ -104,9 +104,13 @@ async function fetchOffWithRetry(url: string): Promise<Response | null> {
       const res = await fetch(url, { headers: { 'User-Agent': OFF_USER_AGENT }, signal: AbortSignal.timeout(22000) })
       if (res.ok) return res
       console.warn(`[lookup-food] OFF attempt ${attempt + 1} -> ${res.status}`)
-    } catch (err) {
-      console.warn(`[lookup-food] OFF attempt ${attempt + 1} failed:`, err)
-    }
+    } catch (err: unknown) {
+    console.error('[Edge Function Error]', err);
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
   }
   return null
 }

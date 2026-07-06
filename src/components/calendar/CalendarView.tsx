@@ -37,12 +37,13 @@ import { useStore } from '../../store/useStore';
 import { useCalendarWrite, type CalendarEvent } from '../../hooks/useCalendarWrite';
 import { useTimeBudgets } from '../../hooks/useTimeBudgets';
 import { useCalendarTodos, type CalendarTodo } from '../../hooks/useCalendarTodos';
-import { warsawDayBoundsISO } from '../../lib/date';
+import { warsawDayBoundsISO, combineDateTimeWarsawISO } from '../../lib/date';
 import { LIFE_SPHERES, LEGACY_CATEGORY_TO_SPHERE } from '../../lib/lifeSpheres';
 import { GOAL_ICON } from '../todo/todoUtils';
+import { updateTodoItem, deleteTodoItem } from '../../lib/todo';
 
 import {
-  WARSAW_OFFSET,
+  getWarsawOffset,
   HOUR_START,
   HOUR_END,
   HOURS,
@@ -71,11 +72,13 @@ import CalendarBudgetPanel from './CalendarBudgetPanel';
 import { useAIScheduling } from '../../hooks/useAIScheduling';
 import { useSyncOura } from '../../hooks/useSyncOura';
 import { useSyncActivities } from '../../hooks/useSyncActivities';
+import { Session } from '@supabase/supabase-js';
 
 interface Props {
-  session: any;
+  session: Session;
   onBack: () => void;
   onSyncCalendar: () => void;
+  onResyncCalendar?: () => Promise<void> | void;
   isSyncing: boolean;
   onNavigateTo?: (dest: string) => void;
 }
@@ -87,7 +90,7 @@ interface QuickCreateState {
   startMin: number; // minutes from midnight
 }
 
-export default function CalendarView({ session, onBack, onSyncCalendar, isSyncing, onNavigateTo }: Props) {
+export default function CalendarView({ session, onBack, onSyncCalendar, onResyncCalendar, isSyncing, onNavigateTo }: Props) {
   const userId = session?.user?.id as string | undefined;
   const accessToken = session?.access_token as string | undefined;
 
@@ -116,6 +119,10 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [quickCustomDays, setQuickCustomDays] = useState<string[]>([]);
   const [quickRecurrenceEndDate, setQuickRecurrenceEndDate] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Edit scheduled todo state
+  const [editingTodo, setEditingTodo] = useState<CalendarTodo | null>(null);
+  const [editingTodoTitle, setEditingTodoTitle] = useState('');
 
   // Edit event state
   const [selectedEvent, setSelectedEvent] = useState<CalRow | null>(null);
@@ -147,7 +154,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('vanguard_calendar_sidebar_collapsed') === 'true';
-    } catch (e) {
+    } catch (err: unknown) {
       return false;
     }
   });
@@ -157,7 +164,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       const next = !prev;
       try {
         localStorage.setItem('vanguard_calendar_sidebar_collapsed', String(next));
-      } catch (e) {}
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
       return next;
     });
   };
@@ -229,9 +238,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 isOWM: true
               };
             }
-          } catch (e) {
-            console.warn('OpenWeatherMap current weather fetch failed:', e);
-          }
+          } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
         }
 
         // 2. Fetch Open-Meteo for daily forecast (and current as fallback)
@@ -275,7 +284,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           });
           setWeatherLoading(false);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error fetching weather:', err);
         if (isMounted) {
           setWeather(prev => (prev ? { ...prev, error: true } : {
@@ -524,9 +533,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           const hours = diffMs / (1000 * 60 * 60);
           totals[cat] += hours;
         }
-      } catch (e) {
-        console.error('Error calculating event duration:', e);
-      }
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
     });
     return totals;
   }, [events]);
@@ -548,8 +557,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         .order('start_time', { ascending: true });
       if (error) throw error;
       setEvents((data as CalRow[]) || []);
-    } catch (e) {
-      console.error('CalendarView fetch error:', e);
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setLoading(false);
     }
@@ -685,7 +694,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
   // RRULE UNTIL wants a UTC date-time (YYYYMMDDTHHMMSSZ) — anchor it to end-of-day Warsaw time
   // so the last occurrence on the picked date still fires before the series stops.
   const formatRRuleUntil = (dateStr: string): string => {
-    const local = new Date(`${dateStr}T23:59:59${WARSAW_OFFSET}`);
+    const local = new Date(`${dateStr}T23:59:59${getWarsawOffset(dateStr)}`);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}T${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}${pad(local.getUTCSeconds())}Z`;
   };
@@ -723,9 +732,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           recurrence: (quickRecurrence === 'custom' ? undefined : quickRecurrence) || undefined,
         });
         setQuickCreate(null);
-      } catch (err) {
-        console.error('create task error:', err);
-      } finally {
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    } finally {
         setSaving(false);
       }
       return;
@@ -738,8 +747,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const endH = Math.floor(endMin / 60);
     const endM = endMin % 60;
     const pad = (n: number) => String(n).padStart(2, '0');
-    const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${WARSAW_OFFSET}`;
-    const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${WARSAW_OFFSET}`;
+    const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${getWarsawOffset(`${y}-${m}-${d}`)}`;
+    const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(endM)}:00${getWarsawOffset(`${y}-${m}-${d}`)}`;
     const recurrence = buildRecurrenceRule(quickRecurrence, quickCustomDays, quickRecurrenceEndDate);
     const ev: CalendarEvent = {
       summary: quickTitle.trim(),
@@ -763,8 +772,14 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         (a.start_time || '').localeCompare(b.start_time || ''),
       ));
       setQuickCreate(null);
-    } catch (err) {
-      console.error('create event error:', err);
+      if (recurrence?.length && onResyncCalendar) {
+        // Same as handleEditSave: pull the expanded recurring series back from
+        // Google so later days show the future occurrences too, not just this one.
+        await onResyncCalendar();
+        await fetchEvents();
+      }
+    } catch (err: unknown) {
+      console.error('[Background Error]', err);
     } finally {
       setSaving(false);
     }
@@ -786,7 +801,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       setEditDate(startParts.dateStr);
       setEditStart(startParts.timeStr);
       setEditEnd(endParts.timeStr);
-    } catch (e) {
+    } catch (err: unknown) {
       console.error('Failed to parse event click time:', e);
       const partsStart = ev.start_time.split('T');
       const partsEnd = ev.end_time.split('T');
@@ -800,7 +815,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     if (!selectedEvent || !editTitle.trim() || !editStart || !editEnd || !editDate) return;
     setSaving(true);
     
-    const start = `${editDate}T${editStart}:00${WARSAW_OFFSET}`;
+    const start = `${editDate}T${editStart}:00${getWarsawOffset(editDate)}`;
     let endDateStr = editDate;
     
     // If end time is chronologically before start time, it crosses midnight (ends the next day)
@@ -808,15 +823,20 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       endDateStr = addDays(editDate, 1);
     }
     
-    const end = `${endDateStr}T${editEnd}:00${WARSAW_OFFSET}`;
-    const evId = selectedEvent.event_id || selectedEvent.id;
+    const end = `${endDateStr}T${editEnd}:00${getWarsawOffset(endDateStr)}`;
+    // For recurring events GCal stores instance IDs as baseId_timestamp — strip the suffix
+    // so we update the entire series, not just one occurrence.
+    const rawId = selectedEvent.event_id || selectedEvent.id;
+    const evId = rawId.includes('_') ? rawId.split('_')[0] : rawId;
+    const recurrenceRule = buildRecurrenceRule(editRecurrence, editCustomDays, editRecurrenceEndDate);
+    console.log('[handleEditSave] evId:', evId, 'recurrence:', recurrenceRule, 'editRecurrence:', editRecurrence, 'customDays:', editCustomDays, 'endDate:', editRecurrenceEndDate);
     const ev: CalendarEvent & { id: string } = {
       id: evId,
       summary: editTitle.trim(),
       start,
       end,
       category: editCategory || undefined,
-      recurrence: buildRecurrenceRule(editRecurrence, editCustomDays, editRecurrenceEndDate),
+      recurrence: recurrenceRule,
     };
     try {
       await updateEvent(ev);
@@ -834,9 +854,23 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
         ).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')),
       );
       setSelectedEvent(null);
-    } catch (err) {
+      if (ev.recurrence?.length) {
+        // Recurrence is written straight to Google Calendar, but our local
+        // vanguard_calendar mirror only holds this one row — future occurrences
+        // won't appear until a real data resync pulls the expanded series back.
+        // Without this, "Zapisz zmiany" looks like it silently did nothing.
+        setToastMessage('Powtarzanie ustawione — synchronizuję kalendarz…');
+        if (onResyncCalendar) {
+          await onResyncCalendar();
+          await fetchEvents();
+          setToastMessage('Kalendarz zsynchronizowany 🔁');
+        }
+      } else {
+        setToastMessage('Zapisano zmiany ✅');
+      }
+    } catch (err: unknown) {
       console.error('edit event error:', err);
-      setToastMessage('Nie udało się zapisać zmian. Upewnij się, że godziny są poprawne.');
+      setToastMessage(`Błąd: ${err?.message ?? 'nieznany błąd'}`);
     } finally {
       setSaving(false);
     }
@@ -852,7 +886,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       setSelectedEvent(null);
       setShowDeleteConfirm(false);
       setToastMessage('Wydarzenie zostało usunięte. 🗑️');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('delete event error:', err);
       setToastMessage('Nie udało się usunąć wydarzenia.');
     } finally {
@@ -929,8 +963,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           }
 
           const pad = (n: number) => String(n).padStart(2, '0');
-          const newStartISO = `${eventDate}T${pad(Math.floor(newStartMin / 60))}:${pad(newStartMin % 60)}:00${WARSAW_OFFSET}`;
-          const newEndISO = `${eventDate}T${pad(Math.floor(newEndMin / 60))}:${pad(newEndMin % 60)}:00${WARSAW_OFFSET}`;
+          const newStartISO = `${eventDate}T${pad(Math.floor(newStartMin / 60))}:${pad(newStartMin % 60)}:00${getWarsawOffset(eventDate)}`;
+          const newEndISO = `${eventDate}T${pad(Math.floor(newEndMin / 60))}:${pad(newEndMin % 60)}:00${getWarsawOffset(eventDate)}`;
 
           return {
             ...item,
@@ -970,8 +1004,8 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       }
 
       const pad = (n: number) => String(n).padStart(2, '0');
-      const startISO = `${eventDate}T${pad(Math.floor(finalStartMin / 60))}:${pad(finalStartMin % 60)}:00${WARSAW_OFFSET}`;
-      const endISO = `${eventDate}T${pad(Math.floor(finalEndMin / 60))}:${pad(finalEndMin % 60)}:00${WARSAW_OFFSET}`;
+      const startISO = `${eventDate}T${pad(Math.floor(finalStartMin / 60))}:${pad(finalStartMin % 60)}:00${getWarsawOffset(eventDate)}`;
+      const endISO = `${eventDate}T${pad(Math.floor(finalEndMin / 60))}:${pad(finalEndMin % 60)}:00${getWarsawOffset(eventDate)}`;
 
       const updatePayload = {
         id: ev.event_id || ev.id,
@@ -984,7 +1018,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
       try {
         await updateEvent(updatePayload);
         setToastMessage('Zaktualizowano czas wydarzenia! 🕒');
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Failed to save drag/resize changes:', err);
         setToastMessage('Nie udało się zapisać zmian.');
         setEvents((prevEvents) =>
@@ -1095,12 +1129,23 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     const height = Math.max(18, (visibleEndMin - visibleStartMin) * PX_PER_MIN);
     const chip = goalChipFor(todo.section_id);
     const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
-    const isCompleting = completedTodoIds.has(todo.id);
+    const isCompleting = todo.status === 'done' || completedTodoIds.has(todo.id);
     return (
       <div
         key={`todo-${todo.id}`}
-        title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
-        className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[1.01] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-150 z-10 ${isCompleting ? 'opacity-50' : ''}`}
+        title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''} (przeciągnij, aby zmienić godzinę · kliknij, aby edytować)`}
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title, duration_minutes: todo.duration_minutes }));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditingTodo(todo);
+          setEditingTodoTitle(todo.title);
+        }}
+        className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[1.01] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-150 z-10 cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-50' : ''}`}
         style={{ top, height, left: '75%', width: '24%' }}
       >
         <div className="flex items-start gap-0.5">
@@ -1111,7 +1156,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
               handleToggleTodo(todo.id);
               setToastMessage(`Ukończono: "${todo.title}" ✅`);
             }}
-            className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+            className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
           >
             {isCompleting && <Check size={6} className="text-white" strokeWidth={4} />}
           </button>
@@ -1165,10 +1210,11 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 setSaving(true);
                 // Write due_date + scheduled_time straight onto the todo — it stays open and
                 // shows up on the grid via todosForDay(), instead of spawning a disconnected
-                // calendar_event and silently completing the task.
-                await scheduleTodoAt(todo, day, startMin, 60);
+                // calendar_event and silently completing the task. Re-dragging an already
+                // scheduled block preserves its existing duration instead of resetting to 60min.
+                await scheduleTodoAt(todo, day, startMin, todo.duration_minutes ?? 60);
                 setToastMessage(`Zaplanowano zadanie: "${todo.title}" 📅`);
-              } catch (err) {
+              } catch (err: unknown) {
                 console.error('Failed to drop and schedule task:', err);
                 setToastMessage('Nie udało się zaplanować zadania.');
               } finally {
@@ -1333,12 +1379,17 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
             {untimedByDay[idx].map((todo) => {
               const chip = goalChipFor(todo.section_id);
               const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
-              const isCompleting = completedTodoIds.has(todo.id);
+              const isCompleting = todo.status === 'done' || completedTodoIds.has(todo.id);
               return (
                 <div
                   key={todo.id}
                   title={chip?.dreamTitle ? `${todo.title} · ${chip.dreamTitle}` : todo.title}
-                  className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-[9px] font-bold text-primary transition-colors ${isCompleting ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-[9px] font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-50' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingTodo(todo);
+                    setEditingTodoTitle(todo.title);
+                  }}
                 >
                   <button
                     type="button"
@@ -1347,7 +1398,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                       handleToggleTodo(todo.id);
                       setToastMessage(`Ukończono: "${todo.title}" ✅`);
                     }}
-                    className={`h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+                    className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
                   >
                     {isCompleting && <Check size={7} className="text-white" strokeWidth={4} />}
                   </button>
@@ -1560,7 +1611,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                 {dayTodos.map((todo) => {
                   const chip = goalChipFor(todo.section_id);
                   const GoalIcon = chip ? GOAL_ICON[chip.pillar] : null;
-                  const isCompleting = completedTodoIds.has(todo.id);
+                  const isCompleting = todo.status === 'done' || completedTodoIds.has(todo.id);
                   return (
                     <div
                       key={todo.id}
@@ -1568,11 +1619,12 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
                     >
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation(); // add propagation stop for safety
                           handleToggleTodo(todo.id);
                           setToastMessage(`Ukończono: "${todo.title}" ✅`);
                         }}
-                        className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/40 hover:bg-primary/10'}`}
+                        className={`relative after:absolute after:-inset-2 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/40 hover:bg-primary/10'}`}
                       >
                         {isCompleting && <Check size={10} className="text-white" strokeWidth={3} />}
                       </button>
@@ -1817,6 +1869,161 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
     );
   }
 
+  // ── Edit scheduled todo modal ──
+  const renderEditTodoModal = () => {
+    if (!editingTodo) return null;
+    const close = () => setEditingTodo(null);
+    const saveTitle = async () => {
+      const trimmed = editingTodoTitle.trim();
+      if (!trimmed || trimmed === editingTodo.title) return;
+      await updateTodoItem(editingTodo.id, { title: trimmed });
+      await fetchAllTodos();
+    };
+    const handleDelete = async () => {
+      await deleteTodoItem(editingTodo.id);
+      await fetchAllTodos();
+      close();
+    };
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={close}>
+        <div
+          className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Edytuj zadanie</p>
+            <button onClick={close} className="p-1 text-text-muted hover:text-text-primary transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          <input
+            autoFocus
+            value={editingTodoTitle}
+            onChange={(e) => setEditingTodoTitle(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-full rounded-xl border border-border-custom/60 bg-surface-solid px-3 py-2 text-[13px] font-semibold text-text-primary outline-none focus:border-primary/40"
+          />
+
+          {/* Date & time — plain native inputs (the full popup calendar overflowed past the
+              viewport bottom inside this centered modal, cutting off the time field). */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={editingTodo.due_date || ''}
+                onChange={async (e) => {
+                  const due_date = e.target.value || null;
+                  const scheduled_time = editingTodo.scheduled_time && due_date
+                    ? combineDateTimeWarsawISO(due_date, editingTodo.scheduled_time.slice(11, 16))
+                    : editingTodo.scheduled_time;
+                  setEditingTodo({ ...editingTodo, due_date, scheduled_time });
+                  await updateTodoItem(editingTodo.id, { due_date, scheduled_time });
+                  await fetchAllTodos();
+                }}
+                className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+              />
+              <input
+                type="time"
+                value={editingTodo.scheduled_time ? editingTodo.scheduled_time.slice(11, 16) : ''}
+                onChange={async (e) => {
+                  const timeVal = e.target.value;
+                  const scheduled_time = timeVal && editingTodo.due_date
+                    ? combineDateTimeWarsawISO(editingTodo.due_date, timeVal)
+                    : null;
+                  setEditingTodo({ ...editingTodo, scheduled_time });
+                  await updateTodoItem(editingTodo.id, { scheduled_time });
+                  await fetchAllTodos();
+                }}
+                className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Complete Todo Button */}
+          <button
+            type="button"
+            onClick={async () => {
+              await handleToggleTodo(editingTodo.id);
+              const isDone = !completedTodoIds.has(editingTodo.id);
+              setToastMessage(isDone ? `Ukończono: "${editingTodo.title}" ✅` : `Cofnięto ukończenie: "${editingTodo.title}"`);
+              close();
+            }}
+            className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-[12px] font-black uppercase transition-all active:scale-[0.98] ${
+              completedTodoIds.has(editingTodo.id)
+                ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/15 border border-amber-500/20'
+                : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20'
+            }`}
+          >
+            <Check size={14} />
+            {completedTodoIds.has(editingTodo.id) ? 'Oznacz jako nieukończone' : 'Oznacz jako ukończone'}
+          </button>
+
+          {/* Postpone Section */}
+          {!completedTodoIds.has(editingTodo.id) && (
+            <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3.5 space-y-2.5">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Przełóż na jutro
+              </label>
+              
+              <textarea
+                placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
+                value={editingTodo.notes || ''}
+                onChange={(e) => {
+                  setEditingTodo({ ...editingTodo, notes: e.target.value });
+                }}
+                className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-[11px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
+              />
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const currentDateStr = editingTodo.due_date || today;
+                  const tomorrowStr = addDays(currentDateStr, 1);
+                  
+                  let newScheduledTime = null;
+                  if (editingTodo.scheduled_time) {
+                    const timePart = editingTodo.scheduled_time.slice(11, 16);
+                    newScheduledTime = combineDateTimeWarsawISO(tomorrowStr, timePart);
+                  }
+
+                  await updateTodoItem(editingTodo.id, {
+                    due_date: tomorrowStr,
+                    scheduled_time: newScheduledTime,
+                    notes: editingTodo.notes?.trim() || null
+                  });
+                  await fetchAllTodos();
+                  setToastMessage(`Przełożono na jutro: "${editingTodo.title}" ➡️`);
+                  close();
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 py-2 text-[11px] font-black uppercase text-primary hover:bg-primary/15 transition-all active:scale-[0.98]"
+              >
+                Przełóż na jutro
+              </button>
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleDelete}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 py-2.5 text-[12px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <Trash2 size={13} /> Usuń
+            </button>
+            <button
+              onClick={close}
+              className="flex-1 rounded-xl bg-primary text-white py-2.5 text-[13px] font-black shadow-lg shadow-primary/10 hover:bg-primary/90 active:scale-[0.98] transition-all"
+            >
+              Zamknij
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ── Budget Config Modal ──
   const renderBudgetConfigModal = () => {
     if (!showBudgetConfig) return null;
@@ -1832,9 +2039,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
           await saveBudget(cat, minHours, maxHours);
         }
         setShowBudgetConfig(false);
-      } catch (err) {
-        console.error('Error saving budgets:', err);
-      }
+      } catch (err: unknown) {
+      console.error('[Background Error]', err);
+    }
     };
 
     return (
@@ -2246,6 +2453,9 @@ export default function CalendarView({ session, onBack, onSyncCalendar, isSyncin
 
       {/* Edit event modal */}
       {renderEditModal()}
+
+      {/* Edit scheduled todo modal */}
+      {renderEditTodoModal()}
 
       {/* Budget config modal */}
       {renderBudgetConfigModal()}

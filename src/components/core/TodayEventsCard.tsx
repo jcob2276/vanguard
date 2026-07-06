@@ -1,7 +1,8 @@
 import { CalendarDays } from 'lucide-react';
 import { useTodayCalendarEvents } from '../../hooks/useTodayCalendarEvents';
+import { Session } from '@supabase/supabase-js';
 
-export default function TodayEventsCard({ session }: { session: any }) {
+export default function TodayEventsCard({ session }: { session: Session }) {
   const userId = session?.user?.id;
   const { events, isActive, isPast } = useTodayCalendarEvents(userId);
 

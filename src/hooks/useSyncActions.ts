@@ -36,8 +36,9 @@ export function useSyncActions({
     try {
       await callFn('sync-calendar', { userId });
       onRefresh();
-    } catch (err) {
-      console.error('Calendar Sync Error:', err);
+    } catch (err: unknown) {
+      console.error('[Action Error]', err);
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
     } finally {
       setSyncing(false);
     }
@@ -60,9 +61,9 @@ export function useSyncActions({
         console.error('Google Auth Error:', res?.error);
         notify('Błąd połączenia z Google: ' + (res?.error || 'Nieznany błąd'), 'error');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Google Auth Error:', err);
-      notify('Błąd połączenia z Google: ' + err.message, 'error');
+      notify('Błąd połączenia z Google: ' + (err as Error).message, 'error');
     } finally {
       setSyncing(false);
     }

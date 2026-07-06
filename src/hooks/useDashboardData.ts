@@ -6,6 +6,7 @@ import { VanguardCore, computeSignals } from '../lib/vanguardCore';
 import type { Tables } from '../lib/database.types';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
+import { Session } from '@supabase/supabase-js';
 
 type DashboardData = {
   weeklyCalories: number;
@@ -103,15 +104,15 @@ export function useDashboardData() {
         loading: false
       });
 
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error fetching dashboard data:', err);
-      setData(prev => ({ ...prev, loading: false, error: err instanceof Error ? err.message : 'Unknown error' }));
+      setData(prev => ({ ...prev, loading: false, error: err instanceof Error ? (err as Error).message : 'Unknown error' }));
     }
   }, []);
 
   useGoalSpineInvalidation(fetchData);
 
-  const autoSyncCalendar = async (session: any) => {
+  const autoSyncCalendar = async (session: Session) => {
     try {
       const { data: lastEvent } = await supabase
         .from('vanguard_calendar')
@@ -136,7 +137,7 @@ export function useDashboardData() {
           signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
         });
       }
-    } catch (_e) {
+    } catch (_e: unknown) {
       // silent — calendar sync nie może blokować ładowania dashboardu
     }
   };

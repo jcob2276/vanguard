@@ -42,8 +42,8 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
       }));
       if (!extracted.length) setError('Nie znaleziono żadnych zadań w tym tekście.');
       setTasks(extracted);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : String(err));
     } finally {
       setExtracting(false);
     }
@@ -63,8 +63,8 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
       })));
       onCreated(created);
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? (err as Error).message : String(err));
       setCreating(false);
     }
   };

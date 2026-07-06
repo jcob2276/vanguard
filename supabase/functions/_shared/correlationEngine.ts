@@ -45,7 +45,7 @@ function rankValues(values: number[]): number[] {
   return ranks
 }
 
-export function pearson(xy: [number, number][]): CorrelationCore | null {
+function pearson(xy: [number, number][]): CorrelationCore | null {
   const n = xy.length
   if (n < 3) return null
   let sumX = 0, sumY = 0
@@ -62,7 +62,7 @@ export function pearson(xy: [number, number][]): CorrelationCore | null {
   return { r, n, p: pValue(r, n), slope: sxy / sxx, intercept: meanY - (sxy / sxx) * meanX }
 }
 
-export function spearman(xy: [number, number][]): CorrelationCore | null {
+function spearman(xy: [number, number][]): CorrelationCore | null {
   if (xy.length < 3) return null
   const xs = xy.map(p => p[0])
   const ys = xy.map(p => p[1])
@@ -71,7 +71,7 @@ export function spearman(xy: [number, number][]): CorrelationCore | null {
   return pearson(rx.map((x, i) => [x, ry[i]] as [number, number]))
 }
 
-export function shiftDay(day: string, delta: number): string | null {
+function shiftDay(day: string, delta: number): string | null {
   if (delta === 0) return day
   const d = new Date(day + 'T12:00:00Z')
   if (isNaN(d.getTime())) return null

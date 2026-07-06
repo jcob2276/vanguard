@@ -20,9 +20,9 @@ async function runStrainRecompute(userId: string): Promise<void> {
       const json = await res.json().catch(() => ({}))
       console.warn('[strainRefresh] compute-daily-strain:', json.error || res.status)
     }
-  } catch (e) {
-    console.warn('[strainRefresh] compute-daily-strain failed', e)
-  }
+  } catch (e: unknown) {
+      console.error('[Background Error]', e);
+    }
 }
 
 /** Debounced strain recompute after food/workout logs — keeps DailyStrainCard honest. */

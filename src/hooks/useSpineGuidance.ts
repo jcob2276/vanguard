@@ -109,7 +109,7 @@ export function useSpineGuidance(
 
       setWeekReflectionOverdueDays(lastReflectionAt ? daysSince(lastReflectionAt.slice(0, 10), today) : 999);
 
-    } catch (e) {
+    } catch (e: unknown) {
 
       console.error('[useSpineGuidance]', e);
 

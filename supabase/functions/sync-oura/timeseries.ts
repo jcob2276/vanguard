@@ -1,4 +1,3 @@
-
 import { createServiceClient } from "../_shared/supabase.ts"
 import { resolveUserScope } from "../_shared/supabase.ts"
 
@@ -115,7 +114,7 @@ async function safeUpsertChunked(
   }
 }
 
-Deno.serve(async (req) => {
+export const runTimeseries = async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -260,4 +259,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}

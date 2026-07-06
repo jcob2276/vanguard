@@ -19,7 +19,7 @@ import { invalidateGoalSpineCache } from './goalSpine.cache';
 import { currentWeekStart } from './goalSpine.queries';
 import type { Json } from './database.types';
 
-export async function saveSprintGoal(
+async function saveSprintGoal(
   userId: string,
   goalText: string,
   opts?: { personalYear?: number; sprintNumber?: number; focusProjectIds?: string[] },
@@ -55,7 +55,7 @@ export async function saveLifeGoalDeclarations(
   invalidateGoalSpineCache(userId);
 }
 
-export async function saveSprintReview(
+async function saveSprintReview(
   userId: string,
   reflection: string,
   opts?: { complete?: boolean },

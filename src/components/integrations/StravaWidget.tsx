@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
+import { Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -86,7 +87,7 @@ function RunRow({ activity }: { activity: any }) {
   );
 }
 
-export default function StravaWidget({ session }: { session: any }) {
+export default function StravaWidget({ session }: { session: Session }) {
   const [activities, setActivities] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,9 +106,9 @@ export default function StravaWidget({ session }: { session: any }) {
         .limit(20));
 
       setActivities(data.filter(isRun).slice(0, 3));
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('[StravaWidget] fetch error:', e);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? (e as Error).message : String(e));
     } finally {
       setLoading(false);
     }
@@ -136,9 +137,9 @@ export default function StravaWidget({ session }: { session: any }) {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setLoading(true);
       await fetchActivities();
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('[StravaWidget] sync error:', e);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? (e as Error).message : String(e));
     } finally {
       setSyncing(false);
     }

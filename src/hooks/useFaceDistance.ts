@@ -40,9 +40,9 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
           landmarkerRef.current = landmarker;
           setIsReady(true);
         }
-      } catch (error) {
-        console.error('Failed to init MediaPipe Face Landmarker:', error);
-      }
+      } catch (error: unknown) {
+      console.error('[Background Error]', error);
+    }
     }
     init();
     return () => {
@@ -128,7 +128,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
             setDistance(null);
             setStability(0);
           }
-        } catch (e) {
+        } catch (e: unknown) {
           console.debug('MediaPipe detection skipped during unmount');
         }
       }

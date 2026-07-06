@@ -47,7 +47,25 @@ export type OracleCardProps = {
   collapsedSubtitle?: string;
 };
 
-function applyScheduleMutation(mutation: any) {
+export type ScheduleMutation = {
+  kind?: string;
+  id?: string;
+  title?: string;
+  startTime?: string;
+  pastAfter?: string;
+  dayDate?: string;
+  cardId?: string;
+  description?: string;
+  priority?: number;
+  action?: string;
+  hero?: any;
+  editorial_intro?: string;
+  quote_blocks?: string[];
+  add_item?: any;
+  complete_item_id?: string;
+};
+
+function applyScheduleMutation(mutation: ScheduleMutation) {
   try {
     const raw = localStorage.getItem(SCHEDULE_KEY);
     let state: ScheduleViewData = raw ? JSON.parse(raw) : null;
@@ -276,8 +294,8 @@ export default function OracleCard({
         }
         return item;
       }));
-    } catch (e: any) {
-      notify(`Błąd akceptacji: ${e.message}`, 'error');
+    } catch (e: unknown) {
+      notify(`Błąd akceptacji: ${(e as Error).message}`, 'error');
     }
   };
 
@@ -391,8 +409,8 @@ export default function OracleCard({
         return [...base, ...newItems];
       });
       fetchPendingClarification();
-    } catch (e: any) {
-      setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e.message ?? 'nieznany'}`, timestamp: new Date() }]);
+    } catch (e: unknown) {
+      setItems(prev => [...prev, { type: 'error', text: `Błąd: ${(e as Error).message ?? 'nieznany'}`, timestamp: new Date() }]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);

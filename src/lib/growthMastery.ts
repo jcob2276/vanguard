@@ -17,7 +17,7 @@ export type TheoryPracticeBalance = {
   total: number;
 };
 
-export function pinResourceKind(
+function pinResourceKind(
   pin: LearningWeekPin,
   linksById: Map<string, GrowthLinkRow>,
 ): 'theory' | 'practice' {

@@ -145,9 +145,9 @@ export default function DailyStrainCard({
       // 4. odśwież kartę
       await fetchRow();
       haptics.success();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('DailyStrainCard refresh:', e);
-      setError(e.message || 'Refresh failed');
+      setError((e as Error).message || 'Refresh failed');
       haptics.error();
     } finally {
       setRefreshing(false);

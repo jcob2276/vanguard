@@ -26,7 +26,7 @@ import {
 } from "./messageHelpers.ts";
 import type { TelegramRouterContext } from "./config.ts";
 
-export type VoiceLikeAttachment = { file_id: string; duration?: number };
+type VoiceLikeAttachment = { file_id: string; duration?: number };
 
 export interface MessageContext extends TelegramRouterContext {
   message: {
@@ -60,7 +60,7 @@ export interface MessageContext extends TelegramRouterContext {
   handlerResponded: boolean;
 }
 
-export interface MessageInterceptor {
+interface MessageInterceptor {
   name: string;
   handle(ctx: MessageContext): Promise<boolean>;
 }

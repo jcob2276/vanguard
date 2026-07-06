@@ -20,7 +20,7 @@
  * Detektory S1–S6 są wywoływane z vanguard-detect-patterns (cron / manual POST).
  */
 
-export type { PatternInsight, BehavioralPattern } from './vanguardPatterns/types.ts';
+export type { PatternInsight,  } from './vanguardPatterns/types.ts';
 
 export { detectRecurringBlockers } from './vanguardPatterns/blockers.ts';
 export { detectPlanAdherenceGaps } from './vanguardPatterns/planAdherence.ts';

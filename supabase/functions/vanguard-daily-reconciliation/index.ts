@@ -105,8 +105,9 @@ async function buildReflectionPrompt(params: {
       const parts = cleaned.split("===DELIMITER===").map(p => p.trim()).filter(Boolean);
       return parts.length > 0 ? parts : [cleaned];
     }
-  } catch (err) {
-    console.warn("[reconciliation] reflection prompt LLM failed:", err);
+  } catch (err: unknown) {
+    console.error('[Edge Function Error]', err);
+    return [String(err)];
   }
 
   return [
