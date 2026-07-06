@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../components/calendar/calendarHelpers';
+import type { CalendarEvent } from './useCalendarWrite';
 
 interface UseSyncActivitiesProps {
   userId: string | undefined;
   selectedDay: string;
-  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  createEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<{ success: boolean; eventId?: string }>;
   fetchEvents: () => Promise<void>;
   setToastMessage: (msg: string | null) => void;
 }

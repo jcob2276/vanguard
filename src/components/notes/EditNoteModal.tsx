@@ -128,7 +128,7 @@ export default function EditNoteModal({
       const summary = data?.summary || data?.response || data?.content || 'Brak odpowiedzi.';
       setAiResult({ type: 'summary', text: summary });
     } catch (e: unknown) {
-      notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
+      notify('Blad AI: ' + (e instanceof Error ? e.message : 'Nieznany blad'), 'error');
     }
     setAiLoading(null);
   };
@@ -161,7 +161,7 @@ export default function EditNoteModal({
       notify(`Dodano ${tasks.length} zadan do listy!`, 'success');
       setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadan:\n- ${tasks.join('\n- ')}` });
     } catch (e: unknown) {
-      notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
+      notify('Blad AI: ' + (e instanceof Error ? e.message : 'Nieznany blad'), 'error');
     }
     setAiLoading(null);
   };
@@ -179,7 +179,7 @@ export default function EditNoteModal({
       const suggestions = data?.suggestions || data?.response || 'Brak sugestii.';
       setAiResult({ type: 'connect', text: suggestions });
     } catch (e: unknown) {
-      notify('Blad AI: ' + (e?.message || 'Nieznany blad'), 'error');
+      notify('Blad AI: ' + (e instanceof Error ? e.message : 'Nieznany blad'), 'error');
     }
     setAiLoading(null);
   };

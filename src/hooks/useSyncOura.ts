@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../components/calendar/calendarHelpers';
+import type { CalendarEvent } from './useCalendarWrite';
 
 interface UseSyncOuraProps {
   userId: string | undefined;
   selectedDay: string;
-  updateEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  updateEvent: (event: CalendarEvent & { id: string }) => Promise<{ success: boolean; eventId?: string }>;
+  createEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<{ success: boolean; eventId?: string }>;
   fetchEvents: () => Promise<void>;
   setToastMessage: (msg: string | null) => void;
 }

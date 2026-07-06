@@ -235,7 +235,7 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
       setCheckpointPrompt(null);
       void direction.reload();
     } catch (err: unknown) {
-      notify(err instanceof Error ? (e as Error).message : 'Błąd', 'error');
+      notify(err instanceof Error ? (err as Error).message : 'Błąd', 'error');
     } finally {
       setMarkingCheckpoint(false);
     }
@@ -271,8 +271,8 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       const reply = data?.text ?? data?.answer ?? '';
       setAiQuestions(reply);
     } catch (err: unknown) {
-      console.error('generateQuestions failed', e);
-      notify('Błąd pomocy AI: ' + (e as Error).message, 'error');
+      console.error('generateQuestions failed', err);
+      notify('Błąd pomocy AI: ' + (err instanceof Error ? err.message : 'nieznany'), 'error');
     } finally {
       setAiLoading(false);
     }
@@ -506,7 +506,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       haptics.light();
       if (onUpdate) onUpdate(data);
     } catch (err: unknown) {
-      console.error('[saveEveningClose]', e);
+      console.error('[saveEveningClose]', err);
       notify('Nie udało się zapisać domknięcia dnia.', 'error');
     } finally {
       setSavingEvening(false);
@@ -606,7 +606,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         });
       }
     } catch (err: unknown) {
-      console.error('[PowerList] toggleTask failed', e);
+      console.error('[PowerList] toggleTask failed', err);
       notify('Nie udało się zapisać zadania.', 'error');
     }
   }
@@ -669,7 +669,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
     } catch (err: unknown) {
       console.error('[startNewDay]', err);
       haptics.error();
-      notify('Błąd startu dnia: ' + (err?.message ?? 'nieznany błąd'), 'error');
+      notify('Błąd startu dnia: ' + (err instanceof Error ? err.message : 'nieznany błąd'), 'error');
     } finally {
       setSubmitting(false);
     }

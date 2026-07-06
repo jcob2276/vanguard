@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { parseTime, getWarsawOffset, type CalRow } from '../components/calendar/calendarHelpers';
 import type { CalendarTodo } from './useCalendarTodos';
+import type { CalendarEvent } from './useCalendarWrite';
 
 interface UseAISchedulingProps {
   userId: string | undefined;
@@ -9,7 +10,7 @@ interface UseAISchedulingProps {
   focusTimeDefense: boolean;
   decompressionBuffer: boolean;
   inboxTodos: CalendarTodo[];
-  createEvent: (ev: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  createEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<{ success: boolean; eventId?: string }>;
   scheduleTodoAt: (todo: { id: string }, day: string, startMin: number, durationMinutes?: number) => Promise<void>;
   fetchEvents: () => Promise<void>;
   fetchAllTodos: () => Promise<void>;

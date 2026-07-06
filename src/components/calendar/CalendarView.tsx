@@ -802,7 +802,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
       setEditStart(startParts.timeStr);
       setEditEnd(endParts.timeStr);
     } catch (err: unknown) {
-      console.error('Failed to parse event click time:', e);
+      console.error('Failed to parse event click time:', err);
       const partsStart = ev.start_time.split('T');
       const partsEnd = ev.end_time.split('T');
       setEditDate(partsStart[0]);
@@ -870,7 +870,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
       }
     } catch (err: unknown) {
       console.error('edit event error:', err);
-      setToastMessage(`Błąd: ${err?.message ?? 'nieznany błąd'}`);
+      setToastMessage(`Błąd: ${err instanceof Error ? err.message : 'nieznany błąd'}`);
     } finally {
       setSaving(false);
     }
