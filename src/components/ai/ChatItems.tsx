@@ -10,14 +10,14 @@ type ToolItem = {
 };
 
 export type ChatItem =
-  | { type: 'user'; text: string; timestamp: Date }
-  | { type: 'ai'; text: string; timestamp: Date; isStreaming?: boolean; templateId?: string; cardData?: unknown }
-  | { type: 'thinking'; text: string; timestamp: Date; isFinished: boolean }
-  | { type: 'tool'; name: string; args: string; result?: string; isError?: boolean; duration?: number; timestamp: Date; children?: ToolItem[] }
-  | { type: 'artifact'; title: string; content: string; timestamp: Date }
-  | { type: 'error'; text: string; timestamp: Date }
-  | { type: 'action'; text: string; timestamp: Date }
-  | { type: 'system_reminder'; text: string; timestamp: Date };
+  | { id?: string; type: 'user'; text: string; timestamp: Date }
+  | { id?: string; type: 'ai'; text: string; reasoning?: string; timestamp: Date; isStreaming?: boolean; templateId?: string; cardData?: unknown }
+  | { id?: string; type: 'thinking'; text: string; timestamp: Date; isFinished: boolean }
+  | { id?: string; type: 'tool'; name: string; args: string; result?: string; isError?: boolean; duration?: number; timestamp: Date; children?: ToolItem[] }
+  | { id?: string; type: 'artifact'; title: string; content: string; timestamp: Date }
+  | { id?: string; type: 'error'; text: string; timestamp: Date }
+  | { id?: string; type: 'action'; text: string; timestamp: Date }
+  | { id?: string; type: 'system_reminder'; text: string; timestamp: Date; pendingAction?: any };
 
 function formatTimestamp(date: Date, referenceDate = new Date()): string {
   const diff = referenceDate.getTime() - date.getTime();
@@ -120,14 +120,26 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
   );
 }
 
-export function AiMessageItem({ text, templateId, cardData }: { text: string; templateId?: string; cardData?: unknown }) {
+export function AiMessageItem({ text, reasoning, templateId, cardData }: { text: string; reasoning?: string; templateId?: string; cardData?: unknown }) {
   return (
-    <div className="flex flex-col items-start gap-2">
-      <div
-        className="max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[12px] leading-relaxed border"
-        style={{ background: 'var(--surface-solid)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-      >
-        {text}
+    <div className="flex flex-col items-start gap-2 w-full">
+      <div className="max-w-[85%] flex flex-col gap-2">
+        {reasoning && (
+          <div 
+            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[11px] leading-relaxed border italic"
+            style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}
+          >
+            {reasoning}
+          </div>
+        )}
+        {text && (
+          <div
+            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[12px] leading-relaxed border"
+            style={{ background: 'var(--surface-solid)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            {text}
+          </div>
+        )}
       </div>
       {templateId && cardData !== undefined && (
         <AiCardRenderer templateId={templateId} cardData={cardData} />

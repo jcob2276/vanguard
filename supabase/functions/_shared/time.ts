@@ -41,14 +41,20 @@ export function getWarsawDayBoundaries(dateStr: string): { start: string; end: s
 export type StreamCutoffs = {
   cut24h: string;
   cut72h: string;
+  cut14d: string;
   cut21d: string;
 };
 
-export function getStreamCutoffs(now = new Date()): StreamCutoffs {
-  const t = now.getTime();
+export function getStreamCutoffs(baseDate: Date = new Date()): StreamCutoffs {
+  const cut24hMs = baseDate.getTime() - 24 * 60 * 60 * 1000;
+  const cut72hMs = baseDate.getTime() - 72 * 60 * 60 * 1000;
+  const cut14dMs = baseDate.getTime() - 14 * 24 * 60 * 60 * 1000;
+  const cut21dMs = baseDate.getTime() - 21 * 24 * 60 * 60 * 1000;
+
   return {
-    cut24h: new Date(t - 24 * 60 * 60 * 1000).toISOString(),
-    cut72h: new Date(t - 72 * 60 * 60 * 1000).toISOString(),
-    cut21d: new Date(t - 21 * 24 * 60 * 60 * 1000).toISOString(),
+    cut24h: new Date(cut24hMs).toISOString(),
+    cut72h: new Date(cut72hMs).toISOString(),
+    cut14d: new Date(cut14dMs).toISOString(),
+    cut21d: new Date(cut21dMs).toISOString(),
   };
 }

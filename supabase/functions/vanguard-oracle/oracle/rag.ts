@@ -4,6 +4,7 @@ import {
   fetchOracleStreamSlices,
   formatOracleStreamBlock,
 } from "../../_shared/streamContext.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../../_shared/time.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { getPlanQualitySignal } from "../../_shared/planQuality.ts";
@@ -146,7 +147,13 @@ export async function retrieveRagContext(
 4. [${w.category_4 || '?'}] ${w.task_4 || 'Brak'} (${w.done_4 ? 'ZROBIONE' : 'NIEWYKONANE'})
 5. [${w.category_5 || '?'}] ${w.task_5 || 'Brak'} (${w.done_5 ? 'ZROBIONE' : 'NIEWYKONANE'})` : '\nBrak ustalonej PowerListy na dziś.';
 
+  const worldState = await fetchWorldState(supabase, user_id, todayDate);
+
   const staticProfile = `
+[WORLD STATE - STAN ŻYCIOWY (EPISTEMIKA)]:
+${JSON.stringify(worldState, null, 2)}
+UWAGA: Jeśli freshness_hours dla Oury, Systemu lub Treningu wynosi > 24, ZAWSZE poinformuj użytkownika (z dozą pokory), że oceniasz na podstawie przestarzałych danych i nie masz pełnego obrazu.
+
 [DZISIEJSZE CELE (PowerList) - AKTUALNY STAN DLA DATY ${todayDate}]:${powerListText}
 
 [TŁO TOŻSAMOŚCI - KONTEKST]:

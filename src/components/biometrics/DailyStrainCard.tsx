@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, BarChart2 } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
 
@@ -16,7 +17,6 @@ const LIMITER_PL = {
 };
 
 // VitalBands: color tile by z-score vs personal EWMA baseline (Strand VitalBands.swift)
-// positive z = better than baseline; |z| ≤ 2 = in personal normal range
 function zToVitalColor(z: number | null | undefined, defaultColor: string): string {
   if (z == null) return defaultColor;
   if (z >= 1.0)        return 'text-emerald-500 dark:text-emerald-400';
@@ -63,56 +63,52 @@ export default function DailyStrainCard({
   refreshSignal?: number
 }) {
   const haptics = useHaptics();
-  const [row, setRow] = useState<Tables<'daily_strain'> | null>(null);
-  const [oura, setOura] = useState<Tables<'oura_daily_summary'> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchRow = useCallback(async () => {
-    const [{ data, error: queryError }, { data: ouraSummaries }] = await Promise.all([
-      supabase.from('daily_strain')
-        .select('*').eq('user_id', session.user.id)
-        .order('date', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('oura_daily_summary')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false }).limit(2),
-    ]);
-    if (queryError) {
-      console.error('DailyStrainCard:', queryError);
-      setError(queryError.message);
-      setRow(null);
-    } else {
-      setRow(data);
-    }
-    if (ouraSummaries?.length) {
-      const todayStr = getTodayWarsaw();
-      setOura(ouraSummaries.find(s => s.date === todayStr) || ouraSummaries[0]);
-    }
-  }, [session.user.id]);
+  const { data: dbData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['daily_strain_oura', session.user.id],
+    queryFn: async () => {
+      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }] = await Promise.all([
+        supabase.from('daily_strain')
+          .select('*').eq('user_id', session.user.id)
+          .order('date', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('oura_daily_summary')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('date', { ascending: false }).limit(2),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      await fetchRow();
-      setLoading(false);
-    })();
-  }, [fetchRow]);
+      let ouraRow = null;
+      if (ouraRows?.length) {
+        const todayStr = getTodayWarsaw();
+        ouraRow = ouraRows.find(s => s.date === todayStr) || ouraRows[0];
+      }
+      return { row: strainRows, oura: ouraRow };
+    },
+    staleTime: 1000 * 60 * 30, // 30 minut cache
+  });
 
-  // Light refresh after food/workout save; second pass picks up debounced compute-daily-strain.
+  // Force refetch on external refreshSignal
   useEffect(() => {
     if (!refreshSignal) return;
-    void fetchRow();
-    const retry = window.setTimeout(() => void fetchRow(), 6500);
-    return () => window.clearTimeout(retry);
-  }, [refreshSignal, fetchRow]);
+    queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
+  }, [refreshSignal, queryClient]);
 
-  // Pełny refresh: sync źródeł → warstwy pochodne Oura → przelicz strain → odśwież
-  async function refresh() {
+  // Tama 3: Silently trigger background sync if data is stale (not today's date)
+  useEffect(() => {
+    if (dbData?.row && dbData.row.date !== getTodayWarsaw() && !refreshing) {
+      console.log('DailyStrainCard: Data is stale, running silent background sync');
+      refresh(true); // background silent refresh
+    }
+  }, [dbData?.row?.date]);
+
+  async function refresh(silent = false) {
+    if (refreshing) return;
     setRefreshing(true);
-    haptics.light();
+    if (!silent) haptics.light();
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
       const token = s?.access_token;
@@ -130,25 +126,25 @@ export default function DailyStrainCard({
         }
         return response;
       };
-      // 1. źródła surowe (równolegle) - tolerujemy błędy pojedynczych synchronizatorów
+      
+      // Optymalizacja Tamy 3: Równoległe wywoływanie zamiast blokujących kaskad tam gdzie to możliwe.
       await Promise.all([
         call('sync-strava', {}).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
         call('sync-oura', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
-      // 2. warstwy pochodne Oura (strefy HR zasilają cardio load)
+      
       await Promise.all([
         call('sync-oura-enhanced', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-enhanced failed:', err)),
         call('sync-oura-timeseries', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-timeseries failed:', err)),
       ]);
-      // 3. przelicz Daily Strain
+      
       await call('compute-daily-strain', { userId: session.user.id, days: 2 });
-      // 4. odśwież kartę
-      await fetchRow();
-      haptics.success();
-    } catch (e: unknown) {
+      
+      await queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
+      if (!silent) haptics.success();
+    } catch (e: any) {
       console.error('DailyStrainCard refresh:', e);
-      setError((e as Error).message || 'Refresh failed');
-      haptics.error();
+      if (!silent) haptics.error();
     } finally {
       setRefreshing(false);
     }
@@ -166,19 +162,19 @@ export default function DailyStrainCard({
     );
   }
 
-  if (error) {
+  if (queryError) {
     return (
       <div className="card border-red-500/20 p-4">
         <DataStateNotice
           tone="warning"
           title="Obciążenie niedostępne"
-          detail={`Nie mogę odczytać danych: ${error}`}
+          detail={`Nie mogę odczytać danych: ${queryError.message}`}
         />
       </div>
     );
   }
 
-  if (!row) {
+  if (!dbData?.row) {
     return (
       <div className="card p-4">
         <DataStateNotice
@@ -189,6 +185,7 @@ export default function DailyStrainCard({
     );
   }
 
+  const { row, oura } = dbData;
   const strainScore = row.strain_score ?? 0;
   const recoveryScore = row.recovery_score ?? 0;
   const strainTone = strainScore >= 15 ? 'text-orange-500 dark:text-orange-400' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
@@ -233,9 +230,9 @@ export default function DailyStrainCard({
             </span>
           )}
         </div>
-        <button onClick={refresh} disabled={refreshing} title="Sync + przelicz"
+        <button onClick={() => refresh(false)} disabled={refreshing} title="Sync + przelicz"
           className="rounded-xl border border-border-custom bg-surface-solid/40 p-2 text-text-muted transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 disabled:opacity-50">
-          <RefreshCw size={11} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={11} className={refreshing ? 'animate-spin text-primary' : ''} />
         </button>
       </div>
 
@@ -363,7 +360,7 @@ export default function DailyStrainCard({
 
       {/* Correlations link */}
       <Link
-        to="/korealcje"
+        to="/korelacje"
         className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[0.985] relative z-10"
       >
         <BarChart2 size={11} />

@@ -92,7 +92,7 @@ function isAfter20(): boolean {
     });
     const hour = parseInt(formatter.format(new Date()), 10);
     return hour >= 20;
-  } catch (e: unknown) {
+  } catch (e: any) {
     return new Date().getHours() >= 20;
   }
 }
@@ -104,13 +104,13 @@ export default function Dashboard({ session }: { session: Session }) {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view');
     if (viewParam === 'kariera') {
-      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e: unknown) {
+      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e: any) {
       console.error('[Background Error]', e);
     }
       return 'projekty';
     }
     if (viewParam && TAB_ORDER.includes(viewParam)) {
-      try { localStorage.setItem('vanguard_view', viewParam); } catch (e: unknown) {
+      try { localStorage.setItem('vanguard_view', viewParam); } catch (e: any) {
       console.error('[Background Error]', e);
     }
       return viewParam;
@@ -169,7 +169,7 @@ export default function Dashboard({ session }: { session: Session }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try { localStorage.setItem('vanguard_theme', theme); } catch (e: unknown) {
+    try { localStorage.setItem('vanguard_theme', theme); } catch (e: any) {
       console.error('[Background Error]', e);
     }
   }, [theme]);
@@ -219,7 +219,7 @@ export default function Dashboard({ session }: { session: Session }) {
   });
 
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
-    try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+    try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     }
     if (target === 'dashboard') {
@@ -232,7 +232,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const goBack = useCallback(() => {
     const prev = localStorage.getItem('vanguard_previous_view');
     if (prev) {
-      try { localStorage.removeItem('vanguard_previous_view'); } catch (e: unknown) {
+      try { localStorage.removeItem('vanguard_previous_view'); } catch (e: any) {
       console.error('[Background Error]', e);
     }
     }
@@ -252,7 +252,7 @@ export default function Dashboard({ session }: { session: Session }) {
     const today = getTodayWarsaw();
     try {
       if (localStorage.getItem('vanguard_shutdown_dismissed') === today) return;
-    } catch (e: unknown) {
+    } catch (e: any) {
       console.error('[Background Error]', e);
     }
 
@@ -280,7 +280,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !todayWin;
 
   useEffect(() => {
-    try { localStorage.setItem('vanguard_view', view); } catch (e: unknown) {
+    try { localStorage.setItem('vanguard_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     }
   }, [view]);
@@ -299,7 +299,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <Keep
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView(dest); }}
         />
@@ -313,7 +313,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <Todo
           session={session}
           onBack={() => { refreshNudge(); goBack(); }}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView(dest); }}
         />
@@ -327,7 +327,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <LinksInbox
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView(dest); }}
         />
@@ -344,7 +344,7 @@ export default function Dashboard({ session }: { session: Session }) {
           onSyncCalendar={startGoogleAuth}
           onResyncCalendar={syncCalendar}
           isSyncing={isSyncing}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView(dest); }}
         />
@@ -425,14 +425,14 @@ export default function Dashboard({ session }: { session: Session }) {
           userId={userId}
           unreadCount={pendingActionCount}
           onAvatarLongPress={() => setActionCenterOpen(true)}
-          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView('fundament'); }}
           theme={theme}
           toggleTheme={toggleTheme}
           showLock={showLock}
           view={view}
-          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     } setView(dest); }}
           staleNoteCount={staleNoteCount}
@@ -596,7 +596,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 session={session}
                 reviewOverdueDays={reviewOverdueDays}
                 onNavigateTo={(dest) => {
-                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e: unknown) {
+                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
       console.error('[Background Error]', e);
     }
                   setView(dest);

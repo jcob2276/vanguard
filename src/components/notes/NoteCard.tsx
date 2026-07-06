@@ -72,7 +72,7 @@ export default function NoteCard({
         <h3
           className="keep-card-title"
           style={{ color: c.text }}
-          dangerouslySetInnerHTML={{ __html: highlightHtml(note.title, search) }}
+          dangerouslySetInnerHTML={{ __html: highlightHtml(sanitizeHtml(note.title), search) }}
         />
       )}
       {note.content && (

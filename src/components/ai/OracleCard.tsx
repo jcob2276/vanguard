@@ -2,7 +2,6 @@ import { getTodayWarsaw } from '../../lib/date';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, Sparkles, X, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { gatherUserContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import type { Session } from '@supabase/supabase-js';
 import { ClarificationRequestCard } from './ClarificationRequestCard';
@@ -60,7 +59,7 @@ export type ScheduleMutation = {
   action?: string;
   hero?: any;
   editorial_intro?: string;
-  quote_blocks?: string[];
+  quote_blocks?: any[];
   add_item?: any;
   complete_item_id?: string;
 };
@@ -99,7 +98,7 @@ function applyScheduleMutation(mutation: ScheduleMutation) {
       };
     }
     localStorage.setItem(SCHEDULE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (e: any) {}
 }
 
 interface ClarificationRequest {
@@ -167,7 +166,7 @@ export default function OracleCard({
         const parsed = JSON.parse(raw) as ChatItem[];
         if (Array.isArray(parsed) && parsed.length) setItems(parsed);
       }
-    } catch { /* ignore corrupt cache */ }
+    } catch (e: any) { /* ignore corrupt cache */ }
   }, [userId, storageScope]);
 
   useEffect(() => {
@@ -182,7 +181,7 @@ export default function OracleCard({
     if (!userId || items.length === 0) return;
     try {
       localStorage.setItem(oracleChatKey(userId, storageScope), JSON.stringify(items.slice(-80)));
-    } catch { /* quota */ }
+    } catch (e: any) { /* quota */ }
   }, [userId, items]);
 
   useEffect(() => {
@@ -294,7 +293,7 @@ export default function OracleCard({
         }
         return item;
       }));
-    } catch (e: unknown) {
+    } catch (e: any) {
       notify(`Błąd akceptacji: ${(e as Error).message}`, 'error');
     }
   };
@@ -339,7 +338,7 @@ export default function OracleCard({
           
           await supabase.from('progress_photos').insert({
             user_id: session.user.id,
-            image_url: publicUrl,
+            image_url: fileName,
             date: occurredDate
           });
           urls.push(publicUrl);
@@ -348,22 +347,79 @@ export default function OracleCard({
         setPendingImages([]);
       }
 
-      const stateVector = await gatherUserContext(session);
-      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
-        body: {
-          state_vector: stateVector,
+      const aiMessageId = Math.random().toString(36).substring(7);
+      setItems(prev => [
+        ...prev,
+        { id: aiMessageId, type: 'ai', text: '', reasoning: '', timestamp: new Date(), isStreaming: true }
+      ]);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-oracle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
           history: history,
           current_query: query,
           user_id: session.user.id,
           mode: 'chat',
           agent_run_mode: getAgentRunMode(),
           user_conf: getOracleUserConf() || undefined,
-        },
+          stream: true
+        })
       });
-      if (error) throw error;
-      const reply = data?.text ?? data?.response ?? '(brak odpowiedzi)';
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Oracle error: ${response.status} ${errText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+      let accumulatedReasoning = "";
+      let finalData: any = null;
+
+      if (reader) {
+        let buffer = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr && dataStr !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  if (parsed.t) accumulatedText += parsed.t;
+                  if (parsed.r) accumulatedReasoning += parsed.r;
+                  if (parsed._final) finalData = parsed._final;
+                  
+                  setItems(prev => prev.map(item => 
+                    item.type === 'ai' && item.id === aiMessageId 
+                      ? { ...item, text: accumulatedText, reasoning: accumulatedReasoning }
+                      : item
+                  ));
+                  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                } catch (e: any) {
+                  // Ignore partial parsing errors
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const data = finalData || {};
+      const reply = data?.text ?? data?.response ?? accumulatedText ?? '(brak odpowiedzi)';
       const cardTemplateId = data?.templateId as CardTemplateId | undefined;
       const cardData = data?.data;
+
       if (data?.schedule_mutation) {
         applyScheduleMutation(data.schedule_mutation);
       }
@@ -375,9 +431,9 @@ export default function OracleCard({
         idleTurnsRef.current += 1;
       }
       
-      const newItems: ChatItem[] = [{ type: 'ai', text: reply, timestamp: new Date(), templateId: cardTemplateId, cardData }];
+      const extraItems: ChatItem[] = [];
       if (data?.pending_action) {
-        newItems.push({
+        extraItems.push({
           type: 'action',
           text: `[Wymaga zatwierdzenia] Zmiana: ${data.pending_action.action_type === 'insight_cards_mutation' ? 'Karty wiedzy' : 'Harmonogram'}`,
           timestamp: new Date(),
@@ -388,7 +444,7 @@ export default function OracleCard({
         } as any);
       }
       if (idleTurnsRef.current >= 3) {
-        newItems.push({ type: 'system_reminder', text: 'Możesz poprosić mnie o zapisanie danych, analizę trendów lub aktualizację planu.', timestamp: new Date() });
+        extraItems.push({ type: 'system_reminder', text: 'Możesz poprosić mnie o zapisanie danych, analizę trendów lub aktualizację planu.', timestamp: new Date() });
         idleTurnsRef.current = 0;
       }
       
@@ -406,10 +462,13 @@ export default function OracleCard({
             })
           : prev.filter(item => item.type !== 'thinking' && item.type !== 'tool');
           
-        return [...base, ...newItems];
+        return [
+          ...base.map((item: any) => item.id === aiMessageId ? { ...item, text: reply, templateId: cardTemplateId, cardData, isStreaming: false } : item),
+          ...extraItems
+        ];
       });
       fetchPendingClarification();
-    } catch (e: unknown) {
+    } catch (e: any) {
       setItems(prev => [...prev, { type: 'error', text: `Błąd: ${(e as Error).message ?? 'nieznany'}`, timestamp: new Date() }]);
     } finally {
       setLoading(false);
@@ -513,7 +572,7 @@ export default function OracleCard({
                 <div key={i}>
                   {showDivider && <TimeDivider date={item.timestamp} />}
                   {item.type === 'user' && <UserMessageItem text={item.text} />}
-                  {item.type === 'ai' && <AiMessageItem text={item.text} templateId={(item as any).templateId} cardData={(item as any).cardData} />}
+                  {item.type === 'ai' && <AiMessageItem text={item.text} reasoning={(item as any).reasoning} templateId={(item as any).templateId} cardData={(item as any).cardData} />}
                   {item.type === 'thinking' && <ThinkingItem item={item} />}
                   {item.type === 'tool' && <ToolCallItem item={item} />}
                   {item.type === 'error' && <ErrorItem text={item.text} />}

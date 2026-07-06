@@ -58,6 +58,39 @@ export async function deepseekChat(
   }
 }
 
+export async function deepseekStream(
+  params: DeepSeekChatParams,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutMs = params.timeoutMs ?? 45000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: params.model ?? "deepseek-v4-flash",
+      messages: params.messages,
+      stream: true,
+      ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
+      ...(params.temperature === null ? {} : { temperature: params.temperature ?? 0.2 }),
+    }),
+    signal: controller.signal,
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`DeepSeek error (${res.status}): ${errText.slice(0, 200)}`);
+  }
+
+  // Clear timeout to prevent aborting after initial headers arrive
+  clearTimeout(timeoutId);
+  return res;
+}
+
 export function parseJsonFromContent(content: string): Record<string, unknown> | null {
   // Brace-depth scan (string-aware) instead of a greedy /\{[\s\S]*\}/ match — the greedy
   // regex spans from the first "{" to the LAST "}" in the whole string, so trailing prose

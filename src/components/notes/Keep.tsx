@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
@@ -36,7 +37,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
 
   useEffect(() => {
     if (localStorage.getItem('vanguard_keep_new') === '1') {
-      try { localStorage.removeItem('vanguard_keep_new'); } catch (e: unknown) {
+      try { localStorage.removeItem('vanguard_keep_new'); } catch (e: any) {
       console.error('[Action Error]', e);
       notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
     }
@@ -63,7 +64,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
     if (onNavigateTo) {
       onNavigateTo(dest);
     } else {
-      try { localStorage.setItem('vanguard_view', dest); } catch (e: unknown) {
+      try { localStorage.setItem('vanguard_view', dest); } catch (e: any) {
       console.error('[Action Error]', e);
       notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
     }
@@ -112,9 +113,10 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
-  const fetchNotes = useCallback(async () => {
-    setError(null);
-    try {
+  const queryClient = useQueryClient();
+  const { data: serverNotes, isLoading: queryLoading, refetch: fetchNotes } = useQuery({
+    queryKey: ['notes', userId],
+    queryFn: async () => {
       const { data, error: err } = await supabase
         .from('vanguard_notes')
         .select('*')
@@ -124,39 +126,32 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
 
       if (err) {
         if (isNetworkOrTableError(err)) {
-          const local = localStorage.getItem('vanguard_local_keep_notes');
-          try {
-            setNotes(local ? JSON.parse(local) : []);
-          } catch (e: unknown) {
-            setNotes([]);
-          }
-          return;
+          return null;
         }
         throw err;
       }
-      setNotes(data || []);
-    } catch (e: unknown) {
-      const local = localStorage.getItem('vanguard_local_keep_notes');
-      try {
-        setNotes(local ? JSON.parse(local) : []);
-      } catch (e2: unknown) {
-        setNotes([]);
-      }
-      if (!navigator.onLine) {
-        setError('Brak połączenia sieciowego. Załadowano notatki lokalne.');
-      } else {
-        setError((e as Error).message || 'Błąd połączenia. Załadowano wersję lokalną.');
-      }
-    }
-  }, [userId, isNetworkOrTableError]);
+      return data as Note[];
+    },
+    enabled: !!userId,
+  });
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await fetchNotes();
-      setLoading(false);
-    })();
-  }, [fetchNotes]);
+    setLoading(queryLoading);
+  }, [queryLoading]);
+
+  useEffect(() => {
+    if (serverNotes !== undefined) {
+      if (serverNotes !== null) {
+        setNotes(serverNotes);
+        try { localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(serverNotes)); } catch (e: any) {}
+        setError(null);
+      } else {
+        const local = localStorage.getItem('vanguard_local_keep_notes');
+        try { setNotes(local ? JSON.parse(local) : []); } catch (e: any) { setNotes([]); }
+        setError(navigator.onLine ? 'Błąd połączenia. Załadowano wersję lokalną.' : 'Brak połączenia sieciowego. Załadowano notatki lokalne.');
+      }
+    }
+  }, [serverNotes]);
 
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
@@ -197,7 +192,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         throw err;
       }
       setNotes(prev => sortNotes([data, ...prev]));
-    } catch (e: unknown) {
+    } catch (e: any) {
       const local: Note = {
         id: Math.random().toString(36).slice(2),
         title: partial.title || '',
@@ -261,7 +256,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
-    } catch (e: unknown) {
+    } catch (e: any) {
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -285,7 +280,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       try {
         const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
         if (err && !isNetworkOrTableError(err)) throw err;
-      } catch {
+      } catch (e: any) {
         setError('Brak połączenia. Usunięto lokalnie.');
         setNotes(prev => {
           const updated = prev.filter(n => n.id !== id);
@@ -322,7 +317,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
-    } catch (e: unknown) {
+    } catch (e: any) {
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -351,7 +346,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       }
       setNotes(prev => [data, ...prev]);
       setEditingId(data.id);
-    } catch (e: unknown) {
+    } catch (e: any) {
       const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       setNotes(prev => [local, ...prev]);
       setEditingId(local.id);
@@ -367,7 +362,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
     if (autoNewNote && !autoNewNoteHandled.current) {
       autoNewNoteHandled.current = true;
       window.history.replaceState({}, '', window.location.pathname);
-      try { localStorage.removeItem('vanguard_keep_new'); } catch {}
+      try { localStorage.removeItem('vanguard_keep_new'); } catch (e: any) {}
       handleNewNote();
     }
   }, [autoNewNote, handleNewNote]);
@@ -451,7 +446,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       if (activeTag === tagToDelete) {
         setActiveTag(null);
       }
-    } catch (e: unknown) {
+    } catch (e: any) {
       console.error('Error deleting tag:', e);
       setError((e as any).message || 'Nie udało się usunąć tagu.');
     } finally {
@@ -496,7 +491,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
 
       setNotes(prev => sortNotes([data, ...prev]));
       notify(`Utworzono tag: "${newTag}"!`, 'info');
-    } catch (e: unknown) {
+    } catch (e: any) {
       console.error('Error creating tag:', e);
       setError((e as any).message || 'Nie udało się utworzyć tagu.');
     } finally {
@@ -534,7 +529,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         n.id === note.id ? { ...n, is_archived: true, is_pinned: false } : n
       )));
       notify('Dodano do zadań', 'success');
-    } catch (e: unknown) {
+    } catch (e: any) {
       notify((e as any).message || 'Nie udało się dodać do zadań', 'error');
     } finally {
       setBusy(false);
@@ -546,7 +541,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
     try {
       const created = await exportNoteChecklistsToTodos(userId, note);
       notify(`Dodano ${created.length} zadań`, 'success');
-    } catch (e: unknown) {
+    } catch (e: any) {
       notify((e as any).message || 'Eksport nie powiódł się', 'error');
     } finally {
       setBusy(false);
