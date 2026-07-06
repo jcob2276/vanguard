@@ -19,6 +19,8 @@ Entry point for AI agents working in this repository.
 3. **Extend, don’t duplicate:** new features plug into existing handlers / README-listed functions — no parallel Telegram clients, no second classify pipeline, no Oracle writes to graph/knowledge on chat turns.
 4. **Current-first:** stream 72h beats archive; patterns need explicit N — system może wyciągać wnioski o stanie/trajectory, jeśli opiera je na twardych danych historycznych.
 5. **Do not build:** shadow engine, psychoanalytic coaching, undeclared “digital twin” certainty, **ani mechanizmu, w którym system autonomicznie orzeka, że „manifestacja/intencja zadziałała”** (metafizyczna pewność). Deklarowane intencje (modlitwy, afirmacje, cele) są DOZWOLONE jako warstwa **deklaracji** do konfrontacji z zachowaniem (Outcome Continuity). Wiążący jest „Transurfing Layer Guardrail” w [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md), nie blankietowy zakaz.
+6. **Problem ostatniej mili:** Feature jest skończony, gdy jego wynik ktoś konsumuje — inaczej nie istnieje. Nie zostawiaj rozgrzebanych kabli i wpięć bez podłączenia do UI/Bota.
+7. **Metabolizm, nie hoarding:** System gromadzi dane po to, by je trawić i kondensować (wyciągać beliefs i narrację), a nie archiwizować w nieskończoność szum.
 
 Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 

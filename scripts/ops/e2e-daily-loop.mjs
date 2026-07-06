@@ -230,6 +230,25 @@ await step('vanguard-oracle — reachable (OPTIONS)', async () => {
   return 'CORS preflight OK'
 })
 
+// 10. Secondary Cron Reachability Checks
+const secondaryCrons = [
+  'vanguard-analyst',
+  'vanguard-wiki-compiler',
+  'sync-strava',
+  'vanguard-eval-interview',
+  'vanguard-nutrition-coach',
+  'vanguard-push-reminder',
+  'vanguard-mcp-server',
+  'vanguard-metabolism'
+]
+
+for (const cronFn of secondaryCrons) {
+  await step(`${cronFn} — reachable (OPTIONS)`, async () => {
+    await optionsFn(cronFn)
+    return 'CORS preflight OK'
+  })
+}
+
 // ── Summary ──────────────────────────────────────────────────────────────────
 const passed   = results.filter(r => r.ok).length
 const failed   = results.filter(r => !r.ok && !r.optional).length
@@ -247,6 +266,24 @@ if (failed > 0) {
   results.filter(r => !r.ok && !r.optional).forEach(r =>
     console.log(`  ✗  ${r.name}\n     ${r.error}`)
   )
+  const errorText = `❌ *Vanguard E2E Heartbeat Failed*\n\n` + results.filter(r => !r.ok && !r.optional).map(r => `• *${r.name}*\n  ${r.error}`).join('\n\n')
+  
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+  const CHAT_ID   = process.env.TELEGRAM_CHAT_ID
+  
+  if (BOT_TOKEN && CHAT_ID) {
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: CHAT_ID, text: errorText, parse_mode: 'Markdown' })
+      })
+      console.log('  Alert sent to Telegram')
+    } catch (e) {
+      console.log('  Failed to send Telegram alert:', e.message)
+    }
+  }
+
   console.log('')
   process.exit(1)
 }

@@ -1,0 +1,104 @@
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
+project_id = "vanguard"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.vanguard-telegram]
+verify_jwt = false
+
+[functions.vanguard-telegram-worker]
+verify_jwt = false
+
+
+
+[functions.vanguard-daily-reconciliation]
+verify_jwt = false
+
+[functions.vanguard-auto-classify]
+verify_jwt = false
+
+[functions.vanguard-push-reminder]
+verify_jwt = false
+
+[functions.vanguard-architect]
+verify_jwt = false
+
+[functions.vanguard-wiki-compiler]
+verify_jwt = false
+
+[functions.ingest-vault-log]
+verify_jwt = false
+
+[functions.save-daily-aggregate]
+verify_jwt = false
+
+[functions.vanguard-analyst]
+verify_jwt = false
+
+[functions.vanguard-weekly-synthesis]
+verify_jwt = false
+
+[functions.vanguard-eval-runner]
+verify_jwt = false
+
+[functions.vanguard-eval-interview]
+verify_jwt = false
+
+[functions.vanguard-graph-embedder]
+verify_jwt = false
+
+[functions.vanguard-librarian]
+verify_jwt = false
+
+[functions.vanguard-mcp-server]
+verify_jwt = false
+
+[functions.vanguard-metabolism]
+verify_jwt = false
+
+
+[functions.vanguard-executor]
+enabled = true
+verify_jwt = false
+import_map = "./functions/vanguard-executor/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/vanguard-executor/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/vanguard-executor/*.html" ]

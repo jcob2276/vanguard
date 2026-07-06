@@ -1,6 +1,6 @@
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
-import { processRecords } from "./oracle/processor.ts"
+import { processRecords } from "./extraction/processor.ts"
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })

@@ -45,6 +45,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Dead code check (Knip)
+        run: npm run audit:knip
+
       - name: Test
         run: npm run test
 
