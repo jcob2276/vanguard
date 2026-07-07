@@ -45,7 +45,7 @@ export default function MarathonPanel({ strava, grid, tick }: MarathonPanelProps
         </div>
       </div>
       {kmData.length > 1 ? (
-        <ResponsiveContainer width="100%" height={140}>
+        <ResponsiveContainer width="100%" height={140} minWidth={0} minHeight={0}>
           <AreaChart data={kmData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
             <defs>
               <linearGradient id="gRun" x1="0" y1="0" x2="0" y2="1">

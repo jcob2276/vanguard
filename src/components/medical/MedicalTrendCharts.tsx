@@ -56,7 +56,7 @@ function MarkerTrendCard({ series }: { series: MarkerSeries }) {
         </div>
         <ValueCell row={series.latest} />
       </div>
-      <ResponsiveContainer width="100%" height={160}>
+      <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--color-text-muted, #888)' }} interval="preserveStartEnd" />

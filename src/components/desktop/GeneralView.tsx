@@ -195,7 +195,7 @@ export default function GeneralView({
 
       {/* Recovery + Strain timeline */}
       <Panel title="Recovery & Strain — 90 dni">
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
           <AreaChart data={timelineData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="gRecovery" x1="0" y1="0" x2="0" y2="1">
@@ -227,7 +227,7 @@ export default function GeneralView({
       <div className="grid grid-cols-3 gap-5">
         {/* VitalBands z-scores */}
         <Panel title="VitalBands z-scores — 90 dni">
-          <ResponsiveContainer width="100%" height={190}>
+          <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
             <LineChart data={timelineData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
               <XAxis dataKey="d" tick={{ fontSize: 9, fill: tick }} interval={9} />
@@ -254,7 +254,7 @@ export default function GeneralView({
           {sleepChartData.length === 0 ? (
             <p className="text-[10px] text-text-muted py-8 text-center">Brak danych Oura — uruchom sync (S)</p>
           ) : (
-          <ResponsiveContainer width="100%" height={190}>
+          <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
             <AreaChart data={sleepChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gSleep" x1="0" y1="0" x2="0" y2="1">
@@ -305,7 +305,7 @@ export default function GeneralView({
           {sleepHrvCorr.length === 0 ? (
             <p className="text-[10px] text-text-muted py-8 text-center">Za mało par sen/HRV (min. 2 dni Oura)</p>
           ) : (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
             <ScatterChart data={sleepHrvCorr} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
               <XAxis dataKey="sleep" name="Sen (h)" type="number" tick={{ fontSize: 9, fill: tick }} domain={['auto', 'auto']} label={{ value: 'Sen (h)', position: 'insideBottom', offset: -2, fontSize: 9, fill: tick }} />
@@ -320,7 +320,7 @@ export default function GeneralView({
 
         {/* HRV raw */}
         <Panel title="HRV & RHR — 90 dni">
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
             <LineChart data={timelineData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
               <XAxis dataKey="d" tick={{ fontSize: 9, fill: tick }} interval={9} />
@@ -347,7 +347,7 @@ export default function GeneralView({
 
       <div className="grid grid-cols-3 gap-5">
         <Panel title="Tarcia wg typu">
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
             <BarChart data={frictionBar} margin={{ top: 4, right: 4, left: -20, bottom: 20 }} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
               <XAxis type="number" tick={{ fontSize: 9, fill: tick }} />

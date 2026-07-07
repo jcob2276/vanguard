@@ -395,7 +395,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
           </div>
         <div className="grid grid-cols-3 gap-5">
           <Panel title="Sen & HRV — 14 dni">
-            <ResponsiveContainer width="100%" height={190}>
+            <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
               <LineChart data={sleepData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={grid} />
                 <XAxis dataKey="d" tick={{ fontSize: 9, fill: tick }} interval={2} />
@@ -413,7 +413,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
           </Panel>
 
           <Panel title="Objętość treningowa — 10 tygodni (Mg)">
-            <ResponsiveContainer width="100%" height={190}>
+            <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
               <BarChart data={volData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
                 <XAxis dataKey="week" tick={{ fontSize: 9, fill: tick }} />
@@ -425,7 +425,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
           </Panel>
 
           <Panel title="Żywienie — 14 dni">
-            <ResponsiveContainer width="100%" height={190}>
+            <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
               <AreaChart data={nutrData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gK" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.rose} stopOpacity={0.25}/><stop offset="95%" stopColor={C.rose} stopOpacity={0}/></linearGradient>
