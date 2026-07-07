@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, CheckCircle2, Send, ChevronRight, ChevronLeft, AlertTriangle, Trash2 } from 'lucide-react';
+import { X, CheckCircle2, Send, ChevronRight, ChevronLeft, AlertTriangle, Trash2, Flame } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCalendarWrite } from '../../hooks/useCalendarWrite';
 import { getTodayWarsaw } from '../../lib/date';
 import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth';
-import { updateDailyWin, insertDailyWin } from '../../lib/goalSpine.mutations';
+import { insertDailyWin } from '../../lib/goalSpine.mutations';
 import { notify } from '../../lib/notify';
 import DayTimeline, { type TimelineBlock } from '../shared/DayTimeline';
 import { Session } from '@supabase/supabase-js';
@@ -100,6 +100,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
   // Power List slots (1-5)
   const [powerList, setPowerList] = useState<(TodoSlot | null)[]>([null, null, null, null, null]);
   const [todayWinId, setTodayWinId] = useState<string | null>(null);
+  const [nutritionTarget, setNutritionTarget] = useState<{ target_kcal: number | null; protein_floor_g: number | null } | null>(null);
 
   // Time-boxing states
   const [times, setTimes] = useState<Record<string, string>>({}); // taskId -> "HH:MM"
@@ -155,6 +156,15 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
         setYesterdayTasks((pastData as TodoSlot[]) || []);
         setTodayTasks((currentData as TodoSlot[]) || []);
         setInboxTasks((inboxData as TodoSlot[]) || []);
+
+        // Fetch nutrition target
+        const { data: nutTarget } = await supabase
+          .from('nutrition_targets')
+          .select('target_kcal, protein_floor_g')
+          .eq('user_id', userId)
+          .eq('date', planningDate)
+          .maybeSingle();
+        setNutritionTarget(nutTarget);
 
         // Pre-fill durations and times
         const timesPreset: Record<string, string> = {};
@@ -603,6 +613,24 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
               </div>
 
               {/* Power List slots */}
+              {nutritionTarget && (
+                <div className="bg-emerald-500/5 dark:bg-emerald-950/10 border border-emerald-500/10 dark:border-emerald-900/30 rounded-xl p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <Flame size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-500 block uppercase tracking-wider">Dzienny Cel Żywieniowy</span>
+                      <span className="text-[12px] text-text-primary font-bold">
+                        {nutritionTarget.target_kcal ? `${nutritionTarget.target_kcal} kcal` : '—'} 
+                        <span className="text-text-muted font-normal mx-1.5">|</span>
+                        {nutritionTarget.protein_floor_g ? `min. ${nutritionTarget.protein_floor_g}g białka` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 p-3 rounded-2xl">
                 <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-1">Sloty Power List</span>
                 {powerList.map((slot, idx) => (
