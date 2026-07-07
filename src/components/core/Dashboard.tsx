@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import {
   Calendar,
   FolderKanban,
@@ -36,6 +37,7 @@ import { useDashboardSwipeNav } from '../../hooks/useDashboardSwipeNav';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
 import { DashboardModals } from './DashboardModals';
+import SearchModal from './SearchModal';
 
 const WorkoutLogger = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -136,6 +138,26 @@ export default function Dashboard({ session }: { session: Session }) {
   const [showShutdown, setShowShutdown] = useState(false);
   const [showWeeklyReview, setShowWeeklyReview] = useState(false);
   const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!userId || !view) return;
+    supabase.from('view_events').insert({ user_id: userId, view_name: view })
+      .then(({ error }) => {
+        if (error) console.error(error);
+      });
+  }, [userId, view]);
 
   useEffect(() => {
     if (!userId) return;
@@ -416,6 +438,7 @@ export default function Dashboard({ session }: { session: Session }) {
           showLock={showLock}
           view={view}
           onShortcutClick={(dest) => navigate('/' + dest)}
+          onSearchClick={() => setShowSearch(true)}
           staleNoteCount={staleNoteCount}
           handleLogoPressStart={handleLogoPressStart}
           handleLogoPressEnd={handleLogoPressEnd}
@@ -681,6 +704,10 @@ export default function Dashboard({ session }: { session: Session }) {
         refresh={refresh}
         setNutritionKey={setNutritionKey}
       />
+
+      {showSearch && (
+        <SearchModal session={session} onClose={() => setShowSearch(false)} />
+      )}
     </div>
   );
 }

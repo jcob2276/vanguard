@@ -28,6 +28,9 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-push-reminder",
   "compute-illness-signal",
   "rescore-workout-sessions",
+  "vanguard-capture",
+  "vanguard-search",
+  "vanguard-keep-triage",
 ];
 
 
@@ -60,6 +63,9 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-push-reminder", post: "skip", sideEffects: "Sends web push notifications for reminders" },
   { name: "compute-illness-signal", post: "skip", sideEffects: "Reads daily_strain and updates illness flags" },
   { name: "rescore-workout-sessions", post: "skip", sideEffects: "Rescores workouts based on Oura heartrate data" },
+  { name: "vanguard-capture", post: "skip", sideEffects: "Unified capture endpoint (text/link/voice)" },
+  { name: "vanguard-search", post: "skip", sideEffects: "Global search endpoint (FTS + embeddings)" },
+  { name: "vanguard-keep-triage", post: "skip", sideEffects: "AI triage for unread links (calls DeepSeek)" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */

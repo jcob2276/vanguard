@@ -7,6 +7,7 @@ import {
   StickyNote,
   Bookmark,
   LayoutDashboard,
+  Search,
 } from 'lucide-react';
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
@@ -21,9 +22,11 @@ interface DashboardHeaderProps {
   showLock: boolean;
   view: string;
   onShortcutClick: (dest: string) => void;
+  onSearchClick?: () => void;
   staleNoteCount: number;
   handleLogoPressStart: () => void;
   handleLogoPressEnd: () => void;
+  isCompactLogo?: boolean;
 }
 
 export function DashboardHeader({
@@ -36,9 +39,11 @@ export function DashboardHeader({
   showLock,
   view,
   onShortcutClick,
+  onSearchClick,
   staleNoteCount,
   handleLogoPressStart,
   handleLogoPressEnd,
+  isCompactLogo = false,
 }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]">
@@ -124,6 +129,14 @@ export function DashboardHeader({
               title="Zapisane linki"
             >
               <Bookmark size={15} />
+            </button>
+
+            <button
+              onClick={onSearchClick}
+              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center"
+              title="Szukaj (Ctrl+K)"
+            >
+              <Search size={15} />
             </button>
 
             <Link

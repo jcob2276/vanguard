@@ -26,7 +26,10 @@ $all = @(
   "vanguard-librarian",
   "compute-illness-signal",
   "rescore-workout-sessions",
-  "vanguard-push-reminder"
+  "vanguard-push-reminder",
+  "vanguard-capture",
+  "vanguard-search",
+  "vanguard-keep-triage"
 )
 
 $targets = if ($args.Count -gt 0) { $args } else { $all }
