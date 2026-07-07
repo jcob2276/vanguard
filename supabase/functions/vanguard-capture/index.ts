@@ -105,13 +105,11 @@ Deno.serve(async (req) => {
     }
 
     // Default: write to vanguard_stream
-    const dateText = new Date().toISOString().substring(0, 10);
     const { data, error } = await db.from("vanguard_stream").insert({
       user_id: userId,
       source,
       content,
       metadata,
-      date_text: dateText,
     }).select("*").single();
 
     if (error) throw error;

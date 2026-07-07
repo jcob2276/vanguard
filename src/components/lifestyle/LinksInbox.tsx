@@ -133,10 +133,10 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setSharingStatus('Zapisywanie udostępnionego linku...');
     try {
       const base = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
+      const res = await fetch(`${base}/functions/v1/vanguard-capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ type: 'save_link', url: actualUrl }),
+        body: JSON.stringify({ content: actualUrl, source: 'share_target' }),
         signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!res.ok) {
@@ -161,10 +161,10 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setAddLoading(true);
     try {
       const base = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${base}/functions/v1/vanguard-telegram`, {
+      const res = await fetch(`${base}/functions/v1/vanguard-capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ type: 'save_link', url: urlMatch[0] }),
+        body: JSON.stringify({ content: urlMatch[0], source: 'links_inbox' }),
         signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
       if (!res.ok) {
