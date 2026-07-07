@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox, Mic, Pencil } from 'lucide-react';
+import { format, parseISO, startOfWeek } from 'date-fns';
 import { getTodayWarsaw } from '../../lib/date';
+import { supabase } from '../../lib/supabase';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted } from '../../lib/todo';
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, isVoiceEntry, type StreamEntry } from '../../lib/streamReview';
 import { Session } from '@supabase/supabase-js';
@@ -36,6 +38,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   // Reflection
   const [weeklyNote, setWeeklyNote] = useState('');
+  const [aiRecap, setAiRecap] = useState<any>(null);
 
   // Fetch all tasks and sections
   useEffect(() => {
@@ -54,9 +57,21 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
         // 3. Fetch this week's raw Telegram/voice log for the correction pass
         setStreamEntries(await listRecentStreamEntries(userId));
+
+        // 4. Fetch AI Recap / Weekly Digest
+        const weekStart = format(startOfWeek(parseISO(today), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const { data: review } = await supabase
+          .from('weekly_reviews')
+          .select('ai_recap')
+          .eq('user_id', userId)
+          .eq('week_start', weekStart)
+          .maybeSingle();
+        if (review?.ai_recap) {
+          setAiRecap(review.ai_recap);
+        }
       } catch (err: unknown) {
-      console.error('[Background Error]', err);
-    } finally {
+        console.error('[Background Error]', err);
+      } finally {
         setLoading(false);
       }
     })();
@@ -456,6 +471,26 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
                 </h3>
                 <p className="text-[10px] text-text-muted mt-0.5">Podsumuj krótko ten tydzień. Jakie są Twoje najważniejsze lekcje i skupienie na kolejny tydzień?</p>
               </div>
+
+              {aiRecap?.phase1?.narrative && (
+                <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                    <Sparkles size={14} className="text-indigo-500" />
+                    <span>System widzi (Podsumowanie):</span>
+                  </div>
+                  <p className="text-[12px] text-text-primary leading-relaxed whitespace-pre-line font-medium">
+                    {aiRecap.phase1.narrative}
+                  </p>
+                  {aiRecap.phase1.question && (
+                    <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/30">
+                      <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 block uppercase tracking-wider">Pytanie pomocnicze:</span>
+                      <p className="text-[12px] text-text-secondary font-semibold italic mt-0.5 text-indigo-700 dark:text-indigo-300">
+                        "{aiRecap.phase1.question}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-text-primary block">Notatka tygodniowa</span>
