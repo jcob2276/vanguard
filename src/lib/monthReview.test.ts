@@ -22,10 +22,11 @@ describe('monthReview timing', () => {
     expect(isMonthlyReviewDue('2026-03-20', null)).toBe(false);
   });
 
-  it('hard gate only first 7 days of month', () => {
-    expect(isMonthlyHardGate('2026-07-01')).toBe(true);
-    expect(isMonthlyHardGate('2026-07-07')).toBe(true);
+  it('hard gate is disabled (0 days), soft cue for first 14 days of month', () => {
+    expect(isMonthlyHardGate('2026-07-01')).toBe(false);
+    expect(isMonthlyHardGate('2026-07-07')).toBe(false);
     expect(isMonthlyHardGate('2026-07-08')).toBe(false);
+    expect(isMonthlySoftCue('2026-07-01')).toBe(true);
     expect(isMonthlySoftCue('2026-07-10')).toBe(true);
     expect(isMonthlySoftCue('2026-07-15')).toBe(false);
   });

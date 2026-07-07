@@ -171,7 +171,7 @@ describe('deriveSpineGuidance', () => {
 
 
 
-  it('prompts monthly before week when due (hard gate)', () => {
+  it('does not block day when monthly is due (no hard gate)', () => {
     const spine = baseSpine();
     spine.month = {
       closingMonthStart: '2026-05-01',
@@ -181,9 +181,8 @@ describe('deriveSpineGuidance', () => {
       activeMonthLabel: 'czerwiec 2026',
     };
     const g = deriveSpineGuidance(spine, { ...readyCtx(), today: '2026-06-03' });
-    expect(g.primaryAction).toMatchObject({ type: 'navigate', target: 'tydzien' });
-    expect(g.steps.some((s) => s.id === 'month' && s.status === 'now')).toBe(true);
-    expect(g.readyForDay).toBe(false);
+    expect(g.readyForDay).toBe(true);
+    expect(g.primaryAction?.type).toBe('plan_day');
   });
 
   it('soft cue for monthly after day 7 without blocking day', () => {
