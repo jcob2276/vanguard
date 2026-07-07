@@ -648,27 +648,6 @@ export default function Projects({
             placeholder="Cel / kim staję się realizując ten projekt..."
             className="w-full bg-transparent text-[13px] text-text-secondary outline-none placeholder:text-text-muted/35"
           />
-          {dreams.filter(d => !d.is_done).length > 0 && (
-            <select
-              value={form.dream_id}
-              onChange={e => setForm(f => ({ ...f, dream_id: e.target.value }))}
-              className="w-full rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-            >
-              <option value="">— Pod które marzenie? (opcjonalnie) —</option>
-              {(['cialo', 'duch', 'konto'] as const).map(goal => {
-                const group = dreams.filter(d => d.life_goal === goal && !d.is_done);
-                if (!group.length) return null;
-                const labels: Record<string, string> = { cialo: 'Ciało', duch: 'Duch', konto: 'Konto' };
-                return (
-                  <optgroup key={goal} label={labels[goal]}>
-                    {group.map(d => (
-                      <option key={d.id} value={d.id}>{d.title}</option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
-          )}
           <div className="flex items-center gap-3">
             <input
               type="date"
