@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, ChevronRight, ChevronLeft, Send, Sparkles, Smile, Flame, Award } from "lucide-react";
+import { X, Sparkles, Smile, Flame, Award, Send } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getTodayWarsaw } from "../../lib/date";
 import { notify } from "../../lib/notify";
@@ -19,7 +19,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3>(1); // Step 1: Checklist preview & actual accomplishment notes, Step 2: Rating/Reflection, Step 3: Success Screen
+  const [step, setStep] = useState<1 | 2>(1); // Step 1: Consolidated Form, Step 2: Success Screen
 
   const [todayWin, setTodayWin] = useState<any>(null);
   const [completedTasks, setCompletedTasks] = useState<boolean[]>([false, false, false, false, false]);
@@ -58,20 +58,35 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
           setRpeScore(data.daily_rpe || 5);
         }
 
-        const { data: recon } = await supabase
-          .from("daily_reconciliations")
-          .select("day_score")
-          .eq("user_id", userId)
-          .eq("date", today)
-          .maybeSingle();
+        const [reconRes, workoutsRes] = await Promise.all([
+          supabase
+            .from("daily_reconciliations")
+            .select("day_score")
+            .eq("user_id", userId)
+            .eq("date", today)
+            .maybeSingle(),
+          supabase
+            .from("workout_sessions")
+            .select("session_rpe")
+            .eq("user_id", userId)
+            .eq("date", today)
+        ]);
         
-        if (recon && recon.day_score !== null) {
-          setDayScore(recon.day_score);
+        if (reconRes.data && reconRes.data.day_score !== null) {
+          setDayScore(reconRes.data.day_score);
+        }
+
+        // Prefill RPE from today's workouts if available
+        if (workoutsRes.data && workoutsRes.data.length > 0) {
+          const maxRpe = Math.max(...workoutsRes.data.map((w: any) => w.session_rpe || 0));
+          if (maxRpe > 0) {
+            setRpeScore(maxRpe);
+          }
         }
       } catch (err: unknown) {
-      console.error('[Action Error]', err);
-      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
-    } finally {
+        console.error('[Action Error]', err);
+        notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+      } finally {
         setLoading(false);
       }
     })();
@@ -86,7 +101,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
       const allDone = activeTasksCount > 0 && doneCount === activeTasksCount;
       const result = allDone ? "Z" : "P";
 
-      // 1. Update daily_wins (journal_entry stores the actual accomplishments note)
       const patch = {
         day_note: reflectionText.trim(),
         journal_entry: actualAccomplishmentText.trim(),
@@ -97,43 +111,37 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
       await updateDailyWin(userId, todayWin.id, patch);
 
-      // 2. Update daily_reconciliations
-      const { data: recon, error: reconFetchErr } = await supabase
+      const { data: recon } = await supabase
         .from("daily_reconciliations")
         .select("id")
         .eq("user_id", userId)
         .eq("date", today)
         .maybeSingle();
 
-      if (reconFetchErr) throw reconFetchErr;
-
       if (recon) {
-        const { error: reconUpdErr } = await supabase
+        await supabase
           .from("daily_reconciliations")
           .update({ day_score: dayScore })
           .eq("id", recon.id);
-        if (reconUpdErr) throw reconUpdErr;
       } else {
-        const { error: reconInsErr } = await supabase
+        await supabase
           .from("daily_reconciliations")
           .insert({ user_id: userId, date: today, day_score: dayScore });
-        if (reconInsErr) throw reconInsErr;
       }
 
-      // 3. Insert stream log
       const reflectionPart = reflectionText.trim() ? " | Refleksja: " + reflectionText.trim() : "";
       const accomplishmentPart = actualAccomplishmentText.trim() ? " | Co zrobiono: " + actualAccomplishmentText.trim() : "";
 
-      const { error: streamErr } = await supabase.from("vanguard_stream").insert({
+      await supabase.from("vanguard_stream").insert({
         user_id: userId,
         source: "daily_shutdown",
         content: "Domknięcie dnia: Wynik " + dayScore + "/10 (Samopoczucie: " + moodScore + "/5, RPE: " + rpeScore + "/10)" + reflectionPart + accomplishmentPart,
+        classification: "reflection:evening",
         metadata: { kind: "day_close", date: today, day_score: dayScore, mood: moodScore, rpe: rpeScore },
       });
-      if (streamErr) throw streamErr;
 
       if (onSaved) onSaved();
-      setStep(3); // Go to success screen
+      setStep(2); // Go to success screen
     } catch (err: unknown) {
       console.error("Error saving daily shutdown:", err);
       notify("Nie udało się zamknąć dnia", "error");
@@ -192,7 +200,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
             <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Domknięcie Dnia</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-semibold text-text-muted">{today}</span>
-              {step < 3 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 2</span>}
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
@@ -200,75 +207,69 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
           </button>
         </div>
 
-        {step < 3 && (
-          <div className="grid grid-cols-2 h-1 bg-border-custom/20 shrink-0">
-            <div className={`h-full transition-all duration-300 ${step >= 1 ? "bg-indigo-500" : "bg-transparent"}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 2 ? "bg-indigo-500" : "bg-transparent"}`} />
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           
-          {/* STEP 1: Power List Preview & Actual Accomplishment Notes */}
+          {/* STEP 1: Consolidated Evening Shutdown Form */}
           {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-[13px] font-black text-text-primary">Twoje Zwycięstwa na dziś (Power List)</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Podgląd dzisiejszego planu i jego realizacji.</p>
+            <>
+              {/* Checklist preview */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-secondary">Zadania Power List (podgląd)</span>
+                </div>
+                {tasksList.length === 0 ? (
+                  <div className="py-4 text-center text-text-muted/50 italic text-[11px]">
+                    Brak zadań w Power List na dziś.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {tasksList.map((task) => (
+                      <div
+                        key={task.idx}
+                        className={`px-3 py-2 rounded-lg border flex items-center justify-between transition-all ${
+                          task.done
+                            ? "border-emerald-500/10 bg-emerald-500/[0.01] text-text-primary"
+                            : "border-border-custom/40 bg-surface/30 text-text-muted"
+                        }`}
+                      >
+                        <span className={`text-[11px] font-medium ${task.done ? "line-through opacity-70" : ""}`}>
+                          {task.title}
+                        </span>
+                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                          task.done ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-500"
+                        }`}>
+                          {task.done ? "Tak" : "Nie"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {tasksList.length === 0 ? (
-                <div className="py-8 text-center text-text-muted/50 italic text-[12px]">
-                  Brak zadań w Power List na dziś.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {tasksList.map((task) => (
-                    <div
-                      key={task.idx}
-                      className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                        task.done
-                          ? "border-emerald-500/20 bg-emerald-500/[0.015] text-text-primary"
-                          : "border-border-custom/60 bg-surface/50 text-text-muted"
-                      }`}
-                    >
-                      <span className={`text-[12px] font-semibold ${task.done ? "line-through opacity-75" : ""}`}>
-                        {task.title}
-                      </span>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
-                        task.done ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-500"
-                      }`}>
-                        {task.done ? "Zrobione" : "Niezrobione"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Comment text area */}
-              <div className="space-y-1.5 pt-2">
-                <span className="text-[11px] font-bold text-text-primary block">
-                  Co realnie zrobiłeś z dzisiejszych zadań? (Opcjonalnie)
-                </span>
+              {/* Combined reflection & accomplishments text input */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-text-primary block">Refleksja: co realnie poszło inaczej i dlaczego?</span>
                 <textarea
-                  value={actualAccomplishmentText}
-                  onChange={(e) => setActualAccomplishmentText(e.target.value)}
-                  placeholder="Napisz, co faktycznie udało się zrealizować (np. Zrobiłem siłownię, ale skróciłem trening o połowę lub Zgłosiłem zadanie, ale muszę poprawić szczegóły)."
-                  rows={3}
+                  value={reflectionText}
+                  onChange={(e) => setReflectionText(e.target.value)}
+                  placeholder="Zapisz krótkie podsumowanie lub napotkane tarcia..."
+                  rows={2}
                   className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
                 />
               </div>
-            </div>
-          )}
 
-          {/* STEP 2: Ratings & Reflection */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-[13px] font-black text-text-primary">Refleksja wieczorna i Ocena</h3>
-                <p className="text-[10px] text-text-muted mt-0.5">Podsumuj krótko dzisiejszy dzień i oceń swoje samopoczucie.</p>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-text-primary block">Dodatkowe notatki z wykonania (opcjonalnie)</span>
+                <textarea
+                  value={actualAccomplishmentText}
+                  onChange={(e) => setActualAccomplishmentText(e.target.value)}
+                  placeholder="Co konkretnie udało się dzisiaj dowieźć poza planem..."
+                  rows={2}
+                  className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
+                />
               </div>
 
+              {/* Scoring Sliders card */}
               <div className="space-y-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 p-4 rounded-2xl">
                 {/* Day Score */}
                 <div className="space-y-1.5">
@@ -310,7 +311,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
                   />
                 </div>
 
-                {/* RPE Score */}
+                {/* RPE Score (Pre-filled if workout found) */}
                 <div className="space-y-1.5 border-t border-border-custom/30 pt-3">
                   <div className="flex items-center justify-between text-[11px] font-bold">
                     <span className="flex items-center gap-1 text-text-primary">
@@ -329,23 +330,11 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
                   />
                 </div>
               </div>
-
-              {/* Day Note reflection */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-text-primary block">Refleksja (Co poszło inaczej i dlaczego?)</span>
-                <textarea
-                  value={reflectionText}
-                  onChange={(e) => setReflectionText(e.target.value)}
-                  placeholder="Zapisz refleksję, np. Zgłosiłem zadanie, ale nie zrobiłem cardio. Jutro pilnuję limitu."
-                  rows={3}
-                  className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
-                />
-              </div>
-            </div>
+            </>
           )}
 
-          {/* STEP 3: Success Screen */}
-          {step === 3 && (
+          {/* STEP 2: Success Screen */}
+          {step === 2 && (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 animate-fadeIn">
               <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/5">
                 <Sparkles />
@@ -378,38 +367,18 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
-          {step === 2 && (
-            <button
-              onClick={() => setStep(1)}
-              className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5"
-            >
-              <ChevronLeft size={16} />
-              Wróć
-            </button>
-          )}
-
           {step === 1 && (
-            <button
-              onClick={() => setStep(2)}
-              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto"
-            >
-              Dalej
-              <ChevronRight size={16} />
-            </button>
-          )}
-
-          {step === 2 && (
             <button
               onClick={handleSaveShutdown}
               disabled={saving}
-              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto shadow-lg shadow-indigo-600/10 disabled:opacity-40"
+              className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/10 disabled:opacity-40"
             >
               <Send size={14} />
               {saving ? "Zamykam dzień..." : "Zatwierdź zamknięcie"}
             </button>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <div className="w-full flex gap-2">
               <button
                 onClick={onClose}
@@ -424,7 +393,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
                   onClick={onPlanTomorrow}
                   className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-1.5"
                 >
-                  <ChevronRight size={15} />
                   Zaplanuj jutro
                 </button>
               )}
