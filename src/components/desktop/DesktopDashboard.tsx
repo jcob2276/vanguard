@@ -13,9 +13,10 @@ import {
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import {
-  RefreshCw, Smartphone, Moon, Sun, Fingerprint,
+  RefreshCw, Smartphone, Moon, Sun, Fingerprint, ShieldCheck,
 } from 'lucide-react';
 import DashboardModuleShortcuts from '../core/DashboardModuleShortcuts';
+import SystemHealth from './SystemHealth';
 import { useNudgeData } from '../../hooks/useNudgeData';
 import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { useDesktopData } from './useDesktopData';
@@ -120,6 +121,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
     }
   }, [userId]);
   const [showFundament, setShowFundament] = useState(false);
+  const [showHealth, setShowHealth] = useState(false);
   const [theme,       setTheme]       = useState(() => localStorage.getItem('vanguard_theme') || 'light');
 
   useEffect(() => {
@@ -237,6 +239,20 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const volData   = weeklyVolume(sessions);
   const now       = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' });
 
+  if (showHealth) return (
+    <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
+      <header className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => setShowHealth(false)}
+          className="btn-press px-4 py-2 border border-border-custom bg-surface rounded-xl text-[12px] font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+        >
+          ← Powrót do Pulpitu
+        </button>
+      </header>
+      <SystemHealth userId={userId ?? ''} />
+    </div>
+  );
+
   if (showFundament) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
       <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
@@ -286,6 +302,12 @@ export default function DesktopDashboard({ session }: { session: Session }) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
+          <button onClick={() => setShowHealth(true)}
+            className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+            title="Status zdrowia systemu"
+          >
+            <ShieldCheck size={14} />
+          </button>
           <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
             className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer">
             {theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-yellow-400" />}
