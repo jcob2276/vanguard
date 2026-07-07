@@ -133,6 +133,22 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
   }, [fetchAll]);
 
+  // Live refresh when a task lands via Telegram/capture while the app is open —
+  // todo_items is already in the supabase_realtime publication (see
+  // 20260706000001_realtime_publication.sql), this was just missing a subscriber.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`todo_items_${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'todo_items', filter: `user_id=eq.${userId}` },
+        () => { fetchAll(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, fetchAll]);
+
   useEffect(() => {
     push.isSubscribed().then(setPushSubscribed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
