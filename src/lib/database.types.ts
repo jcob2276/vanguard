@@ -2918,6 +2918,7 @@ export type Database = {
           date: string | null
           id: string
           image_url: string
+          thumbnail_url: string | null
           user_id: string | null
         }
         Insert: {
@@ -2925,6 +2926,7 @@ export type Database = {
           date?: string | null
           id?: string
           image_url: string
+          thumbnail_url?: string | null
           user_id?: string | null
         }
         Update: {
@@ -2932,6 +2934,7 @@ export type Database = {
           date?: string | null
           id?: string
           image_url?: string
+          thumbnail_url?: string | null
           user_id?: string | null
         }
         Relationships: []

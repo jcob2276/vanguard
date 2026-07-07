@@ -5,6 +5,7 @@ import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
 import { notify, confirmDialog } from '../../lib/notify';
+import { generateThumbnail } from '../../lib/imageThumbnail';
 import { Session } from '@supabase/supabase-js';
 
 export default function Photos({ session }: { session: Session }) {
@@ -72,12 +73,25 @@ export default function Photos({ session }: { session: Session }) {
       notify(exifErr instanceof Error ? exifErr.message : 'Wystąpił błąd', 'error');
     }
 
-      const fileName = `${session.user.id}/${Date.now()}.${file.name.split('.').pop()}`;
+      const stamp = Date.now();
+      const fileName = `${session.user.id}/${stamp}.${file.name.split('.').pop()}`;
       await supabase.storage.from('progress-photos').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
+
+      let thumbnailUrl: string | null = null;
+      try {
+        const thumbBlob = await generateThumbnail(file);
+        const thumbName = `${session.user.id}/${stamp}_thumb.jpg`;
+        await supabase.storage.from('progress-photos').upload(thumbName, thumbBlob);
+        thumbnailUrl = supabase.storage.from('progress-photos').getPublicUrl(thumbName).data.publicUrl;
+      } catch (thumbErr: unknown) {
+        console.warn('[Photos] thumbnail generation failed, gallery will use the original', thumbErr);
+      }
+
       const { error: insertErr } = await supabase.from('progress_photos').insert({
          user_id: session.user.id,
          image_url: publicUrl,
+         thumbnail_url: thumbnailUrl,
          date: occurredDate
       });
       if (insertErr) throw insertErr;
@@ -87,10 +101,12 @@ export default function Photos({ session }: { session: Session }) {
     } finally { setUploading(false); }
   }
 
-  async function deletePhoto(id: string, url: string) {
+  async function deletePhoto(id: string, url: string, thumbnailUrl: string | null) {
     if (!(await confirmDialog('Usunąć?'))) return;
     const fileName = `${session.user.id}/${url.split('/').pop()}`;
-    await supabase.storage.from('progress-photos').remove([fileName]);
+    const paths = [fileName];
+    if (thumbnailUrl) paths.push(`${session.user.id}/${thumbnailUrl.split('/').pop()}`);
+    await supabase.storage.from('progress-photos').remove(paths);
     const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
     if (delErr) { notify(delErr.message, 'error'); return; }
     fetchPhotos();
@@ -218,7 +234,7 @@ export default function Photos({ session }: { session: Session }) {
                   onClick={() => handleSelect(photo.id)}
                   className={`relative w-[88px] aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer ${isBase ? 'border-primary scale-[1.04] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[1.04] shadow-sm' : 'border-border-custom opacity-50 hover:opacity-80'}`}
                 >
-                  <img src={photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
+                  <img src={photo.thumbnail_url || photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
                   {(isBase || isTarget) && (
                     <div className="absolute inset-0 flex items-end justify-center pb-2">
                       <span className="text-[8px] font-black text-white uppercase bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10">
@@ -231,7 +247,7 @@ export default function Photos({ session }: { session: Session }) {
                   <span className={`text-[9px] font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
                     {format(parseISO(photo.date), 'dd.MM')}
                   </span>
-                  <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded-lg hover:bg-rose-500/5 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
+                  <button onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded-lg hover:bg-rose-500/5 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
                     <Trash2 size={11} />
                   </button>
                 </div>
