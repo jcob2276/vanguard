@@ -2,7 +2,8 @@ import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/s
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 
 const ACTIONS = new Set(["keep", "archive", "todo"]);
-const MAX_NOTES = 20;
+const CATEGORIES = new Set(["Kariera", "Zdrowie", "Technologia", "Biznes", "Inne"]);
+const MAX_LINKS = 15;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -17,18 +18,18 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
     if (!apiKey) throw new Error("DEEPSEEK_API_KEY not set");
 
-    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
-
-    const { data: staleNotes, error: notesErr } = await db
-      .from("vanguard_notes")
-      .select("id, title, content, tags, updated_at")
+    // Fetch oldest unread links
+    const { data: unreadLinks, error: linksErr } = await db
+      .from("vanguard_links")
+      .select("id, title, url, description, category, takeaways, created_at")
       .eq("user_id", userId)
-      .eq("is_archived", false)
-      .lt("updated_at", cutoff)
-      .order("updated_at", { ascending: true });
-    if (notesErr) throw notesErr;
+      .eq("status", "unread")
+      .order("created_at", { ascending: true })
+      .limit(MAX_LINKS);
 
-    const totalStale = (staleNotes ?? []).length;
+    if (linksErr) throw linksErr;
+
+    const totalStale = (unreadLinks ?? []).length;
     if (totalStale === 0) {
       return new Response(JSON.stringify({ suggestions: [], totalStale: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -36,38 +37,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    const notesForPrompt = (staleNotes ?? []).slice(0, MAX_NOTES);
-    const snippets = new Map<string, string>();
-    for (const n of notesForPrompt as any[]) {
-      const snippet = String(n.content ?? "").slice(0, 200);
-      snippets.set(n.id, snippet);
-    }
-
-    const now = Date.now();
-    const notesBlock = (notesForPrompt as any[])
-      .map((n) => {
-        const days = Math.floor((now - new Date(n.updated_at).getTime()) / 86400000);
-        const tags = (n.tags ?? []).length ? ` [tagi: ${(n.tags ?? []).join(", ")}]` : "";
-        return `id: ${n.id}\ntytul: ${n.title || "(bez tytulu)"}\ntresc: ${snippets.get(n.id)}\nlezy bez zmian: ${days} dni${tags}`;
+    const linksBlock = (unreadLinks ?? [])
+      .map((l) => {
+        return `id: ${l.id}\ntytul: ${l.title || "(bez tytulu)"}\nurl: ${l.url}\nopis: ${String(l.description || "").slice(0, 150)}\nkategoria: ${l.category || "nieznana"}`;
       })
       .join("\n---\n");
 
     const systemPrompt =
-      "Jestes Antigravity - AI Jakuba. Ocenisz stare notatki z Keep, ktore nie byly edytowane 30+ dni.\n\n" +
-      "Dla kazdej notatki zdecyduj jedna akcje:\n" +
-      "- \"keep\" - wciaz aktualna/wazna, niech lezy dalej\n" +
-      "- \"archive\" - nieaktualna, bezuzyteczna, mozna zarchiwizowac\n" +
-      "- \"todo\" - to w istocie zadanie do wykonania, lepiej jako todo z deadlinem niz notatka\n\n" +
-      "reasoning: jedno krotkie zdanie po polsku, konkretne uzasadnienie.\n\n" +
-      "Zwroc TYLKO JSON: {\"suggestions\": [{\"id\": \"...\", \"action\": \"keep|archive|todo\", \"reasoning\": \"...\"}]}";
+      "Jestes Antigravity - AI Jakuba. Ocenisz nieprzeczytane linki z jego skrzynki odbiorczej (LinksInbox).\n\n" +
+      "Dla kazdego linku zdecyduj:\n" +
+      "1. \"action\": jedna z akcji:\n" +
+      "   - \"keep\" - zostaw w skrzynce (nadal wazne do przeczytania/obejrzenia)\n" +
+      "   - \"archive\" - bezuzyteczne, zdezaktualizowane, mozna zarchiwizowac\n" +
+      "   - \"todo\" - to jest konkretne zadanie lub material do natychmiastowej akcji, lepiej stworzyc z tego zadanie todo\n" +
+      "2. \"category\": popraw lub uzupelnij kategorie (wybierz jedna z: Kariera, Zdrowie, Technologia, Biznes, Inne)\n" +
+      "3. \"takeaways\": lista dokładnie 3 krótkich, konkretnych wniosków/takeaways na podstawie tytulu/opisu (po polsku)\n" +
+      "4. \"reasoning\": jedno krotkie zdanie po polsku, wyjasniajace sugerowana akcje.\n\n" +
+      "Zwroc TYLKO JSON: {\"suggestions\": [{\"id\": \"...\", \"action\": \"keep|archive|todo\", \"category\": \"Kariera|Zdrowie|...\", \"takeaways\": [\"wniosek1\", \"wniosek2\", \"wniosek3\"], \"reasoning\": \"...\"}]}";
 
     const { content } = await deepseekChat({
       apiKey,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: notesBlock },
+        { role: "user", content: linksBlock },
       ],
-      model: "deepseek-v4-flash",
+      model: "deepseek-chat",
       maxTokens: 2000,
       temperature: 0.2,
       responseFormat: { type: "json_object" },
@@ -76,17 +70,16 @@ Deno.serve(async (req) => {
     const parsed = parseJsonFromContent(content);
     if (!parsed) throw new Error("Invalid AI JSON: " + content.slice(0, 200));
 
-    const validIds = new Set(notesForPrompt.map((n: any) => n.id));
-    const titleById = new Map((notesForPrompt as any[]).map((n) => [n.id, n.title]));
-
+    const validIds = new Set((unreadLinks ?? []).map((l) => l.id));
     const rawSuggestions = Array.isArray((parsed as any).suggestions) ? (parsed as any).suggestions : [];
+    
     const suggestions = rawSuggestions
       .filter((s: any) => s && validIds.has(s.id) && ACTIONS.has(s.action))
       .map((s: any) => ({
         id: s.id,
-        title: titleById.get(s.id) || "",
-        snippet: snippets.get(s.id) || "",
         action: s.action,
+        category: CATEGORIES.has(s.category) ? s.category : "Inne",
+        takeaways: Array.isArray(s.takeaways) ? s.takeaways.map(String).slice(0, 3) : [],
         reasoning: String(s.reasoning || "").slice(0, 300),
       }));
 
@@ -95,9 +88,9 @@ Deno.serve(async (req) => {
       status: 200,
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[vanguard-keep-triage] error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

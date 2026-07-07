@@ -19,6 +19,7 @@ import {
   StickyNote,
   Trash2,
   X,
+  Sparkles,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
@@ -41,6 +42,14 @@ interface SavedLink {
   created_at: string;
   thumbnail_url?: string;
   channel_name?: string;
+}
+
+interface TriageSuggestion {
+  id: string;
+  action: 'keep' | 'archive' | 'todo';
+  category: string;
+  takeaways: string[];
+  reasoning: string;
 }
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
@@ -84,6 +93,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [convertingLinkId, setConvertingLinkId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [triageLoading, setTriageLoading] = useState(false);
+  const [triageSuggestions, setTriageSuggestions] = useState<TriageSuggestion[]>([]);
+  const [showTriagePanel, setShowTriagePanel] = useState(false);
 
   const haptic = (pattern: number | number[]) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -258,6 +270,60 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     }
   };
 
+  const handleAiTriage = async () => {
+    setTriageLoading(true);
+    setShowTriagePanel(true);
+    try {
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${base}/functions/v1/vanguard-keep-triage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: session.user.id }),
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setTriageSuggestions(data.suggestions || []);
+    } catch (err: unknown) {
+      console.error('[Triage Error]', err);
+      notify('AI Triage nie powiodło się', 'error');
+      setShowTriagePanel(false);
+    } finally {
+      setTriageLoading(false);
+    }
+  };
+
+  const applyTriageSuggestion = async (id: string, action: string, category: string, takeaways: string[]) => {
+    try {
+      const link = links.find(l => l.id === id);
+      if (!link) return;
+
+      if (action === 'archive') {
+        await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', id).throwOnError();
+        setLinks(prev => prev.filter(l => l.id !== id));
+        notify('Oznaczono jako przeczytany', 'success');
+      } else if (action === 'todo') {
+        await convertLinkToTodoItem(session.user.id, link);
+        setLinks(prev => prev.filter(l => l.id !== id));
+        notify('Dodano do zadań', 'success');
+      } else {
+        await supabase.from('vanguard_links').update({
+          category,
+          takeaways,
+          updated_at: new Date().toISOString()
+        }).eq('id', id).throwOnError();
+        setLinks(prev => prev.map(l => l.id === id ? { ...l, category, takeaways } : l));
+        notify('Zaktualizowano dane linku', 'success');
+      }
+      setTriageSuggestions(prev => prev.filter(s => s.id !== id));
+    } catch (err: unknown) {
+      notify(`Błąd: ${(err as Error).message}`, 'error');
+    }
+  };
+
   const filteredLinks = links.filter(link => {
     const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
     const matchesCategory = !categoryFilter || link.category === categoryFilter;
@@ -350,6 +416,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
             title={viewMode === 'card' ? 'Widok listy' : 'Widok kart'}
           >
             {viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
+          </button>
+          <button
+            onClick={handleAiTriage}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+            title="Automatyczny Triage AI"
+          >
+            <Sparkles size={15} />
           </button>
           <button
             onClick={() => { setShowAddForm(p => !p); setAddUrl(''); }}
@@ -726,6 +799,94 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
           <span className="text-[11px] font-semibold">Pocket</span>
         </button>
       </nav>
+
+      {showTriagePanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70">
+          <div className="absolute inset-0" onClick={() => { if (!triageLoading) setShowTriagePanel(false); }} />
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-scale-up">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-800 bg-slate-950/40">
+              <div className="flex items-center gap-2 text-indigo-400 font-bold text-[14px]">
+                <Sparkles size={16} />
+                <span>AI Triage - Sugestie Organizacji Linków</span>
+              </div>
+              <button onClick={() => setShowTriagePanel(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              {triageLoading && (
+                <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
+                  <Loader2 className="animate-spin mb-2" size={24} />
+                  <p className="text-[12px] font-bold">Analizowanie nieprzeczytanych linków...</p>
+                </div>
+              )}
+
+              {!triageLoading && triageSuggestions.length === 0 && (
+                <div className="text-center py-20 text-slate-500">
+                  <p className="text-[12px] font-semibold">Brak zalecanych sugestii AI</p>
+                  <p className="text-[10px] text-slate-600 mt-1">Wszystkie linki wydają się być odpowiednio sklasyfikowane.</p>
+                </div>
+              )}
+
+              {!triageLoading && triageSuggestions.map((s) => {
+                const link = links.find(l => l.id === s.id);
+                if (!link) return null;
+                return (
+                  <div key={s.id} className="p-4 bg-slate-950/40 border border-slate-800 rounded-xl space-y-3">
+                    <h4 className="text-[13px] font-bold text-text-primary leading-snug">{link.title}</h4>
+                    
+                    <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
+                      <span className={`px-2 py-0.5 rounded ${
+                        s.action === 'keep' ? 'bg-indigo-500/10 text-indigo-400' :
+                        s.action === 'archive' ? 'bg-slate-500/10 text-slate-400' :
+                        'bg-emerald-500/10 text-emerald-400'
+                      }`}>
+                        Sugerowana akcja: {s.action === 'keep' ? 'Zostaw' : s.action === 'archive' ? 'Archiwizuj' : 'Zrób Todo'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                        Kategoria: {s.category}
+                      </span>
+                    </div>
+
+                    {s.reasoning && (
+                      <p className="text-[11.5px] text-text-muted italic bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                        "{s.reasoning}"
+                      </p>
+                    )}
+
+                    {s.takeaways && s.takeaways.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Kluczowe wnioski:</span>
+                        <ul className="list-disc list-inside text-[11px] text-text-secondary pl-1 space-y-0.5">
+                          {s.takeaways.map((t: string, idx: number) => (
+                            <li key={idx} className="font-medium">{t}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 pt-2 justify-end">
+                      <button
+                        onClick={() => setTriageSuggestions(prev => prev.filter(item => item.id !== s.id))}
+                        className="px-3 py-1.5 text-[11px] font-bold text-slate-400 hover:text-text-primary transition-colors"
+                      >
+                        Pomiń
+                      </button>
+                      <button
+                        onClick={() => applyTriageSuggestion(s.id, s.action, s.category, s.takeaways)}
+                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"
+                      >
+                        Zastosuj
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

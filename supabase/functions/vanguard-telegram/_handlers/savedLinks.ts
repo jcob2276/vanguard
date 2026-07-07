@@ -104,7 +104,7 @@ function extractMetaFromHtml(html: string): { title: string; description: string
 const POCKET_CATEGORIES = new Set(["Kariera", "Zdrowie", "Technologia", "Biznes", "Inne"]);
 
 /** Shared LLM analysis used by both the Telegram path and the direct HTTP path. */
-async function generateLinkAnalysis(
+export async function generateLinkAnalysis(
   title: string,
   description: string,
   url: string,
@@ -140,7 +140,7 @@ async function generateLinkAnalysis(
   }
 }
 
-async function fetchUrlMetadata(url: string): Promise<{
+export async function fetchUrlMetadata(url: string): Promise<{
   title: string; description: string; domain: string; thumbnailUrl: string; channelName: string;
 }> {
   assertSafePublicUrl(url);
