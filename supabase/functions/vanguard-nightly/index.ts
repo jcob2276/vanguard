@@ -50,14 +50,24 @@ Deno.serve(async (req) => {
       console.log('[vanguard-nightly] Ingest freshness check OK');
     }
 
-    // 2. save-daily-aggregate
-    console.log('[vanguard-nightly] Step 2: save-daily-aggregate');
+    // 2. save-daily-aggregate — today's same-night snapshot is necessarily partial
+    // (nightly runs ~2h before Warsaw midnight, missing late dinner/training logged
+    // after it fires). Also finalize yesterday, which by now has a full day of data —
+    // otherwise that 1-2h tail never gets captured, unlike the old next-morning cron
+    // which only ever computed a fully-complete previous day.
+    console.log('[vanguard-nightly] Step 2: save-daily-aggregate (today + finalize yesterday)');
     const aggRes = await runSaveDailyAggregate(new Request(req.url, {
       method: req.method,
       headers: req.headers,
       body: JSON.stringify({ userId, date: todayStr })
     }));
-    if (!aggRes.ok) console.error('[vanguard-nightly] aggregate failed');
+    if (!aggRes.ok) console.error('[vanguard-nightly] aggregate (today) failed');
+    const aggYesterdayRes = await runSaveDailyAggregate(new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify({ userId, date: yesterdayStr })
+    }));
+    if (!aggYesterdayRes.ok) console.error('[vanguard-nightly] aggregate (yesterday finalize) failed');
 
     // 3. compute-daily-strain, illness-signal, recovery-forecast
     console.log('[vanguard-nightly] Step 3: compute metrics');
