@@ -27,6 +27,7 @@ import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../lib/captureBridge';
 import { notify, dismissToast } from '../../lib/notify';
+import { isOfflineError, queueOfflineWrite } from '../../lib/offlineQueue';
 import { Session } from '@supabase/supabase-js';
 
 export default function Keep({ session, onBack, onNavigateTo }: { session: Session; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
@@ -174,8 +175,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         .single();
       if (err) {
         if (isNetworkOrTableError(err)) {
+          const id = crypto.randomUUID();
           const local: Note = {
-            id: Math.random().toString(36).slice(2),
+            id,
             title: partial.title || '',
             content: partial.content || '',
             color: partial.color || 'default',
@@ -184,6 +186,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
+          if (isOfflineError(err)) {
+            await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...payload } }, 'Dodanie notatki');
+          }
           const updated = sortNotes([local, ...notes]);
           localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
           setNotes(updated);
@@ -193,8 +198,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       }
       setNotes(prev => sortNotes([data, ...prev]));
     } catch (e: any) {
+      const id = crypto.randomUUID();
       const local: Note = {
-        id: Math.random().toString(36).slice(2),
+        id,
         title: partial.title || '',
         content: partial.content || '',
         color: partial.color || 'default',
@@ -203,6 +209,9 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      if (isOfflineError(e)) {
+        await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...payload } }, 'Dodanie notatki');
+      }
       const updated = sortNotes([local, ...notes]);
       localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
       setNotes(updated);
@@ -226,7 +235,14 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       let cancelled = false;
       const timer = window.setTimeout(async () => {
         if (cancelled) return;
-        await supabase.from('vanguard_notes').update({ ...patch, updated_at: updatedAt }).eq('id', id);
+        try {
+          const { error: err } = await supabase.from('vanguard_notes').update({ ...patch, updated_at: updatedAt }).eq('id', id);
+          if (err) throw err;
+        } catch (err: unknown) {
+          if (isOfflineError(err)) {
+            await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: { ...patch, updated_at: updatedAt } }, 'Archiwizacja notatki');
+          }
+        }
       }, 5000);
 
       const toastId = notify(isArchiving ? 'Zarchiwizowano' : 'Przywrócono', 'info', {
@@ -250,13 +266,21 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         .from('vanguard_notes')
         .update({ ...patch, updated_at: updatedAt })
         .eq('id', id);
-      if (err && !isNetworkOrTableError(err)) throw err;
+      if (err) {
+        if (!isNetworkOrTableError(err)) throw err;
+        if (isOfflineError(err)) {
+          await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: { ...patch, updated_at: updatedAt } }, 'Edycja notatki');
+        }
+      }
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
     } catch (e: any) {
+      if (isOfflineError(e)) {
+        await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: { ...patch, updated_at: updatedAt } }, 'Edycja notatki');
+      }
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -279,8 +303,12 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       if (cancelled) return;
       try {
         const { error: err } = await supabase.from('vanguard_notes').delete().eq('id', id);
-        if (err && !isNetworkOrTableError(err)) throw err;
+        if (err) {
+          if (!isNetworkOrTableError(err)) throw err;
+          if (isOfflineError(err)) await queueOfflineWrite('table:delete:vanguard_notes', { match: { id } }, 'Usunięcie notatki');
+        }
       } catch (e: any) {
+        if (isOfflineError(e)) await queueOfflineWrite('table:delete:vanguard_notes', { match: { id } }, 'Usunięcie notatki');
         setError('Brak połączenia. Usunięto lokalnie.');
         setNotes(prev => {
           const updated = prev.filter(n => n.id !== id);
@@ -311,13 +339,21 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
         .from('vanguard_notes')
         .update({ is_pinned: next })
         .eq('id', note.id);
-      if (err && !isNetworkOrTableError(err)) throw err;
+      if (err) {
+        if (!isNetworkOrTableError(err)) throw err;
+        if (isOfflineError(err)) {
+          await queueOfflineWrite('table:update:vanguard_notes', { match: { id: note.id }, payload: { is_pinned: next } }, 'Przypięcie notatki');
+        }
+      }
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
         if (err || !navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
         return updated;
       });
     } catch (e: any) {
+      if (isOfflineError(e)) {
+        await queueOfflineWrite('table:update:vanguard_notes', { match: { id: note.id }, payload: { is_pinned: next } }, 'Przypięcie notatki');
+      }
       setNotes(prev => {
         const updated = sortNotes(prev.map(n => (n.id === note.id ? { ...n, is_pinned: next } : n)));
         localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
@@ -337,7 +373,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       const { data, error: err } = await supabase.from('vanguard_notes').insert(empty).select().single();
       if (err) {
         if (isNetworkOrTableError(err)) {
-          const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          const id = crypto.randomUUID();
+          if (isOfflineError(err)) {
+            await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...empty } }, 'Dodanie notatki');
+          }
+          const local: Note = { id, ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
           setNotes(prev => [local, ...prev]);
           setEditingId(local.id);
           return;
@@ -347,7 +387,11 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       setNotes(prev => [data, ...prev]);
       setEditingId(data.id);
     } catch (e: any) {
-      const local: Note = { id: Math.random().toString(36).slice(2), ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const id = crypto.randomUUID();
+      if (isOfflineError(e)) {
+        await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...empty } }, 'Dodanie notatki');
+      }
+      const local: Note = { id, ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       setNotes(prev => [local, ...prev]);
       setEditingId(local.id);
       setError('Brak połączenia. Utworzono notatkę lokalnie.');
@@ -366,6 +410,25 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
       handleNewNote();
     }
   }, [autoNewNote, handleNewNote]);
+
+  // Capture shared text/title with no URL (PWA share_target routed here by Dashboard
+  // when the shared content isn't a link — see Dashboard.tsx's share_url/share_text redirect)
+  const autoShareCaptureHandled = useRef(false);
+  useEffect(() => {
+    if (autoShareCaptureHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const text = params.get('share_text') || '';
+    const title = params.get('share_title') || '';
+    if (!text && !title) return;
+    autoShareCaptureHandled.current = true;
+    window.history.replaceState({}, '', window.location.pathname);
+    window.setTimeout(() => {
+      handleCreate({
+        title: title || text.slice(0, 60) || 'Udostępnione',
+        content: text ? `<p>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>` : '',
+      });
+    }, 0);
+  }, [handleCreate]);
 
   // Ctrl+N and Ctrl+F keyboard shortcuts
   useEffect(() => {
