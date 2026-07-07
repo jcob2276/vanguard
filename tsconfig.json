@@ -16,7 +16,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "https://esm.sh/@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js"]
+    }
   },
   "include": ["src", "vite.config.ts"],
   "references": []
