@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/main.tsx",
     "supabase/functions/*/index.ts",
     "scripts/**/*.{mjs,ts,cjs}"
   ],
@@ -11,9 +10,10 @@
   ],
   "ignore": [
     "supabase/functions/_shared/**/*.test.ts",
-    "examples/**"
+    "src/sw.ts",
+    "src/lib/database.types.ts"
   ],
   "ignoreDependencies": [
-    "@types/node"
+    "npm"
   ]
 }

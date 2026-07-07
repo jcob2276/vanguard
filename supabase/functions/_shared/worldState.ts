@@ -1,11 +1,7 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getWarsawDateString } from "./time.ts";
 
-// --- TIMEZONE-SAFE DATE HELPERS ---
-export function getWarsawDateString(date: Date = new Date()): string {
-  return date.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' });
-}
-
-export interface WorldStateMeta {
+interface WorldStateMeta {
   source: string;
   freshness_hours: number;
   confidence: number;
