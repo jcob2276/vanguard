@@ -9,10 +9,10 @@ SELECT cron.schedule(
   '0 3 * * *',
   $$
   SELECT net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-analyst',
+    url := current_setting('app.supabase_url') || '/functions/v1/vanguard-analyst',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
+      'Authorization', 'Bearer ' || current_setting('app.service_role_key')
     ),
     body := '{}'::jsonb
   );

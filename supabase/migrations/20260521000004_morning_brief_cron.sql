@@ -6,7 +6,7 @@ SELECT cron.schedule(
   '0 5 * * *',
   $$
   SELECT net.http_post(
-    url    := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-morning-brief',
+    url := current_setting('app.supabase_url') || '/functions/v1/vanguard-morning-brief',
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body   := '{}'::jsonb
   )

@@ -4,7 +4,7 @@ SELECT cron.schedule(
   '30 20 * * *',
   $$
   SELECT net.http_post(
-    url     := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/sync-strava',
+    url := current_setting('app.supabase_url') || '/functions/v1/sync-strava',
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body    := '{}'::jsonb
   )

@@ -9,7 +9,7 @@ SELECT cron.schedule(
   $$
   select
     net.http_post(
-      url:='https://YOUR_PROJECT_REF.supabase.co/functions/v1/vanguard-intentions-cleanup',
+      url := current_setting('app.supabase_url') || '/functions/v1/vanguard-intentions-cleanup',
       headers:='{"Content-Type": "application/json"}'::jsonb
     ) as request_id;
   $$
