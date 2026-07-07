@@ -14,8 +14,9 @@ export const runPatternOutcomes = async (): Promise<void> => {
     const { data: events } = await supabase.from('pattern_events').select('occurred_on').eq('pattern_id', pattern.id);
     if (!events || events.length === 0) continue;
 
-    let sumAdherence = 0;
-    let countAdherence = 0;
+    let successfulWindows = 0;
+    let globalSumAdherence = 0;
+    let globalCountAdherence = 0;
 
     for (const ev of events) {
       const start = new Date(ev.occurred_on);
@@ -31,19 +32,32 @@ export const runPatternOutcomes = async (): Promise<void> => {
         .gte('date', startStr)
         .lte('date', endStr);
       
-      if (facts) {
+      if (facts && facts.length > 0) {
+        let windowSum = 0;
+        let windowCount = 0;
         for (const f of facts) {
           if (f.execution_score != null) {
-            sumAdherence += f.execution_score;
-            countAdherence++;
+            windowSum += f.execution_score;
+            windowCount++;
+            globalSumAdherence += f.execution_score;
+            globalCountAdherence++;
+          }
+        }
+        if (windowCount > 0) {
+          const windowAvg = windowSum / windowCount;
+          if (windowAvg >= 0.80) {
+            successfulWindows++;
           }
         }
       }
     }
 
-    if (countAdherence > 0) {
-      const avgAdherence = Math.round((sumAdherence / countAdherence) * 100);
-      const evidence_text = `Wystąpił ${events.length}x. Średnie wykonanie (adherence) w 9-dniowych oknach po wystąpieniu wynosi ${avgAdherence}%.`;
+    if (events.length > 0) {
+      const totalAvgAdherence = globalCountAdherence > 0 
+        ? Math.round((globalSumAdherence / globalCountAdherence) * 100)
+        : 0;
+      
+      const evidence_text = `Wystąpił ${events.length}×, w ${successfulWindows}/${events.length} przypadków średnie wykonanie (adherence) w 9-dniowym oknie po wystąpieniu wynosiło >= 80% (średnia w oknach: ${totalAvgAdherence}%).`;
       
       await supabase.from('vanguard_behavioral_patterns').update({
         evidence_text

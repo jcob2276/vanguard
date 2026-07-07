@@ -7,6 +7,7 @@ import type { Tables } from '../lib/database.types';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 import { useGoalSpineInvalidation } from './useGoalSpineInvalidation';
 import { Session } from '@supabase/supabase-js';
+import type { WorldState } from '../../supabase/functions/_shared/worldState';
 
 type DashboardData = {
   weeklyCalories: number;
@@ -40,13 +41,40 @@ export function useDashboardData() {
     }
     
     try {
-      let totalCal = 0;
-      let todayData = null;
-
       const today = getTodayWarsaw();
       const todayDate = new Date(today + 'T12:00:00Z');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
       const monday = formatWarsawDate(mondayDate);
+
+      // 1. Fetch from cached world state table first!
+      const { data: wsRow } = await supabase
+        .from('vanguard_world_state')
+        .select('state_json')
+        .eq('user_id', session.user.id)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (wsRow?.state_json) {
+        const state = wsRow.state_json as unknown as WorldState;
+        if (mountedRef.current) {
+          setData({
+            weeklyCalories: state.nutrition?.weekly_calories ?? 0,
+            todayWin: state.execution?.today_win ?? null,
+            proteinToday: state.nutrition?.protein_today ?? 0,
+            hasWorkoutToday: state.training?.has_workout_today ?? false,
+            ouraToday: state.biometrics?.oura_history ?? [],
+            readiness: state.biometrics?.readiness_score ?? 0,
+            loading: false
+          });
+          return;
+        }
+      }
+
+      // 2. Fallback to live computation if cached row is missing or there's an error
+      console.log('[useDashboardData] Cached world state missing, falling back to live calculation');
+
+      let totalCal = 0;
+      let todayData = null;
 
       const [
         nutritionRes,

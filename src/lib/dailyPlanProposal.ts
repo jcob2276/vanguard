@@ -61,6 +61,8 @@ export type DirectionContextData = {
   weekCheckpointsDone: number;
   weekCheckpointsDue: number;
   skills: { id: string; label: string; key: string }[];
+  readinessScore?: number | null;
+  recoveryScore?: number | null;
 };
 
 export type ProposedTaskSlot = {
@@ -227,7 +229,27 @@ export function buildDailyPlanProposal(
   const out: ProposedTaskSlot[] = [];
   const focusIds = ctx.sprintFocusProjectIds ?? [];
 
+  const lowEnergy =
+    (ctx.readinessScore != null && ctx.readinessScore < 60) ||
+    (ctx.recoveryScore != null && ctx.recoveryScore < 50);
+
+  const maxSlots = lowEnergy ? 3 : 5;
+
+  if (lowEnergy) {
+    out.push({
+      task: 'Regeneracja / Lekki dzień (niski recovery/readiness)',
+      category: 'cialo',
+      checkpointId: null,
+      projectId: null,
+      pinId: null,
+      todoId: null,
+      targetValue: null,
+      source: 'low_energy_recovery',
+    });
+  }
+
   for (const pin of ctx.openMustPins.slice(0, 2)) {
+    if (out.length >= maxSlots) break;
     if (out.some((s) => s.pinId === pin.id || s.task === pin.title)) continue;
     out.push({
       task: pin.title,
@@ -247,6 +269,7 @@ export function buildDailyPlanProposal(
     { key: 'konto', category: 'konto' },
   ];
   for (const { key, category } of pillarSlots) {
+    if (out.length >= maxSlots) break;
     const text = ctx.weekGoals[key];
     if (text?.trim() && !out.some((s) => s.task === text.trim())) {
       const binding = defaultPillarProject(category, pillarBindings, focusIds);
@@ -264,7 +287,7 @@ export function buildDailyPlanProposal(
   }
 
   for (const cp of ctx.checkpoints.overdue.slice(0, 2)) {
-    if (out.length >= 5) break;
+    if (out.length >= maxSlots) break;
     if (out.some((s) => s.checkpointId === cp.id || s.task === cp.title)) continue;
     out.push({
       task: cp.title,
@@ -280,7 +303,7 @@ export function buildDailyPlanProposal(
 
   const upcomingSorted = [...ctx.checkpoints.upcoming].sort((a, b) => a.daysLeft - b.daysLeft);
   for (const cp of upcomingSorted.slice(0, 2)) {
-    if (out.length >= 5) break;
+    if (out.length >= maxSlots) break;
     if (out.some((s) => s.checkpointId === cp.id || s.task === cp.title)) continue;
     out.push({
       task: cp.title,
@@ -295,7 +318,7 @@ export function buildDailyPlanProposal(
   }
 
   for (const todo of ctx.urgentTodos) {
-    if (out.length >= 5) break;
+    if (out.length >= maxSlots) break;
     if (out.some((s) => s.todoId === todo.id)) continue;
     out.push({
       task: todo.title,
@@ -309,14 +332,14 @@ export function buildDailyPlanProposal(
     });
   }
 
-  while (out.length < 5) {
+  while (out.length < maxSlots) {
     out.push({
       ...EMPTY_TASK_SLOT,
       category: out.length < 3 ? (['cialo', 'duch', 'konto'] as const)[out.length] : 'general',
     });
   }
 
-  return out.slice(0, 5).map((slot) => {
+  return out.slice(0, maxSlots).map((slot) => {
     const withPillar = enrichProposalSlotWithPillarProjects(slot, pillarBindings);
     let enriched = enrichProposalSlot(withPillar, ctx);
     if (!enriched.targetValue && enriched.projectId) {
