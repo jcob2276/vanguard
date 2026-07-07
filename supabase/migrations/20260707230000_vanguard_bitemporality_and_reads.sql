@@ -164,6 +164,9 @@ $$ LANGUAGE plpgsql;
 ALTER FUNCTION public.sync_vanguard_entity_links_to_claims() SET search_path = public, pg_temp;
 
 -- 5. Deploy updated read RPCs
+DROP FUNCTION IF EXISTS public.search_entity_links(vector, uuid, integer);
+DROP FUNCTION IF EXISTS public.search_entity_links_fulltext(text, uuid, integer);
+
 CREATE OR REPLACE FUNCTION public.search_entity_links(
   query_embedding vector(1536),
   match_user_id   uuid,
