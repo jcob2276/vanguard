@@ -120,7 +120,7 @@ export default function DailyStrainCard({
       const { data: { session: s } } = await supabase.auth.getSession();
       const token = s?.access_token;
       const base = import.meta.env.VITE_SUPABASE_URL;
-      const call = async (fn: string, body: any) => {
+      const call = async (fn: string, body: Record<string, unknown>) => {
         const response = await fetch(`${base}/functions/v1/${fn}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -133,23 +133,18 @@ export default function DailyStrainCard({
         }
         return response;
       };
-      
-      // Optymalizacja Tamy 3: Równoległe wywoływanie zamiast blokujących kaskad tam gdzie to możliwe.
+
+      // sync-oura runs enhanced + timeseries internally — one call does all three
       await Promise.all([
         call('sync-strava', {}).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
         call('sync-oura', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
-      
-      await Promise.all([
-        call('sync-oura-enhanced', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-enhanced failed:', err)),
-        call('sync-oura-timeseries', { userId: session.user.id, days: 2 }).catch(err => console.warn('[DailyStrainCard] sync-oura-timeseries failed:', err)),
-      ]);
-      
+
       await call('compute-daily-strain', { userId: session.user.id, days: 2 });
-      
+
       await queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
       if (!silent) haptics.success();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('DailyStrainCard refresh:', e);
       if (!silent) haptics.error();
     } finally {

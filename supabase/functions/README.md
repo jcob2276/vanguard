@@ -115,13 +115,13 @@ Edit **one handler per change**. Webhook entry is a thin router (~35 LOC). The f
 |----------|--------|---------|-----|------------|-----|----------|
 | `sync-strava` | **active** | pg_cron `30 20 * * *` UTC (22:30 Warsaw) / manual | **false** | `strava_activities`, `strava_tokens` | 552 | 2026-06-11 |
 | `analyze-training` | **dropped** | Deleted from codebase | **false** | none | — | 2026-06-20 |
-| `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` | 151 | 2026-06-11 |
-| `sync-oura-enhanced` | **active** | Frontend / manual | true | `oura_enhanced`, `user_settings` | 207 | 2026-06-11 |
-| `sync-oura-timeseries` | **active** | Frontend / manual | true | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | 208 | 2026-06-11 |
+| `sync-oura` | **active** | Frontend / manual | true | `oura_daily_summary` + internally runs enhanced (`oura_enhanced`) + timeseries (`oura_heartrate`, `oura_sleep_*`, `oura_workouts`) via `enhanced.ts` / `timeseries.ts` | 182+10k+12k | 2026-07-07 |
+| `sync-oura-enhanced` | **merged → sync-oura** | Deleted as standalone function; code lives in `sync-oura/enhanced.ts`, called internally | — | `oura_enhanced`, `user_settings` | — | 2026-07-07 |
+| `sync-oura-timeseries` | **merged → sync-oura** | Deleted as standalone function; code lives in `sync-oura/timeseries.ts`, called internally | — | `oura_heartrate`, `oura_sleep_*`, `oura_activity_met_timeline`, `oura_workouts`, `oura_sessions` | — | 2026-07-07 |
 | `sync-yazio` | **dropped** | Deleted from codebase; nutrition via app food log (`daily_nutrition`, `daily_food_entries`) | true | none | — | 2026-06-26 |
 | `analyze-food-quality` | **active** | Frontend / manual LLM analysis | true | `daily_food_entries`, `daily_nutrition` | 447 | 2026-06-11 |
 | `compute-daily-strain` | **active** | Frontend / manual derived body score | true | `daily_strain`, Oura/Strava/workout + food log tables | 469 | 2026-06-12 |
-| `rescore-workout-sessions` | **active** | pg_cron `20 11 * * *` UTC (after sync-oura-timeseries + compute-daily-strain) | **false** | `workout_sessions` (hr_avg_bpm, hr_peak_bpm, hr_strain_score, hr_kcal_est, hr_rescored_at); reads `oura_heartrate`, `nutrition_profile`, `body_metrics`, `oura_daily_summary` | 165 | 2026-06-24 |
+| `rescore-workout-sessions` | **active** | pg_cron `20 11 * * *` UTC (after sync-oura + compute-daily-strain) | **false** | `workout_sessions` (hr_avg_bpm, hr_peak_bpm, hr_strain_score, hr_kcal_est, hr_rescored_at); reads `oura_heartrate`, `nutrition_profile`, `body_metrics`, `oura_daily_summary` | 165 | 2026-06-24 |
 | `compute-correlations` | **active** | Frontend / manual read-only correlation scan | true | `daily_strain`, `oura_daily_summary`, `daily_nutrition` | 237 | 2026-06-12 |
 | `compute-illness-signal` | **active** | pg_cron `25 11 * * *` UTC (after compute-daily-strain) | **false** | `daily_strain` (illness_score, illness_level); reads `oura_daily_summary`, `oura_enhanced`, `behavior_log`, `exercise_logs` | 160 | 2026-06-24 |
 | `compute-behavior-effects` | **active** | Frontend / manual read-only "What Moves You" (Welch t-test + Cohen's d + dose-response) | true | none (read-only); reads `behavior_log`, `daily_strain` | 187 | 2026-06-24 |

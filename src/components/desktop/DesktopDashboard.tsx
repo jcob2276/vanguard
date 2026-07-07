@@ -116,7 +116,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
     purgeStaleWorkoutDraft(userId);
     if (shouldAutoResumeWorkout(userId)) {
       markWorkoutSessionActive(userId);
-      setShowWorkout(true);
+      setTimeout(() => setShowWorkout(true), 0);
     }
   }, [userId]);
   const [showFundament, setShowFundament] = useState(false);
@@ -146,19 +146,13 @@ export default function DesktopDashboard({ session }: { session: Session }) {
       if (!r.ok) throw new Error(fn);
     };
     try {
+      // sync-oura runs enhanced + timeseries internally — one call, one ring
       const phase1 = await Promise.allSettled([
         call('sync-oura', { userId }),
         call('sync-calendar', { userId })
       ]);
       phase1.forEach((r, i) => {
         if (r.status === 'rejected') console.error(`[sync] phase1[${i}] failed:`, r.reason);
-      });
-      const phase2 = await Promise.allSettled([
-        call('sync-oura-enhanced', { userId, days: 2 }),
-        call('sync-oura-timeseries', { userId, days: 2 })
-      ]);
-      phase2.forEach((r, i) => {
-        if (r.status === 'rejected') console.error(`[sync] phase2[${i}] failed:`, r.reason);
       });
       await call('sync-strava', {}).catch(e => console.error('[sync] strava failed:', e));
       await call('compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
