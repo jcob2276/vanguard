@@ -102,14 +102,15 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
 
 export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise<TodoItemRow | void> {
   try {
-    return unwrap(
-      await supabase
-        .from('todo_items')
-        .update(patch)
-        .eq('id', id)
-        .select()
-        .single(),
-    );
+    const { data, error } = await supabase
+      .from('todo_items')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    // data may be null if RLS suppresses the returned row — that's fine, the update still happened
+    return data ?? undefined;
   } catch (err: unknown) {
     if (isOfflineError(err)) {
       await queueOfflineWrite('table:update:todo_items', { match: { id }, payload: patch }, 'Edycja zadania');

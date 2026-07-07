@@ -512,7 +512,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     ));
     setTodoStatus(item, newStatus)
       .then(async () => {
-        if (newStatus === 'done' && item.recurrence) {
+        if (newStatus === 'done' && item.recurrence && userId) {
           const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
           let nextScheduledTime: string | undefined = undefined;
           let nextReminderAt: string | undefined = undefined;
@@ -535,6 +535,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
         }
       })
       .catch((err) => {
+        console.error('[handleComplete] setTodoStatus failed, rolling back:', err);
         setError(err instanceof Error ? err.message : String(err));
         setItems(prev => prev.map(i => i.id === item.id
           ? { ...i, status: item.status, completed_at: item.completed_at }
