@@ -44,6 +44,8 @@ Zduplikowane punkty scalone w jedno zadanie (nie rób osobno):
 
 ## FAZA 0.5 — Repo↔Prod integrity audit (NOWE — musi być przed jakąkolwiek dalszą konsolidacją)
 
+> ⚠️ **Zanim wykonasz krok 1 — potwierdź `project_id` Vanguarda.** Sprawdzone 2026-07-07: `list_projects` przez Supabase MCP w sesji agenta zwraca domyślnie tylko jeden projekt (`vjcfsruwhcthltpehsoz`, "jcob2276's Project"), a `list_tables` na nim pokazuje **zero tabel Vanguarda** (`profiles`, `questions`, `exam_results`, `oral_questions`, `question_logs`, `groups` — to jest inna aplikacja, platforma quizowa/egzaminacyjna dla grup studentów, nie Vanguard). Ten sam projekt ma jednak dwie funkcje nazwane `vanguard-oracle` i `vanguard-telegram` (v3, wdrożone tego samego dnia, 260s od siebie) — nierozwiązana anomalia, prawdopodobnie przypadkowy deploy do złego projektu. **Zanim zrobisz cokolwiek z krokami 1-2 niżej: potwierdź u Jakuba właściwy `project_id` prawdziwej bazy Vanguarda** (jeśli MCP go nie widzi domyślnie, może wymagać jawnego wskazania albo innego configu organizacji). Nie zakładaj, że jedyny widoczny projekt Supabase to Vanguard tylko dlatego, że konto się zgadza.
+
 **Dlaczego to jest tuż po Fazie 0, przed wszystkim innym:** zweryfikowano w kodzie dwa niezależne dowody tego samego wzorca strukturalnego:
 - `scripts/ops/e2e-daily-loop.mjs:132,171` testuje `compute-daily-strain` i `save-daily-aggregate` — funkcje bez źródła w repo (skonsolidowane do `vanguard-nightly`, ale heartbeat o tym nie wie).
 - `supabase/migrations/20260704171601_cron_vanguard_detect_patterns.sql` (sprzed 3 dni) planuje cron uderzający w `/functions/v1/vanguard-detect-patterns` — nazwa, której **nigdy nie było** w repo jako osobny plik.
