@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       ai_chat_messages: {
@@ -376,45 +401,6 @@ export type Database = {
           salt?: number | null
           saturated_fat?: number | null
           sugar?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      daily_habits: {
-        Row: {
-          bar_hang: boolean | null
-          child_pose: boolean | null
-          chin_tucks: boolean | null
-          couch_stretch: boolean | null
-          created_at: string | null
-          date: string | null
-          glute_bridge: boolean | null
-          id: string
-          protein_170g: boolean | null
-          user_id: string | null
-        }
-        Insert: {
-          bar_hang?: boolean | null
-          child_pose?: boolean | null
-          chin_tucks?: boolean | null
-          couch_stretch?: boolean | null
-          created_at?: string | null
-          date?: string | null
-          glute_bridge?: boolean | null
-          id?: string
-          protein_170g?: boolean | null
-          user_id?: string | null
-        }
-        Update: {
-          bar_hang?: boolean | null
-          child_pose?: boolean | null
-          chin_tucks?: boolean | null
-          couch_stretch?: boolean | null
-          created_at?: string | null
-          date?: string | null
-          glute_bridge?: boolean | null
-          id?: string
-          protein_170g?: boolean | null
           user_id?: string | null
         }
         Relationships: []
@@ -1473,33 +1459,6 @@ export type Database = {
         }
         Relationships: []
       }
-      food_parse_pending: {
-        Row: {
-          created_at: string
-          id: string
-          items: Json
-          log_date: string
-          meal_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          items: Json
-          log_date: string
-          meal_type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          items?: Json
-          log_date?: string
-          meal_type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       food_reference_pl: {
         Row: {
           calories: number
@@ -2126,6 +2085,45 @@ export type Database = {
           longitude?: number
           place_name?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      mcp_servers: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          last_ping_at: string | null
+          name: string
+          status: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_ping_at?: string | null
+          name: string
+          status?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_ping_at?: string | null
+          name?: string
+          status?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2863,6 +2861,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pattern_events: {
+        Row: {
+          created_at: string | null
+          id: string
+          occurred_on: string
+          pattern_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          occurred_on: string
+          pattern_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          occurred_on?: string
+          pattern_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pattern_events_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "vanguard_behavioral_patterns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       phone_usage_daily: {
         Row: {
@@ -3714,30 +3741,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_portions: {
-        Row: {
-          created_at: string | null
-          grams: number
-          id: string
-          name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          grams: number
-          id?: string
-          name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          grams?: number
-          id?: string
-          name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_settings: {
         Row: {
           disciplined_streak: number | null
@@ -3908,6 +3911,7 @@ export type Database = {
       }
       vanguard_daily_aggregates: {
         Row: {
+          condensed: boolean | null
           date: string
           dopamine_load_index: number | null
           execution_score: number | null
@@ -3927,6 +3931,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          condensed?: boolean | null
           date: string
           dopamine_load_index?: number | null
           execution_score?: number | null
@@ -3946,6 +3951,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          condensed?: boolean | null
           date?: string
           dopamine_load_index?: number | null
           execution_score?: number | null
@@ -4335,36 +4341,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vanguard_iron_rules: {
-        Row: {
-          active: boolean | null
-          created_at: string | null
-          id: string
-          rule_key: string
-          rule_text: string
-          sort_order: number | null
-          user_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          created_at?: string | null
-          id?: string
-          rule_key: string
-          rule_text: string
-          sort_order?: number | null
-          user_id: string
-        }
-        Update: {
-          active?: boolean | null
-          created_at?: string | null
-          id?: string
-          rule_key?: string
-          rule_text?: string
-          sort_order?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       vanguard_knowledge: {
         Row: {
           category: string | null
@@ -4704,57 +4680,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vanguard_stream_closure_proposals: {
-        Row: {
-          closed_topic_description: string
-          created_at: string
-          id: string
-          proposed_by_record_id: string | null
-          resolved_at: string | null
-          similarity_threshold: number
-          status: string
-          target_record_ids: string[]
-          user_id: string
-        }
-        Insert: {
-          closed_topic_description: string
-          created_at?: string
-          id?: string
-          proposed_by_record_id?: string | null
-          resolved_at?: string | null
-          similarity_threshold?: number
-          status?: string
-          target_record_ids: string[]
-          user_id: string
-        }
-        Update: {
-          closed_topic_description?: string
-          created_at?: string
-          id?: string
-          proposed_by_record_id?: string | null
-          resolved_at?: string | null
-          similarity_threshold?: number
-          status?: string
-          target_record_ids?: string[]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vanguard_stream_closure_proposals_proposed_by_record_id_fkey"
-            columns: ["proposed_by_record_id"]
-            isOneToOne: false
-            referencedRelation: "v_friction_pipeline_status"
-            referencedColumns: ["stream_id"]
-          },
-          {
-            foreignKeyName: "vanguard_stream_closure_proposals_proposed_by_record_id_fkey"
-            columns: ["proposed_by_record_id"]
-            isOneToOne: false
-            referencedRelation: "vanguard_stream"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       vanguard_telegram_inbox: {
         Row: {
           created_at: string | null
@@ -5028,6 +4953,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vanguard_world_state: {
+        Row: {
+          date: string
+          state_json: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          date: string
+          state_json: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          date?: string
+          state_json?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      view_events: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string | null
+          view_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          view_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          view_name?: string
+        }
+        Relationships: []
       }
       vision_board_items: {
         Row: {
@@ -5735,6 +5702,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      vanguard_graph_cleanup: { Args: never; Returns: undefined }
     }
     Enums: {
       endmyopia_eye_enum: "left" | "right" | "both"
@@ -5863,6 +5831,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       endmyopia_eye_enum: ["left", "right", "both"],
