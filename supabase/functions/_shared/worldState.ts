@@ -1,4 +1,4 @@
-import { SupabaseClient } from "npm:@supabase/supabase-js";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // --- TIMEZONE-SAFE DATE HELPERS ---
 export function getWarsawDateString(date: Date = new Date()): string {

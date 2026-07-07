@@ -4087,6 +4087,7 @@
         "npm:@mediapipe/tasks-vision@~0.10.35",
         "npm:@supabase/supabase-js@^2.105.1",
         "npm:@tailwindcss/postcss@^4.2.4",
+        "npm:@tanstack/react-query@^5.101.2",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.14",
         "npm:@vitejs/plugin-react@^6.0.1",
