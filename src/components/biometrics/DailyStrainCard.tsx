@@ -97,12 +97,19 @@ export default function DailyStrainCard({
     queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
   }, [refreshSignal, queryClient]);
 
-  // Tama 3: Silently trigger background sync if data is stale (not today's date)
+  // Tama 3: Silently trigger background sync if data is stale (not today's date).
+  // Guard: fires at most once per calendar day per browser to prevent sync storm on every open.
+  const AUTO_SYNC_KEY = 'vanguard_strain_auto_synced';
   useEffect(() => {
-    if (dbData?.row && dbData.row.date !== getTodayWarsaw() && !refreshing) {
-      console.log('DailyStrainCard: Data is stale, running silent background sync');
-      refresh(true); // background silent refresh
-    }
+    if (!dbData?.row || refreshing) return;
+    if (dbData.row.date === getTodayWarsaw()) return; // data already current
+    try {
+      if (localStorage.getItem(AUTO_SYNC_KEY) === getTodayWarsaw()) return; // already synced today
+      localStorage.setItem(AUTO_SYNC_KEY, getTodayWarsaw());
+    } catch { /* ignore storage errors */ }
+    console.log('[DailyStrainCard] Data stale, running one-shot silent background sync');
+    refresh(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbData?.row?.date]);
 
   async function refresh(silent = false) {
