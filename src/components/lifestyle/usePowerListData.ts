@@ -7,10 +7,11 @@ import { supabase } from '../../lib/supabase';
 import { listTodoItems, updateTodoItem, listTodoSections } from '../../lib/todo';
 import { listProjects } from '../../lib/projects';
 import type { TablesUpdate } from '../../lib/database.types';
-import { gatherUserContext } from '../../lib/aiContext';
+import { gatherDailyWinsContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
 import { markCheckpointDone } from '../../lib/checkpoints';
 import { Session } from '@supabase/supabase-js';
+import type { WorldState } from '../../../supabase/functions/_shared/worldState';
 import {
   buildDailyPlanProposal,
   suggestDailyKpiTarget,
@@ -174,8 +175,29 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
     haptics.light();
   };
 
-  const applyProposal = () => {
+  const applyProposal = async () => {
     if (direction.loading) return;
+
+    let readinessScore: number | null = null;
+    let recoveryScore: number | null = null;
+
+    try {
+      const { data: wsData } = await supabase
+        .from('vanguard_world_state')
+        .select('state_json')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (wsData?.state_json) {
+        const state = wsData.state_json as unknown as WorldState;
+        readinessScore = state.biometrics?.readiness_score ?? null;
+        recoveryScore = state.training?.recovery_score ?? null;
+      }
+    } catch (e) {
+      console.warn('[usePowerListData] Failed to fetch world state for proposal:', e);
+    }
+
     const ctx: DirectionContextData = {
       weekStart: direction.weekStart ?? today,
       weekGoals: direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
@@ -195,6 +217,8 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
       weekCheckpointsDone: direction.weekCheckpointsDone ?? 0,
       weekCheckpointsDue: direction.weekCheckpointsDue ?? 0,
       skills: direction.skills ?? [],
+      readinessScore,
+      recoveryScore,
     };
     if (ctx.checkpoints.all.length === 0 && ctx.openMustPins.length === 0 && !ctx.weekGoals.cialo && !ctx.weekGoals.duch && !ctx.weekGoals.konto) {
       notify('Brak danych do propozycji — uzupełnij tydzień lub checkpointy.', 'error');
@@ -249,7 +273,7 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
   async function generateQuestions() {
     setAiLoading(true);
     try {
-      const stateVector = await gatherUserContext(session);
+      const stateVector = await gatherDailyWinsContext(session);
       const query = `Zanalizuj mój kontekst życiowy, cele z projektów (goal_chain), kalendarz i otwarte zadania. 
 Zadaj mi 3-4 krótkie, bezpośrednie i bardzo trafne pytania po polsku, które pomogą mi spójnie zdefiniować dzisiejsze 5 zwycięstw (Ciało, Duch, Konto + 2 ogólne).
 Kontekst celów tygodniowych i ich KPI (widoczne w goal_chain) jest kluczowy. Jeśli widać zaległości w tym tygodniu (np. 0/20 setów sprzedażowych, 0/3 treningi siłowe), Twoje pytania muszą bezpośrednio punktować te liczby i pytać, jak dzisiejsze zwycięstwa przełożą się na ich postęp.
