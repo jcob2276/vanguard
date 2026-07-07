@@ -182,6 +182,13 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
     tempMin: number;
   }
 
+  interface HourlyForecastItem {
+    hour: number; // 0-23
+    temp: number;
+    weatherCode: number;
+    precipProb: number;
+  }
+
   interface WeatherState {
     current: {
       temp: number;
@@ -194,6 +201,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
       isOWM: boolean;
     } | null;
     daily: Record<string, DailyForecastItem>;
+    hourly: Record<string, HourlyForecastItem[]>; // keyed by date string YYYY-MM-DD
     error: boolean;
   }
 
@@ -248,6 +256,31 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
         const res = await fetch(openMeteoUrl);
         if (!res.ok) throw new Error('Failed to fetch Open-Meteo');
         const data = await res.json();
+
+        // 3. Fetch hourly forecast for today + tomorrow (only 2 days, very small payload)
+        const todayDate = today;
+        const tomorrowDate = addDays(today, 1);
+        const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&start_date=${todayDate}&end_date=${tomorrowDate}&hourly=temperature_2m,weather_code,precipitation_probability&timezone=Europe/Warsaw`;
+        const hourlyRes = await fetch(hourlyUrl);
+        let hourlyData: Record<string, HourlyForecastItem[]> = {};
+        if (hourlyRes.ok) {
+          const hd = await hourlyRes.json();
+          if (hd.hourly && hd.hourly.time) {
+            for (let i = 0; i < hd.hourly.time.length; i++) {
+              // time format: "2026-07-07T06:00"
+              const isoStr: string = hd.hourly.time[i];
+              const dateKey = isoStr.slice(0, 10);
+              const hour = parseInt(isoStr.slice(11, 13), 10);
+              if (!hourlyData[dateKey]) hourlyData[dateKey] = [];
+              hourlyData[dateKey].push({
+                hour,
+                temp: Math.round(hd.hourly.temperature_2m[i]),
+                weatherCode: hd.hourly.weather_code[i],
+                precipProb: hd.hourly.precipitation_probability[i] ?? 0,
+              });
+            }
+          }
+        }
         
         if (isMounted) {
           // Fallback current weather to Open-Meteo if OWM wasn't successful
@@ -280,6 +313,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
           setWeather({
             current: currentData,
             daily,
+            hourly: hourlyData,
             error: false
           });
           setWeatherLoading(false);
@@ -290,6 +324,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
           setWeather(prev => (prev ? { ...prev, error: true } : {
             current: null,
             daily: {},
+            hourly: {},
             error: true
           }));
           setWeatherLoading(false);
@@ -1094,23 +1129,59 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
     );
   }
 
-  const renderTimeGutter = () => {
+  const renderTimeGutter = (dayKey?: string) => {
+    const tomorrow = addDays(today, 1);
+    const showHourlyWeather = dayKey === today || dayKey === tomorrow;
+    const hourlyForDay = showHourlyWeather && weather?.hourly?.[dayKey!] ? weather.hourly[dayKey!] : null;
+
+    // build a quick lookup: hour -> HourlyForecastItem
+    const hourlyByHour: Record<number, { temp: number; weatherCode: number; precipProb: number }> = {};
+    if (hourlyForDay) {
+      for (const h of hourlyForDay) {
+        hourlyByHour[h.hour] = { temp: h.temp, weatherCode: h.weatherCode, precipProb: h.precipProb };
+      }
+    }
+
+    // Widen the gutter when hourly weather is shown
+    const gutterWidth = showHourlyWeather ? 72 : 44;
+
     return (
-      <div className="flex flex-col shrink-0 relative" style={{ width: 44 }}>
-        {Array.from({ length: HOURS + 1 }, (_, i) => (
-          <div
-            key={i}
-            className="text-[10.5px] font-black text-text-secondary/80 text-right pr-2 absolute right-0"
-            style={{ 
-              top: i * PX_PER_HOUR, 
-              transform: 'translateY(-50%)',
-              height: 20,
-              lineHeight: '20px'
-            }}
-          >
-            {String(HOUR_START + i).padStart(2, '0')}:00
-          </div>
-        ))}
+      <div className="flex flex-col shrink-0 relative" style={{ width: gutterWidth }}>
+        {Array.from({ length: HOURS + 1 }, (_, i) => {
+          const absoluteHour = HOUR_START + i;
+          const hw = hourlyByHour[absoluteHour];
+          return (
+            <div
+              key={i}
+              className="absolute right-0 flex items-center justify-end"
+              style={{ 
+                top: i * PX_PER_HOUR, 
+                transform: 'translateY(-50%)',
+                height: 20,
+                width: gutterWidth,
+              }}
+            >
+              {hw && showHourlyWeather && (
+                <div
+                  className="flex items-center gap-0.5 mr-1"
+                  title={`${getWMOWeatherDescription(hw.weatherCode)}${hw.precipProb > 0 ? ` · opady ${hw.precipProb}%` : ''}`}
+                >
+                  {getWMOWeatherIcon(hw.weatherCode, 9, absoluteHour < 6 || absoluteHour >= 20)}
+                  <span
+                    className={`text-[8.5px] font-black leading-none tabular-nums ${
+                      hw.precipProb >= 50 ? 'text-sky-400' : 'text-text-muted/70'
+                    }`}
+                  >
+                    {hw.temp}°
+                  </span>
+                </div>
+              )}
+              <span className="text-[10.5px] font-black text-text-secondary/80 text-right pr-2">
+                {String(absoluteHour).padStart(2, '0')}:00
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -1464,7 +1535,7 @@ export default function CalendarView({ session, onBack, onSyncCalendar, onResync
         {/* Grid */}
         <div ref={gridRef} className="flex-1 overflow-y-auto">
           <div className="flex" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
-            {renderTimeGutter()}
+            {renderTimeGutter(selectedDay)}
             <div className="flex-1 relative">
               {renderDayColumn(selectedDay)}
             </div>
