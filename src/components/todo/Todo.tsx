@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
   ChevronLeft,
@@ -97,6 +97,29 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: Sessi
   const [navDest, setNavDest] = useState<TodoNavDest>('overview');
   const [scanTextOpen, setScanTextOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-open quick capture when navigated with ?new=1 (PWA shortcut / Telegram)
+  const autoNewTaskHandled = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1' && !autoNewTaskHandled.current) {
+      autoNewTaskHandled.current = true;
+      window.history.replaceState({}, '', window.location.pathname);
+      setActiveAddSectionId('today');
+      setIsExpanded(true);
+      setForm({
+        title: '',
+        notes: '',
+        priority: 'normal',
+        tagsText: '',
+        due_date: today,
+        recurrence: '',
+        section_id: '',
+        scheduled_time: '',
+        reminder_at: '',
+      });
+    }
+  }, []);
 
   const renderInlineQuickCapture = (sectionId: string) => {
     if (activeAddSectionId !== sectionId) return null;

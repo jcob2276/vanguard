@@ -111,8 +111,12 @@ export default function Dashboard({ session }: { session: Session }) {
       navigate('/' + viewParam, { replace: true });
     } else if (params.get('todo') === 'new') {
       navigate('/todo?new=1', { replace: true });
-    } else if (params.get('share_url') || params.get('share_text')) {
-      navigate({ pathname: '/links', search: location.search }, { replace: true });
+    } else if (params.get('share_url') || params.get('share_text') || params.get('share_title')) {
+      // Route by content: an actual link goes to the Links inbox; plain shared
+      // text/title (no URL) has no home there, so it goes to Keep as a captured note.
+      const shared = `${params.get('share_url') || ''} ${params.get('share_text') || ''}`;
+      const hasUrl = /https?:\/\/[^\s]+/.test(shared);
+      navigate({ pathname: hasUrl ? '/links' : '/keep', search: location.search }, { replace: true });
     }
   }, [location.search, navigate]);
 
@@ -145,6 +149,12 @@ export default function Dashboard({ session }: { session: Session }) {
     return () => { cancelled = true; };
   }, [userId]);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('meal') === 'new') {
+      navigate('/', { replace: true });
+      window.setTimeout(() => setShowQuickFoodEntry(true), 0);
+    }
+  }, [location.search, navigate]);
   const [showFastCapture, setShowFastCapture] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
   const [foodEditEntry, setFoodEditEntry] = useState<any>(null);

@@ -55,6 +55,20 @@ export default defineConfig({
             description: 'Dodaj nowe zadanie do listy To Do',
             url: '/?todo=new',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
+          },
+          {
+            name: 'Dodaj posiłek',
+            short_name: 'Posiłek',
+            description: 'Zaloguj posiłek',
+            url: '/?meal=new',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
+          },
+          {
+            name: 'Rozpocznij trening',
+            short_name: 'Trening',
+            description: 'Otwórz logger treningu',
+            url: '/trening',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
           }
         ],
         share_target: {
