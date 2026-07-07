@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App'
 import { initOfflineSync } from './lib/offlineQueue'
@@ -32,10 +33,14 @@ try {
     throw new Error('Root container not found');
   }
 
+  const queryClient = new QueryClient();
+
   const root = createRoot(container);
   root.render(
     <StrictMode>
-      <App />
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
     </StrictMode>
   );
 } catch (e: unknown) {
