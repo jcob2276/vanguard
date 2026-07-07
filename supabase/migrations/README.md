@@ -222,13 +222,6 @@ Regenerated from files on disk on 2026-07-01.
 20260630230000_desktop_rpc_no_dream_link.sql
 20260630240000_drop_legacy_project_checkpoints.sql
 ```
-
-Not applied — parked in `_pending_faza1/` (name signals draft/unapplied status, do not treat as live schema):
-
-```text
-_pending_faza1/20260528000001_complete_friction_events_schema.sql
-```
-
 ## Known Constraint Gotchas
 
 If code inserts fail silently or with 500, check CHECK constraints:

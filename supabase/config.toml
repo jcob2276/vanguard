@@ -91,6 +91,23 @@ verify_jwt = false
 [functions.vanguard-metabolism]
 verify_jwt = false
 
+[functions.vanguard-oracle]
+verify_jwt = false
+
+[functions.sync-strava]
+verify_jwt = false
+
+[functions.rescore-workout-sessions]
+verify_jwt = false
+
+[functions.compute-illness-signal]
+verify_jwt = false
+
+[functions.analyze-training-load]
+verify_jwt = false
+
+[functions.vanguard-nutrition-coach]
+verify_jwt = false
 
 [functions.vanguard-executor]
 enabled = true

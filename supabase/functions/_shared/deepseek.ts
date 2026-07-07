@@ -1,3 +1,5 @@
+import { createServiceClient } from "./supabase.ts";
+
 interface DeepSeekMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -11,6 +13,8 @@ export interface DeepSeekChatParams {
   temperature?: number | null;
   timeoutMs?: number;
   responseFormat?: { type: 'json_object' };
+  userId?: string;
+  feature?: string;
 }
 
 export interface DeepSeekChatResult {
@@ -51,6 +55,39 @@ export async function deepseekChat(
     const raw = await res.json();
     const content: string = (raw as any)?.choices?.[0]?.message?.content || "";
     const reasoning_content: string | undefined = (raw as any)?.choices?.[0]?.message?.reasoning_content;
+
+    // Log LLM token usage and estimated cost to the database
+    try {
+      const usage = (raw as any)?.usage;
+      if (usage) {
+        const promptTokens = usage.prompt_tokens ?? 0;
+        const completionTokens = usage.completion_tokens ?? 0;
+        const totalTokens = usage.total_tokens ?? 0;
+        const selectedModel = params.model ?? "deepseek-v4-flash";
+        
+        let costEst = 0.0;
+        if (selectedModel.includes("reasoner")) {
+          // DeepSeek-R1 pricing: $0.55/M input, $2.19/M output
+          costEst = (promptTokens * 0.55 + completionTokens * 2.19) / 1000000.0;
+        } else {
+          // DeepSeek-V3/Flash pricing: $0.14/M input, $0.28/M output
+          costEst = (promptTokens * 0.14 + completionTokens * 0.28) / 1000000.0;
+        }
+
+        const supabaseClient = createServiceClient();
+        await supabaseClient.from("vanguard_llm_usage").insert({
+          user_id: params.userId || null,
+          model: selectedModel,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
+          cost_est: costEst,
+          feature: params.feature || null,
+        });
+      }
+    } catch (err) {
+      console.error("[deepseekChat] Failed to log token usage:", err);
+    }
 
     return { content, reasoning_content, raw };
   } finally {
