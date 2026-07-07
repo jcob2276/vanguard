@@ -1,3 +1,20 @@
+-- ============================================================
+-- VANGUARD OS — DAY 3: BI-TEMPORALITY & READ RPCS
+-- ============================================================
+
+-- 1. Drop old constraint and add bi-temporal UNIQUE constraint
+ALTER TABLE public.claims DROP CONSTRAINT IF EXISTS unique_claim_triple;
+
+ALTER TABLE public.claims ADD CONSTRAINT unique_claim_triple_learned UNIQUE (user_id, subject_id, relation_id, object_id, learned_at);
+
+-- 2. Add fact_text and embedding columns to claims
+ALTER TABLE public.claims ADD COLUMN IF NOT EXISTS fact_text text;
+ALTER TABLE public.claims ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+-- 3. Create GIN index for full-text search on claims
+CREATE INDEX IF NOT EXISTS claims_fact_text_fts_idx ON public.claims USING gin (to_tsvector('polish', fact_text));
+
+-- 4. Deploy updated sync function
 CREATE OR REPLACE FUNCTION public.sync_vanguard_entity_links_to_claims()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -145,3 +162,80 @@ END;
 $$ LANGUAGE plpgsql;
 
 ALTER FUNCTION public.sync_vanguard_entity_links_to_claims() SET search_path = public, pg_temp;
+
+-- 5. Deploy updated read RPCs
+CREATE OR REPLACE FUNCTION public.search_entity_links(
+  query_embedding vector(1536),
+  match_user_id   uuid,
+  match_count     int DEFAULT 20
+) RETURNS TABLE (
+  source_entity  text,
+  relation       text,
+  target_entity  text,
+  source_type    text,
+  target_type    text,
+  evidence_count int,
+  similarity     float
+) LANGUAGE sql STABLE AS $$
+  SELECT
+    s.canonical_name AS source_entity,
+    r.name AS relation,
+    o.canonical_name AS target_entity,
+    s.kind AS source_type,
+    o.kind AS target_type,
+    c.evidence_count,
+    (1 - (c.embedding <=> query_embedding))::float AS similarity
+  FROM public.claims c
+  JOIN public.entities s ON c.subject_id = s.id
+  JOIN public.relations r ON c.relation_id = r.id
+  JOIN public.entities o ON c.object_id = o.id
+  WHERE c.user_id = match_user_id
+    AND c.embedding IS NOT NULL
+    AND c.status = 'active'
+    AND (c.valid_to IS NULL OR c.valid_to > now())
+  ORDER BY c.embedding <=> query_embedding
+  LIMIT match_count;
+$$;
+
+ALTER FUNCTION public.search_entity_links(vector, uuid, integer) SET search_path = public, pg_temp;
+
+CREATE OR REPLACE FUNCTION public.search_entity_links_fulltext(
+  query_text     text,
+  match_user_id  uuid,
+  match_count    int DEFAULT 20
+) RETURNS TABLE (
+  evidence_count int,
+  fact_text      text,
+  rank           float,
+  relation       text,
+  source_entity  text,
+  source_type    text,
+  target_entity  text,
+  target_type    text
+) LANGUAGE sql STABLE AS $$
+  SELECT
+    c.evidence_count,
+    c.fact_text,
+    ts_rank_cd(to_tsvector('polish', c.fact_text), plainto_tsquery('polish', query_text))::float AS rank,
+    r.name AS relation,
+    s.canonical_name AS source_entity,
+    s.kind AS source_type,
+    o.canonical_name AS target_entity,
+    o.kind AS target_type
+  FROM public.claims c
+  JOIN public.entities s ON c.subject_id = s.id
+  JOIN public.relations r ON c.relation_id = r.id
+  JOIN public.entities o ON c.object_id = o.id
+  WHERE c.user_id = match_user_id
+    AND c.fact_text IS NOT NULL
+    AND c.status = 'active'
+    AND (c.valid_to IS NULL OR c.valid_to > now())
+    AND to_tsvector('polish', c.fact_text) @@ plainto_tsquery('polish', query_text)
+  ORDER BY rank DESC
+  LIMIT match_count;
+$$;
+
+ALTER FUNCTION public.search_entity_links_fulltext(text, uuid, integer) SET search_path = public, pg_temp;
+
+-- 6. Trigger backfill to copy fact_text and embedding to claims
+UPDATE public.vanguard_entity_links SET weight = weight;
