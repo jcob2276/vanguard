@@ -19,6 +19,7 @@
 | # | Plik | Co tam jest |
 |---|---|---|
 | 6 | [`../BACKLOG.md`](../BACKLOG.md) | Co jest odłożone — nie naprawiać czegoś co jest zaplanowane inaczej |
+| 6a | [`AUDIT_MASTER_SEQUENCE.md`](./AUDIT_MASTER_SEQUENCE.md) | **Aktywna kolejka audytu 2026-07** — jedyna zsekwencjonowana, zdeduplikowana lista "co robić i w jakiej kolejności". Sprawdź tu PRZED rozpoczęciem jakiejkolwiek pracy z audytu, żeby nie robić czegoś już zrobionego albo poza kolejnością zależności |
 | 7 | [`VANGUARD_STATE.md`](./VANGUARD_STATE.md) | Stan aplikacji: zakładki, komponenty, tabele, integracje |
 | 8 | [`FEATURE_LIFECYCLE.md`](./FEATURE_LIFECYCLE.md) | Aktywne / disabled / deprecated / dropped |
 | 9 | [`PRODUCT_LANGUAGE.md`](./PRODUCT_LANGUAGE.md) | Kanoniczny słownik produktu (Plan, Move, Evidence, itp.) |
