@@ -56,10 +56,21 @@ export function useDashboardData() {
 
       if (wsRow?.state_json) {
         const state = wsRow.state_json as unknown as WorldState;
+        // today_win is actively edited within the session (checking off wins) —
+        // world_state is only refreshed once nightly, so serving it from cache
+        // means every toggle click gets immediately overwritten by stale state
+        // on the refresh() that follows it. Always fetch it live; the rest of
+        // world_state (biometrics/nutrition/training) is fine cached.
+        const { data: liveTodayWin } = await supabase
+          .from('daily_wins')
+          .select('*, daily_win_tasks(*)')
+          .eq('user_id', session.user.id)
+          .eq('date', today)
+          .maybeSingle();
         if (mountedRef.current) {
           setData({
             weeklyCalories: state.nutrition?.weekly_calories ?? 0,
-            todayWin: state.execution?.today_win ?? null,
+            todayWin: liveTodayWin ?? state.execution?.today_win ?? null,
             proteinToday: state.nutrition?.protein_today ?? 0,
             hasWorkoutToday: state.training?.has_workout_today ?? false,
             ouraToday: state.biometrics?.oura_history ?? [],
