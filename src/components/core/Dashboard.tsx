@@ -1,17 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Calendar,
   FolderKanban,
-  CheckSquare,
   Clock,
-  LayoutDashboard,
-  Moon,
   Sun,
-  StickyNote,
-  Bookmark,
   Sparkles,
   Activity,
   Plus,
@@ -31,7 +26,6 @@ import type { SpineGuideTarget } from '../../lib/goalSpineGuide';
 import NutritionCard from './NutritionCard';
 import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
-import TrainingSaunaQuickBar from '../biometrics/TrainingSaunaQuickBar';
 import { markWorkoutSessionActive, type WorkoutLoggerInitial } from '../../lib/workoutLogging';
 import { fetchLatestTaskReviewDate } from '../../lib/todo';
 import { getWeekStartWarsaw } from '../../lib/growth';
@@ -100,39 +94,45 @@ function isAfter20(): boolean {
 export default function Dashboard({ session }: { session: Session }) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
-  const [view, setView] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Resolve active view from URL path
+  const rawView = location.pathname === '/' ? 'dzis' : location.pathname.substring(1);
+  const view = normalizeView(rawView);
+
+  // Handle redirects/deep links with query params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
     const viewParam = params.get('view');
     if (viewParam === 'kariera') {
-      try { localStorage.setItem('vanguard_view', 'projekty'); } catch (e: any) {
-      console.error('[Background Error]', e);
+      navigate('/projekty', { replace: true });
+    } else if (viewParam && TAB_ORDER.includes(viewParam)) {
+      navigate('/' + viewParam, { replace: true });
+    } else if (params.get('todo') === 'new') {
+      navigate('/todo?new=1', { replace: true });
+    } else if (params.get('share_url') || params.get('share_text')) {
+      navigate({ pathname: '/links', search: location.search }, { replace: true });
     }
-      return 'projekty';
-    }
-    if (viewParam && TAB_ORDER.includes(viewParam)) {
-      try { localStorage.setItem('vanguard_view', viewParam); } catch (e: any) {
-      console.error('[Background Error]', e);
-    }
-      return viewParam;
-    }
-    if (params.get('todo') === 'new') {
-      window.history.replaceState({}, '', '/');
-      return 'todo';
-    }
-    if (params.get('share_url') || params.get('share_text')) {
-      // Return 'links' and do not clear query params yet so LinksInbox can read them
-      return 'links';
-    }
-    return normalizeView(localStorage.getItem('vanguard_view'));
-  });
-    const [actionCenterOpen, setActionCenterOpen] = useState(false);
+  }, [location.search, navigate]);
+
+  const [actionCenterOpen, setActionCenterOpen] = useState(false);
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
   const [historySubTab, setHistorySubTab] = useState<'chronicle' | 'bio'>('chronicle');
-  const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
-  useWorkoutResume(userId, setShowWorkoutLogger);
+  
+  useWorkoutResume(userId, useCallback(() => {
+    if (location.pathname !== '/trening') {
+      navigate('/trening');
+    }
+  }, [location.pathname, navigate]));
+  const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
+  const [workoutKey, setWorkoutKey] = useState(0);
+  const [showMorningPlan, setShowMorningPlan] = useState(false);
+  const [morningPlanTargetDate, setMorningPlanTargetDate] = useState<string | null>(null);
+  const [showShutdown, setShowShutdown] = useState(false);
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
+  const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
 
-  // Has the Sunday inbox/section triage already been done this week? Prevents the
-  // card from nagging again after completion (it used to have no memory at all).
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -144,15 +144,6 @@ export default function Dashboard({ session }: { session: Session }) {
       .catch((err) => console.error('Error fetching task review date:', err));
     return () => { cancelled = true; };
   }, [userId]);
-
-  const [showSaunaLogger, setShowSaunaLogger] = useState(false);
-  const [workoutInitial, setWorkoutInitial] = useState<WorkoutLoggerInitial | null>(null);
-  const [workoutKey, setWorkoutKey] = useState(0);
-  const [showMorningPlan, setShowMorningPlan] = useState(false);
-  const [morningPlanTargetDate, setMorningPlanTargetDate] = useState<string | null>(null);
-  const [showShutdown, setShowShutdown] = useState(false);
-  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
-  const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
   const [showQuickFoodEntry, setShowQuickFoodEntry] = useState(false);
   const [showFastCapture, setShowFastCapture] = useState(false);
   const [nutritionKey, setNutritionKey] = useState(0);
@@ -193,8 +184,7 @@ export default function Dashboard({ session }: { session: Session }) {
     }
   }, []);
 
-  const { reviewOverdueDays, urgentTodoCount, unreadLinkCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
-  const routerNavigate = useNavigate();
+  const { reviewOverdueDays, urgentTodoCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
   const [planDaySignal, setPlanDaySignal] = useState(0);
 
   const navigateTo = useCallback((newView: string) => {
@@ -203,14 +193,15 @@ export default function Dashboard({ session }: { session: Session }) {
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx   = TAB_ORDER.indexOf(newView);
     document.documentElement.dataset.slide = toIdx >= fromIdx ? 'right' : 'left';
+    const path = '/' + newView;
     if (supportsVT) {
       (document as any).startViewTransition(() => {
-        flushSync(() => setView(newView));
+        flushSync(() => navigate(path));
       });
     } else {
-      setView(newView);
+      navigate(path);
     }
-  }, [view, haptics]);
+  }, [view, haptics, navigate]);
 
   const { handleMainTouchStart, handleMainTouchEnd } = useDashboardSwipeNav({
     view,
@@ -219,25 +210,21 @@ export default function Dashboard({ session }: { session: Session }) {
   });
 
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
-    try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    }
     if (target === 'dashboard') {
-      routerNavigate('/dashboard');
+      navigate('/dashboard');
       return;
     }
     navigateTo(target);
-  }, [view, routerNavigate, navigateTo]);
+  }, [navigate, navigateTo]);
 
   const goBack = useCallback(() => {
-    const prev = localStorage.getItem('vanguard_previous_view');
-    if (prev) {
-      try { localStorage.removeItem('vanguard_previous_view'); } catch (e: any) {
-      console.error('[Background Error]', e);
+    haptics.light();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
     }
-    }
-    setView(normalizeView(prev) || 'dzis');
-  }, []);
+  }, [haptics, navigate]);
 
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
@@ -262,7 +249,7 @@ export default function Dashboard({ session }: { session: Session }) {
     );
 
     if (warsawHour >= 20) {
-      setShowShutdown(true);
+      setTimeout(() => setShowShutdown(true), 0);
     }
   }, [todayWin]);
 
@@ -279,11 +266,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const showLock = !todayWin;
 
-  useEffect(() => {
-    try { localStorage.setItem('vanguard_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    }
-  }, [view]);
+
 
   if (view === 'fundament') {
     return (
@@ -299,9 +282,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <Keep
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView(dest); }}
+          onNavigateTo={(dest) => navigate('/' + dest)}
         />
       </Suspense>
     );
@@ -313,9 +294,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <Todo
           session={session}
           onBack={() => { refreshNudge(); goBack(); }}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView(dest); }}
+          onNavigateTo={(dest) => navigate('/' + dest)}
         />
       </Suspense>
     );
@@ -327,9 +306,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <LinksInbox
           session={session}
           onBack={goBack}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView(dest); }}
+          onNavigateTo={(dest) => navigate('/' + dest)}
         />
       </Suspense>
     );
@@ -344,9 +321,7 @@ export default function Dashboard({ session }: { session: Session }) {
           onSyncCalendar={startGoogleAuth}
           onResyncCalendar={syncCalendar}
           isSyncing={isSyncing}
-          onNavigateTo={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView(dest); }}
+          onNavigateTo={(dest) => navigate('/' + dest)}
         />
       </Suspense>
     );
@@ -356,29 +331,29 @@ export default function Dashboard({ session }: { session: Session }) {
 
 
 
-  if (showSaunaLogger) {
+  if (view === 'sauna') {
     return (
       <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
         <Suspense fallback={<ViewFallback />}>
           <SaunaLoggerModal
             session={session}
-            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
-            onBack={() => { setShowSaunaLogger(false); refresh(); }}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate(-1); }}
+            onBack={() => { refresh(); navigate(-1); }}
           />
         </Suspense>
       </div>
     );
   }
 
-  if (showWorkoutLogger) {
+  if (view === 'trening') {
     return (
       <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
         <Suspense fallback={<ViewFallback />}>
           <WorkoutLogger
             session={session}
             initial={workoutInitial}
-            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); }}
-            onBack={() => { setShowWorkoutLogger(false); setWorkoutInitial(null); refresh(); }}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate(-1); }}
+            onBack={() => { setWorkoutInitial(null); refresh(); navigate(-1); }}
           />
         </Suspense>
       </div>
@@ -425,16 +400,12 @@ export default function Dashboard({ session }: { session: Session }) {
           userId={userId}
           unreadCount={pendingActionCount}
           onAvatarLongPress={() => setActionCenterOpen(true)}
-          onAvatarClick={() => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView('fundament'); }}
+          onAvatarClick={() => navigate('/fundament')}
           theme={theme}
           toggleTheme={toggleTheme}
           showLock={showLock}
           view={view}
-          onShortcutClick={(dest) => { try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    } setView(dest); }}
+          onShortcutClick={(dest) => navigate('/' + dest)}
           staleNoteCount={staleNoteCount}
           handleLogoPressStart={handleLogoPressStart}
           handleLogoPressEnd={handleLogoPressEnd}
@@ -595,12 +566,7 @@ export default function Dashboard({ session }: { session: Session }) {
               <Projects
                 session={session}
                 reviewOverdueDays={reviewOverdueDays}
-                onNavigateTo={(dest) => {
-                  try { localStorage.setItem('vanguard_previous_view', view); } catch (e: any) {
-      console.error('[Background Error]', e);
-    }
-                  setView(dest);
-                }}
+                onNavigateTo={(dest) => navigate('/' + dest)}
               />
             </Suspense>
           </div>
@@ -632,9 +598,9 @@ export default function Dashboard({ session }: { session: Session }) {
               >
                 {[
                   { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => { setShowQuickFoodEntry(true); } },
-                  { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); setShowWorkoutLogger(true); } },
-                  { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { setShowSaunaLogger(true); } },
-                  { label: 'Zmierz Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { routerNavigate('/optics'); } },
+                  { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { setWorkoutInitial(null); if (userId) markWorkoutSessionActive(userId); navigate('/trening'); } },
+                  { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => { navigate('/sauna'); } },
+                  { label: 'Zmierz Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => { navigate('/optics'); } },
                 ].map((item, idx) => (
                   <button
                     key={item.label}

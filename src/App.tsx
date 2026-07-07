@@ -15,26 +15,12 @@ const GrowthView = lazy(() => import('./components/growth/GrowthView'));
 const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
 const CorrelationsPage = lazy(() => import('./components/correlations/CorrelationsPage'));
 const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCalculator'));
-
 function KorelacjeRedirect() {
   return <Navigate to="/korealcje" replace />;
 }
 
-function KeepRedirect() {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('new') === '1') try { localStorage.setItem('vanguard_keep_new', '1'); } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
-    try { localStorage.setItem('vanguard_view', 'keep'); } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
-  }, []);
-  return <Navigate to="/" replace />;
-}
-
 function AppRoutes() {
-    const { session, setSession, fetchUserSettings } = useStore();
+  const { session, setSession, fetchUserSettings } = useStore();
   const [loading, setLoading] = useState(true);
 
   useNotifications();
@@ -73,7 +59,17 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Dashboard session={session} />} />
-      <Route path="/keep" element={<KeepRedirect />} />
+      <Route path="/dzis" element={<Dashboard session={session} />} />
+      <Route path="/tydzien" element={<Dashboard session={session} />} />
+      <Route path="/projekty" element={<Dashboard session={session} />} />
+      <Route path="/historia" element={<Dashboard session={session} />} />
+      <Route path="/keep" element={<Dashboard session={session} />} />
+      <Route path="/todo" element={<Dashboard session={session} />} />
+      <Route path="/kalendarz" element={<Dashboard session={session} />} />
+      <Route path="/links" element={<Dashboard session={session} />} />
+      <Route path="/fundament" element={<Dashboard session={session} />} />
+      <Route path="/trening" element={<Dashboard session={session} />} />
+      <Route path="/sauna" element={<Dashboard session={session} />} />
 
       <Route path="/dashboard" element={
         <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>

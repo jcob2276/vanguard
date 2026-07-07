@@ -2,13 +2,7 @@ import type { GrowthLinkRow, GrowthWeekNote } from '../hooks/useGrowthData';
 import type { LearningSkill, LearningWeekFocus, LearningWeekPin } from './growth';
 import { computeScoreDeltas, inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from './growth';
 import { suggestWeakestSubskillId } from './growthMastery';
-export type GrowthSuggestion = {
-  id: string;
-  tone: 'neutral' | 'warn' | 'action';
-  title: string;
-  body: string;
-  view: 'tydzien' | 'projekty' | 'todo' | 'keep' | 'dzis';
-};
+
 
 export type FocusProposal = {
   parentId: string;
@@ -73,13 +67,7 @@ export function deriveFocusProposal(
   };
 }
 
-export function setDashboardView(view: GrowthSuggestion['view']) {
-  try {
-    localStorage.setItem('vanguard_view', view);
-  } catch {
-    /* ignore */
-  }
-}
+
 
 export type SkillInventoryRow = {
   parent: LearningSkill;

@@ -31,8 +31,7 @@ export default function GrowthProjectsPanel({
           Brak aktywnego projektu. Skilli bez projektu = deklaracja bez dowodu.
         </p>
         <Link
-          to="/?view=projekty"
-          onClick={() => { try { localStorage.setItem('vanguard_view', 'projekty'); } catch {} }}
+          to="/projekty"
           className="inline-block text-[11px] font-black uppercase text-primary hover:underline"
         >
           Otwórz Projekty -&gt;
@@ -48,8 +47,7 @@ export default function GrowthProjectsPanel({
           <FolderKanban size={12} /> Projekty &middot; dow&oacute;d
         </p>
         <Link
-          to="/?view=projekty"
-          onClick={() => { try { localStorage.setItem('vanguard_view', 'projekty'); } catch {} }}
+          to="/projekty"
           className="text-[9px] font-black uppercase text-primary hover:underline shrink-0"
         >
           Wszystkie -&gt;

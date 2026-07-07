@@ -3,7 +3,7 @@ import { purgeStaleWorkoutDraft, shouldAutoResumeWorkout, markWorkoutSessionActi
 
 export function useWorkoutResume(
   userId: string | undefined,
-  setShowWorkoutLogger: React.Dispatch<React.SetStateAction<boolean>>
+  onResume: () => void
 ) {
   const resumedWorkoutDraft = useRef(false);
 
@@ -13,22 +13,19 @@ export function useWorkoutResume(
     purgeStaleWorkoutDraft(userId);
     if (shouldAutoResumeWorkout(userId)) {
       markWorkoutSessionActive(userId);
-      setShowWorkoutLogger(true);
+      onResume();
     }
-  }, [userId, setShowWorkoutLogger]);
+  }, [userId, onResume]);
 
   useEffect(() => {
     if (!userId) return;
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      setShowWorkoutLogger((prev) => {
-        if (prev) return prev;
-        if (!shouldAutoResumeWorkout(userId)) return prev;
-        markWorkoutSessionActive(userId);
-        return true;
-      });
+      if (!shouldAutoResumeWorkout(userId)) return;
+      markWorkoutSessionActive(userId);
+      onResume();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [userId, setShowWorkoutLogger]);
+  }, [userId, onResume]);
 }

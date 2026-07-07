@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 import type { GrowthLinkRow } from '../../hooks/useGrowthData';
 import { inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from '../../lib/growth';
-import { setDashboardView } from '../../lib/growthOverview';
 
 function linkMeta(row: GrowthLinkRow) {
   const rt = (row.resource_type as GrowthResourceType | null) ?? inferResourceType(row.url, row.domain);
@@ -26,8 +25,7 @@ export default function GrowthMediaQueue({ links }: { links: GrowthLinkRow[] }) 
           <p className="text-[10px] text-text-muted mt-0.5">Kolejka z Keep · nieprzeczytane</p>
         </div>
         <Link
-          to="/?view=keep"
-          onClick={() => setDashboardView('keep')}
+          to="/keep"
           className="text-[9px] font-black uppercase text-primary hover:underline shrink-0"
         >
           Keep →
