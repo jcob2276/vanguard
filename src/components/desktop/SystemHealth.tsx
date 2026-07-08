@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp, Moon, Apple, Award, Zap } from 'lucide-react';
 import { notify } from '../../lib/notify';
 
 interface AuditEvent {
@@ -14,26 +14,47 @@ interface AuditEvent {
   metadata: Record<string, any>;
 }
 
+interface DataCoverage {
+  oura_30: number;
+  oura_90: number;
+  nutrition_30: number;
+  nutrition_90: number;
+  wins_30: number;
+  wins_90: number;
+  overall_30: number;
+  overall_90: number;
+}
+
 export default function SystemHealth({ userId }: { userId: string }) {
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [coverage, setCoverage] = useState<DataCoverage | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('audit_events')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const [logsRes, covRes] = await Promise.all([
+        supabase
+          .from('audit_events')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase.rpc('get_data_coverage', { p_user_id: userId })
+      ]);
 
-      if (error) throw error;
-      setEvents((data as AuditEvent[]) || []);
+      if (logsRes.error) throw logsRes.error;
+      setEvents((logsRes.data as AuditEvent[]) || []);
+
+      if (covRes.error) {
+        console.error('[Coverage Error]', covRes.error);
+      } else {
+        setCoverage(covRes.data as unknown as DataCoverage);
+      }
     } catch (err: unknown) {
       console.error('[Health Error]', err);
-      notify('Nie udało się pobrać logów systemowych', 'error');
+      notify('Nie udało się pobrać danych diagnostycznych systemu', 'error');
     } finally {
       setLoading(false);
     }
@@ -68,13 +89,91 @@ export default function SystemHealth({ userId }: { userId: string }) {
     }
   };
 
+  const renderCoverageCard = (
+    title: string,
+    val30: number | undefined,
+    val90: number | undefined,
+    icon: React.ReactNode,
+    colorClass: string
+  ) => {
+    const pct30 = val30 != null ? Math.round(val30 * 100) : 0;
+    const pct90 = val90 != null ? Math.round(val90 * 100) : 0;
+
+    const getStatusColor = (v: number) => {
+      if (v >= 85) return 'text-emerald-500 dark:text-emerald-400';
+      if (v >= 60) return 'text-amber-500 dark:text-amber-400';
+      return 'text-rose-500';
+    };
+
+    const getBarColor = (v: number) => {
+      if (v >= 85) return 'bg-emerald-500 dark:bg-emerald-400';
+      if (v >= 60) return 'bg-amber-500 dark:bg-amber-400';
+      return 'bg-rose-500';
+    };
+
+    return (
+      <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 space-y-3.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-black text-text-secondary">{title}</span>
+          <div className={`${colorClass} opacity-80`}>{icon}</div>
+        </div>
+
+        <div className="space-y-2">
+          {/* 30 Days */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] font-bold">
+              <span className="text-text-muted">30 dni</span>
+              <span className={getStatusColor(pct30)}>{pct30}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/[0.04] rounded-full overflow-hidden">
+              <div className={`h-full ${getBarColor(pct30)} transition-all duration-500`} style={{ width: `${pct30}%` }} />
+            </div>
+          </div>
+
+          {/* 90 Days */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] font-bold">
+              <span className="text-text-muted">90 dni</span>
+              <span className={getStatusColor(pct90)}>{pct90}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/[0.04] rounded-full overflow-hidden">
+              <div className={`h-full ${getBarColor(pct90)} transition-all duration-500`} style={{ width: `${pct90}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4 max-w-[800px] mx-auto p-5 pb-20 animate-fade-in">
+    <div className="space-y-6 max-w-[800px] mx-auto p-5 pb-20 animate-fade-in">
+      {/* Diagnostics / Coverage */}
+      {coverage && (
+        <div className="space-y-3.5">
+          <div>
+            <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+              <Zap className="text-amber-400 fill-amber-400/20" size={18} />
+              Pokrycie Danych (Logging Hygiene)
+            </h2>
+            <p className="text-[11px] text-text-muted mt-0.5">Kompletność danych wejściowych w oknach czasowych 30 i 90 dni.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {renderCoverageCard('Oura summary', coverage.oura_30, coverage.oura_90, <Moon size={16} />, 'text-indigo-400')}
+            {renderCoverageCard('Odżywianie', coverage.nutrition_30, coverage.nutrition_90, <Apple size={16} />, 'text-emerald-400')}
+            {renderCoverageCard('Dziennik / Wins', coverage.wins_30, coverage.wins_90, <Award size={16} />, 'text-amber-400')}
+            {renderCoverageCard('Higiena ogólna', coverage.overall_30, coverage.overall_90, <Zap size={16} />, 'text-rose-400')}
+          </div>
+        </div>
+      )}
+
+      <div className="h-px bg-border-custom/60" />
+
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[18px] font-black text-text-primary flex items-center gap-2">
-            <ShieldCheck className="text-primary" size={20} />
-            Zdrowie Systemu (Audit Logs)
+          <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+            <ShieldCheck className="text-primary" size={18} />
+            Dziennik Audytu (System Logs)
           </h2>
           <p className="text-[11px] text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
         </div>

@@ -664,6 +664,7 @@ export type Database = {
       }
       daily_strain: {
         Row: {
+          algo_version: number | null
           cardio_load: number | null
           cns_load: number | null
           components: Json | null
@@ -689,6 +690,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          algo_version?: number | null
           cardio_load?: number | null
           cns_load?: number | null
           components?: Json | null
@@ -714,6 +716,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          algo_version?: number | null
           cardio_load?: number | null
           cns_load?: number | null
           components?: Json | null
@@ -4147,6 +4150,7 @@ export type Database = {
       }
       vanguard_daily_aggregates: {
         Row: {
+          algo_version: number | null
           condensed: boolean | null
           date: string
           dopamine_load_index: number | null
@@ -4167,6 +4171,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          algo_version?: number | null
           condensed?: boolean | null
           date: string
           dopamine_load_index?: number | null
@@ -4187,6 +4192,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          algo_version?: number | null
           condensed?: boolean | null
           date?: string
           dopamine_load_index?: number | null
@@ -5907,6 +5913,7 @@ export type Database = {
           total_records: number
         }[]
       }
+      get_data_coverage: { Args: { p_user_id: string }; Returns: Json }
       get_desktop_dashboard_data: { Args: { p_user_id: string }; Returns: Json }
       get_vanguard_graph_context: {
         Args: {
@@ -5971,6 +5978,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      resolve_entity: {
+        Args: { p_kind: string; p_name: string; p_user_id: string }
+        Returns: string
+      }
       save_food_correction: {
         Args: {
           p_corrected_grams: number
@@ -6000,7 +6011,10 @@ export type Database = {
           query_embedding: string
         }
         Returns: {
+          confidence_score: number
           evidence_count: number
+          fact_text: string
+          memory_type: string
           relation: string
           similarity: number
           source_entity: string
