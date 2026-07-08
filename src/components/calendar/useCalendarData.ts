@@ -41,9 +41,9 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   // Visible date range
   const visibleRange = useMemo(() => {
     if (calView === 'dzien' || calView === 'tydzien') {
-      return { rangeStart: weekStart, rangeEnd: addDays(weekStart, 7) };
+      return { rangeStart: addDays(weekStart, -7), rangeEnd: addDays(weekStart, 7) };
     }
-    return { rangeStart: today, rangeEnd: addDays(today, 14) };
+    return { rangeStart: addDays(today, -7), rangeEnd: addDays(today, 14) };
   }, [calView, weekStart, today]);
 
   // Query events using our react-query DAL

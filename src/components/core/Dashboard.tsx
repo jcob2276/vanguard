@@ -251,11 +251,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const goBack = useCallback(() => {
     haptics.light();
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
+    navigate('/dzis');
   }, [haptics, navigate]);
 
   const { isSyncing, setSyncing } = useStore();
@@ -369,8 +365,8 @@ export default function Dashboard({ session }: { session: Session }) {
         <Suspense fallback={<ViewFallback />}>
           <SaunaLoggerModal
             session={session}
-            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate(-1); }}
-            onBack={() => { refresh(); navigate(-1); }}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate('/dzis'); }}
+            onBack={() => { refresh(); navigate('/dzis'); }}
           />
         </Suspense>
       </div>
@@ -384,8 +380,8 @@ export default function Dashboard({ session }: { session: Session }) {
           <WorkoutLogger
             session={session}
             initial={workoutInitial}
-            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate(-1); }}
-            onBack={() => { setWorkoutInitial(null); refresh(); navigate(-1); }}
+            onSaved={() => { refresh(); setWorkoutKey((k) => k + 1); navigate('/dzis'); }}
+            onBack={() => { setWorkoutInitial(null); refresh(); navigate('/dzis'); }}
           />
         </Suspense>
       </div>

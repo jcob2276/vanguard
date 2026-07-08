@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical } from 'lucide-react';
 import { GOAL_ICON } from '../todo/todoUtils';
 import type { CalendarTodo } from '../../hooks/useCalendarTodos';
 
@@ -26,13 +26,15 @@ export default function CalendarSidebarTodos({
   newTodoTitle,
   setNewTodoTitle,
   handleQuickAddTodo,
-  handleToggleTodo,
   completedTodoIds,
   goalChipFor,
 }: CalendarSidebarTodosProps) {
   return (
     <div className="space-y-3 pt-4 border-t border-border-custom/40">
-      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
+        <span className="text-[9px] text-text-muted/65 italic font-medium">przeciągnij na kalendarz</span>
+      </div>
 
       {/* Quick add task input */}
       <div className="relative">
@@ -53,7 +55,7 @@ export default function CalendarSidebarTodos({
         </button>
       </div>
 
-      <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
+      <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
         {sidebarTodos.length === 0 ? (
           <p className="text-[11px] text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
         ) : (
@@ -69,22 +71,22 @@ export default function CalendarSidebarTodos({
                   e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title }));
                   e.dataTransfer.effectAllowed = 'move';
                 }}
-                className={`flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all cursor-grab active:cursor-grabbing group hover:scale-[1.01] hover:shadow-md active:scale-[0.99] select-none ${isCompleted ? 'opacity-50 border-emerald-500/20 bg-emerald-500/[0.02]' : ''}`}
+                className={`flex items-center gap-1.5 p-2 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/25 rounded-xl hover:bg-primary/5 hover:border-primary/30 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.01] active:scale-[0.99] select-none ${isCompleted ? 'opacity-40' : ''}`}
+                title="Przeciągnij na kalendarz, aby zaplanować"
               >
-                <input
-                  type="checkbox"
-                  checked={isCompleted}
-                  onChange={() => handleToggleTodo(todo.id)}
-                  className="mt-0.5 w-3.5 h-3.5 border-border-custom/80 rounded bg-transparent checked:bg-emerald-500 checked:border-emerald-500 transition-all cursor-pointer accent-emerald-500 shrink-0"
-                />
-                <div className="min-w-0 flex-1 space-y-1">
-                  <span className={`block text-[12px] font-semibold break-words transition-all duration-300 ${isCompleted ? 'line-through text-text-muted/50' : 'text-text-primary group-hover:text-primary'}`}>
+                {/* Drag Handle instead of Checkbox */}
+                <div className="text-text-muted/40 hover:text-text-muted shrink-0 cursor-grab">
+                  <GripVertical size={13} strokeWidth={2.5} />
+                </div>
+
+                <div className="min-w-0 flex-1 py-0.5 space-y-0.5">
+                  <span className="block text-[11.5px] font-bold text-text-primary break-words leading-snug">
                     {todo.title}
                   </span>
                   {chip && (
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${PILLAR_CHIP[chip.pillar] || ''}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold leading-none ${PILLAR_CHIP[chip.pillar] || ''}`}>
                       {GoalIcon && <GoalIcon size={8} />}
-                      {chip.dreamTitle && <span className="truncate max-w-[100px]">{chip.dreamTitle}</span>}
+                      {chip.dreamTitle && <span className="truncate max-w-[120px]">{chip.dreamTitle}</span>}
                     </span>
                   )}
                 </div>

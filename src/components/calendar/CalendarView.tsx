@@ -28,6 +28,7 @@ import { updateTodoItem, deleteTodoItem } from '../../lib/todo';
 import MiniCalendar from './MiniCalendar';
 import CalendarSidebarTodos from './CalendarSidebarTodos';
 import CalendarBudgetPanel from './CalendarBudgetPanel';
+import SolarDayWidget from './SolarDayWidget';
 
 interface Props {
   session: Session;
@@ -154,8 +155,13 @@ export default function CalendarView({
   // Compute weekly actuals per category
   const categoryWeeklyTotals = useMemo(() => {
     const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
+    const nextWeekStart = addDays(weekStart, 7);
     events.forEach((ev) => {
       if (!ev.start_time || !ev.end_time || !ev.category) return;
+
+      const evDateStr = ev.start_time.split('T')[0];
+      // Only include events in the CURRENT active week
+      if (evDateStr < weekStart || evDateStr >= nextWeekStart) return;
 
       const isSleep = ev.summary?.toLowerCase()?.includes('sen') || ev.summary?.toLowerCase()?.includes('sleep');
       if (isSleep) return;
@@ -176,7 +182,39 @@ export default function CalendarView({
       }
     });
     return totals;
-  }, [events]);
+  }, [events, weekStart]);
+
+  // Compute previous week's actuals per category
+  const categoryPrevWeeklyTotals = useMemo(() => {
+    const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
+    const prevWeekStart = addDays(weekStart, -7);
+    events.forEach((ev) => {
+      if (!ev.start_time || !ev.end_time || !ev.category) return;
+
+      const evDateStr = ev.start_time.split('T')[0];
+      // Only include events in the PREVIOUS week
+      if (evDateStr < prevWeekStart || evDateStr >= weekStart) return;
+
+      const isSleep = ev.summary?.toLowerCase()?.includes('sen') || ev.summary?.toLowerCase()?.includes('sleep');
+      if (isSleep) return;
+
+      const cat = LEGACY_CATEGORY_TO_SPHERE[ev.category.toLowerCase()] || ev.category.toLowerCase();
+
+      if (!(cat in totals)) return;
+      try {
+        const start = new Date(ev.start_time.replace(' ', 'T')).getTime();
+        const end = new Date(ev.end_time.replace(' ', 'T')).getTime();
+        const diffMs = end - start;
+        if (diffMs > 0) {
+          const hours = diffMs / (1000 * 60 * 60);
+          totals[cat] += hours;
+        }
+      } catch (err: unknown) {
+        console.error('[Background Error]', err);
+      }
+    });
+    return totals;
+  }, [events, weekStart]);
 
   // Sync / AI tools hooks
   const { isScheduling: isAISchedulingRunning, handleAISchedule: runAIScheduling } = useAIScheduling({
@@ -247,6 +285,56 @@ export default function CalendarView({
       return () => clearTimeout(timer);
     }
   }, [toastMessage, setToastMessage]);
+
+  // Keyboard shortcuts: T = Dzień, W = Tydzień, A = Agenda, ←/→ = nawigacja, Esc = anulowanie modalów
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Esc closes any active modal, even if typing inside an input/textarea
+      if (e.key === 'Escape') {
+        if (quickCreate || editingTodo || selectedEvent || showBudgetConfig) {
+          e.preventDefault();
+          setQuickCreate(null);
+          setEditingTodo(null);
+          setSelectedEvent(null);
+          setShowBudgetConfig(false);
+          return;
+        }
+      }
+
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 't' || e.key === 'T') { setCalView('dzien'); return; }
+      if (e.key === 'w' || e.key === 'W') { setCalView('tydzien'); return; }
+      if (e.key === 'a' || e.key === 'A') { setCalView('agenda'); return; }
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const delta = e.key === 'ArrowLeft' ? -1 : 1;
+        const step = calView === 'dzien' ? delta : delta * 7;
+        const nextDay = addDays(selectedDay, step);
+        setSelectedDay(nextDay);
+        setWeekStart(weekMon(nextDay));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    setCalView,
+    calView,
+    selectedDay,
+    setSelectedDay,
+    setWeekStart,
+    quickCreate,
+    setQuickCreate,
+    editingTodo,
+    setEditingTodo,
+    selectedEvent,
+    setSelectedEvent,
+    showBudgetConfig,
+    setShowBudgetConfig,
+  ]);
 
   const buildRecurrenceRule = (
     r: '' | 'daily' | 'weekly' | 'monthly' | 'custom',
@@ -420,14 +508,31 @@ export default function CalendarView({
       {!sidebarCollapsed && (
         <div className="w-[280px] shrink-0 border-r border-border-custom/50 flex flex-col bg-surface/10 select-none">
           {/* Back Navigation header */}
-          <div className="h-[60px] shrink-0 border-b border-border-custom/20 flex items-center px-4 justify-between">
+          <div className="h-[60px] shrink-0 border-b border-border-custom/20 flex items-center px-4 gap-2">
             <button
               onClick={onBack}
-              className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors"
+              className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors shrink-0"
             >
               <ChevronLeft size={16} /> Powrót
             </button>
-            <Calendar size={16} className="text-primary/70 animate-pulse" />
+
+            <div className="flex-1" />
+
+            {/* Skróty do innych apek */}
+            <button
+              onClick={() => onNavigateTo?.('todo')}
+              title="Zadania"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+            >
+              <Check size={13} /> Todo
+            </button>
+            <button
+              onClick={() => onNavigateTo?.('keep')}
+              title="Notatki"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+            >
+              <Sparkles size={13} /> Notatki
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
@@ -438,32 +543,12 @@ export default function CalendarView({
                 setWeekStart(weekMon(day));
               }}
             />
-            
-            {/* Oura Sync / Strava sync shortcuts in sidebar */}
-            <div className="space-y-3 pt-4 border-t border-border-custom/40">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Integracje</span>
-              <div className="space-y-2">
-                <button
-                  onClick={syncOura}
-                  disabled={isSyncingOura}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-border-custom/60 hover:bg-surface-solid text-text-secondary py-2 text-[11px] font-bold transition-all disabled:opacity-40"
-                >
-                  <RefreshCw size={12} className={isSyncingOura ? 'animate-spin' : ''} />
-                  <span>Dopasuj Sen z Oura</span>
-                </button>
-                <button
-                  onClick={syncActivities}
-                  disabled={isSyncingActivities}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-border-custom/60 hover:bg-surface-solid text-text-secondary py-2 text-[11px] font-bold transition-all disabled:opacity-40"
-                >
-                  <Zap size={12} className={isSyncingActivities ? 'text-amber-400' : ''} />
-                  <span>Wgraj Treningi do kalendarza</span>
-                </button>
-              </div>
-            </div>
+
+            <SolarDayWidget dateStr={selectedDay} />
 
             <CalendarBudgetPanel
               categoryWeeklyTotals={categoryWeeklyTotals}
+              categoryPrevWeeklyTotals={categoryPrevWeeklyTotals}
               budgets={budgets}
               onConfigure={() => {
                 const mins: Record<string, string> = {};
@@ -507,19 +592,25 @@ export default function CalendarView({
         <div className="h-[60px] shrink-0 border-b border-border-custom/20 flex items-center px-6 justify-between bg-background select-none">
           <div className="flex items-center gap-2">
             <div className="flex gap-1 p-0.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-border-custom/30">
-              {(['dzien', 'tydzien', 'agenda'] as const).map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setCalView(view)}
-                  className={`text-[11px] font-black px-4 py-2 rounded-lg transition-all capitalize ${
-                    calView === view
-                      ? 'bg-background text-text-primary shadow-sm'
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  {view === 'dzien' ? 'Dzień' : view === 'tydzien' ? 'Tydzień' : 'Agenda'}
-                </button>
-              ))}
+              {(['dzien', 'tydzien', 'agenda'] as const).map((view) => {
+                const label = view === 'dzien' ? 'Dzień' : view === 'tydzien' ? 'Tydzień' : 'Agenda';
+                const shortcut = view === 'dzien' ? 'T' : view === 'tydzien' ? 'W' : 'A';
+                return (
+                  <button
+                    key={view}
+                    onClick={() => setCalView(view)}
+                    title={`${label} (${shortcut})`}
+                    className={`flex items-center gap-1.5 text-[11px] font-black px-4 py-2 rounded-lg transition-all capitalize ${
+                      calView === view
+                        ? 'bg-background text-text-primary shadow-sm'
+                        : 'text-text-muted hover:text-text-primary'
+                    }`}
+                  >
+                    {label}
+                    <kbd className={`text-[9px] font-mono px-1 py-0.5 rounded border ${calView === view ? 'border-border-custom/60 bg-black/5 dark:bg-white/10 text-text-muted' : 'border-transparent'}`}>{shortcut}</kbd>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -702,7 +793,6 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* 6. Budget Config Modal */}
       {showBudgetConfig && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setShowBudgetConfig(false)}>
           <div className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
@@ -713,50 +803,54 @@ export default function CalendarView({
               </button>
             </div>
 
-            <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
-              {[
-                { key: 'praca', label: 'Praca', placeholderMin: 'brak', placeholderMax: 'np. 40' },
-                { key: 'cialo_trening', label: 'Ciało / Trening', placeholderMin: 'np. 5', placeholderMax: 'brak' },
-                { key: 'duch_refleksja', label: 'Duch / Refleksja', placeholderMin: 'np. 3', placeholderMax: 'brak' },
-                { key: 'finanse', label: 'Finanse', placeholderMin: 'np. 1', placeholderMax: 'brak' },
-                { key: 'relacje_rodzina', label: 'Relacje / Rodzina', placeholderMin: 'np. 4', placeholderMax: 'brak' },
-                { key: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', placeholderMin: 'np. 3', placeholderMax: 'brak' },
-              ].map((cat) => (
-                <div key={cat.key} className="space-y-1.5 p-3 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-xl">
-                  <span className="text-[11px] font-bold text-text-primary">{cat.label}</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-text-muted font-semibold uppercase tracking-wider block mb-0.5">Min (godz)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        placeholder={cat.placeholderMin}
-                        value={budgetMinInputs[cat.key] || ''}
-                        onChange={(e) => setBudgetMinInputs({ ...budgetMinInputs, [cat.key]: e.target.value })}
-                        className="w-full bg-background border border-border-custom/60 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all"
-                      />
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {LIFE_SPHERES.map((sphere) => {
+                let placeholderMin = 'np. 3';
+                let placeholderMax = 'brak';
+                if (sphere.id === 'praca') {
+                  placeholderMin = 'brak';
+                  placeholderMax = 'np. 40';
+                }
+                return (
+                  <div key={sphere.id} className="p-3.5 bg-surface-solid/10 dark:bg-white/[0.02] border border-border-custom/30 rounded-2xl space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${sphere.dot}`} />
+                      <span className="text-[11px] font-black text-text-primary uppercase tracking-wider">{sphere.label}</span>
                     </div>
-                    <div>
-                      <label className="text-[9px] text-text-muted font-semibold uppercase tracking-wider block mb-0.5">Max (godz)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        placeholder={cat.placeholderMax}
-                        value={budgetMaxInputs[cat.key] || ''}
-                        onChange={(e) => setBudgetMaxInputs({ ...budgetMaxInputs, [cat.key]: e.target.value })}
-                        className="w-full bg-background border border-border-custom/60 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider block">Min (godz)</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          placeholder={placeholderMin}
+                          value={budgetMinInputs[sphere.id] || ''}
+                          onChange={(e) => setBudgetMinInputs({ ...budgetMinInputs, [sphere.id]: e.target.value })}
+                          className="w-full bg-slate-100/50 dark:bg-black/20 border border-border-custom/50 rounded-xl px-3 py-2 text-[12px] font-bold text-text-primary outline-none focus:border-primary/50 transition-all focus:ring-1 focus:ring-primary/20"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider block">Max (godz)</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          placeholder={placeholderMax}
+                          value={budgetMaxInputs[sphere.id] || ''}
+                          onChange={(e) => setBudgetMaxInputs({ ...budgetMaxInputs, [sphere.id]: e.target.value })}
+                          className="w-full bg-slate-100/50 dark:bg-black/20 border border-border-custom/50 rounded-xl px-3 py-2 text-[12px] font-bold text-text-primary outline-none focus:border-primary/50 transition-all focus:ring-1 focus:ring-primary/20"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="pt-2">
               <button
                 type="button"
                 onClick={handleSaveBudgets}
-                className="w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 text-[13px] font-black uppercase tracking-wider transition-colors"
+                className="w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 text-[13px] font-black uppercase tracking-wider transition-colors shadow-lg shadow-primary/20 active:scale-[0.98]"
               >
                 Zapisz Budżety
               </button>

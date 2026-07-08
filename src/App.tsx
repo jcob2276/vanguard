@@ -4,7 +4,6 @@ import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
 import Dashboard from './components/core/Dashboard';
-import NotFoundPage from './components/core/NotFoundPage';
 import { useNotifications } from './hooks/useNotifications';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
 import { ToastHost } from './components/ui/ToastHost';
@@ -98,7 +97,7 @@ function AppRoutes() {
           <EndMyopiaCalculator />
         </Suspense>
       } />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="*" element={<Navigate to="/dzis" replace />} />
     </Routes>
   );
 }

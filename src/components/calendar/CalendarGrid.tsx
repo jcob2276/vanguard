@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -34,8 +34,10 @@ import {
   todayStr,
   weekMon,
   parseTime,
+  dateOfISO,
 } from './calendarHelpers';
 import { GOAL_ICON } from '../todo/todoUtils';
+import { getSunTimes, formatTimeWarsaw } from '../../lib/solar';
 
 // Weather Helpers
 const WMO_WEATHER_DESC: Record<number, string> = {
@@ -135,6 +137,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     weather,
     nowMin,
     setQuickCreate,
+    setQuickDuration,
     setEditingTodo,
     setEditingTodoTitle,
     setToastMessage,
@@ -142,6 +145,68 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     handleEventMouseDown,
     handleEventClick,
   } = calData;
+
+  const [dragSelect, setDragSelect] = useState<{
+    day: string;
+    startMin: number;
+    currentMin: number;
+  } | null>(null);
+
+  // Global mouseup to complete drag-to-create reliably
+  useEffect(() => {
+    if (!dragSelect) return;
+
+    const handleGlobalMouseUp = () => {
+      const start = Math.min(dragSelect.startMin, dragSelect.currentMin);
+      const end = Math.max(dragSelect.startMin, dragSelect.currentMin);
+      
+      // If the drag duration is very small (less than 15 mins), treat it as a click and default to 60 mins
+      const duration = end - start < 15 ? 60 : end - start;
+
+      setQuickDuration(duration);
+      setQuickCreate({ date: dragSelect.day, startMin: start });
+      setDragSelect(null);
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [dragSelect, setQuickDuration, setQuickCreate]);
+
+  const handleColumnMouseDown = (day: string, e: React.MouseEvent) => {
+    // Only capture left clicks
+    if (e.button !== 0) return;
+    
+    // Ignore clicks on event blocks, resize handles, or todo cards
+    const target = e.target as HTMLElement;
+    if (target.closest('.cursor-move') || target.closest('.cursor-s-resize') || target.closest('.cursor-grab')) {
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const clickedMin = Math.round((offsetY / PX_PER_MIN) / 15) * 15 + HOUR_START * 60;
+
+    setDragSelect({
+      day,
+      startMin: clickedMin,
+      currentMin: clickedMin,
+    });
+  };
+
+  const handleColumnMouseMove = (day: string, e: React.MouseEvent) => {
+    if (!dragSelect || dragSelect.day !== day) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const currentMin = Math.round((offsetY / PX_PER_MIN) / 15) * 15 + HOUR_START * 60;
+
+    setDragSelect({
+      ...dragSelect,
+      currentMin: Math.max(HOUR_START * 60, Math.min(HOUR_END * 60, currentMin)),
+    });
+  };
 
   // Auto-scroll grid to start hour on mount and on view switches
   useEffect(() => {
@@ -158,7 +223,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     const map: Record<string, any[]> = {};
     for (const ev of events) {
       if (!ev.start_time) continue;
-      const d = ev.start_time.split('T')[0];
+      const d = dateOfISO(ev.start_time);
       if (!map[d]) map[d] = [];
       map[d].push(ev);
     }
@@ -340,49 +405,70 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     const dayTodos = todosForDay(day).filter((t) => t.scheduled_time);
     const isToday = day === today;
     const nowLine = isToday ? (nowMin - HOUR_START * 60) * PX_PER_MIN : null;
+
+    // Selection overlay calculations
+    const showSelection = dragSelect && dragSelect.day === day;
+    const startMin = showSelection ? Math.min(dragSelect!.startMin, dragSelect!.currentMin) : 0;
+    const endMin = showSelection ? Math.max(dragSelect!.startMin, dragSelect!.currentMin) : 0;
+    const selectionTop = (startMin - HOUR_START * 60) * PX_PER_MIN;
+    const selectionHeight = (endMin - startMin) * PX_PER_MIN;
+
     return (
       <div
         key={day}
         className={`relative flex-1 min-w-0 ${colClass}`}
         style={{ height: HOURS * PX_PER_HOUR }}
+        onMouseDown={(e) => handleColumnMouseDown(day, e)}
+        onMouseMove={(e) => handleColumnMouseMove(day, e)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.currentTarget.classList.add('bg-primary/5');
+        }}
+        onDragLeave={(e) => {
+          e.currentTarget.classList.remove('bg-primary/5');
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          e.currentTarget.classList.remove('bg-primary/5');
+          const rawData = e.dataTransfer.getData('text/plain');
+          if (!rawData) return;
+          try {
+            const todo = JSON.parse(rawData);
+            const rect = e.currentTarget.getBoundingClientRect();
+            const offsetY = e.clientY - rect.top;
+            const dropMin = Math.round((offsetY / PX_PER_MIN) / 15) * 15 + HOUR_START * 60;
+
+            setSaving(true);
+            await scheduleTodoAt(todo, day, dropMin, todo.duration_minutes ?? 60);
+            setToastMessage(`Zaplanowano zadanie: "${todo.title}" 📅`);
+          } catch (err) {
+            console.error('Failed to drop and schedule task:', err);
+            setToastMessage('Nie udało się zaplanować zadania.');
+          } finally {
+            setSaving(false);
+          }
+        }}
       >
+        {/* Render horizontal grid lines */}
         {Array.from({ length: HOURS }, (_, i) => (
           <div
             key={i}
-            className="absolute left-0 right-0 border-t border-b border-border-custom/10 cursor-pointer hover:bg-primary/5 transition-colors"
+            className="absolute left-0 right-0 border-b border-border-custom/10 pointer-events-none"
             style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }}
-            onClick={(e) => handleSlotClick(day, HOUR_START + i, e)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.add('bg-primary/10');
-            }}
-            onDragLeave={(e) => {
-              e.currentTarget.classList.remove('bg-primary/10');
-            }}
-            onDrop={async (e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove('bg-primary/10');
-              const rawData = e.dataTransfer.getData('text/plain');
-              if (!rawData) return;
-              try {
-                const todo = JSON.parse(rawData);
-                const rect = e.currentTarget.getBoundingClientRect();
-                const offsetY = e.clientY - rect.top;
-                const clickedMin = Math.round((offsetY / PX_PER_HOUR) * 60 / 15) * 15;
-                const startMin = (HOUR_START + i) * 60 + clickedMin;
-
-                setSaving(true);
-                await scheduleTodoAt(todo, day, startMin, todo.duration_minutes ?? 60);
-                setToastMessage(`Zaplanowano zadanie: "${todo.title}" 📅`);
-              } catch (err) {
-                console.error('Failed to drop and schedule task:', err);
-                setToastMessage('Nie udało się zaplanować zadania.');
-              } finally {
-                setSaving(false);
-              }
-            }}
           />
         ))}
+
+        {/* Drag selection visual overlay */}
+        {showSelection && selectionHeight > 0 && (
+          <div
+            className="absolute left-0 right-0 bg-primary/20 border border-primary/50 rounded-md pointer-events-none z-30 flex items-center justify-center shadow-lg"
+            style={{ top: selectionTop, height: selectionHeight }}
+          >
+            <span className="text-[9px] font-black text-primary bg-background border border-border-custom/40 px-1.5 py-0.5 rounded shadow-md tabular-nums">
+              {Math.floor(startMin / 60)}:{String(startMin % 60).padStart(2, '0')} - {Math.floor(endMin / 60)}:{String(endMin % 60).padStart(2, '0')}
+            </span>
+          </div>
+        )}
         {(() => {
           const layouts = layoutDayEvents(dayEvents);
           return dayEvents.map((ev: any) => {
@@ -391,6 +477,38 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           });
         })()}
         {dayTodos.map(renderTodoBlock)}
+        {/* Sunrise / sunset lines */}
+        {(() => {
+          const sun = getSunTimes(day);
+          const sunriseTop = (sun.sunriseMin - HOUR_START * 60) * PX_PER_MIN;
+          const sunsetTop  = (sun.sunsetMin  - HOUR_START * 60) * PX_PER_MIN;
+          const sunriseVisible = sunriseTop >= 0 && sunriseTop <= HOURS * PX_PER_HOUR;
+          const sunsetVisible  = sunsetTop  >= 0 && sunsetTop  <= HOURS * PX_PER_HOUR;
+          return (
+            <>
+              {sunriseVisible && (
+                <div
+                  className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
+                  style={{ top: sunriseTop }}
+                  title={`Wschód: ${formatTimeWarsaw(sun.sunrise)}`}
+                >
+                  <div className="w-full h-[1px] bg-gradient-to-r from-amber-400/0 via-amber-400/50 to-amber-400/0" />
+                  <span className="absolute right-1 text-[7px] font-bold text-amber-400/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
+                </div>
+              )}
+              {sunsetVisible && (
+                <div
+                  className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
+                  style={{ top: sunsetTop }}
+                  title={`Zachód: ${formatTimeWarsaw(sun.sunset)}`}
+                >
+                  <div className="w-full h-[1px] bg-gradient-to-r from-orange-500/0 via-orange-500/50 to-orange-500/0" />
+                  <span className="absolute right-1 text-[7px] font-bold text-orange-400/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
+                </div>
+              )}
+            </>
+          );
+        })()}
         {nowLine !== null && nowLine >= 0 && (
           <div className="absolute left-0 right-0 flex items-center pointer-events-none z-20" style={{ top: nowLine }}>
             <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse -ml-[5px]" />

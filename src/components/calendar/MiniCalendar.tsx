@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toLocalISO, todayStr } from './calendarHelpers';
+import { getMoonPhase } from '../../lib/solar';
 
 interface MiniCalendarProps {
   selectedDay: string;
@@ -102,22 +103,37 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
         {daysGrid.map((item, idx) => {
           const isSelected = item.dayStr === selectedDay;
           const isToday = item.dayStr === today;
+          const moon = getMoonPhase(item.dayStr);
+          // Pokazujemy emoji tylko dla 4 głównych faz i tylko dla dni bieżącego miesiąca
+          const showMoon = moon.isMajor && item.isCurrentMonth;
+
           return (
-            <button
-              key={idx}
-              onClick={() => onSelectDay(item.dayStr)}
-              className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-[10.5px] transition-all duration-150 active:scale-90 ${
-                isSelected
-                  ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
-                  : isToday
-                  ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
-                  : item.isCurrentMonth
-                  ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[1.08]'
-                  : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'
-              }`}
-            >
-              {item.dayNum}
-            </button>
+            <div key={idx} className="relative flex flex-col items-center">
+              <button
+                onClick={() => onSelectDay(item.dayStr)}
+                title={showMoon ? moon.name : undefined}
+                className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-[10.5px] transition-all duration-150 active:scale-90 ${
+                  isSelected
+                    ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
+                    : isToday
+                    ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
+                    : item.isCurrentMonth
+                    ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[1.08]'
+                    : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'
+                }`}
+              >
+                {item.dayNum}
+              </button>
+              {/* Ikona fazy księżyca — tylko główne fazy */}
+              {showMoon && (
+                <span
+                  className="text-[7px] leading-none mt-[1px] opacity-80"
+                  title={moon.name}
+                >
+                  {moon.emoji}
+                </span>
+              )}
+            </div>
           );
         })}
       </div>
