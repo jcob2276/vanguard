@@ -4,8 +4,10 @@ DECLARE
     r RECORD;
     r_source RECORD;
     r_target RECORD;
+    v_loser_uuid uuid;
+    v_winner_uuid uuid;
 BEGIN
-    -- 1. Entity Resolution
+    -- 1. Entity Resolution loop
     FOR r IN (
         SELECT DISTINCT ON (least(e1.name, e2.name), greatest(e1.name, e2.name))
             e1.name as loser,
@@ -25,8 +27,24 @@ BEGIN
         ORDER BY least(e1.name, e2.name), greatest(e1.name, e2.name), 
                  (CASE WHEN length(e2.name) >= length(e1.name) THEN 1 ELSE 0 END) DESC
     ) LOOP
-        -- DLA KAŻDEGO WIERSZA "LOSERA" JAKO SOURCE
-        FOR r_source IN (SELECT * FROM public.vanguard_entity_links WHERE user_id = r.user_id AND source_entity = r.loser) LOOP
+        -- Get or create entity IDs to map the merge
+        v_loser_uuid := public.resolve_entity(r.user_id, r.loser, 'concept');
+        v_winner_uuid := public.resolve_entity(r.user_id, r.winner, 'concept');
+
+        IF v_loser_uuid IS NOT NULL AND v_winner_uuid IS NOT NULL AND v_loser_uuid <> v_winner_uuid THEN
+            -- Map the soft-merge in public.entities
+            UPDATE public.entities
+            SET merged_into = v_winner_uuid
+            WHERE id = v_loser_uuid;
+
+            -- Add the loser's name as an alias for the winner
+            INSERT INTO public.entity_aliases (entity_id, alias)
+            VALUES (v_winner_uuid, r.loser)
+            ON CONFLICT DO NOTHING;
+        END IF;
+
+        -- FOR EACH ROW OF LOSER AS SOURCE -> upsert as winner
+        FOR r_source IN (SELECT * FROM public.vanguard_entity_links WHERE user_id = r.user_id AND source_entity = r.loser AND status = 'active') LOOP
             INSERT INTO public.vanguard_entity_links (
                 user_id, source_entity, source_type, relation, target_entity, target_type, weight, evidence_count, first_seen, last_seen, temporal_status, status, observed_at, valid_from, valid_until
             )
@@ -40,8 +58,8 @@ BEGIN
                 last_seen = GREATEST(vanguard_entity_links.last_seen, EXCLUDED.last_seen);
         END LOOP;
 
-        -- DLA KAŻDEGO WIERSZA "LOSERA" JAKO TARGET
-        FOR r_target IN (SELECT * FROM public.vanguard_entity_links WHERE user_id = r.user_id AND target_entity = r.loser) LOOP
+        -- FOR EACH ROW OF LOSER AS TARGET -> upsert as winner
+        FOR r_target IN (SELECT * FROM public.vanguard_entity_links WHERE user_id = r.user_id AND target_entity = r.loser AND status = 'active') LOOP
             INSERT INTO public.vanguard_entity_links (
                 user_id, source_entity, source_type, relation, target_entity, target_type, weight, evidence_count, first_seen, last_seen, temporal_status, status, observed_at, valid_from, valid_until
             )
@@ -55,13 +73,17 @@ BEGIN
                 last_seen = GREATEST(vanguard_entity_links.last_seen, EXCLUDED.last_seen);
         END LOOP;
 
-        -- USUŃ ŚLADY "LOSERA"
-        DELETE FROM public.vanguard_entity_links WHERE user_id = r.user_id AND (source_entity = r.loser OR target_entity = r.loser);
+        -- SOFT-DEPRECATE THE LOSER LINKS (trigger will automatically deprecate corresponding claims)
+        UPDATE public.vanguard_entity_links
+        SET status = 'deprecated',
+            valid_until = now()
+        WHERE user_id = r.user_id 
+          AND status = 'active'
+          AND (source_entity = r.loser OR target_entity = r.loser);
     END LOOP;
 
     -- 2. TEMPORAL STATUS TRANSITIONS
-    
-    -- a. Mark 'current' facts older than 30 days that have provenance (source_episode_id) as 'historical'
+    -- a. Mark 'current' facts older than 30 days that have provenance as 'historical'
     UPDATE public.vanguard_entity_links
     SET temporal_status = 'historical'
     WHERE temporal_status = 'current'
