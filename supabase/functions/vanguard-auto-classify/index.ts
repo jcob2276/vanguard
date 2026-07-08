@@ -317,17 +317,11 @@ Analizujesz tekst i klasyfikujesz go do jednego z poniższych typów (\`event_ki
 1. \`friction_event\` — konkretne tarcie behawioralne (odchylenie zachowania od intencji).
    - **Musi** zawierać jednocześnie: (a) intencję/zamiar co miało być zrobione + (b) wyraźne odchylenie w zachowaniu.
    - Jeśli brak jednej z tych dwóch rzeczy → nie dawaj \`friction_event\`, daj \`state_observation\` lub \`micro_behavior_observation\`.
-   - Przykład: "miałem napisać raport ale znowu odłożyłem" lub "chciałem poprosić do tańca ale się zawahałem".
 2. \`positive_micro_action\` — dobry mikrogest, pozytywne mikrozachowanie.
-   - Przykład: "podałem ramię przy schodach" lub "powiedziałem komplement".
 3. \`recovery_event\` — przełamanie oporu, powrót do pionu po tarciu, lub zrobienie czegoś mimo niechęci (adaptive move).
-   - Przykład: "chciałem scrollować, ale odłożyłem telefon" lub "nie chciało mi się, ale i tak poszedłem na trening".
 4. \`state_observation\` — stan emocjonalny lub fizyczny użytkownika bez jawnego odchylenia intencji.
-   - Przykład: "jadę na wesele, boli mnie brzuch, stresuję się" lub "jestem zmęczony, mam dziś mało energii".
 5. \`micro_behavior_observation\` — zaobserwowane zachowanie bez jawnej intencji w danym momencie (nawykowe gesty, tiki, sposoby reakcji).
-   - Przykład: "zauważyłem, że nie patrzę w oczy podczas mówienia".
 6. \`reflection\` — refleksja, generalizacja, wniosek, przemyślenia.
-   - Przykład: "ludzie boją się ciszy, więc gadają o byle czym".
 
 Jeśli tekst nie opisuje żadnego z powyższych (np. jest to zwykłe neutralne powiadomienie, suchy plan dnia bez opisu wykonania, pytanie) → set \`is_relevant = false\` i \`event_kind = null\`.
 W przeciwnym wypadku set \`is_relevant = true\`.
@@ -352,7 +346,7 @@ SŁOWNIK friction_type (dla wszystkich typów oprócz 'reflection' i neutralnych
 - adaptive_move: zrobienie czegoś trudnego/ważnego pomimo oporu (np. poszedł na trening mimo braku sił)
 - other: inne odchylenie lub stan niepasujący do powyższych
 
-Zwróć TYLKO JSON:
+Zwróć TYLKO JSON w formacie:
 {
   "is_relevant": boolean,
   "event_kind": "friction_event" | "positive_micro_action" | "recovery_event" | "state_observation" | "micro_behavior_observation" | "reflection" | null,
@@ -366,21 +360,99 @@ Zwróć TYLKO JSON:
   "location_context": "miejsce jeśli wymienione (lub null)"
 }
 
-WAŻNE: positive_micro_action oraz recovery_event zawsze mają is_relevant=true (to zdarzenia warte zalogowania).
+WAŻNE: positive_micro_action oraz recovery_event zawsze mają is_relevant=true.
 
-Przykłady:
-"zaspałem" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", declared_intention=null, actual_behavior="zaspał", immediate_cost=null
-"zaspałem i nie poszedłem na siłownię" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", immediate_cost="nie poszedł na siłownię"
-"miałem napisać ale znowu odłożyłem" → is_relevant=true, event_kind="friction_event", friction_type="procrastination"
-"chciałem poprosić do tańca ale się zawahałem" → is_relevant=true, event_kind="friction_event", friction_type="social_hesitation", declared_intention="poprosić do tańca", actual_behavior="zawahał się i nie poprosił"
-"podałem ramię przy schodach" → is_relevant=true, event_kind="positive_micro_action", friction_type="positive_micro_action", actual_behavior="podał ramię"
-"siedziałem do 2 w nocy" → is_relevant=true, event_kind="friction_event", friction_type="sleep_disruption", actual_behavior="siedział do 2 w nocy"
-"boli mnie dziś brzuch i się stresuję" → is_relevant=true, event_kind="state_observation", friction_type="other", actual_behavior="boli brzuch, stresuje się", emotional_state="stres"
-"zauważyłem, że krzyżuję ręce podczas prezentacji" → is_relevant=true, event_kind="micro_behavior_observation", friction_type="other", actual_behavior="krzyżuje ręce"
-"nie patrzę w oczy podczas rozmów" → is_relevant=true, event_kind="micro_behavior_observation", friction_type="other"   ← zaobserwowane zachowanie, brak intencji w tym momencie
-"pytam co słychać" → is_relevant=false (pytanie, nie zdarzenie)
-"planuję jutro pobiec" → is_relevant=false (plan, nie zdarzenie)
-"dzisiaj był dobry trening" → is_relevant=false (neutralna obserwacja bez odchylenia)`
+### PRZYKŁADY FEW-SHOT (Wejście -> Wyjście JSON):
+
+1. Wejście: "Boli mnie dziś brzuch od rana i czuję spory stres przed tym spotkaniem."
+Wyjście JSON:
+{
+  "is_relevant": true,
+  "event_kind": "state_observation",
+  "friction_type": "other",
+  "declared_intention": null,
+  "actual_behavior": "ból brzucha od rana, stres przed spotkaniem",
+  "deviation": null,
+  "immediate_cost": null,
+  "emotional_state": "stres",
+  "people_involved": [],
+  "location_context": null
+}
+
+2. Wejście: "Miałem napisać podsumowanie projektu przed 15:00, ale zamiast tego scrollowałem Twittera i odłożyłem to na jutro."
+Wyjście JSON:
+{
+  "is_relevant": true,
+  "event_kind": "friction_event",
+  "friction_type": "procrastination",
+  "declared_intention": "napisanie podsumowania projektu przed 15:00",
+  "actual_behavior": "scrollowanie Twittera, odłożenie zadania na jutro",
+  "deviation": "zamiast pisać raport, scrollował social media i odłożył pracę",
+  "immediate_cost": "opóźnienie raportu o 1 dzień",
+  "emotional_state": null,
+  "people_involved": [],
+  "location_context": null
+}
+
+3. Wejście: "Chciałem wejść na Instagrama z przyzwyczajenia, ale złapałem się na tym, zamknąłem aplikację i odłożyłem telefon."
+Wyjście JSON:
+{
+  "is_relevant": true,
+  "event_kind": "recovery_event",
+  "friction_type": "recovery_anchor",
+  "declared_intention": "wejście na Instagram z przyzwyczajenia",
+  "actual_behavior": "zauważenie impulsu, zamknięcie aplikacji, odłożenie telefonu",
+  "deviation": "przełamanie nawyku scrollowania w zalążku",
+  "immediate_cost": null,
+  "emotional_state": null,
+  "people_involved": [],
+  "location_context": null
+}
+
+4. Wejście: "Zauważyłem, że kiedy ktoś mówi coś głupiego, to natychmiast przewracam oczami."
+Wyjście JSON:
+{
+  "is_relevant": true,
+  "event_kind": "micro_behavior_observation",
+  "friction_type": "other",
+  "declared_intention": null,
+  "actual_behavior": "przewracanie oczami w reakcji na głupie wypowiedzi",
+  "deviation": null,
+  "immediate_cost": null,
+  "emotional_state": null,
+  "people_involved": [],
+  "location_context": null
+}
+
+5. Wejście: "Myślę, że większość ludzi unika trudnych rozmów, bo boi się dyskomfortu."
+Wyjście JSON:
+{
+  "is_relevant": true,
+  "event_kind": "reflection",
+  "friction_type": null,
+  "declared_intention": null,
+  "actual_behavior": "refleksja o unikaniu trudnych rozmów przez ludzi",
+  "deviation": null,
+  "immediate_cost": null,
+  "emotional_state": null,
+  "people_involved": [],
+  "location_context": null
+}
+
+6. Wejście: "Jutro muszę wstać o 6:00 i zrobić trening biegowy."
+Wyjście JSON:
+{
+  "is_relevant": false,
+  "event_kind": null,
+  "friction_type": null,
+  "declared_intention": null,
+  "actual_behavior": null,
+  "deviation": null,
+  "immediate_cost": null,
+  "emotional_state": null,
+  "people_involved": [],
+  "location_context": null
+}`
           },
           {
             role: 'user',
