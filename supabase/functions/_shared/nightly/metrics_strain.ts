@@ -264,7 +264,7 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
       const winStart = dateFrom 
         ? toWarsaw(new Date(startDate.getTime() - 1 * 864e5))
         : toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
-      const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR, behaviorR] = await Promise.all([
+      const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR, behaviorR, reconR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
         supabase.from('oura_daily_summary').select('date, readiness_score, hrv_avg, rhr_avg, total_sleep_hours, sleep_score').eq('user_id', uid).gte('date', winStart),
@@ -273,6 +273,7 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
         supabase.from('strava_activities_clean').select('start_date, perceived_exertion, has_pr, sport_type, is_oura').eq('user_id', uid).eq('is_oura', false).gte('start_date', winStart + 'T00:00:00'),
         supabase.from('daily_food_entries').select('name, logged_at, date').eq('user_id', uid).gte('date', winStart).not('logged_at', 'is', null),
         supabase.from('behavior_log').select('date, behavior_key, value').eq('user_id', uid).gte('date', winStart),
+        supabase.from('daily_reconciliations').select('date, day_score').eq('user_id', uid).gte('date', winStart),
       ])
 
       const byKey = <T,>(rows: T[] | null, key: (r: T) => string) => {
@@ -287,6 +288,7 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
       const workouts = byKey(wsR.data, (r: any) => r.date)
       const strava = byKey(stravaR.data, (r: any) => warsawDate(r.start_date))
       const food = byKey(foodR.data, (r: any) => r.date)
+      const recon = byKey(reconR.data, (r: any) => r.date)
 
       const ILLNESS_KEYS = /chorob|illness|unwell|sick|przezi|grypa|flu/i
       // value: 1=lekki(-5), 2=wyraźny(-10), 3=pełna choroba(-18), null=lekki(-5)
@@ -319,6 +321,8 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
         const n = nutr[date]?.[0]
         const wsets = (workouts[date] || []).flatMap((w: any) => w.exercise_logs || [])
         const runs = strava[date] || []
+        const recRow = recon[date]?.[0]
+        const subjectiveScore = recRow?.day_score != null ? Number(recRow.day_score) : null
 
         // ── CARDIO LOAD (TRIMP-style ze stref Oura + bonus Strava) ──
         let cardioRaw = 0
@@ -444,10 +448,18 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
           recovery = clamp(Math.round(rec), 0, 100)
         }
 
+        // Subjective recovery fallback when Oura is completely missing (e.g. ring uncharged)
+        let isSubjectiveFallback = false
+        if (recovery === null && subjectiveScore !== null) {
+          recovery = clamp(subjectiveScore * 10, 10, 100)
+          isSubjectiveFallback = true
+        }
+
         // ── SCORE CONFIDENCE (PLAN_READINESS_NOOP.md 4.8) — szczere tiery pewności ──
         // Charge: solid wymaga w pełni zaufanego baseline (≥14 nocy), building = baseline prowizoryczny.
         const recoveryConfidence: 'calibrating' | 'building' | 'solid' =
           recovery === null ? 'calibrating'
+          : isSubjectiveFallback ? 'building'
           : (hrvEwma?.nValid ?? 0) >= 14 ? 'solid'
           : 'building'
         // Effort: solid wymaga realnych danych ze stref HR LUB zalogowanego treningu siłowego tego dnia.
