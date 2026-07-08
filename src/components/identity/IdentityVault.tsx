@@ -103,7 +103,7 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
       let totalChunks = 0;
       let totalTriads = 0;
       for (const [category, text] of Object.entries(nonEmpty)) {
-        const { data, error } = await supabase.functions.invoke('ingest-vault-log', {
+        const { data, error } = await supabase.functions.invoke('vanguard-capture', {
           body: { userId: uid, category, text }
         });
         if (error) throw error;

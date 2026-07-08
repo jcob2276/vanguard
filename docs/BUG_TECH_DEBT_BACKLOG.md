@@ -16,9 +16,9 @@ Zebrane z audytu 2026-07-05 (agentowy sweep: god-files, write-orphan tables, sil
 
 ## 🔴 Priorytet 1 — silent-fail na aktywnie używanych funkcjach
 
-- [ ] `InsightsDashboard.tsx:63-82` — brak `try/catch` w ogóle (pin/sort/delete); optymistyczne usunięcie karty mimo nieudanego DB delete → wraca po odświeżeniu bez wyjaśnienia. **Realna utrata danych.**
-- [ ] `GrowthView.tsx:230-234` `handleDonePin` — główny zapis sprawdzony, ale 2 zapisy kaskadowe (`vanguard_links`, `todo_items`) nie
-- [ ] `PatternCard.tsx:38-47` — `update()` niesprawdzony, feedback UI odpala się mimo to
+- [x] `InsightsDashboard.tsx:63-82` — naprawione 2026-07-08: `fetchCards`, `handlePin`, `handleSort`, `handleDelete` mają teraz `try/catch` + weryfikację `error`; delete jest pessimistyczny (stan zmienia się dopiero po sukcesie DB)
+- [x] `GrowthView.tsx:230-234` `handleDonePin` — naprawione 2026-07-08: `linkErr`/`todoErr` sprawdzane i rzucane do zewnętrznego `catch`
+- [x] `PatternCard.tsx:38-47` — naprawione 2026-07-08: `update()` zwraca `error`, rzucany gdy non-null; alert dla użytkownika; `setDone`/`onFeedback` nie odpala się przy błędzie
 
 ## 🟠 Priorytet 2 — write-orphany wymagające decyzji (dobuduj zapis albo usuń martwy odczyt)
 

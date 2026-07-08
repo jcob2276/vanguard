@@ -30,7 +30,7 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
     setExtracting(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('vanguard-todo-extract', {
+      const { data, error: fnError } = await supabase.functions.invoke('vanguard-auto-classify?action=todo-extract', {
         body: { text, userId },
       });
       if (fnError) throw fnError;

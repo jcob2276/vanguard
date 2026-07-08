@@ -39,74 +39,78 @@ double_confirm_changes = true
 enable_confirmations = false
 
 [functions.vanguard-telegram]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-telegram-worker]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 
 
-[functions.vanguard-daily-reconciliation]
+[functions.recap]
+import_map = "./functions/import_map.json"
 verify_jwt = false
+
 
 [functions.vanguard-auto-classify]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-push-reminder]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-architect]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-wiki-compiler]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
-[functions.ingest-vault-log]
-verify_jwt = false
 
-[functions.save-daily-aggregate]
-verify_jwt = false
 
 [functions.vanguard-analyst]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
-[functions.vanguard-weekly-synthesis]
-verify_jwt = false
 
 [functions.vanguard-eval-runner]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-eval-interview]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-graph-embedder]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-librarian]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-mcp-server]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-metabolism]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-oracle]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
-[functions.sync-strava]
-verify_jwt = false
-
-[functions.rescore-workout-sessions]
-verify_jwt = false
-
-[functions.compute-illness-signal]
-verify_jwt = false
 
 [functions.analyze-training-load]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-nutrition-coach]
+import_map = "./functions/import_map.json"
 verify_jwt = false
 
 [functions.vanguard-executor]
@@ -116,6 +120,14 @@ import_map = "./functions/vanguard-executor/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/vanguard-executor/index.ts"
+
+[functions.sync]
+import_map = "./functions/import_map.json"
+verify_jwt = false
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/vanguard-executor/*.html" ]
+
+[functions.vanguard-backtester]
+import_map = "./functions/import_map.json"
+verify_jwt = false

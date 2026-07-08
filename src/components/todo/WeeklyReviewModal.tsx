@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox, Mic, Pencil } from 'lucide-react';
+import { X, Check, Trash2, ChevronRight, ChevronLeft, Calendar, Folder, Sparkles, Inbox, Mic, Pencil, Target, AlertCircle, TrendingUp } from 'lucide-react';
 import { format, parseISO, startOfWeek } from 'date-fns';
 import { getTodayWarsaw } from '../../lib/date';
 import { supabase } from '../../lib/supabase';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted } from '../../lib/todo';
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, isVoiceEntry, type StreamEntry } from '../../lib/streamReview';
+import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
 import { Session } from '@supabase/supabase-js';
 
 interface Props {
@@ -19,7 +20,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1); // 1: Inbox Triage, 2: Section Audit, 3: Stream Review, 4: Synthesis, 5: Success
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1); // 1: Inbox Triage, 2: Section Audit, 3: Stream Review, 4: Predictions & Calibration, 5: Synthesis, 6: Success
 
   const [sections, setSections] = useState<any[]>([]);
   const [inboxItems, setInboxItems] = useState<any[]>([]);
@@ -39,6 +40,12 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
   // Reflection
   const [weeklyNote, setWeeklyNote] = useState('');
   const [aiRecap, setAiRecap] = useState<any>(null);
+
+  // Predictions state
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [newPredictionText, setNewPredictionText] = useState('');
+  const [newPredictionConfidence, setNewPredictionConfidence] = useState(0.8);
+  const [stagedPredictions, setStagedPredictions] = useState<{ metric: string; value: number }[]>([]);
 
   // Fetch all tasks and sections
   useEffect(() => {
@@ -69,6 +76,10 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
         if (review?.ai_recap) {
           setAiRecap(review.ai_recap);
         }
+
+        // 5. Fetch weekly predictions
+        const preds = await listWeeklyPredictions(userId, weekStart);
+        setPredictions(preds);
       } catch (err: unknown) {
         console.error('[Background Error]', err);
       } finally {
@@ -124,6 +135,26 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     }
   };
 
+  const handleResolveCustom = async (id: string, value: number) => {
+    try {
+      await resolveCustomPrediction(id, value);
+      setPredictions((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                status: 'resolved',
+                actual_value: value,
+                error_value: Math.pow(p.predicted_value - value, 2),
+              }
+            : p,
+        ),
+      );
+    } catch (err: unknown) {
+      console.error('[Background Error] Failed to resolve custom prediction:', err);
+    }
+  };
+
   const handleSaveReview = async () => {
     if (!userId) return;
     setSaving(true);
@@ -136,8 +167,19 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
       // 2. Log completion so the Dashboard card knows not to nag again this week
       await logTaskReviewCompleted(userId, weeklyNote.trim());
 
+      // 3. Save new custom predictions for the upcoming week
+      const nextSunday = new Date(parseISO(today));
+      nextSunday.setDate(nextSunday.getDate() + 7);
+      const nextSundayStr = format(nextSunday, 'yyyy-MM-dd');
+
+      await Promise.all(
+        stagedPredictions.map((pred) =>
+          createCustomPrediction(userId, nextSundayStr, pred.metric, pred.value)
+        )
+      );
+
       if (onFinished) onFinished();
-      setStep(5); // Success screen
+      setStep(6); // Success screen
     } catch (err: unknown) {
       console.error('[Background Error]', err);
     } finally {
@@ -170,7 +212,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-semibold text-text-muted">Niedziela, {today}</span>
-              {step < 5 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 4</span>}
+              {step < 6 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 5</span>}
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
@@ -179,12 +221,13 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
         </div>
 
         {/* Progress Line */}
-        {step < 5 && (
-          <div className="grid grid-cols-4 h-1 bg-border-custom/20 shrink-0">
+        {step < 6 && (
+          <div className="grid grid-cols-5 h-1 bg-border-custom/20 shrink-0">
             <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
             <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
             <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-indigo-500' : 'bg-transparent'}`} />
             <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-indigo-500' : 'bg-transparent'}`} />
           </div>
         )}
 
@@ -461,13 +504,131 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             </div>
           )}
 
-          {/* STEP 4: Weekly Synthesis */}
-          {step === 4 && (
-            <div className="space-y-4">
+          {/* STEP 4: Predictions & Calibration Rollup */}
+          {step === 4 && (() => {
+            const resolvedMetrics = predictions.filter(p => p.prediction_type === 'metric' && p.status === 'resolved');
+            const sleepPreds = resolvedMetrics.filter(p => p.metric === 'sleep_hours');
+            const executionPreds = resolvedMetrics.filter(p => p.metric === 'execution_score');
+            
+            const sleepMae = sleepPreds.length > 0
+              ? (sleepPreds.reduce((acc, p) => acc + (p.error_value || 0), 0) / sleepPreds.length).toFixed(1)
+              : null;
+            const executionMae = executionPreds.length > 0
+              ? (executionPreds.reduce((acc, p) => acc + (p.error_value || 0), 0) / executionPreds.length * 100).toFixed(0)
+              : null;
+
+            const resolvedPatterns = predictions.filter(p => p.prediction_type === 'pattern' && p.status === 'resolved');
+            const patternBrier = resolvedPatterns.length > 0
+              ? (resolvedPatterns.reduce((acc, p) => acc + (p.error_value || 0), 0) / resolvedPatterns.length).toFixed(2)
+              : null;
+
+            const pendingCustom = predictions.filter(p => p.prediction_type === 'custom' && p.status === 'pending');
+            const resolvedCustom = predictions.filter(p => p.prediction_type === 'custom' && p.status === 'resolved');
+            
+            const customBrier = resolvedCustom.length > 0
+              ? (resolvedCustom.reduce((acc, p) => acc + (p.error_value || 0), 0) / resolvedCustom.length).toFixed(2)
+              : null;
+
+            return (
+              <div className="space-y-5 animate-fadeIn">
+                <div>
+                  <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                    <Target size={15} className="text-indigo-500" />
+                    Krok 4: Prognozy i Kalibracja
+                  </h3>
+                  <p className="text-[10px] text-text-muted mt-0.5">Zweryfikuj swoje prognozy z ubiegłego tygodnia i zobacz wyniki kalibracji.</p>
+                </div>
+
+                {/* Calibration Rollup Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Prognoza Snu</span>
+                    <span className="text-[15px] font-black text-indigo-500">
+                      {sleepMae ? `±${sleepMae}h` : 'brak'}
+                    </span>
+                    <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Wykonanie</span>
+                    <span className="text-[15px] font-black text-indigo-500">
+                      {executionMae ? `±${executionMae}%` : 'brak'}
+                    </span>
+                    <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Brier Wzorców</span>
+                    <span className="text-[15px] font-black text-indigo-500">
+                      {patternBrier ? patternBrier : 'brak'}
+                    </span>
+                    <span className="text-[8px] font-medium text-text-muted">Brier (0 = idealny)</span>
+                  </div>
+                </div>
+
+                {/* Custom predictions calibration */}
+                {resolvedCustom.length > 0 && (
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp size={16} className="text-emerald-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black text-text-primary">Brier Score Twoich Prognoz</span>
+                        <span className="text-[9px] text-text-muted">Na podstawie {resolvedCustom.length} rozstrzygniętych prognoz</span>
+                      </div>
+                    </div>
+                    <span className="text-[16px] font-black text-emerald-500">{customBrier}</span>
+                  </div>
+                )}
+
+                {/* Pending resolutions */}
+                <div className="space-y-2.5">
+                  <span className="text-[11px] font-bold text-text-primary block uppercase tracking-wider">Rozstrzygnij prognozy własne ({pendingCustom.length})</span>
+                  {pendingCustom.length === 0 ? (
+                    <div className="text-center py-4 bg-slate-50 dark:bg-white/[0.01] border border-dashed border-border-custom/60 rounded-xl text-text-muted text-[11px] font-semibold">
+                      Brak prognoz własnych do rozstrzygnięcia w tym tygodniu.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                      {pendingCustom.map((pred) => (
+                        <div key={pred.id} className="bg-slate-50 dark:bg-white/[0.01] border border-border-custom/50 rounded-xl p-3 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <p className="text-[11px] font-black text-text-primary">{pred.metric}</p>
+                            <div className="flex items-center gap-2 text-[9px] text-text-muted">
+                              <span>Data: {pred.prediction_date}</span>
+                              <span>•</span>
+                              <span>Pewność: {(pred.predicted_value * 100).toFixed(0)}%</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleResolveCustom(pred.id, 1.0)}
+                              className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center transition-colors animate-pulse"
+                              title="Spełniło się"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleResolveCustom(pred.id, 0.0)}
+                              className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 flex items-center justify-center transition-colors"
+                              title="Nie spełniło się"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* STEP 5: Weekly Synthesis */}
+          {step === 5 && (
+            <div className="space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5">
+                <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
                   <Sparkles size={15} className="text-indigo-500" />
-                  Krok 4: Synteza Tygodnia
+                  Krok 5: Synteza Tygodnia
                 </h3>
                 <p className="text-[10px] text-text-muted mt-0.5">Podsumuj krótko ten tydzień. Jakie są Twoje najważniejsze lekcje i skupienie na kolejny tydzień?</p>
               </div>
@@ -493,27 +654,92 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
               )}
 
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-text-primary block">Notatka tygodniowa</span>
+                <span className="text-[11px] font-bold text-text-primary block uppercase tracking-wider">Notatka tygodniowa</span>
                 <textarea
                   value={weeklyNote}
                   onChange={(e) => setWeeklyNote(e.target.value)}
                   placeholder="Zapisz refleksje, np. 'Wyczyściłem 15 zaległych zadań, przełożyłem 3 projekty. W kolejnym tygodniu skupiam się na wdrożeniach Vanguard.'"
-                  rows={6}
+                  rows={4}
                   className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors resize-none"
                 />
+              </div>
+
+              {/* STAGING FUTURE PREDICTIONS */}
+              <div className="space-y-3 pt-3 border-t border-border-custom/20">
+                <div>
+                  <span className="text-[11px] font-bold text-text-primary block uppercase tracking-wider">Prognozy na nadchodzący tydzień</span>
+                  <p className="text-[9px] text-text-muted">Zadeklaruj 1-2 zero-jedynkowe zdarzenia, które prognozujesz na kolejny tydzień wraz z pewnością.</p>
+                </div>
+
+                {/* Staged list */}
+                {stagedPredictions.length > 0 && (
+                  <div className="space-y-1.5">
+                    {stagedPredictions.map((staged, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-lg p-2.5">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-bold text-text-primary">{staged.metric}</span>
+                          <span className="text-[9px] text-indigo-500 font-semibold">Pewność: {(staged.value * 100).toFixed(0)}%</span>
+                        </div>
+                        <button
+                          onClick={() => setStagedPredictions(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1 text-text-muted hover:text-rose-500 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add prediction inputs */}
+                <div className="flex gap-2">
+                  <div className="flex-1 flex flex-col space-y-1.5">
+                    <input
+                      type="text"
+                      value={newPredictionText}
+                      onChange={(e) => setNewPredictionText(e.target.value)}
+                      placeholder="np. Przebiegnę 10km w czasie < 50 min"
+                      className="bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-[11px] font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-indigo-500/50 outline-none transition-colors"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Pewność: {(newPredictionConfidence * 100).toFixed(0)}%</span>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="0.99"
+                        step="0.05"
+                        value={newPredictionConfidence}
+                        onChange={(e) => setNewPredictionConfidence(parseFloat(e.target.value))}
+                        className="w-24 accent-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newPredictionText.trim()) return;
+                      setStagedPredictions(prev => [...prev, { metric: newPredictionText.trim(), value: newPredictionConfidence }]);
+                      setNewPredictionText('');
+                      setNewPredictionConfidence(0.8);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 text-[11px] font-bold flex items-center justify-center transition-colors self-start shrink-0"
+                  >
+                    Dodaj
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
-          {/* STEP 5: Success Screen */}
-          {step === 5 && (
+          {/* STEP 6: Success Screen */}
+          {step === 6 && (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 animate-fadeIn">
               <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/5">
                 <Sparkles />
               </div>
               <div className="space-y-1">
                 <h2 className="text-[16px] font-black text-text-primary uppercase tracking-wider">System oczyszczony!</h2>
-                <p className="text-[12px] text-text-muted">Twój Tygodniowy Przegląd Zadań został zakończony. Masz teraz pełną jasność umysłu.</p>
+                <p className="text-[12px] text-text-muted">Twój Tygodniowy Przegląd Zadań został zakończony. Masz teraz pełną jasność umysłu oraz zdefiniowane prognozy.</p>
               </div>
             </div>
           )}
@@ -521,7 +747,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
-          {step > 1 && step < 5 && (
+          {step > 1 && step < 6 && (
             <button
               onClick={() => {
                 if (step === 2) {
@@ -530,6 +756,8 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
                   setStep(2);
                 } else if (step === 4) {
                   setStep(3);
+                } else if (step === 5) {
+                  setStep(4);
                 }
               }}
               className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5"
@@ -578,6 +806,16 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
           {step === 4 && (
             <button
+              onClick={() => setStep(5)}
+              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto font-black"
+            >
+              Dalej
+              <ChevronRight size={16} />
+            </button>
+          )}
+
+          {step === 5 && (
+            <button
               onClick={handleSaveReview}
               disabled={saving}
               className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto font-black disabled:opacity-40"
@@ -587,7 +825,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             </button>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <button
               onClick={onClose}
               className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center"

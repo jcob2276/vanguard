@@ -262,8 +262,13 @@ export class TranscriptionInterceptor implements MessageInterceptor {
 export class ForceReplyInterceptor implements MessageInterceptor {
   name = "ForceReplyInterceptor";
   async handle(ctx: MessageContext): Promise<boolean> {
-    // Only text ForceReply since voice has custom handling above
-    if (ctx.isVoice) return false;
+    // Only text ForceReply unless it's a voice message replying to something other than Vanguard Keep
+    if (ctx.isVoice) {
+      const replyToText = ctx.message.reply_to_message?.text || "";
+      if (replyToText.includes("Vanguard Keep")) {
+        return false; // Handled by TranscriptionInterceptor
+      }
+    }
 
     const replyTo = ctx.message.reply_to_message;
     if (replyTo && replyTo.text && ctx.text) {
@@ -677,7 +682,7 @@ export class OracleResponseInterceptor implements MessageInterceptor {
     // Deferred background tasks (triggered at the end of the chain)
     if (ctx.deferredVaultIngest) {
       try {
-        const { error: ingestError } = await ctx.supabase.functions.invoke("ingest-vault-log", {
+        const { error: ingestError } = await ctx.supabase.functions.invoke("vanguard-capture", {
           body: {
             userId: ctx.vanguardUserId,
             text: ctx.deferredVaultIngest.text,

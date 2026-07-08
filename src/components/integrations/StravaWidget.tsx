@@ -125,7 +125,7 @@ export default function StravaWidget({ session }: { session: Session }) {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-strava`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync?service=strava`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

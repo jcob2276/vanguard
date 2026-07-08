@@ -1,5 +1,6 @@
 import { Session } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getTodayWarsaw, combineDateTimeWarsawISO, warsawTimeOfDay } from '../../lib/date';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import {
@@ -15,7 +16,16 @@ import {
   setTodoStatus,
   updateTodoItem,
 } from '../../lib/todo';
-import { listProjects } from '../../lib/projects';
+
+import {
+  useTodoSections,
+  useTodoItems,
+  useProjects,
+  useDreams,
+  useSmartLists,
+  useDailyWins,
+  todoKeys,
+} from '../../lib/todoApi';
 import { buildSectionGoalMaps } from '../../lib/goalLineage';
 import { parseTodoQuickInput } from '../../lib/todoParser';
 import { supabase } from '../../lib/supabase';
@@ -40,27 +50,67 @@ export interface UseTodoDataProps {
 }
 
 export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
-  const userId = session?.user?.id;
+  const userId = session?.user?.id as string;
   const push = usePushNotifications(userId);
   const [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null);
-  const [sections, setSections] = useState<TodoSectionRow[]>([]);
-  const [items, setItems] = useState<TodoItemRow[]>([]);
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [dreams, setDreams] = useState<Pick<DreamRow, 'id' | 'title' | 'life_goal'>[]>([]);
-  const [smartLists, setSmartLists] = useState<SmartListRow[]>([]);
+
+  const queryClient = useQueryClient();
+  const today = getTodayWarsaw();
+
+  const { data: sections = [], isLoading: sectionsLoading } = useTodoSections(userId);
+  const { data: items = [], isLoading: itemsLoading } = useTodoItems(userId);
+  const { data: projects = [] } = useProjects(userId);
+  const { data: dreams = [] } = useDreams(userId);
+  const { data: smartLists = [] } = useSmartLists(userId);
+  const { data: dailyWins } = useDailyWins(userId, today);
+
+  const setItems = useCallback((updater: TodoItemRow[] | ((prev: TodoItemRow[]) => TodoItemRow[])) => {
+    queryClient.setQueryData(todoKeys.items(userId), (old: TodoItemRow[] | undefined) => {
+      if (typeof updater === 'function') {
+        return updater(old || []);
+      }
+      return updater;
+    });
+  }, [queryClient, userId]);
+
+  const setSections = useCallback((updater: TodoSectionRow[] | ((prev: TodoSectionRow[]) => TodoSectionRow[])) => {
+    queryClient.setQueryData(todoKeys.sections(userId), (old: TodoSectionRow[] | undefined) => {
+      if (typeof updater === 'function') {
+        return updater(old || []);
+      }
+      return updater;
+    });
+  }, [queryClient, userId]);
+
+  const setSmartLists = useCallback((updater: SmartListRow[] | ((prev: SmartListRow[]) => SmartListRow[])) => {
+    queryClient.setQueryData(todoKeys.smartLists(userId), (old: SmartListRow[] | undefined) => {
+      if (typeof updater === 'function') {
+        return updater(old || []);
+      }
+      return updater;
+    });
+  }, [queryClient, userId]);
+
+
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSmartListId, setActiveSmartListId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const loading = sectionsLoading || itemsLoading;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [linkedPlanIds, setLinkedPlanIds] = useState<Set<string>>(new Set());
+
+  const linkedPlanIds = useMemo(() => {
+    const winTasks = (dailyWins as any)?.daily_win_tasks || [];
+    return new Set<string>(winTasks.map((t: any) => t.todo_id).filter(Boolean));
+  }, [dailyWins]);
 
   // Filters
-  const [activeFilterTag] = useState<string | null>(null);
+  const [activeFilterTag, setActiveFilterTag] = useState<string | null>(null);
   const [activeFilterSection, setActiveFilterSection] = useState<string | null>(null);
 
   const toggleExpand = useCallback((id: string) => setExpandedId(prev => prev === id ? null : id), []);
@@ -104,34 +154,9 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     }
   }, [dragTarget, collapsedSections, draggingItem]);
 
-  const today = getTodayWarsaw();
-
   const fetchAll = useCallback(async () => {
-    const todayDate = getTodayWarsaw();
-    try {
-      const [s, i, { data: winData }, p, { data: d }, sl] = await Promise.all([
-        listTodoSections(userId),
-        listTodoItems(userId),
-        supabase.from('daily_wins').select('id, daily_win_tasks(todo_id)').eq('user_id', userId).eq('date', todayDate).maybeSingle(),
-        listProjects(userId),
-        supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId),
-        listSmartLists(userId),
-      ]);
-      setSections(s || []);
-      setItems(i || []);
-      setProjects(p || []);
-      setDreams((d as any) || []);
-      setSmartLists(sl || []);
-      if (winData) {
-        const winTasks = (winData as any).daily_win_tasks || [];
-        setLinkedPlanIds(new Set(winTasks.map((t: any) => t.todo_id).filter(Boolean)));
-      }
-    } catch (err: unknown) { setError(err instanceof Error ? (err as Error).message : String(err)); }
-  }, [userId]);
-
-  useEffect(() => {
-    (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
-  }, [fetchAll]);
+    await queryClient.invalidateQueries({ queryKey: todoKeys.all });
+  }, [queryClient]);
 
   // Live refresh when a task lands via Telegram/capture while the app is open —
   // todo_items is already in the supabase_realtime publication (see
@@ -143,11 +168,13 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'todo_items', filter: `user_id=eq.${userId}` },
-        () => { fetchAll(); },
+        () => {
+          queryClient.invalidateQueries({ queryKey: todoKeys.items(userId) });
+        },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [userId, fetchAll]);
+  }, [userId, queryClient]);
 
   useEffect(() => {
     push.isSubscribed().then(setPushSubscribed);
@@ -363,7 +390,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
 
   const classifyInBackground = useCallback((item: TodoItemRow) => {
     const base = import.meta.env.VITE_SUPABASE_URL;
-    fetch(`${base}/functions/v1/vanguard-todo-classify`, {
+    fetch(`${base}/functions/v1/vanguard-auto-classify?action=todo-classify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, due_date: item.due_date || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
@@ -377,7 +404,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     setBatchClassifying(true);
     const base = import.meta.env.VITE_SUPABASE_URL;
     await Promise.allSettled(unclassified.map((item) =>
-      fetch(`${base}/functions/v1/vanguard-todo-classify`, {
+      fetch(`${base}/functions/v1/vanguard-auto-classify?action=todo-classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ itemId: item.id, userId, title: item.title, notes: item.notes || undefined, priority: item.priority !== 'normal' ? item.priority : undefined }),
@@ -560,7 +587,7 @@ export function useTodoData({ session, onNavigateTo }: UseTodoDataProps) {
     editingId, setEditingId,
     editingTitle, setEditingTitle,
     linkedPlanIds,
-    activeFilterTag,
+    activeFilterTag, setActiveFilterTag,
     activeFilterSection, setActiveFilterSection,
     collapsedSections, setCollapsedSections,
     toggleExpand,

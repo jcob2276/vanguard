@@ -341,7 +341,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   });
 
   const callWeekRecap = useCallback(async (phase: 'before' | 'after') => {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-week-recap`, {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recap?type=weekly-recap`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ weekStart: closingWeekStart, phase }),
@@ -354,7 +354,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
 
   const callMonthRecap = useCallback(async () => {
     if (!closingMonthStart) return null;
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-week-recap`, {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recap?type=weekly-recap`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ monthStart: closingMonthStart, phase: 'month' }),

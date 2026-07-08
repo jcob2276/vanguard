@@ -3,17 +3,19 @@
  * E2E smoke — core Vanguard daily loop pipeline.
  *
  * Tests that the backbone of the app is wired up and returning real data:
- *   1. compute-daily-strain  → HTTP 200
+ *   1. vanguard-nightly?action=compute-daily-strain  → HTTP 200
  *   2. daily_strain          → DB row exists (today or yesterday, Warsaw tz)
  *   3. oura_daily_summary    → recent data (last 3 days)
- *   4. save-daily-aggregate  → HTTP 200
- *   5. vanguard_daily_aggregates → DB row exists
+ *   4. vanguard-nightly      → reachable (OPTIONS — full pipeline has LLM/Telegram side-effects, no POST here)
+ *   5. vanguard_daily_aggregates → DB row exists (populated by the 20:00 UTC vanguard-nightly cron)
  *   6. planning_summary      → DB row exists (last 7 days)
  *   7. daily_reconciliations → DB row exists (last 7 days)
  *   8. vanguard-telegram      → reachable (OPTIONS, no POST side-effect)
  *
  * Does NOT call cron functions with POST — avoids Telegram sends.
- * compute-daily-strain and save-daily-aggregate are safe to call any time.
+ * compute-daily-strain (via vanguard-nightly?action=) is safe to call any time;
+ * save-daily-aggregate no longer exists standalone — it's a step inside vanguard-nightly's
+ * full pipeline, which is heavier (LLM calls, pattern detection) so we only check reachability.
  *
  * Env (loaded from .env / .env.local):
  *   SUPABASE_URL or VITE_SUPABASE_URL
@@ -128,9 +130,9 @@ console.log(`   Date   : ${today} (Warsaw timezone)`)
 console.log(`   User   : ${USER_ID}`)
 console.log(`   Supabase: ${BASE}\n`)
 
-// 1. compute-daily-strain
-await step('compute-daily-strain → HTTP 200', async () => {
-  const data = await callFn('compute-daily-strain', { userId: USER_ID, days: 2 })
+// 1. compute-daily-strain (via consolidated vanguard-nightly router)
+await step('vanguard-nightly?action=compute-daily-strain → HTTP 200', async () => {
+  const data = await callFn('vanguard-nightly?action=compute-daily-strain', { userId: USER_ID, days: 2 })
   const ok = data.success || (Array.isArray(data.results) && data.results.length > 0)
   if (!ok) throw new Error(`Unexpected payload: ${JSON.stringify(data).slice(0, 120)}`)
   const r = data.results?.[0]
@@ -167,13 +169,15 @@ await step('oura_daily_summary — data within last 3 days', async () => {
   return `date=${data.date} sleep=${data.total_sleep_hours}h readiness=${data.readiness_score} hrv=${data.hrv_avg}ms`
 })
 
-// 4. save-daily-aggregate
-await step('save-daily-aggregate → HTTP 200', async () => {
-  const data = await callFn('save-daily-aggregate', { userId: USER_ID })
-  return `saved=${data.saved ?? 'ok'}`
+// 4. vanguard-nightly reachability (save-daily-aggregate is now a step inside the full
+//    nightly pipeline, not a standalone endpoint — POSTing here would run the whole
+//    pipeline incl. LLM calls, so we only check the gateway is reachable)
+await step('vanguard-nightly — reachable (OPTIONS)', async () => {
+  await optionsFn('vanguard-nightly')
+  return 'CORS preflight OK'
 }, { optional: true })
 
-// 5. vanguard_daily_aggregates DB check (optional — save-daily-aggregate needs user JWT, not service role)
+// 5. vanguard_daily_aggregates DB check (optional — populated by the vanguard-nightly cron, not on-demand)
 await step('vanguard_daily_aggregates row in DB (last 7 days)', async () => {
   const { data, error } = await db
     .from('vanguard_daily_aggregates')
@@ -184,7 +188,7 @@ await step('vanguard_daily_aggregates row in DB (last 7 days)', async () => {
     .limit(1)
     .maybeSingle()
   if (error) throw new Error(error.message)
-  if (!data) throw new Error('No aggregate row in 7 days — trigger save-daily-aggregate via user session')
+  if (!data) throw new Error('No aggregate row in 7 days — check vanguard-nightly cron logs (runs 20:00 UTC)')
   return `date=${data.date} sleep=${data.sleep_hours}h hrv=${data.hrv_avg}ms readiness=${data.readiness_score}`
 }, { optional: true })
 
@@ -234,7 +238,7 @@ await step('vanguard-oracle — reachable (OPTIONS)', async () => {
 const secondaryCrons = [
   'vanguard-analyst',
   'vanguard-wiki-compiler',
-  'sync-strava',
+  'sync',
   'vanguard-eval-interview',
   'vanguard-nutrition-coach',
   'vanguard-push-reminder',

@@ -41,6 +41,9 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
     const supabase = createServiceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 2
+    const dateFrom: string | null = body.dateFrom ?? null
+    const dateTo: string | null = body.dateTo ?? null
+    const algoVersion: number = body.algoVersion ?? 1
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
 
     let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null)
@@ -50,9 +53,12 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
 
     const now = new Date()
     const toWarsaw = getWarsawDateString
-    const endStr = toWarsaw(now)
-    const startStr = toWarsaw(new Date(now.getTime() - days * 86400000))
-    const start90 = toWarsaw(new Date(now.getTime() - 90 * 86400000))
+    const endStr = dateTo || toWarsaw(now)
+    const startStr = dateFrom || toWarsaw(new Date(now.getTime() - days * 86400000))
+    
+    // Calculate start limits relative to startStr
+    const startDate = new Date(startStr + 'T12:00:00Z')
+    const start90 = toWarsaw(new Date(startDate.getTime() - 90 * 86400000))
 
     const results: any[] = []
     for (const u of (users || [])) {
@@ -60,22 +66,36 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
       try {
         // ── Baseline (90 dni) dla HRV/RHR/resp ──
         const { data: base } = await supabase.from('oura_daily_summary')
-          .select('date, hrv_avg, rhr_avg').eq('user_id', uid).gte('date', start90).order('date')
-        const hrvVals = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
-        const rhrVals = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
-        const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0)
-        const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0)
+          .select('date, hrv_avg, rhr_avg')
+          .eq('user_id', uid)
+          .gte('date', start90)
+          .lte('date', endStr)
+          .order('date')
 
         const { data: enh } = await supabase.from('oura_enhanced')
-          .select('date, sleep_average_breath, temperature_deviation').eq('user_id', uid).gte('date', start90).order('date')
-        const respVals = (enh || []).map((r: any) => r.sleep_average_breath).filter((v: any): v is number => v != null) as number[]
-        const respEwma = ewmaBaseline(respVals, 4, 40, 0.5)
+          .select('date, sleep_average_breath, temperature_deviation')
+          .eq('user_id', uid)
+          .gte('date', start90)
+          .lte('date', endStr)
+          .order('date')
+
         const enhByDate: Record<string, any> = {}
         for (const row of (enh || []) as any[]) enhByDate[row.date] = row
         const baseByDate: Record<string, any> = {}
         for (const row of (base || []) as any[]) baseByDate[row.date] = row
 
-        const baselineTrusted = (hrvEwma?.nValid ?? 0) >= 4
+        // Dynamic baseline provider to prevent future leak in backfills
+        const getBaselinesForDate = (targetDate: string) => {
+          const hrvVals = (base || []).filter((r: any) => r.date < targetDate).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null);
+          const rhrVals = (base || []).filter((r: any) => r.date < targetDate).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null);
+          const respVals = (enh || []).filter((r: any) => r.date < targetDate).map((r: any) => r.sleep_average_breath).filter((v: any): v is number => v != null);
+
+          const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0);
+          const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0);
+          const respEwma = ewmaBaseline(respVals, 4, 40, 0.5);
+
+          return { hrvEwma, rhrEwma, respEwma };
+        };
 
         // ── Confounders: behavior_log + sauna z exercise_logs, w oknie ──
         const { data: behaviorRows } = await supabase.from('behavior_log')
@@ -103,6 +123,9 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
 
         const updates: any[] = []
         for (const date of dayList) {
+          const { hrvEwma, rhrEwma, respEwma } = getBaselinesForDate(date)
+          const baselineTrusted = (hrvEwma?.nValid ?? 0) >= 4
+
           const s = baseByDate[date]
           const e = enhByDate[date]
           if (!baselineTrusted || !s?.hrv_avg || !s?.rhr_avg) {
@@ -138,7 +161,7 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
 
         for (const upd of updates) {
           const { error: updErr } = await supabase.from('daily_strain')
-            .update({ illness_score: upd.illness_score, illness_level: upd.illness_level })
+            .update({ illness_score: upd.illness_score, illness_level: upd.illness_level, algo_version: algoVersion })
             .eq('user_id', uid).eq('date', upd.date)
           if (updErr) console.error(`[illness] ${uid} ${upd.date} update failed`, updErr.message)
         }

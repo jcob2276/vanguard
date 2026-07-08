@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS public.claims (
     learned_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     valid_from timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     valid_to timestamp with time zone,
-    status text DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'deprecated')),
-    superseded_by uuid REFERENCES public.claims(id) ON DELETE SET NULL,
+    status text DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'deprecated', 'historical', 'disputed')),
+    superseded_by uuid REFERENCES public.claims(id) ON UPDATE CASCADE ON DELETE SET NULL,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT unique_claim_triple UNIQUE (user_id, subject_id, relation_id, object_id)
 );
@@ -173,24 +173,6 @@ BEGIN
     v_temp_status := 'current';
   END IF;
 
-  -- Singleton deprecation on claims
-  IF v_is_singleton THEN
-    UPDATE public.claims
-    SET
-      status = 'deprecated',
-      valid_to = NEW.observed_at,
-      superseded_by = NEW.id,
-      metadata = metadata || jsonb_build_object(
-        'deprecated_reason', 'superseded by newer claim via sync',
-        'deprecated_at', now()
-      )
-    WHERE user_id = NEW.user_id
-      AND subject_id = v_subject_uuid
-      AND relation_id = v_relation_uuid
-      AND object_id != v_object_uuid
-      AND status = 'active';
-  END IF;
-
   -- Upsert claim matching the link id
   INSERT INTO public.claims (
     id, user_id, subject_id, relation_id, object_id,
@@ -215,6 +197,24 @@ BEGIN
     status = EXCLUDED.status,
     valid_to = EXCLUDED.valid_to,
     metadata = EXCLUDED.metadata;
+
+  -- Singleton deprecation on claims
+  IF v_is_singleton THEN
+    UPDATE public.claims
+    SET
+      status = 'deprecated',
+      valid_to = NEW.observed_at,
+      superseded_by = NEW.id,
+      metadata = metadata || jsonb_build_object(
+        'deprecated_reason', 'superseded by newer claim via sync',
+        'deprecated_at', now()
+      )
+    WHERE user_id = NEW.user_id
+      AND subject_id = v_subject_uuid
+      AND relation_id = v_relation_uuid
+      AND object_id != v_object_uuid
+      AND status = 'active';
+  END IF;
 
   RETURN NEW;
 END;

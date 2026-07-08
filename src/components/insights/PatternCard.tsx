@@ -37,11 +37,13 @@ export function PatternCard({ pattern, userId, onFeedback }: PatternCardProps) {
     setLoading(feedback);
     try {
       const newStatus = feedback === 'confirmed' ? 'user_confirmed' : feedback === 'rejected' ? 'user_rejected' : pattern.status;
-      await supabase.from('vanguard_behavioral_patterns').update({ status: newStatus }).eq('id', pattern.id);
+      const { error } = await supabase.from('vanguard_behavioral_patterns').update({ status: newStatus }).eq('id', pattern.id);
+      if (error) throw error;
       setDone(feedback);
       onFeedback?.(pattern.id, feedback);
     } catch (e: unknown) {
-      console.error('[Background Error]', e);
+      console.error('[PatternCard Feedback Error]', e);
+      alert('Nie udało się zapisać opinii.');
     } finally {
       setLoading(null);
     }

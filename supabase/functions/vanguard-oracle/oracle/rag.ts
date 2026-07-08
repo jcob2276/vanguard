@@ -1,12 +1,8 @@
 import { getEmbedding } from "../../_shared/openai.ts";
-import { deepseekChat } from "../../_shared/deepseek.ts";
 import {
   fetchOracleStreamSlices,
   formatOracleStreamBlock,
 } from "../../_shared/streamContext.ts";
-import { fetchWorldState } from "../../_shared/worldState.ts";
-import { getStreamCutoffs, getWarsawDateString } from "../../_shared/time.ts";
-import { logAuditEvent } from "../../_shared/audit.ts";
 import { getPlanQualitySignal } from "../../_shared/planQuality.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getRecentStrongBehavioralPatterns } from "../../_shared/vanguardPatterns.ts";
@@ -19,11 +15,11 @@ function avg(items: any[] = [], key: string) {
     : null;
 }
 
-function stripJsonFence(text = '') {
-  return text
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
+
+
+function truncateToBudget(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.substring(0, maxChars) + "\n\n[WARNING: Zawartość skrócona ze względu na limit budżetu tokenów.]";
 }
 
 function buildGraphSeeds(query = '', intent = 'open_reflection', mentionedEntities: string[] = []) {
@@ -57,7 +53,6 @@ export async function retrieveRagContext(
   fourteenDaysAgoDate: string,
   mode: string,
   cutoff72h: string,
-  t0: number,
 ) {
   let recentPlanQuality: any = null;
   let lastEveningReflection: any = null;
@@ -137,30 +132,9 @@ export async function retrieveRagContext(
   if (preferencesRes.error) console.error('[oracle] vanguard_preferences query error:', preferencesRes.error);
   if (oura14dRes.error) console.error('[oracle] oura_daily_summary query error:', oura14dRes.error);
   if (nutrition14dRes.error) console.error('[oracle] daily_nutrition query error:', nutrition14dRes.error);
+  if (foodEntries14dRes.error) console.error('[oracle] daily_food_entries query error:', foodEntries14dRes.error);
+  if (strainRes.error) console.error('[oracle] daily_strain query error:', strainRes.error);
   if (dailyWinsRes.error) console.error('[oracle] daily_wins query error:', dailyWinsRes.error);
-
-  const w = dailyWinsRes.data;
-  const powerListText = w ? `
-1. [${w.category_1 || '?'}] ${w.task_1 || 'Brak'} (${w.done_1 ? 'ZROBIONE' : 'NIEWYKONANE'})
-2. [${w.category_2 || '?'}] ${w.task_2 || 'Brak'} (${w.done_2 ? 'ZROBIONE' : 'NIEWYKONANE'})
-3. [${w.category_3 || '?'}] ${w.task_3 || 'Brak'} (${w.done_3 ? 'ZROBIONE' : 'NIEWYKONANE'})
-4. [${w.category_4 || '?'}] ${w.task_4 || 'Brak'} (${w.done_4 ? 'ZROBIONE' : 'NIEWYKONANE'})
-5. [${w.category_5 || '?'}] ${w.task_5 || 'Brak'} (${w.done_5 ? 'ZROBIONE' : 'NIEWYKONANE'})` : '\nBrak ustalonej PowerListy na dziś.';
-
-  const worldState = await fetchWorldState(supabase, user_id, todayDate);
-
-  const staticProfile = `
-[WORLD STATE - STAN ŻYCIOWY (EPISTEMIKA)]:
-${JSON.stringify(worldState, null, 2)}
-UWAGA: Jeśli freshness_hours dla Oury, Systemu lub Treningu wynosi > 24, ZAWSZE poinformuj użytkownika (z dozą pokory), że oceniasz na podstawie przestarzałych danych i nie masz pełnego obrazu.
-
-[DZISIEJSZE CELE (PowerList) - AKTUALNY STAN DLA DATY ${todayDate}]:${powerListText}
-
-[TŁO TOŻSAMOŚCI - KONTEKST]:
-${fundamentRes.data?.identity || 'Brak danych'}
-${fundamentRes.data?.philosophy || 'Brak danych'}
-${fundamentRes.data?.vision || 'Brak danych'}
-  `;
 
   const responsePrefs = preferencesRes.data?.map((p: any) => `- ${p.value}`).join('\n') || '';
   const oura14d = oura14dRes.data || [];
@@ -218,287 +192,152 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
   const medicalContext = await fetchMedicalContext(supabase, user_id, todayDate);
   const medicalContextText = formatMedicalContextBlock(medicalContext);
 
-  // DYNAMIC CONTEXT (RAG)
+  // DYNAMIC CONTEXT (RAG) - DETERMINISTIC 3-STEP PIPELINE
   let semanticContext = "";
   let graphContext = "";
   let wikiContext = "";
   let retrievedSources: any[] = [];
   let matchesRes: any = { data: [] };
   let graphRes: any = { data: [] };
-  let intent = classifyIntentSafe(current_query || '');
+  const intent = classifyIntentSafe(current_query || '');
 
   if (current_query) {
     try {
-      const intentForGraph = classifyIntentSafe(current_query);
-      const { data: mentioned, error: mentionedErr } = await supabase.rpc('find_mentioned_entities', {
+      console.log(`[oracle] Starting 3-step retrieval pipeline for query: "${current_query.substring(0, 60)}..."`);
+      
+      // Step 1: Facts Layer (Fakty)
+      const { data: mentioned } = await supabase.rpc('find_mentioned_entities', {
         query_text: current_query.substring(0, 1000),
         user_id_param: user_id
       });
-      if (mentionedErr) console.warn('[oracle] find_mentioned_entities failed (non-fatal):', mentionedErr);
       const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
-      const graphSeeds = buildGraphSeeds(current_query, intentForGraph, entitiesInQuery);
-      const graphLayer = intentForGraph === 'biometric' ? null : 'intelligence';
+      const graphSeeds = buildGraphSeeds(current_query, intent, entitiesInQuery);
+      const graphLayer = intent === 'biometric' ? null : 'intelligence';
 
-      // BM25 fulltext on original query
-      const fulltextOriginalPromise = supabase.rpc('search_entity_links_fulltext', {
-        query_text: current_query.substring(0, 500),
-        match_user_id: user_id,
-        match_count: 10
-      });
-
-      // QUERY EXPANSION
-      const queryExpansionPromise = deepseekChat({
-        apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
-        model: 'deepseek-v4-flash',
-        maxTokens: 150,
-        temperature: 0.1,
-        timeoutMs: 5000,
-        responseFormat: { type: 'json_object' },
-        messages: [{
-          role: 'system',
-          content: `Jesteś asystentem retrieval dla bazy wiedzy o Jakubie (23l, Rzeszów, cyberbezpieczeństwo, sprzedaż, sport).
-Zwróć JSON z polami:
-- "hyde": JEDEN krótki fakt (1 zdanie) który bezpośrednio odpowiada na pytanie
-- "stepback": szersze pytanie-tło (ogólniejsza wersja pytania, max 8 słów)
-- "sub": tablica 2 konkretnych pod-pytań które razem pokrywają temat
-Tylko JSON, bez komentarzy.`,
-        }, {
-          role: 'user',
-          content: current_query.substring(0, 300),
-        }],
-      }).then(r => {
-        try { return JSON.parse(r.content); } catch { return null; }
-      }).catch(() => null);
-
-      const expansion = await queryExpansionPromise;
-      const hydeFact: string = expansion?.hyde || '';
-      const stepbackQuery: string = expansion?.stepback || '';
-      const subQueries: string[] = Array.isArray(expansion?.sub) ? expansion.sub.slice(0, 2) : [];
-
-      const queryForEmbedding = hydeFact ? `${current_query}\n${hydeFact}` : current_query;
-      if (expansion) console.log(`[oracle] QExp hyde="${hydeFact.substring(0,60)}" stepback="${stepbackQuery}" subs=${subQueries.length}`);
-      const embedding = await getEmbedding(queryForEmbedding.substring(0, 3000), Deno.env.get('OPENAI_API_KEY') ?? '');
-
-      // HIPPOGRAPH PHASE 1
-      const [matchesResRaw, semanticGraphRes, entitySeedsRes, fulltextGraphRes, stepbackRes, ...subQueryResults] = await Promise.all([
-        embedding ? supabase.rpc('match_vanguard_content', {
-          query_embedding: embedding,
-          match_threshold: 0.35,
-          match_count: 5,
-          user_id_param: user_id
-        }) : Promise.resolve({ data: [], error: null } as any),
-        embedding ? supabase.rpc('search_entity_links', {
-          query_embedding: embedding,
-          match_user_id: user_id,
-          match_count: 15
-        }) : Promise.resolve({ data: [], error: null } as any),
-        embedding ? supabase.rpc('find_entity_seeds_by_embedding', {
-          query_embedding: embedding,
-          match_user_id: user_id,
-          match_count: 6
-        }) : Promise.resolve({ data: [], error: null } as any),
-        fulltextOriginalPromise,
-        stepbackQuery ? supabase.rpc('search_entity_links_fulltext', {
-          query_text: stepbackQuery,
-          match_user_id: user_id,
-          match_count: 6
-        }) : Promise.resolve({ data: [], error: null } as any),
-        subQueries[0] ? supabase.rpc('search_entity_links_fulltext', {
-          query_text: subQueries[0],
-          match_user_id: user_id,
-          match_count: 6
-        }) : Promise.resolve({ data: [], error: null } as any),
-        subQueries[1] ? supabase.rpc('search_entity_links_fulltext', {
-          query_text: subQueries[1],
-          match_user_id: user_id,
-          match_count: 6
-        }) : Promise.resolve({ data: [], error: null } as any),
-      ]);
-
-      if (matchesResRaw.error) throw matchesResRaw.error;
-      if (semanticGraphRes.error) throw semanticGraphRes.error;
-      if (entitySeedsRes.error) throw entitySeedsRes.error;
-      if (fulltextGraphRes.error) console.warn('[oracle] fulltext error (non-fatal):', fulltextGraphRes.error);
-      if (stepbackRes.error) console.warn('[oracle] stepback error (non-fatal):', stepbackRes.error);
-
-      matchesRes = matchesResRaw;
-
-      // HIPPOGRAPH PHASE 2
-      const semanticEntitySeeds = (entitySeedsRes.data || [])
-        .filter((s: any) => s.best_similarity > 0.5 && s.entity_name !== 'Jakub')
-        .map((s: any) => s.entity_name);
-      const allSeeds = [...new Set([...graphSeeds, ...semanticEntitySeeds])];
-      console.log(`[oracle] HippoRAG seeds: [${allSeeds.join(', ')}] (string:${graphSeeds.length} + semantic:${semanticEntitySeeds.length})`);
-
-      // HIPPOGRAPH PHASE 3
-      const graphResRaw = allSeeds.length > 0
-        ? await supabase.rpc('get_vanguard_graph_context', {
-            start_entities: allSeeds,
+      // Pull from Graph
+      const entityGraphData = graphSeeds.length > 0
+        ? (await supabase.rpc('get_vanguard_graph_context', {
+            start_entities: graphSeeds,
             max_depth: 2,
             user_id_param: user_id,
             p_layer: graphLayer,
-            p_include_historical: intentForGraph === 'identity',
-            p_min_confidence: 0.0
-          })
-        : { data: [] };
+            p_include_historical: intent === 'identity',
+            p_min_confidence: 0.7
+          })).data || []
+        : [];
 
-      if ((graphResRaw as any).error) throw (graphResRaw as any).error;
+      // Pull Semantically via Embedding
+      const embedding = await getEmbedding(current_query.substring(0, 1000), Deno.env.get('OPENAI_API_KEY') ?? '').catch(() => null);
+      const semanticGraphRes = embedding
+        ? (await supabase.rpc('search_entity_links', {
+            query_embedding: embedding,
+            match_user_id: user_id,
+            match_count: 15
+          })).data || []
+        : [];
 
-      const entityGraphData = graphResRaw.data || [];
-      const tripleKey = (r: any) => `${r.source_entity}|${r.relation}|${r.target_entity}`;
-      const rrfScores: Record<string, number> = {};
-      const rrfMap: Record<string, any> = {};
+      // Pull via Full-Text Search
+      const fulltextGraphRes = (await supabase.rpc('search_entity_links_fulltext', {
+        query_text: current_query.substring(0, 500),
+        match_user_id: user_id,
+        match_count: 15
+      })).data || [];
 
-      const queryLower = current_query.toLowerCase();
-      const entityBoost = (r: any): number => {
-        const srcMatch = queryLower.includes((r.source_entity || '').toLowerCase());
-        const tgtMatch = queryLower.includes((r.target_entity || '').toLowerCase());
-        const evidence = r.evidence_count || 1;
-        if (srcMatch || tgtMatch) return 0.4 / Math.sqrt(evidence);
-        return 0;
-      };
-
-      const addToRRF = (results: any[], k: number, weight = 1.0) => {
-        (results || []).forEach((r: any, i: number) => {
-          const key = tripleKey(r);
-          const boost = entityBoost(r);
-          rrfScores[key] = (rrfScores[key] || 0) + weight * (1 / (i + k)) + boost;
-          if (!rrfMap[key]) rrfMap[key] = r;
-        });
-      };
-
-      addToRRF(semanticGraphRes.data, 1, 1.0);
-      addToRRF(fulltextGraphRes.data, 2, 0.8);
-      addToRRF(stepbackRes.data, 2, 0.5);
-      subQueryResults.forEach(r => addToRRF(r?.data, 2, 0.4));
-
-      const rrfRanked = Object.entries(rrfScores)
-        .sort(([, a], [, b]) => b - a)
-        .map(([k]) => rrfMap[k]);
-
-      console.log(`[oracle] RRF pool: vector=${semanticGraphRes.data?.length||0} ft=${fulltextGraphRes.data?.length||0} stepback=${stepbackRes.data?.length||0} subs=${subQueryResults.reduce((a,r)=>a+(r?.data?.length||0),0)} → merged=${rrfRanked.length}`);
-
-      const semanticGraphData = rrfRanked.filter((sg: any) =>
-        !entityGraphData.some((eg: any) =>
-          eg.source_entity === sg.source_entity &&
-          eg.relation === sg.relation &&
-          eg.target_entity === sg.target_entity
-        )
-      );
-      const allGraphData = [...entityGraphData, ...semanticGraphData];
-
-      // RE-RANKING
-      const now2 = Date.now();
-      const rankedSemanticMatches = (matchesResRaw.data || []).map((m: any) => {
-        const sim = m.similarity || m.hybrid_score || 0;
-        const sourceWeight = m.table_name === 'vanguard_stream' ? 1.0
-          : m.table_name === 'vanguard_knowledge' ? 0.85 : 0.75;
-        const ageMs = m.source_date ? now2 - new Date(m.source_date).getTime() : 999999999999;
-        const ageDays = ageMs / (24 * 3600 * 1000);
-        const recencyAdjust = ageDays < 3 ? 0.15
-          : ageDays < 21 ? 0
-          : ageDays < 60 ? -0.15
-          : -0.3;
-        return { ...m, _score: sim * sourceWeight + recencyAdjust, _age_days: Math.round(ageDays) };
-      }).sort((a: any, b: any) => b._score - a._score).slice(0, 6);
-
-      const rankedGraphData = allGraphData.map((g: any) => {
-        const sim = g.similarity || 0;
-        const evidenceBonus = Math.min(Math.log1p(g.evidence_count || 1) * 0.05, 0.2);
-        const confidenceBonus = (g.confidence_score || 0.5) * 0.1;
-        return { ...g, _score: sim * 0.7 + evidenceBonus + confidenceBonus };
-      }).sort((a: any, b: any) => b._score - a._score).slice(0, 20);
-
-      matchesRes = { data: rankedSemanticMatches };
-      graphRes = { data: rankedGraphData };
-
-      if (rankedSemanticMatches.length === 0 && rankedGraphData.length === 0) {
-        logAuditEvent({
-          eventType: 'oracle_rag_empty',
-          severity: 'warning',
-          message: 'Oracle otrzymał zapytanie bez żadnego kontekstu z RAG/grafu',
-          userId: user_id,
-          metadata: {
-            query_preview: current_query?.substring(0, 180) || null,
-            intent: intentForGraph,
-          },
-        }).catch((e: unknown) => console.warn('[oracle] audit log failed:', e));
+      // Combine all active facts
+      const factsPool = [...entityGraphData, ...semanticGraphRes, ...fulltextGraphRes];
+      const factsMap = new Map<string, any>();
+      for (const f of factsPool) {
+        if (f.epistemic_status === 'hypothesis') continue;
+        const key = f.fact_text || `${f.source_entity}|${f.relation}|${f.target_entity}`;
+        if (!factsMap.has(key)) {
+          factsMap.set(key, f);
+        }
       }
 
-      retrievedSources = rankedSemanticMatches.map((m: any) => ({
-        table: m.table_name,
-        id: m.id,
-        date: m.source_date,
-        similarity: m.similarity,
-        hybrid_score: m._score,
-        snippet: (m.content || '').slice(0, 240)
-      }));
+      const uniqueFacts = Array.from(factsMap.values());
+      console.log(`[RAG LOG] Step 1 (Facts): Retrieved ${uniqueFacts.length} unique facts.`);
 
-      if (rankedSemanticMatches.length > 0) {
-        const currentMatches = rankedSemanticMatches.filter((m: any) => m._age_days < 21);
-        const archiveMatches = rankedSemanticMatches.filter((m: any) => m._age_days >= 21);
-        let memCtx = "";
-        if (currentMatches.length > 0) {
-          memCtx += "[PAMIĘĆ SEMANTYCZNA — AKTUALNA (<21 dni)]:\n" +
-            currentMatches.map((m: any) => `- [${m.table_name}, ${m._age_days}d temu, score:${m._score.toFixed(2)}] ${m.content}`).join('\n');
-        }
-        if (archiveMatches.length > 0) {
-          memCtx += "\n[ARCHIWUM — NIŻSZY PRIORYTET, wymaga świeżego potwierdzenia]:\n" +
-            archiveMatches.map((m: any) => `- [ARCHIWUM, ${m._age_days}d temu] ${m.content}`).join('\n');
-        }
-        semanticContext = memCtx;
+      let factsText = "";
+      if (uniqueFacts.length > 0) {
+        factsText = "[WARSTWA FAKTÓW (Zweryfikowana wiedza)]:\n" + uniqueFacts.map((f: any) => {
+          if (f.fact_text) return `- ${f.fact_text}`;
+          return `- ${f.source_entity} ${f.relation} ${f.target_entity}`;
+        }).join('\n');
+      } else {
+        factsText = "[WARSTWA FAKTÓW]: Brak pasujących zweryfikowanych faktów w bazie wiedzy.";
       }
+      graphContext = truncateToBudget(factsText, 4000);
 
+      // Populate matchesRes & graphRes for auditing logs compatibility
+      matchesRes = { data: semanticGraphRes };
+      graphRes = { data: entityGraphData };
+
+      // Step 2: Hypotheses Layer (Hipotezy)
+      const { data: hypothesisRes } = await supabase
+        .from('claims')
+        .select('fact_text, weight, evidence_count, learned_at')
+        .eq('user_id', user_id)
+        .eq('epistemic_status', 'hypothesis')
+        .eq('status', 'active')
+        .order('learned_at', { ascending: false })
+        .limit(10);
+
+      console.log(`[RAG LOG] Step 2 (Hypotheses): Retrieved ${hypothesisRes?.length || 0} recent hypotheses.`);
+
+      let hypothesesText = "";
+      if (hypothesisRes && hypothesisRes.length > 0) {
+        hypothesesText = "[WARSTWA HIPOTEZ (Niepotwierdzone przypuszczenia LLM-a do weryfikacji)]:\n" +
+          "UWAGA: Poniższe punkty to NIE SĄ fakty. Traktuj je jako niepotwierdzone robocze domysły, które wymagają walidacji.\n" +
+          hypothesisRes.map((h: any) => `- ${h.fact_text} (obserwacji: ${h.evidence_count || 1})`).join('\n');
+      } else {
+        hypothesesText = "[WARSTWA HIPOTEZ]: Brak aktywnych hipotez w bazie wiedzy.";
+      }
+      const finalHypothesesText = truncateToBudget(hypothesesText, 2500);
+      graphContext += "\n\n" + finalHypothesesText;
+
+      // Step 3: Narrative & Stream Layer (Narracja / Stream)
       const isPatternQuery = !!current_query.toLowerCase().match(/ostatnio|7 dni|trend|wzorc|wzorzec/);
       const streamSlices = await fetchOracleStreamSlices(supabase, user_id, {
         includePatternWindow: true,
         patternLimit: isPatternQuery ? 15 : 5,
       });
-      console.log(`[oracle] stream: ${streamSlices.current.length} current + ${streamSlices.recent.length} recent`, Date.now() - t0);
-      semanticContext += formatOracleStreamBlock(streamSlices.current, streamSlices.recent);
 
-      // FRICTION EVENTS
+      let narrativeText = "[WARSTWA NARRACJI (Ostatnia aktywność i strumień)]:\n";
+      narrativeText += formatOracleStreamBlock(streamSlices.current, streamSlices.recent);
+
+      // Fetch recent friction events (ostatnie 72h)
       try {
-        const { data: frictionRecent, error: feErr } = await supabase
+        const { data: frictionRecent } = await supabase
           .from('friction_events')
           .select('friction_type, deviation, immediate_cost, declared_intention, occurred_at, confidence_source, confidence')
           .eq('user_id', user_id)
           .gte('occurred_at', cutoff72h)
           .order('occurred_at', { ascending: false });
 
-        if (feErr) {
-          console.warn('[oracle] friction fetch failed (non-fatal):', feErr.message);
-        } else if (frictionRecent && frictionRecent.length > 0) {
-          semanticContext += "\n\n[FRICTION EVENTS (ostatnie 72h) — atomy tarcia]:\n" +
+        if (frictionRecent && frictionRecent.length > 0) {
+          narrativeText += "\n\n[FRICTION EVENTS (ostatnie 72h) — atomy tarcia]:\n" +
             frictionRecent.map((f: any) =>
               `[${f.occurred_at}] ${f.friction_type} | odchylenie: ${f.deviation || '—'} | intencja: ${f.declared_intention || '—'} | koszt: ${f.immediate_cost || '—'} [${f.confidence_source}, conf=${f.confidence}]`
             ).join('\n');
         }
-      } catch (fe: any) {
-        console.warn('[oracle] friction fetch error (non-fatal):', fe?.message ?? fe);
+      } catch (fe) {
+        console.warn('[oracle] friction fetch error (non-fatal):', fe);
       }
 
-      if (rankedGraphData.length > 0) {
-        graphContext = "\n[GRAF POWIĄZAŃ (Re-ranked, top 20)]:\n" + rankedGraphData.map((g: any) => {
-          if (g.fact_text) return `- ${g.fact_text}`;
-          const conf = g.confidence_score ? ` [conf:${g.confidence_score.toFixed(2)}]` : '';
-          const evid = g.evidence_count && g.evidence_count > 1 ? ` N=${g.evidence_count}` : '';
-          return `- ${g.source_entity} ${g.relation} ${g.target_entity}${conf}${evid}`;
-        }).join('\n');
-      }
+      semanticContext = truncateToBudget(narrativeText, 4000);
+      console.log(`[RAG LOG] Step 3 (Narrative): Processed stream slices.`);
 
-      if (graphRes.data && graphRes.data.length > 0) {
-        retrievedSources.push(...graphRes.data.slice(0, 12).map((g: any) => ({
-          table: 'vanguard_entity_links',
-          id: g.id || null,
-          date: null,
-          similarity: null,
-          hybrid_score: null,
-          type: 'graph_edge',
-          snippet: `${g.source_entity} --${g.relation}--> ${g.target_entity}`,
-          evidence_count: g.evidence_count,
-          confidence_score: g.confidence_score,
-          status: g.status
+      // Assemble retrievedSources for debugging & audit logs
+      retrievedSources = uniqueFacts.slice(0, 10).map((f: any) => ({
+        table: 'claims',
+        type: 'fact',
+        snippet: f.fact_text || `${f.source_entity} --${f.relation}--> ${f.target_entity}`
+      }));
+      if (hypothesisRes) {
+        retrievedSources.push(...hypothesisRes.map((h: any) => ({
+          table: 'claims',
+          type: 'hypothesis',
+          snippet: h.fact_text
         })));
       }
 
@@ -509,7 +348,7 @@ Tylko JSON, bez komentarzy.`,
         message: 'RAG retrieval failed – continuing with degraded context',
         metadata: { nonFatal: true },
       });
-      semanticContext += "\n\n[SYSTEM: RAG niedostępny — odpowiedź bez pamięci semantycznej/grafu. Nie twierdź o faktach ze strumienia bez świeżego potwierdzenia.]";
+      semanticContext += "\n\n[SYSTEM: RAG niedostępny — odpowiedź bez pamięci semantycznej/grafu.]";
     }
   }
 
@@ -616,7 +455,6 @@ Tylko JSON, bez komentarzy.`,
   }
 
   return {
-    staticProfile,
     responsePrefs,
     healthSummary14d,
     healthSummaryText,

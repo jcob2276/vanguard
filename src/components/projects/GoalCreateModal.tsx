@@ -47,7 +47,7 @@ export default function GoalCreateModal({
   const handleGoalCreateSubmit = async (answers: typeof goalCreateAnswers) => {
     setGoalCreateStep('loading');
     try {
-      const { data, error } = await supabase.functions.invoke('vanguard-goal-create', {
+      const { data, error } = await supabase.functions.invoke('vanguard-oracle?action=goal-create', {
         body: { answers, pillar: goalCreatePillar, userName: 'Jakub' }
       });
       if (error) throw error;

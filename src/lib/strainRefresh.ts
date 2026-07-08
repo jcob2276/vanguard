@@ -7,7 +7,7 @@ async function runStrainRecompute(userId: string): Promise<void> {
   if (!session?.access_token) return
 
   try {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/compute-daily-strain`, {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-nightly?action=compute-daily-strain`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${session.access_token}`,

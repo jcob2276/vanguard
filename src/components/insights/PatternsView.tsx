@@ -52,7 +52,7 @@ export function PatternsView({ session }: PatternsViewProps) {
   const runDetection = async () => {
     setRunning(true);
     try {
-      await supabase.functions.invoke('vanguard-detect-patterns', {
+      await supabase.functions.invoke('vanguard-nightly?action=detect-patterns', {
         body: { user_id: userId },
       });
       await fetchPatterns();

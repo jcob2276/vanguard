@@ -162,6 +162,9 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 2
+    const dateFrom: string | null = body.dateFrom ?? null
+    const dateTo: string | null = body.dateTo ?? null
+    const algoVersion: number = body.algoVersion ?? 1
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
     const onlyUserId: string | null = scopedUserId
 
@@ -173,10 +176,13 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
     const now = new Date()
     const todayWarsaw = getWarsawDateString(now)
     const toWarsaw = getWarsawDateString
-    const endStr = toWarsaw(now)
-    const startStr = toWarsaw(new Date(now.getTime() - days * 864e5))
-    const start90 = toWarsaw(new Date(now.getTime() - 90 * 864e5))
-    const start30 = toWarsaw(new Date(now.getTime() - 30 * 864e5))
+    const endStr = dateTo || toWarsaw(now)
+    const startStr = dateFrom || toWarsaw(new Date(now.getTime() - days * 864e5))
+    
+    // Calculate start limits relative to startStr
+    const startDate = new Date(startStr + 'T12:00:00Z')
+    const start90 = toWarsaw(new Date(startDate.getTime() - 90 * 864e5))
+    const start30 = toWarsaw(new Date(startDate.getTime() - 30 * 864e5))
 
     const computeForUser = async (u: any) => {
       const uid = u.user_id
@@ -198,19 +204,13 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
 
       // ── Baseline HRV/RHR (90 dni, chronologicznie dla EWMA) ──
       const { data: base, error: baseErr } = await supabase.from('oura_daily_summary')
-        .select('date, hrv_avg, rhr_avg, total_sleep_hours, sleep_score').eq('user_id', uid).gte('date', start90).order('date')
+        .select('date, hrv_avg, rhr_avg, total_sleep_hours, sleep_score')
+        .eq('user_id', uid)
+        .gte('date', start90)
+        .lte('date', endStr)
+        .order('date')
       if (baseErr) console.error(`[strain] user ${uid} baseline query failed, EWMA will fall back to empty history:`, baseErr.message)
-      const hrvVals        = (base || []).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null) as number[]
-      const rhrVals        = (base || []).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null) as number[]
-      const sleepScoreVals = (base || []).map((r: any) => r.sleep_score).filter((v: any): v is number => v != null) as number[]
-      const mean = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null
-      const hrvBase = mean(hrvVals)
-      const rhrBase = mean(rhrVals)
-
-      // Winsorized EWMA baselines (NOOP Baselines.swift) — robust, recency-weighted
-      const hrvEwma        = ewmaBaseline(hrvVals, 5, 250, 5.0)
-      const rhrEwma        = ewmaBaseline(rhrVals, 30, 120, 2.0)
-      const sleepScoreEwma = ewmaBaseline(sleepScoreVals, 0, 100, 5.0)
+      
       const baseByDate: Record<string, any> = {}
       const sleepByDate: Record<string, number> = {}
       for (const row of (base || []) as any[]) {
@@ -219,25 +219,51 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
       }
 
       const { data: respBase } = await supabase.from('oura_enhanced')
-        .select('date, sleep_average_breath, temperature_deviation').eq('user_id', uid).gte('date', start90).order('date')
+        .select('date, sleep_average_breath, temperature_deviation')
+        .eq('user_id', uid)
+        .gte('date', start90)
+        .lte('date', endStr)
+        .order('date')
       const respByDate: Record<string, number | null> = {}
       const skinTempByDate: Record<string, number | null> = {}
       for (const row of (respBase || []) as any[]) {
         respByDate[row.date] = row.sleep_average_breath != null ? Number(row.sleep_average_breath) : null
         skinTempByDate[row.date] = row.temperature_deviation != null ? Number(row.temperature_deviation) : null
       }
-      // Winsorized EWMA baseline dla respiracji (PLAN_READINESS_NOOP.md 4.1/4.2 — floor 0.5)
-      const respVals = (respBase || []).map((r: any) => r.sleep_average_breath).filter((v: any): v is number => v != null) as number[]
-      const respEwma = ewmaBaseline(respVals, 4, 40, 0.5)
+
+      // Dynamic baseline provider to prevent future leak in backfills
+      const getBaselinesForDate = (targetDate: string) => {
+        const hrvVals = (base || []).filter((r: any) => r.date < targetDate).map((r: any) => r.hrv_avg).filter((v: any): v is number => v != null);
+        const rhrVals = (base || []).filter((r: any) => r.date < targetDate).map((r: any) => r.rhr_avg).filter((v: any): v is number => v != null);
+        const sleepScoreVals = (base || []).filter((r: any) => r.date < targetDate).map((r: any) => r.sleep_score).filter((v: any): v is number => v != null);
+        
+        const hrvEwma = ewmaBaseline(hrvVals, 5, 250, 5.0);
+        const rhrEwma = ewmaBaseline(rhrVals, 30, 120, 2.0);
+        const sleepScoreEwma = ewmaBaseline(sleepScoreVals, 0, 100, 5.0);
+
+        const respVals = (respBase || []).filter((r: any) => r.date < targetDate).map((r: any) => r.sleep_average_breath).filter((v: any): v is number => v != null);
+        const respEwma = ewmaBaseline(respVals, 4, 40, 0.5);
+
+        const hrvBase = hrvVals.length ? hrvVals.reduce((x, y) => x + y, 0) / hrvVals.length : null;
+        const rhrBase = rhrVals.length ? rhrVals.reduce((x, y) => x + y, 0) / rhrVals.length : null;
+
+        return { hrvEwma, rhrEwma, sleepScoreEwma, respEwma, hrvBase, rhrBase };
+      };
 
       // Strain history for ReadinessEngine (last 30 days, pre-existing rows)
       const { data: strainHistRows } = await supabase.from('daily_strain')
-        .select('date, strain_score').eq('user_id', uid).gte('date', start30).order('date')
+        .select('date, strain_score')
+        .eq('user_id', uid)
+        .gte('date', start30)
+        .lte('date', endStr)
+        .order('date')
       const strainHistRunning: Array<{ date: string; strain_score: number | null }> =
         [...(strainHistRows || [])]
 
       // ── Źródła w oknie (z buforem -1 dnia na "wczoraj") ──
-      const winStart = toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
+      const winStart = dateFrom 
+        ? toWarsaw(new Date(startDate.getTime() - 1 * 864e5))
+        : toWarsaw(new Date(now.getTime() - (days + 1) * 864e5))
       const [zonesR, enhR, summR, nutrR, wsR, stravaR, foodR, behaviorR] = await Promise.all([
         supabase.from('oura_hr_zones_daily').select('day, z1_regen_min, z2_tlenowa_min, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', uid).gte('day', winStart),
         supabase.from('oura_enhanced').select('date, steps, resilience_level').eq('user_id', uid).gte('date', winStart),
@@ -283,6 +309,8 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
       const upserts: any[] = []
 
       for (const date of dayList) {
+        const { hrvEwma, rhrEwma, sleepScoreEwma, respEwma, hrvBase, rhrBase } = getBaselinesForDate(date);
+
         // Dzień bieżący (Europe/Warsaw): log posiłków jeszcze niedomknięty → fueling tymczasowy.
         const fuelingProvisional = date === todayWarsaw
         const z = zones[date]?.[0]
@@ -560,6 +588,7 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
           fueling_provisional: fuelingProvisional,
           readiness_level: readiness.level,
           explanation,
+          algo_version: algoVersion,
           cardio_load: Math.round(cardioRaw * 10) / 10,
           strength_load: strengthPts, leg_load: legPts, cns_load: cnsPts,
           steps_load: Math.round(stepsLoad * 10) / 10, fueling_penalty: fuelingPenalty,

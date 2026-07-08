@@ -52,10 +52,31 @@ export async function fetchWorldState(
   supabase: SupabaseClient,
   userId: string,
   dateStr?: string,
-  nowMsOverride?: number
+  nowMsOverride?: number,
+  forceRefresh?: boolean
 ): Promise<WorldState> {
   const date = dateStr || getWarsawDateString();
   const nowMs = nowMsOverride || Date.now();
+  const todayWarsaw = getWarsawDateString();
+
+  if (!forceRefresh) {
+    const { data: cached } = await supabase
+      .from('vanguard_world_state')
+      .select('state_json, updated_at')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle();
+
+    if (cached) {
+      const isHistorical = date < todayWarsaw;
+      const cacheAgeMs = Date.now() - new Date(cached.updated_at).getTime();
+      const isFresh = isHistorical || cacheAgeMs < 15 * 60 * 1000; // 15 min TTL for today, infinite for past
+
+      if (isFresh) {
+        return cached.state_json as WorldState;
+      }
+    }
+  }
 
   const calculateFreshness = (updatedAt: string | null) => {
     if (!updatedAt) return 999;
@@ -164,7 +185,7 @@ export async function fetchWorldState(
 
   const weeklyCalories = weeklyNutrition?.reduce((sum: number, n: any) => sum + (n.calories || 0), 0) || 0;
 
-  return {
+  const state: WorldState = {
     timestamp: new Date().toISOString(),
     date,
     user_id: userId,
@@ -228,6 +249,11 @@ export async function fetchWorldState(
       }
     }
   };
+
+  // Write-through caching: save the compiled state to the cache table
+  await saveWorldState(supabase, userId, date, state);
+
+  return state;
 }
 
 export async function saveWorldState(

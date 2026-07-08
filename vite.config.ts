@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@vanguard/domain': path.resolve(__dirname, './packages/domain/src/index.ts')
+    }
+  },
   plugins: [
     react(),
     VitePWA({

@@ -10,7 +10,7 @@ export const runSaveDailyAggregate = async (req: Request): Promise<Response> => 
   try {
     const authHeader = req.headers.get('Authorization')
     const cronSecret = Deno.env.get('VANGUARD_CRON_SECRET')
-    const serviceRoleKey = Deno.env.get('SB_SECRET_KEY')
+    const serviceRoleKey = Deno.env.get('SB_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const allowedAuthHeaders = [
       cronSecret ? `Bearer ${cronSecret}` : null,
       serviceRoleKey ? `Bearer ${serviceRoleKey}` : null,

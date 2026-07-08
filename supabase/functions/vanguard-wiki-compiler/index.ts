@@ -362,7 +362,7 @@ JSON schema:
   "pages": [{
     "slug": "kebab-case",
     "title": "...",
-    "page_type": "identity|behavior_pattern|person|project|training|health|decision|friction_loop|concept|source_summary|operating_model",
+    "page_type": "identity|behavior_pattern|person|project|training|health|decision|friction_loop|concept|source_summary|operating_model|goal",
     "status": "hypothesis|active|needs_review|user_confirmed",
     "confidence": 0.0,
     "summary": "1-2 zdania",

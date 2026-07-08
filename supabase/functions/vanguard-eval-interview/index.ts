@@ -141,164 +141,298 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Find the most recent eval run
-    const { data: latestRun, error: runErr } = await supabase
-      .from("vanguard_eval_runs")
-      .select("id, summary, completed_at")
-      .eq("user_id", userId)
-      .eq("status", "completed")
-      .order("completed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // 1. Spróbuj pobrać zadanie aktywnego uczenia (wiki review lub przeterminowany link)
+    const [{ data: wikiReviewItems }, { data: staleLinks }] = await Promise.all([
+      supabase
+        .from("vanguard_wiki_review_items")
+        .select("id, item_type, title, detail, severity")
+        .eq("user_id", userId)
+        .eq("status", "open")
+        .order("severity", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1),
+      supabase
+        .from("vanguard_entity_links")
+        .select("id, source_entity, relation, target_entity, source_type, target_type, confidence_score, fact_text")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .eq("memory_type", "fact")
+        .lt("confidence_score", 0.7)
+        .order("created_at", { ascending: true })
+        .limit(1)
+    ]);
 
-    if (runErr || !latestRun) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: "No completed eval run found" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // Get failing questions from target categories
-    const { data: failingResults, error: failErr } = await supabase
-      .from("vanguard_eval_results")
-      .select("question_id, question, category, score, judge_notes")
-      .eq("run_id", latestRun.id)
-      .eq("passed", false)
-      .in("category", TARGET_CATEGORIES)
-      .order("score", { ascending: true }) // worst first
-      .limit(20);
-
-    let resolvedFailingResults = failingResults;
+    let latestRun: any = null;
+    let resolvedFailingResults: any[] = [];
     let useGeneratedQuestion = false;
 
-    if (failErr || !failingResults || failingResults.length === 0) {
-      // Fall back to any failing question across all categories
-      const { data: allFailing } = await supabase
-        .from("vanguard_eval_results")
-        .select("question_id, question, category, score, judge_notes")
-        .eq("run_id", latestRun.id)
-        .eq("passed", false)
-        .order("score", { ascending: true })
-        .limit(20);
+    const hasActiveLearning = (wikiReviewItems && wikiReviewItems.length > 0) || (staleLinks && staleLinks.length > 0);
 
-      if (!allFailing || allFailing.length === 0) {
+    if (hasActiveLearning) {
+      useGeneratedQuestion = true;
+    } else {
+      // Find the most recent eval run
+      const { data: runData, error: runErr } = await supabase
+        .from("vanguard_eval_runs")
+        .select("id, summary, completed_at")
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      latestRun = runData;
+
+      if (latestRun && !runErr) {
+        // Get failing questions from target categories
+        const { data: failingResults } = await supabase
+          .from("vanguard_eval_results")
+          .select("question_id, question, category, score, judge_notes")
+          .eq("run_id", latestRun.id)
+          .eq("passed", false)
+          .in("category", TARGET_CATEGORIES)
+          .order("score", { ascending: true }) // worst first
+          .limit(20);
+
+        resolvedFailingResults = failingResults || [];
+
+        if (resolvedFailingResults.length === 0) {
+          // Fall back to any failing question across all categories
+          const { data: allFailing } = await supabase
+            .from("vanguard_eval_results")
+            .select("question_id, question, category, score, judge_notes")
+            .eq("run_id", latestRun.id)
+            .eq("passed", false)
+            .order("score", { ascending: true })
+            .limit(20);
+
+          resolvedFailingResults = allFailing || [];
+        }
+      }
+
+      if (resolvedFailingResults.length === 0) {
         // Everything passing — generate a deepening question from recent stream
         useGeneratedQuestion = true;
-      } else {
-        resolvedFailingResults = allFailing;
       }
     }
 
     // --- Generated deepening question path ---
     if (useGeneratedQuestion) {
-      const cut72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
-      const cut30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      let activeLearningPrompt = "";
+      let proposedMemoryStr = "";
+      let activeLearningDedupeKey = "";
+      let activeLearningType = "";
+      let activeLearningItemId = "";
 
-      const [curiosityRes, patternsRes, wikiRes, graphRes, frictionRes, streamRes, ouraRes, recentTopicsRes] = await Promise.all([
-        supabase
-          .from("vanguard_curiosity_queue")
-          .select("hypothesis, provocation, confidence_score, category, evidence_count, created_at")
-          .eq("user_id", userId)
-          .eq("status", "pending")
-          .order("confidence_score", { ascending: false })
-          .limit(5),
-        supabase
-          .from("vanguard_behavioral_patterns")
-          .select("pattern_type, title, evidence_text, occurrence_count, confidence, status, last_seen")
-          .eq("user_id", userId)
-          .in("status", ["active", "candidate"])
-          .order("confidence", { ascending: false })
-          .limit(5),
-        supabase
-          .from("vanguard_wiki_pages")
-          .select("title, page_type, status, confidence, summary, tags, last_seen_at")
-          .eq("user_id", userId)
-          .in("status", ["active", "needs_review"])
-          .order("last_seen_at", { ascending: false })
-          .limit(8),
-        supabase
-          .from("vanguard_entity_links")
-          .select("source_entity, relation, target_entity, temporal_status, memory_type, confidence_score, evidence_count, last_seen, fact_text")
-          .eq("user_id", userId)
-          .in("status", ["active"])
-          .order("evidence_count", { ascending: false })
-          .limit(12),
-        supabase
-          .from("confirmed_friction_events")
-          .select("occurred_at, friction_type, declared_intention, actual_behavior, deviation, immediate_cost, confidence")
-          .eq("user_id", userId)
-          .gte("occurred_at", cut30d)
-          .order("occurred_at", { ascending: false })
-          .limit(8),
-        supabase
-          .from("vanguard_stream")
-          .select("content, category, created_at")
-          .eq("user_id", userId)
-          .not("source", "eq", "eval_interview")
-          .not("source", "eq", "oracle_chat")
-          .gte("created_at", cut72h)
-          .order("created_at", { ascending: false })
-          .limit(12),
-        supabase
-          .from("oura_daily_summary")
-          .select("date, sleep_start, sleep_end, total_sleep_hours, sleep_score, readiness_score")
-          .eq("user_id", userId)
-          .order("date", { ascending: false })
-          .limit(7),
-        // Topics asked in last 7 days (for deduplication by subject area)
-        supabase
-          .from("vanguard_stream")
-          .select("metadata, content")
-          .eq("user_id", userId)
-          .eq("source", "eval_interview")
-          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(10),
-      ]);
+      if (wikiReviewItems && wikiReviewItems.length > 0) {
+        const item = wikiReviewItems[0];
+        activeLearningType = "wiki_review";
+        activeLearningItemId = item.id;
+        activeLearningDedupeKey = `wiki_review_${item.id}`;
 
-      // Extract topic tags asked in last 7 days to avoid repetition
-      const recentTopicTags: string[] = (recentTopicsRes.data || [])
-        .flatMap((r: any) => [
-          r.metadata?.topic_tag,
-          r.metadata?.friction_type_focus,
-        ])
-        .filter(Boolean);
+        try {
+          const reform = await deepseekChat({
+            apiKey: deepseekApiKey,
+            model: "deepseek-chat", // use V3 for structured JSON output
+            userId,
+            feature: "eval-interview-active-learning",
+            responseFormat: { type: "json_object" },
+            messages: [
+              {
+                role: "system",
+                content: `Jesteś systemem aktywnego uczenia w Vanguard OS. Formułujesz krótkie, bezpośrednie pytania po polsku do użytkownika (Jakuba) w celu wyjaśnienia konfliktów lub niepewności w jego bazie wiedzy.
+Twoja odpowiedź musi być poprawnym obiektem JSON:
+{
+  "question": "Jasne pytanie wyjaśniające (max 20 słów), np. Czy na stałe przestałeś pić kawę po 15:00?",
+  "proposed_memory": {
+    "source": "Jakub",
+    "relation": "relacja",
+    "target": "wartość",
+    "source_type": "user",
+    "target_type": "trait"
+  }
+}
+proposed_memory powinno reprezentować fakt, który zostanie zapisany w bazie wiedzy, jeśli Jakub odpowie twierdząco (TAK).`
+              },
+              {
+                role: "user",
+                content: `Kontekst niepewności/konfliktu:
+Typ: ${item.item_type}
+Tytuł: ${item.title}
+Szczegóły: ${item.detail}`
+              }
+            ]
+          });
 
-      // Summarize Oura sleep for LLM context
-      const ouraRows = ouraRes.data || [];
-      const ouraSleesSummary = ouraRows.length > 0
-        ? ouraRows.map((r: any) => {
-            const bedtime = r.sleep_start
-              ? new Date(r.sleep_start).toLocaleTimeString("pl-PL", { timeZone: "Europe/Warsaw", hour: "2-digit", minute: "2-digit" })
-              : null;
-            return `${r.date}: pora zaśnięcia=${bedtime ?? "??"}, sen=${r.total_sleep_hours?.toFixed(1) ?? "??"}h, score=${r.sleep_score ?? "??"}`;
-          })
-        : [];
+          const parsed = JSON.parse(reform.content || "{}");
+          if (parsed.question && parsed.proposed_memory) {
+            activeLearningPrompt = parsed.question;
+            proposedMemoryStr = JSON.stringify(parsed.proposed_memory);
+          }
+        } catch (e) {
+          console.error("[eval-interview] Failed to format wiki review active learning question:", e);
+        }
+      } else if (staleLinks && staleLinks.length > 0) {
+        const link = staleLinks[0];
+        activeLearningType = "stale_link";
+        activeLearningItemId = link.id;
+        activeLearningDedupeKey = `stale_link_${link.id}`;
 
-      const memoryContext = {
-        instruction: "Select one high-information-gain question for the user. Do not quote long source text. Do not force unrelated recent topics together.",
-        pending_curiosity: curiosityRes.data || [],
-        behavioral_patterns: patternsRes.data || [],
-        wiki_pages: wikiRes.data || [],
-        graph_edges: graphRes.data || [],
-        friction_events: frictionRes.data || [],
-        recent_stream_72h: streamRes.data || [],
-        oura_sleep_last_7d: ouraSleesSummary,
-        recently_asked_topic_tags: recentTopicTags,
-      };
+        try {
+          const reform = await deepseekChat({
+            apiKey: deepseekApiKey,
+            model: "deepseek-chat",
+            userId,
+            feature: "eval-interview-active-learning",
+            responseFormat: { type: "json_object" },
+            messages: [
+              {
+                role: "system",
+                content: `Jesteś systemem aktywnego uczenia w Vanguard OS. Formułujesz krótkie, bezpośrednie pytania po polsku do użytkownika (Jakuba) w celu weryfikacji starego lub niepewnego faktu z bazy wiedzy.
+Twoja odpowiedź musi być poprawnym obiektem JSON:
+{
+  "question": "Jasne pytanie weryfikacyjne (max 20 słów), np. Czy to prawda, że wciąż studiujesz na AGH?",
+  "proposed_memory": {
+    "source": "Jakub",
+    "relation": "relacja",
+    "target": "wartość",
+    "source_type": "user",
+    "target_type": "trait"
+  }
+}
+proposed_memory powinno reprezentować fakt, który zostanie potwierdzony/zaktualizowany w bazie wiedzy, jeśli Jakub odpowie twierdząco (TAK).`
+              },
+              {
+                role: "user",
+                content: `Stary/niepewny fakt:
+Podmiot: ${link.source_entity}
+Relacja: ${link.relation}
+Obiekt: ${link.target_entity}
+Tekst faktu: ${link.fact_text || ""}
+Aktualna pewność: ${link.confidence_score}`
+              }
+            ]
+          });
 
-      let generatedPrompt = "";
-      try {
-        const result = await deepseekChat({
-          apiKey: deepseekApiKey,
-          model: "deepseek-chat",
-          maxTokens: 120,
-          temperature: 0.5,
-          timeoutMs: 15000,
-          messages: [
-            {
-              role: "system",
-              content: `Jesteś selektorem pytań dla Vanguard OS.
+          const parsed = JSON.parse(reform.content || "{}");
+          if (parsed.question && parsed.proposed_memory) {
+            activeLearningPrompt = parsed.question;
+            proposedMemoryStr = JSON.stringify(parsed.proposed_memory);
+          }
+        } catch (e) {
+          console.error("[eval-interview] Failed to format stale link active learning question:", e);
+        }
+      }
 
+      let generatedPrompt = activeLearningPrompt;
+
+      // Jeśli nie udało się wygenerować pytania aktywnego uczenia, fall back do oryginalnego generycznego przepływu
+      if (!isUsableQuestion(generatedPrompt)) {
+        const cut72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
+        const cut30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        const [curiosityRes, patternsRes, wikiRes, graphRes, frictionRes, streamRes, ouraRes, recentTopicsRes] = await Promise.all([
+          supabase
+            .from("vanguard_curiosity_queue")
+            .select("hypothesis, provocation, confidence_score, category, evidence_count, created_at")
+            .eq("user_id", userId)
+            .eq("status", "pending")
+            .order("confidence_score", { ascending: false })
+            .limit(5),
+          supabase
+            .from("vanguard_behavioral_patterns")
+            .select("pattern_type, title, evidence_text, occurrence_count, confidence, status, last_seen")
+            .eq("user_id", userId)
+            .in("status", ["active", "candidate"])
+            .order("confidence", { ascending: false })
+            .limit(5),
+          supabase
+            .from("vanguard_wiki_pages")
+            .select("title, page_type, status, confidence, summary, tags, last_seen_at")
+            .eq("user_id", userId)
+            .in("status", ["active", "needs_review"])
+            .order("last_seen_at", { ascending: false })
+            .limit(8),
+          supabase
+            .from("vanguard_entity_links")
+            .select("source_entity, relation, target_entity, temporal_status, memory_type, confidence_score, evidence_count, last_seen, fact_text")
+            .eq("user_id", userId)
+            .in("status", ["active"])
+            .order("evidence_count", { ascending: false })
+            .limit(12),
+          supabase
+            .from("confirmed_friction_events")
+            .select("occurred_at, friction_type, declared_intention, actual_behavior, deviation, immediate_cost, confidence")
+            .eq("user_id", userId)
+            .gte("occurred_at", cut30d)
+            .order("occurred_at", { ascending: false })
+            .limit(8),
+          supabase
+            .from("vanguard_stream")
+            .select("content, category, created_at")
+            .eq("user_id", userId)
+            .not("source", "eq", "eval_interview")
+            .not("source", "eq", "oracle_chat")
+            .gte("created_at", cut72h)
+            .order("created_at", { ascending: false })
+            .limit(12),
+          supabase
+            .from("oura_daily_summary")
+            .select("date, sleep_start, sleep_end, total_sleep_hours, sleep_score, readiness_score")
+            .eq("user_id", userId)
+            .order("date", { ascending: false })
+            .limit(7),
+          supabase
+            .from("vanguard_stream")
+            .select("metadata, content")
+            .eq("user_id", userId)
+            .eq("source", "eval_interview")
+            .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            .limit(10),
+        ]);
+
+        const recentTopicTags: string[] = (recentTopicsRes.data || [])
+          .flatMap((r: any) => [
+            r.metadata?.topic_tag,
+            r.metadata?.friction_type_focus,
+          ])
+          .filter(Boolean);
+
+        const ouraRows = ouraRes.data || [];
+        const ouraSleesSummary = ouraRows.length > 0
+          ? ouraRows.map((r: any) => {
+              const bedtime = r.sleep_start
+                ? new Date(r.sleep_start).toLocaleTimeString("pl-PL", { timeZone: "Europe/Warsaw", hour: "2-digit", minute: "2-digit" })
+                : null;
+              return `${r.date}: pora zaśnięcia=${bedtime ?? "??"}, sen=${r.total_sleep_hours?.toFixed(1) ?? "??"}h, score=${r.sleep_score ?? "??"}`;
+            })
+          : [];
+
+        const memoryContext = {
+          instruction: "Select one high-information-gain question for the user. Do not quote long source text. Do not force unrelated recent topics together.",
+          pending_curiosity: curiosityRes.data || [],
+          behavioral_patterns: patternsRes.data || [],
+          wiki_pages: wikiRes.data || [],
+          graph_edges: graphRes.data || [],
+          friction_events: frictionRes.data || [],
+          recent_stream_72h: streamRes.data || [],
+          oura_sleep_last_7d: ouraSleesSummary,
+          recently_asked_topic_tags: recentTopicTags,
+        };
+
+        try {
+          const result = await deepseekChat({
+            apiKey: deepseekApiKey,
+            model: "deepseek-chat",
+            userId,
+            feature: "eval-interview-deepening",
+            maxTokens: 120,
+            temperature: 0.5,
+            timeoutMs: 15000,
+            messages: [
+              {
+                role: "system",
+                content: `Jesteś selektorem pytań dla Vanguard OS.
 Masz pamięć użytkownika: pending hypotheses, wzorce, wiki, graf, tarcia, świeży stream i dane biometryczne Oura.
 Wybierz JEDNO pytanie o najwyższej wartości informacyjnej dla pamięci systemu.
 
@@ -321,33 +455,68 @@ ZAKAZY:
 - NIE pytaj "dlaczego nie logujesz X" ani "nie odnotowałeś X".
 - Jeśli recently_asked_topic_tags zawiera dany temat, wybierz INNY — 7 dni cooldown.
 - Unikaj pytań czysto faktograficznych które można sprawdzić w bazie.`,
-            },
-            {
-              role: "user",
-              content: `KONTEKST PAMIĘCI:
+              },
+              {
+                role: "user",
+                content: `KONTEKST PAMIĘCI:
 ${JSON.stringify(memoryContext, null, 2)}
 
 Zwróć tylko treść pytania, bez komentarza.`,
-            },
-          ],
-        });
-        const candidate = result.content?.trim() || "";
-        if (isUsableQuestion(candidate)) {
-          generatedPrompt = candidate;
+              },
+            ],
+          });
+          const candidate = result.content?.trim() || "";
+          if (isUsableQuestion(candidate)) {
+            generatedPrompt = candidate;
+          }
+        } catch (err: unknown) {
+          console.error('[Edge Function Error]', err);
+          return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-      } catch (err: unknown) {
-    console.error('[Edge Function Error]', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
 
-      if (!isUsableQuestion(generatedPrompt)) {
-        generatedPrompt = buildDeterministicMemoryQuestion(memoryContext);
-        console.warn("[eval-interview] using deterministic memory fallback question");
+        if (!isUsableQuestion(generatedPrompt)) {
+          generatedPrompt = buildDeterministicMemoryQuestion(memoryContext);
+          console.warn("[eval-interview] using deterministic memory fallback question");
+        }
       }
 
+      // 2. Jeśli wygenerowaliśmy ustrukturyzowane pytanie aktywnego uczenia, zapisz je do oracle_clarification_requests
+      if (activeLearningPrompt && proposedMemoryStr) {
+        const { error: insertErr } = await supabase
+          .from("oracle_clarification_requests")
+          .insert({
+            user_id: userId,
+            question: generatedPrompt,
+            response_type: "confirm",
+            options: [
+              { id: "yes", label: "Tak", value: "yes" },
+              { id: "no", label: "Nie", value: "no" }
+            ],
+            dedupe_key: activeLearningDedupeKey,
+            proposed_memory: proposedMemoryStr,
+            confidence: 0.5,
+            status: "pending"
+          });
+
+        if (insertErr) {
+          console.error("[eval-interview] Failed to insert active learning clarification request:", insertErr.message);
+        } else {
+          console.log(`[eval-interview] Created clarification request for ${activeLearningType}`);
+          
+          // Jeśli to był wiki review item, oznacz go jako resolved
+          if (activeLearningType === "wiki_review") {
+            await supabase
+              .from("vanguard_wiki_review_items")
+              .update({ status: "resolved" })
+              .eq("id", activeLearningItemId);
+          }
+        }
+      }
+
+      // 3. Wyślij do Telegrama i zapisz do streamu
       const telegramMsg = `🎙️ Pytanie pogłębiające\n\n${generatedPrompt}\n\nOdpowiedz głosem lub tekstem.`;
       if (chatId && telegramToken) {
         const sendResult = await sendMessageParsed(telegramToken, chatId, telegramMsg);
@@ -356,7 +525,9 @@ Zwróć tylko treść pytania, bez komentarza.`,
         }
       }
 
-      const topicTag = /sen|śpi|spanie|nocn|sleep/i.test(generatedPrompt) ? "sleep"
+      const topicTag = activeLearningType === "wiki_review" ? "wiki_verification"
+        : activeLearningType === "stale_link" ? "stale_verification"
+        : /sen|śpi|spanie|nocn|sleep/i.test(generatedPrompt) ? "sleep"
         : /trening|siłown|sport|workout|ćwicz/i.test(generatedPrompt) ? "training"
         : /jedzen|posiłek|kalorii|białk|dieta|jedzeni/i.test(generatedPrompt) ? "nutrition"
         : /relacj|przyjacie|znajom|spotkan/i.test(generatedPrompt) ? "social"
@@ -366,13 +537,19 @@ Zwróć tylko treść pytania, bez komentarza.`,
       await supabase.from("vanguard_stream").insert({
         user_id: userId,
         source: "eval_interview",
-        content: `[PYTANIE POGŁĘBIAJĄCE]: ${generatedPrompt}`,
-        metadata: { generated: true, sent_at: now.toISOString(), topic_tag: topicTag },
+        content: `[PYTANIE POGŁĘBIAJĘCE]: ${generatedPrompt}`,
+        metadata: { 
+          generated: true, 
+          sent_at: now.toISOString(), 
+          topic_tag: topicTag,
+          active_learning_type: activeLearningType || null,
+          active_learning_item_id: activeLearningItemId || null
+        },
       }).throwOnError();
 
       console.log("[eval-interview] sent generated deepening question");
       return new Response(
-        JSON.stringify({ success: true, generated: true, prompt_sent: generatedPrompt }),
+        JSON.stringify({ success: true, generated: true, prompt_sent: generatedPrompt, active_learning_type: activeLearningType }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

@@ -7,30 +7,26 @@ export const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || "YOUR_PROJECT_REF
 
 /** Edge functions that MUST use verify_jwt: false in production. */
 export const NO_VERIFY_JWT_FUNCTIONS = [
-  "vanguard-daily-reconciliation",
-  "vanguard-weekly-synthesis",
+  "recap",
+  "vanguard-nightly",
   "vanguard-telegram",
   "vanguard-telegram-worker",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
   "vanguard-wiki-compiler",
-  "ingest-vault-log",
   "vanguard-analyst",
   "vanguard-eval-runner",
   "vanguard-graph-embedder",
-  "save-daily-aggregate",
-  "sync-strava",
+  "sync",
   "analyze-training-load",
   "vanguard-eval-interview",
   "vanguard-nutrition-coach",
   "vanguard-librarian",
   "vanguard-push-reminder",
-  "compute-illness-signal",
-  "rescore-workout-sessions",
   "vanguard-capture",
-  "vanguard-search",
   "vanguard-keep-triage",
+  "vanguard-backtester",
 ];
 
 
@@ -40,10 +36,8 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
  * - post: only with --invoke-safe or --invoke-crons
  */
 export const SMOKE_TARGETS = [
-  { name: "vanguard-daily-reconciliation", post: "cron", sideEffects: "May send evening reconciliation Telegram" },
-  { name: "vanguard-weekly-synthesis", post: "cron", sideEffects: "LLM + Telegram report" },
+  { name: "recap", post: "safe", body: { type: "daily" }, sideEffects: "Unified recap endpoint — daily/weekly options" },
   { name: "vanguard-analyst", post: "cron", sideEffects: "LLM batch" },
-  { name: "save-daily-aggregate", post: "cron_secret", sideEffects: "Writes daily aggregate" },
   { name: "vanguard-telegram", post: "webhook", body: { update_id: 0 }, sideEffects: "OPTIONS preferred" },
   { name: "vanguard-telegram-worker", post: "skip", sideEffects: "DB trigger only — no direct HTTP invocation; OPTIONS for health check" },
   { name: "vanguard-oracle", post: "safe", body: { current_query: "smoke", user_id: "__USER__", mode: "chat" }, sideEffects: "Calls DeepSeek — use only with --invoke-safe" },
@@ -53,34 +47,31 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-eval-runner", post: "skip", sideEffects: "Manual eval batch — OPTIONS only" },
   { name: "vanguard-eval-interview", post: "cron", sideEffects: "Sends Telegram eval question — OPTIONS preferred for smoke" },
   { name: "vanguard-graph-embedder", post: "skip", sideEffects: "Manual embedding batch — OPTIONS only" },
-  { name: "ingest-vault-log", post: "skip", sideEffects: "Requires long text — OPTIONS only" },
-  { name: "sync-strava", post: "safe", body: {}, sideEffects: "Calls Strava API + token refresh — OPTIONS preferred for smoke" },
-  { name: "compute-correlations", post: "skip", sideEffects: "Read-only correlation scan; requires authenticated user scope" },
+  { name: "sync", post: "safe", body: { service: "oura" }, sideEffects: "Calls Oura API — OPTIONS preferred for smoke" },
+  { name: "vanguard-nightly", post: "safe", body: { action: "compute-correlations" }, sideEffects: "Unified nightly pipeline" },
   { name: "analyze-training-load", post: "skip", sideEffects: "Calls DeepSeek — manual trigger only" },
   { name: "vanguard-nutrition-coach", post: "skip", sideEffects: "Calls DeepSeek + writes nutrition target — OPTIONS only" },
   { name: "vanguard-librarian", post: "skip", sideEffects: "Calls DeepSeek + writes food_library entries — OPTIONS only" },
-  { name: "vanguard-goal-create", post: "skip", sideEffects: "Calls DeepSeek for Goal AI templates" },
   { name: "vanguard-push-reminder", post: "skip", sideEffects: "Sends web push notifications for reminders" },
-  { name: "compute-illness-signal", post: "skip", sideEffects: "Reads daily_strain and updates illness flags" },
-  { name: "rescore-workout-sessions", post: "skip", sideEffects: "Rescores workouts based on Oura heartrate data" },
   { name: "vanguard-capture", post: "skip", sideEffects: "Unified capture endpoint (text/link/voice)" },
-  { name: "vanguard-search", post: "skip", sideEffects: "Global search endpoint (FTS + embeddings)" },
   { name: "vanguard-keep-triage", post: "skip", sideEffects: "AI triage for unread links (calls DeepSeek)" },
+  { name: "vanguard-backtester", post: "skip", sideEffects: "Historical backtest simulation — OPTIONS only for smoke" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */
 export const CRON_FROM_MIGRATIONS = [
-  { jobname: "vanguard-daily-snapshot", schedule: "0 4 * * *", target: "save-daily-aggregate (via trigger_daily_snapshots)" },
+  { jobname: "vanguard-daily-snapshot", schedule: "0 4 * * *", target: "vanguard-nightly" },
   { jobname: "vanguard-daily-analyst", schedule: "0 3 * * *", target: "vanguard-analyst" },
   { jobname: "vanguard-wiki-compiler", schedule: "20 3 * * *", target: "vanguard-wiki-compiler" },
-  { jobname: "vanguard-sync-strava", schedule: "30 20 * * *", target: "sync-strava" },
+  { jobname: "sync-oura-morning", schedule: "30 7 * * *", target: "sync?service=oura" },
+  { jobname: "sync-oura-evening", schedule: "0 19 * * *", target: "sync?service=oura" },
   { jobname: "vanguard-eval-interview", schedule: "0 10 * * 1-5", target: "vanguard-eval-interview" },
 ];
 
 /** Documented in ops; may exist only in Supabase Dashboard — confirm with cron-check.sql */
 export const CRON_DASHBOARD_ONLY = [
-  { jobname: "vanguard-daily-reconciliation", schedule_hint: "~19:30 UTC", target: "vanguard-daily-reconciliation" },
-  { jobname: "vanguard-weekly-synthesis", schedule_hint: "Sun ~17:00 UTC", target: "vanguard-weekly-synthesis" },
+  { jobname: "vanguard-daily-reconciliation", schedule_hint: "~19:30 UTC", target: "recap?type=daily" },
+  { jobname: "vanguard-weekly-synthesis", schedule_hint: "Sun ~17:00 UTC", target: "recap?type=weekly-synthesis" },
 ];
 
 export const CRON_REMOVED = [

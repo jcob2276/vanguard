@@ -34,7 +34,7 @@ export function useSyncActions({
   const syncCalendar = useCallback(async () => {
     setSyncing(true);
     try {
-      await callFn('sync-calendar', { userId });
+      await callFn('sync?service=calendar', { userId });
       onRefresh();
     } catch (err: unknown) {
       console.error('[Action Error]', err);
@@ -48,7 +48,7 @@ export function useSyncActions({
     setSyncing(true);
     window.history.replaceState({}, document.title, window.location.pathname);
     try {
-      const response = await fetch(`${base}/functions/v1/sync-calendar`, {
+      const response = await fetch(`${base}/functions/v1/sync?service=calendar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ userId, code, redirectUri: window.location.origin }),

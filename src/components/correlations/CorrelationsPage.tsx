@@ -64,7 +64,7 @@ export default function CorrelationsPage({ session }: { session: Session }) {
     try {
       const payload = { user_id: userId, include_weak: includeWeak };
       const [corrRes, behRes] = await Promise.all([
-        supabase.functions.invoke('compute-correlations', { body: payload }),
+        supabase.functions.invoke('vanguard-nightly?action=compute-correlations', { body: payload }),
         supabase.functions.invoke('compute-behavior-effects', { body: payload }),
       ]);
       if (corrRes.error) throw corrRes.error;

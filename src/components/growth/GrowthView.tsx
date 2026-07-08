@@ -228,9 +228,11 @@ export default function GrowthView({ session }: { session: Session }) {
       if (error) throw error;
 
       if (pin.entity_type === 'link' && pin.entity_id) {
-        await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', pin.entity_id);
+        const { error: linkErr } = await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', pin.entity_id);
+        if (linkErr) throw linkErr;
       } else if (pin.entity_type === 'todo' && pin.entity_id) {
-        await supabase.from('todo_items').update({ status: 'done' }).eq('id', pin.entity_id);
+        const { error: todoErr } = await supabase.from('todo_items').update({ status: 'done' }).eq('id', pin.entity_id);
+        if (todoErr) throw todoErr;
       }
 
       notify('Gotowe!', 'success');

@@ -148,16 +148,16 @@ export default function DesktopDashboard({ session }: { session: Session }) {
       if (!r.ok) throw new Error(fn);
     };
     try {
-      // sync-oura runs enhanced + timeseries internally — one call, one ring
+      // sync runs enhanced + timeseries internally — one call, one ring
       const phase1 = await Promise.allSettled([
-        call('sync-oura', { userId }),
-        call('sync-calendar', { userId })
+        call('sync', { service: 'oura', userId }),
+        call('sync', { service: 'calendar', userId })
       ]);
       phase1.forEach((r, i) => {
         if (r.status === 'rejected') console.error(`[sync] phase1[${i}] failed:`, r.reason);
       });
-      await call('sync-strava', {}).catch(e => console.error('[sync] strava failed:', e));
-      await call('compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
+      await call('sync', { service: 'strava' }).catch(e => console.error('[sync] strava failed:', e));
+      await call('vanguard-nightly?action=compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
       refresh();
     } catch (e: unknown) {
       console.error('[Background Error]', e);

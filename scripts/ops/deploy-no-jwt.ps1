@@ -6,29 +6,24 @@ $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot "..\.."))
 
 $all = @(
-  "vanguard-daily-reconciliation",
-  "vanguard-weekly-synthesis",
+  "recap",
+  "vanguard-nightly",
   "vanguard-telegram",
   "vanguard-telegram-worker",
   "vanguard-oracle",
   "vanguard-auto-classify",
   "vanguard-architect",
   "vanguard-wiki-compiler",
-  "ingest-vault-log",
   "vanguard-analyst",
   "vanguard-eval-runner",
   "vanguard-eval-interview",
   "vanguard-graph-embedder",
-  "save-daily-aggregate",
-  "sync-strava",
+  "sync",
   "analyze-training-load",
   "vanguard-nutrition-coach",
   "vanguard-librarian",
-  "compute-illness-signal",
-  "rescore-workout-sessions",
   "vanguard-push-reminder",
   "vanguard-capture",
-  "vanguard-search",
   "vanguard-keep-triage"
 )
 

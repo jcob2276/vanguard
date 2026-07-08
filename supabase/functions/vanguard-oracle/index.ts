@@ -31,6 +31,230 @@ const OracleResponseSchema = z.object({
   mint_fact_id: z.boolean().optional()
 }).catchall(z.any());
 
+async function handleSearch(req: Request, body: any, db: any): Promise<Response> {
+  const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
+  const userId = scopeId || body.userId;
+  if (!userId) throw new Error("userId required");
+
+  const query = String(body.query || "").trim();
+  const safeQuery = query.replace(/[%_,]/g, '').slice(0, 200);
+  if (!query) {
+    return new Response(JSON.stringify({ graph: [], todos: [], projects: [], notes: [] }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const openAiKey = Deno.env.get("OPENAI_API_KEY") || "";
+  let graphResults: any[] = [];
+  if (openAiKey) {
+    try {
+      const embedRes = await fetch("https://api.openai.com/v1/embeddings", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openAiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: query,
+          model: "text-embedding-3-small",
+        }),
+      });
+
+      if (embedRes.ok) {
+        const embedData = await embedRes.json();
+        const embedding = embedData.data?.[0]?.embedding;
+        if (embedding) {
+          const { data: vectorData } = await db.rpc("search_entity_links", {
+            query_embedding: embedding,
+            match_user_id: userId,
+            match_count: 10,
+          });
+          if (vectorData) graphResults = vectorData;
+        }
+      }
+    } catch (err) {
+      console.warn("[search] embedding search failed, falling back:", err);
+    }
+  }
+
+  const { data: ftsData } = await db.rpc("search_entity_links_fulltext", {
+    query_text: query,
+    match_user_id: userId,
+    match_count: 10,
+  });
+
+  const graphMap = new Map<string, any>();
+  for (const r of graphResults) {
+    const key = `${r.source_entity}::${r.relation}::${r.target_entity}`;
+    graphMap.set(key, { ...r, source: "vector" });
+  }
+  if (ftsData) {
+    for (const r of ftsData) {
+      const key = `${r.source_entity}::${r.relation}::${r.target_entity}`;
+      if (!graphMap.has(key)) {
+        graphMap.set(key, { ...r, source: "fts" });
+      } else {
+        const existing = graphMap.get(key);
+        graphMap.set(key, { ...existing, rank: r.rank, source: "hybrid" });
+      }
+    }
+  }
+
+  const { data: todos } = await db
+    .from("todo_items")
+    .select("id, title, notes, status, priority, due_date")
+    .eq("user_id", userId)
+    .or(`title.ilike.%${safeQuery}%,notes.ilike.%${safeQuery}%`)
+    .limit(10);
+
+  const { data: projects } = await db
+    .from("projects")
+    .select("id, name, goal, status, color")
+    .eq("user_id", userId)
+    .or(`name.ilike.%${safeQuery}%,goal.ilike.%${safeQuery}%`)
+    .limit(10);
+
+  const { data: notes } = await db
+    .from("vanguard_notes")
+    .select("id, title, content, tags, updated_at")
+    .eq("user_id", userId)
+    .eq("is_archived", false)
+    .or(`title.ilike.%${safeQuery}%,content.ilike.%${safeQuery}%`)
+    .limit(10);
+
+  return new Response(
+    JSON.stringify({
+      graph: Array.from(graphMap.values()),
+      todos: todos || [],
+      projects: projects || [],
+      notes: notes || [],
+    }),
+    {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
+
+async function handleGoalCreate(req: Request, body: any): Promise<Response> {
+  const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
+  const userId = scopeId ?? body.userId;
+  if (!userId) throw new Error("userId required");
+
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
+  if (!apiKey) throw new Error("DEEPSEEK_API_KEY not set");
+
+  const { answers, pillar, userName = "Jakub" } = body as {
+    answers: { goal: string; why: string; milestones: string; blockers: string; weekly_actions: string };
+    pillar: string;
+    userName?: string;
+  };
+
+  const systemPrompt = `Jesteś Antigravity — AI asystentem ${userName}. Na podstawie odpowiedzi wygeneruj strukturę projektu jako JSON.
+
+ZASADY:
+- project_name: krótka nazwa SYSTEMU (co robisz), nie cel (co chcesz osiągnąć)
+- affirmation: 1 zdanie, czas teraźniejszy, "Ja ${userName} mam/jestem/posiadam...", zawiera datę z celu
+- kpis: MAKSYMALNIE 2, tylko LEADING indicators (tygodniowe działania które kontrolujesz), NIE wyniki końcowe
+- checkpoints: MAKSYMALNIE 4 kamieni milowych ŚCIŚLE chronologicznie (od najwcześniejszego do najpóźniejszego)
+  * Każdy checkpoint MUSI mieć datę wcześniejszą niż następny
+  * Ostatni checkpoint = data osiągnięcia celu głównego
+  * Pośrednie checkpointy = etapy NA DRODZE do celu, PRZED datą celu
+  * NIE dodawaj etapów po dacie celu
+- Odpowiedz TYLKO JSON, bez markdown
+
+WYMAGANY SCHEMAT JSON (użyj dokładnie tych kluczy):
+{
+  "project_name": "string",
+  "affirmation": "string",
+  "kpis": [
+    { "name": "string", "unit": "string", "target": number_or_null }
+  ],
+  "checkpoints": [
+    { "title": "string", "due_date": "YYYY-MM-DD" }
+  ]
+}`;
+
+  const today = new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const userPrompt = `Dzisiaj jest: ${today}
+Cel: ${answers.goal}
+Po co mi to: ${answers.why}
+Co musi się stać: ${answers.milestones}
+Dlaczego może się nie udać: ${answers.blockers}
+Co robię co tydzień: ${answers.weekly_actions}
+Filar życiowy: ${pillar}
+
+WAŻNE: Checkpointy muszą być w kolejności rosnącej dat. Żaden checkpoint nie może mieć daty późniejszej niż data celu z pola "Cel". Sprawdź każdą datę przed wygenerowaniem.`;
+
+  const { content } = await deepseekChat({
+    apiKey,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    model: "deepseek-v4-flash",
+    maxTokens: 800,
+    temperature: 0.4,
+    responseFormat: { type: "json_object" },
+  });
+
+  const parsed = parseJsonFromContent(content);
+  if (!parsed) throw new Error("Brak JSON w odpowiedzi AI: " + content.slice(0, 200));
+
+  return new Response(JSON.stringify(parsed), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
+}
+
+const TASK_BREAKDOWN_SYSTEM = `Jestes asystentem Jakuba. Dostajesz jedno zadanie i zwracasz liste 3-6 konkretnych podzadan potrzebnych do jego wykonania.
+
+Zasady:
+- Podzadania maja byc konkretne i wykonalne (czasownik + obiekt)
+- Kazde podzadanie = 1 krok, maks 8 slow
+- Kolejnosc logiczna, od pierwszego do ostatniego
+- Jezyk polski, naturalny
+- NIE powtarzaj tytulu glownego zadania jako podzadania
+
+Odpowiedz WYLACZNIE poprawnym JSON: { "subtasks": ["krok 1", "krok 2", ...] }`;
+
+async function handleTaskBreakdown(req: Request, body: any): Promise<Response> {
+  const { itemId, userId: requestedUserId, title, notes } = body;
+  const { userId } = await resolveUserScope(req, requestedUserId ?? null);
+
+  if (!userId || !title) {
+    return new Response(JSON.stringify({ error: "missing fields" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+  const userMsg = [
+    `Zadanie: "${title}"`,
+    notes ? `Opis: "${notes}"` : null,
+  ].filter(Boolean).join("\n");
+
+  const result = await deepseekChat({
+    apiKey,
+    messages: [
+      { role: "system", content: TASK_BREAKDOWN_SYSTEM },
+      { role: "user", content: userMsg },
+    ],
+    maxTokens: 300,
+    temperature: 0.3,
+    responseFormat: { type: "json_object" },
+  });
+
+  const parsed = parseJsonFromContent(result.content) || {};
+  const subtasks: string[] = Array.isArray(parsed.subtasks)
+    ? (parsed.subtasks as string[]).filter((s) => typeof s === "string" && s.trim().length > 0).slice(0, 8)
+    : [];
+
+  return new Response(JSON.stringify({ subtasks }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   const t0 = Date.now();
   if (req.method === 'OPTIONS') {
@@ -38,7 +262,28 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const db = createServiceClient();
+    
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action") || body.action;
+
+    if (action) {
+      if (action === "search") {
+        return await handleSearch(req, body, db);
+      }
+      if (action === "goal-create") {
+        return await handleGoalCreate(req, body);
+      }
+      if (action === "task-breakdown") {
+        return await handleTaskBreakdown(req, body);
+      }
+      return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const { state_vector, history, current_query, user_id: requestedUserId, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf, override_date, stream } = body;
     const { userId } = await resolveUserScope(req, requestedUserId ?? null);
     if (!userId) {
@@ -69,7 +314,6 @@ Deno.serve(async (req) => {
       fourteenDaysAgoDate,
       mode,
       cutoff72h,
-      t0
     );
 
     const todayPlan = safeStateVector.today_plan as Record<string, unknown> | undefined;

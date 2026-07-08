@@ -73,27 +73,11 @@ BEGIN
   ORDER BY learned_at DESC
   LIMIT 1;
 
-  -- Singleton deprecation on claims
-  IF v_is_singleton AND NEW.status = 'active' THEN
-    UPDATE public.claims
-    SET
-      status = 'deprecated',
-      valid_to = NEW.observed_at,
-      superseded_by = NEW.id,
-      metadata = metadata || jsonb_build_object(
-        'deprecated_reason', 'superseded by newer claim via sync',
-        'deprecated_at', now()
-      )
-    WHERE user_id = NEW.user_id
-      AND subject_id = v_subject_uuid
-      AND relation_id = v_relation_uuid
-      AND object_id != v_object_uuid
-      AND status = 'active';
-  END IF;
-
   -- Bi-temporal state transitions
   IF TG_OP = 'UPDATE' AND OLD.status = 'deprecated' AND NEW.status = 'active' THEN
-    -- Reactivation! Insert a brand new claim, leaving the old one as historical
+    -- Reactivation! To preserve history, rename the old deprecated claim's ID
+    UPDATE public.claims SET id = gen_random_uuid() WHERE id = NEW.id;
+    -- Now NEW.id is free, so we can insert the new active claim!
     INSERT INTO public.claims (
       id, user_id, subject_id, relation_id, object_id,
       epistemic_status, derivation, source_observation_ids,
@@ -111,6 +95,18 @@ BEGIN
       NEW.weight, NEW.evidence_count, now(), NEW.observed_at, NEW.valid_until, 
       NEW.status, coalesce(NEW.metadata, '{}'::jsonb), NEW.fact_text, NEW.embedding
     );
+  ELSIF EXISTS (SELECT 1 FROM public.claims WHERE id = NEW.id) THEN
+    -- The claim already exists (active or deprecated), so just update it!
+    UPDATE public.claims
+    SET
+      weight = NEW.weight,
+      evidence_count = NEW.evidence_count,
+      status = NEW.status,
+      valid_to = NEW.valid_until,
+      metadata = coalesce(NEW.metadata, '{}'::jsonb),
+      fact_text = NEW.fact_text,
+      embedding = NEW.embedding
+    WHERE id = NEW.id;
   ELSIF v_claim_id IS NOT NULL THEN
     -- Update the existing active claim (preserves history by keeping learned_at and valid_from)
     UPDATE public.claims
@@ -155,6 +151,24 @@ BEGIN
         NEW.status, coalesce(NEW.metadata, '{}'::jsonb), NEW.fact_text, NEW.embedding
       );
     END IF;
+  END IF;
+
+  -- Singleton deprecation on claims
+  IF v_is_singleton AND NEW.status = 'active' THEN
+    UPDATE public.claims
+    SET
+      status = 'deprecated',
+      valid_to = NEW.observed_at,
+      superseded_by = NEW.id,
+      metadata = metadata || jsonb_build_object(
+        'deprecated_reason', 'superseded by newer claim via sync',
+        'deprecated_at', now()
+      )
+    WHERE user_id = NEW.user_id
+      AND subject_id = v_subject_uuid
+      AND relation_id = v_relation_uuid
+      AND object_id != v_object_uuid
+      AND status = 'active';
   END IF;
 
   RETURN NEW;

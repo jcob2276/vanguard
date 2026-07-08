@@ -14,7 +14,7 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const result = spawnSync('deno', ['check', ...files], {
+const result = spawnSync('deno', ['check', '--import-map=supabase/functions/import_map.json', ...files], {
   stdio: 'inherit',
   shell: process.platform === 'win32',
 });

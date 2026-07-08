@@ -330,6 +330,98 @@ export type Database = {
         }
         Relationships: []
       }
+      claims: {
+        Row: {
+          derivation: string
+          embedding: string | null
+          epistemic_status: string
+          evidence_count: number | null
+          fact_text: string | null
+          id: string
+          learned_at: string
+          metadata: Json
+          object_id: string
+          relation_id: string
+          source_observation_ids: string[]
+          status: string
+          subject_id: string
+          superseded_by: string | null
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+          weight: number | null
+        }
+        Insert: {
+          derivation?: string
+          embedding?: string | null
+          epistemic_status?: string
+          evidence_count?: number | null
+          fact_text?: string | null
+          id?: string
+          learned_at?: string
+          metadata?: Json
+          object_id: string
+          relation_id: string
+          source_observation_ids?: string[]
+          status?: string
+          subject_id: string
+          superseded_by?: string | null
+          user_id: string
+          valid_from?: string
+          valid_to?: string | null
+          weight?: number | null
+        }
+        Update: {
+          derivation?: string
+          embedding?: string | null
+          epistemic_status?: string
+          evidence_count?: number | null
+          fact_text?: string | null
+          id?: string
+          learned_at?: string
+          metadata?: Json
+          object_id?: string
+          relation_id?: string
+          source_observation_ids?: string[]
+          status?: string
+          subject_id?: string
+          superseded_by?: string | null
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claims_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_relation_id_fkey"
+            columns: ["relation_id"]
+            isOneToOne: false
+            referencedRelation: "relations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_food_entries: {
         Row: {
           amount: string | null
@@ -1237,6 +1329,70 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      entities: {
+        Row: {
+          canonical_name: string
+          created_at: string
+          id: string
+          kind: string
+          merged_into: string | null
+          user_id: string | null
+        }
+        Insert: {
+          canonical_name: string
+          created_at?: string
+          id?: string
+          kind: string
+          merged_into?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          canonical_name?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          merged_into?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entities_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          entity_id: string
+          id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          entity_id: string
+          id?: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          entity_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_aliases_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exercise_logs: {
         Row: {
@@ -2508,6 +2664,62 @@ export type Database = {
         }
         Relationships: []
       }
+      oracle_recommendations: {
+        Row: {
+          actual_value: number | null
+          baseline_value: number | null
+          created_at: string
+          evaluated_at: string | null
+          evaluation_window_days: number
+          id: string
+          oracle_run_id: string | null
+          outcome: string | null
+          recommendation_text: string
+          related_metric: string
+          status: string
+          success_threshold: number | null
+          user_id: string
+        }
+        Insert: {
+          actual_value?: number | null
+          baseline_value?: number | null
+          created_at?: string
+          evaluated_at?: string | null
+          evaluation_window_days?: number
+          id?: string
+          oracle_run_id?: string | null
+          outcome?: string | null
+          recommendation_text: string
+          related_metric: string
+          status?: string
+          success_threshold?: number | null
+          user_id: string
+        }
+        Update: {
+          actual_value?: number | null
+          baseline_value?: number | null
+          created_at?: string
+          evaluated_at?: string | null
+          evaluation_window_days?: number
+          id?: string
+          oracle_run_id?: string | null
+          outcome?: string | null
+          recommendation_text?: string
+          related_metric?: string
+          status?: string
+          success_threshold?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oracle_recommendations_oracle_run_id_fkey"
+            columns: ["oracle_run_id"]
+            isOneToOne: false
+            referencedRelation: "vanguard_oracle_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oura_daily_summary: {
         Row: {
           active_calories: number | null
@@ -3056,6 +3268,27 @@ export type Database = {
           keys_auth?: string
           keys_p256dh?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      relations: {
+        Row: {
+          created_at: string
+          id: string
+          is_singleton: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_singleton?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_singleton?: boolean
+          name?: string
         }
         Relationships: []
       }
@@ -3793,6 +4026,7 @@ export type Database = {
           last_seen: string | null
           metadata: Json | null
           occurrence_count: number | null
+          outcome_metric: string | null
           pattern_type: string
           signature: string
           status: string | null
@@ -3810,6 +4044,7 @@ export type Database = {
           last_seen?: string | null
           metadata?: Json | null
           occurrence_count?: number | null
+          outcome_metric?: string | null
           pattern_type: string
           signature: string
           status?: string | null
@@ -3827,6 +4062,7 @@ export type Database = {
           last_seen?: string | null
           metadata?: Json | null
           occurrence_count?: number | null
+          outcome_metric?: string | null
           pattern_type?: string
           signature?: string
           status?: string | null
@@ -4446,6 +4682,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vanguard_llm_usage: {
+        Row: {
+          completion_tokens: number
+          cost_est: number | null
+          created_at: string
+          feature: string | null
+          id: string
+          model: string
+          prompt_tokens: number
+          total_tokens: number
+          user_id: string | null
+        }
+        Insert: {
+          completion_tokens: number
+          cost_est?: number | null
+          created_at?: string
+          feature?: string | null
+          id?: string
+          model: string
+          prompt_tokens: number
+          total_tokens: number
+          user_id?: string | null
+        }
+        Update: {
+          completion_tokens?: number
+          cost_est?: number | null
+          created_at?: string
+          feature?: string | null
+          id?: string
+          model?: string
+          prompt_tokens?: number
+          total_tokens?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       vanguard_notes: {
         Row: {
           color: string
@@ -4523,6 +4795,93 @@ export type Database = {
           retrieved_context?: Json | null
           sources?: Json | null
           state_vector?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vanguard_pipeline_runs: {
+        Row: {
+          duration_ms: number
+          error_message: string | null
+          finished_at: string
+          id: string
+          run_id: string
+          started_at: string
+          status: string
+          step_name: string
+          user_id: string
+        }
+        Insert: {
+          duration_ms: number
+          error_message?: string | null
+          finished_at: string
+          id?: string
+          run_id: string
+          started_at: string
+          status: string
+          step_name: string
+          user_id: string
+        }
+        Update: {
+          duration_ms?: number
+          error_message?: string | null
+          finished_at?: string
+          id?: string
+          run_id?: string
+          started_at?: string
+          status?: string
+          step_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vanguard_predictions: {
+        Row: {
+          actual_value: number | null
+          created_at: string
+          error_value: number | null
+          id: string
+          metric: string
+          predicted_at: string
+          predicted_interval_high: number | null
+          predicted_interval_low: number | null
+          predicted_value: number
+          prediction_date: string
+          prediction_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_value?: number | null
+          created_at?: string
+          error_value?: number | null
+          id?: string
+          metric: string
+          predicted_at?: string
+          predicted_interval_high?: number | null
+          predicted_interval_low?: number | null
+          predicted_value: number
+          prediction_date: string
+          prediction_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_value?: number | null
+          created_at?: string
+          error_value?: number | null
+          id?: string
+          metric?: string
+          predicted_at?: string
+          predicted_interval_high?: number | null
+          predicted_interval_low?: number | null
+          predicted_value?: number
+          prediction_date?: string
+          prediction_type?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -5641,10 +6000,7 @@ export type Database = {
           query_embedding: string
         }
         Returns: {
-          confidence_score: number
           evidence_count: number
-          fact_text: string
-          memory_type: string
           relation: string
           similarity: number
           source_entity: string

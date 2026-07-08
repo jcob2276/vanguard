@@ -1,0 +1,146 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from './supabase';
+import { warsawDayBoundsISO } from './date';
+
+export interface CalendarEvent {
+  id?: string;
+  summary: string;
+  start: string; // ISO datetime "2026-07-03T10:00:00+02:00"
+  end: string;
+  description?: string;
+  category?: string;
+  recurrence?: string[];
+}
+
+export const calendarKeys = {
+  all: ['calendar'] as const,
+  events: (userId: string, rangeStart: string, rangeEnd: string) =>
+    [...calendarKeys.all, 'events', userId, rangeStart, rangeEnd] as const,
+};
+
+// ── QUERIES ──
+
+export function useCalendarEvents(
+  userId: string,
+  rangeStart: string,
+  rangeEnd: string
+) {
+  return useQuery({
+    queryKey: calendarKeys.events(userId, rangeStart, rangeEnd),
+    queryFn: async () => {
+      const { fromISO } = warsawDayBoundsISO(rangeStart);
+      const { fromISO: toISO } = warsawDayBoundsISO(rangeEnd);
+      
+      const { data, error } = await supabase
+        .from('vanguard_calendar')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', fromISO)
+        .lt('start_time', toISO)
+        .order('start_time', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!userId && !!rangeStart && !!rangeEnd,
+  });
+}
+
+// ── MUTATIONS ──
+
+export function useCreateCalendarEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      accessToken,
+      event,
+    }: {
+      userId: string;
+      accessToken: string;
+      event: Omit<CalendarEvent, 'id'>;
+    }) => {
+      const base = import.meta.env.VITE_SUPABASE_URL as string;
+      const res = await fetch(`${base}/functions/v1/calendar-write`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ userId, action: 'create', event }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create event');
+      return data as { success: boolean; eventId?: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    },
+  });
+}
+
+export function useUpdateCalendarEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      accessToken,
+      event,
+    }: {
+      userId: string;
+      accessToken: string;
+      event: CalendarEvent & { id: string };
+    }) => {
+      const base = import.meta.env.VITE_SUPABASE_URL as string;
+      const res = await fetch(`${base}/functions/v1/calendar-write`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ userId, action: 'update', event }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to update event');
+      return data as { success: boolean };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    },
+  });
+}
+
+export function useDeleteCalendarEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      accessToken,
+      eventId,
+    }: {
+      userId: string;
+      accessToken: string;
+      eventId: string;
+    }) => {
+      const base = import.meta.env.VITE_SUPABASE_URL as string;
+      const res = await fetch(`${base}/functions/v1/calendar-write`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          userId,
+          action: 'delete',
+          event: { id: eventId, summary: '', start: '', end: '' },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to delete event');
+      return data as { success: boolean };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    },
+  });
+}

@@ -272,7 +272,7 @@ export default function Todo({ session, onBack, onNavigateTo }: { session: Sessi
         });
       }}
       onAiBreakdown={async () => {
-        const { data, error } = await supabase.functions.invoke('vanguard-task-breakdown', {
+        const { data, error } = await supabase.functions.invoke('vanguard-oracle?action=task-breakdown', {
           body: { itemId: item.id, userId, title: item.title, notes: item.notes },
         });
         if (error) throw error;

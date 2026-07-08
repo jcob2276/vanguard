@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
@@ -25,6 +24,7 @@ import NoteCard from './NoteCard';
 import MasonryGrid from './MasonryGrid';
 import NoteQuickCapture from './NoteQuickCapture';
 import { Note } from './keepUtils';
+import { useNotes } from '../../lib/notesApi';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../lib/captureBridge';
 import { notify, dismissToast } from '../../lib/notify';
 import { isOfflineError, queueOfflineWrite } from '../../lib/offlineQueue';
@@ -114,27 +114,7 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
-  const queryClient = useQueryClient();
-  const { data: serverNotes, isLoading: queryLoading, refetch: fetchNotes } = useQuery({
-    queryKey: ['notes', userId],
-    queryFn: async () => {
-      const { data, error: err } = await supabase
-        .from('vanguard_notes')
-        .select('*')
-        .eq('user_id', userId)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (err) {
-        if (isNetworkOrTableError(err)) {
-          return null;
-        }
-        throw err;
-      }
-      return data as Note[];
-    },
-    enabled: !!userId,
-  });
+  const { data: serverNotes, isLoading: queryLoading, refetch: fetchNotes } = useNotes(userId);
 
   useEffect(() => {
     setLoading(queryLoading);
@@ -143,12 +123,12 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
   useEffect(() => {
     if (serverNotes !== undefined) {
       if (serverNotes !== null) {
-        setNotes(serverNotes);
+        setNotes(serverNotes as Note[]);
         try { localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(serverNotes)); } catch (e: any) {}
         setError(null);
       } else {
         const local = localStorage.getItem('vanguard_local_keep_notes');
-        try { setNotes(local ? JSON.parse(local) : []); } catch (e: any) { setNotes([]); }
+        try { setNotes(local ? JSON.parse(local) as Note[] : []); } catch (e: any) { setNotes([]); }
         setError(navigator.onLine ? 'Błąd połączenia. Załadowano wersję lokalną.' : 'Brak połączenia sieciowego. Załadowano notatki lokalne.');
       }
     }

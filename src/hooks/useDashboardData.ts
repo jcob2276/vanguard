@@ -166,7 +166,7 @@ export function useDashboardData() {
       const lastSync = lastEvent?.start_time ? new Date(lastEvent.start_time).getTime() : 0;
 
       if (lastEvent && lastSync < twoHoursAgo) {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-calendar`, {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync?service=calendar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

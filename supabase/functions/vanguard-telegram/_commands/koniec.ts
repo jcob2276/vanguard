@@ -10,7 +10,7 @@ export async function handleKoniecCommand(
 ): Promise<void> {
   try {
     await sendChatAction(telegramToken, chatId, "typing");
-    const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-daily-reconciliation?manual=true`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/recap?type=daily&manual=true`, {
       signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {

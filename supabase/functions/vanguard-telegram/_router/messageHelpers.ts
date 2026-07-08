@@ -59,6 +59,11 @@ export async function handleForceReplyReply(
     const handled = await handleMealCorrection(promptText, text, vanguardUserId, supabase, telegramToken, chatId, deepseekApiKey);
     if (handled) return true;
   }
+  if (promptText.includes("Pytanie pogłębiające")) {
+    const { handleClarificationReply } = await import("../_handlers/clarification.ts");
+    const handled = await handleClarificationReply(promptText, text, ctx, chatId);
+    if (handled) return true;
+  }
   return false;
 }
 

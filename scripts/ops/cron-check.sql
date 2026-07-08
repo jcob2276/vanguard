@@ -28,9 +28,8 @@ FROM cron.job
 WHERE jobname IN (
   'vanguard-daily-snapshot',
   'vanguard-daily-analyst',
-  'vanguard-morning-brief',
-  'vanguard-morning-ping',
-  'vanguard-sync-strava',
+  'sync-oura-morning',
+  'sync-oura-evening',
   'vanguard-eval-interview'
 )
 ORDER BY jobname;

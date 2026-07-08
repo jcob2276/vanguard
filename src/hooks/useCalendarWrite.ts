@@ -1,15 +1,8 @@
 import { useCallback } from 'react';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 
-export interface CalendarEvent {
-  id?: string;
-  summary: string;
-  start: string; // ISO datetime "2026-07-03T10:00:00+02:00"
-  end: string;
-  description?: string;
-  category?: string;
-  recurrence?: string[];
-}
+import type { CalendarEvent } from '../lib/calendarApi';
+export type { CalendarEvent };
 
 export function useCalendarWrite({
   userId,

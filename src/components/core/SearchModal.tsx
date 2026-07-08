@@ -31,7 +31,7 @@ export default function SearchModal({ session, onClose }: { session: Session; on
       setLoading(true);
       try {
         const base = import.meta.env.VITE_SUPABASE_URL;
-        const res = await fetch(`${base}/functions/v1/vanguard-search`, {
+        const res = await fetch(`${base}/functions/v1/vanguard-oracle?action=search`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

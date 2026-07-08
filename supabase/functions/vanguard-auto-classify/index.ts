@@ -1,5 +1,5 @@
 import { getEmbedding } from "../_shared/openai.ts";
-import { safeExecute, createServiceClient, corsHeaders } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { logCriticalError } from '../_shared/errorLogging.ts'
 import { logAuditEvent } from '../_shared/audit.ts'
@@ -52,6 +52,150 @@ function normalizeFriction(raw: any): any {
   };
 }
 
+const TODO_CLASSIFY_SYSTEM = `Jestes asystentem organizacji zadan dla Jakuba (23 lata, Rzeszow, Polska).
+Dostajesz JEDNO zadanie i zwracasz klasyfikacje w JSON.
+
+Zasady bucket:
+- "today"  = cos pilnego lub na dzis
+- "soon"   = do zrobienia w ciagu 1-7 dni
+- "later"  = za 1-4 tygodnie, brak jasnosci co do czasu
+- "future" = konkretna data za >1 miesiac (np. "we wrzesniu", "w grudniu")
+
+Zasady due_date:
+- Wyciagnij date z tekstu jesli mozliwe (format YYYY-MM-DD, Warsaw TZ)
+- "we wrzesniu" -> ustaw na ok. 5 dni PRZED (np. 2026-08-26 jako przypomnienie)
+- Jesli brak daty -> null
+
+Zasady priority (tylko gdy uzytkownik NIE podal priorytetu):
+- "urgent" = blokuje cos innego lub jest deadline dzisiaj
+- "high"   = wazne, trzeba zrobic w tym tygodniu
+- "normal" = standardowe
+- "low"    = kiedys, nice to have
+
+Odpowiedz WYLACZNIE poprawnym JSON z polami: ai_bucket, due_date, priority.`;
+
+async function handleTodoClassify(req: Request, body: any, supabase: any): Promise<Response> {
+  const { itemId, userId: requestedUserId, title, notes, due_date, priority } = body;
+  const { userId } = await resolveUserScope(req, requestedUserId ?? null);
+
+  if (!itemId || !userId || !title) {
+    return new Response(JSON.stringify({ error: "missing fields" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+  const todayFull = new Date().toLocaleDateString("pl-PL", {
+    timeZone: "Europe/Warsaw",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+
+  const userMsg = [
+    `Zadanie: "${title}"`,
+    notes ? `Opis: "${notes}"` : null,
+    due_date ? `Uzytkownik juz wpisal date: ${due_date} - NIE nadpisuj.` : null,
+    priority ? `Uzytkownik juz wpisal priorytet: ${priority} - NIE nadpisuj.` : null,
+    `Dzisiaj: ${todayFull} (${todayIso})`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const result = await deepseekChat({
+    apiKey,
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: TODO_CLASSIFY_SYSTEM },
+      { role: "user", content: userMsg },
+    ],
+    maxTokens: 120,
+    temperature: 0,
+    responseFormat: { type: "json_object" },
+  });
+
+  const classification = parseJsonFromContent(result.content) || {};
+  const ai_bucket = (classification.ai_bucket as string) || "later";
+
+  const patch: Record<string, unknown> = {
+    ai_bucket,
+    ai_classified_at: new Date().toISOString(),
+  };
+  if (!due_date && classification.due_date) patch.due_date = classification.due_date;
+  if (!priority && classification.priority) patch.priority = classification.priority;
+
+  const { error: updateErr } = await supabase
+    .from("todo_items")
+    .update(patch)
+    .eq("id", itemId)
+    .eq("user_id", userId);
+  if (updateErr) throw new Error(updateErr.message);
+
+  return new Response(JSON.stringify({ ok: true, ...patch }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+const TODO_EXTRACT_SYSTEM = `Jestes asystentem Jakuba. Dostajesz dowolny wklejony tekst (notatki ze spotkania, e-mail, plan, luzne mysli) i wyciagasz z niego KONKRETNE, WYKONALNE zadania do zrobienia.
+
+Zasady:
+- Kazde zadanie to jedna konkretna akcja (czasownik + obiekt), maks 12 slow
+- Ignoruj zdania ktore nie sa zadaniami (opisy, kontekst, pytania retoryczne)
+- Jesli w tekscie jest jasna data dla zadania, ustaw due_date (YYYY-MM-DD, Warsaw TZ, dzisiaj = {{TODAY}})
+- Jesli brak daty, due_date = null
+- Priorytet ustaw tylko gdy tekst jednoznacznie sugeruje pilnosc: "urgent" (blokuje/deadline dzisiaj), "high" (wazne w tym tygodniu), w innym wypadku null
+- Maksymalnie 20 zadan
+- Jezyk polski
+
+Odpowiedz WYLACZNIE poprawnym JSON: { "tasks": [{ "title": string, "due_date": string|null, "priority": string|null }] }`;
+
+async function handleTodoExtract(req: Request, body: any): Promise<Response> {
+  const { text, userId: requestedUserId } = body;
+  const { userId } = await resolveUserScope(req, requestedUserId ?? null);
+
+  if (!userId || !text || typeof text !== "string" || !text.trim()) {
+    return new Response(JSON.stringify({ error: "missing fields" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const system = TODO_EXTRACT_SYSTEM.replace("{{TODAY}}", todayIso);
+
+  const result = await deepseekChat({
+    apiKey,
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: text.slice(0, 6000) },
+    ],
+    maxTokens: 1500,
+    temperature: 0.2,
+    responseFormat: { type: "json_object" },
+  });
+
+  const parsed = parseJsonFromContent(result.content) || {};
+  const rawTasks = Array.isArray(parsed.tasks) ? parsed.tasks : [];
+  const tasks = rawTasks
+    .filter((t): t is Record<string, unknown> => !!t && typeof t === "object")
+    .map((t) => ({
+      title: typeof t.title === "string" ? t.title.trim() : "",
+      due_date: typeof t.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.due_date) ? t.due_date : null,
+      priority: typeof t.priority === "string" && ["urgent", "high", "normal", "low"].includes(t.priority) ? t.priority : null,
+    }))
+    .filter((t) => t.title.length > 0)
+    .slice(0, 20);
+
+  return new Response(JSON.stringify({ tasks }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -60,8 +204,24 @@ Deno.serve(async (req) => {
   try {
     const supabase = createServiceClient()
 
-    const payload = await req.json()
-    const { record } = payload
+    const body = await req.json().catch(() => ({}));
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action") || body.action;
+
+    if (action) {
+      if (action === "todo-classify") {
+        return await handleTodoClassify(req, body, supabase);
+      }
+      if (action === "todo-extract") {
+        return await handleTodoExtract(req, body);
+      }
+      return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    const { record } = body;
 
     if (!record || !record.content || !record.user_id) {
       return new Response(JSON.stringify({ message: 'No content to classify' }), { status: 200 })

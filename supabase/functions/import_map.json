@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@vanguard/domain": "../../packages/domain/src/index.ts",
+    "@vanguard/domain/": "../../packages/domain/src/"
+  }
+}

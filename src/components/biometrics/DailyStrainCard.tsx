@@ -6,9 +6,10 @@ import { supabase } from '../../lib/supabase';
 import { RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, BarChart2 } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
+import { useDailyStrainOura, useTriggerOuraSync, biometricsKeys } from '../../lib/biometricsApi';
 
 const LIMITER_PL = {
   sleep: 'sen', calories: 'kalorie', carbs: 'węgle',
@@ -66,36 +67,14 @@ export default function DailyStrainCard({
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: dbData, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['daily_strain_oura', session.user.id],
-    queryFn: async () => {
-      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }] = await Promise.all([
-        supabase.from('daily_strain')
-          .select('*').eq('user_id', session.user.id)
-          .order('date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('oura_daily_summary')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('date', { ascending: false }).limit(2),
-      ]);
-      if (e1) throw e1;
-      if (e2) throw e2;
-
-      let ouraRow = null;
-      if (ouraRows?.length) {
-        const todayStr = getTodayWarsaw();
-        ouraRow = ouraRows.find(s => s.date === todayStr) || ouraRows[0];
-      }
-      return { row: strainRows, oura: ouraRow };
-    },
-    staleTime: 1000 * 60 * 30, // 30 minut cache
-  });
+  const { data: dbData, isLoading: loading, error: queryError } = useDailyStrainOura(session.user.id);
+  const triggerOuraSync = useTriggerOuraSync();
 
   // Force refetch on external refreshSignal
   useEffect(() => {
     if (!refreshSignal) return;
-    queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
-  }, [refreshSignal, queryClient]);
+    queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(session.user.id) });
+  }, [refreshSignal, queryClient, session.user.id]);
 
   // Tama 3: Silently trigger background sync if data is stale (not today's date).
   // Guard: fires at most once per calendar day per browser to prevent sync storm on every open.
@@ -134,15 +113,15 @@ export default function DailyStrainCard({
         return response;
       };
 
-      // sync-oura runs enhanced + timeseries internally — one call does all three
+      // sync runs enhanced + timeseries internally — one call does all three
       await Promise.all([
-        call('sync-strava', {}).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
-        call('sync-oura', { userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
+        call('sync', { service: 'strava' }).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
+        call('sync', { service: 'oura', userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
 
-      await call('compute-daily-strain', { userId: session.user.id, days: 2 });
+      await call('vanguard-nightly?action=compute-daily-strain', { userId: session.user.id, days: 2 });
 
-      await queryClient.invalidateQueries({ queryKey: ['daily_strain_oura'] });
+      await queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(session.user.id) });
       if (!silent) haptics.success();
     } catch (e: unknown) {
       console.error('DailyStrainCard refresh:', e);
