@@ -162,6 +162,12 @@ Deno.serve(async (req) => {
       .map(p => `- [${p.status}] ${p.title || p.pattern_type}: ${p.evidence_text} (confidence: ${p.confidence}, count: ${p.occurrence_count})`)
       .join('\n')
 
+    // Detect Trajectories and Spirals (downward spirals / upward momentum)
+    const spiral = detectSpirals(biometrics.data || [], frictionRecent.data || [])
+    const spiralText = spiral
+      ? `🚨 ${spiral.reason}`
+      : 'Stan trajektorii stabilny — brak wyraźnych spiral/trendów gwałtownych w danych.'
+
     // 4. DEEPSEEK REASONER — analiza friction patterns
     const { content: rawContentParsed } = await deepseekChat({
       apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
@@ -243,6 +249,9 @@ ${stream72hText || 'Brak wpisów.'}
 STREAM — 3-21 DNI (pattern context only):
 ${streamPatternText || 'Brak.'}
 
+WYKRYTE TRAJEKTORIE/SPIRALE (Z danych):
+${spiralText}
+
 FRICTION EVENTS — ostatnie 14 dni:
 ${frictionText}
 
@@ -323,7 +332,7 @@ ${recoveryText || 'Brak danych Oura.'}`
     if (biometrics.error) {
       console.error('[analyst] skipping proactive alert — biometrics query failed:', biometrics.error.message);
     } else {
-      await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [])
+      await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [], spiral)
     }
 
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
@@ -350,6 +359,7 @@ async function checkProactiveAlert(
   userId: string,
   biometrics: any[],
   graphLinks: any[],
+  spiral: any
 ): Promise<void> {
   try {
     const telegramToken = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
@@ -386,8 +396,20 @@ async function checkProactiveAlert(
     let alertReason: string | null = null
     let alertEmoji = '⚠️'
 
+    // Condition D: Downward spiral detected (highest priority warning)
+    if (spiral && spiral.type === 'downward_spiral') {
+      alertReason = spiral.reason
+      alertEmoji = '⚠️🚨'
+    }
+
+    // Condition E: Upward momentum detected (highest priority info)
+    if (!alertReason && spiral && spiral.type === 'upward_momentum') {
+      alertReason = spiral.reason
+      alertEmoji = '✅🔥'
+    }
+
     // Condition A: HRV below 85% of baseline for 3+ consecutive days
-    if (recent3Hrv.length >= 3 && recent3Hrv.every(h => h < baselineHrv * 0.85)) {
+    if (!alertReason && recent3Hrv.length >= 3 && recent3Hrv.every(h => h < baselineHrv * 0.85)) {
       const avgRecent = Math.round(recent3Hrv.reduce((a: number, b: number) => a + b, 0) / recent3Hrv.length)
       alertReason = `HRV poniżej baseline przez 3+ dni: avg ${avgRecent} vs baseline ${Math.round(baselineHrv)} (${Math.round((avgRecent/baselineHrv)*100)}% normy)`
       alertEmoji = '📉'
@@ -452,7 +474,7 @@ async function checkProactiveAlert(
         baseline_hrv: Math.round(baselineHrv),
         recent_hrv: recent3Hrv,
         recent_readiness: recent3Readiness,
-        alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : 'overreach_risk',
+        alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : alertEmoji === '⚠️🚨' ? 'downward_spiral' : alertEmoji === '✅🔥' ? 'upward_momentum' : 'overreach_risk',
       },
     }).throwOnError()
 
@@ -461,4 +483,76 @@ async function checkProactiveAlert(
     // Non-fatal — alert failure should not break the main analyst flow
     console.error('[analyst] checkProactiveAlert error (non-fatal):', alertErr)
   }
+}
+
+// ---------------------------------------------------------------------------
+// detectSpirals — Mierzy i wykrywa trajektorie (spirale w dół i momentum w górę)
+// ---------------------------------------------------------------------------
+function detectSpirals(biometrics: any[], frictionEvents: any[]) {
+  if (!biometrics || biometrics.length < 4) return null;
+
+  // Sort chronologically (oldest first)
+  const chronological = [...biometrics].sort((a, b) => a.date.localeCompare(b.date));
+  
+  // Ostatnie 4 dni do badania trajektorii
+  const last4 = chronological.slice(-4);
+  
+  // 1. Sprawdzenie spirali spadkowej (readiness maleje lub jest stale niski + słabe wykonanie lub dużo tarć)
+  let readinessDeclining = true;
+  let executionLow = true;
+  
+  for (let i = 1; i < last4.length; i++) {
+    const prev = last4[i-1];
+    const curr = last4[i];
+    
+    if (curr.readiness_score != null && prev.readiness_score != null) {
+      // Jeśli choć raz wzrosło, to nie jest to czysta spirala spadkowa (chyba że cały czas jest < 60)
+      if (curr.readiness_score > prev.readiness_score && curr.readiness_score >= 60) {
+        readinessDeclining = false;
+      }
+    } else {
+      readinessDeclining = false;
+    }
+    
+    if (curr.execution_score != null && curr.execution_score > 0.55) {
+      executionLow = false;
+    }
+  }
+
+  // Policz friction events w ciągu ostatnich 3 dni
+  const threeDaysAgoStr = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const recentFrictions = frictionEvents.filter(f => {
+    const dateStr = typeof f.occurred_at === 'string' ? f.occurred_at.split('T')[0] : '';
+    return dateStr >= threeDaysAgoStr;
+  });
+
+  if (readinessDeclining && (executionLow || recentFrictions.length >= 2)) {
+    return {
+      type: 'downward_spiral',
+      reason: `Wykryto spiralę spadkową: spadek regeneracji przez 4 dni z rzędu (${last4.map(b => b.readiness_score ?? '—').join(' -> ')}) w połączeniu z niskim wykonaniem lub ${recentFrictions.length} tarciami behawioralnymi.`
+    };
+  }
+
+  // 2. Sprawdzenie momentum (upward spiral — świetna regeneracja + wysokie wykonanie + brak tarć)
+  let readinessHigh = true;
+  let executionHigh = true;
+
+  for (let i = 0; i < last4.length; i++) {
+    const curr = last4[i];
+    if (curr.readiness_score == null || curr.readiness_score < 72) {
+      readinessHigh = false;
+    }
+    if (curr.execution_score == null || curr.execution_score < 0.75) {
+      executionHigh = false;
+    }
+  }
+
+  if (readinessHigh && executionHigh && recentFrictions.length === 0) {
+    return {
+      type: 'upward_momentum',
+      reason: `Wykryto silną trajektorię wzrostową (momentum): wysoka regeneracja (${last4.map(b => b.readiness_score).join(', ')}) oraz świetna realizacja celów (${last4.map(b => Math.round(b.execution_score * 100) + '%').join(', ')}) bez żadnych tarć w ostatnich 3 dniach.`
+    };
+  }
+
+  return null;
 }
