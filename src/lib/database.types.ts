@@ -2247,6 +2247,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marathons: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          name: string
+          status: string | null
+          target_time: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          name: string
+          status?: string | null
+          target_time?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          name?: string
+          status?: string | null
+          target_time?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mcp_servers: {
         Row: {
           api_key: string | null

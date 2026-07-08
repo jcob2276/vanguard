@@ -56,7 +56,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
   const { pendingGrowthMustCount } = useNudgeData(userId);
-  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, refresh } = useDesktopData(userId);
+  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, marathon, refresh } = useDesktopData(userId);
 
   const {
     habits,
@@ -447,7 +447,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
           </Panel>
         </div>
 
-        <MarathonPanel strava={strava} grid={grid} tick={tick} />
+        <MarathonPanel strava={strava} grid={grid} tick={tick} marathon={marathon} />
         </section>
 
         <section id="badania" className="scroll-mt-28 space-y-5">

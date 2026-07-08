@@ -43,6 +43,7 @@ async function fetchDashboardFallback(userId: string) {
     movesRes,
     goalsRes,
     sprintGoalsRes,
+    marathonRes,
   ] = await Promise.all([
     supabase.from('oura_daily_summary').select('date, hrv_avg, rhr_avg, total_sleep_hours, readiness_score, sleep_score')
       .eq('user_id', userId).gte('date', since60).order('date', { ascending: true }),
@@ -68,6 +69,8 @@ async function fetchDashboardFallback(userId: string) {
       .eq('user_id', userId).maybeSingle(),
     supabase.from('sprint_goals').select('id, personal_year, sprint_number, goal_text')
       .eq('user_id', userId).order('personal_year', { ascending: true }).order('sprint_number', { ascending: true }),
+    supabase.from('marathons').select('name, date, target_time, status')
+      .eq('user_id', userId).eq('status', 'upcoming').order('date', { ascending: true }).limit(1).maybeSingle(),
   ]);
 
   return {
@@ -84,6 +87,7 @@ async function fetchDashboardFallback(userId: string) {
     moves: (movesRes.data || []).map(mapTodoToMove),
     goals: goalsRes.data || null,
     sprintGoals: sprintGoalsRes.data || [],
+    marathon: marathonRes.data || null,
   };
 }
 
@@ -112,6 +116,7 @@ export function useDesktopData(userId: string | undefined) {
     lenieLogs: any[];
     habits: any[];
     habitLogs: any[];
+    marathon: any | null;
   }>(() => {
     if (globalCache) return { ...globalCache, loading: false };
     return {
@@ -135,6 +140,7 @@ export function useDesktopData(userId: string | undefined) {
       lenieLogs: [],
       habits: [],
       habitLogs: [],
+      marathon: null,
     };
   });
 
@@ -181,13 +187,14 @@ export function useDesktopData(userId: string | undefined) {
         lenieLogs: [],
         habits: fallback.habits,
         habitLogs: fallback.habitLogs,
+        marathon: fallback.marathon,
       };
       globalCache = fallbackData;
       lastFetchTime = Date.now();
       setS({ ...fallbackData, loading: false });
       return;
     }
-    
+
     const d = data as any;
     const finalData = {
       oura: d?.oura || [],
@@ -209,6 +216,7 @@ export function useDesktopData(userId: string | undefined) {
       lenieLogs: d?.lenieLogs || [],
       habits: d?.habits || [],
       habitLogs: d?.habitLogs || [],
+      marathon: d?.marathon || null,
     };
     
     globalCache = finalData;
