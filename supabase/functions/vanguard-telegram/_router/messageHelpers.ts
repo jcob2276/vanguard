@@ -416,7 +416,10 @@ Odpowiedz TYLKO JSON:
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  // Oracle may now run a few DB tool-call round trips (query_database) before
+  // answering, so this needs more headroom than a single DeepSeek call.
+  const controllerTimeoutMs = 60000;
+  const timeoutId = setTimeout(() => controller.abort(), controllerTimeoutMs);
 
   let data: any = null;
   let error: any = null;

@@ -1,8 +1,25 @@
 import { createServiceClient } from "./supabase.ts";
 
-interface DeepSeekMessage {
-  role: "system" | "user" | "assistant";
+export interface DeepSeekMessage {
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: DeepSeekToolCall[];
+  tool_call_id?: string;
+}
+
+export interface DeepSeekToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
+export interface DeepSeekTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
 }
 
 export interface DeepSeekChatParams {
@@ -13,6 +30,7 @@ export interface DeepSeekChatParams {
   temperature?: number | null;
   timeoutMs?: number;
   responseFormat?: { type: 'json_object' };
+  tools?: DeepSeekTool[];
   userId?: string;
   feature?: string;
 }
@@ -20,6 +38,7 @@ export interface DeepSeekChatParams {
 export interface DeepSeekChatResult {
   content: string;
   reasoning_content?: string;
+  tool_calls?: DeepSeekToolCall[];
   raw: unknown;
 }
 
@@ -43,6 +62,7 @@ export async function deepseekChat(
         ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
         ...(params.temperature === null ? {} : { temperature: params.temperature ?? 0.2 }),
         ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
+        ...(params.tools ? { tools: params.tools } : {}),
       }),
       signal: controller.signal,
     });
@@ -55,6 +75,7 @@ export async function deepseekChat(
     const raw = await res.json();
     const content: string = (raw as any)?.choices?.[0]?.message?.content || "";
     const reasoning_content: string | undefined = (raw as any)?.choices?.[0]?.message?.reasoning_content;
+    const tool_calls: DeepSeekToolCall[] | undefined = (raw as any)?.choices?.[0]?.message?.tool_calls;
 
     // Log LLM token usage and estimated cost to the database
     try {
@@ -89,7 +110,7 @@ export async function deepseekChat(
       console.error("[deepseekChat] Failed to log token usage:", err);
     }
 
-    return { content, reasoning_content, raw };
+    return { content, reasoning_content, tool_calls, raw };
   } finally {
     clearTimeout(timeoutId);
   }
