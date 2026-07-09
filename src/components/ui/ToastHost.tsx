@@ -42,7 +42,7 @@ export function ToastHost() {
                 <button
                   type="button"
                   onClick={t.action.onClick}
-                  className="ml-1 shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wide bg-black/10 hover:bg-black/20 active:scale-95 transition-all cursor-pointer"
+                  className="ml-1 shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wide bg-black/10 hover:bg-black/20 active:scale-95 transition cursor-pointer"
                 >
                   {t.action.label}
                 </button>
