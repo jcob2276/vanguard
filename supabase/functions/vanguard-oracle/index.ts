@@ -567,19 +567,24 @@ Deno.serve(async (req) => {
     let structuredResponse: z.infer<typeof OracleResponseSchema>;
     let rawOutput = "";
     try {
-      const chatRes = await deepseekChat({
+      const deepseekArgs = {
         apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
         model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
         messages: messages,
         temperature: thinking ? null : 0.7,
         maxTokens: null,
-        responseFormat: !thinking ? { type: "json_object" } : undefined,
+        responseFormat: !thinking ? { type: "json_object" as const } : undefined,
         timeoutMs: 25000,
-      });
-      rawOutput = chatRes.content;
+      };
+      let chatRes = await deepseekChat(deepseekArgs);
+      if (!chatRes.content?.trim() && !chatRes.reasoning_content?.trim()) {
+        console.warn('[oracle] DeepSeek returned empty content, retrying once');
+        chatRes = await deepseekChat(deepseekArgs);
+      }
+      rawOutput = chatRes.content?.trim() || chatRes.reasoning_content?.trim() || "";
       const reasoning_content = chatRes.reasoning_content;
       console.log(`[oracle] deepseek done`, Date.now() - t0);
-      
+
       const parsedObj = parseJsonFromContent(rawOutput) || {};
       const validation = OracleResponseSchema.safeParse(parsedObj);
 
