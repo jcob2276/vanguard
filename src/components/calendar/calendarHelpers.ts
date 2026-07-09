@@ -121,6 +121,18 @@ export function dateOfISO(iso: string) {
   }
 }
 
+// Google Calendar expands recurring events into per-instance rows whose id is
+// `{recurringEventId}_{YYYYMMDDTHHMMSSZ}` (from the `singleEvents=true` sync).
+// Deleting the instance id removes just that occurrence; deleting the base id
+// removes the whole series. This regex recovers the base id when present.
+const RECURRING_INSTANCE_ID_RE = /^(.+)_(\d{8}T\d{6}Z)$/;
+
+export function recurringSeriesBaseId(eventId: string | null | undefined): string | null {
+  if (!eventId) return null;
+  const match = eventId.match(RECURRING_INSTANCE_ID_RE);
+  return match ? match[1] : null;
+}
+
 export function nowMinutes() {
   const n = new Date();
   return n.getHours() * 60 + n.getMinutes();

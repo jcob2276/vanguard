@@ -17,6 +17,7 @@ import {
   getWarsawOffset,
   dateOfISO,
   nowMinutes,
+  recurringSeriesBaseId,
   HOUR_START,
   HOUR_END,
   PX_PER_MIN,
@@ -326,18 +327,33 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     const startY = e.clientY;
     const initialStartMin = startMin;
     const initialEndMin = endMin;
-    const eventDate = dateOfISO(ev.start_time);
+    const originalDate = dateOfISO(ev.start_time);
+    // Mutable — 'move' drags can cross into a different day column; 'resize'
+    // never changes which day the event belongs to.
+    let eventDate = originalDate;
 
     let hasMoved = false;
     let lastDiffMins = 0;
+    let lastDay = originalDate;
+
+    const dayUnderCursor = (clientX: number, clientY: number): string | null => {
+      const el = document.elementFromPoint(clientX, clientY)?.closest('[data-day-col]');
+      return el?.getAttribute('data-day-col') || null;
+    };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       hasMoved = true;
       const diffY = moveEvent.clientY - startY;
       const diffMins = Math.round((diffY / PX_PER_MIN) / 15) * 15;
 
-      if (diffMins === lastDiffMins) return;
+      if (action === 'move') {
+        const hoveredDay = dayUnderCursor(moveEvent.clientX, moveEvent.clientY);
+        if (hoveredDay) eventDate = hoveredDay;
+      }
+
+      if (diffMins === lastDiffMins && eventDate === lastDay) return;
       lastDiffMins = diffMins;
+      lastDay = eventDate;
 
       // Temporary local update for snappy UI feel
       queryClient.setQueryData(
@@ -448,15 +464,18 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     return `${parts[0]}:${parts[1]}`;
   };
 
-  const executeDelete = async () => {
+  const executeDelete = async (scope: 'this' | 'all' = 'this') => {
     if (!selectedEvent) return;
     setDeleting(true);
-    const evId = selectedEvent.event_id || selectedEvent.id;
+    const instanceId = selectedEvent.event_id || selectedEvent.id;
+    const seriesBaseId = recurringSeriesBaseId(instanceId);
+    const evId = scope === 'all' && seriesBaseId ? seriesBaseId : instanceId;
     try {
       await deleteEventMutation.mutateAsync({
         userId: userId || '',
         accessToken: accessToken || '',
         eventId: evId,
+        deleteScope: scope,
       });
       setSelectedEvent(null);
       setShowDeleteConfirm(false);

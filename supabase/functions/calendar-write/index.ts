@@ -45,10 +45,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { action, event } = body
+    const { action, event, deleteScope } = body
     // action: 'create' | 'update' | 'delete'
     // event: { id?, summary, start, end, description? }
     //   start/end: ISO datetime string e.g. "2026-07-03T10:00:00+02:00"
+    // deleteScope: 'this' (default) | 'all' — 'all' targets the recurring series'
+    //   base event id (caller resolves this) and also sweeps local sibling instances.
 
     const { userId } = await resolveUserScope(req, body.userId ?? null)
     if (!userId || !action) throw new Error('Missing userId or action')
@@ -175,6 +177,20 @@ Deno.serve(async (req) => {
           .eq('user_id', userId)
           .eq('event_id', event.id)
       )
+
+      // Whole-series delete: event.id is the recurring series' base id, but each
+      // occurrence was synced locally under its own instance id (`${baseId}_${timestamp}`).
+      // Sweep those too so the UI updates immediately instead of waiting for the next sync.
+      if (deleteScope === 'all') {
+        await safeExecute(
+          supabase
+            .from('vanguard_calendar')
+            .delete()
+            .eq('user_id', userId)
+            .like('event_id', `${event.id}_%`)
+        )
+      }
+
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
     }
 

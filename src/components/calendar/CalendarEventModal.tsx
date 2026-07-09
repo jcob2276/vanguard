@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Clock, Repeat, Trash2, Calendar } from 'lucide-react';
 import { useCalendarData } from './useCalendarData';
-import { monthLabel } from './calendarHelpers';
+import { monthLabel, recurringSeriesBaseId } from './calendarHelpers';
 
 import { LIFE_SPHERES } from '../../lib/lifeSpheres';
 
@@ -346,31 +346,61 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
       )}
 
       {/* 3. Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-[1px]" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="w-full max-w-xs rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-5 space-y-4 text-center" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[14px] font-black text-text-primary">Usuń cykl</p>
-            <p className="text-[11.5px] font-bold text-text-secondary">
-              Czy chcesz usunąć to wydarzenie? Jeśli jest to wydarzenie cykliczne, usunięta zostanie cała seria.
-            </p>
-            <div className="flex gap-2.5 pt-2">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
-              >
-                Anuluj
-              </button>
-              <button
-                onClick={executeDelete}
-                disabled={deleting}
-                className="flex-1 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
-              >
-                {deleting ? 'Usuwanie...' : 'Usuń serię'}
-              </button>
+      {showDeleteConfirm && (() => {
+        const isRecurringInstance = !!recurringSeriesBaseId(selectedEvent?.event_id || selectedEvent?.id);
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-[1px]" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="w-full max-w-xs rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-5 space-y-4 text-center" onClick={(e) => e.stopPropagation()}>
+              <p className="text-[14px] font-black text-text-primary">Usuń wydarzenie</p>
+              <p className="text-[11.5px] font-bold text-text-secondary">
+                {isRecurringInstance
+                  ? 'To wydarzenie jest częścią cyklu. Usunąć tylko to wystąpienie, czy całą serię?'
+                  : 'Czy na pewno chcesz usunąć to wydarzenie?'}
+              </p>
+              {isRecurringInstance ? (
+                <div className="space-y-2 pt-2">
+                  <button
+                    onClick={() => executeDelete('this')}
+                    disabled={deleting}
+                    className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
+                  >
+                    {deleting ? 'Usuwanie...' : 'Usuń tylko to wystąpienie'}
+                  </button>
+                  <button
+                    onClick={() => executeDelete('all')}
+                    disabled={deleting}
+                    className="w-full rounded-xl border border-rose-500/40 hover:bg-rose-500/10 disabled:opacity-50 text-rose-500 py-2.5 text-[11.5px] font-bold transition-colors"
+                  >
+                    {deleting ? 'Usuwanie...' : 'Usuń całą serię'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
+                  >
+                    Anuluj
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={() => executeDelete('this')}
+                    disabled={deleting}
+                    className="flex-1 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
+                  >
+                    {deleting ? 'Usuwanie...' : 'Usuń'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 };

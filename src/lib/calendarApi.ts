@@ -117,10 +117,12 @@ export function useDeleteCalendarEvent() {
       userId,
       accessToken,
       eventId,
+      deleteScope = 'this',
     }: {
       userId: string;
       accessToken: string;
       eventId: string;
+      deleteScope?: 'this' | 'all';
     }) => {
       const base = import.meta.env.VITE_SUPABASE_URL as string;
       const res = await fetch(`${base}/functions/v1/calendar-write`, {
@@ -132,6 +134,7 @@ export function useDeleteCalendarEvent() {
         body: JSON.stringify({
           userId,
           action: 'delete',
+          deleteScope,
           event: { id: eventId, summary: '', start: '', end: '' },
         }),
       });

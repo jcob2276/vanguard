@@ -35,6 +35,7 @@ import {
   weekMon,
   parseTime,
   dateOfISO,
+  getWarsawOffset,
 } from './calendarHelpers';
 import { GOAL_ICON } from '../todo/todoUtils';
 import { getSunTimes, formatTimeWarsaw } from '../../lib/solar';
@@ -221,11 +222,26 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   // Filter events and map by day for performance
   const eventsByDay = useMemo(() => {
     const map: Record<string, any[]> = {};
+    const add = (day: string, ev: any) => {
+      if (!map[day]) map[day] = [];
+      map[day].push(ev);
+    };
     for (const ev of events) {
       if (!ev.start_time) continue;
-      const d = dateOfISO(ev.start_time);
-      if (!map[d]) map[d] = [];
-      map[d].push(ev);
+      const startDay = dateOfISO(ev.start_time);
+      const endDay = ev.end_time ? dateOfISO(ev.end_time) : startDay;
+      if (startDay === endDay) {
+        add(startDay, ev);
+        continue;
+      }
+      // Event crosses local midnight (e.g. Oura sleep starting ~23:xx, waking
+      // next morning). A single block anchored to raw clock time would render
+      // invisible or garbled, since renderEventBlock has no cross-midnight
+      // awareness. Split into a head segment (start..midnight) on startDay and
+      // a tail segment (midnight..end) on endDay — each renders correctly.
+      const midnightISO = `${endDay}T00:00:00${getWarsawOffset(ev.start_time)}`;
+      add(startDay, { ...ev, end_time: midnightISO });
+      add(endDay, { ...ev, start_time: midnightISO });
     }
     return map;
   }, [events]);
@@ -704,6 +720,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             {weekDays.map((day) => (
               <div
                 key={day}
+                data-day-col={day}
                 className={`flex-1 relative border-l border-border-custom/30 ${day === today ? 'bg-primary/[0.02]' : ''}`}
               >
                 {renderDayColumn(day)}
