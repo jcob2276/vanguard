@@ -1,3 +1,13 @@
+/**
+ * @function calendar-write
+ * @trigger HTTP POST / Frontend / manual
+ * @role Zapis/aktualizacja wydarzeń w kalendarzu Google.
+ * @reads vanguard_tokens, vanguard_calendar
+ * @writes vanguard_calendar
+ * @calls googleapis.com/calendar
+ * @consumer Kalendarz Google użytkownika
+ * @status active
+ */
 import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 
 async function getAccessToken(userId: string): Promise<string> {

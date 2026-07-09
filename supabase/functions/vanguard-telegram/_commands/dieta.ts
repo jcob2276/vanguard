@@ -10,7 +10,7 @@ export async function handleDietaCommand(
   vanguardUserId: string,
 ): Promise<void> {
   try {
-    await sendChatAction(telegramToken, chatId, "typing");
+    await sendChatAction(telegramToken, chatId, "typing", { direct: true });
 
     const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-nutrition-coach`, {
       signal: AbortSignal.timeout(15000),

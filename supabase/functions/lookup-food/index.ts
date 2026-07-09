@@ -1,3 +1,13 @@
+/**
+ * @function lookup-food
+ * @trigger HTTP POST / Frontend / manual
+ * @role Wyszukiwanie makroskładników produktów spożywczych (baza lokalna + API zewnętrzne jak Open Food Facts).
+ * @reads —
+ * @writes —
+ * @calls Open Food Facts API (external)
+ * @consumer Modal dodawania jedzenia (FoodEntryModal) w aplikacji
+ * @status active
+ */
 import { corsHeaders } from '../_shared/supabase.ts'
 import { GENERIC_FOODS, searchGenericFoods, pickBestGenericMatch } from '../_shared/foodGeneric.ts'
 import { lookupReferencePl } from '../_shared/foodReferencePl.ts'

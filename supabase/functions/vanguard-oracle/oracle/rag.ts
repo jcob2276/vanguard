@@ -92,7 +92,7 @@ export async function retrieveRagContext(
   }
 
   // STATIC CONTEXT
-  const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, strainRes, dailyWinsRes] = await Promise.all([
+  const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, strainRes, dailyWinsRes, proposalsRes] = await Promise.all([
     supabase.from('user_fundament')
       .select('identity, philosophy, vision')
       .eq('user_id', user_id)
@@ -126,6 +126,11 @@ export async function retrieveRagContext(
       .eq('user_id', user_id)
       .eq('date', todayDate)
       .maybeSingle(),
+    supabase.from('system_proposals')
+      .select('title, description, category')
+      .eq('user_id', user_id)
+      .eq('status', 'pending')
+      .limit(5)
   ]);
 
   if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
@@ -135,6 +140,7 @@ export async function retrieveRagContext(
   if (foodEntries14dRes.error) console.error('[oracle] daily_food_entries query error:', foodEntries14dRes.error);
   if (strainRes.error) console.error('[oracle] daily_strain query error:', strainRes.error);
   if (dailyWinsRes.error) console.error('[oracle] daily_wins query error:', dailyWinsRes.error);
+  if (proposalsRes.error) console.error('[oracle] system_proposals query error:', proposalsRes.error);
 
   const responsePrefs = preferencesRes.data?.map((p: any) => `- ${p.value}`).join('\n') || '';
   const oura14d = oura14dRes.data || [];
@@ -294,6 +300,16 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
       }
       const finalHypothesesText = truncateToBudget(hypothesesText, 2500);
       graphContext += "\n\n" + finalHypothesesText;
+
+      const proposalsList = proposalsRes?.data || [];
+      let proposalsText = "";
+      if (proposalsList.length > 0) {
+        proposalsText = "[AKTYWNE PROPOZYCJE SYSTEMOWE (Czekające na decyzję użytkownika w Action Center)]:\n" +
+          proposalsList.map((p: any) => `- [${p.category}] ${p.title}: ${p.description}`).join('\n');
+      }
+      if (proposalsText) {
+        graphContext += "\n\n" + proposalsText;
+      }
 
       // Step 3: Narrative & Stream Layer (Narracja / Stream)
       const isPatternQuery = !!current_query.toLowerCase().match(/ostatnio|7 dni|trend|wzorc|wzorzec/);

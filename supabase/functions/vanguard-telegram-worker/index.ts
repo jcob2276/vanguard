@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-telegram-worker
+ * @trigger DB trigger na wstawienie nowego rekordu w vanguard_telegram_inbox (async)
+ * @role Asynchroniczny procesor Telegrama: przetwarza wiadomości i callbacki z kolejki inbox.
+ * @reads vanguard_telegram_inbox, vanguard_stream, daily_reconciliations
+ * @writes vanguard_telegram_inbox (status, error_log)
+ * @calls api.telegram.org (poprzez send.ts), deepseek-v4-flash, openai (Whisper)
+ * @consumer Wynik działania procesora (odpowiedź do użytkownika na Telegramie)
+ * @status active
+ */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { createTelegramContext } from "../vanguard-telegram/_router/config.ts";
 import { handleCallbackQuery } from "../vanguard-telegram/_router/callbacks.ts";

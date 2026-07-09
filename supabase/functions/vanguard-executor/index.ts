@@ -1,5 +1,18 @@
+/**
+ * @function vanguard-executor
+ * @trigger HTTP POST / manual
+ * @role Automatyczny wykonawca: ocenia reguły/warunki i wysyła zaprogramowane powiadomienia do Telegrama.
+ * @reads vanguard_recipes, daily_strain, oura_daily_summary
+ * @writes audit_events
+ * @calls api.telegram.org (bezpośrednio)
+ * @consumer Powiadomienia wypychane w Telegramie (system powiadomień i automatyzacji)
+ * @status active
+ */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { fetchWorldState } from "../_shared/worldState.ts";
+import { sendMessage } from "../_shared/telegram.ts";
+// Force upload of domain package for shared dependencies
+import type {} from "@vanguard/domain";
 
 // Simple safe evaluator for recipes
 function evaluateCondition(condition: string, state: any): boolean {
@@ -17,18 +30,13 @@ function evaluateCondition(condition: string, state: any): boolean {
 }
 
 async function notifyTelegram(message: string) {
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
-  if (!botToken || !chatId) {
-    console.warn("[executor] Telegram credentials not configured");
+  const chatId = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") || "0", 10);
+  if (!chatId) {
+    console.warn("[executor] TELEGRAM_CHAT_ID not configured");
     return;
   }
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-  await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: message }),
-  });
+  // Token is unused for outbox path but required by function signature
+  await sendMessage("", chatId, message);
 }
 
 Deno.serve(async (req) => {

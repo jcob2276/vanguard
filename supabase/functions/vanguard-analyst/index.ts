@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-analyst
+ * @trigger pg_cron `0 3 * * *` UTC (daily-analyst) / manual
+ * @role Nocna analiza wzorców: wykrywa tarcia i sugeruje system_proposals na bazie korelacji.
+ * @reads vanguard_stream, friction_events, vanguard_curiosity_queue, system_proposals
+ * @writes system_proposals, audit_events
+ * @calls deepseek-reasoner, api.telegram.org (poprzez send.ts)
+ * @consumer Action Center w aplikacji frontendowej (propozycje system_proposals)
+ * @status active
+ */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { sendMessage } from "../_shared/telegram.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"

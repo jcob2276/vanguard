@@ -1,6 +1,7 @@
 import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { runEnhanced } from './enhanced.ts'
 import { runTimeseries } from './timeseries.ts'
+import { sendMessage } from '../_shared/telegram.ts'
 
 const OURA_BASE_URL = 'https://api.ouraring.com/v2/usercollection'
 
@@ -140,6 +141,46 @@ export async function runOuraSync(req: Request): Promise<Response> {
           await safeExecute(
             supabase.from('oura_daily_summary').upsert(upsertData, { onConflict: 'user_id,date' })
           )
+          
+          // Proactive low biometrics push alert
+          for (const row of upsertData) {
+            const lowReadiness = row.readiness_score && row.readiness_score < 40;
+            const lowEfficiency = row.sleep_efficiency && row.sleep_efficiency < 75;
+            if (lowReadiness || lowEfficiency) {
+              const todayStr = row.date;
+              const { data: alreadyLogged } = await supabase
+                .from("audit_events")
+                .select("id")
+                .eq("user_id", userId)
+                .eq("event_type", "low_biometrics_alert")
+                .eq("related_id", todayStr)
+                .maybeSingle();
+
+               if (!alreadyLogged) {
+                const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+                const telegramToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+                if (telegramChatId && telegramToken) {
+                  const alertMsg = lowReadiness
+                    ? `⚠️ Oura (${todayStr}): readiness score ${row.readiness_score}%`
+                    : `⚠️ Oura (${todayStr}): sleep efficiency ${row.sleep_efficiency}%`;
+
+                  await sendMessage(telegramToken, telegramChatId, alertMsg).catch((e) => {
+                    console.error("[OURA] Failed to send Telegram push alert:", e);
+                  });
+
+                  await supabase.from("audit_events").insert({
+                    user_id: userId,
+                    event_type: "low_biometrics_alert",
+                    severity: "warning",
+                    message: alertMsg,
+                    related_table: "oura_daily_summary",
+                    related_id: todayStr
+                  });
+                }
+              }
+            }
+          }
+
           totalUpserted += upsertData.length
           console.log(`[OURA] batch ${batchStart}→${batchEnd}: ${upsertData.length} rows upserted`)
         }

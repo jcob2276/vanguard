@@ -1,6 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 
 export async function handlePostCommand(
   text: string,
@@ -33,6 +34,12 @@ export async function handlePostCommand(
       { onConflict: 'user_id,date' }
     );
     if (error) throw error;
+
+    // Invalidate world state cache
+    fetchWorldState(supabase, vanguardUserId, dateStr, undefined, true).catch((e) => {
+      console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+    });
+
     await safeSendTelegram(chatId, `🔵 Post zapisany (${dateStr})${note ? `\nOpis: ${note}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   } catch (err) {
     console.error('[commands] /post failed:', err);

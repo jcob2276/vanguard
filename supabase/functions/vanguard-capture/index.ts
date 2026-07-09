@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-capture
+ * @trigger HTTP POST / Frontend / extension
+ * @role Szybkie przechwytywanie notatek tekstowych i głosowych oraz zapisywanie do bazy jako stream/linki.
+ * @reads vanguard_stream, vanguard_entity_links, entities
+ * @writes vanguard_stream, vanguard_raw_events, vanguard_entity_links, audit_events
+ * @calls deepseek-v4-flash, text-embedding-3-small
+ * @consumer Inbox w aplikacji frontendowej (stream i linki)
+ * @status active
+ */
 import { getEmbedding } from "../_shared/openai.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";

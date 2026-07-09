@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-metabolism
+ * @trigger HTTP POST / manual
+ * @role Metabolizm: kondensuje i trawi historyczne dane ze streamu, budując beliefs i narracje.
+ * @reads vanguard_stream, entities, claims
+ * @writes vanguard_stream (condensed/archived status)
+ * @calls deepseek-v4-flash
+ * @consumer Baza danych i RAG Wyroczni (zmniejszenie szumu)
+ * @status active
+ */
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";

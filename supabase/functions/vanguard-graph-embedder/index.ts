@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-graph-embedder
+ * @trigger HTTP POST / manual
+ * @role Generuje embeddingi dla relacji grafu (vanguard_entity_links) w celu wyszukiwania semantycznego.
+ * @reads vanguard_entity_links
+ * @writes vanguard_entity_links (embedding)
+ * @calls text-embedding-3-small, deepseek-v4-flash (do podsumowań relacji)
+ * @consumer RAG Wyroczni (wyszukiwanie podobieństwa)
+ * @status active
+ */
 import { getEmbedding } from "../_shared/openai.ts";
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"

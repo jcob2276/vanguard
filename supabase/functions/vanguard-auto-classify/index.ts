@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-auto-classify
+ * @trigger DB trigger / cron na nowe wpisy w vanguard_stream
+ * @role Klasyfikacja strumienia: automatycznie wykrywa i zapisuje tarcia (friction_events) i ich odzyskiwanie (recovery).
+ * @reads vanguard_stream, friction_events
+ * @writes friction_events, audit_events
+ * @calls deepseek-v4-flash, text-embedding-3-small, api.telegram.org (poprzez send.ts)
+ * @consumer Zapis tarcia i regeneracji (baza dowodów)
+ * @status active
+ */
 import { getEmbedding } from "../_shared/openai.ts";
 import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { sendMessage } from '../_shared/telegram.ts'

@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-oracle
+ * @trigger HTTP POST / Wywoływane z Telegrama lub frontendowego czatu Wyroczni
+ * @role Silnik Wyroczni: obsługuje czat z RAG, generuje odpowiedzi, wnioskuje fakty i decyduje o akcjach.
+ * @reads vanguard_oracle_runs, vanguard_stream, entities, claims, daily_strain, medical_lab_results, system_proposals
+ * @writes vanguard_oracle_runs, audit_events
+ * @calls deepseek-v4-flash (default), deepseek-reasoner (deep mode `!!`), text-embedding-3-small (RAG)
+ * @consumer Czat Wyroczni w Telegramie oraz w aplikacji webowej
+ * @status active
+ */
 import { deepseekChat, deepseekStream, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts";
@@ -284,7 +294,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { state_vector, history, current_query, user_id: requestedUserId, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf, override_date, stream } = body;
+    const { state_vector, history, current_query, user_id: requestedUserId, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf, override_date, stream, resolved_claims } = body;
     const { userId } = await resolveUserScope(req, requestedUserId ?? null);
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
@@ -334,7 +344,7 @@ Deno.serve(async (req) => {
       strainText: rag.strainText,
       medicalContextText: rag.medicalContextText,
       semanticContext: rag.semanticContext,
-      graphContext: rag.graphContext,
+      graphContext: resolved_claims ? `${resolved_claims}\n\n${rag.graphContext}` : rag.graphContext,
       wikiContext: rag.wikiContext,
       localTimeString,
       safeUserConf,

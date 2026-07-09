@@ -2,6 +2,7 @@ import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 
 export async function handleTodoCommand(
   text: string,
@@ -29,52 +30,59 @@ export async function handleTodoCommand(
     let title = raw;
     let dueDate: string | null = null;
     let dueTime: string | null = null;
-    let priority = 'normal';
+    let priority: 'high' | 'medium' | 'low' = 'medium';
+    let notes = '';
 
-    if (deepseekApiKey) {
-      try {
-        const res = await deepseekChat({
-          apiKey: deepseekApiKey,
-          model: 'deepseek-chat',
-          temperature: 0,
-          maxTokens: 120,
-          responseFormat: { type: 'json_object' },
-          messages: [{
-            role: 'user',
-            content: `Dzisiaj: ${todayStr} (${dayName}). Sparsuj polskie zadanie i wyciągnij: czysty tytuł, datę i czas wykonania, priorytet.
+    const systemPrompt = `Jesteś parserem zadań (TODO) w systemie Vanguard.
+Przetwórz wpis użytkownika i zwróć dane w formacie JSON.
+Użytkownik pisze w języku polskim.
+Dzisiejsza data: ${todayStr} (dzień tygodnia: ${dayName}).
+Jutrzejsza data: ${tomorrowStr}.
 
-Zasady:
-- "jutro" → ${tomorrowStr}
-- "pojutrze" → +2 dni
-- "w poniedziałek/wtorek/środę/czwartek/piątek/sobotę/niedzielę" → najbliższy taki dzień
-- "za tydzień" → +7 dni
-- "za dwa tygodnie" / "za 2 tygodnie" → +14 dni
-- "za miesiąc" → +30 dni
-- "w weekend" → najbliższa sobota
-- "p1" lub "pilne" lub "!high" → priority: high
-- "p2" → priority: normal
-- "p3" lub "!low" → priority: low
-- czas: "o 14", "o 14:00", "14:00", "rano"→09:00, "wieczorem"→20:00, "w południe"→12:00
-- usuń z tytułu wszystkie znalezione daty/czasy/priorytety, zostaw tylko treść zadania
+Zasady parsowania terminów:
+- "jutro" -> due_date = jutrzejsza data
+- "dziś", "dzisiaj" -> due_date = dzisiejsza data
+- "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela" -> due_date = najbliższy dany dzień tygodnia
+- "za tydzień" -> due_date = dzisiejsza data + 7 dni
+- godziny np. "o 14", "15:30" -> due_time = "14:00" lub "15:30"
+- priorytety np. "pilne", "ASAP", "na wczoraj", wykrzykniki "!" -> priority = "high"
+- priorytety np. "kiedyś", "low", "niski" -> priority = "low"
 
-Odpowiedz TYLKO JSON (bez markdown):
-{"title":"<treść zadania>","due_date":"YYYY-MM-DD lub null","due_time":"HH:MM lub null","priority":"normal|high|low"}
+Wymagany format wyjściowy JSON:
+{
+  "title": "oczyszczony tytuł zadania (bez słów kluczowych dat/godzin/priorytetów, np. 'kupić mleko')",
+  "due_date": "RRRR-MM-DD lub null",
+  "due_time": "GG:MM lub null",
+  "priority": "high | medium | low",
+  "notes": "wszelkie dodatkowe uwagi lub kontekst"
+}
 
-Tekst: "${raw}"`
-          }]
-        });
+Zwróć TYLKO czysty obiekt JSON.`;
 
-        const parsed: any = parseJsonFromContent(res.content || '{}') || {};
-        if (parsed.title) title = parsed.title;
-        if (parsed.due_date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.due_date)) dueDate = parsed.due_date;
-        if (parsed.due_time && /^\d{2}:\d{2}$/.test(parsed.due_time)) dueTime = parsed.due_time;
-        if (['high', 'normal', 'low'].includes(parsed.priority)) priority = parsed.priority;
-      } catch (parseErr) {
-        console.warn('[todo] DeepSeek parse failed, using raw text:', parseErr);
+    const chatRes = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: raw }
+      ],
+      temperature: 0.0,
+      responseFormat: { type: 'json_object' }
+    }).catch((e) => {
+      console.error('[commands] LLM parse failed, falling back to raw:', e);
+      return null;
+    });
+
+    if (chatRes) {
+      const parsed = parseJsonFromContent(chatRes.content);
+      if (parsed) {
+        title = (parsed.title as string) || title;
+        dueDate = (parsed.due_date as string) || null;
+        dueTime = (parsed.due_time as string) || null;
+        priority = (parsed.priority as 'high' | 'medium' | 'low') || 'medium';
+        notes = (parsed.notes as string) || '';
       }
     }
-
-    const notes = dueTime ? `⏰ ${dueTime}` : null;
 
     const { error } = await supabase.from('todo_items').insert({
       user_id: vanguardUserId,
@@ -86,6 +94,11 @@ Tekst: "${raw}"`
       tags: ['telegram'],
     });
     if (error) throw error;
+
+    // Invalidate world state cache asynchronously
+    fetchWorldState(supabase, vanguardUserId, todayStr, undefined, true).catch((e) => {
+      console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+    });
 
     const duePart = dueDate ? ` · ${dueDate}${dueTime ? ` ${dueTime}` : ''}` : '';
     const prioPart = priority === 'high' ? ' · 🔴' : priority === 'low' ? ' · ⬇️' : '';

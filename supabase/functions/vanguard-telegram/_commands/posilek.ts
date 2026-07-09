@@ -54,7 +54,7 @@ export async function handlePosilekCommand(
       return;
     }
 
-    await sendChatAction(telegramToken, chatId, 'typing');
+    await sendChatAction(telegramToken, chatId, 'typing', { direct: true });
 
     const items = await callParseFoodNl(raw, vanguardUserId, supabaseUrl, supabaseServiceRoleKey);
     if (items.length === 0) {

@@ -116,7 +116,7 @@ verify_jwt = false
 [functions.vanguard-executor]
 enabled = true
 verify_jwt = false
-import_map = "./functions/vanguard-executor/deno.json"
+import_map = "./functions/import_map.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/vanguard-executor/index.ts"

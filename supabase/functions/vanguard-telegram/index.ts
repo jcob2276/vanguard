@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-telegram
+ * @trigger HTTP POST / Telegram Webhook (wejście)
+ * @role WEJŚCIE: Webhook od Telegrama, autoryzuje chat, odbiera wiadomości i wrzuca do vanguard_telegram_inbox.
+ * @reads —
+ * @writes vanguard_telegram_inbox
+ * @calls api.telegram.org (poprzez setMyCommands/setWebhook)
+ * @consumer Kolejka wejściowa Telegrama (inbox)
+ * @status active
+ */
 import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";

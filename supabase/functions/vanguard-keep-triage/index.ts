@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-keep-triage
+ * @trigger HTTP POST / Frontend weekly ritual (Direction tab)
+ * @role Klasyfikuje i segreguje notatki Google Keep (akcja: keep/archive/todo, kategoria).
+ * @reads vanguard_notes, vanguard_stream (poprzez powiązania)
+ * @writes vanguard_notes (status, kategoria), vanguard_stream
+ * @calls deepseek-chat
+ * @consumer Widok notatek w zakładce Direction w aplikacji
+ * @status active
+ */
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 

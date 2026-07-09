@@ -1,3 +1,13 @@
+/**
+ * @function analyze-training-load
+ * @trigger HTTP POST / Frontend / manual LLM analysis
+ * @role Analiza obciążenia treningowego na podstawie sesji i planów.
+ * @reads daily_strain, workout_sessions, strava_activities_clean, training_plan_workouts
+ * @writes —
+ * @calls deepseek-chat (w analysis.ts)
+ * @consumer Sekcja treningowa w aplikacji
+ * @status active
+ */
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { analyzeTrainingLoad } from './analysis.ts'
 

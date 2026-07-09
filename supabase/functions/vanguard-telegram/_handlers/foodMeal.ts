@@ -1,5 +1,6 @@
 import { ackCallback } from '../_utils/callbackAck.ts'
 import { safeSendTelegram } from '../_utils/helpers.ts'
+import { fetchWorldState } from '../../_shared/worldState.ts'
 import {
   needsFoodReview,
   type ParsedFoodItem,
@@ -196,6 +197,11 @@ export async function handleFoodMealCallback(
     return
   }
 
+  // Invalidate world state cache
+  fetchWorldState(supabase, userId, pending.date, undefined, true).catch((e) => {
+    console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+  });
+
   const total = logged.reduce((sum, l) => sum + l.calories, 0)
   const lines = logged.map((l) => `• ${l.name} — ${l.grams}g — ${l.calories} kcal`).join('\n')
   const label = MEAL_TYPE_LABELS[pending.mealType] ?? pending.mealType
@@ -243,6 +249,11 @@ export async function sendFoodParseResult(
     await safeSendTelegram(chatId, '❌ Nie udało się zapisać posiłku.', telegramToken, { reply_markup: replyKeyboard })
     return
   }
+
+  // Invalidate world state cache
+  fetchWorldState(supabase, userId, date, undefined, true).catch((e) => {
+    console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+  });
 
   const total = logged.reduce((sum, l) => sum + l.calories, 0)
   const lines = logged.map((l) => `• ${l.name} — ${l.grams}g — ${l.calories} kcal`).join('\n')

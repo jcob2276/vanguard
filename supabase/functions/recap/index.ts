@@ -1,3 +1,13 @@
+/**
+ * @function recap
+ * @trigger HTTP POST / manual / cron
+ * @role Router dla podsumowań (recap): wywołuje daily reconciliation, weekly synthesis lub weekly recap.
+ * @reads daily_reconciliations, vanguard_stream, friction_events, vanguard_daily_aggregates, vanguard_curiosity_queue
+ * @writes daily_reconciliations, vanguard_stream, friction_events
+ * @calls api.telegram.org (poprzez send.ts), deepseek-chat
+ * @consumer Powiadomienia Telegram z podsumowaniem dnia/tygodnia
+ * @status active
+ */
 import { corsHeaders } from "../_shared/supabase.ts";
 import { runDailyReconciliation } from "./daily.ts";
 import { runWeeklySynthesis } from "./weekly-synthesis.ts";

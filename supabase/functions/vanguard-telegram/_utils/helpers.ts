@@ -45,29 +45,44 @@ export async function safeSendTelegram(
   token: string,
   options: { reply_markup?: unknown; disable_notification?: boolean; parse_mode?: string } = {},
 ): Promise<boolean> {
-  const chunks = chunkText(text);
+  // Safe SPLIT: only split on [SPLIT] that is surrounded by whitespace (or at string edges).
+  // This prevents accidentally splitting inside Markdown links or URLs
+  // where [SPLIT] would never appear with surrounding spaces.
+  const parts = text.split(/[ \t]*\[SPLIT\][ \t]*/).map(p => p.trim()).filter(Boolean);
   let allOk = true;
 
-  for (let i = 0; i < chunks.length; i++) {
-    const isLast = i === chunks.length - 1;
-    const result = await sendMessageParsed(token, chatId, chunks[i], {
-      parseMode: options.parse_mode,
-      disableNotification: options.disable_notification,
-      replyMarkup: isLast ? options.reply_markup : undefined,
-    });
+  for (let pIdx = 0; pIdx < parts.length; pIdx++) {
+    const partText = parts[pIdx];
+    const isLastPart = pIdx === parts.length - 1;
+    const chunks = chunkText(partText);
 
-    if (result.ok) continue;
+    for (let i = 0; i < chunks.length; i++) {
+      const isLast = isLastPart && (i === chunks.length - 1);
 
-    // Retry without parse_mode on Markdown entity error
-    if (options.parse_mode) {
-      console.warn('[telegram] send with parse_mode failed, retrying as plain text:', result.description);
-      const retry = await sendMessageParsed(token, chatId, chunks[i], {
+      // Simulate human pacing delay for subsequent messages
+      if (pIdx > 0 || i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const result = await sendMessageParsed(token, chatId, chunks[i], {
+        parseMode: options.parse_mode,
         disableNotification: options.disable_notification,
         replyMarkup: isLast ? options.reply_markup : undefined,
       });
-      if (!retry.ok) allOk = false;
-    } else {
-      allOk = false;
+
+      if (result.ok) continue;
+
+      // Retry without parse_mode on Markdown entity error
+      if (options.parse_mode) {
+        console.warn('[telegram] send with parse_mode failed, retrying as plain text:', result.description);
+        const retry = await sendMessageParsed(token, chatId, chunks[i], {
+          disableNotification: options.disable_notification,
+          replyMarkup: isLast ? options.reply_markup : undefined,
+        });
+        if (!retry.ok) allOk = false;
+      } else {
+        allOk = false;
+      }
     }
   }
 

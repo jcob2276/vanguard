@@ -27,6 +27,7 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-capture",
   "vanguard-keep-triage",
   "vanguard-backtester",
+  "vanguard-outbox-sender",
 ];
 
 
@@ -56,6 +57,7 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-capture", post: "skip", sideEffects: "Unified capture endpoint (text/link/voice)" },
   { name: "vanguard-keep-triage", post: "skip", sideEffects: "AI triage for unread links (calls DeepSeek)" },
   { name: "vanguard-backtester", post: "skip", sideEffects: "Historical backtest simulation — OPTIONS only for smoke" },
+  { name: "vanguard-outbox-sender", post: "skip", sideEffects: "Sends Telegram messages from outbox queue asynchronously" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */

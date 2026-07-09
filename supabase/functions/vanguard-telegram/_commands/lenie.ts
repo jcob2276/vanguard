@@ -1,6 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 
 export async function handleLenieCommand(
   text: string,
@@ -10,43 +11,48 @@ export async function handleLenieCommand(
   vanguardUserId: string,
 ): Promise<void> {
   try {
-    const today = getWarsawDateString();
-    const rest = text.slice('/lenie'.length).trim();
-    const [finalStimulus, contextNote] = rest.includes('|')
-      ? rest.split('|').map(s => s.trim())
-      : [rest, null];
+    const raw = text.replace(/^\/lenie\s*/i, '').trim();
+    const parts = raw ? raw.split('|').map(p => p.trim()) : [];
+    const stimulus = parts[0] || '';
+    const contextNote = parts[1] || '';
 
-    let { data: habit } = await supabase
-      .from('habits')
-      .select('id')
+    const today = getWarsawDateString();
+    
+    // Check if there's already a log for today
+    const { data: existing } = await supabase.from('habit_logs')
+      .select('id, metadata')
       .eq('user_id', vanguardUserId)
-      .eq('name', 'Lenie')
+      .eq('habit_name', 'Lenie')
+      .eq('date', today)
       .maybeSingle();
 
-    if (!habit) {
-      const { data: newHabit, error: hErr } = await supabase
-        .from('habits')
-        .insert({ user_id: vanguardUserId, name: 'Lenie', icon: 'L', is_positive: false })
-        .select('id').single();
-      if (hErr) throw hErr;
-      habit = newHabit;
+    let finalStimulus = stimulus;
+    if (existing) {
+      const prevMeta = existing.metadata || {};
+      const prevStimuli = Array.isArray(prevMeta.stimuli) ? prevMeta.stimuli : (prevMeta.stimulus ? [prevMeta.stimulus] : []);
+      const newStimuli = [...prevStimuli];
+      if (stimulus) newStimuli.push(stimulus);
+
+      const count = (prevMeta.count || 1) + 1;
+      await supabase.from('habit_logs').update({
+        metadata: { ...prevMeta, count, stimuli: newStimuli, last_stimulus: stimulus }
+      }).eq('id', existing.id);
+      finalStimulus = newStimuli.join(' + ');
+    } else {
+      await supabase.from('habit_logs').insert({
+        user_id: vanguardUserId,
+        habit_name: 'Lenie',
+        date: today,
+        value_number: 1,
+        metadata: { count: 1, stimuli: stimulus ? [stimulus] : [], last_stimulus: stimulus }
+      });
     }
 
-    const { error: logErr } = await supabase.from('habit_logs').upsert({
-      user_id: vanguardUserId,
-      habit_id: habit.id,
-      date: today,
-      completed: true,
-      final_stimulus: finalStimulus || null,
-      context_note: contextNote || null,
-      logged_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,habit_id,date' });
+    // Mirror to vanguard_stream
+    const streamParts = [`[LOG NAWYKU] Lenie x${existing ? (existing.metadata?.count || 1) + 1 : 1}`];
+    if (finalStimulus) streamParts.push(`Bodziec: ${finalStimulus}`);
+    if (contextNote) streamParts.push(`Kontekst: ${contextNote}`);
 
-    if (logErr) throw logErr;
-
-    const streamParts = [`[Nawyk/Lenie] (unikać, ${today})`];
-    if (finalStimulus) streamParts.push(`bodziec: ${finalStimulus}`);
-    if (contextNote) streamParts.push(`kontekst: ${contextNote}`);
     const { error: streamErr } = await supabase.from('vanguard_stream').insert({
       user_id: vanguardUserId,
       content: streamParts.join(' · '),
@@ -56,6 +62,11 @@ export async function handleLenieCommand(
       metadata: { habit_name: 'Lenie', is_positive: false, date: today },
     });
     if (streamErr) console.warn('[commands] /lenie stream mirror failed:', streamErr.message);
+
+    // Invalidate world state cache
+    fetchWorldState(supabase, vanguardUserId, today, undefined, true).catch((e) => {
+      console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+    });
 
     const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
     await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });

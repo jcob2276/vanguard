@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-mcp-server
+ * @trigger HTTP POST / Model Context Protocol (MCP) z autoryzacją tokenem MCP_SERVER_SECRET
+ * @role Serwer MCP udostępniający stan systemu i narzędzia dla agentów AI.
+ * @reads vanguard_stream, entities, claims, daily_strain
+ * @writes vanguard_stream, audit_events
+ * @calls —
+ * @consumer AI coding assistants / personal agents
+ * @status active
+ */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { fetchWorldState } from "../_shared/worldState.ts"

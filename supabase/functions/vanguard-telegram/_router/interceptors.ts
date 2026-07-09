@@ -58,6 +58,7 @@ export interface MessageContext extends TelegramRouterContext {
   } | null;
   streamSaveFailed: boolean;
   handlerResponded: boolean;
+  resolvedClaims?: { id: string; text: string }[];
 }
 
 interface MessageInterceptor {
@@ -202,7 +203,7 @@ export class TranscriptionInterceptor implements MessageInterceptor {
   async handle(ctx: MessageContext): Promise<boolean> {
     if (!ctx.isVoice) return false;
 
-    await sendChatAction(ctx.telegramToken, ctx.chatId, "record_voice");
+    await sendChatAction(ctx.telegramToken, ctx.chatId, "record_voice", { direct: true });
     await safeSendTelegram(
       ctx.chatId,
       "🎤 Słucham...",
@@ -336,8 +337,8 @@ export class CommandRouterInterceptor implements MessageInterceptor {
   name = "CommandRouterInterceptor";
   async handle(ctx: MessageContext): Promise<boolean> {
     let cleanText = ctx.text;
-    let shouldRespond = false;
-    let mode = "stream";
+    let shouldRespond = true;
+    let mode = "chat";
 
     if (ctx.text.startsWith("?")) {
       shouldRespond = true;
@@ -450,7 +451,7 @@ export class ReconciliationContextInterceptor implements MessageInterceptor {
   async handle(ctx: MessageContext): Promise<boolean> {
     const hasCommandPrefix = /^(\?|!!|##|@|poprawka:)/i.test(ctx.text.trim());
 
-    if (!hasCommandPrefix && ctx.mode === "stream") {
+    if (!hasCommandPrefix && (ctx.mode === "stream" || ctx.mode === "chat")) {
       const { data: reconciliation } = await ctx.supabase
         .from("daily_reconciliations")
         .select("id, date, created_at, mode, parsed_response")
@@ -469,7 +470,7 @@ export class ReconciliationContextInterceptor implements MessageInterceptor {
             mode: reconciliation.mode,
             parsed_response: reconciliation.parsed_response,
           };
-          ctx.shouldRespond = false;
+          ctx.shouldRespond = true; // Oracle responds even during reconciliation
           ctx.mode = "daily_reconciliation_response";
           ctx.cleanText = ctx.text.trim();
         }
@@ -477,20 +478,17 @@ export class ReconciliationContextInterceptor implements MessageInterceptor {
     }
 
     if (ctx.isVoice) {
-      const transcriptWordCount = ctx.text.trim().split(/\s+/).filter(Boolean).length;
-      const transcriptStartsChat = /^(pytanie|wyrocznia|\?)/i.test(ctx.text.trim());
-      if (transcriptStartsChat) {
-        ctx.pendingReconciliation = null;
+      if (ctx.mode === "daily_reconciliation_response") {
+        // During reconciliation: save to DB via ReconciliationSaverInterceptor
+        // AND let Oracle respond — voice is the most valuable signal of the day
+        ctx.shouldRespond = true;
+        ctx.cleanText = ctx.text.trim();
+        // mode stays "daily_reconciliation_response" so ReconciliationSaverInterceptor fires
+      } else {
+        // All other voice → Oracle responds, always
         ctx.shouldRespond = true;
         ctx.mode = "chat";
         ctx.cleanText = ctx.text.replace(/^(pytanie|wyrocznia)\s*[:,-]?\s*/i, "").trim();
-      } else {
-        ctx.shouldRespond = false;
-        ctx.cleanText = ctx.text.trim();
-        if (ctx.mode === "daily_reconciliation_response") {
-          ctx.cleanText = ctx.text.trim();
-        }
-        ctx.mode = transcriptWordCount > 200 ? "knowledge" : "stream";
       }
     }
 
@@ -510,9 +508,12 @@ export class StreamWriterInterceptor implements MessageInterceptor {
         voiceWpm = Math.round(wordCount / (voiceDurationSec / 60));
       }
 
+      // For free-form messages (mode='chat'), store as 'stream' in the DB
+      // to keep metadata consistent — mode='chat' is a routing decision, not a stream type
+      const dbMode = ctx.mode === "chat" ? "stream" : ctx.mode;
       const streamRes = await insertStreamRecord(
         ctx.cleanText,
-        ctx.mode,
+        dbMode,
         ctx.isVoice,
         voiceDurationSec,
         voiceWpm,
@@ -528,7 +529,7 @@ export class StreamWriterInterceptor implements MessageInterceptor {
     // Anti-analysis guard
     const hasCommandPrefix = /^(\?|!!|##|@|poprawka:)/i.test(ctx.text.trim());
     if (
-      ctx.mode === "stream" &&
+      (ctx.mode === "stream" || ctx.mode === "chat") &&
       !hasCommandPrefix &&
       !ctx.pendingReconciliation &&
       ctx.cleanText.length >= 120
@@ -566,7 +567,11 @@ export class ReconciliationSaverInterceptor implements MessageInterceptor {
         ctx.vanguardUserId,
         ctx.pendingReconciliation.date,
       );
-      ctx.handlerResponded = true;
+      // Only block Oracle if shouldRespond=false (non-voice text during reconciliation)
+      // Voice messages continue to Oracle for a real response
+      if (!ctx.shouldRespond) {
+        ctx.handlerResponded = true;
+      }
     }
     return false;
   }
@@ -639,7 +644,10 @@ export class OracleResponseInterceptor implements MessageInterceptor {
           ? "✅ Refleksja zapisana."
           : ctx.streamSaveFailed
           ? "❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie."
-          : "💭 Zapisano w Strumieniu.";
+          : ""; // No filler — silence means success
+
+      // Nothing to say and no error — exit silently
+      if (!responseText) return true;
     } else {
       responseText = await queryOracle(ctx.cleanText, ctx.mode, ctx.chatId, ctx);
     }
@@ -650,19 +658,28 @@ export class OracleResponseInterceptor implements MessageInterceptor {
     }
 
     const hasButtons = ctx.shouldRespond && !responseText.startsWith("⚠️");
+    const inlineKeyboard: any[][] = [];
+    if (hasButtons) {
+      inlineKeyboard.push([
+        { text: "👍 Dobra odpowiedź", callback_data: `fb_ok_${Date.now()}` },
+        { text: "👎 Popraw mnie", callback_data: `fb_err_${Date.now()}` },
+      ]);
+      if (ctx.resolvedClaims && ctx.resolvedClaims.length > 0) {
+        for (const claim of ctx.resolvedClaims) {
+          const cleanText = claim.text.length > 35 ? claim.text.substring(0, 32) + "..." : claim.text;
+          inlineKeyboard.push([
+            { text: `💾 Zapisz: "${cleanText}"`, callback_data: `save_claim_${claim.id}` }
+          ]);
+        }
+      }
+    }
+
     const telegramPayload = {
       chat_id: ctx.chatId,
       text: responseText,
       disable_notification: !ctx.shouldRespond,
       reply_markup: hasButtons
-        ? {
-            inline_keyboard: [
-              [
-                { text: "👍 Dobra odpowiedź", callback_data: `fb_ok_${Date.now()}` },
-                { text: "👎 Popraw mnie", callback_data: `fb_err_${Date.now()}` },
-              ],
-            ],
-          }
+        ? { inline_keyboard: inlineKeyboard }
         : DEFAULT_REPLY_KEYBOARD,
     };
 

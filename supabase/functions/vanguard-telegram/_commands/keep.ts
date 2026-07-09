@@ -1,5 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
+import { getWarsawDateString } from "../../_shared/time.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 
 export async function handleKeepCommand(
   text: string,
@@ -26,6 +28,11 @@ export async function handleKeepCommand(
       tags,
     });
     if (error) throw error;
+
+    const todayStr = getWarsawDateString();
+    fetchWorldState(supabase, vanguardUserId, todayStr, undefined, true).catch((e) => {
+      console.error("[telegram] fetchWorldState forceRefresh failed:", e);
+    });
 
     const label = fromVoice ? '🎤 Głosówka zapisana w Keep' : '📒 Notatka zapisana w Keep';
     await safeSendTelegram(chatId, `${label}\n"${firstLine}"`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });

@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-kpi-suggest
+ * @trigger HTTP POST / Frontend weekly ritual (Direction tab)
+ * @role Sugeruje kluczowe wskaźniki efektywności (KPI) dla celów i projektów użytkownika przy użyciu LLM.
+ * @reads life_goals, projects, goal_kpis
+ * @writes —
+ * @calls deepseek-chat
+ * @consumer Kreator celów w zakładce Direction w aplikacji
+ * @status active
+ */
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 

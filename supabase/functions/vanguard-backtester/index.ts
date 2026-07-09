@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-backtester
+ * @trigger HTTP POST / manual (wymaga Service Role Key)
+ * @role Backtesting reguł i wzorców na historycznych danych biometrycznych/żywieniowych.
+ * @reads daily_strain, oura_daily_summary, daily_nutrition
+ * @writes —
+ * @calls —
+ * @consumer Narzędzia deweloperskie i analityczne
+ * @status active
+ */
 import { corsHeaders, createServiceClient } from '../_shared/supabase.ts';
 
 Deno.serve(async (req) => {

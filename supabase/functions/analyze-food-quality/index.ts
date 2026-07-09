@@ -1,3 +1,13 @@
+/**
+ * @function analyze-food-quality
+ * @trigger HTTP POST / Frontend / manual LLM analysis
+ * @role Analiza jakości żywienia za dany dzień przy użyciu LLM.
+ * @reads daily_food_entries, daily_nutrition
+ * @writes —
+ * @calls deepseek-chat
+ * @consumer Widok podsumowania jakości jedzenia w aplikacji
+ * @status active
+ */
 import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 import { getWarsawDateString as warsaw } from '../_shared/time.ts'

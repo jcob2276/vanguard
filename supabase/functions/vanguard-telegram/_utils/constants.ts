@@ -6,19 +6,13 @@
 export const DEFAULT_REPLY_KEYBOARD = {
   keyboard: [
     [
-      { text: "🛋️ Lenie" },
-      { text: "❓ Wyrocznia" }
-    ],
-    [
-      { text: "💬 Pytanie" },
-      { text: "🔚 Koniec" }
+      { text: "🛋️ Lenie" }
     ],
     [
       { text: "📝 Todo" },
       { text: "📒 Keep" }
     ],
     [
-      { text: "🍽️ Dieta" },
       { text: "🍴 Posiłek" }
     ],
     [

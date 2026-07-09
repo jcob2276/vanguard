@@ -1,8 +1,12 @@
 /**
- * parse-food-nl — natural-language meal parser with user context, reconciliation, 2-step complex meals.
- *
- * POST { text, userId? }
- * → { items: ParsedFoodItem[], meal_group_id? }
+ * @function parse-food-nl
+ * @trigger HTTP POST / Frontend NL meal parser
+ * @role Parser posiłków z języka naturalnego na struktury danych z uwzględnieniem kontekstu użytkownika.
+ * @reads daily_food_entries, user_settings, food_library
+ * @writes —
+ * @calls deepseek-chat (w foodParseCore.ts)
+ * @consumer Zapis posiłków w aplikacji frontendowej i Telegramie
+ * @status active
  */
 import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
 import {

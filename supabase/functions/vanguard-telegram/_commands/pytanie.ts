@@ -9,7 +9,7 @@ export async function handlePytanieCommand(
   supabaseServiceRoleKey: string,
 ): Promise<void> {
   try {
-    await sendChatAction(telegramToken, chatId, "typing");
+    await sendChatAction(telegramToken, chatId, "typing", { direct: true });
     const res = await fetch(`${supabaseUrl}/functions/v1/vanguard-eval-interview`, {
       signal: AbortSignal.timeout(15000),
       method: 'POST',

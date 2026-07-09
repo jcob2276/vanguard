@@ -108,6 +108,20 @@ export async function handleCallbackQuery(
     return;
   }
 
+  if (data.startsWith("save_claim_")) {
+    const { handleSaveClaimCallback } = await import("../_handlers/saveClaim.ts");
+    await handleSaveClaimCallback(
+      data,
+      chatId,
+      messageId,
+      callbackId,
+      supabase,
+      telegramToken,
+      vanguardUserId,
+    );
+    return;
+  }
+
   console.warn("[telegram] unknown callback_data:", data);
   // Telegram shows a spinning loader on the tapped button for up to 10s if the callback
   // is never answered — always acknowledge it, even for an unrecognized action.

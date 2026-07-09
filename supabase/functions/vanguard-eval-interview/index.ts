@@ -1,18 +1,12 @@
 /**
- * vanguard-eval-interview — Daily eval-driven interview mode
- *
- * Picks one failing eval question per day and sends it as a natural
- * interview prompt to Telegram. User's voice/text reply goes through
- * the normal pipeline (stream → Architect), filling the exact knowledge
- * gaps detected by the eval runner.
- *
- * Trigger: pg_cron `0 10 * * 1-5` UTC (12:00 Warsaw, Mon–Fri only)
- * JWT: false (--no-verify-jwt on deploy)
- *
- * Safety:
- * - Skips Saturday (already has saturday_checkin)
- * - Skips if a previous interview question is still unanswered (< 20h old)
- * - Never repeats the same eval question within 14 days
+ * @function vanguard-eval-interview
+ * @trigger pg_cron Mon-Fri `0 10 * * 1-5` UTC (12:00 Warsaw) / manual
+ * @role Interaktywny wywiad ("Wywiad"): zadaje na Telegramie jedno pytanie mające uzupełnić luki w grafie wiedzy.
+ * @reads vanguard_eval_results, vanguard_eval_runs, vanguard_stream, daily_reconciliations
+ * @writes vanguard_eval_results, vanguard_stream
+ * @calls deepseek-v4-flash, api.telegram.org (poprzez send.ts)
+ * @consumer Czat z botem na Telegramie (pytanie i odpowiedź)
+ * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";

@@ -1,3 +1,13 @@
+/**
+ * @function compute-behavior-effects
+ * @trigger HTTP POST / Frontend / manual
+ * @role Oblicza wpływ zachowań i nawyków na strain/recovery przy użyciu Welch t-test + Cohen's d.
+ * @reads behavior_log, daily_strain
+ * @writes —
+ * @calls —
+ * @consumer Sekcja "What Moves You" w aplikacji
+ * @status active
+ */
 // Etap 5 (docs/PLAN_READINESS_NOOP.md, sekcja 4.5/4.6): NOOP port BehaviorInsights +
 // DoseResponseEngine ("What Moves You"). compute-correlations robi już Pearson r dla
 // par ciągłych metryk — TA funkcja pokrywa to, czego tam nie ma: behavior_log to

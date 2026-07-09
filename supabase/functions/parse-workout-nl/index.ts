@@ -1,8 +1,12 @@
 /**
- * parse-workout-nl — natural-language workout parser (PL)
- *
- * POST { text, userId? }
- * → ParsedWorkout
+ * @function parse-workout-nl
+ * @trigger HTTP POST / Frontend WorkoutQuickCapture NL parser
+ * @role Parser treningów z języka naturalnego na struktury serii/powtórzeń (PL).
+ * @reads exercise_logs
+ * @writes —
+ * @calls deepseek-chat (w workoutParseCore.ts)
+ * @consumer Szybki zapis treningu w aplikacji frontendowej
+ * @status active
  */
 import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
 import { parseWorkoutText } from '../_shared/workoutParseCore.ts'

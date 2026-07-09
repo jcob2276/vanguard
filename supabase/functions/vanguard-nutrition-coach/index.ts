@@ -1,14 +1,12 @@
 /**
- * vanguard-nutrition-coach — the energy/target brain.
- *
- * Sees everything: body_metrics (weight/waist/belly trend), logged macros (daily_nutrition),
- * Oura (measured TDEE / steps / sleep / recovery), strength + runs.
- * Triangulates the REAL maintenance (catches under-logging by comparing
- * Oura-measured burn against logged intake + actual weight trend), then sets a
- * gentle, training-aware daily target + protein floor anchored to the profile
- * goal (e.g. ~14% BF by the marathon). DeepSeek writes the coaching verdict.
- *
- * On-demand: POST { userId?, date? }. Persists one row/day to nutrition_targets.
+ * @function vanguard-nutrition-coach
+ * @trigger pg_cron `0 6 * * *` UTC (08:00 Warsaw) / manual
+ * @role Trener żywieniowy: oblicza rzeczywiste zapotrzebowanie (TDEE), ustala cele i wysyła codzienne podsumowanie na Telegram.
+ * @reads nutrition_profile, nutrition_targets, body_metrics, daily_nutrition, oura_daily_summary, strava_activities_clean, workout_sessions, medical_lab_results, medical_documents, body_composition_measurements
+ * @writes nutrition_targets
+ * @calls deepseek-chat, api.telegram.org (poprzez send.ts)
+ * @consumer Powiadomienia Telegram i cele w zakładce diety w aplikacji
+ * @status active
  */
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";

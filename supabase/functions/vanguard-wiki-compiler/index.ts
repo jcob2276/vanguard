@@ -1,3 +1,13 @@
+/**
+ * @function vanguard-wiki-compiler
+ * @trigger HTTP POST / manual / cron
+ * @role Kompilator wiki: agreguje i kompiluje fakty z grafu wiedzy w syntetyczne artykuły wiki.
+ * @reads vanguard_wiki_pages, vanguard_wiki_sources, vanguard_wiki_review_items, vanguard_stream, friction_events, daily_reconciliations
+ * @writes vanguard_wiki_pages, vanguard_wiki_sources, vanguard_wiki_review_items, vanguard_wiki_runs
+ * @calls deepseek-v4-flash, text-embedding-3-small
+ * @consumer Sekcja Wiki / Baza wiedzy w aplikacji frontendowej
+ * @status active
+ */
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getWarsawDateString } from "../_shared/time.ts";

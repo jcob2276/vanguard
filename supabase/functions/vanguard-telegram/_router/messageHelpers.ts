@@ -6,6 +6,7 @@ import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { sendChatAction } from "../../_shared/telegram.ts";
+import { fetchWorldState } from "../../_shared/worldState.ts";
 import {
   handleTodoCommand,
   handleKeepCommand,
@@ -213,45 +214,205 @@ export async function queryOracle(
 ): Promise<string> {
   const { supabase, telegramToken, deepseekApiKey, vanguardUserId, supabaseUrl, supabaseServiceRoleKey } = ctx;
 
-  await sendChatAction(telegramToken, chatId, "typing");
+  await sendChatAction(telegramToken, chatId, "typing", { direct: true });
 
   const { data: historyData } = await supabase.from('ai_chat_messages')
     .select('role, content').eq('user_id', vanguardUserId)
-    .order('created_at', { ascending: false }).limit(10);
+    .order('created_at', { ascending: false }).limit(40);
 
   const oracleHistory = (historyData || []).reverse();
 
   const todayWarsawDate = getWarsawDateString();
-  const sevenDaysAgoDate = getWarsawDateString(new Date(new Date(`${todayWarsawDate}T12:00:00Z`).getTime() - 7 * 86400000));
-  const sevenDaysAgo = getWarsawDayBoundaries(sevenDaysAgoDate).start;
+  const worldState = await fetchWorldState(supabase, vanguardUserId, todayWarsawDate).catch((e) => {
+    console.error("[telegram] fetchWorldState failed, fallback to empty:", e);
+    return null;
+  });
 
-  const [aggregateRes, workoutRes, winRes, ouraRes, notesRes] = await Promise.all([
-    supabase.from('vanguard_daily_aggregates').select('final_state, sleep_hours, hrv_avg, execution_score, dopamine_load_index').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('workout_sessions').select('created_at, workout_day').eq('user_id', vanguardUserId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('daily_wins').select('task_1, done_1, task_2, done_2, task_3, done_3, task_4, done_4, task_5, done_5, result').eq('user_id', vanguardUserId).eq('date', todayWarsawDate).maybeSingle(),
-    supabase.from('oura_daily_summary').select('date, total_sleep_hours, bedtime_timestamp, readiness_score, hrv_avg, rhr_avg, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes').eq('user_id', vanguardUserId).order('date', { ascending: false }).limit(3),
-    supabase.from('vanguard_notes').select('title, content, created_at').eq('user_id', vanguardUserId).eq('is_archived', false).gte('created_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(5)
-  ]);
-
-  const stateVector = {
+  const stateVector = worldState ? {
     biometrics: {
-      ...(aggregateRes.data || {}),
-      ...(ouraRes.data?.[0] ? {
-        oura_last_night: {
-          date: ouraRes.data[0].date, bedtime: ouraRes.data[0].bedtime_timestamp,
-          sleep_hours: ouraRes.data[0].total_sleep_hours, readiness: ouraRes.data[0].readiness_score,
-          hrv: ouraRes.data[0].hrv_avg, rhr: ouraRes.data[0].rhr_avg,
-          deep_sleep_hours: ouraRes.data[0].deep_sleep_hours, rem_sleep_hours: ouraRes.data[0].rem_sleep_hours,
-          sleep_efficiency: ouraRes.data[0].sleep_efficiency, latency_minutes: ouraRes.data[0].latency_minutes,
-          sleep_data_status: ouraRes.data[0].date === todayWarsawDate ? 'synced' : 'pending'
-        }
-      } : { sleep_data_status: 'pending' })
+      hrv_avg: worldState.oura?.hrv_avg,
+      sleep_hours: worldState.oura?.total_sleep_hours,
+      oura_last_night: worldState.oura ? {
+        date: worldState.oura.date,
+        bedtime: worldState.oura.bedtime_timestamp,
+        sleep_hours: worldState.oura.total_sleep_hours,
+        readiness: worldState.oura.readiness_score,
+        hrv: worldState.oura.hrv_avg,
+        rhr: worldState.oura.rhr_avg,
+        deep_sleep_hours: worldState.oura.deep_sleep_hours,
+        rem_sleep_hours: worldState.oura.rem_sleep_hours,
+        sleep_efficiency: worldState.oura.sleep_efficiency,
+        latency_minutes: worldState.oura.latency_minutes,
+        sleep_data_status: worldState.oura.date === todayWarsawDate ? 'synced' : 'pending'
+      } : { sleep_data_status: 'pending' }
     },
+    nutrition: { calories_today: worldState.nutrition?.calories_today || 0 },
+    physical: { last_workout: worldState.training?.last_training_date || 'Brak danych' },
+    discipline: { today_wins: 'Nie ustawiono celów' }
+  } : {
+    biometrics: { sleep_data_status: 'pending' },
     nutrition: { calories_today: 0 },
-    physical: { last_workout: workoutRes.data || 'Brak danych' },
-    discipline: { today_wins: winRes.data || 'Nie ustawiono celów' },
-    ...(notesRes.data?.length ? { recent_keep_notes: notesRes.data } : {})
+    physical: { last_workout: 'Brak danych' },
+    discipline: { today_wins: 'Nie ustawiono celów' }
   };
+
+  // 2. Równolegle do query: rezolucja encji z cleanText (NLU extraction + Tier 1 & Tier 2)
+  let resolvedClaimsContext = "";
+  try {
+    const nluPrompt = `Jesteś modułem NLU w Vanguard OS. Wyodrębnij z tekstu użytkownika główne nazwy encji (ludzi, celów, pojęć, projektów), które są tematem zapytania. Zwróć TYLKO JSON w formacie:
+{
+  "entities": [
+    { "name": "Nazwa", "kind": "person" }
+  ]
+}
+Dozwolone kind: "person" | "concept" | "place" | "education" | "role" | "event" | "other".
+Jeśli brak takich encji, zwróć pustą tablicę.
+Tekst: "${cleanText}"`;
+
+    // P0.1: NLU call with 6 seconds timeout
+    const nluRes = await deepseekChat({
+      apiKey: deepseekApiKey,
+      model: 'deepseek-v4-flash',
+      messages: [{ role: 'system', content: nluPrompt }],
+      temperature: 0.0,
+      responseFormat: { type: 'json_object' },
+      timeoutMs: 6000,
+      userId: vanguardUserId,
+      feature: 'entity-resolution-nlu'
+    }).catch((e) => {
+      console.error('[telegram] NLU extraction failed or timed out:', e);
+      return null;
+    });
+
+    let extractedEntities: { name: string, kind: string }[] = [];
+    if (nluRes) {
+      const parsed = parseJsonFromContent(nluRes.content || '{}');
+      if (parsed && Array.isArray(parsed.entities)) {
+        extractedEntities = parsed.entities.slice(0, 3); // P1.2: Loop up to 3 entities
+      }
+    }
+
+    const allResolvedClaims: string[] = [];
+
+    for (const entity of extractedEntities) {
+      let resolvedEntityId: string | null = null;
+      let resolvedEntityName: string | null = null;
+
+      // Tier 1: Fuzzy match na aliases i canonical names (read-only decision engine)
+      const { data: decisionId, error: decisionError } = await supabase.rpc('resolve_entity_decision', {
+        p_user_id: vanguardUserId,
+        p_name: entity.name,
+        p_kind: entity.kind
+      });
+
+      if (decisionError) {
+        console.error('[telegram] resolve_entity_decision RPC failed:', decisionError);
+      }
+
+      if (decisionId) {
+        resolvedEntityId = decisionId;
+        const { data: entObj } = await supabase.from('entities').select('canonical_name').eq('id', resolvedEntityId).maybeSingle();
+        resolvedEntityName = entObj?.canonical_name || entity.name;
+        console.log(`[telegram] Tier 1 resolved entity: ${resolvedEntityName} (${resolvedEntityId})`);
+      }
+
+      // Tier 2: Vector + LLM verification (tylko gdy Tier 1 nie trafił)
+      if (!resolvedEntityId) {
+        const { data: candidates, error: candError } = await supabase.rpc('resolve_entity_fuzzy_candidates', {
+          p_user_id: vanguardUserId,
+          p_name: entity.name,
+          p_kind: entity.kind
+        });
+
+        if (candError) {
+          console.error('[telegram] resolve_entity_fuzzy_candidates failed:', candError);
+        }
+
+        if (candidates && candidates.length > 0) {
+          // P2.1: Log kind mismatch candidate event if any candidate has a different kind than extracted
+          const hasKindMismatch = candidates.some((c: any) => c.kind !== entity.kind);
+          if (hasKindMismatch) {
+            await logAuditEvent({
+              eventType: 'entity_kind_mismatch_candidate',
+              severity: 'info',
+              message: `Tier 2 candidate list has kind mismatch for entity "${entity.name}" (extracted kind: ${entity.kind})`,
+              userId: vanguardUserId,
+              metadata: { name: entity.name, extracted_kind: entity.kind, candidates }
+            });
+          }
+
+          const candidateListStr = candidates.map((c: any) => `- ID: ${c.entity_id}, Name: ${c.canonical_name}, Alias: ${c.alias}, Kind: ${c.kind}`).join('\n');
+          const tier2Prompt = `Jesteś modułem weryfikacji encji w Vanguard OS.
+Użytkownik wspomniał o: "${entity.name}" (kind: ${entity.kind}).
+W bazie danych znaleziono następujących kandydatów:
+${candidateListStr}
+
+Czy nazwa "${entity.name}" odnosi się semantycznie do któregoś z powyższych kandydatów?
+Odpowiedz TYLKO JSON:
+{
+  "matched_entity_id": "UUID pasującego kandydata LUB null jeśli brak dopasowania lub brak pewności"
+}`;
+
+          // P0.1: Tier 2 call with 6 seconds timeout
+          const tier2Res = await deepseekChat({
+            apiKey: deepseekApiKey,
+            model: 'deepseek-v4-flash',
+            messages: [{ role: 'system', content: tier2Prompt }],
+            temperature: 0.0,
+            responseFormat: { type: 'json_object' },
+            timeoutMs: 6000,
+            userId: vanguardUserId,
+            feature: 'entity-resolution-tier2'
+          }).catch(async (e) => {
+            console.error('[telegram] Tier 2 LLM verification failed or timed out:', e);
+            // P2.1: Log tier 2 LLM failed
+            await logAuditEvent({
+              eventType: 'entity_tier2_llm_failed',
+              severity: 'warning',
+              message: `Tier 2 LLM verification failed or timed out for entity "${entity.name}": ${e.message}`,
+              userId: vanguardUserId,
+              metadata: { name: entity.name, kind: entity.kind, error: e.message }
+            });
+            return null;
+          });
+
+          if (tier2Res) {
+            const parsed = parseJsonFromContent(tier2Res.content || '{}');
+            if (parsed && parsed.matched_entity_id) {
+              resolvedEntityId = parsed.matched_entity_id as string;
+              const matchedCand = candidates.find((c: any) => c.entity_id === resolvedEntityId);
+              resolvedEntityName = matchedCand ? matchedCand.canonical_name : entity.name;
+              console.log(`[telegram] Tier 2 resolved entity: ${resolvedEntityName} (${resolvedEntityId})`);
+            }
+          }
+        }
+      }
+
+      // 3. SELECT z public.claims dla rozwiązanej encji (P0.2: limit to top 10 claims by weight)
+      if (resolvedEntityId) {
+        const { data: claimsData } = await supabase
+          .from('claims')
+          .select('fact_text, weight, evidence_count, learned_at')
+          .eq('user_id', vanguardUserId)
+          .eq('status', 'active')
+          .or(`subject_id.eq.${resolvedEntityId},object_id.eq.${resolvedEntityId}`)
+          .order('weight', { ascending: false })
+          .limit(10);
+
+        if (claimsData && claimsData.length > 0) {
+          const entityClaimsStr = `[ZWIĄZANE AKTYWNE CELE I FAKTY DLA ENCI: ${resolvedEntityName}]:\n` +
+            claimsData.map((c: any) => `- ${c.fact_text} (waga: ${c.weight || 1.0}, dowody: ${c.evidence_count || 1})`).join('\n');
+          allResolvedClaims.push(entityClaimsStr);
+        }
+      }
+    }
+
+    if (allResolvedClaims.length > 0) {
+      resolvedClaimsContext = allResolvedClaims.join('\n\n');
+    }
+  } catch (err) {
+    console.error('[telegram] Entity resolution layer failed:', err);
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -265,7 +426,8 @@ export async function queryOracle(
       body: JSON.stringify({
         current_query: cleanText, user_id: vanguardUserId, state_vector: stateVector,
         mode: mode === 'report' ? 'mirror' : 'chat',
-        thinking: mode === 'deep', history: oracleHistory
+        thinking: mode === 'deep', history: oracleHistory,
+        resolved_claims: resolvedClaimsContext
       }),
       signal: controller.signal
     });
@@ -290,6 +452,35 @@ export async function queryOracle(
   if (!raw) {
     console.error(`[telegram] oracle returned empty text — data keys: ${data ? Object.keys(data).join(',') : 'null'}`);
     return "⚠️ Oracle: pusta odpowiedź modelu. Spróbuj jeszcze raz.";
+  }
+
+  // 4. Save proposed claims to audit_events and populate ctx.resolvedClaims
+  if (data?.claims && Array.isArray(data.claims) && data.claims.length > 0) {
+    const pendingClaimsList: { id: string; text: string }[] = [];
+    for (const claim of data.claims) {
+      if (claim && claim.text) {
+        const { data: auditEvent, error: auditError } = await supabase
+          .from("audit_events")
+          .insert({
+            event_type: "pending_claim_proposal",
+            severity: "info",
+            message: `Proposed claim: "${claim.text}"`,
+            user_id: vanguardUserId,
+            metadata: { claim, status: "pending" }
+          })
+          .select("id")
+          .single();
+
+        if (!auditError && auditEvent?.id) {
+          pendingClaimsList.push({ id: auditEvent.id, text: claim.text });
+        } else {
+          console.error("[telegram] Failed to store claim proposal in audit_events:", auditError);
+        }
+      }
+    }
+    if (pendingClaimsList.length > 0) {
+      (ctx as any).resolvedClaims = pendingClaimsList;
+    }
   }
 
   const chatInsertRes = await supabase.from('ai_chat_messages').insert([

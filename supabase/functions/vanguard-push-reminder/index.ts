@@ -1,44 +1,22 @@
 /**
- * vanguard-push-reminder — fires every minute via pg_cron.
- * 1. Picks todo_items where reminder_at <= now() and reminder_sent = false,
- *    sends web push to all push_subscriptions of the owner, marks reminder_sent.
- * 2. Picks active supplements where Warsaw local time has reached reminder_time
- *    and reminder_sent_date < today (or null), sends web push and Telegram pings,
- *    marks reminder_sent_date to today.
+ * @function vanguard-push-reminder
+ * @trigger pg_cron co minutę
+ * @role Przypomnienia: wysyła powiadomienia web push i Telegram o zaległych todo i zaplanowanych suplementach.
+ * @reads todo_items, supplements, push_subscriptions
+ * @writes todo_items, supplements
+ * @calls api.telegram.org (bezpośrednio)
+ * @consumer Powiadomienia push w przeglądarce i Telegramie użytkownika
+ * @status active
  */
 import { createServiceClient } from "../_shared/supabase.ts";
 // @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
+import { sendMessageParsed } from "../_shared/telegram.ts";
+// Force upload of domain package for shared dependencies
+import type {} from "@vanguard/domain";
 
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
-async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any) {
-  try {
-    const body: Record<string, any> = {
-      chat_id: parseInt(chatId, 10),
-      text,
-      parse_mode: "HTML",
-    };
-    if (replyMarkup) {
-      body.reply_markup = replyMarkup;
-    }
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) {
-      console.error(`[push-reminder] Telegram send failed: ${res.status} ${await res.text()}`);
-    }
-  } catch (err: unknown) {
-    console.error('[Edge Function Error]', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
 
 Deno.serve(async () => {
   const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY");
@@ -222,7 +200,10 @@ Deno.serve(async () => {
           ]
         ]
       };
-      await sendTelegramMessage(TG_TOKEN, TG_CHAT_ID, text, replyMarkup);
+      await sendMessageParsed(TG_TOKEN, parseInt(TG_CHAT_ID, 10), text, {
+        parseMode: "HTML",
+        replyMarkup,
+      });
     }
 
     sentSups++;

@@ -1,5 +1,18 @@
+/**
+ * @function vanguard-librarian
+ * @trigger Manual / cron / webhook
+ * @role Bibliotekarz: oczyszcza i normalizuje wpisy o posiłkach bez dokładnych makr (llm_estimate) do bazy food_library, informując przez Telegram.
+ * @reads daily_food_entries, food_library, food_corrections
+ * @writes daily_food_entries, food_library
+ * @calls deepseek-chat, api.telegram.org (bezpośrednio)
+ * @consumer Powiadomienia w Telegramie i baza danych produktów
+ * @status active
+ */
 import { corsHeaders, createServiceClient } from '../_shared/supabase.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
+import { sendMessage } from '../_shared/telegram.ts'
+// Force upload of domain package for shared dependencies
+import type {} from "@vanguard/domain";
 
 export async function runLibrarian() {
   const db = createServiceClient()
@@ -85,12 +98,9 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
         results.push({ name, macro: insertData })
       }
     } catch (e: unknown) {
-    console.error('[Edge Function Error]', e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+      console.error(`[librarian] Error resolving macro for ${name}:`, e);
+      // Log and continue to process other items in the loop
+    }
   }
 
   if (results.length === 0) return { count: 0, items: [] }
@@ -109,15 +119,8 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
   const tgLines = results.map(r => `- ${r.name}: ${r.macro.calories} kcal/100g (B:${r.macro.protein} W:${r.macro.carbs} T:${r.macro.fat})`)
   const tgMsg = `📚 *Bibliotekarz Vanguard*\n\nRozwiązałem ${results.length} wpisów \`llm_estimate\` z ostatniego tygodnia i dodałem je do Twojej bazy:\n\n${tgLines.join('\n')}`
   
-  await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: tgChatId,
-      text: tgMsg,
-      parse_mode: 'Markdown'
-    })
-  })
+  const chatId = parseInt(tgChatId, 10);
+  await sendMessage(tgToken, chatId, tgMsg, { parseMode: 'Markdown' });
 
   return { count: results.length, items: results }
 }

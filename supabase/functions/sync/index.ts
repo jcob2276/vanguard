@@ -1,3 +1,13 @@
+/**
+ * @function sync
+ * @trigger HTTP POST / manual / cron
+ * @role Router dla synchronizacji zewnętrznych API: Oura, Strava, Google Calendar.
+ * @reads oura_daily_summary, strava_activities, vanguard_calendar, user_settings, vanguard_tokens
+ * @writes oura_daily_summary, strava_activities, vanguard_calendar, audit_events
+ * @calls ouraring.com, strava.com, googleapis.com/calendar, api.telegram.org (poprzez send.ts)
+ * @consumer Zaktualizowane dane biometryczne, treningowe i kalendarza w aplikacji
+ * @status active
+ */
 import { corsHeaders } from '../_shared/supabase.ts'
 import { runOuraSync } from './oura.ts'
 import { runStravaSync } from './strava.ts'
