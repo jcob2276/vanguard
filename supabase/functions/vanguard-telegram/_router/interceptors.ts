@@ -204,12 +204,6 @@ export class TranscriptionInterceptor implements MessageInterceptor {
     if (!ctx.isVoice) return false;
 
     await sendChatAction(ctx.telegramToken, ctx.chatId, "record_voice", { direct: true });
-    await safeSendTelegram(
-      ctx.chatId,
-      "🎤 Słucham...",
-      ctx.telegramToken,
-      { disable_notification: true },
-    );
 
     if (await tryResumeStuckReconciliationVoice(ctx.messageId, ctx.chatId, ctx)) {
       return true;

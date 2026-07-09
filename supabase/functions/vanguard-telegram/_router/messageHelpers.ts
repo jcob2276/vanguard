@@ -228,22 +228,23 @@ export async function queryOracle(
     return null;
   });
 
+  const oura = worldState?.biometrics?.oura_history?.[0] || null;
   const stateVector = worldState ? {
     biometrics: {
-      hrv_avg: worldState.oura?.hrv_avg,
-      sleep_hours: worldState.oura?.total_sleep_hours,
-      oura_last_night: worldState.oura ? {
-        date: worldState.oura.date,
-        bedtime: worldState.oura.bedtime_timestamp,
-        sleep_hours: worldState.oura.total_sleep_hours,
-        readiness: worldState.oura.readiness_score,
-        hrv: worldState.oura.hrv_avg,
-        rhr: worldState.oura.rhr_avg,
-        deep_sleep_hours: worldState.oura.deep_sleep_hours,
-        rem_sleep_hours: worldState.oura.rem_sleep_hours,
-        sleep_efficiency: worldState.oura.sleep_efficiency,
-        latency_minutes: worldState.oura.latency_minutes,
-        sleep_data_status: worldState.oura.date === todayWarsawDate ? 'synced' : 'pending'
+      hrv_avg: worldState.biometrics.hrv_avg,
+      sleep_hours: worldState.biometrics.sleep_hours,
+      oura_last_night: oura ? {
+        date: oura.date,
+        bedtime: oura.bedtime_timestamp,
+        sleep_hours: oura.total_sleep_hours,
+        readiness: oura.readiness_score,
+        hrv: oura.hrv_avg,
+        rhr: oura.rhr_avg,
+        deep_sleep_hours: oura.deep_sleep_hours,
+        rem_sleep_hours: oura.rem_sleep_hours,
+        sleep_efficiency: oura.sleep_efficiency,
+        latency_minutes: oura.latency_minutes,
+        sleep_data_status: oura.date === todayWarsawDate ? 'synced' : 'pending'
       } : { sleep_data_status: 'pending' }
     },
     nutrition: { calories_today: worldState.nutrition?.calories_today || 0 },

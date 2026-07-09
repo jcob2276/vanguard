@@ -31,7 +31,10 @@ const OracleResponseSchema = z.object({
   answer: z.string().optional(),
   text: z.string().optional(),
   odpowiedz: z.string().optional(),
+  odpowiedź: z.string().optional(),
   response: z.string().optional(),
+  content: z.string().optional(),
+  message: z.string().optional(),
   confidence: z.string().optional(),
   intent_confirmed: z.string().optional(),
   claims: z.array(z.any()).optional(),
@@ -40,6 +43,47 @@ const OracleResponseSchema = z.object({
   insight_cards_mutation: z.any().optional(),
   mint_fact_id: z.boolean().optional()
 }).catchall(z.any());
+
+function extractAnswer(structuredResponse: any, rawOutput: string): string {
+  const answer = 
+    structuredResponse.answer || 
+    structuredResponse.text || 
+    structuredResponse.odpowiedz || 
+    structuredResponse.odpowiedź || 
+    structuredResponse.response || 
+    structuredResponse.content ||
+    structuredResponse.message;
+
+  if (typeof answer === 'string' && answer.trim()) {
+    return answer.trim();
+  }
+  
+  if (answer !== undefined && answer !== null) {
+    if (typeof answer === 'object') {
+      return JSON.stringify(answer);
+    }
+    return String(answer).trim();
+  }
+
+  const trimmedRaw = rawOutput?.trim();
+  if (trimmedRaw) {
+    if (trimmedRaw.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmedRaw);
+        for (const val of Object.values(parsed)) {
+          if (typeof val === 'string' && val.trim().length > 10) {
+            return val.trim();
+          }
+        }
+      } catch (e) {
+        // ignore JSON parse error
+      }
+    }
+    return trimmedRaw;
+  }
+
+  return "Błąd generowania odpowiedzi.";
+}
 
 async function handleSearch(req: Request, body: any, db: any): Promise<Response> {
   const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
@@ -430,7 +474,7 @@ Deno.serve(async (req) => {
             structuredResponse.answer = accumulatedText.trim();
           }
 
-          const text = structuredResponse.answer || structuredResponse.text || structuredResponse.odpowiedz || structuredResponse.response || "Błąd generowania odpowiedzi.";
+          const text = extractAnswer(structuredResponse, accumulatedText);
 
           await logOracleRun(supabase, {
             user_id,
@@ -521,8 +565,9 @@ Deno.serve(async (req) => {
     console.log(`[oracle] deepseek start`, Date.now() - t0);
 
     let structuredResponse: z.infer<typeof OracleResponseSchema>;
+    let rawOutput = "";
     try {
-      const { content: rawOutput, reasoning_content } = await deepseekChat({
+      const chatRes = await deepseekChat({
         apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
         model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
         messages: messages,
@@ -531,6 +576,8 @@ Deno.serve(async (req) => {
         responseFormat: !thinking ? { type: "json_object" } : undefined,
         timeoutMs: 25000,
       });
+      rawOutput = chatRes.content;
+      const reasoning_content = chatRes.reasoning_content;
       console.log(`[oracle] deepseek done`, Date.now() - t0);
       
       const parsedObj = parseJsonFromContent(rawOutput) || {};
@@ -558,7 +605,7 @@ Deno.serve(async (req) => {
       console.error("DeepSeek response failed:", e);
       throw e;
     }
-    const text = structuredResponse.answer || structuredResponse.text || structuredResponse.odpowiedz || structuredResponse.response || "Błąd generowania odpowiedzi.";
+    const text = extractAnswer(structuredResponse, rawOutput);
 
     await logOracleRun(supabase, {
       user_id,

@@ -164,7 +164,7 @@ export async function runOuraSync(req: Request): Promise<Response> {
                     ? `⚠️ Oura (${todayStr}): readiness score ${row.readiness_score}%`
                     : `⚠️ Oura (${todayStr}): sleep efficiency ${row.sleep_efficiency}%`;
 
-                  await sendMessage(telegramToken, telegramChatId, alertMsg).catch((e) => {
+                  await sendMessage(telegramToken, Number(telegramChatId), alertMsg).catch((e) => {
                     console.error("[OURA] Failed to send Telegram push alert:", e);
                   });
 
