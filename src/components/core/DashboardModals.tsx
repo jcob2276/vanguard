@@ -4,7 +4,7 @@ import DailyShutdownModal from './DailyShutdownModal';
 import WeeklyReviewModal from '../todo/WeeklyReviewModal';
 import FoodEntryModal from './nutrition/FoodEntryModal';
 import { ActionCenterSheet } from '../shared/ActionCenterSheet';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 
 interface DashboardModalsProps {
   session: Session;
@@ -67,19 +67,18 @@ export function DashboardModals({
           session={session}
           onClose={() => {
             try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
-      console.error('[Background Error]', e);
+      console.warn('[DashboardModals] Failed to save shutdown dismissed date to localStorage:', e);
     }
             setShowShutdown(false);
           }}
           onSaved={refresh}
           onPlanTomorrow={() => {
-            const tomorrow = new Date(`${getTodayWarsaw()}T12:00:00Z`);
-            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+            const tomorrowStr = shiftDateStr(getTodayWarsaw(), 1);
             try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
+              console.warn('[DashboardModals] Failed to save shutdown dismissed date to localStorage:', e);
+            }
             setShowShutdown(false);
-            setMorningPlanTargetDate(tomorrow.toISOString().slice(0, 10));
+            setMorningPlanTargetDate(tomorrowStr);
             setShowMorningPlan(true);
           }}
         />

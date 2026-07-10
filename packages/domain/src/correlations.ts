@@ -1,4 +1,5 @@
 import { studentTPValue } from './stats.ts';
+import { shiftDateStr } from './date.ts';
 
 export type CorrelationCategory = 'sen' | 'zywienie' | 'trening' | 'regeneracja' | 'zachowanie' | 'suplementy' | 'ekran';
 export type ConfidenceTier = 'calibrating' | 'building' | 'solid';
@@ -207,10 +208,8 @@ export function spearman(xy: [number, number][]): CorrelationCore | null {
 
 function shiftDay(day: string, delta: number): string | null {
   if (delta === 0) return day;
-  const d = new Date(day + 'T12:00:00Z');
-  if (isNaN(d.getTime())) return null;
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
+  if (isNaN(new Date(day + 'T12:00:00Z').getTime())) return null;
+  return shiftDateStr(day, delta);
 }
 
 export function laggedPairs(

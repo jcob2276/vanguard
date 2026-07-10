@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { supabase } from './supabase';
+import { supabase, invokeEdge } from './supabase';
 import { getTodayWarsaw } from './date';
 
 export const biometricsKeys = {
@@ -53,19 +53,10 @@ export function useDailyStrainOura(userId: string) {
 export function useTriggerOuraSync() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, accessToken }: { userId: string; accessToken: string }) => {
-      const base = import.meta.env.VITE_SUPABASE_URL as string;
-      const res = await fetch(`${base}/functions/v1/sync?service=oura`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ userId }),
+    mutationFn: async ({ userId }: { userId: string; accessToken?: string }) => {
+      return invokeEdge('sync?service=oura', {
+        body: { userId },
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to sync Oura');
-      return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(variables.userId) });

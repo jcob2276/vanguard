@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Session } from '@supabase/supabase-js';
-import type { MonthFacts } from '../../lib/monthReview';
+import type { MonthFacts } from '../../lib/growth/monthReview';
 
 type MonthRecap = {
   narrative: string;

@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import Model from 'react-body-highlighter';
-import type { IMuscleStats, Muscle } from 'react-body-highlighter';
+import Model, { type IMuscleStats, type Muscle } from 'react-body-highlighter';
 import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { notify } from '../../lib/notify';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { MUSCLE_TAGS, rirEffectiveness, stimulusForExercise, tagsForExercise } from '../../data/exercises';
-import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/muscleMapData';
+import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/health/muscleMapData';
+import './workout/muscleHeatmap.css';
 
 const PERIODS = [
   { label: '7d', days: 7 },
@@ -75,14 +75,10 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
 
   useEffect(() => {
     if (!userId) return;
-    setLoading(true);
-    const dateLimit = (() => {
-      const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
-      d.setUTCDate(d.getUTCDate() - period);
-      return d.toISOString().split('T')[0];
-    })();
+    const dateLimit = shiftDateStr(getTodayWarsaw(), -period);
 
     const fetchLogs = async () => {
+      setLoading(true);
       try {
         const exerciseLogs = unwrapList(await supabase
           .from('exercise_logs')

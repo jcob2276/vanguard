@@ -5,7 +5,7 @@ import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Save, X } from 'luci
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { notify } from '../../lib/notify';
-import { useGrowthData } from '../../hooks/useGrowthData';
+import { useGrowthData } from './hooks/useGrowthData';
 import {
   formatWeekRange,
   getWeekStartWarsaw,
@@ -13,10 +13,10 @@ import {
   partitionSkillTree,
   scoresFromSnapshot,
   shiftWeekStart,
-} from '../../lib/growth';
-import { getWeekEndExclusive } from '../../lib/growthWeek';
-import { restoreDefaultSkillTree } from '../../lib/growthSeed';
-import { DEFAULT_SKILL_TREE } from '../../lib/growthSkills';
+} from '../../lib/growth/growth';
+import { getWeekEndExclusive } from '../../lib/growth/growthWeek';
+import { restoreDefaultSkillTree } from '../../lib/growth/growthSeed';
+import { DEFAULT_SKILL_TREE } from '../../lib/growth/growthSkills';
 import {
   buildLearningNeed,
   buildMediaQueue,
@@ -24,7 +24,7 @@ import {
   buildWeekLearningLog,
   deriveFocusProposal,
   filterReadLinksInWeek,
-} from '../../lib/growthOverview';
+} from '../../lib/growth/growthOverview';
 import GrowthLearningPanel from './GrowthLearningPanel';
 import GrowthMediaQueue from './GrowthMediaQueue';
 import GrowthProjectsPanel from './GrowthProjectsPanel';
@@ -36,26 +36,9 @@ import FocusEditorModal from './FocusEditorModal';
 import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
-import { useDirectionContext } from '../../hooks/useDirectionContext';
-import { computeTheoryPracticeBalance } from '../../lib/growthMastery';
-import type { GrowthPinSlot } from '../../lib/growth';
-
-function matchLinkToSkill(link: any, skillKey: string): boolean {
-  const t = `${link.title || ''} ${link.description || ''} ${link.domain || ''} ${link.category || ''}`.toLowerCase();
-  const keywords: Record<string, string[]> = {
-    storytelling: ['storytelling', 'histori', 'opowiad', 'pitch', 'narrac'],
-    setting: ['setting', 'rozmowa', 'słuchan', 'mirroring', 'pytań', 'mówien', 'pauz'],
-    closing: ['closing', 'sprzedaż', 'cena', 'ceny', 'decyzj', 'handlow', 'klient', 'sales'],
-    negotiation: ['negocjac', 'ustępstw', 'granic', 'negotiat', 'anchor'],
-    voice_presence: ['dykcj', 'artykulac', 'głos', 'wymow', 'intonac', 'oddech', 'tempo', 'korek'],
-    social_exposure: ['relacj', 'kontakt', 'poznaw', 'randk', 'kobie', 'dziewczyn', 'social', 'ludzi', 'semen', 'manifesting'],
-    deep_work: ['deep work', 'produktyw', 'skup', 'egzekuc', 'prokrastyn', 'czas', 'organizac', 'wasting'],
-    body_base: ['sen', 'trening', 'siłown', 'biega', 'ruch', 'diet', 'calories', 'kalori', 'regenerac', 'oura', 'health', 'sleep'],
-  };
-  const list = keywords[skillKey];
-  if (!list) return false;
-  return list.some(kw => t.includes(kw));
-}
+import { useDirectionContext } from '../lifestyle/direction/hooks/useDirectionContext';
+import { computeTheoryPracticeBalance } from '../../lib/growth/growthMastery';
+import { matchLinkToSkill, type GrowthPinSlot } from '../../lib/growth/growth';
 
 export default function GrowthView({ session }: { session: Session }) {
   const userId = session.user.id;

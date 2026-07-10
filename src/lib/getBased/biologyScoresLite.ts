@@ -4,8 +4,8 @@
  * @see https://github.com/elkimek/get-based
  */
 
-import type { MarkerSeries } from '../medicalAnalytics';
-import { SCORE_MARKER_KEYS, scoreHasEvidence } from '../medicalRetestContext';
+import type { MarkerSeries } from '../health/medicalAnalytics';
+import { SCORE_MARKER_KEYS, scoreHasEvidence } from '../health/medicalRetestContext';
 import { bridgeForMarkerKey, GETBASED_OPTIMAL, toCanonicalValue } from './markerBridge';
 
 export type ScoreTone = 'excellent' | 'good' | 'strained' | 'poor' | 'concerning' | 'severe';

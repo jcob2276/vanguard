@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, ScanText, Sparkles, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { createTodoItem } from '../../lib/todo';
+import { createTodoItem } from '../../lib/todo/todo';
 import type { TodoItemRow } from './useTodoData';
 
 interface ExtractedTask {

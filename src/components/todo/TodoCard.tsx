@@ -1,4 +1,6 @@
+import { notify } from '../../lib/notify';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { shiftDateStr } from '../../lib/date';
 import { Bell, BellOff, Check, Repeat2, Link2, Pencil, X, Trash2, GripVertical, Clock, Sparkles, Paperclip, Upload, Tag, Calendar, MessageSquare, MoreHorizontal, Folder, ChevronDown, Flag } from 'lucide-react';
 import {
   GOAL_ICON,
@@ -8,8 +10,8 @@ import {
   relativeDate,
   RECURRENCE_LABELS
 } from './todoUtils';
-import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo';
-import { LIFE_SPHERES } from '../../lib/lifeSpheres';
+import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo/todo';
+import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import NlpHighlightInput from './NlpHighlightInput';
@@ -112,11 +114,11 @@ export default function TodoCard({
 
   useEffect(() => {
     if (expanded) {
-      setExpandMounted(true);
+      void (async () => { setExpandMounted(true); })();
       const t = setTimeout(() => setTransitionCompleted(true), 300);
       return () => clearTimeout(t);
     } else {
-      setTransitionCompleted(false);
+      void (async () => { setTransitionCompleted(false); })();
       const t = setTimeout(() => setExpandMounted(false), 280);
       return () => clearTimeout(t);
     }
@@ -136,18 +138,14 @@ export default function TodoCard({
     try {
       const created = await uploadAttachment(item.user_id, item.id, file);
       setAttachments((prev) => [...prev, created]);
-    } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    } finally {
+    } catch (e: unknown) { notify('Nie udało się wgrać załącznika.', 'error'); console.warn('[TodoCard] Failed to upload attachment:', e); } finally {
       setUploadingFile(false);
     }
   };
 
   const handleDeleteAttachment = async (att: any) => {
     setAttachments((prev) => prev.filter((a) => a.id !== att.id));
-    try { await deleteAttachment(att); } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
+    try { await deleteAttachment(att); } catch (e: unknown) { notify('Nie udało się usunąć załącznika.', 'error'); console.warn('[TodoCard] Failed to delete attachment:', e); }
   };
 
   const [reminderInput, setReminderInput] = useState('');
@@ -163,10 +161,7 @@ export default function TodoCard({
   const dateInfo = relativeDate(item.due_date, today);
   const tomorrowStr = useMemo(() => {
     if (!today) return '';
-    const [y, m, d] = today.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
+    return shiftDateStr(today, 1);
   }, [today]);
 
   // ── Touch swipe (card body) ──

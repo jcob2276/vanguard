@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SprintFacts, SprintProjectDecision } from '../../lib/sprintReview';
+import type { SprintFacts, SprintProjectDecision } from '../../lib/growth/sprintReview';
 
 function Divider({ title }: { title: string }) {
   return (

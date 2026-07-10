@@ -1,4 +1,4 @@
-import { updateTodoItem } from '../../lib/todo';
+import { updateTodoItem } from '../../lib/todo/todo';
 import { PRIORITY, PRIORITY_ORDER } from './todoUtils';
 
 interface Item {
@@ -37,7 +37,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
     setItems((prev) =>
       prev.map((i) => (i.id === item.id ? { ...i, section_id: sectionId } : i)),
     );
-    updateTodoItem(item.id, { section_id: sectionId } as any).catch(() => {
+    updateTodoItem(item.id, { section_id: sectionId }).catch(() => {
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, section_id: item.section_id } : i)),
       );

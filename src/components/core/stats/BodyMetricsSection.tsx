@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrendArrow } from './TrendArrow';
-import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/bodyMetrics';
+import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/health/bodyMetrics';
 import { BMI_NORMAL_LOW, BMI_NORMAL_HIGH } from '../../../lib/constants';
 
 interface TrendPoint {

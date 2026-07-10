@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ExternalLink, Target } from 'lucide-react';
-import type { SkillInventoryRow } from '../../lib/growthOverview';
+import type { SkillInventoryRow } from '../../lib/growth/growthOverview';
 
 function scoreBar(val: number) {
   return (
@@ -13,22 +13,7 @@ function scoreBar(val: number) {
   );
 }
 
-function matchLinkToSkill(link: any, skillKey: string): boolean {
-  const t = `${link.title || ''} ${link.description || ''} ${link.domain || ''} ${link.category || ''}`.toLowerCase();
-  const keywords: Record<string, string[]> = {
-    storytelling: ['storytelling', 'histori', 'opowiad', 'pitch', 'narrac'],
-    setting: ['setting', 'rozmowa', 'słuchan', 'mirroring', 'pytań', 'mówien', 'pauz'],
-    closing: ['closing', 'sprzedaż', 'cena', 'ceny', 'decyzj', 'handlow', 'klient', 'sales'],
-    negotiation: ['negocjac', 'ustępstw', 'granic', 'negotiat', 'anchor'],
-    voice_presence: ['dykcj', 'artykulac', 'głos', 'wymow', 'intonac', 'oddech', 'tempo', 'korek'],
-    social_exposure: ['relacj', 'kontakt', 'poznaw', 'randk', 'kobie', 'dziewczyn', 'social', 'ludzi', 'semen', 'manifesting'],
-    deep_work: ['deep work', 'produktyw', 'skup', 'egzekuc', 'prokrastyn', 'czas', 'organizac', 'wasting'],
-    body_base: ['sen', 'trening', 'siłown', 'biega', 'ruch', 'diet', 'calories', 'kalori', 'regenerac', 'oura', 'health', 'sleep'],
-  };
-  const list = keywords[skillKey];
-  if (!list) return false;
-  return list.some(kw => t.includes(kw));
-}
+import { matchLinkToSkill } from '../../lib/growth/growth';
 
 export default function GrowthSkillsList({
   rows,

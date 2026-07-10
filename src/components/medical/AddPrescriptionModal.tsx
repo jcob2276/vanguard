@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { createPrescription } from '../../lib/health/medicalApi';
+import { notify } from '../../lib/notify';
+import { getTodayWarsaw } from '../../lib/date';
 
 interface AddPrescriptionModalProps {
   onClose: () => void;
@@ -16,7 +18,7 @@ export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPres
     status: 'active',
     sphere_l: '', cyl_l: '', axis_l: '',
     sphere_r: '', cyl_r: '', axis_r: '',
-    started_at: new Date().toISOString().split('T')[0],
+    started_at: getTodayWarsaw(),
     notes: ''
   });
 
@@ -26,18 +28,7 @@ export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPres
     setIsSubmitting(true);
 
     try {
-      if (formData.status === 'active') {
-        // Mark existing active as past
-        await supabase
-          .from('endmyopia_prescriptions')
-          .update({ status: 'past', ended_at: formData.started_at })
-          .eq('user_id', user.id)
-          .eq('type', formData.type)
-          .eq('status', 'active');
-      }
-
-      const { error } = await supabase.from('endmyopia_prescriptions').insert({
-        user_id: user.id,
+      await createPrescription(user.id, {
         type: formData.type,
         status: formData.status,
         sphere_l: formData.sphere_l ? parseFloat(formData.sphere_l) : null,
@@ -50,12 +41,12 @@ export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPres
         notes: formData.notes || null
       });
 
-      if (error) throw error;
+      notify('Zapisano szkła w szafce.', 'success');
       onSaved();
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      alert('Błąd zapisu.');
+      notify('Błąd zapisu.', 'error');
     } finally {
       setIsSubmitting(false);
     }

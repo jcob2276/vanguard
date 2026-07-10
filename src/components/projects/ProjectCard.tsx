@@ -1,33 +1,10 @@
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Edit3,
-  Plus,
-  Save,
-  Trash2,
-  CalendarDays,
-  Flag,
-  Check,
-  Repeat2,
-  X,
-  Zap,
-  ArrowRight,
-} from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { ProjectCheckpoint } from '../../lib/projects';
+import { ProjectCheckpoint } from '../../lib/projects/projects';
+import { TodoItemRow } from '../../lib/todo/todo';
 import {
-  COLORS,
-  colorOf,
-  PILLAR_META,
-  STATUS_LABEL,
-  PillarId,
-  ProjectStats,
-  calculateHealthScore,
-  getHealthLevel,
-  HEALTH_COLORS,
-  getNextAction,
-  getProjectMomentum,
+  COLORS, colorOf, PILLAR_META, STATUS_LABEL, PillarId, ProjectStats, ProjectRow, GoalKpiRow,
+  calculateHealthScore, getHealthLevel, HEALTH_COLORS, getNextAction, getProjectMomentum
 } from './projectUtils';
 import HealthScore from './HealthScore';
 import { KpiTrendSparkline } from './KpiTrendSparkline';
@@ -44,22 +21,22 @@ const MOMENTUM_META = {
 };
 
 interface ProjectCardProps {
-  project: any;
+  project: ProjectRow;
   s: ProjectStats;
   isExpanded: boolean;
   setExpandedId: (updater: (prev: string | null) => string | null) => void;
-  projectPillar: (project: any) => PillarId | null;
+  projectPillar: (project: ProjectRow) => PillarId | null;
   projectCheckpoints: ProjectCheckpoint[];
   doneCheckpoints: number;
   busy: boolean;
-  kpisByProject: Record<string, any[]>;
+  kpisByProject: Record<string, GoalKpiRow[]>;
 
   editingProjectId: string | null;
   editForm: { name: string; goal: string; deadline: string; color: string; primary_skill_id: string };
   setEditForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string; primary_skill_id: string }>>;
-  startEditProject: (project: any) => void;
+  startEditProject: (project: ProjectRow) => void;
   setEditingProjectId: (id: string | null) => void;
-  handleSaveProject: (project: any) => void;
+  handleSaveProject: (project: ProjectRow) => void;
 
   newCheckpoint: { projectId: string; title: string; due_date: string } | null;
   setNewCheckpoint: React.Dispatch<React.SetStateAction<{ projectId: string; title: string; due_date: string } | null>>;
@@ -71,13 +48,13 @@ interface ProjectCardProps {
   setEditingKpiId: (id: string | null) => void;
   handleUpdateKpiValue: (kpiId: string, raw: string) => void;
 
-  handleToggleTask: (item: any) => void;
+  handleToggleTask: (item: TodoItemRow) => void;
   newTask: { projectId: string; title: string; recurrence: string } | null;
   setNewTask: React.Dispatch<React.SetStateAction<{ projectId: string; title: string; recurrence: string } | null>>;
-  handleAddTask: (project: any, section: any) => void;
+  handleAddTask: (project: ProjectRow, section: { id: string } | null) => void;
 
-  handleStatusCycle: (project: any) => void;
-  updateProjectStatus: (project: any, status: string) => void;
+  handleStatusCycle: (project: ProjectRow) => void;
+  updateProjectStatus: (project: ProjectRow, status: string) => void;
   handleDelete: (id: string) => void;
   userId: string;
   parentSkills: { id: string; label: string }[];
@@ -499,7 +476,7 @@ export default function ProjectCard({
 
           {/* Task list */}
           <div className="space-y-1">
-            {s.openItems.map((item: any) => (
+            {s.openItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleToggleTask(item)}
@@ -512,7 +489,7 @@ export default function ProjectCard({
                 {item.recurrence && <Repeat2 size={10} className="shrink-0 text-violet-400" />}
               </button>
             ))}
-            {s.doneItems.slice(0, 2).map((item: any) => (
+            {s.doneItems.slice(0, 2).map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleToggleTask(item)}
@@ -545,7 +522,7 @@ export default function ProjectCard({
               />
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as any) + 1) % RECURRENCE_CYCLE.length] } : t)}
+                  onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as typeof RECURRENCE_CYCLE[number]) + 1) % RECURRENCE_CYCLE.length] } : t)}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask!.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
                 >
                   <Repeat2 size={10} /> {RECURRENCE_LABEL[newTask!.recurrence]}

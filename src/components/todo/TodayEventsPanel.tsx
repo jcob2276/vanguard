@@ -1,5 +1,5 @@
 import { Clock } from 'lucide-react';
-import { useTodayCalendarEvents } from '../../hooks/useTodayCalendarEvents';
+import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 
 const CAT_DOT: Record<string, string> = {
   work:     'bg-blue-500',

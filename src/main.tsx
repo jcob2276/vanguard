@@ -1,9 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App'
 import { initOfflineSync } from './lib/offlineQueue'
+import { queryClient } from './lib/queryClient'
 
 // Flush anything queued while offline and retry automatically on reconnect.
 initOfflineSync()
@@ -33,8 +34,6 @@ try {
     throw new Error('Root container not found');
   }
 
-  const queryClient = new QueryClient();
-
   const root = createRoot(container);
   root.render(
     <StrictMode>
@@ -44,5 +43,5 @@ try {
     </StrictMode>
   );
 } catch (e: unknown) {
-      console.error('[Background Error]', e);
+      console.error('[App Critical] Root render failed:', e);
     }

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle, Eye, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { updatePatternStatus } from '../../lib/insightsApi';
+import { notify } from '../../lib/notify';
 
-export interface PatternData {
+interface PatternData {
   id: string;
   pattern_type: string;
   title: string | null;
@@ -37,13 +38,13 @@ export function PatternCard({ pattern, userId, onFeedback }: PatternCardProps) {
     setLoading(feedback);
     try {
       const newStatus = feedback === 'confirmed' ? 'user_confirmed' : feedback === 'rejected' ? 'user_rejected' : pattern.status;
-      const { error } = await supabase.from('vanguard_behavioral_patterns').update({ status: newStatus }).eq('id', pattern.id);
-      if (error) throw error;
+      await updatePatternStatus(pattern.id, newStatus);
       setDone(feedback);
       onFeedback?.(pattern.id, feedback);
+      notify('Opinia została zapisana.', 'success');
     } catch (e: unknown) {
       console.error('[PatternCard Feedback Error]', e);
-      alert('Nie udało się zapisać opinii.');
+      notify('Nie udało się zapisać opinii.', 'error');
     } finally {
       setLoading(null);
     }

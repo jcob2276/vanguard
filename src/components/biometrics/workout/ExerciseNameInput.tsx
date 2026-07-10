@@ -18,7 +18,7 @@ export default function ExerciseNameInput({
 
   // Sync external value → local query (e.g. on reset)
   useEffect(() => {
-    setQuery(value);
+    void (async () => { setQuery(value); })();
   }, [value]);
 
   const matches =

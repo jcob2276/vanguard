@@ -1,12 +1,17 @@
-import { getTodayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 
 export function getWarsawOffset(date?: string | Date): string {
   const d = date ? new Date(date) : new Date();
-  if (isNaN(d.getTime())) return '+02:00';
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date passed to getWarsawOffset: ${date}`);
+  }
   const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Warsaw', timeZoneName: 'shortOffset' });
   const tzPart = f.formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
-  if (!tzPart) return '+02:00';
-  let numStr = tzPart.replace('GMT', '');
+  if (!tzPart) {
+    const month = d.getMonth();
+    return (month >= 3 && month <= 9) ? '+02:00' : '+01:00';
+  }
+  const numStr = tzPart.replace('GMT', '');
   if (numStr === '') return '+00:00';
   if (numStr.includes(':')) {
     return numStr.length === 5 ? numStr[0] + '0' + numStr.slice(1) : numStr;
@@ -36,18 +41,14 @@ export function toLocalISO(date: Date) {
 }
 
 export function addDays(dateStr: string, n: number) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  return toLocalISO(new Date(dt.getTime()));
+  return shiftDateStr(dateStr, n);
 }
 
 export function weekMon(dateStr: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   const dow = (dt.getUTCDay() + 6) % 7; // Mon=0
-  dt.setUTCDate(dt.getUTCDate() - dow);
-  return toLocalISO(new Date(dt.getTime()));
+  return shiftDateStr(dateStr, -dow);
 }
 
 export function todayStr() {
@@ -59,12 +60,17 @@ export function dayLabel(dateStr: string) {
   return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric' });
 }
 
+export function formatWeekdayShort(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { weekday: 'short' });
+}
+
 export function monthLabel(dateStr: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function getWarsawParts(isoStr: string) {
+function getWarsawParts(isoStr: string) {
   const normalized = isoStr.includes(' ') && !isoStr.includes('T') ? isoStr.replace(' ', 'T') : isoStr;
   const date = new Date(normalized);
   if (isNaN(date.getTime())) throw new Error(`Invalid date string: ${isoStr}`);
@@ -98,7 +104,7 @@ export function parseTime(iso: string) {
   try {
     const { hour, minute } = getWarsawParts(iso);
     return Number(hour) * 60 + Number(minute);
-  } catch (e: unknown) {
+  } catch (_e: unknown) {
     return 0;
   }
 }
@@ -107,7 +113,7 @@ export function formatTime(iso: string) {
   try {
     const { timeStr } = getWarsawParts(iso);
     return timeStr;
-  } catch (e: unknown) {
+  } catch (_e: unknown) {
     return '';
   }
 }
@@ -116,7 +122,7 @@ export function dateOfISO(iso: string) {
   try {
     const { dateStr } = getWarsawParts(iso);
     return dateStr;
-  } catch (e: unknown) {
+  } catch (_e: unknown) {
     return iso.split('T')[0] || iso.split(' ')[0] || '';
   }
 }

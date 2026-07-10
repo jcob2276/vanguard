@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, CheckCircle2, Send, ChevronRight, ChevronLeft, AlertTriangle, Trash2, Flame } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useCalendarWrite } from '../../hooks/useCalendarWrite';
-import { getTodayWarsaw } from '../../lib/date';
-import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth';
-import { insertDailyWin } from '../../lib/goalSpine.mutations';
+import { useCalendarWrite } from '../calendar/hooks/useCalendarWrite';
+import { getTodayWarsaw, combineDateTimeWarsawISO, shiftDateStr } from '../../lib/date';
+import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth/growth';
+import { insertDailyWin } from '../../lib/goal/goalSpine.mutations';
 import { notify } from '../../lib/notify';
 import DayTimeline, { type TimelineBlock } from '../shared/DayTimeline';
 import { Session } from '@supabase/supabase-js';
@@ -42,9 +42,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const CAPACITY_HOURS = 8;
 
-function warsawIso(date: string, timeStr: string) {
-  return `${date}T${timeStr}:00+02:00`;
-}
+
 
 function addMinutes(timeStr: string, minutes: number) {
   const [h, m] = timeStr.split(':').map(Number);
@@ -52,14 +50,7 @@ function addMinutes(timeStr: string, minutes: number) {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-/** Shifts a YYYY-MM-DD date string by N days, anchored at UTC noon to sidestep DST edges. */
-function shiftDateStr(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/** The date part of a stored calendar/scheduled ISO string (Warsaw wall-clock, per warsawIso). */
+/** The date part of a stored calendar/scheduled ISO string (Warsaw wall-clock, per combineDateTimeWarsawISO). */
 function isoDateStr(iso: string): string {
   return iso.split('T')[0];
 }
@@ -119,8 +110,8 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
   // Initial load
   useEffect(() => {
     if (!userId) return;
-    setLoading(true);
     (async () => {
+      setLoading(true);
       try {
         // 1. Fetch open tasks due before the planning date (yesterday-and-older
         // when planning today; today's own leftovers too when planning tomorrow)
@@ -432,8 +423,8 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           // Add to calendar
           await createEvent({
             summary: task.title,
-            start: warsawIso(planningDate, startTime),
-            end: warsawIso(planningDate, endTime),
+            start: combineDateTimeWarsawISO(planningDate, startTime),
+            end: combineDateTimeWarsawISO(planningDate, endTime),
             category: 'praca',
           });
 
@@ -441,7 +432,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           await supabase
             .from('todo_items')
             .update({
-              scheduled_time: warsawIso(planningDate, startTime),
+              scheduled_time: combineDateTimeWarsawISO(planningDate, startTime),
               duration_minutes: dur,
             })
             .eq('id', taskId);

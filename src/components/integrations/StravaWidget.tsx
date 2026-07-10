@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
+import { TIMEOUTS } from '../../lib/constants';
 import { Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -131,16 +132,13 @@ export default function StravaWidget({ session }: { session: Session }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(TIMEOUTS.default),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setLoading(true);
       await fetchActivities();
-    } catch (e: unknown) {
-      console.error('[StravaWidget] sync error:', e);
-      setError(e instanceof Error ? (e as Error).message : String(e));
-    } finally {
+    } catch (e: unknown) { console.error('[StravaWidget] sync error:', e); setError(e instanceof Error ? (e as Error).message : String(e)); } finally {
       setSyncing(false);
     }
   }

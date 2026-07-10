@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FlaskConical } from 'lucide-react';
-import { useMedicalData } from '../../hooks/useMedicalData';
-import { useRetestSuggestions } from '../../hooks/useMedicalRetestContext';
+import { useMedicalData } from './hooks/useMedicalData';
+import { useRetestSuggestions } from './hooks/useMedicalRetestContext';
 import {
   buildMarkerSeries,
   categoryLabel,
@@ -14,8 +14,8 @@ import {
   groupSeriesByCategory,
   labFreshness,
   PRIORITY_CHART_MARKERS,
-} from '../../lib/medicalAnalytics';
-import { findLatestFullPanel } from '../../lib/medicalRetestContext';
+} from '../../lib/health/medicalAnalytics';
+import { findLatestFullPanel } from '../../lib/health/medicalRetestContext';
 import { computeBiologyScoresLite } from '../../lib/getBased/biologyScoresLite';
 import MedicalBiologyScores from './MedicalBiologyScores';
 import MedicalRetestPanel from './MedicalRetestPanel';

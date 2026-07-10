@@ -11,7 +11,10 @@
 | 1 | [`../AGENTS.md`](../AGENTS.md) | Konstytucja, reguły deployu, modele, critical rules |
 | 2 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Przepływ danych, crony, podsystemy (jedna strona) |
 | 3 | [`../supabase/functions/README.md`](../supabase/functions/README.md) | Rejestr 40 funkcji: status, JWT, tabele, LOC |
-| 4 | [`DEV_GUIDE.md`](./DEV_GUIDE.md) | Konwencje, checklista dodawania funkcji, commit convention |
+| 4 | [`DEV_GUIDE.md`](./DEV_GUIDE.md) | Konwencje, checklista dodawania funkcji, commit convention (backend/edge functions) |
+| 4a | [`FRONTEND_GUIDE.md`](./FRONTEND_GUIDE.md) | To samo co DEV_GUIDE, dla `src/` — fetch, error handling, modale, daty, granice lib/hooks/components (egzekwowane przez ESLint) |
+| 4b | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Skrócona ściągawka — shared components, tokeny, CSS rules |
+| 4c | [`DESIGN_SYSTEM_10_10.md`](./DESIGN_SYSTEM_10_10.md) | **Pełna konstytucja UX** — struktury modułów, zasady, sesje wdrożeniowe, roadmapa |
 | 5 | [`PRODUCT_PRINCIPLES.md`](./PRODUCT_PRINCIPLES.md) | Guardrails epistemiczne, feature gate, co jest zablokowane |
 
 ## Pełne czytanie (15 minut)
@@ -46,7 +49,9 @@ Gdy instrukcje w różnych plikach się różnią, wygrywa plik wyżej na liści
 1. `AGENTS.md` — konstytucja
 2. `ARCHITECTURE.md` — data flow
 3. `supabase/functions/README.md` — rejestr funkcji
-4. Reszta w kolejności powyżej
+4. `FRONTEND_GUIDE.md` — dla zmian w `src/`, gdy koliduje z ogólniejszymi zasadami niżej
+5. `DESIGN_SYSTEM.md` — dla zmian UX/UI w `src/components/`
+6. Reszta w kolejności powyżej
 
 ## Zasada VGM
 

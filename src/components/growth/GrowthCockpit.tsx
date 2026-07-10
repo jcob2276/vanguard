@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, FolderKanban, ListChecks, Target, TrendingUp, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { GrowthContextData, GrowthLinkRow } from '../../hooks/useGrowthData';
-import type { GrowthPrevWeekSummary, PowerListWeekStats } from '../../lib/growthWeek';
-import type { FocusProposal } from '../../lib/growthOverview';
-import type { LearningWeekPin } from '../../lib/growth';
-import { computeTheoryPracticeBalance } from '../../lib/growthMastery';
+import type { GrowthContextData, GrowthLinkRow } from './hooks/useGrowthData';
+import type { GrowthPrevWeekSummary, PowerListWeekStats } from '../../lib/growth/growthWeek';
+import type { FocusProposal } from '../../lib/growth/growthOverview';
+import type { LearningWeekPin } from '../../lib/growth/growth';
+import { computeTheoryPracticeBalance } from '../../lib/growth/growthMastery';
 
 export default function GrowthCockpit({
   context,

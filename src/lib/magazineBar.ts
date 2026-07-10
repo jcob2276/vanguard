@@ -2,10 +2,10 @@ import { addDays, format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { DirectionContextData } from './dailyPlanProposal';
 import type { ScheduleViewData, ScheduleItem } from '../types/schedule';
-import { getTodayWarsaw, formatWarsawDate } from './date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from './date';
 import { sweepPastEventsInState } from '../types/schedule';
-import { formatSprintWeekBridge } from './goalSpine';
-import { formatSprintFromLongTerm } from './longTermBridge';
+import { formatSprintWeekBridge } from './goal/goalSpine.queries';
+import { formatSprintFromLongTerm } from './goal/longTermBridge';
 
 const SCHEDULE_STORAGE_KEY = 'vanguard_schedule_view';
 
@@ -98,9 +98,7 @@ function buildMagazineFromDirection(ctx: DirectionContextData): ScheduleViewData
   }
 
   for (let i = 0; i < 7; i++) {
-    const base = new Date(today + 'T12:00:00Z');
-    base.setUTCDate(base.getUTCDate() + i);
-    const d = formatWarsawDate(base);
+    const d = shiftDateStr(today, i);
     if (!itemsByDay.has(d)) itemsByDay.set(d, []);
   }
 

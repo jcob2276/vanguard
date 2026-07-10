@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
+import { getTodayWarsaw, getYesterdayWarsaw, formatDayLabel } from '../../../lib/date';
 import { useHaptics } from '../../../hooks/useHaptics';
 import {
   parseFoodNL,
@@ -8,8 +8,9 @@ import {
   saveFoodCorrection,
   scheduleFoodQualityAnalysis,
   needsReview,
+  defaultMealType,
   type ParsedFoodItem as NLFoodItem,
-} from '../../../lib/foodLogging';
+} from '../../../lib/health/foodLogging';
 import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
 import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
 import { rpcWithOfflineFallback } from '../../../lib/offlineQueue';
@@ -67,13 +68,7 @@ function derivePer100(entry: RecentEntry) {
   };
 }
 
-function defaultMealType(): string {
-  const hour = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).getHours();
-  if (hour < 11) return 'breakfast';
-  if (hour < 16) return 'lunch';
-  if (hour < 21) return 'dinner';
-  return 'snack';
-}
+
 
 export function scale(value: number | null, grams: number): number | null {
   if (value == null) return null;
@@ -81,10 +76,8 @@ export function scale(value: number | null, grams: number): number | null {
 }
 
 export function dayLabel(dateStr: string, todayStr: string, yesterdayStr: string): string {
-  if (dateStr === todayStr) return 'Dzisiaj';
-  if (dateStr === yesterdayStr) return 'Wczoraj';
-  const [, m, d] = dateStr.split('-');
-  return `${d}.${m}`;
+  const lbl = formatDayLabel(dateStr, todayStr, yesterdayStr, true);
+  return lbl === 'Dziś' ? 'Dzisiaj' : lbl;
 }
 
 export interface UseFoodEntryDataProps {
@@ -137,7 +130,7 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
   const [nlRemovedIdx, setNlRemovedIdx] = useState<Set<number>>(new Set());
 
   const todayStr = getTodayWarsaw();
-  const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
+  const yesterdayStr = getYesterdayWarsaw();
 
   const loadLists = useCallback(async () => {
     if (!userId) return;
@@ -180,10 +173,10 @@ export function useFoodEntryData({ session, onClose, onSaved, initialEditEntry, 
     setLoadingList(false);
   }, [userId]);
 
-  useEffect(() => { loadLists(); }, [loadLists]);
+  useEffect(() => { void (async () => { await loadLists(); })(); }, [loadLists]);
 
   useEffect(() => {
-    if (query.trim().length < 2 || !userId) { setSearchResults([]); return; }
+    if (query.trim().length < 2 || !userId) { void (async () => { setSearchResults([]); })(); return; }
     const t = setTimeout(async () => {
       setSearching(true);
       setError(null);

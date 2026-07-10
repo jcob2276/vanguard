@@ -3,7 +3,7 @@ import { X, Sparkles, Smile, Flame, Award, Send } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getTodayWarsaw } from "../../lib/date";
 import { notify } from "../../lib/notify";
-import { updateDailyWin } from "../../lib/goalSpine.mutations";
+import { updateDailyWin } from "../../lib/goal/goalSpine.mutations";
 import { Session } from '@supabase/supabase-js';
 
 interface Props {
@@ -31,8 +31,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
   useEffect(() => {
     if (!userId) return;
-    setLoading(true);
     (async () => {
+      setLoading(true);
       try {
         const { data, error } = await supabase
           .from("daily_wins")

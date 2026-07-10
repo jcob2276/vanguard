@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { BarChartWidget } from '../widgets/BarChart';
 import { CheckCircle2, Clock, TrendingUp } from 'lucide-react';
-import { formatWarsawDate, getDaysAgoWarsaw } from '../../lib/date';
+import { formatWarsawDate, getDaysAgoWarsaw, getTodayWarsaw, shiftDateStr } from '../../lib/date';
 
 interface Props {
   session: Session;
@@ -30,9 +30,7 @@ export default function TaskAnalyticsCard({ session }: Props) {
 
   useEffect(() => {
     if (!userId) return;
-    const since = new Date();
-    since.setDate(since.getDate() - 7);
-    const sinceISO = since.toISOString();
+    const sinceISO = new Date(shiftDateStr(getTodayWarsaw(), -7) + 'T00:00:00Z').toISOString();
 
     (async () => {
       try {

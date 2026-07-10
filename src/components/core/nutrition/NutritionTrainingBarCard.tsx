@@ -6,7 +6,7 @@ import {
   isFoodLogClosed,
   setFoodLogClosed,
   type NutritionDayContext,
-} from '../../../lib/nutritionContext'
+} from '../../../lib/health/nutritionContext'
 import NutritionTrainingBar from './NutritionTrainingBar'
 
 export default function NutritionTrainingBarCard({
@@ -31,7 +31,7 @@ export default function NutritionTrainingBarCard({
     }
   }, [userId, today, session.access_token])
 
-  useEffect(() => { void refresh() }, [refresh, refreshSignal])
+  useEffect(() => { void (async () => { await refresh() })() }, [refresh, refreshSignal])
 
   return (
     <NutritionTrainingBar

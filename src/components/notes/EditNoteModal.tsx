@@ -40,11 +40,13 @@ export default function EditNoteModal({
   const c = getColor(color);
 
   useEffect(() => {
-    setTitle(note.title);
-    setContent(note.content);
-    setColor(note.color);
-    setTagsInput(note.tags.join(', '));
-    setAiResult(null);
+    void (async () => {
+      setTitle(note.title);
+      setContent(note.content);
+      setColor(note.color);
+      setTagsInput(note.tags.join(', '));
+      setAiResult(null);
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
 

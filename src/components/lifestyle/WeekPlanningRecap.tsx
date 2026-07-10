@@ -1,6 +1,6 @@
 import WeekLoopSummary from '../shared/WeekLoopSummary';
 import ProjectWeekKpis from './ProjectWeekKpis';
-import { useDirectionContext } from '../../hooks/useDirectionContext';
+import { useDirectionContext } from './direction/hooks/useDirectionContext';
 
 /** Read-only week hub snapshot at the top of Sunday planning — same data as WeekHub radar. */
 export default function WeekPlanningRecap({

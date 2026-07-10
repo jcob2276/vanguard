@@ -7,7 +7,7 @@ import DirectionSprintMode from './DirectionSprintMode';
 import DirectionPlanningMode from './DirectionPlanningMode';
 import DirectionRadarMode from './DirectionRadarMode';
 import WeekHub from './WeekHub';
-import { useDirection } from '../../hooks/useDirection';
+import { useDirection } from './direction/hooks/useDirection';
 
 function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon; title: string; detail?: string; action?: ReactNode }) {
   return (

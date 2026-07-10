@@ -1,7 +1,7 @@
 import { Check, Zap } from 'lucide-react'
 import { useHaptics } from '../../../hooks/useHaptics'
-import type { PlyoExercisePrescription, PlyoSessionPlan } from '../../../lib/plyoMarathonProgram'
-import { formatPlyoPrescription } from '../../../lib/plyoMarathonProgram'
+import type { PlyoExercisePrescription, PlyoSessionPlan } from '../../../lib/health/plyoMarathonProgram'
+import { formatPlyoPrescription } from '../../../lib/health/plyoMarathonProgram'
 
 interface PlyoBlockProps {
   session: PlyoSessionPlan

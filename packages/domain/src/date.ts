@@ -18,6 +18,17 @@ export function getDaysAgoWarsaw(days: number): string {
   return d.toISOString().split('T')[0];
 }
 
+/**
+ * Shifts a YYYY-MM-DD date string by N days (negative to go back), anchored at UTC
+ * noon so the shift is immune to DST — the single canonical implementation for this;
+ * do not reintroduce a local copy (see docs/FRONTEND_GUIDE.md).
+ */
+export function shiftDateStr(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 /** Returns the Europe/Warsaw UTC offset suffix (e.g. "+02:00") for a given instant, DST-aware. */
 export function warsawOffsetSuffix(instant: Date): string {
   const offsetStr = new Intl.DateTimeFormat('en-US', {

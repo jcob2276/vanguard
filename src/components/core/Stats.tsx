@@ -7,15 +7,15 @@ import { useStore } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from './stats/statsApi';
-import { exportStatsMarkdown, exportOuraCsv } from './stats/exportStats';
+import { exportStatsMarkdown, exportOuraCsv } from '../../lib/stats/exportStats';
 import { notify, confirmDialog } from '../../lib/notify';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection, type NewMetricState } from './stats/BodyMetricsSection';
-import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '../../lib/bodyMetrics';
+import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '../../lib/health/bodyMetrics';
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection, type FoodQualityItem, type ProteinDistribution, type FoodAnalysisDay, type FoodAnalysisResult } from './stats/FoodAnalysisSection';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
 import { Session } from '@supabase/supabase-js';
 
 type BodyMetricRow = Tables<'body_metrics'>;
@@ -40,7 +40,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [newMetric, setNewMetric] = useState<NewMetricState>({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
   const [heightCm, setHeightCm] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
-    from: (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 7); return formatWarsawDate(d); })(),
+    from: shiftDateStr(getTodayWarsaw(), -7),
     to: getTodayWarsaw()
   });
   const [isExporting, setIsExporting] = useState(false);
@@ -124,7 +124,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   }, [session.user.id]);
 
   useEffect(() => {
-    fetchStats();
+    void (async () => { await fetchStats(); })();
   }, [fetchStats]);
 
   async function saveMetrics(e: React.FormEvent) {

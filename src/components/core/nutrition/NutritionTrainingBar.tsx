@@ -1,5 +1,5 @@
 import { Activity, Flag, Target } from 'lucide-react';
-import type { NutritionDayContext } from '../../../lib/nutritionContext';
+import type { NutritionDayContext } from '../../../lib/health/nutritionContext';
 
 const TRAJECTORY_STYLE: Record<string, string> = {
   on_track: 'text-emerald-500',

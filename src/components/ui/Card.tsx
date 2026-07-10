@@ -17,7 +17,7 @@ const BASE = 'relative overflow-hidden transition-all duration-200';
 
 const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }> = {
   glass: {
-    className: `${BASE} bg-white dark:bg-[#141414]`,
+    className: `${BASE} bg-bg-secondary`,
     style: {
       borderRadius: 20,
       boxShadow: 'var(--shadow-card)',
@@ -32,7 +32,7 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
     },
   },
   canvas: {
-    className: `${BASE} bg-white dark:bg-[#141414]`,
+    className: `${BASE} bg-bg-secondary`,
     style: {
       borderRadius: 20,
       boxShadow: 'var(--shadow-card)',
@@ -41,7 +41,7 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
     },
   },
   receipt: {
-    className: `${BASE} bg-white dark:bg-[#141414]`,
+    className: `${BASE} bg-bg-secondary`,
     style: {
       borderRadius: 24,
       border: '1px solid rgba(153,161,175,0.2)',

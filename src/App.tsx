@@ -9,13 +9,20 @@ import { ErrorBoundary } from './components/core/ErrorBoundary';
 import { ToastHost } from './components/ui/ToastHost';
 import SettingsView from './components/settings/SettingsView';
 
-const DesktopDashboard = lazy(() => import('./components/desktop/DesktopDashboard'));
+const DesktopDashboard = lazy(() => import('./components/desktop/shell/DesktopDashboard'));
 const GrowthView = lazy(() => import('./components/growth/GrowthView'));
 const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
 const CorrelationsPage = lazy(() => import('./components/correlations/CorrelationsPage'));
 const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCalculator'));
-function KorelacjeRedirect() {
-  return <Navigate to="/korealcje" replace />;
+
+const FALLBACK_SPINNER = (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
+  </div>
+);
+
+function KorealcjeRedirect() {
+  return <Navigate to="/korelacje" replace />;
 }
 
 function AppRoutes() {
@@ -46,11 +53,7 @@ function AppRoutes() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
-      </div>
-    );
+    return FALLBACK_SPINNER;
   }
 
   if (!session) return <Auth />;
@@ -71,29 +74,29 @@ function AppRoutes() {
       <Route path="/sauna" element={<Dashboard session={session} />} />
 
       <Route path="/dashboard" element={
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+        <Suspense fallback={FALLBACK_SPINNER}>
           <DesktopDashboard session={session} />
         </Suspense>
       } />
       <Route path="/settings" element={<SettingsView session={session} />} />
       <Route path="/rozwoj" element={
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+        <Suspense fallback={FALLBACK_SPINNER}>
           <GrowthView session={session} />
         </Suspense>
       } />
       <Route path="/badania" element={
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+        <Suspense fallback={FALLBACK_SPINNER}>
           <MedicalStudiesPage session={session} />
         </Suspense>
       } />
-      <Route path="/korealcje" element={
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+      <Route path="/korelacje" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
           <CorrelationsPage session={session} />
         </Suspense>
       } />
-      <Route path="/korelacje" element={<KorelacjeRedirect />} />
+      <Route path="/korealcje" element={<KorealcjeRedirect />} />
       <Route path="/optics" element={
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+        <Suspense fallback={FALLBACK_SPINNER}>
           <EndMyopiaCalculator />
         </Suspense>
       } />

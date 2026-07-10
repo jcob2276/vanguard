@@ -2,17 +2,7 @@ import { useRef, useState } from 'react';
 import { Pin, SortAsc, Trash2, X, Loader2 } from 'lucide-react';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
-
-export interface InsightCardData {
-  id: string;
-  templateId: string;
-  title: string;
-  insight?: string;
-  widgetType?: string;
-  widgetData: Record<string, unknown>;
-  isPinned: boolean;
-  sortOrder: number;
-}
+import type { InsightCardData } from '../../lib/insightsApi';
 
 interface InsightCardProps {
   card: InsightCardData;

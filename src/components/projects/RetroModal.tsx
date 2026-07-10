@@ -1,4 +1,5 @@
 import React from 'react';
+import Modal from '../ui/Modal';
 
 export interface RetroModalProps {
   retroProject: any;
@@ -8,26 +9,21 @@ export interface RetroModalProps {
   busy: boolean;
 }
 
-export default function RetroModal({
-  retroProject,
-  retroForm,
-  setRetroForm,
-  onSubmit,
-  busy
-}: RetroModalProps) {
+export default function RetroModal({ retroProject, retroForm, setRetroForm, onSubmit, busy }: RetroModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4 animate-fadeIn">
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1">Projekt ukończony</p>
-          <h3 className="text-[17px] font-black text-text-primary leading-tight">{retroProject.name}</h3>
-        </div>
-
+    <Modal
+      isOpen={!!retroProject}
+      onClose={() => onSubmit(true)}
+      title={retroProject?.name}
+      subtitle="Projekt ukończony"
+      size="sm"
+      showCloseButton={false}
+      closeOnBackdropClick={false}
+    >
+      <div className="space-y-4">
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">
-              Co poszło dobrze?
-            </label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co poszło dobrze?</label>
             <textarea
               value={retroForm.good}
               onChange={e => setRetroForm(f => ({ ...f, good: e.target.value }))}
@@ -37,9 +33,7 @@ export default function RetroModal({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">
-              Co zrobić inaczej?
-            </label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co zrobić inaczej?</label>
             <textarea
               value={retroForm.improve}
               onChange={e => setRetroForm(f => ({ ...f, improve: e.target.value }))}
@@ -49,9 +43,7 @@ export default function RetroModal({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1.5">
-              Ocena projektu
-            </label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1.5">Ocena projektu</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map(n => (
                 <button
@@ -67,7 +59,6 @@ export default function RetroModal({
             </div>
           </div>
         </div>
-
         <div className="flex gap-2 pt-1">
           <button
             onClick={() => onSubmit(true)}
@@ -84,6 +75,6 @@ export default function RetroModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

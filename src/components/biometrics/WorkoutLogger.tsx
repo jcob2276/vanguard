@@ -21,7 +21,7 @@ import {
   saveWorkoutSession,
   type WorkoutDraft,
   type WorkoutLoggerInitial,
-} from '../../lib/workoutLogging';
+} from '../../lib/health/workoutLogging';
 import ExerciseCard from './workout/ExerciseCard';
 import VolumeBar from './workout/VolumeBar';
 import PlyoBlock from './workout/PlyoBlock';
@@ -34,7 +34,7 @@ import {
   plyoPrescriptionToLogs,
   resolvePlyoSession,
   savePlyoCheckoff,
-} from '../../lib/plyoMarathonProgram';
+} from '../../lib/health/plyoMarathonProgram';
 
 export default function WorkoutLogger({
   session,
@@ -83,7 +83,7 @@ export default function WorkoutLogger({
   useEffect(() => {
     if (!userId || plyoSkipped) return;
     const session = resolvePlyoSession(workoutDate, userId);
-    setPlyoDone(initPlyoCheckoff(userId, session));
+    void (async () => { setPlyoDone(initPlyoCheckoff(userId, session)); })();
   }, [userId, workoutDate, plyoSkipped]);
 
   useEffect(() => {
@@ -91,18 +91,20 @@ export default function WorkoutLogger({
     const draft = loadWorkoutDraft(userId);
     const seed = (draft && hasResumableWorkoutDraftContent(draft)) ? draft : (initial ?? draft);
     if (!seed) return;
-    setWorkoutName(seed.workoutName);
-    setExercises(seed.exercises?.length ? seed.exercises : [newExercise()]);
-    setActivities(seed.activities ?? []);
-    setNotes(seed.notes ?? '');
-    setSessionRpe(seed.sessionRpe ?? null);
-    if (draft) {
-      setWorkoutDate(draft.workoutDate);
-      setTimerStart(draft.timerStart);
-      setManualTime(draft.manualTime);
-      setStartTimeManual(draft.startTimeManual);
-      setEndTimeManual(draft.endTimeManual);
-    }
+    void (async () => {
+      setWorkoutName(seed.workoutName);
+      setExercises(seed.exercises?.length ? seed.exercises : [newExercise()]);
+      setActivities(seed.activities ?? []);
+      setNotes(seed.notes ?? '');
+      setSessionRpe(seed.sessionRpe ?? null);
+      if (draft) {
+        setWorkoutDate(draft.workoutDate);
+        setTimerStart(draft.timerStart);
+        setManualTime(draft.manualTime);
+        setStartTimeManual(draft.startTimeManual);
+        setEndTimeManual(draft.endTimeManual);
+      }
+    })();
   }, [userId, initial]);
 
   useEffect(() => {

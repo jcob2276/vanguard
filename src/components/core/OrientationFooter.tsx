@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { fetchSprintContext } from '../../lib/goalSpine';
+import { fetchSprintContext } from '../../lib/goal/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
-import { getSprintInfo, SPRINT_SEASON } from '../desktop/desktopUtils';
+import { getSprintInfo, SPRINT_SEASON } from '../../lib/growth/sprintUtils';
 
 const BORN = new Date('2002-07-06');
 
@@ -22,7 +22,7 @@ const FUEL = [
 ];
 
 export default function OrientationFooter({ session }: { session: Session }) {
-  const lived = Math.floor((Date.now() - BORN.getTime()) / 86400000);
+  const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   const sprint = getSprintInfo();
   const [sprintGoal, setSprintGoal] = useState<string | null>(null);

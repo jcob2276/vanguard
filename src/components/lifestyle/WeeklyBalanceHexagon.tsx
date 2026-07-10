@@ -1,3 +1,4 @@
+import { notify } from '../../lib/notify';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import {
@@ -7,10 +8,10 @@ import {
   fetchWeeklySphereActuals,
   type SphereHours,
   type LifeSphereId,
-} from '../../lib/lifeSpheres';
-import { getWeekStartWarsaw, shiftWeekStart, formatWeekRange, isCurrentWeek } from '../../lib/growth';
+} from '../../lib/projects/lifeSpheres';
+import { getWeekStartWarsaw, shiftWeekStart, formatWeekRange, isCurrentWeek } from '../../lib/growth/growth';
 import { getTodayWarsaw } from '../../lib/date';
-import { listTodoItems, updateTodoItem } from '../../lib/todo';
+import { listTodoItems, updateTodoItem } from '../../lib/todo/todo';
 import type { Database } from '../../lib/database.types';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
@@ -73,14 +74,12 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       setBudgets(map);
       setActuals(actualHours);
       setTasks(items.filter((t) => t.status === 'open' && t.is_important));
-    } catch (err: unknown) {
-      console.error('[Background Error]', err);
-    } finally {
+    } catch (err: unknown) { console.warn('[WeeklyBalanceHexagon] Failed to load budgets and actuals:', err); } finally {
       setLoading(false);
     }
   }, [userId, weekStart]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void (async () => { await load(); })(); }, [load]);
 
   const targetFor = (sphere: LifeSphereId) => budgets[sphere]?.max ?? budgets[sphere]?.min ?? 0;
 
@@ -112,9 +111,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       await saveSphereBudget(userId, editingSphere, currentMin, hours);
       setBudgets((prev) => ({ ...prev, [editingSphere]: { min: currentMin, max: hours } }));
       setEditingSphere(null);
-    } catch (err: unknown) {
-      console.error('[Background Error]', err);
-    } finally {
+    } catch (err: unknown) { notify('Nie udało się zapisać budżetu.', 'error'); console.warn('[WeeklyBalanceHexagon] Failed to save sphere budget:', err); } finally {
       setSaving(false);
     }
   };
@@ -125,10 +122,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
     const taskId = selectedTaskId;
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, category: sphere } : t)));
     try {
-      await updateTodoItem(taskId, { category: sphere } as any);
-    } catch (err: unknown) {
-      console.error('[Background Error]', err);
-    } finally {
+      await updateTodoItem(taskId, { category: sphere });
+    } catch (err: unknown) { notify('Nie udało się przypisać zadania do obszaru.', 'error'); console.warn('[WeeklyBalanceHexagon] Failed to update todo category:', err); } finally {
       setSelectedTaskId(null);
       setAssigning(false);
     }

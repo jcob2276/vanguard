@@ -35,7 +35,7 @@ export default function Photos({ session }: { session: Session }) {
   }, [session.user.id]);
 
   useEffect(() => {
-    fetchPhotos();
+    void (async () => { await fetchPhotos(); })();
   }, [fetchPhotos]);
 
   const basePhoto = photos.find(p => p.id === baseId);

@@ -2,10 +2,9 @@ import { useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { fetchUserFundament, upsertUserFundament } from '../../lib/identityVaultApi';
 import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { Tables } from '../../lib/database.types';
-
 const colorMap = {
   'purple-500': { 
     bg: 'bg-purple-500/8 dark:bg-purple-500/15', 
@@ -24,7 +23,6 @@ const colorMap = {
   }
 };
 
-type VaultField = keyof Pick<Tables<'user_fundament'>, 'vision' | 'identity' | 'knowledge' | 'relationships' | 'philosophy' | 'finances' | 'work_edu'>;
 type VaultState = Record<string, string>;
 
 const emptyVault: VaultState = {
@@ -36,6 +34,37 @@ const emptyVault: VaultState = {
   finances: '',
   work_edu: '',
 };
+
+function Section({ title, icon: Icon, value, onChange, placeholder, description, color }: {
+  title: string;
+  icon: LucideIcon;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  description: ReactNode;
+  color: keyof typeof colorMap;
+}) {
+  const themeStyles = colorMap[color] || colorMap['purple-500'];
+  return (
+    <div className="bg-surface border border-border-custom rounded-[24px] p-5 space-y-4 hover:border-primary/20 transition-all shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`p-2.5 rounded-xl ${themeStyles.bg} border ${themeStyles.border}`}>
+          <Icon size={18} className={themeStyles.text} />
+        </div>
+        <div>
+          <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">{title}</h3>
+          <p className="text-[10px] text-text-muted uppercase tracking-widest">{description}</p>
+        </div>
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-[12.5px] font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] outline-none transition-all placeholder:text-text-muted/40"
+      />
+    </div>
+  );
+}
 
 export default function IdentityVault({ session: sessionProp }: { session?: Session | null }) {
   const [loading, setLoading] = useState(false);
@@ -59,12 +88,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
   const fetchVault = useCallback(async () => {
     if (!userId) return;
     try {
-      const { data } = await supabase
-        .from('user_fundament')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
+      const data = await fetchUserFundament(userId);
+
       if (data) {
         setVault({
           vision: data.vision || '',
@@ -77,12 +102,13 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         });
       }
     } catch (err: unknown) {
-      console.error('[Background Error]', err);
+      console.warn('[IdentityVault] Failed to fetch user identity vault:', err);
     }
   }, [userId]);
 
   useEffect(() => {
-    if (userId) fetchVault();
+    if (!userId) return;
+    void (async () => { await fetchVault(); })();
   }, [fetchVault, userId]);
 
   const handleSave = async () => {
@@ -112,16 +138,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         totalTriads += data?.triads ?? 0;
       }
       console.debug(`[VAULT] Ingested ${totalChunks} chunks, ${totalTriads} triads`);
-      
-      const { error: dbError } = await supabase
-        .from('user_fundament')
-        .upsert({
-          user_id: uid,
-          ...nonEmpty,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-      
-      if (dbError) throw dbError;
+
+      await upsertUserFundament(uid, nonEmpty);
 
       setSaveStatus('success');
       setVault({ identity: '', philosophy: '', finances: '', vision: '', knowledge: '', relationships: '', work_edu: '' });
@@ -132,29 +150,6 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
     } finally {
       setLoading(false);
     }
-  };
-
-  const Section = ({ title, icon: Icon, field, placeholder, description, color }: { title: string; icon: LucideIcon; field: VaultField; placeholder: string; description: ReactNode; color: keyof typeof colorMap }) => {
-    const themeStyles = colorMap[color] || colorMap['purple-500'];
-    return (
-      <div className="bg-surface border border-border-custom rounded-[24px] p-5 space-y-4 hover:border-primary/20 transition-all shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-xl ${themeStyles.bg} border ${themeStyles.border}`}>
-            <Icon size={18} className={themeStyles.text} />
-          </div>
-          <div>
-            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">{title}</h3>
-            <p className="text-[10px] text-text-muted uppercase tracking-widest">{description}</p>
-          </div>
-        </div>
-        <textarea
-          value={vault[field]}
-          onChange={(e) => setVault(prev => ({ ...prev, [field]: e.target.value }))}
-          placeholder={placeholder}
-          className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-[12.5px] font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] outline-none transition-all placeholder:text-text-muted/40"
-        />
-      </div>
-    );
   };
 
   return (
@@ -194,7 +189,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         <Section
           title="JA"
           icon={Ghost}
-          field="identity"
+          value={vault.identity}
+          onChange={(v) => setVault(prev => ({ ...prev, identity: v }))}
           color="purple-500"
           description="Tożsamość, relacje, psychologia, cienie, misja"
           placeholder="Kim jesteś? Twoje wartości, lęki, relacje, cienie, misja życiowa, wzorce zachowań, sesje terapeutyczne, refleksje..."
@@ -202,7 +198,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         <Section
           title="CIAŁO"
           icon={Heart}
-          field="philosophy"
+          value={vault.philosophy}
+          onChange={(v) => setVault(prev => ({ ...prev, philosophy: v }))}
           color="rose-500"
           description="Trening, żywienie, biometria, zdrowie"
           placeholder="Plany treningowe, wyniki badań, dane z Oury, żywienie, pomiary, suplementacja, samopoczucie fizyczne..."
@@ -210,7 +207,8 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
         <Section
           title="ZASOBY"
           icon={Briefcase}
-          field="finances"
+          value={vault.finances}
+          onChange={(v) => setVault(prev => ({ ...prev, finances: v }))}
           color="orange-500"
           description="Praca, studia, finanse, projekty"
           placeholder="Projekty, zarobki, cele finansowe, postępy na studiach, umiejętności, plany biznesowe..."

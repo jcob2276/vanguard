@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Pencil, Calendar, Sun, CalendarDays, MoreHorizontal, Flag, FolderInput, Copy, Trash2, ChevronRight } from 'lucide-react';
+import { shiftDateStr } from '../../lib/date';
 
 export interface ContextMenuProps {
   x: number;
@@ -63,12 +64,7 @@ export default function ContextMenu({
   const top = Math.min(y, window.innerHeight - 380);
 
   // Helper for tomorrow
-  const getTomorrowDate = () => {
-    const [y_val, m_val, d_val] = today.split('-').map(Number);
-    const date = new Date(Date.UTC(y_val, m_val - 1, d_val));
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
-  };
+  const getTomorrowDate = () => shiftDateStr(today, 1);
 
   // Helper for next weekend (Saturday)
   const getNextWeekend = () => {
@@ -76,8 +72,7 @@ export default function ContextMenu({
     const date = new Date(Date.UTC(y_val, m_val - 1, d_val));
     const day = date.getUTCDay(); // 0 is Sunday, 6 is Saturday
     const daysToAdd = day === 0 ? 6 : 6 - day + (day === 6 ? 7 : 0);
-    date.setUTCDate(date.getUTCDate() + daysToAdd);
-    return date.toISOString().slice(0, 10);
+    return shiftDateStr(today, daysToAdd);
   };
 
   const handleCopyLink = () => {

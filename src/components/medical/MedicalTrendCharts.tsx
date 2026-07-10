@@ -13,7 +13,7 @@ import {
   formatRef,
   pickChartSeries,
   type MarkerSeries,
-} from '../../lib/medicalAnalytics';
+} from '../../lib/health/medicalAnalytics';
 import { GETBASED_OPTIMAL, bridgeForMarkerKey } from '../../lib/getBased/markerBridge';
 import { ValueCell } from './MedicalLabSections';
 

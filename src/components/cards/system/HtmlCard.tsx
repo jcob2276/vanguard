@@ -1,18 +1,11 @@
 import { resolveHtmlTemplate } from '../../../lib/htmlCardTemplates';
+import { sanitizeHtml } from '../../notes/keepUtils';
 
 export interface HtmlCardProps {
   data: {
     html_template: string;
     widget_data?: Record<string, unknown>;
   };
-}
-
-function sanitizeHtml(html: string): string {
-  if (!html) return '';
-  // Strip script and iframe tags
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
 }
 
 export function HtmlCard({ data }: HtmlCardProps) {

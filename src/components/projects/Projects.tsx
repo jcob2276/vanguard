@@ -1,552 +1,156 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AlertCircle,
-  Plus,
-  TrendingUp,
-  FolderKanban,
-  Zap,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Plus, FolderKanban, ChevronDown, ChevronRight } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
-import {
-  listProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  linkSectionToProject,
-  listProjectCheckpoints,
-  createProjectCheckpoint,
-  updateProjectCheckpoint,
-  deleteProjectCheckpoint,
-  ProjectCheckpoint,
-} from '../../lib/projects';
-import { listTodoSections, listTodoItems, createTodoSection, createTodoItem, setTodoStatus } from '../../lib/todo';
-import { supabase } from '../../lib/supabase';
 import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
-import { getWeekStartWarsaw } from '../../lib/growth';
-import { fetchLongTermGoals } from '../../lib/goalSpine';
-import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
+import { PILLARS, PillarId, ProjectStats, calculateHealthScore } from './projectUtils';
+import { COLOR_TO_PILLAR } from '../../lib/projects/pillars';
 import DataStateNotice from '../core/DataStateNotice';
 import LifeGoalsCard from './LifeGoalsCard';
-
-// Subcomponents and utilities
-import {
-  COLORS,
-  PILLAR_META,
-  STATUS_NEXT,
-  PILLARS,
-  PillarId,
-  ProjectStats,
-  calculateHealthScore,
-  getHealthLevel,
-  HEALTH_COLORS,
-} from './projectUtils';
-
 import GoalCreateModal from './GoalCreateModal';
 import RetroModal from './RetroModal';
-import ProjectCard from './ProjectCard';
-import { notify, confirmDialog } from '../../lib/notify';
-import { Session } from '@supabase/supabase-js';
+import { PriorityTasksPanel } from './PriorityTasksPanel';
+import { FocusProjectBanner } from './FocusProjectBanner';
+import { PillarFilterTabs } from './PillarFilterTabs';
+import { ProjectCreateForm } from './ProjectCreateForm';
+import { ProjectCardWrapper } from './ProjectCardWrapper';
+import { useProjectsData, ProjectRow, GoalKpiRow } from './useProjectsData';
+import { useProjectHandlers } from './useProjectHandlers';
+import { ProjectCheckpoint } from '../../lib/projects/projects';
+
+import { useSession } from '../../store/useStore';
 
 type PillarFilter = PillarId | 'all';
 
-const COLOR_PILLAR: Record<string, PillarId> = {
-  emerald: 'cialo', green: 'cialo',
-  indigo: 'duch', violet: 'duch', purple: 'duch',
-  amber: 'konto', yellow: 'konto', orange: 'konto',
+const emptyStats: ProjectStats = {
+  section: null, openItems: [], doneItems: [], total: 0, progress: 0,
+  lastActivity: null, daysSince: null, slipping: false, daysLeft: null,
 };
 
 export default function Projects({
-  session,
   onNavigateTo,
   reviewOverdueDays = null,
 }: {
-  session: Session;
   onNavigateTo?: (view: string) => void;
   reviewOverdueDays?: number | null;
 }) {
-  const userId = session.user.id;
-
-  const [projects, setProjects]   = useState<any[]>([]);
-  const [sections, setSections]   = useState<any[]>([]);
-  const [items, setItems]         = useState<any[]>([]);
-  const [checkpoints, setCheckpoints] = useState<ProjectCheckpoint[]>([]);
-  const [dreams, setDreams]       = useState<any[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
-  const [busy, setBusy]           = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showForm, setShowForm]   = useState(false);
+  const session = useSession();
+  const userId = session?.user.id || '';
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>('all');
-  const [pausedOpen, setPausedOpen] = useState(false);
-  const [doneOpen, setDoneOpen]   = useState(false);
-  const [form, setForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
-  const [newTask, setNewTask] = useState<{ projectId: string; title: string; recurrence: string } | null>(null);
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', goal: '', deadline: '', color: 'indigo', primary_skill_id: '' });
-  const [parentSkills, setParentSkills] = useState<{ id: string; label: string }[]>([]);
-  const [newCheckpoint, setNewCheckpoint] = useState<{ projectId: string; title: string; due_date: string } | null>(null);
-  const [retroProject, setRetroProject] = useState<any | null>(null);
-  const [retroForm, setRetroForm] = useState({ good: '', improve: '', rating: 0 });
-
-  const [lifeGoals, setLifeGoals] = useState<any>(null);
-  const [kpis, setKpis] = useState<any[]>([]);
-  const [editingKpiId, setEditingKpiId] = useState<string | null>(null);
+  const [pausedOpen, setPausedOpen]     = useState(false);
+  const [doneOpen, setDoneOpen]         = useState(false);
+  const [showForm, setShowForm]         = useState(false);
+  const [form, setForm]                 = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
   const [goalCreateOpen, setGoalCreateOpen] = useState(false);
 
-  const importantTasks = useMemo(() => {
-    const todayStr = getTodayWarsaw();
-    return items.filter((item: any) => {
-      if (item.status !== 'open') return false;
-      const isUrgentOrHigh = item.priority === 'high' || item.priority === 'urgent';
-      const isDueToday = item.due_date === todayStr;
-      return isUrgentOrHigh || isDueToday;
-    });
-  }, [items]);
+  const data     = useProjectsData(userId);
+  const handlers = useProjectHandlers(userId, data);
 
-  const handleToggleTaskDone = useCallback(async (task: any) => {
-    setBusy(true);
-    try {
-      setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: 'done', completed_at: new Date().toISOString() } : i));
-      await setTodoStatus(task, 'done');
-      notify('Zadanie ukończone', 'success');
-    } catch (e: unknown) {
-      setError((e as Error).message || 'Nie udało się ukończyć zadania');
-      setItems(prev => prev.map(i => i.id === task.id ? { ...i, status: task.status, completed_at: task.completed_at } : i));
-    } finally {
-      setBusy(false);
-    }
-  }, [items]);
+  const {
+    projects, sections, items, checkpoints, dreams,
+    lifeGoals, kpis, parentSkills,
+    loading, error,
+    busy,
+    expandedId, setExpandedId,
+    editingProjectId, setEditingProjectId,
+    editForm, setEditForm,
+    newTask, setNewTask,
+    newCheckpoint, setNewCheckpoint,
+    editingKpiId, setEditingKpiId,
+    retroProject,
+    retroForm, setRetroForm,
+  } = data;
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const [p, s, i, c, dreamsRes, longTerm, skillsRes] = await Promise.all([
-        listProjects(userId),
-        listTodoSections(userId),
-        listTodoItems(userId),
-        listProjectCheckpoints(userId),
-        supabase.from('dreams').select('id, title, category, life_goal').eq('user_id', userId),
-        fetchLongTermGoals(userId),
-        supabase.from('learning_skills').select('id, label').eq('user_id', userId).eq('active', true).is('parent_id', null).order('sort_order'),
-      ]);
-      if (dreamsRes.error) throw new Error(dreamsRes.error.message);
-      if (skillsRes.error) throw new Error(skillsRes.error.message);
-      
-      // Resolve KPIs with their current values mapped inside longTerm goals (from kpi_entries)
-      const kpiMap = new Map<string, number | null>();
-      for (const proj of longTerm.projects) {
-        for (const k of proj.kpis ?? []) {
-          kpiMap.set(k.id, k.current);
-        }
-      }
+  // ── Derived data ──
+  const dreamById = useMemo(() => Object.fromEntries(dreams.map(d => [d.id, d])), [dreams]);
 
-      // Fetch base goal_kpis and overlay the resolved current values
-      const { data: rawKpis, error: kpiErr } = await supabase
-        .from('goal_kpis')
-        .select('*')
-        .eq('user_id', userId)
-        .order('sort_order');
-      if (kpiErr) throw new Error(kpiErr.message);
-
-      const kpisWithCurrent = (rawKpis ?? []).map((k) => ({
-        ...k,
-        current_value: kpiMap.get(k.id) ?? null,
-      }));
-
-      setProjects(p ?? []);
-      setSections(s ?? []);
-      setItems(i ?? []);
-      setCheckpoints(c ?? []);
-      setDreams(dreamsRes.data ?? []);
-      setLifeGoals(longTerm.declarations ?? null);
-      setKpis(kpisWithCurrent);
-      setParentSkills((skillsRes.data ?? []).map((sk) => ({ id: sk.id, label: sk.label })));
-    } catch (err: unknown) { setError((err as Error).message); }
-  }, [userId]);
-
-  useEffect(() => {
-    (async () => { setLoading(true); await fetchAll(); setLoading(false); })();
-  }, [fetchAll]);
-
-  useGoalSpineInvalidation(fetchAll);
-
-  const run = async (fn: () => Promise<any>) => {
-    setBusy(true);
-    try { await fn(); await fetchAll(); }
-    catch (err: unknown) { setError((err as Error).message); }
-    finally { setBusy(false); }
-  };
-
-  // ── Stats per project ──
   const stats = useMemo<Record<string, ProjectStats>>(() => {
-    const sectionByProject: Record<string, any> = {};
+    const sectionByProject: Record<string, typeof sections[number]> = {};
     sections.forEach(s => { if (s.project_id) sectionByProject[s.project_id] = s; });
-
     return Object.fromEntries(projects.map(p => {
-      const section = sectionByProject[p.id] ?? null;
+      const section      = sectionByProject[p.id] ?? null;
       const sectionItems = section ? items.filter(i => i.section_id === section.id) : [];
-      const doneItems  = sectionItems.filter(i => i.status === 'done');
-      const openItems  = sectionItems.filter(i => i.status === 'open');
-      const total      = sectionItems.length;
-      const progress   = total === 0 ? 0 : Math.round((doneItems.length / total) * 100);
-
-      const lastTs = sectionItems.length > 0
+      const doneItems    = sectionItems.filter(i => i.status === 'done');
+      const openItems    = sectionItems.filter(i => i.status === 'open');
+      const total        = sectionItems.length;
+      const progress     = total === 0 ? 0 : Math.round((doneItems.length / total) * 100);
+      const lastTs       = sectionItems.length > 0
         ? Math.max(...sectionItems.map(i => new Date(i.updated_at ?? i.created_at).getTime()))
         : null;
       const lastActivity = lastTs ? new Date(lastTs) : null;
-      const todayWarsawDate = new Date(getTodayWarsaw() + 'T12:00:00Z');
-      const daysSince = lastActivity ? differenceInDays(todayWarsawDate, new Date(formatWarsawDate(lastActivity) + 'T12:00:00Z')) : null;
-      const slipping  = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
-
-      const daysLeft = p.deadline
-        ? differenceInDays(new Date(p.deadline + 'T12:00:00Z'), todayWarsawDate)
-        : null;
-
+      const todayDate    = new Date(getTodayWarsaw() + 'T12:00:00Z');
+      const daysSince    = lastActivity ? differenceInDays(todayDate, new Date(formatWarsawDate(lastActivity) + 'T12:00:00Z')) : null;
+      const slipping     = p.status === 'active' && (daysSince === null ? false : daysSince > 7);
+      const daysLeft     = p.deadline ? differenceInDays(new Date(p.deadline + 'T12:00:00Z'), todayDate) : null;
       return [p.id, { section, openItems, doneItems, total, progress, lastActivity, daysSince, slipping, daysLeft }];
     }));
   }, [projects, sections, items]);
 
-  const dreamById = useMemo(() =>
-    Object.fromEntries(dreams.map(d => [d.id, d])),
-    [dreams],
-  );
-
   const checkpointsByProject = useMemo(() => {
     const grouped: Record<string, ProjectCheckpoint[]> = {};
-    checkpoints.forEach(cp => {
-      if (!grouped[cp.project_id]) grouped[cp.project_id] = [];
-      grouped[cp.project_id].push(cp);
-    });
+    checkpoints.forEach(cp => (grouped[cp.project_id] ??= []).push(cp));
     return grouped;
   }, [checkpoints]);
 
   const kpisByProject = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
-    kpis.forEach(k => {
-      if (!k.project_id) return;
-      if (!grouped[k.project_id]) grouped[k.project_id] = [];
-      grouped[k.project_id].push(k);
-    });
+    const grouped: Record<string, GoalKpiRow[]> = {};
+    kpis.forEach(k => { if (k.project_id) (grouped[k.project_id] ??= []).push(k); });
     return grouped;
   }, [kpis]);
 
-  // ── Handlers ──
-  const handleCreate = () => {
-    if (!form.name.trim()) return;
-    run(async () => {
-      let project: { id?: string } | null = null;
-      let section: { id?: string } | null = null;
-      try {
-        project = (await createProject(userId, {
-          name: form.name.trim(),
-          goal: form.goal.trim() || undefined,
-          deadline: form.deadline || undefined,
-          color: form.color,
-          dream_id: form.dream_id || undefined,
-        })) as unknown as { id: string };
-        section = (await createTodoSection(userId, form.name.trim())) as unknown as { id: string };
-        if (section?.id && project?.id) {
-          await linkSectionToProject(section.id, project.id);
-        }
-        setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
-        setShowForm(false);
-      } catch (err: unknown) {
-        if (section?.id) {
-          await supabase.from('todo_sections').delete().eq('id', section.id);
-        }
-        if (project?.id) {
-          await deleteProject(project.id).catch(() => {});
-        }
-        throw err;
-      }
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    void confirmDialog('Usunąć projekt? Zadania w sekcji zostają.').then((ok) => {
-      if (!ok) return;
-      run(() => deleteProject(id));
-    });
-  };
-
-  const handleStatusCycle = (project: any) => {
-    const next = STATUS_NEXT[project.status];
-    if (next === 'done') {
-      setRetroProject(project);
-      setRetroForm({ good: '', improve: '', rating: 0 });
-    } else {
-      run(() => updateProject(project.id, { status: next }));
-    }
-  };
-
-  const handleRetroSubmit = async (skip = false) => {
-    if (!retroProject) return;
-    const patch: any = { status: 'done' };
-    if (!skip) {
-      if (retroForm.good.trim())    patch.retrospective_good    = retroForm.good.trim();
-      if (retroForm.improve.trim()) patch.retrospective_improve = retroForm.improve.trim();
-      if (retroForm.rating > 0)     patch.retrospective_rating  = retroForm.rating;
-    }
-    await run(() => updateProject(retroProject.id, patch));
-    setRetroProject(null);
-  };
-
-  const startEditProject = (project: any) => {
-    setEditingProjectId(project.id);
-    setEditForm({
-      name: project.name || '',
-      goal: project.goal || '',
-      deadline: project.deadline || '',
-      color: project.color || 'indigo',
-      primary_skill_id: project.primary_skill_id || '',
-    });
-  };
-
-  const handleSaveProject = (project: any) => {
-    if (!editForm.name.trim()) return;
-    run(async () => {
-      await updateProject(project.id, {
-        name: editForm.name.trim(),
-        goal: editForm.goal.trim() || null,
-        deadline: editForm.deadline || null,
-        color: editForm.color,
-        primary_skill_id: editForm.primary_skill_id || null,
-      });
-      setEditingProjectId(null);
-    });
-  };
-
-  const ensureProjectSection = async (project: any, currentSection: any) => {
-    if (currentSection?.id) return currentSection;
-    const reusable = sections.find(s => s.name === project.name && !s.project_id);
-    if (reusable?.id) {
-      await linkSectionToProject(reusable.id, project.id);
-      return reusable;
-    }
-    const section = (await createTodoSection(userId, project.name)) as any;
-    await linkSectionToProject(section.id, project.id);
-    return section;
-  };
-
-  const handleAddTask = (project: any, section: any) => {
-    if (!newTask?.title.trim()) return;
-    run(async () => {
-      const projectSection = await ensureProjectSection(project, section);
-      await createTodoItem(userId, {
-        title: newTask.title.trim(),
-        section_id: projectSection?.id ?? null,
-        priority: 'normal',
-        tagsText: '',
-        recurrence: newTask!.recurrence || undefined,
-      });
-      setNewTask(null);
-    });
-  };
-
-  const handleAddCheckpoint = (projectId: string) => {
-    if (!newCheckpoint?.title.trim()) return;
-    run(async () => {
-      await createProjectCheckpoint(userId, {
-        project_id: projectId,
-        title: newCheckpoint.title.trim(),
-        due_date: newCheckpoint.due_date || null,
-      });
-      setNewCheckpoint(null);
-    });
-  };
-
-  const handleToggleCheckpoint = (checkpoint: ProjectCheckpoint) => {
-    const done = checkpoint.status === 'done';
-    run(() => updateProjectCheckpoint(checkpoint.id, {
-      status: done ? 'open' : 'done',
-      completed_at: done ? null : new Date().toISOString(),
-    }));
-  };
-
-  const deleteCheckpoint = (id: string) => run(() => deleteProjectCheckpoint(id));
-  const updateProjectStatus = (project: any, status: string) => run(() => updateProject(project.id, { status }));
-
-  const handleToggleTask = (item: any) => {
-    const next = item.status === 'done' ? 'open' : 'done';
-    run(() => setTodoStatus(item, next));
-  };
-
-  const savingKpiRef = useRef<string | null>(null);
-  const handleUpdateKpiValue = (kpiId: string, raw: string) => {
-    if (savingKpiRef.current === kpiId) return;
-    const num = parseFloat(raw);
-    if (isNaN(num)) { setEditingKpiId(null); return; }
-    savingKpiRef.current = kpiId;
-
-    // Calculate current week_start (Warsaw time)
-    const weekStart = getWeekStartWarsaw(getTodayWarsaw());
-
-    run(async () => {
-      try {
-        const { error: upsertErr } = await supabase
-          .from('kpi_entries')
-          .upsert(
-            { user_id: userId, kpi_id: kpiId, week_start: weekStart, value: num },
-            { onConflict: 'kpi_id,week_start' }
-          );
-        if (upsertErr) throw new Error(upsertErr.message);
-        setEditingKpiId(null);
-      } finally {
-        savingKpiRef.current = null;
-      }
-    });
-  };
-
-  const handleGoalCreateConfirm = (preview: any, pillar: PillarId) => {
-    const pm = PILLAR_META[pillar];
-    run(async () => {
-      const dream = dreams.find(d => d.life_goal === pillar);
-      const project = await createProject(userId, {
-        name: preview.project_name,
-        goal: preview.affirmation,
-        color: pm.color,
-        dream_id: dream?.id,
-      }) as any;
-      const section = await createTodoSection(userId, preview.project_name) as any;
-      if (section?.id && project?.id) await linkSectionToProject(section.id, project.id);
-      for (let i = 0; i < (preview.kpis ?? []).length; i++) {
-        const kpi = preview.kpis[i];
-        const { error: kpiErr } = await supabase.from('goal_kpis').insert({
-          user_id: userId, project_id: project.id, pillar: pillar,
-          name: kpi.name || kpi.label || kpi.description || kpi.indicator || '',
-          unit: kpi.unit ?? '', target: kpi.target ?? null,
-          higher_is_better: true, sort_order: i,
-        } as any);
-        if (kpiErr) throw new Error(kpiErr.message);
-      }
-      for (let i = 0; i < (preview.checkpoints ?? []).length; i++) {
-        const cp = preview.checkpoints[i];
-        await createProjectCheckpoint(userId, {
-          project_id: project.id,
-          title: cp.title || cp.name || cp.description || cp.milestone || '',
-          due_date: cp.due_date || null
-        });
-      }
-      setGoalCreateOpen(false);
-    });
-  };
-
-  // ── Derived data ──
-  const projectPillar = useCallback((project: any): PillarId | null => {
+  const projectPillar = useCallback((project: ProjectRow): PillarId | null => {
     const lifeGoal = project.dream_id ? dreamById[project.dream_id]?.life_goal : null;
-    if (PILLARS.includes(lifeGoal)) return lifeGoal as PillarId;
-    return COLOR_PILLAR[project.color] ?? null;
+    return (lifeGoal && PILLARS.includes(lifeGoal as PillarId)) ? (lifeGoal as PillarId) : (COLOR_TO_PILLAR[project.color] ?? null);
   }, [dreamById]);
 
-  const matchesPillarFilter = useCallback((project: any): boolean => {
-    if (pillarFilter === 'all') return true;
-    return projectPillar(project) === pillarFilter;
-  }, [pillarFilter, projectPillar]);
+  const matchesPillar = useCallback((p: ProjectRow) => pillarFilter === 'all' || projectPillar(p) === pillarFilter, [pillarFilter, projectPillar]);
 
-  const sortByHealthAsc = useCallback((a: any, b: any) => {
-    const sa = stats[a.id];
-    const sb = stats[b.id];
-    if (!sa || !sb) return 0;
-    const ha = calculateHealthScore(a, sa, kpisByProject[a.id] ?? []);
-    const hb = calculateHealthScore(b, sb, kpisByProject[b.id] ?? []);
-    return ha - hb; // ascending: sickest first
+  const sortByHealth = useCallback((a: ProjectRow, b: ProjectRow) => {
+    const ha = calculateHealthScore(a, stats[a.id] ?? emptyStats, kpisByProject[a.id] ?? []);
+    const hb = calculateHealthScore(b, stats[b.id] ?? emptyStats, kpisByProject[b.id] ?? []);
+    return ha - hb;
   }, [stats, kpisByProject]);
 
-  const activeFiltered = useMemo(() =>
-    projects
-      .filter(p => p.status === 'active' && matchesPillarFilter(p))
-      .sort(sortByHealthAsc),
-    [projects, matchesPillarFilter, sortByHealthAsc],
-  );
+  const activeFiltered  = useMemo(() => projects.filter(p => p.status === 'active' && matchesPillar(p)).sort(sortByHealth), [projects, matchesPillar, sortByHealth]);
+  const pausedFiltered  = useMemo(() => projects.filter(p => p.status === 'paused' && matchesPillar(p)), [projects, matchesPillar]);
+  const doneFiltered    = useMemo(() => projects.filter(p => p.status === 'done'   && matchesPillar(p)), [projects, matchesPillar]);
+  const activeProjects  = useMemo(() => projects.filter(p => p.status === 'active'), [projects]);
+  const directionalGoalCount = useMemo(() => PILLARS.filter(pillar => Boolean(lifeGoals?.[`goal_${pillar}`])).length, [lifeGoals]);
 
-  const pausedFiltered = useMemo(() =>
-    projects.filter(p => p.status === 'paused' && matchesPillarFilter(p)),
-    [projects, matchesPillarFilter],
-  );
-
-  const doneFiltered = useMemo(() =>
-    projects.filter(p => p.status === 'done' && matchesPillarFilter(p)),
-    [projects, matchesPillarFilter],
-  );
-
-  // Focus project: lowest health active project
   const focusProject = useMemo(() => {
-    if (activeFiltered.length === 0) return null;
+    if (!activeFiltered.length) return null;
     let worst = activeFiltered[0];
-    let worstScore = calculateHealthScore(worst, stats[worst.id] ?? {} as any, kpisByProject[worst.id] ?? []);
+    let worstScore = calculateHealthScore(worst, stats[worst.id] ?? emptyStats, kpisByProject[worst.id] ?? []);
     for (const p of activeFiltered) {
-      const score = calculateHealthScore(p, stats[p.id] ?? {} as any, kpisByProject[p.id] ?? []);
+      const score = calculateHealthScore(p, stats[p.id] ?? emptyStats, kpisByProject[p.id] ?? []);
       if (score < worstScore) { worst = p; worstScore = score; }
     }
-    // Only show Focus if health is below 60
     return worstScore < 60 ? worst : null;
   }, [activeFiltered, stats, kpisByProject]);
 
-  const activeProjects = useMemo(
-    () => projects.filter(p => p.status === 'active'),
-    [projects],
-  );
-
-  const directionalGoalCount = useMemo(
-    () => PILLARS.filter(pillar => Boolean((lifeGoals as any)?.[`goal_${pillar}`])).length,
-    [lifeGoals],
-  );
-
-  const renderProjectCard = (project: any) => {
-    const s = stats[project.id];
-    const isExpanded = expandedId === project.id;
-    const projectCheckpoints = checkpointsByProject[project.id] ?? [];
-    const doneCheckpoints = projectCheckpoints.filter(cp => cp.status === 'done').length;
-
-    return (
-      <ProjectCard
-        key={project.id}
-        project={project}
-        s={s}
-        isExpanded={isExpanded}
-        setExpandedId={setExpandedId}
-        projectPillar={projectPillar}
-        projectCheckpoints={projectCheckpoints}
-        doneCheckpoints={doneCheckpoints}
-        busy={busy}
-        kpisByProject={kpisByProject}
-        editingProjectId={editingProjectId}
-        editForm={editForm}
-        setEditForm={setEditForm}
-        startEditProject={startEditProject}
-        setEditingProjectId={setEditingProjectId}
-        handleSaveProject={handleSaveProject}
-        newCheckpoint={newCheckpoint}
-        setNewCheckpoint={setNewCheckpoint}
-        handleAddCheckpoint={handleAddCheckpoint}
-        handleToggleCheckpoint={handleToggleCheckpoint}
-        deleteCheckpoint={deleteCheckpoint}
-        editingKpiId={editingKpiId}
-        setEditingKpiId={setEditingKpiId}
-        handleUpdateKpiValue={handleUpdateKpiValue}
-        handleToggleTask={handleToggleTask}
-        newTask={newTask}
-        setNewTask={setNewTask}
-        handleAddTask={handleAddTask}
-        handleStatusCycle={handleStatusCycle}
-        updateProjectStatus={updateProjectStatus}
-        handleDelete={handleDelete}
-        userId={userId}
-        parentSkills={parentSkills}
-      />
-    );
+  // Shared card props bundle (avoids repetition for 3 lists)
+  const cardProps = {
+    expandedId, setExpandedId, stats, checkpointsByProject, kpisByProject, busy,
+    editingProjectId, editForm, setEditForm, setEditingProjectId, newCheckpoint, setNewCheckpoint,
+    editingKpiId, setEditingKpiId, newTask, setNewTask, userId, parentSkills, projectPillar,
+    startEditProject: handlers.startEditProject,
+    handleSaveProject: handlers.handleSaveProject,
+    handleAddCheckpoint: handlers.handleAddCheckpoint,
+    handleToggleCheckpoint: handlers.handleToggleCheckpoint,
+    deleteCheckpoint: handlers.deleteCheckpoint,
+    handleUpdateKpiValue: handlers.handleUpdateKpiValue,
+    handleToggleTask: handlers.handleToggleTask,
+    handleAddTask: handlers.handleAddTask,
+    handleStatusCycle: handlers.handleStatusCycle,
+    updateProjectStatus: handlers.updateProjectStatus,
+    handleDelete: handlers.handleDelete,
   };
 
-  if (loading) return (
-    <DataStateNotice tone="loading" title="Ładowanie projektów" detail="" />
-  );
+  if (loading) return <DataStateNotice tone="loading" title="Ładowanie projektów" detail="" />;
 
   return (
     <div className="space-y-5">
       {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
-      {/* ── Header row ── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[20px] font-bold tracking-tight text-text-primary">Projekty</h2>
@@ -562,7 +166,7 @@ export default function Projects({
             </button>
           )}
           <button
-            onClick={() => { setGoalCreateOpen(true); }}
+            onClick={() => setGoalCreateOpen(true)}
             className="flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[12px] font-semibold text-white shadow-md shadow-primary/20"
           >
             <Plus size={14} /> Nowy cel
@@ -571,217 +175,71 @@ export default function Projects({
       </div>
 
       <LifeGoalsCard userId={userId} lifeGoals={lifeGoals} />
+      <PriorityTasksPanel items={items} onToggleDone={handlers.handleToggleTaskDone} />
+      <PillarFilterTabs pillarFilter={pillarFilter} onChange={setPillarFilter} />
 
-      {/* ── Priorytetowe Zadania ── */}
-      {importantTasks.length > 0 && (
-        <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm space-y-3">
-          <h3 className="flex items-center gap-2 font-display text-[10px] font-black uppercase tracking-wider text-text-muted">
-            <Zap size={12} className="text-amber-500" /> Priorytetowe Zadania
-          </h3>
-          <div className="space-y-2">
-            {importantTasks.slice(0, 3).map((task) => (
-              <div
-                key={task.id}
-                onClick={() => void handleToggleTaskDone(task)}
-                className="flex items-center gap-2.5 rounded-xl border border-border-custom bg-background/30 px-3.5 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors"
-                title="Kliknij, aby oznaczyć jako wykonane"
-              >
-                <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-rose-500' : 'bg-indigo-500'}`} />
-                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary hover:line-through">
-                  {task.title}
-                </span>
-                {task.due_date && (
-                  <span className="shrink-0 text-[9px] font-bold text-text-muted">{task.due_date}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Pillar filter tabs ── */}
-      <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-        {/* All */}
-        <button
-          onClick={() => setPillarFilter('all')}
-          className={`flex-1 py-1.5 text-[11px] font-semibold rounded-[10px] transition-all ${
-            pillarFilter === 'all'
-              ? 'bg-background text-text-primary shadow-sm'
-              : 'text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          Wszystko
-        </button>
-        {PILLARS.map(p => {
-          const meta = PILLAR_META[p];
-          return (
-            <button
-              key={p}
-              onClick={() => setPillarFilter(p)}
-              className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-semibold rounded-[10px] transition-all ${
-                pillarFilter === p
-                  ? `bg-background shadow-sm ${meta.text}`
-                  : 'text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              <meta.icon size={10} />
-              {meta.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* New project form */}
       {showForm && (
-        <div className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
-          <input
-            autoFocus
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            onKeyDown={e => { if (e.key === 'Enter') handleCreate(); }}
-            placeholder="Nazwa projektu..."
-            className="w-full bg-transparent text-[15px] font-medium text-text-primary outline-none placeholder:text-text-muted/40"
-          />
-          <input
-            value={form.goal}
-            onChange={e => setForm(f => ({ ...f, goal: e.target.value }))}
-            placeholder="Cel / kim staję się realizując ten projekt..."
-            className="w-full bg-transparent text-[13px] text-text-secondary outline-none placeholder:text-text-muted/35"
-          />
-          <div className="flex items-center gap-3">
-            <input
-              type="date"
-              value={form.deadline}
-              onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-              className="flex-1 rounded-xl border border-border-custom/60 bg-surface-solid/50 px-3 py-2 text-[12px] font-medium text-text-secondary outline-none focus:border-primary/30 cursor-pointer"
-            />
-            {/* Color picker */}
-            <div className="flex gap-1.5">
-              {COLORS.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setForm(f => ({ ...f, color: c.id }))}
-                  className={`h-6 w-6 rounded-full ${c.dot} transition-transform ${form.color === c.id ? 'scale-125 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-50 hover:opacity-80'}`}
-                />
-              ))}
-            </div>
-          </div>
-          <button
-            onClick={handleCreate}
-            disabled={busy || !form.name.trim()}
-            className="w-full rounded-[12px] bg-primary py-2.5 text-[13px] font-semibold text-white disabled:opacity-40 hover:bg-primary-hover transition-colors"
-          >
-            Utwórz projekt i sekcję w Zadaniach
-          </button>
-        </div>
+        <ProjectCreateForm
+          form={form} busy={busy}
+          onChange={patch => setForm(f => ({ ...f, ...patch }))}
+          onSubmit={() => handlers.handleCreate(form, setShowForm, setForm)}
+        />
       )}
 
-      {/* ── Focus card: wymaga uwagi — tylko gdy projekt nie jest widoczny jako pierwsza karta ── */}
-      {focusProject && activeFiltered[0]?.id !== focusProject.id && (() => {
-        const s = stats[focusProject.id] ?? {} as ProjectStats;
-        const kpis = kpisByProject[focusProject.id] ?? [];
-        const score = calculateHealthScore(focusProject, s, kpis);
-        const level = getHealthLevel(score);
-        const hc = HEALTH_COLORS[level];
-        return (
-          <div className={`rounded-[20px] border p-4 ${hc.bg} ${
-            level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
-          }`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Zap size={12} className={hc.text} />
-              <p className={`text-[9px] font-black uppercase tracking-widest ${hc.text}`}>
-                Wymaga uwagi · Health {score}
-              </p>
-            </div>
-            <p className="text-[14px] font-bold text-text-primary">{focusProject.name}</p>
-            {focusProject.goal && (
-              <p className="text-[11px] text-text-muted mt-0.5 italic line-clamp-1">{focusProject.goal}</p>
-            )}
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                onClick={() => setExpandedId(id => id === focusProject.id ? null : focusProject.id)}
-                className={`text-[11px] font-semibold px-3 py-1.5 rounded-full ${hc.bg} ${hc.text} border ${
-                  level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
-                }`}
-              >
-                Otwórz projekt
-              </button>
-              {s.openItems?.[0] && (
-                <p className="text-[11px] text-text-muted truncate">→ {s.openItems[0].title}</p>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      <FocusProjectBanner
+        focusProject={focusProject}
+        activeFilteredFirst={activeFiltered[0]}
+        stats={stats}
+        kpisByProject={kpisByProject}
+        onOpen={id => setExpandedId(prev => prev === id ? null : id)}
+      />
 
-      {/* ── Active projects list ── */}
       {activeFiltered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center rounded-[24px] bg-surface/50">
           <FolderKanban size={28} className="text-text-muted/30 mb-3" />
           <p className="text-[14px] font-semibold text-text-secondary">Brak aktywnych projektów</p>
-          <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy cel" żeby zacząć.</p>
+          <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy cel&quot; żeby zacząć.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {activeFiltered.map(renderProjectCard)}
+          {activeFiltered.map(p => <ProjectCardWrapper key={p.id} project={p} {...cardProps} />)}
         </div>
       )}
 
-      {/* ── Paused accordion ── */}
       {pausedFiltered.length > 0 && (
         <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
-          <button
-            onClick={() => setPausedOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors"
-          >
+          <button onClick={() => setPausedOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {pausedOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
             <span className="text-[12px] font-semibold text-text-secondary">Pauza ({pausedFiltered.length})</span>
           </button>
-          {pausedOpen && (
-            <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
-              {pausedFiltered.map(renderProjectCard)}
-            </div>
-          )}
+          {pausedOpen && <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">{pausedFiltered.map(p => <ProjectCardWrapper key={p.id} project={p} {...cardProps} />)}</div>}
         </div>
       )}
 
-      {/* ── Done accordion ── */}
       {doneFiltered.length > 0 && (
         <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
-          <button
-            onClick={() => setDoneOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors"
-          >
+          <button onClick={() => setDoneOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {doneOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
             <span className="text-[12px] font-semibold text-text-secondary">Zakończone ({doneFiltered.length})</span>
           </button>
-          {doneOpen && (
-            <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
-              {doneFiltered.map(renderProjectCard)}
-            </div>
-          )}
+          {doneOpen && <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">{doneFiltered.map(p => <ProjectCardWrapper key={p.id} project={p} {...cardProps} />)}</div>}
         </div>
       )}
 
-      {/* ── AI Goal Create modal ── */}
       {goalCreateOpen && (
         <GoalCreateModal
-          lifeGoals={lifeGoals}
-          dreams={dreams}
-          busy={busy}
+          lifeGoals={lifeGoals} dreams={dreams} busy={busy}
           onClose={() => setGoalCreateOpen(false)}
-          onConfirm={handleGoalCreateConfirm}
-          onError={(err) => setError(err)}
+          onConfirm={(preview, pillar) => handlers.handleGoalCreateConfirm(preview, pillar, dreams, setGoalCreateOpen)}
+          onError={err => data.setError(err)}
         />
       )}
 
-      {/* ── Retrospektywa modal ── */}
       {retroProject && (
         <RetroModal
-          retroProject={retroProject}
-          retroForm={retroForm}
+          retroProject={retroProject} retroForm={retroForm}
           setRetroForm={setRetroForm}
-          onSubmit={handleRetroSubmit}
+          onSubmit={handlers.handleRetroSubmit}
           busy={busy}
         />
       )}

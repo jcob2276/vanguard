@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle } from 'lucide-react';
-import type { GrowthLinkRow } from '../../hooks/useGrowthData';
-import { inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from '../../lib/growth';
+import type { GrowthLinkRow } from './hooks/useGrowthData';
+import { inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from '../../lib/growth/growth';
 
 function linkMeta(row: GrowthLinkRow) {
   const rt = (row.resource_type as GrowthResourceType | null) ?? inferResourceType(row.url, row.domain);

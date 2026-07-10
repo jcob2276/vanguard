@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { shiftDateStr } from '../../lib/date';
 import { Shield, Zap, Wallet } from 'lucide-react';
 
 export const RECURRENCE_LABELS: Record<string, string> = {
@@ -9,12 +10,13 @@ export const RECURRENCE_LABELS: Record<string, string> = {
 
 export function nextOccurrenceDate(baseDateStr: string | null, recurrence: string, today: string): string {
   const base = baseDateStr || today;
+  if (recurrence === 'daily') return shiftDateStr(base, 1);
+  if (recurrence === 'weekly') return shiftDateStr(base, 7);
+  // monthly: needs Date for setUTCMonth
   const [y, m, day] = base.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, day));
-  if (recurrence === 'daily') d.setUTCDate(d.getUTCDate() + 1);
-  else if (recurrence === 'weekly') d.setUTCDate(d.getUTCDate() + 7);
-  else if (recurrence === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1);
-  return d.toISOString().slice(0, 10);
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 export const GOAL_ICON: Record<string, typeof Shield> = {
@@ -63,6 +65,14 @@ const EMOJI_RE = /^(\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|️|‍\p{Ext
 export function splitEmoji(title: string) {
   const m = title.match(EMOJI_RE);
   return m ? { icon: m[1], label: title.slice(m[0].length) } : { icon: null, label: title };
+}
+
+export function formatUpcomingDateHeader(dateStr: string): string {
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString('pl-PL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 }
 
 export function relativeDate(dateStr: string | null | undefined, today: string) {

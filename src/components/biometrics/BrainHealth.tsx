@@ -23,14 +23,14 @@ export default function BrainHealth({ session }: { session: Session }) {
       }));
       setReport(data);
     } catch (err: unknown) {
-      console.error('[Background Error]', err);
+      console.warn('[BrainHealth] Failed to fetch brain health report:', err);
     } finally {
       setLoading(false);
     }
   }, [session.user.id]);
 
   useEffect(() => {
-    fetchReport();
+    void (async () => { await fetchReport(); })();
   }, [fetchReport]);
 
   return (

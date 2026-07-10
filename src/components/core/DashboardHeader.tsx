@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { formatDashboardDate } from '../../lib/date';
 import {
   Moon,
   Sun,
@@ -60,7 +61,7 @@ export function DashboardHeader({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" title="System Online" />
         </h1>
         <p className="mt-1 text-[8.5px] font-black uppercase tracking-wider text-text-muted/65">
-          {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' })}
+          {formatDashboardDate()}
         </p>
       </div>
       <div className="header-icon-row flex min-w-0 items-center gap-2 overflow-x-auto">

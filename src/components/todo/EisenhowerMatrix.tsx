@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateTodoItem } from '../../lib/todo';
+import { updateTodoItem } from '../../lib/todo/todo';
 
 interface Item {
   id: string;

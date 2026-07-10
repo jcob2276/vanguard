@@ -325,7 +325,7 @@ export default function PowerList({
 
                     {slot.todoId ? (
                       <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-3">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x: any) => x.id === slot.todoId)?.priority] || 'bg-blue-500'}`} />
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority ?? ''] || 'bg-blue-500'}`} />
                         <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">{slot.task}</span>
                       </div>
                     ) : (

@@ -1,5 +1,5 @@
 import { getTodayWarsaw } from '../../lib/date';
-import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
+import { NETWORK_TIMEOUT_MS, LIMITER_PL } from '../../lib/constants';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -10,12 +10,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../lib/database.types';
 import { useDailyStrainOura, useTriggerOuraSync, biometricsKeys } from '../../lib/biometricsApi';
-
-const LIMITER_PL = {
-  sleep: 'sen', calories: 'kalorie', carbs: 'węgle',
-  cardio_load: 'koszt cardio', strength_load: 'siłownia',
-  mental_load: 'głowa', recovery_ok: 'OK',
-};
 
 // VitalBands: color tile by z-score vs personal EWMA baseline (Strand VitalBands.swift)
 function zToVitalColor(z: number | null | undefined, defaultColor: string): string {

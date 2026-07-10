@@ -3,7 +3,7 @@ import { X, Clock, Repeat, Trash2, Calendar } from 'lucide-react';
 import { useCalendarData } from './useCalendarData';
 import { monthLabel, recurringSeriesBaseId } from './calendarHelpers';
 
-import { LIFE_SPHERES } from '../../lib/lifeSpheres';
+import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 
 interface CalendarEventModalProps {
   calData: ReturnType<typeof useCalendarData>;

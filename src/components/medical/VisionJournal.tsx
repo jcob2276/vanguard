@@ -61,8 +61,8 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   const chartDataLeft = useMemo(() => {
     const grouped: Record<string, { sortKey: string; name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
     measurements.filter(m => m.eye_measured === 'left' || m.eye_measured === 'both').forEach(m => {
-      let key = '';
-      let label = '';
+      let key: string;
+      let label: string;
       if (viewMode === 'daily') {
         const d = new Date(m.measured_at);
         const pad = (n: number) => n.toString().padStart(2, '0');
@@ -95,8 +95,8 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   const chartDataRight = useMemo(() => {
     const grouped: Record<string, { sortKey: string; name: string; rano: number[]; poludnie: number[]; wieczor: number[] }> = {};
     measurements.filter(m => m.eye_measured === 'right' || m.eye_measured === 'both').forEach(m => {
-      let key = '';
-      let label = '';
+      let key: string;
+      let label: string;
       if (viewMode === 'daily') {
         const d = new Date(m.measured_at);
         const pad = (n: number) => n.toString().padStart(2, '0');

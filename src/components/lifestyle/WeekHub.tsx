@@ -6,8 +6,8 @@ import WeekLoopSummary from '../shared/WeekLoopSummary';
 import ProjectWeekKpis from './ProjectWeekKpis';
 import WeeklyBalanceHexagon from './WeeklyBalanceHexagon';
 import { SystemProposalCard } from '../shared/SystemProposalCard';
-import { useDirectionContext } from '../../hooks/useDirectionContext';
-import { useSpineGuidance } from '../../hooks/useSpineGuidance';
+import { useDirectionContext } from './direction/hooks/useDirectionContext';
+import { useSpineGuidance } from '../growth/hooks/useSpineGuidance';
 import { mergeMagazineView, loadOracleScheduleOverride } from '../../lib/magazineBar';
 import {
   fetchPendingProposals,
@@ -16,7 +16,7 @@ import {
   type SystemProposal,
 } from '../../lib/systemProposals';
 import { getTodayWarsaw } from '../../lib/date';
-import { getWeekStartWarsaw } from '../../lib/growth';
+import { getWeekStartWarsaw } from '../../lib/growth/growth';
 
 export default function WeekHub({
   session,
@@ -73,7 +73,7 @@ export default function WeekHub({
   }, [userId]);
 
   useEffect(() => {
-    void reloadProposals();
+    void (async () => { await reloadProposals(); })();
   }, [reloadProposals]);
 
   const openMust = direction.openMustPins ?? [];

@@ -2,8 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "supabase/functions/*/index.ts",
-    "scripts/**/*.{mjs,ts,cjs}",
-    "src/components/biometrics/TrainingSaunaQuickBar.tsx"
+    "scripts/**/*.{mjs,ts,cjs}"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

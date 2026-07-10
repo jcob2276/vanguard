@@ -7,6 +7,7 @@ const haptics = {
   medium: () => vibrate(20),
   success: () => vibrate([10, 50, 10]),
   error: () => vibrate([20, 30, 20]),
+  vibrate: (pattern: number | number[]) => vibrate(pattern),
 };
 
 export function useHaptics() {

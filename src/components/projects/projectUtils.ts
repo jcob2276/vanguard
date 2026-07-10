@@ -1,4 +1,9 @@
-import { Shield, Zap, Wallet } from 'lucide-react';
+export { PILLARS, type PillarId, PILLAR_META } from '../../lib/projects/pillars';
+import type { Database } from '../../lib/database.types';
+import type { TodoItemRow, TodoSectionRow } from '../../lib/todo/todo';
+
+export type ProjectRow = Database['public']['Tables']['projects']['Row'];
+export type GoalKpiRow = Database['public']['Tables']['goal_kpis']['Row'] & { current_value: number | null };
 
 export const COLORS = [
   { id: 'indigo',  dot: 'bg-indigo-500',  bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400'  },
@@ -11,12 +16,6 @@ export const COLORS = [
 
 export const colorOf = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
 
-export const PILLAR_META = {
-  cialo: { label: 'Ciało', icon: Shield, text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', dot: 'bg-emerald-500', color: 'emerald' },
-  duch:  { label: 'Duch',  icon: Zap,    text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30',  dot: 'bg-indigo-500',  color: 'indigo' },
-  konto: { label: 'Konto', icon: Wallet, text: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   dot: 'bg-amber-500',   color: 'amber'  },
-} as const;
-
 export const GOAL_QUESTIONS = [
   { key: 'goal',           q: 'Jaki jest Twój cel?',               hint: 'Konkretny wynik + data. Np. "50k PLN na koncie do 01.10.2026"' },
   { key: 'why',            q: 'Po co Ci to?',                      hint: 'Dlaczego to ważne? Co się zmieni kiedy osiągniesz?' },
@@ -28,15 +27,12 @@ export const GOAL_QUESTIONS = [
 export const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
 export const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
 
-export const PILLARS = ['cialo', 'duch', 'konto'] as const;
-export type PillarId = typeof PILLARS[number];
-
 // ── Health Score ──────────────────────────────────────────────────────────────
 
 export interface ProjectStats {
-  section: any;
-  openItems: any[];
-  doneItems: any[];
+  section: TodoSectionRow | null;
+  openItems: TodoItemRow[];
+  doneItems: TodoItemRow[];
   total: number;
   progress: number;
   lastActivity: Date | null;
@@ -50,49 +46,36 @@ export interface ProjectStats {
  * Weights: activity 40%, kpi 35%, deadline 25%
  */
 export function calculateHealthScore(
-  project: any,
+  project: ProjectRow,
   stats: ProjectStats,
-  kpis: any[],
+  kpis: GoalKpiRow[],
 ): number {
   // ── Activity score (how recently was something done?) ──
-  let activityScore = 50; // default when no tasks yet
+  let activityScore = 50;
   if (stats.daysSince !== null) {
-    if (stats.daysSince <= 1)  activityScore = 100;
-    else if (stats.daysSince <= 3)  activityScore = 90;
-    else if (stats.daysSince <= 7)  activityScore = 65;
-    else if (stats.daysSince <= 14) activityScore = 30;
-    else activityScore = 5;
-  } else if (stats.total === 0) {
-    // No tasks at all — neutral
-    activityScore = 50;
+    activityScore = stats.daysSince <= 1 ? 100
+      : stats.daysSince <= 3 ? 90
+      : stats.daysSince <= 7 ? 65
+      : stats.daysSince <= 14 ? 30
+      : 5;
   }
 
   // ── KPI score (avg % to target across all KPIs with target) ──
-  let kpiScore = 50; // default when no KPIs
   const kpisWithTarget = kpis.filter(k => k.target != null && Number(k.target) > 0);
-  if (kpisWithTarget.length > 0) {
-    const avg = kpisWithTarget.reduce((acc, k) => {
-      const pct = Math.min(100, Math.round((Number(k.current_value ?? 0) / Number(k.target)) * 100));
-      return acc + pct;
-    }, 0) / kpisWithTarget.length;
-    kpiScore = avg;
-  }
+  const kpiScore = kpisWithTarget.length > 0
+    ? kpisWithTarget.reduce((acc, k) => acc + Math.min(100, Math.round((Number(k.current_value ?? 0) / Number(k.target)) * 100)), 0) / kpisWithTarget.length
+    : 50;
 
   // ── Deadline score (how on-track is the project?) ──
-  let deadlineScore = 60; // no deadline
+  let deadlineScore = 60;
   if (stats.daysLeft !== null) {
-    if (stats.daysLeft < 0) {
-      // Overdue
-      deadlineScore = 0;
-    } else {
-      // Compare remaining time vs remaining work
-      const progressPct = stats.total > 0 ? stats.progress : 50;
-      const timeElapsedApprox = stats.daysLeft; // lower = more urgent
-      if (timeElapsedApprox > 60) deadlineScore = 90;
-      else if (timeElapsedApprox > 30) deadlineScore = Math.max(40, progressPct);
-      else if (timeElapsedApprox > 14) deadlineScore = progressPct >= 60 ? 80 : 40;
-      else deadlineScore = progressPct >= 80 ? 85 : progressPct >= 50 ? 50 : 15;
-    }
+    const progressPct = stats.total > 0 ? stats.progress : 50;
+    const d = stats.daysLeft;
+    deadlineScore = d < 0 ? 0
+      : d > 60 ? 90
+      : d > 30 ? Math.max(40, progressPct)
+      : d > 14 ? (progressPct >= 60 ? 80 : 40)
+      : progressPct >= 80 ? 85 : progressPct >= 50 ? 50 : 15;
   }
 
   const weighted = 0.4 * activityScore + 0.35 * kpiScore + 0.25 * deadlineScore;
@@ -127,7 +110,7 @@ export function getProjectMomentum(stats: ProjectStats): Momentum {
   return 'stalled';
 }
 
-export function getNextAction(openItems: any[]): string | null {
+export function getNextAction(openItems: TodoItemRow[]): string | null {
   if (!openItems || openItems.length === 0) return null;
   return openItems[0]?.title ?? null;
 }

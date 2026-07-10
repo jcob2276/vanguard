@@ -1,4 +1,4 @@
-import { useSolarData } from '../../hooks/useSolarData';
+import { useSolarData } from './hooks/useSolarData';
 
 interface Props {
   dateStr: string; // YYYY-MM-DD

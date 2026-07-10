@@ -45,6 +45,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Frontend debt ratchets
+        run: npm run ratchet:frontend
+
       - name: Dead code check (Knip)
         run: npm run audit:knip
 

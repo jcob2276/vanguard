@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { formatWarsawDate, getTodayWarsaw } from './date';
+import { formatWarsawDate, getTodayWarsaw, shiftDateStr } from './date';
 import { supabase } from './supabase';
 
 export type EnrichedCheckpoint = {
@@ -24,9 +24,7 @@ export async function fetchUpcomingCheckpoints(
   horizonDays = 14,
 ): Promise<EnrichedCheckpoint[]> {
   const todayStr = getTodayWarsaw();
-  const d = new Date(todayStr + 'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate() + horizonDays);
-  const horizonStr = formatWarsawDate(d);
+  const horizonStr = shiftDateStr(todayStr, horizonDays);
 
   const [{ data: cps }, { data: projs }, { data: dreams }] = await Promise.all([
     supabase

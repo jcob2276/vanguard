@@ -19,10 +19,12 @@ export default function FloatingToolbar({
       const rect = rects[0];
       const scrollY = window.scrollY || window.pageYOffset;
       const scrollX = window.scrollX || window.pageXOffset;
-      setCoords({
-        top: rect.top + scrollY - 10,
-        left: rect.left + rect.width / 2 + scrollX
-      });
+      void (async () => {
+        setCoords({
+          top: rect.top + scrollY - 10,
+          left: rect.left + rect.width / 2 + scrollX
+        });
+      })();
     }
   }, [range]);
 

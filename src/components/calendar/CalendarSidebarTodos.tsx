@@ -1,15 +1,23 @@
 import React from 'react';
 import { Plus, GripVertical } from 'lucide-react';
 import { GOAL_ICON } from '../todo/todoUtils';
-import type { CalendarTodo } from '../../hooks/useCalendarTodos';
+import type { CalendarTodo } from './hooks/useCalendarTodos';
+import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
 
 type SidebarTodo = CalendarTodo;
 
-const PILLAR_CHIP: Record<string, string> = {
-  cialo: 'bg-emerald-500/8 border-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-  duch: 'bg-indigo-500/8 border-indigo-500/15 text-indigo-600 dark:text-indigo-400',
-  konto: 'bg-amber-500/8 border-amber-500/15 text-amber-600 dark:text-amber-400',
+// Lighter chip opacity than PILLAR_META's canonical 10/30 — bg/border are literal Tailwind
+// classes on purpose (dynamically-built `bg-${color}-...` strings aren't picked up by
+// Tailwind's static scanner and would silently render unstyled). `text` reuses PILLAR_META
+// so at least the color identity can't drift out of sync with the canonical map.
+const PILLAR_CHIP_BG_BORDER: Record<string, string> = {
+  cialo: 'bg-emerald-500/8 border-emerald-500/15',
+  duch: 'bg-indigo-500/8 border-indigo-500/15',
+  konto: 'bg-amber-500/8 border-amber-500/15',
 };
+const PILLAR_CHIP: Record<string, string> = Object.fromEntries(
+  PILLARS.map((id) => [id, `${PILLAR_CHIP_BG_BORDER[id]} ${PILLAR_META[id].text}`]),
+);
 
 interface CalendarSidebarTodosProps {
   sidebarTodos: SidebarTodo[];

@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
-import { useUserStatsSnapshot } from '../../hooks/useUserStatsSnapshot';
+import { useUserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 import { UserStatsOverviewCard } from './UserStatsOverviewCard';
-import { InsightCard, type InsightCardData } from './InsightCard';
+import { InsightCard } from './InsightCard';
+import {
+  fetchInsightCards,
+  pinInsightCard,
+  sortInsightCard,
+  deleteInsightCard,
+  type InsightCardData
+} from '../../lib/insightsApi';
+import { notify } from '../../lib/notify';
 import { PatternsView } from './PatternsView';
 import { TrendChart } from '../widgets/TrendChart';
 import { BarChartWidget } from '../widgets/BarChart';
@@ -20,26 +27,8 @@ export function InsightsDashboard({ session }: { session: Session }) {
   const fetchCards = useCallback(async () => {
     setCardsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('knowledge_insight_cards')
-        .select('*')
-        .eq('user_id', userId)
-        .order('is_pinned', { ascending: false })
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setCards((data ?? []).map(row => ({
-        id: row.id,
-        templateId: row.template_id,
-        title: row.title,
-        insight: row.insight ?? undefined,
-        widgetType: (row as { widget_type?: string }).widget_type ?? undefined,
-        widgetData: (row.widget_data as Record<string, unknown>) ?? {},
-        isPinned: row.is_pinned ?? false,
-        sortOrder: row.sort_order ?? 0,
-      })));
+      const data = await fetchInsightCards(userId);
+      setCards(data);
     } catch (err) {
       console.error('[fetchCards]', err);
     } finally {
@@ -47,7 +36,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
     }
   }, [userId]);
 
-  useEffect(() => { fetchCards(); }, [fetchCards]);
+  useEffect(() => { void (async () => { await fetchCards(); })(); }, [fetchCards]);
 
   const activityTrend = useMemo(() => {
     if (!snapshot?.daily?.length) return null;
@@ -56,7 +45,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
       value: d.inputs,
     }));
     return { points, unit: 'wpisów', color: '#5B6CFF' };
-  }, [snapshot?.daily]);
+  }, [snapshot]);
 
   const activityBars = useMemo(() => {
     if (!snapshot?.daily?.length) return null;
@@ -65,21 +54,18 @@ export function InsightsDashboard({ session }: { session: Session }) {
       value: d.inputs + d.completedTodos,
     }));
     return { points, color: '#10B981' };
-  }, [snapshot?.daily]);
+  }, [snapshot]);
 
   const handlePin = useCallback(async (id: string) => {
     const card = cards.find(c => c.id === id);
     if (!card) return;
     try {
-      const { error } = await supabase
-        .from('knowledge_insight_cards')
-        .update({ is_pinned: !card.isPinned })
-        .eq('id', id);
-      if (error) throw error;
+      await pinInsightCard(id, !card.isPinned);
       fetchCards();
+      notify('Zmieniono status przypięcia.', 'success');
     } catch (err) {
       console.error('[handlePin]', err);
-      alert('Nie udało się zmienić przypięcia karty.');
+      notify('Nie udało się zmienić przypięcia karty.', 'error');
     }
   }, [cards, fetchCards]);
 
@@ -88,32 +74,25 @@ export function InsightsDashboard({ session }: { session: Session }) {
     if (!card) return;
     const newOrder = card.sortOrder > 0 ? card.sortOrder - 1 : 0;
     try {
-      const { error } = await supabase
-        .from('knowledge_insight_cards')
-        .update({ sort_order: newOrder })
-        .eq('id', id);
-      if (error) throw error;
+      await sortInsightCard(id, newOrder);
       fetchCards();
     } catch (err) {
       console.error('[handleSort]', err);
-      alert('Nie udało się zmienić kolejności karty.');
+      notify('Nie udało się zmienić kolejności karty.', 'error');
     }
   }, [cards, fetchCards]);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('knowledge_insight_cards')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      await deleteInsightCard(id);
       setCards(prev => prev.filter(c => c.id !== id));
       if (detailCard?.id === id) setDetailCard(null);
+      notify('Karta została usunięta.', 'success');
     } catch (err) {
       console.error('[handleDelete]', err);
-      alert('Nie udało się usunąć karty.');
+      notify('Nie udało się usunąć karty.', 'error');
     }
-  }, [detailCard?.id]);
+  }, [detailCard]);
 
   if (detailCard) {
     return (

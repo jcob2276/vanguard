@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from './supabase';
+import { supabase, invokeEdge } from './supabase';
 import { warsawDayBoundsISO } from './date';
 
 export interface CalendarEvent {
@@ -53,25 +53,15 @@ export function useCreateCalendarEvent() {
   return useMutation({
     mutationFn: async ({
       userId,
-      accessToken,
       event,
     }: {
       userId: string;
-      accessToken: string;
+      accessToken?: string;
       event: Omit<CalendarEvent, 'id'>;
     }) => {
-      const base = import.meta.env.VITE_SUPABASE_URL as string;
-      const res = await fetch(`${base}/functions/v1/calendar-write`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ userId, action: 'create', event }),
+      return invokeEdge<{ success: boolean; eventId?: string }>('calendar-write', {
+        body: { userId, action: 'create', event },
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create event');
-      return data as { success: boolean; eventId?: string };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });
@@ -84,25 +74,15 @@ export function useUpdateCalendarEvent() {
   return useMutation({
     mutationFn: async ({
       userId,
-      accessToken,
       event,
     }: {
       userId: string;
-      accessToken: string;
+      accessToken?: string;
       event: CalendarEvent & { id: string };
     }) => {
-      const base = import.meta.env.VITE_SUPABASE_URL as string;
-      const res = await fetch(`${base}/functions/v1/calendar-write`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ userId, action: 'update', event }),
+      return invokeEdge<{ success: boolean }>('calendar-write', {
+        body: { userId, action: 'update', event },
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to update event');
-      return data as { success: boolean };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });
@@ -115,32 +95,22 @@ export function useDeleteCalendarEvent() {
   return useMutation({
     mutationFn: async ({
       userId,
-      accessToken,
       eventId,
       deleteScope = 'this',
     }: {
       userId: string;
-      accessToken: string;
+      accessToken?: string;
       eventId: string;
       deleteScope?: 'this' | 'all';
     }) => {
-      const base = import.meta.env.VITE_SUPABASE_URL as string;
-      const res = await fetch(`${base}/functions/v1/calendar-write`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
+      return invokeEdge<{ success: boolean }>('calendar-write', {
+        body: {
           userId,
           action: 'delete',
           deleteScope,
           event: { id: eventId, summary: '', start: '', end: '' },
-        }),
+        },
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to delete event');
-      return data as { success: boolean };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });

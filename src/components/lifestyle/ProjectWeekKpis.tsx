@@ -5,13 +5,10 @@ import {
   fetchProjectWeekKpis,
   setProjectKpiTarget,
   type ProjectWeekKpi,
-} from '../../lib/goalSpine';
+} from '../../lib/goal/goalSpine';
+import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
 
-const PILLAR_OPTIONS: { id: 'cialo' | 'duch' | 'konto'; label: string }[] = [
-  { id: 'cialo', label: 'Ciało' },
-  { id: 'duch', label: 'Duch' },
-  { id: 'konto', label: 'Konto' },
-];
+const PILLAR_OPTIONS = PILLARS.map((id) => ({ id, label: PILLAR_META[id].label }));
 
 type ProjectLite = { id: string; name: string };
 
@@ -51,7 +48,7 @@ export default function ProjectWeekKpis({
   }, [userId, weekStart, projectIdsKey]);
 
   useEffect(() => {
-    void reload();
+    void (async () => { await reload(); })();
   }, [reload]);
 
   async function saveTarget(kpiId: string, value: string) {

@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import sourceMap from 'source-map-js';
 
 const mapPath = 'C:\\Users\\jakub\\Desktop\\Vanguard\\dist\\assets\\DesktopDashboard-DZMkpMCZ.js.map';

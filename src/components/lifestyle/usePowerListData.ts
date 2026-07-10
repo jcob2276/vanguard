@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getTodayWarsaw, getYesterdayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
-import { useLifeGoals } from '../../hooks/useLifeGoals';
-import { useDirectionContext } from '../../hooks/useDirectionContext';
+import { useLifeGoals } from '../projects/hooks/useLifeGoals';
+import { useDirectionContext } from './direction/hooks/useDirectionContext';
 import { supabase } from '../../lib/supabase';
-import { listTodoItems, updateTodoItem, listTodoSections } from '../../lib/todo';
-import { listProjects } from '../../lib/projects';
+import { listTodoItems, updateTodoItem, listTodoSections, TodoItemRow } from '../../lib/todo/todo';
+import { listProjects } from '../../lib/projects/projects';
 import type { TablesUpdate } from '../../lib/database.types';
 import { gatherDailyWinsContext } from '../../lib/aiContext';
 import { notify } from '../../lib/notify';
@@ -28,7 +28,7 @@ import {
   insertDailyWin,
   rollupTaskCompletion,
   updateDailyWin,
-} from '../../lib/goalSpine';
+} from '../../lib/goal/goalSpine';
 
 export interface TaskSlot {
   task: string;
@@ -84,7 +84,7 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
   const { displayRows: lifeGoalRows, refresh: refreshLifeGoals } = useLifeGoals(userId);
   const direction = useDirectionContext(userId);
   const today = getTodayWarsaw();
-  const yesterdayStr = formatWarsawDate(new Date(Date.now() - 86400000));
+  const yesterdayStr = getYesterdayWarsaw();
   const haptics = useHaptics();
   const weekGoals = direction.weekGoals ?? null;
 
@@ -129,7 +129,7 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
     { ...EMPTY_SLOT },
     { ...EMPTY_SLOT },
   ]);
-  const [todoItems, setTodoItems] = useState<any[]>([]);
+  const [todoItems, setTodoItems] = useState<TodoItemRow[]>([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
   const [eveningNote, setEveningNote] = useState('');
@@ -247,7 +247,7 @@ export function usePowerListData({ session, todayWin, onUpdate, planDaySignal }:
       return;
     }
     if (direction.loading) return;
-    applyProposal();
+    void (async () => { await applyProposal(); })();
   }, [planDaySignal]);
 
   const confirmCheckpointDone = async () => {
@@ -361,7 +361,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       .maybeSingle()
       .then(({ data }) => {
         setYesterdayWin(data ?? null);
-        setYesterdayNote((data as any)?.day_note ?? '');
+        setYesterdayNote(data?.day_note ?? '');
       }, () => setYesterdayWin(null));
   }, [userId, todayWin]);
 
@@ -371,12 +371,14 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
       const raw = localStorage.getItem(powerListDraftKey(userId, today));
       if (!raw) return;
       const draft = JSON.parse(raw) as PowerListDraft;
-      if (Array.isArray(draft.tasks) && draft.tasks.length === 5) {
-        setNewTaskForm(draft.tasks);
-      }
-      if (typeof draft.yesterdayNote === 'string') {
-        setYesterdayNote(draft.yesterdayNote);
-      }
+      void (async () => {
+        if (Array.isArray(draft.tasks) && draft.tasks.length === 5) {
+          setNewTaskForm(draft.tasks);
+        }
+        if (typeof draft.yesterdayNote === 'string') {
+          setYesterdayNote(draft.yesterdayNote);
+        }
+      })();
     } catch { /* ignore */ }
     finally {
       draftLoaded.current = true;

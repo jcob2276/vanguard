@@ -25,7 +25,7 @@ export default function SettingsView({ session }: { session: Session }) {
   }, [fetchUserSettings]);
 
   useEffect(() => {
-    if (userSettings) setForm(userSettings);
+    if (userSettings) void (async () => { setForm(userSettings); })();
   }, [userSettings]);
 
   const save = async () => {

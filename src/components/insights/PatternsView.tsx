@@ -1,16 +1,9 @@
+import { notify } from '../../lib/notify';
 import { useState, useEffect, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { RefreshCw, Brain } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { PatternCard, type PatternData } from './PatternCard';
-
-const STATUS_ORDER: Record<string, number> = {
-  user_confirmed: 0,
-  visible: 1,
-  hypothesis: 2,
-  user_rejected: 3,
-  archived: 4,
-};
+import { PatternCard } from './PatternCard';
+import { listActivePatterns, triggerPatternDetection, type BehavioralPattern as PatternData } from '../../lib/insightsApi';
 
 interface PatternsViewProps {
   session: Session;
@@ -24,40 +17,25 @@ export function PatternsView({ session }: PatternsViewProps) {
 
   const fetchPatterns = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('vanguard_behavioral_patterns')
-      .select('id, pattern_type, title, evidence_text, confidence, occurrence_count, status, last_seen')
-      .eq('user_id', userId)
-      .neq('status', 'archived')
-      .order('confidence', { ascending: false });
-    if (data) {
-      setPatterns(
-        [...data].map(row => ({
-          id: row.id,
-          pattern_type: row.pattern_type,
-          title: row.title,
-          evidence_text: row.evidence_text ?? '',
-          confidence: Number(row.confidence ?? 0),
-          occurrence_count: row.occurrence_count ?? 0,
-          status: row.status ?? 'hypothesis',
-          last_seen: row.last_seen ?? null,
-        })).sort((a, b) => (STATUS_ORDER[a.status ?? 'hypothesis'] ?? 9) - (STATUS_ORDER[b.status ?? 'hypothesis'] ?? 9))
-      );
+    try {
+      const data = await listActivePatterns(userId);
+      setPatterns(data);
+    } catch (e: unknown) {
+      console.error('[fetchPatterns Error]', e);
     }
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => { fetchPatterns(); }, [fetchPatterns]);
+  useEffect(() => { void (async () => { await fetchPatterns(); })(); }, [fetchPatterns]);
 
   const runDetection = async () => {
     setRunning(true);
     try {
-      await supabase.functions.invoke('vanguard-nightly?action=detect-patterns', {
-        body: { user_id: userId },
-      });
+      await triggerPatternDetection(userId);
       await fetchPatterns();
     } catch (e: unknown) {
-      console.error('[Background Error]', e);
+      notify('Wystąpił błąd podczas uruchamiania detekcji wzorców.', 'error');
+      console.warn('[PatternsView] Failed to run pattern detection:', e);
     } finally {
       setRunning(false);
     }

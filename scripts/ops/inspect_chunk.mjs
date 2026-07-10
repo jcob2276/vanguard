@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 
 const chunkPath = 'c:/Users/jakub/Desktop/Vanguard/dist/assets/DesktopDashboard-DZMkpMCZ.js';
 if (!fs.existsSync(chunkPath)) {

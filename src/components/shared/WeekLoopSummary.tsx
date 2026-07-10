@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ListChecks, Target, TrendingUp } from 'lucide-react';
 import type { DirectionContextData } from '../../lib/dailyPlanProposal';
-import { formatSprintWeekBridge } from '../../lib/goalSpine';
-import { formatSprintFromLongTerm } from '../../lib/longTermBridge';
+import { formatSprintWeekBridge } from '../../lib/goal/goalSpine';
+import { formatSprintFromLongTerm } from '../../lib/goal/longTermBridge';
 
 export default function WeekLoopSummary({
   ctx,

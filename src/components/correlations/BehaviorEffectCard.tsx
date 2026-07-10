@@ -1,5 +1,5 @@
-import type { BehaviorEffectResult } from '../../lib/correlations';
-import { behaviorLabel, CONFIDENCE_LABELS } from '../../lib/correlations';
+import type { BehaviorEffectResult } from '@vanguard/domain';
+import { behaviorLabel, CONFIDENCE_LABELS } from '@vanguard/domain';
 
 export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResult }) {
   const label = behaviorLabel(item.behavior_key);

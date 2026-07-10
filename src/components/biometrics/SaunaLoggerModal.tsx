@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ChevronLeft, Flame, Save } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify } from '../../lib/notify';
-import { saveSaunaSession } from '../../lib/workoutLogging';
+import { saveSaunaSession } from '../../lib/health/workoutLogging';
 import { numInput } from './workout/workoutUtils';
 
 export default function SaunaLoggerModal({

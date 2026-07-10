@@ -1,6 +1,6 @@
 import { ChevronRight, Sparkles } from 'lucide-react';
 
-import type { SpineGuidance, SpineGuideTarget } from '../../lib/goalSpineGuide';
+import type { SpineGuidance, SpineGuideTarget } from '../../lib/goal/goalSpineGuide';
 
 
 

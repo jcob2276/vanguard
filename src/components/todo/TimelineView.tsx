@@ -50,13 +50,12 @@ export default function TimelineView({ items, sectionGoalMap, today, onToggle, o
 
   // Auto-schedule: stack tasks from 9:00
   const blocks = useMemo(() => {
-    let cursor = 9 * 60; // 9:00 AM in minutes
-    return pending.map((item) => {
+    return pending.reduce<{ item: Item; start: number; end: number }[]>((acc, item) => {
       const dur = item.duration_minutes ?? DEFAULT_DURATION;
-      const start = cursor;
-      cursor += dur;
-      return { item, start, end: cursor };
-    });
+      const start = acc.length ? acc[acc.length - 1].end : 9 * 60; // 9:00 AM in minutes
+      acc.push({ item, start, end: start + dur });
+      return acc;
+    }, []);
   }, [pending]);
 
   const totalHeight = HOURS * 60 * PX_PER_MIN;
@@ -72,7 +71,7 @@ export default function TimelineView({ items, sectionGoalMap, today, onToggle, o
     const nowMin = nowMinutes();
     const top = Math.max(0, (nowMin - HOUR_START * 60) * PX_PER_MIN - 120);
     scrollRef.current.scrollTop = top;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const nowMin = new Date(nowMs).getHours() * 60 + new Date(nowMs).getMinutes();

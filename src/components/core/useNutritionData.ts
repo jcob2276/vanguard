@@ -1,6 +1,7 @@
+import { notify } from '../../lib/notify';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import type { Database } from '../../lib/database.types';
 import { Session } from '@supabase/supabase-js';
@@ -44,7 +45,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
   const fetchRows = useCallback(async () => {
     if (!userId) return;
     try {
-      const since = (() => { const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 6); return formatWarsawDate(d); })();
+      const since = shiftDateStr(todayRaw, -6);
       const { data } = await supabase
         .from('daily_nutrition')
         .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
@@ -52,9 +53,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         .gte('date', since)
         .order('date', { ascending: true });
       if (data) setRows(data);
-    } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
+    } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch daily nutrition rows:', e); }
   }, [userId, todayRaw]);
 
   const fetchTodayEntries = useCallback(async () => {
@@ -68,9 +67,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         .order('logged_at', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
       if (data) setTodayEntries(data);
-    } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
+    } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch today\'s food entries:', e); }
   }, [userId, todayRaw]);
 
   useEffect(() => {
@@ -108,12 +105,10 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
         const suggestions = verdictObj?.food_suggestions;
         if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
         if (typeof verdictObj?.forecast_note === 'string') setForecastNote(verdictObj.forecast_note);
-      } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    }
+      } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch nutrition targets:', e); }
     })();
-    void fetchRows();
-    void fetchTodayEntries();
+    void (async () => { await fetchRows(); })();
+    void (async () => { await fetchTodayEntries(); })();
   }, [userId, fetchRows, fetchTodayEntries, refreshSignal]);
 
   const handleSaved = useCallback(() => {
@@ -129,9 +124,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
       const { error } = await supabase.rpc('remove_food_entry', { p_user_id: userId, p_entry_id: id });
       if (error) throw new Error(error.message);
       await Promise.all([fetchRows(), fetchTodayEntries()]);
-    } catch (e: unknown) {
-      console.error('[Background Error]', e);
-    } finally {
+    } catch (e: unknown) { notify('Nie udało się usunąć wpisu.', 'error'); console.warn('[NutritionData] Failed to delete food entry:', e); } finally {
       setDeletingId(null);
     }
   }, [userId, deletingId, fetchRows, fetchTodayEntries, haptics]);
@@ -142,8 +135,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
     const byDate = new Map(rows.map((r) => [r.date, r]));
     const days: string[] = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(todayRaw + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - i);
-      days.push(formatWarsawDate(d));
+      days.push(shiftDateStr(todayRaw, -i));
     }
     return days.map((key) => {
       const r = byDate.get(key);

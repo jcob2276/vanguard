@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeHabitConsistency, last7DayKeys } from './fitnessScore';
+import { computeHabitConsistency, last7DayKeys } from '@vanguard/domain';
 
 describe('last7DayKeys', () => {
   it('returns 7 days ending on today', () => {

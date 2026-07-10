@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock3, Repeat, X, CalendarDays, Sun, Sofa } from 'lucide-react';
-import { parseTodoQuickInput } from '../../lib/todoParser';
+import { parseTodoQuickInput } from '../../lib/todo/todoParser';
+import { shiftDateStr } from '../../lib/date';
 
 interface TodoDatePickerPopoverProps {
   dueDate: string | null;
@@ -18,22 +19,14 @@ const MONTH_LABELS = [
 ];
 
 function toKey(y: number, m: number, d: number): string {
-  return new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
-}
-
-function addDaysToKey(key: string, days: number): string {
-  const [y, m, d] = key.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10);
+  const u = new Date(Date.UTC(y, m, d));
+  return `${u.getUTCFullYear()}-${String(u.getUTCMonth() + 1).padStart(2, '0')}-${String(u.getUTCDate()).padStart(2, '0')}`;
 }
 
 function nextWeekendKey(today: string): string {
   const [y, m, d] = today.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  let diff = (6 - dow + 7) % 7;
-  if (diff === 0) diff = 7;
-  return addDaysToKey(today, diff);
+  return shiftDateStr(today, (6 - dow + 7) % 7 || 7);
 }
 
 function weekdayShort(key: string): string {
@@ -76,7 +69,7 @@ export default function TodoDatePickerPopover({
     };
   }, [onClose]);
 
-  const tomorrowKey = addDaysToKey(today, 1);
+  const tomorrowKey = shiftDateStr(today, 1);
   const weekendKey = nextWeekendKey(today);
 
   const pickDate = (key: string | null) => {

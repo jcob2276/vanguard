@@ -1,6 +1,7 @@
-import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../lib/database.types';
+import { TIMEOUTS } from '../../../lib/constants';
 
 export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -9,7 +10,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
     ? { userId, date: analyzeDate }
     : (() => {
         const to = getTodayWarsaw();
-        const from = (() => { const d = new Date(getTodayWarsaw() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - (analyzePeriod - 1)); return d.toISOString().split('T')[0] })();
+        const from = shiftDateStr(getTodayWarsaw(), -(analyzePeriod - 1));
         return { userId, dateFrom: from, dateTo: to };
       })();
 
@@ -21,7 +22,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
         'Authorization': `Bearer ${authSession.access_token}`
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(55000),
+      signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
@@ -42,7 +43,7 @@ export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from,
         'Authorization': `Bearer ${authSession.access_token}`
       },
       body: JSON.stringify({ userId, start_date: from, end_date: to }),
-      signal: AbortSignal.timeout(55000),
+      signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();

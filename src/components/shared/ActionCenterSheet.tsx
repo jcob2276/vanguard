@@ -44,10 +44,10 @@ export function usePendingActionCount(session: Session) {
         .eq('status', 'pending'),
     ]);
     setCount((clarRes.count ?? 0) + (propRes.count ?? 0));
-  }, [session?.user?.id]);
+  }, [session]);
 
   useEffect(() => {
-    void reload();
+    void (async () => { await reload(); })();
     const t = setInterval(() => void reload(), 60_000);
     return () => clearInterval(t);
   }, [reload]);
@@ -88,7 +88,7 @@ export function ActionCenterSheet({
   }, [session.user.id]);
 
   useEffect(() => {
-    if (open) void load();
+    if (open) void (async () => { await load(); })();
   }, [open, load]);
 
   const handleProposalResolved = async (id: string, status: 'confirmed' | 'dismissed') => {

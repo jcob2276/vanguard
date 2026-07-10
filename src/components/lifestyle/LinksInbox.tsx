@@ -23,34 +23,22 @@ import {
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { unwrapList } from '../../lib/supabaseUtils';
 import { notify, confirmDialog } from '../../lib/notify';
-import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/captureBridge';
-import { NETWORK_TIMEOUT_MS } from '../../lib/constants';
+import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/behavior/captureBridge';
 import { usePersistentDraft } from '../../hooks/usePersistentDraft';
-
-interface SavedLink {
-  id: string;
-  url: string;
-  title: string;
-  description: string;
-  takeaways: string[];
-  notes: string;
-  category: string;
-  domain: string;
-  status: 'unread' | 'read';
-  created_at: string;
-  thumbnail_url?: string;
-  channel_name?: string;
-}
-
-interface TriageSuggestion {
-  id: string;
-  action: 'keep' | 'archive' | 'todo';
-  category: string;
-  takeaways: string[];
-  reasoning: string;
-}
+import { useHaptics } from '../../hooks/useHaptics';
+import {
+  fetchLinks as apiFetchLinks,
+  saveSharedLink as apiSaveSharedLink,
+  addNewLink as apiAddNewLink,
+  fetchTriageSuggestions as apiFetchTriageSuggestions,
+  updateLinkTriage as apiUpdateLinkTriage,
+  updateLinkNotes as apiUpdateLinkNotes,
+  deleteLink as apiDeleteLink,
+  type SavedLink,
+  type TriageSuggestion,
+} from '../../lib/linksApi';
+import { LinksTriagePanel } from './LinksTriagePanel';
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
   Kariera:    { pill: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
@@ -97,32 +85,23 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
   const [triageSuggestions, setTriageSuggestions] = useState<TriageSuggestion[]>([]);
   const [showTriagePanel, setShowTriagePanel] = useState(false);
 
+  const haptics = useHaptics();
   const haptic = (pattern: number | number[]) => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(pattern);
-    }
+    haptics.vibrate(pattern);
   };
 
   const goTo = (view: string) => {
-    try { localStorage.setItem('vanguard_view', view); } catch (e: unknown) {
-      console.error('[Action Error]', e);
-      notify(e instanceof Error ? e.message : 'Wystąpił błąd', 'error');
-    }
     if (onNavigateTo) onNavigateTo(view);
   };
 
   const fetchLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const data = unwrapList(await supabase
-        .from('vanguard_links')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false }));
-      setLinks(data as any);
+      const data = await apiFetchLinks(supabase, session.user.id);
+      setLinks(data);
     } catch (err: unknown) {
-      console.error('[Action Error]', err);
-      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+      console.error('[LinksInbox] fetchLinks failed:', err);
+      notify('Nie udało się załadować linków.', 'error');
     } finally {
       setLoading(false);
     }
@@ -132,17 +111,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setLoading(true);
     setSharingStatus('Zapisywanie udostępnionego linku...');
     try {
-      const base = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${base}/functions/v1/vanguard-capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ content: actualUrl, source: 'share_target' }),
-        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `HTTP ${res.status}`);
-      }
+      await apiSaveSharedLink(actualUrl);
       setSharingStatus('Zapisano!');
       setTimeout(() => setSharingStatus(null), 2500);
     } catch (err: unknown) {
@@ -152,7 +121,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     } finally {
       fetchLinks();
     }
-  }, [session.access_token, fetchLinks]);
+  }, [fetchLinks]);
 
   const handleAddLink = async () => {
     const raw = addUrl.trim();
@@ -160,17 +129,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     if (!urlMatch) return;
     setAddLoading(true);
     try {
-      const base = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${base}/functions/v1/vanguard-capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ content: urlMatch[0], source: 'links_inbox' }),
-        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `HTTP ${res.status}`);
-      }
+      await apiAddNewLink(urlMatch[0]);
       setAddUrl('');
       setShowAddForm(false);
       await fetchLinks();
@@ -187,9 +146,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     const match = urlCandidate.match(/https?:\/\/[^\s]+/);
     if (match) {
       window.history.replaceState({}, document.title, '/');
-      saveSharedLink(match[0]);
+      void (async () => { await saveSharedLink(match[0]); })();
     } else {
-      fetchLinks();
+      void (async () => { await fetchLinks(); })();
     }
   }, [fetchLinks, saveSharedLink]);
 
@@ -199,9 +158,12 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTimeout(() => setBouncingIds(prev => { const n = new Set(prev); n.delete(id); return n; }), 400);
     const next = current === 'unread' ? 'read' : 'unread';
     setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
-    const { error } = await supabase
-      .from('vanguard_links').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) fetchLinks();
+    try {
+      await apiUpdateLinkTriage(supabase, id, { status: next });
+    } catch (err) {
+      console.error('[LinksInbox] toggleReadStatus failed:', err);
+      fetchLinks();
+    }
   };
 
   const saveNotes = async (id: string) => {
@@ -209,13 +171,16 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     if (draft === undefined) return;
     const link = links.find(l => l.id === id);
     if (!link || draft === (link.notes ?? '')) return;
-    await supabase
-      .from('vanguard_links')
-      .update({ notes: draft, updated_at: new Date().toISOString() }).throwOnError()
-      .eq('id', id);
-    setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
-    setSavedNoteId(id);
-    setTimeout(() => setSavedNoteId(null), 1800);
+    try {
+      await apiUpdateLinkNotes(supabase, id, draft);
+      setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
+      setSavedNoteId(id);
+      setTimeout(() => setSavedNoteId(null), 1800);
+    } catch (err) {
+      console.error('[LinksInbox] saveNotes failed:', err);
+      notify('Nie udało się zapisać notatki — spróbuj ponownie.', 'error');
+      setNotesDrafts(prev => ({ ...prev, [id]: link.notes ?? '' }));
+    }
   };
 
   const deleteLink = async (id: string) => {
@@ -225,18 +190,17 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTimeout(async () => {
       setLinks(prev => prev.filter(l => l.id !== id));
       setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      const { error } = await supabase.from('vanguard_links').delete().eq('id', id);
-      if (error) console.warn('[LinksInbox] delete failed:', error.message);
+      try {
+        await apiDeleteLink(supabase, id);
+      } catch (error) {
+        console.warn('[LinksInbox] delete failed:', (error as Error).message);
+      }
     }, 260);
   };
 
   const updateLinkCategory = async (id: string, newCategory: string) => {
     try {
-      const { error } = await supabase
-        .from('vanguard_links')
-        .update({ category: newCategory, updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
+      await apiUpdateLinkTriage(supabase, id, { category: newCategory });
       setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
     } catch (err: unknown) {
       console.error('[Action Error]', err);
@@ -274,19 +238,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
     setTriageLoading(true);
     setShowTriagePanel(true);
     try {
-      const base = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${base}/functions/v1/vanguard-keep-triage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ userId: session.user.id }),
-        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setTriageSuggestions(data.suggestions || []);
+      const suggestions = await apiFetchTriageSuggestions(session.user.id);
+      setTriageSuggestions(suggestions);
     } catch (err: unknown) {
       console.error('[Triage Error]', err);
       notify('AI Triage nie powiodło się', 'error');
@@ -302,7 +255,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       if (!link) return;
 
       if (action === 'archive') {
-        await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', id).throwOnError();
+        await apiUpdateLinkTriage(supabase, id, { status: 'read' });
         setLinks(prev => prev.filter(l => l.id !== id));
         notify('Oznaczono jako przeczytany', 'success');
       } else if (action === 'todo') {
@@ -310,11 +263,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         setLinks(prev => prev.filter(l => l.id !== id));
         notify('Dodano do zadań', 'success');
       } else {
-        await supabase.from('vanguard_links').update({
-          category,
-          takeaways,
-          updated_at: new Date().toISOString()
-        }).eq('id', id).throwOnError();
+        await apiUpdateLinkTriage(supabase, id, { category, takeaways });
         setLinks(prev => prev.map(l => l.id === id ? { ...l, category, takeaways } : l));
         notify('Zaktualizowano dane linku', 'success');
       }
@@ -800,93 +749,15 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
         </button>
       </nav>
 
-      {showTriagePanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70">
-          <div className="absolute inset-0" onClick={() => { if (!triageLoading) setShowTriagePanel(false); }} />
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-scale-up">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-800 bg-slate-950/40">
-              <div className="flex items-center gap-2 text-indigo-400 font-bold text-[14px]">
-                <Sparkles size={16} />
-                <span>AI Triage - Sugestie Organizacji Linków</span>
-              </div>
-              <button onClick={() => setShowTriagePanel(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400">
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {triageLoading && (
-                <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
-                  <Loader2 className="animate-spin mb-2" size={24} />
-                  <p className="text-[12px] font-bold">Analizowanie nieprzeczytanych linków...</p>
-                </div>
-              )}
-
-              {!triageLoading && triageSuggestions.length === 0 && (
-                <div className="text-center py-20 text-slate-500">
-                  <p className="text-[12px] font-semibold">Brak zalecanych sugestii AI</p>
-                  <p className="text-[10px] text-slate-600 mt-1">Wszystkie linki wydają się być odpowiednio sklasyfikowane.</p>
-                </div>
-              )}
-
-              {!triageLoading && triageSuggestions.map((s) => {
-                const link = links.find(l => l.id === s.id);
-                if (!link) return null;
-                return (
-                  <div key={s.id} className="p-4 bg-slate-950/40 border border-slate-800 rounded-xl space-y-3">
-                    <h4 className="text-[13px] font-bold text-text-primary leading-snug">{link.title}</h4>
-                    
-                    <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
-                      <span className={`px-2 py-0.5 rounded ${
-                        s.action === 'keep' ? 'bg-indigo-500/10 text-indigo-400' :
-                        s.action === 'archive' ? 'bg-slate-500/10 text-slate-400' :
-                        'bg-emerald-500/10 text-emerald-400'
-                      }`}>
-                        Sugerowana akcja: {s.action === 'keep' ? 'Zostaw' : s.action === 'archive' ? 'Archiwizuj' : 'Zrób Todo'}
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
-                        Kategoria: {s.category}
-                      </span>
-                    </div>
-
-                    {s.reasoning && (
-                      <p className="text-[11.5px] text-text-muted italic bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
-                        "{s.reasoning}"
-                      </p>
-                    )}
-
-                    {s.takeaways && s.takeaways.length > 0 && (
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Kluczowe wnioski:</span>
-                        <ul className="list-disc list-inside text-[11px] text-text-secondary pl-1 space-y-0.5">
-                          {s.takeaways.map((t: string, idx: number) => (
-                            <li key={idx} className="font-medium">{t}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 pt-2 justify-end">
-                      <button
-                        onClick={() => setTriageSuggestions(prev => prev.filter(item => item.id !== s.id))}
-                        className="px-3 py-1.5 text-[11px] font-bold text-slate-400 hover:text-text-primary transition-colors"
-                      >
-                        Pomiń
-                      </button>
-                      <button
-                        onClick={() => applyTriageSuggestion(s.id, s.action, s.category, s.takeaways)}
-                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"
-                      >
-                        Zastosuj
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <LinksTriagePanel
+        showTriagePanel={showTriagePanel}
+        setShowTriagePanel={setShowTriagePanel}
+        triageLoading={triageLoading}
+        triageSuggestions={triageSuggestions}
+        setTriageSuggestions={setTriageSuggestions}
+        links={links}
+        applyTriageSuggestion={applyTriageSuggestion}
+      />
     </div>
   );
 }

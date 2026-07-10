@@ -1,5 +1,5 @@
 import type { EnrichedCheckpoint } from './checkpoints';
-import type { PowerListWeekStats, WeekDirectionGoals } from './growthWeek';
+import type { PowerListWeekStats, WeekDirectionGoals } from './growth/growthWeek';
 
 export type DirectionMustPin = {
   id: string;

@@ -1,16 +1,17 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { useFaceDistance } from '../../hooks/useFaceDistance';
+import { useFaceDistance } from './hooks/useFaceDistance';
 import { supabase } from '../../lib/supabase';
 import { Check, ArrowLeft, Ruler, ZoomIn, ZoomOut, AlertCircle, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
 import StabilityRing from './StabilityRing';
-
+import { useHaptics } from '../../hooks/useHaptics';
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 
 export default function EndMyopiaCalculator() {
+  const haptics = useHaptics();
   const videoRef = useRef<HTMLVideoElement>(null);
   const pipVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -44,7 +45,7 @@ export default function EndMyopiaCalculator() {
   // Skip calibrate phase if already calibrated
   useEffect(() => {
     if (calibrationFactor && phase === 'calibrate') {
-      startMeasure('left');
+      void (async () => { startMeasure('left'); })();
     }
   }, [calibrationFactor]);
 
@@ -52,25 +53,26 @@ export default function EndMyopiaCalculator() {
   useEffect(() => {
     if (!autoCapture) return;
     if (phase === 'measure' && stability >= 1 && distance !== null) {
-      if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
-      setCapturedDistance(distance);
-      setPhase('captured');
-      resetStability();
+      haptics.vibrate([80, 40, 80]);
+      void (async () => {
+        setCapturedDistance(distance);
+        setPhase('captured');
+        resetStability();
+      })();
     }
   }, [stability, phase, distance, autoCapture]);
 
   const handleManualCapture = () => {
     if (distance === null) return;
-    if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
+    haptics.vibrate([80, 40, 80]);
     setCapturedDistance(distance);
     setPhase('captured');
     resetStability();
   };
 
   const toggleAutoCapture = () => {
-    const next = !autoCapture;
-    setAutoCapture(next);
-    localStorage.setItem('endmyopia_auto_capture', String(next));
+    setAutoCapture(!autoCapture);
+    localStorage.setItem('endmyopia_auto_capture', String(!autoCapture));
   };
 
   // Camera setup
@@ -83,7 +85,7 @@ export default function EndMyopiaCalculator() {
         if (videoRef.current) videoRef.current.srcObject = stream;
         if (pipVideoRef.current) pipVideoRef.current.srcObject = stream;
       } catch (err: unknown) {
-      console.error('[Background Error]', err);
+      console.warn('[EndMyopiaCalculator] Failed to setup camera stream:', err);
     }
     }
     setupCamera();

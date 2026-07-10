@@ -1,8 +1,9 @@
+import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { formatWarsawDate, getTodayWarsaw, getPastWeekStarts } from '../../lib/date';
-import { getWeekStartWarsaw } from '../../lib/growth';
+import { getWeekStartWarsaw } from '../../lib/growth/growth';
 
 interface Snapshot {
   recorded_at: string;
@@ -102,7 +103,8 @@ export function KpiTrendSparkline({
 
       onValueChange(next);
     } catch (e: unknown) {
-      console.error('[Background Error]', e);
+      notify('Nie udało się zapisać wartości KPI.', 'error');
+      console.warn('[KpiTrendSparkline] Failed to log KPI value:', e);
     } finally {
       setLogging(false);
     }

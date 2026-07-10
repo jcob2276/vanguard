@@ -1,8 +1,8 @@
 import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import type { CorrelationResult } from '../../lib/correlations';
-import { CATEGORY_LABELS, CONFIDENCE_LABELS, formatLag, METHOD_LABELS, rColor } from '../../lib/correlations';
+import type { CorrelationResult } from '@vanguard/domain';
+import { CATEGORY_LABELS, CONFIDENCE_LABELS, formatLag, METHOD_LABELS, rColor } from '@vanguard/domain';
 
 interface Props {
   item: CorrelationResult;

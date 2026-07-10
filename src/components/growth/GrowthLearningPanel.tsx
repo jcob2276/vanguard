@@ -1,5 +1,5 @@
 import { BookOpen, CheckCircle2, ExternalLink, FileText, Link2, TrendingUp } from 'lucide-react';
-import type { LearningNeedItem, WeekLearningItem } from '../../lib/growthOverview';
+import type { LearningNeedItem, WeekLearningItem } from '../../lib/growth/growthOverview';
 
 const KIND_ICON = {
   pin: CheckCircle2,

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Search, X, Loader2, Sparkles, CheckCircle2, Bookmark, Folder } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { notify } from '../../lib/notify';
+import { invokeEdge } from '../../lib/supabase';
 
 interface SearchResult {
   graph: any[];
@@ -23,28 +24,16 @@ export default function SearchModal({ session, onClose }: { session: Session; on
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults({ graph: [], todos: [], projects: [], notes: [] });
+      void (async () => { setResults({ graph: [], todos: [], projects: [], notes: [] }); })();
       return;
     }
 
     const delayDebounce = setTimeout(async () => {
       setLoading(true);
       try {
-        const base = import.meta.env.VITE_SUPABASE_URL;
-        const res = await fetch(`${base}/functions/v1/vanguard-oracle?action=search`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ query }),
+        const data = await invokeEdge<SearchResult>('vanguard-oracle', {
+          body: { query, action: 'search' },
         });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
         setResults(data);
       } catch (err: unknown) {
         console.error('[Search Error]', err);

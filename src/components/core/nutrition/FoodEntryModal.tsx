@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Loader2, ScanLine, Plus, ChevronDown, RotateCcw, Sparkles, Trash2, Check } from 'lucide-react';
-import { confidenceLabel } from '../../../lib/foodLogging';
+import { confidenceLabel } from '../../../lib/health/foodLogging';
 import BarcodeScanner from './BarcodeScanner';
 import FoodRow from './FoodRow';
 import { Session } from '@supabase/supabase-js';

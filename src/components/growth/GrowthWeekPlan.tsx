@@ -1,8 +1,8 @@
 import { Check, ExternalLink, FolderKanban, Plus, Trash2 } from 'lucide-react';
-import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from '../../hooks/useGrowthData';
-import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth';
-import { MAX_ACTIVE, MAX_MUST, RESOURCE_TYPE_META } from '../../lib/growth';
-import type { TheoryPracticeBalance } from '../../lib/growthMastery';
+import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
+import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth/growth';
+import { MAX_ACTIVE, MAX_MUST, RESOURCE_TYPE_META } from '../../lib/growth/growth';
+import type { TheoryPracticeBalance } from '../../lib/growth/growthMastery';
 import { pinResourceType, pinTitle } from './PinPickerModal';
 
 function SlotSection({

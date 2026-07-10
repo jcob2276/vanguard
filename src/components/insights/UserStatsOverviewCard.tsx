@@ -1,5 +1,5 @@
 import { BarChart2 } from 'lucide-react';
-import type { UserStatsSnapshot } from '../../hooks/useUserStatsSnapshot';
+import type { UserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 
 interface MetricPillProps { value: number; label: string; color: string; }
 function MetricPill({ value, label, color }: MetricPillProps) {

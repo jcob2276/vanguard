@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
 
 export interface Note {
@@ -9,9 +9,14 @@ export interface Note {
   tags: string[];
   is_pinned: boolean;
   is_archived: boolean;
-  color?: string;
+  color: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ApiError {
+  code?: string;
+  message: string;
 }
 
 export const notesKeys = {
@@ -41,76 +46,56 @@ export function useNotes(userId: string) {
 
 // ── MUTATIONS ──
 
-export function useCreateNote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      note,
-    }: {
-      userId: string;
-      note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
-    }) => {
-      const { data, error } = await supabase
-        .from('vanguard_notes')
-        .insert({
-          user_id: userId,
-          ...note,
-        })
-        .select()
-        .single();
+export async function createNoteApi(userId: string, partial: Partial<Note>): Promise<Note> {
+  const { data, error } = await supabase
+    .from('vanguard_notes')
+    .insert({ user_id: userId, ...partial })
+    .select()
+    .single();
 
-      if (error) throw new Error(error.message);
-      return data as Note;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: notesKeys.list(variables.userId) });
-    },
+  if (error) throw error;
+  return data as Note;
+}
+
+export async function updateNoteApi(id: string, patch: Partial<Note>): Promise<void> {
+  const { error } = await supabase
+    .from('vanguard_notes')
+    .update(patch)
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteNoteApi(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('vanguard_notes')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// ── DOMAIN HELPERS ──
+
+export function sortNotes(arr: Note[]): Note[] {
+  return [...arr].sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }
 
-export function useUpdateNote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      noteId,
-      updates,
-    }: {
-      userId: string;
-      noteId: string;
-      updates: Partial<Note>;
-    }) => {
-      const { data, error } = await supabase
-        .from('vanguard_notes')
-        .update(updates)
-        .eq('id', noteId)
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data as Note;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: notesKeys.list(variables.userId) });
-    },
-  });
-}
-
-export function useDeleteNote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ userId, noteId }: { userId: string; noteId: string }) => {
-      const { error } = await supabase
-        .from('vanguard_notes')
-        .delete()
-        .eq('id', noteId);
-
-      if (error) throw new Error(error.message);
-      return noteId;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: notesKeys.list(variables.userId) });
-    },
-  });
+export function isNetworkOrTableError(err: unknown): boolean {
+  if (!err) return false;
+  const errorObj = err as ApiError;
+  const msg = errorObj.message?.toLowerCase() || '';
+  return (
+    errorObj.code === 'PGRST205' ||
+    errorObj.code === 'PGRST100' ||
+    msg.includes('vanguard_notes') ||
+    msg.includes('fetch') ||
+    msg.includes('network') ||
+    msg.includes('failed to fetch') ||
+    !navigator.onLine
+  );
 }

@@ -1,12 +1,12 @@
 import { Suspense, lazy, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Sparkles } from 'lucide-react';
-import type { FullPanelInfo } from '../../lib/medicalRetestContext';
+import type { FullPanelInfo } from '../../lib/health/medicalRetestContext';
 import {
   buildOracleLabPrompt,
   type MedicalUserContext,
   type RetestSuggestion,
-} from '../../lib/medicalRetestSuggestions';
+} from '../../lib/health/medicalRetestSuggestions';
 
 const OracleCard = lazy(() => import('../ai/OracleCard'));
 
@@ -87,7 +87,7 @@ export default function MedicalRetestPanel({
       ) : (
         <Suspense fallback={<div className="h-40 animate-pulse rounded-[24px] border border-border-custom bg-surface/40" />}>
           <OracleCard
-            session={session}
+            
             embedded
             defaultOpen
             initialQuery={oracleQuery}

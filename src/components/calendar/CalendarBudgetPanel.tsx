@@ -1,6 +1,6 @@
 import React from 'react';
 import { computeBudgetBarState } from './calendarHelpers';
-import { LIFE_SPHERES } from '../../lib/lifeSpheres';
+import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 
 interface Budget {
   category: string;

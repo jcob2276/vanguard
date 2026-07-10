@@ -1,4 +1,4 @@
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -28,10 +28,8 @@ export default function DailySnapshotCard({ session }: { session: Session }) {
 
   useEffect(() => {
     if (!userId) return;
-    const yd = new Date(today + 'T12:00:00Z'); yd.setUTCDate(yd.getUTCDate() - 1);
-    const yesterday = formatWarsawDate(yd);
-    const d14 = new Date(today + 'T12:00:00Z'); d14.setUTCDate(d14.getUTCDate() - 14);
-    const ago14 = formatWarsawDate(d14);
+    const yesterday = shiftDateStr(today, -1);
+    const ago14 = shiftDateStr(today, -14);
 
     Promise.all([
       supabase

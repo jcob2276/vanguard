@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Calendar, Check, Target } from 'lucide-react';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
@@ -70,8 +70,7 @@ export default function DirectionRadarMode({
       <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
         <div className="grid grid-cols-7 gap-2">
           {Array.from({ length: 28 }).map((_, index) => {
-            const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
-            d.setUTCDate(d.getUTCDate() - 21);
+            const d = new Date(shiftDateStr(getTodayWarsaw(), -21) + 'T12:00:00Z');
             const gridStart = startOfWeek(d, { weekStartsOn: 1 });
             const dateObj = subDays(gridStart, -index);
             const date = format(dateObj, 'yyyy-MM-dd');
@@ -117,8 +116,7 @@ export default function DirectionRadarMode({
             e.start_time && formatWarsawDate(new Date(e.start_time)) === dayKey
           );
 
-          const dayWinAny = dayWin as any;
-          const hasWins = dayWinAny && [0, 1, 2, 3, 4].some(slotIdx => dayWinAny[`task_${slotIdx + 1}`]);
+          const hasWins = dayWin && [0, 1, 2, 3, 4].some(slotIdx => dayWin[`task_${slotIdx + 1}` as keyof typeof dayWin]);
           const hasContent = dayEvents.length > 0 || hasWins;
 
           if (!hasContent) {
@@ -200,9 +198,9 @@ export default function DirectionRadarMode({
                     </div>
                     <div className="space-y-2 pl-3 border-l border-border-custom/50">
                       {[0, 1, 2, 3, 4].map((slotIdx) => {
-                        const dayWinAny = dayWin as any;
-                        const task = dayWinAny[`task_${slotIdx + 1}`];
-                        const done = dayWinAny[`done_${slotIdx + 1}`];
+                        if (!dayWin) return null;
+                        const task = dayWin[`task_${slotIdx + 1}` as keyof typeof dayWin];
+                        const done = dayWin[`done_${slotIdx + 1}` as keyof typeof dayWin];
                         if (!task) return null;
                         const isInteractive = isToday;
                         return (
@@ -234,21 +232,21 @@ export default function DirectionRadarMode({
       </div>
 
       {/* 5. Cele tygodnia (z przeglądu niedzielnego) */}
-      {currentReview && ((currentReview as any).week_goal_cialo || (currentReview as any).week_goal_duch || (currentReview as any).week_goal_konto) && (
+      {currentReview && (currentReview.week_goal_cialo || currentReview.week_goal_duch || currentReview.week_goal_konto) && (
         <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-3">
           <p className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele tego tygodnia</p>
-          {(currentReview as any).week_intention && (
-            <p className="text-[11px] font-semibold text-text-secondary italic">„{(currentReview as any).week_intention}"</p>
+          {currentReview.week_intention && (
+            <p className="text-[11px] font-semibold text-text-secondary italic">„{currentReview.week_intention}"</p>
           )}
           <div className="space-y-2">
             {[
-              { key: 'week_goal_cialo', label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-              { key: 'week_goal_duch',  label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-              { key: 'week_goal_konto', label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
-            ].filter(g => (currentReview as any)[g.key]).map(g => (
+              { key: 'week_goal_cialo' as const, label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+              { key: 'week_goal_duch' as const,  label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
+              { key: 'week_goal_konto' as const, label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
+            ].filter(g => currentReview[g.key]).map(g => (
               <div key={g.key} className="flex items-start gap-2">
                 <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
-                <span className="text-[12px] font-semibold text-text-primary leading-snug">{(currentReview as any)[g.key]}</span>
+                <span className="text-[12px] font-semibold text-text-primary leading-snug">{currentReview[g.key]}</span>
               </div>
             ))}
           </div>

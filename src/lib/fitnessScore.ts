@@ -1,1 +1,0 @@
-export * from '@vanguard/domain';

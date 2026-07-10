@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { shiftDateStr } from './date';
 
 export interface Prediction {
   id: string;
@@ -23,9 +24,7 @@ export async function listWeeklyPredictions(
   weekStart: string
 ): Promise<Prediction[]> {
   const start = new Date(weekStart + 'T12:00:00Z');
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const weekEnd = end.toISOString().split('T')[0];
+  const weekEnd = shiftDateStr(weekStart, 6);
 
   const { data, error } = await supabase
     .from('vanguard_predictions')

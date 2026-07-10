@@ -2,9 +2,9 @@ import React from "react";
 import type { Session } from "@supabase/supabase-js";
 import ProjectWeekKpis from "./ProjectWeekKpis";
 import WeekPlanningRecap from "./WeekPlanningRecap";
-import { useDirectionContext } from "../../hooks/useDirectionContext";
-import { formatSprintWeekBridge } from "../../lib/goalSpine";
-import { formatSprintFromLongTerm } from "../../lib/longTermBridge";
+import { useDirectionContext } from "./direction/hooks/useDirectionContext";
+import { formatSprintWeekBridge } from "../../lib/goal/goalSpine";
+import { formatSprintFromLongTerm } from "../../lib/goal/longTermBridge";
 
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
 type Phase2Recap = {

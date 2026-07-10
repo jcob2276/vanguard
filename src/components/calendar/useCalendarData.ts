@@ -25,7 +25,7 @@ import {
 } from './calendarHelpers';
 
 
-import { CalendarTodo } from '../../hooks/useCalendarTodos';
+import { CalendarTodo } from './hooks/useCalendarTodos';
 
 interface QuickCreateState {
   date: string;
@@ -113,7 +113,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
       try {
         localStorage.setItem('vanguard_calendar_sidebar_collapsed', String(next));
       } catch (err) {
-        console.error('[Background Error]', err);
+        console.warn('[Calendar] Failed to save sidebar collapsed state to localStorage:', err);
       }
       return next;
     });
@@ -130,6 +130,40 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   // Weather States
   const [weather, setWeather] = useState<any>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+
+  function getCityName(lat: number, lng: number) {
+    if (Math.abs(lat - 49.6950) < 0.005 && Math.abs(lng - 21.7225) < 0.005) return 'Świerzowa Polska';
+    if (Math.abs(lat - 49.68886) < 0.05 && Math.abs(lng - 21.76466) < 0.05) return 'Krosno';
+    if (Math.abs(lat - 52.2297) < 0.05 && Math.abs(lng - 21.0122) < 0.05) return 'Warszawa';
+    return 'Moja lokalizacja';
+  }
+
+  function getWMOWeatherDescription(code: number) {
+    switch (code) {
+      case 0: return 'Jasno';
+      case 1:
+      case 2: return 'Zachmurzenie częściowe';
+      case 3: return 'Pochmurno';
+      case 45:
+      case 48: return 'Mgła';
+      case 51:
+      case 53:
+      case 55: return 'Mżawka';
+      case 61:
+      case 63:
+      case 65: return 'Deszcz';
+      case 71:
+      case 73:
+      case 75: return 'Śnieg';
+      case 80:
+      case 81:
+      case 82: return 'Przelotny deszcz';
+      case 95:
+      case 96:
+      case 99: return 'Burza';
+      default: return 'Umiarkowane zachmurzenie';
+    }
+  }
 
   useEffect(() => {
     const lat = userSettings?.home_lat ?? 49.6950;
@@ -162,7 +196,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
               };
             }
           } catch (err) {
-            console.error('[Background Error]', err);
+            console.warn('[Calendar] OpenWeatherMap API fetch failed, falling back to Open-Meteo:', err);
           }
         }
 
@@ -175,7 +209,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
         const tomorrowDate = addDays(today, 1);
         const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&start_date=${todayDate}&end_date=${tomorrowDate}&hourly=temperature_2m,weather_code,precipitation_probability&timezone=Europe/Warsaw`;
         const hourlyRes = await fetch(hourlyUrl);
-        let hourlyData: Record<string, any[]> = {};
+        const hourlyData: Record<string, any[]> = {};
         if (hourlyRes.ok) {
           const hd = await hourlyRes.json();
           if (hd.hourly && hd.hourly.time) {
@@ -251,40 +285,6 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
       clearInterval(interval);
     };
   }, [userSettings?.home_lat, userSettings?.home_lng, visibleRange.rangeStart, visibleRange.rangeEnd]);
-
-  const getCityName = (lat: number, lng: number) => {
-    if (Math.abs(lat - 49.6950) < 0.005 && Math.abs(lng - 21.7225) < 0.005) return 'Świerzowa Polska';
-    if (Math.abs(lat - 49.68886) < 0.05 && Math.abs(lng - 21.76466) < 0.05) return 'Krosno';
-    if (Math.abs(lat - 52.2297) < 0.05 && Math.abs(lng - 21.0122) < 0.05) return 'Warszawa';
-    return 'Moja lokalizacja';
-  };
-
-  const getWMOWeatherDescription = (code: number) => {
-    switch (code) {
-      case 0: return 'Jasno';
-      case 1:
-      case 2: return 'Zachmurzenie częściowe';
-      case 3: return 'Pochmurno';
-      case 45:
-      case 48: return 'Mgła';
-      case 51:
-      case 53:
-      case 55: return 'Mżawka';
-      case 61:
-      case 63:
-      case 65: return 'Deszcz';
-      case 71:
-      case 73:
-      case 75: return 'Śnieg';
-      case 80:
-      case 81:
-      case 82: return 'Przelotny deszcz';
-      case 95:
-      case 96:
-      case 99: return 'Burza';
-      default: return 'Umiarkowane zachmurzenie';
-    }
-  };
 
   const [nowMin, setNowMin] = useState(() => nowMinutes());
   useEffect(() => {

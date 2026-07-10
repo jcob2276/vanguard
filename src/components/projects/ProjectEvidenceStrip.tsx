@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchProjectEvidence, type ProjectEvidenceItem } from '../../lib/projectEvidence';
+import { fetchProjectEvidence, type ProjectEvidenceItem } from '../../lib/projects/projectEvidence';
 
 const KIND_LABEL = {
   win: 'Zwycięstwo',
@@ -12,10 +12,12 @@ export default function ProjectEvidenceStrip({ userId, projectId }: { userId: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetchProjectEvidence(userId, projectId, 7)
-      .then(setItems)
-      .finally(() => setLoading(false));
+    void (async () => {
+      setLoading(true);
+      fetchProjectEvidence(userId, projectId, 7)
+        .then(setItems)
+        .finally(() => setLoading(false));
+    })();
   }, [userId, projectId]);
 
   if (loading) return null;

@@ -40,7 +40,7 @@ Zebrane z audytu 2026-07-05 (agentowy sweep: god-files, write-orphan tables, sil
 ## 🟢 Priorytet 4 — duplikaty logiki daty/timezone
 
 - [ ] `useGrowthData.ts:281` — `todayStr = weekStart` (mylące), psuje liczenie "dni po terminie" przy oglądaniu innego tygodnia
-- [ ] `AddPrescriptionModal.tsx:19` — surowy `new Date().toISOString().split('T')[0]`
+- [x] `AddPrescriptionModal.tsx:19` — surowy `new Date().toISOString().split('T')[0]`
 - [ ] `fitnessScore.ts:307` — niska pewność, wymaga doczytania
 - [ ] `LeniePanelMini.tsx:20` — poprawna logika, tylko zduplikowana (code smell, nieszkodliwe)
 

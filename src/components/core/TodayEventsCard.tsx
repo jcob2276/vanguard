@@ -1,5 +1,5 @@
 import { CalendarDays } from 'lucide-react';
-import { useTodayCalendarEvents } from '../../hooks/useTodayCalendarEvents';
+import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 import { Session } from '@supabase/supabase-js';
 
 export default function TodayEventsCard({ session }: { session: Session }) {

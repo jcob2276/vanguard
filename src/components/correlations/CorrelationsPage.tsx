@@ -11,8 +11,8 @@ import type {
   CorrelationCategory,
   CorrelationResult,
   CorrelationStats,
-} from '../../lib/correlations';
-import { CATEGORY_LABELS, isInterestingCorrelationClient, isSleepStageDriver } from '../../lib/correlations';
+} from '@vanguard/domain';
+import { CATEGORY_LABELS, isInterestingCorrelationClient, isSleepStageDriver } from '@vanguard/domain';
 import CorrelationCard from './CorrelationCard';
 import BehaviorEffectCard from './BehaviorEffectCard';
 
@@ -82,7 +82,7 @@ export default function CorrelationsPage({ session }: { session: Session }) {
     }
   }, [userId, includeWeak]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void (async () => { await load(); })(); }, [load]);
 
   const visibleCorrelations = useMemo(() => {
     if (includeWeak) return correlations;

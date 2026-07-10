@@ -1,4 +1,4 @@
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { differenceInDays, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 import type { Tables } from '../../lib/database.types';
 
@@ -7,15 +7,11 @@ type DailyWinRow = Tables<'daily_wins'>;
 const APP_LAUNCH_DATE = '2026-05-03';
 
 export function calculateStats(history: DailyWinRow[]) {
-  if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] as any[] };
+  if (!history.length) return { streak: 0, weeklyP: 0, monthlyWin: false, weeks: [] as { isWeekWin: boolean; pCount: number; start: Date }[] };
   let streak = 0;
   const sorted = [...history].sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime());
   const today = getTodayWarsaw();
-  const yesterday = (() => {
-    const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() - 1);
-    return formatWarsawDate(d);
-  })();
+  const yesterday = shiftDateStr(getTodayWarsaw(), -1);
   if (sorted[0]?.date === today || sorted[0]?.date === yesterday) {
     for (const day of sorted) {
       if (day.result === 'Z') streak++;
@@ -24,8 +20,7 @@ export function calculateStats(history: DailyWinRow[]) {
   }
   const weeks = [];
   for (let i = 0; i < 4; i++) {
-    const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() - i * 7);
+    const d = new Date(shiftDateStr(getTodayWarsaw(), -i * 7) + 'T12:00:00Z');
     const start = startOfWeek(d, { weekStartsOn: 1 });
     const end = endOfWeek(start, { weekStartsOn: 1 });
     const weekDays = history.filter((dh) => {
@@ -38,11 +33,7 @@ export function calculateStats(history: DailyWinRow[]) {
     const explicitP = weekDays.filter((d) => d.result === 'P').length;
     let missing = 0;
     for (let day = 0; day < expectedPastDays; day++) {
-      const checkDate = (() => {
-        const dSub = new Date(now);
-        dSub.setUTCDate(dSub.getUTCDate() - (expectedPastDays - day));
-        return formatWarsawDate(dSub);
-      })();
+      const checkDate = shiftDateStr(formatWarsawDate(now), -(expectedPastDays - day));
       if (!weekDays.some((e) => e.date === checkDate) && checkDate >= APP_LAUNCH_DATE) missing++;
     }
     const pCount = explicitP + missing;

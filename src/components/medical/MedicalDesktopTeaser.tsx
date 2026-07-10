@@ -1,4 +1,4 @@
-import { FlaskConical } from 'lucide-react';import { useMedicalData } from '../../hooks/useMedicalData';
+import { FlaskConical } from 'lucide-react';import { useMedicalData } from './hooks/useMedicalData';
 import {
   buildMarkerSeries,
   diffDaysFromToday,
@@ -6,7 +6,7 @@ import {
   freshnessLabel,
   labFreshness,
   PRIORITY_CHART_MARKERS,
-} from '../../lib/medicalAnalytics';
+} from '../../lib/health/medicalAnalytics';
 import { ValueCell } from './MedicalLabSections';
 
 export default function MedicalDesktopTeaser({ userId }: { userId: string }) {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
+import type { CardTemplateId } from '../cards/CardFactory';
+
 type ToolItem = {
   name: string;
   args: string;
@@ -16,11 +18,10 @@ export type ChatItem =
   | { id?: string; type: 'tool'; name: string; args: string; result?: string; isError?: boolean; duration?: number; timestamp: Date; children?: ToolItem[] }
   | { id?: string; type: 'artifact'; title: string; content: string; timestamp: Date }
   | { id?: string; type: 'error'; text: string; timestamp: Date }
-  | { id?: string; type: 'action'; text: string; timestamp: Date }
-  | { id?: string; type: 'system_reminder'; text: string; timestamp: Date; pendingAction?: any };
+  | { id?: string; type: 'action'; text: string; timestamp: Date; status?: 'approved' | 'denied' | 'pending'; pendingActionId?: string; pendingActionType?: string; pendingActionPayload?: unknown }
+  | { id?: string; type: 'system_reminder'; text: string; timestamp: Date; pendingAction?: unknown };
 
 function formatTimestamp(date: Date, referenceDate = new Date()): string {
-  const diff = referenceDate.getTime() - date.getTime();
   const refDay = new Date(referenceDate);
   refDay.setHours(0, 0, 0, 0);
   const itemDay = new Date(date);
@@ -153,7 +154,7 @@ function AiCardRenderer({ templateId, cardData }: { templateId: string; cardData
   useEffect(() => {
     import('../cards/CardFactory').then(m => {
       const Comp = ({ templateId, data }: { templateId: string; data: unknown }) =>
-        m.CardFactory({ templateId: templateId as any, data, title: undefined, tags: undefined });
+        m.CardFactory({ templateId: templateId as CardTemplateId, data, title: undefined, tags: undefined });
       setCardFactoryComp(() => Comp);
     });
   }, []);
@@ -179,17 +180,6 @@ export function ErrorItem({ text }: { text: string }) {
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
         {text}
       </div>
-    </div>
-  );
-}
-
-/** Stage direction — centered italic text between chat bubbles (#36) */
-export function SendActionMessage({ text }: { text: string }) {
-  return (
-    <div className="flex justify-center my-1">
-      <p className="text-[11px] italic px-3" style={{ color: 'var(--color-text-tertiary)' }}>
-        * {text} *
-      </p>
     </div>
   );
 }

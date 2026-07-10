@@ -1,5 +1,5 @@
-import { getTodayWarsaw, formatWarsawDate } from '../../lib/date';
-import { getWeekStartWarsaw } from '../../lib/growth';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
+import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import { format, startOfWeek } from 'date-fns';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -13,35 +13,20 @@ export const C = {
   violet: '#a78bfa'
 };
 
-const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'];
+import { isLogWellness, sessionVol } from '../biometrics/workout/workoutUtils';
+export { isLogWellness };
 
-export const isLogWellness = (l: any) =>
-  (l.muscle_tags || []).includes('wellness') ||
-  WELLNESS_NAMES.some(w => (l.exercise_name || '').toLowerCase().startsWith(w));
-
-// ── Pure helpers ──────────────────────────────────────────────────────────────
-export const daysBefore = (n: number) => {
-  const d = new Date(getTodayWarsaw() + 'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate() - n);
-  return d.toISOString().split('T')[0];
-};
+export const daysBefore = (n: number) => shiftDateStr(getTodayWarsaw(), -n);
 
 export const avg = (arr: number[]) =>
   arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null;
-
-function sessionVol(s: any) {
-  return (s.exercise_logs || []).reduce((sum: number, l: any) => {
-    if (isLogWellness(l)) return sum;
-    return sum + (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
-  }, 0);
-}
 
 export function weeklyVolume(sessions: any[]) {
   const map: Record<string, number> = {};
   const dates: Record<string, Date> = {};
   for (const s of sessions) {
     const ws = startOfWeek(new Date(s.date + 'T12:00:00Z'), { weekStartsOn: 1 });
-    const k = ws.toISOString().slice(0, 10);
+    const k = formatWarsawDate(ws);
     map[k] = (map[k] || 0) + sessionVol(s);
     dates[k] = ws;
   }
@@ -57,7 +42,7 @@ export function weeklyRunKm(strava: any[]) {
   const dates: Record<string, Date> = {};
   for (const a of runs) {
     const ws = startOfWeek(new Date(a.start_date), { weekStartsOn: 1 });
-    const k = ws.toISOString().slice(0, 10);
+    const k = formatWarsawDate(ws);
     map[k] = (map[k] || 0) + (parseFloat(a.distance) || 0);
     dates[k] = ws;
   }
@@ -120,11 +105,7 @@ function computeSleepBuckets(oura: any[]) {
 
 function computeNutritionImpact(oura: any[], nutrition: any[]) {
   const nutrMap = Object.fromEntries((nutrition || []).map((n: any) => [n.date, n]));
-  const nextDay = (d: string) => {
-    const dt = new Date(d + 'T12:00:00Z');
-    dt.setDate(dt.getDate() + 1);
-    return formatWarsawDate(dt);
-  };
+  const nextDay = (d: string) => shiftDateStr(d, 1);
   const high: number[] = [], low: number[] = [];
   for (const o of oura) {
     const n = nutrMap[o.date];
@@ -233,41 +214,7 @@ export function computeNarrativeInsights(oura: any[], sessions: any[], nutrition
   return out;
 }
 
-// ── Sprint logic (personal year = March 1) ────────────────────────────────────
-export const SPRINT_SEASON = ['', 'Wiosna', 'Lato', 'Jesień', 'Zima'];
-const SPRINT_DAYS = 84; // 12 × 7
-
-export function getSprintInfo() {
-  const ds = getTodayWarsaw();
-  const d = new Date(ds + 'T12:00:00Z');
-  const yr = d.getUTCFullYear();
-  let anchor = new Date(`${yr}-03-01T12:00:00Z`);
-  if (d.getTime() < anchor.getTime()) anchor = new Date(`${yr - 1}-03-01T12:00:00Z`);
-  const personalYear = anchor.getFullYear();
-  const daysSince = Math.floor((d.getTime() - anchor.getTime()) / 86400000);
-  const weeksSince = Math.floor(daysSince / 7);
-  const sprintNumber = Math.floor(weeksSince / 12) + 1;
-  const weekInSprint = (weeksSince % 12) + 1;
-  const dayInSprint = daysSince % SPRINT_DAYS;
-  const startOffset = (sprintNumber - 1) * SPRINT_DAYS;
-  const sprintStart = (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset); return d; })();
-  const sprintEnd = (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset + 83); return d; })();
-  const prevStart = sprintNumber > 1 ? (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset - SPRINT_DAYS); return d; })() : null;
-  const prevEnd = prevStart ? (() => { const d = new Date(anchor); d.setUTCDate(d.getUTCDate() + startOffset - 1); return d; })() : null;
-  const fmt = (dt: Date) => formatWarsawDate(dt);
-  return {
-    personalYear,
-    sprintNumber,
-    weekInSprint,
-    dayInSprint,
-    daysLeft: SPRINT_DAYS - dayInSprint - 1,
-    pct: Math.round((dayInSprint / SPRINT_DAYS) * 100),
-    sprintStart: fmt(sprintStart),
-    sprintEnd: fmt(sprintEnd),
-    prevStart: prevStart ? fmt(prevStart) : null,
-    prevEnd: prevEnd ? fmt(prevEnd) : null
-  };
-}
+export { SPRINT_SEASON, getSprintInfo } from '../../lib/growth/sprintUtils';
 
 export function sprintMetrics(oura: any[], sessions: any[], strava: any[], start: string | null, end: string | null) {
   if (!start || !end) return null;

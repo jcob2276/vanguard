@@ -4,7 +4,7 @@ import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { notify } from '../../../lib/notify'
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../lib/date'
 import { supabase } from '../../../lib/supabase'
-import { fetchNutritionDayContext } from '../../../lib/nutritionContext'
+import { fetchNutritionDayContext } from '../../../lib/health/nutritionContext'
 import {
   MEAL_TYPES,
   QUICK_CAPTURE_FAVORITES,
@@ -16,7 +16,7 @@ import {
   type FoodFavoriteRow,
   type ParsedFoodItem,
   confidenceLabel,
-} from '../../../lib/foodLogging'
+} from '../../../lib/health/foodLogging'
 
 const getYesterdayLabel = (targetDate: string, mealType: string) => {
   const yesterday = getYesterdayWarsaw()
@@ -138,12 +138,12 @@ export default function FoodQuickCapture({
   }, [userId, mealType, session.access_token, session.refresh_token])
 
   useEffect(() => {
-    void refreshContext()
-    void loadYesterdayEntries()
+    void (async () => { await refreshContext() })()
+    void (async () => { await loadYesterdayEntries() })()
   }, [refreshContext, loadYesterdayEntries, refreshSignal])
 
   useEffect(() => {
-    void refreshContext()
+    void (async () => { await refreshContext() })()
   }, [logDate, refreshContext])
 
   useEffect(() => {

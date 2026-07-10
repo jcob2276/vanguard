@@ -1,3 +1,4 @@
+import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, Glasses } from 'lucide-react';
@@ -44,7 +45,7 @@ export default function GlassesCabinet() {
       if (error) throw error;
       setPrescriptions((data || []) as Prescription[]);
     } catch (error: unknown) {
-      console.error('[Background Error]', error);
+      console.warn('[GlassesCabinet] Failed to load prescriptions:', error);
     } finally {
       setLoading(false);
     }
@@ -68,12 +69,13 @@ export default function GlassesCabinet() {
       
       await loadPrescriptions();
     } catch (error: unknown) {
-      console.error('[Background Error]', error);
+      notify('Nie udało się zaimportować okularów.', 'error');
+      console.warn('[GlassesCabinet] Failed to import from excel:', error);
     }
   };
 
   useEffect(() => {
-    loadPrescriptions();
+    void (async () => { await loadPrescriptions(); })();
   }, [user]);
 
   const activeNormalized = prescriptions.find((p) => p.status === 'active' && p.type === 'normalized');

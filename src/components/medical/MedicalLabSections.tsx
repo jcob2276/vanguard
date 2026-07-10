@@ -11,7 +11,7 @@ import {
   type BodyCompositionRow,
   type MarkerSeries,
   type MedicalLabRow,
-} from '../../lib/medicalAnalytics';
+} from '../../lib/health/medicalAnalytics';
 import { formatOptimalRange, optimalStatus } from '../../lib/getBased/markerBridge';
 
 export function ValueCell({ row }: { row: MedicalLabRow }) {

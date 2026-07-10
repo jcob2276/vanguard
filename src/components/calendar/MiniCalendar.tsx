@@ -16,7 +16,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
 
   useEffect(() => {
     const [y, m] = selectedDay.split('-').map(Number);
-    setCurrentDate(new Date(y, m - 1, 1));
+    void (async () => { setCurrentDate(new Date(y, m - 1, 1)); })();
   }, [selectedDay]);
 
   const year = currentDate.getFullYear();

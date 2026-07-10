@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Pencil, X, Star } from 'lucide-react';
 import { PILLAR_META, PILLARS, type PillarId } from './projectUtils';
-import { saveLifeGoalDeclarations } from '../../lib/goalSpine.mutations';
-import type { LifeGoalDeclarations } from '../../lib/goalSpine.types';
+import { saveLifeGoalDeclarations } from '../../lib/goal/goalSpine.mutations';
+import type { LifeGoalDeclarations } from '../../lib/goal/goalSpine.types';
 import { notify } from '../../lib/notify';
 
 interface Props {
@@ -44,7 +44,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!editing) setDraft(draftFrom(lifeGoals));
+    if (!editing) void (async () => { setDraft(draftFrom(lifeGoals)); })();
   }, [lifeGoals, editing]);
 
   const hasAnyGoal = PILLARS.some((p) => (lifeGoals as any)?.[`goal_${p}`]?.trim());

@@ -5,8 +5,8 @@
  */
 import * as SunCalc from 'suncalc';
 
-export const LAT_DEFAULT = 52.2297;  // Warszawa
-export const LON_DEFAULT = 21.0122;  // Warszawa
+const LAT_DEFAULT = 52.2297;  // Warszawa
+const LON_DEFAULT = 21.0122;  // Warszawa
 
 export interface SunTimes {
   sunrise: Date;

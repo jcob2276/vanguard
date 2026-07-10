@@ -12,34 +12,67 @@ export function relativeDate(iso: string): string {
 
 export function sanitizeHtml(html: string): string {
   const FORBIDDEN = new Set(['script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'style', 'base']);
+  const URL_ATTRS = new Set(['href', 'src', 'srcset', 'formaction', 'srcdoc', 'xlink:href']);
+  const ALLOWED_SCHEMES = ['http', 'https', 'mailto', 'tel'];
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
+  
   const walk = (el: Element) => {
     for (const child of Array.from(el.children).reverse()) {
-      if (FORBIDDEN.has(child.tagName.toLowerCase())) { child.remove(); continue; }
+      if (FORBIDDEN.has(child.tagName.toLowerCase())) {
+        child.remove();
+        continue;
+      }
+      
       for (const attr of Array.from(child.attributes)) {
-        if (attr.name.startsWith('on') || (attr.name === 'href' && /^javascript:/i.test(attr.value))) {
+        const attrName = attr.name.toLowerCase();
+        if (attrName.startsWith('on')) {
           child.removeAttribute(attr.name);
+        } else if (URL_ATTRS.has(attrName)) {
+          // Remove spaces, tabs, and control characters (ASCII 0-31 and 127)
+          const cleanVal = attr.value
+            .split('')
+            .filter(char => {
+              const code = char.charCodeAt(0);
+              return !/\s/.test(char) && code > 31 && code !== 127;
+            })
+            .join('');
+          const colonIndex = cleanVal.indexOf(':');
+          
+          let hasScheme = false;
+          if (colonIndex > -1) {
+            const slashIndex = cleanVal.indexOf('/');
+            const qIndex = cleanVal.indexOf('?');
+            const hIndex = cleanVal.indexOf('#');
+            const firstSpecial = Math.min(
+              slashIndex === -1 ? Infinity : slashIndex,
+              qIndex === -1 ? Infinity : qIndex,
+              hIndex === -1 ? Infinity : hIndex
+            );
+            if (colonIndex < firstSpecial) {
+              hasScheme = true;
+            }
+          }
+          
+          if (hasScheme) {
+            const scheme = cleanVal.substring(0, colonIndex).toLowerCase();
+            if (!ALLOWED_SCHEMES.includes(scheme)) {
+              child.removeAttribute(attr.name);
+            }
+          }
         }
       }
       walk(child);
     }
   };
+  
   walk(doc.body);
   return doc.body.innerHTML;
 }
 
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  color: string;
-  is_pinned: boolean;
-  is_archived?: boolean;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
-}
+import { Note as ApiNote } from '../../lib/notesApi';
+export type Note = ApiNote;
 
 // Each color has a bg, readable text colors, border, and dot for the swatch
 export const COLORS: {

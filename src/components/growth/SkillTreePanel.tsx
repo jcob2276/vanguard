@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import type { LearningSkill } from '../../lib/growth';
-import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth';
+import type { LearningSkill } from '../../lib/growth/growth';
+import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
 import SkillRadarPanel from './SkillRadarPanel';
 
 function SubSkillRow({

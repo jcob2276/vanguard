@@ -5,7 +5,7 @@ import {
   fetchGoalSpine,
   goalSpineAiSnapshot,
   strategicGapsFromSpine,
-} from './goalSpine';
+} from './goal/goalSpine.queries';
 
 /**
  * Lightweight context for the "5 zwycięstw" question generator — only goal-chain

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { BookOpen, Check, ListTodo, Plus, X } from 'lucide-react';
-import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from '../../hooks/useGrowthData';
-import type { GrowthPinSlot, GrowthResourceType, LearningSkill } from '../../lib/growth';
+import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
+import type { GrowthPinSlot, GrowthResourceType, LearningSkill } from '../../lib/growth/growth';
 import {
   MAX_ACTIVE,
   MAX_MUST,
   RESOURCE_TYPE_META,
   inferResourceType,
-} from '../../lib/growth';
+} from '../../lib/growth/growth';
 
 export default function PinPickerModal({
   slot,

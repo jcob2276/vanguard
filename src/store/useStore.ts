@@ -58,3 +58,7 @@ export const useStore = create<VanguardStore>((set, get) => ({
 
   setSyncing: (isSyncing: boolean) => set({ isSyncing })
 }));
+
+export const useSession = () => useStore((state) => state.session);
+export const useUserId = () => useStore((state) => state.session?.user.id);
+
