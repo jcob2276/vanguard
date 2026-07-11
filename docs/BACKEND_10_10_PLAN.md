@@ -108,6 +108,32 @@ zamierzone (tabele tylko dla backendu) albo przeoczeniem.
 `get_advisors(type=security)` nie pokazuje żadnego z powyższych; `cron.job.command` nie
 zawiera czytelnych sekretów. To najwyższy priorytet po P0 — rób przed dalszym ciągiem Fazy 7.
 
+### Status: P1.1-P1.4 zamknięte 2026-07-11 (commity `1c8c9fdb`, `792ff3f1`)
+Wszystkie zweryfikowane `has_function_privilege()`/live testem, nie samym odczytem migracji:
+- P1.1: sekret w Vault, `cron.job.command` bez plaintextu, żywy test (`todo-push-reminders`
+  ręcznie odpalony) zwrócił 200 przez podstawienie z Vault.
+- P1.2: 13 funkcji (`oracle_readonly_query` + 12 trigger/writeback) — `anon_exec`/`auth_exec`
+  = false dla wszystkich, potwierdzone jednym zapytaniem na końcu. Po drodze złapane i
+  naprawione dwa realne bugi: (a) `REVOKE FROM anon,authenticated` był no-opem dla 11/12 bo
+  grant szedł przez `PUBLIC`, nie rolę wprost — trzeba `REVOKE FROM PUBLIC`; (b)
+  `cleanup_old_logs` (własny z Fazy 6) miał odwrotny problem — jawny grant na `anon`/
+  `authenticated` w ACL (domyślne zachowanie Supabase dla nowych funkcji), `REVOKE FROM
+  PUBLIC` nic nie dał, potrzebny `REVOKE FROM anon,authenticated` wprost. **Lekcja: sprawdź
+  `pg_proc.proacl` przed zakładaniem, który REVOKE zadziała — nie ma jednej uniwersalnej
+  formy.**
+- P1.3: `vanguard_consolidated_activities` → `SECURITY INVOKER`, widok wciąż zwraca dane.
+- P1.4: jawne polityki "Service role bypass" na 3 tabelach (dokumentacja, zero zmiany
+  zachowania — RLS bez polityki już blokowało wszystko poza `service_role`).
+
+**Nowy backlog znaleziony przy P1.2 (NIE naprawiony, celowo):** advisors pokazuje 9 kolejnych
+`authenticated`-executable SECURITY DEFINER RPC (`add_food_entry`, `remove_food_entry`,
+`update_food_entry`, `repeat_food_entry`, `save_food_correction`, `save_workout_atomic`,
+`replace_calendar_window`, `get_data_coverage`, `get_desktop_dashboard_data`) — w
+przeciwieństwie do P1.2 te WYGLĄDAJĄ na legalne, aktywnie używane RPC z frontendu (logowanie
+jedzenia/treningu, zapis kalendarza, dashboard). Przed jakąkolwiek zmianą: zweryfikuj czy
+każda z nich sprawdza `auth.uid() = p_user_id` wewnątrz (IDOR-ryzyko jeśli nie) — to osobna
+sesja, nie doklejka do P1.
+
 ---
 
 ## Zasady dla KAŻDEGO agenta wykonującego KTÓRĄKOLWIEK fazę tego planu
