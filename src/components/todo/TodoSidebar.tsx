@@ -87,7 +87,7 @@ export default function TodoSidebar({
   };
 
   return (
-    <aside className={`w-[230px] shrink-0 border-r border-border-custom/40 bg-surface/20 px-2.5 py-3 flex flex-col gap-3 overflow-y-auto transition-all duration-300 ${collapsed ? '!w-0 !px-0 !py-0 !border-r-0 overflow-hidden' : ''}`}>
+    <aside className={`hidden md:flex w-[230px] shrink-0 border-r border-border-custom/40 bg-surface/20 px-2.5 py-3 flex-col gap-3 overflow-y-auto transition-all duration-300 ${collapsed ? '!w-0 !px-0 !py-0 !border-r-0 overflow-hidden' : ''}`}>
       {/* Profile Header */}
       <div className="flex items-center justify-between px-2 py-1 mb-1 shrink-0">
         <div className="flex items-center gap-2 cursor-pointer hover:bg-text-primary/[0.04] p-1 rounded-lg transition-colors">

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, RefreshCw, BarChart2, Coffee, Moon, Dumbbell,
@@ -15,6 +14,7 @@ import type {
 import { CATEGORY_LABELS, isInterestingCorrelationClient, isSleepStageDriver } from '@vanguard/domain';
 import CorrelationCard from './CorrelationCard';
 import BehaviorEffectCard from './BehaviorEffectCard';
+import { useUserId } from '../../store/useStore';
 
 const FILTERS: { id: CorrelationCategory | 'all'; icon: typeof Moon; label: string }[] = [
   { id: 'all', icon: BarChart2, label: 'Wszystkie' },
@@ -47,8 +47,8 @@ const COVERAGE_HINTS: Record<string, string> = {
   insulin_load: 'Insulin load z logów posiłków',
 };
 
-export default function CorrelationsPage({ session }: { session: Session }) {
-  const userId = session.user.id;
+export default function CorrelationsPage() {
+  const userId = useUserId();
   const [correlations, setCorrelations] = useState<CorrelationResult[]>([]);
   const [behaviors, setBehaviors] = useState<BehaviorEffectResult[]>([]);
   const [coverage, setCoverage] = useState<Record<string, number>>({});
@@ -59,6 +59,7 @@ export default function CorrelationsPage({ session }: { session: Session }) {
   const [includeWeak, setIncludeWeak] = useState(false);
 
   const load = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
@@ -129,6 +130,8 @@ export default function CorrelationsPage({ session }: { session: Session }) {
       .filter(([k, n]) => n > 0 && n < 7 && COVERAGE_HINTS[k])
       .map(([k, n]) => ({ key: k, n, hint: COVERAGE_HINTS[k] })),
   [coverage]);
+
+  if (!userId) return null;
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">

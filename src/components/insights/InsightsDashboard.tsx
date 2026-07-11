@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { useUserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 import { UserStatsOverviewCard } from './UserStatsOverviewCard';
 import { InsightCard } from './InsightCard';
@@ -16,15 +15,17 @@ import { TrendChart } from '../widgets/TrendChart';
 import { BarChartWidget } from '../widgets/BarChart';
 import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
+import { useUserId } from '../../store/useStore';
 
-export function InsightsDashboard({ session }: { session: Session }) {
-  const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(session);
+export function InsightsDashboard() {
+  const userId = useUserId();
+  const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(userId!);
   const [cards, setCards] = useState<InsightCardData[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
   const [detailCard, setDetailCard] = useState<InsightCardData | null>(null);
-  const userId = session.user.id;
 
   const fetchCards = useCallback(async () => {
+    if (!userId) return;
     setCardsLoading(true);
     try {
       const data = await fetchInsightCards(userId);
@@ -57,6 +58,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
   }, [snapshot]);
 
   const handlePin = useCallback(async (id: string) => {
+    if (!userId) return;
     const card = cards.find(c => c.id === id);
     if (!card) return;
     try {
@@ -67,9 +69,10 @@ export function InsightsDashboard({ session }: { session: Session }) {
       console.error('[handlePin]', err);
       notify('Nie udało się zmienić przypięcia karty.', 'error');
     }
-  }, [cards, fetchCards]);
+  }, [cards, fetchCards, userId]);
 
   const handleSort = useCallback(async (id: string) => {
+    if (!userId) return;
     const card = cards.find(c => c.id === id);
     if (!card) return;
     const newOrder = card.sortOrder > 0 ? card.sortOrder - 1 : 0;
@@ -80,7 +83,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
       console.error('[handleSort]', err);
       notify('Nie udało się zmienić kolejności karty.', 'error');
     }
-  }, [cards, fetchCards]);
+  }, [cards, fetchCards, userId]);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
@@ -93,6 +96,8 @@ export function InsightsDashboard({ session }: { session: Session }) {
       notify('Nie udało się usunąć karty.', 'error');
     }
   }, [detailCard]);
+
+  if (!userId) return null;
 
   if (detailCard) {
     return (
@@ -126,7 +131,7 @@ export function InsightsDashboard({ session }: { session: Session }) {
         </Card>
       )}
 
-      <PatternsView session={session} />
+      <PatternsView />
 
       {cards.length > 0 && (
         <div className="space-y-3">

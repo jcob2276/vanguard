@@ -262,7 +262,6 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   if (showWorkout) return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Spinner size="md" /></div>}>
       <WorkoutLogger
-        session={session}
         initial={workoutInitial}
         onSaved={() => refresh()}
         onBack={() => { setShowWorkout(false); setWorkoutInitial(null); refresh(); }}

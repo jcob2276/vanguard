@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FlaskConical } from 'lucide-react';
 import { useMedicalData } from './hooks/useMedicalData';
@@ -28,6 +27,7 @@ import {
   Scale,
   SectionShell,
 } from './MedicalLabSections';
+import { useUserId } from '../../store/useStore';
 
 const SUBSECTIONS = [
   { id: 'przeglad', label: 'Przegląd' },
@@ -39,15 +39,16 @@ const SUBSECTIONS = [
   { id: 'cialo', label: 'Skład ciała' },
 ] as const;
 
-export default function MedicalStudiesPage({ session }: { session: Session }) {
-  const { labs, bodyComposition, loading, error } = useMedicalData(session.user.id);
+export default function MedicalStudiesPage() {
+  const userId = useUserId();
+  const { labs, bodyComposition, loading, error } = useMedicalData(userId!);
 
   const series = useMemo(() => buildMarkerSeries(labs), [labs]);
   const byCategory = useMemo(() => groupSeriesByCategory(series), [series]);
   const byDate = useMemo(() => groupRowsByDate(labs), [labs]);
   const fullPanel = useMemo(() => findLatestFullPanel(byDate), [byDate]);
   const { suggestions, userContext, loading: retestLoading } = useRetestSuggestions(
-    session.user.id,
+    userId!,
     series,
     labs,
   );
@@ -68,6 +69,8 @@ export default function MedicalStudiesPage({ session }: { session: Session }) {
     categoryLabel(a).localeCompare(categoryLabel(b), 'pl'),
   );
   const biologyScores = useMemo(() => computeBiologyScoresLite(series), [series]);
+
+  if (!userId) return null;
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
@@ -171,7 +174,6 @@ export default function MedicalStudiesPage({ session }: { session: Session }) {
                 subtitle="Reguły + Oracle z kontekstem (wiek, trening, projekty)"
               >
                 <MedicalRetestPanel
-                  session={session}
                   suggestions={suggestions}
                   userContext={userContext}
                   fullPanel={fullPanel}

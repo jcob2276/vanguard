@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { ChevronLeft, Flame, Save } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify } from '../../lib/notify';
 import { saveSaunaSession } from '../../lib/health/workoutLogging';
 import { numInput } from './workout/workoutUtils';
+import { useUserId } from '../../store/useStore';
 
 export default function SaunaLoggerModal({
-  session,
   onBack,
   onSaved,
 }: {
-  session: Session;
   onBack: () => void;
   onSaved?: () => void;
 }) {
-  const userId = session.user.id;
+  const userId = useUserId();
   const haptics = useHaptics();
   const [minutes, setMinutes] = useState('15');
   const [celsius, setCelsius] = useState('80');

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { fetchSprintContext } from '../../lib/goal/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
 import { getSprintInfo, SPRINT_SEASON } from '../../lib/growth/sprintUtils';
+import { useUserId } from '../../store/useStore';
 
 const BORN = new Date('2002-07-06');
 
@@ -21,21 +21,22 @@ const FUEL = [
   'Nikt za ciebie nie będzie żałował\nże nie spróbowałeś.',
 ];
 
-export default function OrientationFooter({ session }: { session: Session }) {
+export default function OrientationFooter() {
+  const userId = useUserId();
   const [lived] = useState(() => Math.floor((Date.now() - BORN.getTime()) / 86400000));
   const quote = FUEL[lived % FUEL.length];
   const sprint = getSprintInfo();
   const [sprintGoal, setSprintGoal] = useState<string | null>(null);
   const loadRef = useRef(() => {
-    void fetchSprintContext(session.user.id).then((ctx) => setSprintGoal(ctx.goalText));
+    if (userId) void fetchSprintContext(userId).then((ctx) => setSprintGoal(ctx.goalText));
   });
 
   useEffect(() => {
     loadRef.current = () => {
-      void fetchSprintContext(session.user.id).then((ctx) => setSprintGoal(ctx.goalText));
+      if (userId) void fetchSprintContext(userId).then((ctx) => setSprintGoal(ctx.goalText));
     };
     loadRef.current();
-  }, [session.user.id, sprint.personalYear, sprint.sprintNumber]);
+  }, [userId, sprint.personalYear, sprint.sprintNumber]);
 
   useGoalSpineInvalidation(() => loadRef.current());
 

@@ -1,13 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { BarChartWidget } from '../widgets/BarChart';
 import { CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { formatWarsawDate, getDaysAgoWarsaw, getTodayWarsaw, shiftDateStr } from '../../lib/date';
-
-interface Props {
-  session: Session;
-}
+import { useUserId } from '../../store/useStore';
 
 interface DoneTask {
   completed_at: string | null;
@@ -23,8 +19,8 @@ function warsawDayOfWeek(dateStr: string) {
   return new Date(`${dateStr}T12:00:00Z`).getUTCDay();
 }
 
-export default function TaskAnalyticsCard({ session }: Props) {
-  const userId = session.user.id;
+export default function TaskAnalyticsCard() {
+  const userId = useUserId();
   const [tasks, setTasks] = useState<DoneTask[]>([]);
   const [loading, setLoading] = useState(true);
 

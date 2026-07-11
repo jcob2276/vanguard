@@ -6,10 +6,11 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
 import { notify, confirmDialog } from '../../lib/notify';
 import { generateThumbnail } from '../../lib/imageThumbnail';
-import { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
 
-export default function Photos({ session }: { session: Session }) {
+export default function Photos() {
+  const userId = useUserId();
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -20,10 +21,11 @@ export default function Photos({ session }: { session: Session }) {
   const [targetId, setTargetId] = useState<string | null>(null);
 
   const fetchPhotos = useCallback(async () => {
+    if (!userId) return;
     const { data } = await supabase
       .from('progress_photos')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .order('date', { ascending: true });
 
     if (data && data.length > 0) {
@@ -33,11 +35,13 @@ export default function Photos({ session }: { session: Session }) {
       setTargetId(data[data.length - 1].id);
     }
     setLoading(false);
-  }, [session.user.id]);
+  }, [userId]);
 
   useEffect(() => {
     void (async () => { await fetchPhotos(); })();
   }, [fetchPhotos]);
+
+  if (!userId) return null;
 
   const basePhoto = photos.find(p => p.id === baseId);
   const targetPhoto = photos.find(p => p.id === targetId);
@@ -75,14 +79,14 @@ export default function Photos({ session }: { session: Session }) {
     }
 
       const stamp = Date.now();
-      const fileName = `${session.user.id}/${stamp}.${file.name.split('.').pop()}`;
+      const fileName = `${userId}/${stamp}.${file.name.split('.').pop()}`;
       await supabase.storage.from('progress-photos').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
 
       let thumbnailUrl: string | null = null;
       try {
         const thumbBlob = await generateThumbnail(file);
-        const thumbName = `${session.user.id}/${stamp}_thumb.jpg`;
+        const thumbName = `${userId}/${stamp}_thumb.jpg`;
         await supabase.storage.from('progress-photos').upload(thumbName, thumbBlob);
         thumbnailUrl = supabase.storage.from('progress-photos').getPublicUrl(thumbName).data.publicUrl;
       } catch (thumbErr: unknown) {
@@ -90,7 +94,7 @@ export default function Photos({ session }: { session: Session }) {
       }
 
       const { error: insertErr } = await supabase.from('progress_photos').insert({
-         user_id: session.user.id,
+         user_id: userId,
          image_url: publicUrl,
          thumbnail_url: thumbnailUrl,
          date: occurredDate
@@ -104,11 +108,11 @@ export default function Photos({ session }: { session: Session }) {
 
   async function deletePhoto(id: string, url: string, thumbnailUrl: string | null) {
     if (!(await confirmDialog('Usunąć?'))) return;
-    const fileName = `${session.user.id}/${url.split('/').pop()}`;
+    const fileName = `${userId}/${url.split('/').pop()}`;
     const paths = [fileName];
-    if (thumbnailUrl) paths.push(`${session.user.id}/${thumbnailUrl.split('/').pop()}`);
+    if (thumbnailUrl) paths.push(`${userId}/${thumbnailUrl.split('/').pop()}`);
     await supabase.storage.from('progress-photos').remove(paths);
-    const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', session.user.id);
+    const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', userId!);
     if (delErr) { notify(delErr.message, 'error'); return; }
     fetchPhotos();
   }

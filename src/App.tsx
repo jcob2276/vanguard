@@ -86,12 +86,12 @@ function AppRoutes() {
       } />
       <Route path="/badania" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <MedicalStudiesPage session={session} />
+          <MedicalStudiesPage />
         </Suspense>
       } />
       <Route path="/korelacje" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <CorrelationsPage session={session} />
+          <CorrelationsPage />
         </Suspense>
       } />
       <Route path="/korealcje" element={<KorealcjeRedirect />} />

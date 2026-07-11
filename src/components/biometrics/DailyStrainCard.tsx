@@ -7,7 +7,7 @@ import { RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, BarChart2 } fr
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 import type { Tables } from '../../lib/database.types';
 import { useDailyStrainOura, useTriggerOuraSync, biometricsKeys } from '../../lib/biometricsApi';
 
@@ -51,24 +51,23 @@ const READINESS_MAP: Record<string, { label: string; color: string; bg: string }
 
 
 export default function DailyStrainCard({
-  session,
   refreshSignal = 0,
 }: {
-  session: Session
   refreshSignal?: number
 }) {
+  const userId = useUserId();
   const haptics = useHaptics();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: dbData, isLoading: loading, error: queryError } = useDailyStrainOura(session.user.id);
+  const { data: dbData, isLoading: loading, error: queryError } = useDailyStrainOura(userId!);
   const triggerOuraSync = useTriggerOuraSync();
 
   // Force refetch on external refreshSignal
   useEffect(() => {
-    if (!refreshSignal) return;
-    queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(session.user.id) });
-  }, [refreshSignal, queryClient, session.user.id]);
+    if (!refreshSignal || !userId) return;
+    queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(userId) });
+  }, [refreshSignal, queryClient, userId]);
 
   // Tama 3: Silently trigger background sync if data is stale (not today's date).
   // Guard: fires at most once per calendar day per browser to prevent sync storm on every open.
@@ -84,6 +83,8 @@ export default function DailyStrainCard({
     refresh(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbData?.row?.date]);
+
+  if (!userId) return null;
 
   async function refresh(silent = false) {
     if (refreshing) return;
@@ -110,12 +111,12 @@ export default function DailyStrainCard({
       // sync runs enhanced + timeseries internally — one call does all three
       await Promise.all([
         call('sync', { service: 'strava' }).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
-        call('sync', { service: 'oura', userId: session.user.id }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
+        call('sync', { service: 'oura', userId: userId }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
       ]);
 
-      await call('vanguard-nightly?action=compute-daily-strain', { userId: session.user.id, days: 2 });
+      await call('vanguard-nightly?action=compute-daily-strain', { userId: userId, days: 2 });
 
-      await queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(session.user.id) });
+      await queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(userId!) });
       if (!silent) haptics.success();
     } catch (e: unknown) {
       console.error('DailyStrainCard refresh:', e);

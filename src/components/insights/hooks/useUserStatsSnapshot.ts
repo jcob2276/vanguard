@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
-import type { Session } from '@supabase/supabase-js';
 
 interface DailyStatPoint {
   date: string;
@@ -19,13 +18,14 @@ export interface UserStatsSnapshot {
   daily: DailyStatPoint[];
 }
 
-export function useUserStatsSnapshot(session: Session) {
+export function useUserStatsSnapshot(userId: string | undefined) {
   const [data, setData] = useState<UserStatsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
-    const userId = session.user.id;
+    if (!userId) return;
+
+    const uid = userId;
 
     async function load() {
       setLoading(true);
@@ -34,13 +34,13 @@ export function useUserStatsSnapshot(session: Session) {
           supabase
             .from('vanguard_stream')
             .select('id, created_at')
-            .eq('user_id', userId)
+            .eq('user_id', uid)
             .order('created_at', { ascending: false })
             .limit(1000),
           supabase
             .from('todo_items')
             .select('id, completed_at')
-            .eq('user_id', userId)
+            .eq('user_id', uid)
             .not('completed_at', 'is', null),
         ]);
 
@@ -86,7 +86,7 @@ export function useUserStatsSnapshot(session: Session) {
     }
 
     load();
-  }, [session?.user?.id]);
+  }, [userId]);
 
   return { data, loading };
 }

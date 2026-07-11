@@ -2,7 +2,7 @@ import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
 import { useEffect, useState } from 'react';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 
 const MODE_STYLE: Record<string, { label: string; cls: string }> = {
   rescue:   { label: 'Tryb ratunkowy', cls: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
@@ -13,8 +13,8 @@ const MODE_STYLE: Record<string, { label: string; cls: string }> = {
 
 const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-export default function DailySnapshotCard({ session }: { session: Session }) {
-  const userId = session?.user?.id;
+export default function DailySnapshotCard() {
+  const userId = useUserId();
   const today = getTodayWarsaw();
   const hourNum = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
 
@@ -74,6 +74,8 @@ export default function DailySnapshotCard({ session }: { session: Session }) {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [userId, today]);
+
+  if (!userId) return null;
 
   const saveScore = async (score: number) => {
     if (savingScore) return;

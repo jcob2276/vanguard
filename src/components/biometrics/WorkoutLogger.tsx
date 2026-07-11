@@ -25,7 +25,7 @@ import {
 import ExerciseCard from './workout/ExerciseCard';
 import VolumeBar from './workout/VolumeBar';
 import PlyoBlock from './workout/PlyoBlock';
-import { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 import {
   advancePlyoProgram,
   clearPlyoCheckoff,
@@ -37,16 +37,15 @@ import {
 } from '../../lib/health/plyoMarathonProgram';
 
 export default function WorkoutLogger({
-  session,
   onBack,
   initial,
   onSaved,
 }: {
-  session: Session;
   onBack: () => void;
   initial?: WorkoutLoggerInitial | null;
   onSaved?: () => void;
 }) {
+  const userId = useUserId();
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises]     = useState<WorkoutExercise[]>([newExercise()]);
   const [activities, setActivities]   = useState<WorkoutActivity[]>([]);
@@ -63,7 +62,6 @@ export default function WorkoutLogger({
   const [endTimeManual, setEndTimeManual] = useState('19:00');
 
   const elapsed = useStopwatch(timerStart);
-  const userId  = session?.user?.id;
   const haptics = useHaptics();
   const sessionEndedRef = useRef(false);
 

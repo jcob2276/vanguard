@@ -59,7 +59,7 @@ export function DashboardDzisTab({
   return (
     <div className="p-5 pb-8">
       <div className="space-y-5">
-        <OrientationFooter session={session} />
+        <OrientationFooter />
         <SpineGuideStrip
           guidance={spineGuidance}
           loading={spineGuidanceLoading}
@@ -70,11 +70,11 @@ export function DashboardDzisTab({
         {weeklyReviewNudge}
 
         <Suspense fallback={<ViewFallback />}>
-          <DailyStrainCard session={session} refreshSignal={nutritionKey + workoutKey} />
+          <DailyStrainCard refreshSignal={nutritionKey + workoutKey} />
         </Suspense>
 
         <Suspense fallback={null}>
-          <TodayEventsCard session={session} />
+          <TodayEventsCard />
         </Suspense>
 
         <FoodQuickCapture
@@ -96,7 +96,7 @@ export function DashboardDzisTab({
         )}
 
         <Suspense fallback={<ViewFallback />}>
-          <DailySnapshotCard session={session} />
+          <DailySnapshotCard />
         </Suspense>
       </div>
     </div>

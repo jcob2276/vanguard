@@ -52,12 +52,12 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab }: Props) {
           </div>
 
           <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
-            <TaskAnalyticsCard session={session} />
-            <InsightsDashboard session={session} />
-            <Photos session={session} />
+            <TaskAnalyticsCard />
+            <InsightsDashboard />
+            <Photos />
           </div>
           <div className={historySubTab === 'bio' ? '' : 'hidden'}>
-            <Stats session={session} runningSlot={<StravaWidget session={session} />} />
+            <Stats runningSlot={<StravaWidget session={session} />} />
           </div>
         </div>
       </Suspense>

@@ -1,3 +1,5 @@
+@reference "../../index.css";
+
 :root {
   /* Note colors - Light mode (modern muted pastels) */
   --keep-bg-default: var(--surface-solid);

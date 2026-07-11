@@ -3,19 +3,19 @@ import EditNoteModal from './EditNoteModal';
 import KeepHeader from './KeepHeader';
 import KeepSidebar from './KeepSidebar';
 import KeepNotesList from './KeepNotesList';
-import { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 import { useNotesData } from './hooks/useNotesData';
 import { useKeepView } from './hooks/useKeepView';
 import './notes.css';
 
-export default function Keep({ session, onBack, onNavigateTo }: { session: Session; onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
-  const userId = session.user.id;
+export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
+  const userId = useUserId();
 
   const {
     notes, setNotes, loading, error, setError, busy, setBusy,
     handleCreate, handleUpdate, handleDelete, handleTogglePin, handleNewNote,
     handleDeleteTag, handleCreateTag, handleReorder,
-  } = useNotesData(userId);
+  } = useNotesData(userId!);
 
   const {
     search, setSearch,
@@ -33,11 +33,13 @@ export default function Keep({ session, onBack, onNavigateTo }: { session: Sessi
     handleExportChecklists,
     sharedGridProps,
   } = useKeepView({
-    userId, notes, setNotes, busy, setBusy,
+    userId: userId!, notes, setNotes, busy, setBusy,
     handleCreate, handleUpdate, handleDelete, handleTogglePin, handleReorder,
     handleNewNote, handleDeleteTag, handleCreateTag,
     onBack, onNavigateTo,
   });
+
+  if (!userId) return null;
 
   return (
     <div className="keep-root">

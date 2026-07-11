@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Zap } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
-import { useStore } from '../../store/useStore';
+import { useStore, useUserId } from '../../store/useStore';
 import type { Tables, TablesInsert } from '../../lib/database.types';
 import { calculateProjection } from './stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from './stats/statsApi';
@@ -16,7 +16,6 @@ import { bodyTrend, mergeBodyMetricSavePayload, mergeLatestBodyMetrics } from '.
 import { DataExportSection } from './stats/DataExportSection';
 import { FoodAnalysisSection, type FoodQualityItem, type ProteinDistribution, type FoodAnalysisDay, type FoodAnalysisResult } from './stats/FoodAnalysisSection';
 import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
-import { Session } from '@supabase/supabase-js';
 
 type BodyMetricRow = Tables<'body_metrics'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
@@ -32,7 +31,8 @@ type ProjectionState = Partial<Record<'weight' | 'waist', ProjectionResult>>;
 type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
 type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
-export default function Stats({ session, topSlot = null, runningSlot = null }: { session: Session; topSlot?: any; runningSlot?: any }) {
+export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?: any; runningSlot?: any }) {
+  const userId = useUserId();
   const { userSettings } = useStore();
   const [loading, setLoading] = useState(true);
   const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
@@ -66,6 +66,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
 
   const fetchStats = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
       const [
@@ -74,10 +75,10 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
         { data: oura },
         { data: profile },
       ] = await Promise.all([
-        supabase.from('body_metrics').select('*').eq('user_id', session.user.id).order('date', { ascending: true }),
-        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).order('date', { ascending: false }),
-        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(60),
-        supabase.from('nutrition_profile').select('height_cm').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('body_metrics').select('*').eq('user_id', userId).order('date', { ascending: true }),
+        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', userId).order('date', { ascending: false }),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
+        supabase.from('nutrition_profile').select('height_cm').eq('user_id', userId).maybeSingle(),
       ]);
       if (profile?.height_cm != null) setHeightCm(Number(profile.height_cm));
 
@@ -121,17 +122,19 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
     } finally {
       setLoading(false);
     }
-  }, [session.user.id]);
+  }, [userId]);
 
   useEffect(() => {
     void (async () => { await fetchStats(); })();
   }, [fetchStats]);
 
+  if (!userId) return null;
+
   async function saveMetrics(e: React.FormEvent) {
     e.preventDefault();
     const today = getTodayWarsaw();
     const existingToday = bodyData.find((row) => row.date === today) ?? null;
-    const payload = mergeBodyMetricSavePayload(today, session.user.id, existingToday, newMetric);
+    const payload = mergeBodyMetricSavePayload(today, userId!, existingToday, newMetric);
     if (!payload) {
       notify('Podaj przynajmniej jeden pomiar.', 'error');
       return;
@@ -160,7 +163,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       const res = await analyzeFoodQuality({
         supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        userId: session.user.id,
+        userId: userId!,
         analyzeDate,
         analyzePeriod
       });
@@ -183,7 +186,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
       const res = await requestTrainingLoad({
         supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        userId: session.user.id,
+        userId: userId!,
         from: dateRange.from,
         to: dateRange.to
       });
@@ -256,7 +259,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
     try {
       await exportStatsMarkdown({
         supabase,
-        session,
+        session: { user: { id: userId! }, access_token: '' },
         dateRange,
         userSettings,
         includeNutrition,
@@ -278,7 +281,7 @@ export default function Stats({ session, topSlot = null, runningSlot = null }: {
   async function exportOuraCSV() {
     setIsExportingOura(true);
     try {
-      await exportOuraCsv({ supabase, session, dateRange });
+      await exportOuraCsv({ supabase, session: { user: { id: userId! } }, dateRange });
     } catch (err: unknown) {
       console.error('Export Oura CSV error:', err);
       notify('Błąd podczas generowania CSV Oura: ' + (err instanceof Error ? err.message : String(err)), 'error');

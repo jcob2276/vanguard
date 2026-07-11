@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
-import type { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 
 interface BrainHealthRow {
   table_name: string;
@@ -11,15 +11,17 @@ interface BrainHealthRow {
   coverage_percent: number;
 }
 
-export default function BrainHealth({ session }: { session: Session }) {
+export default function BrainHealth() {
+  const userId = useUserId();
   const [report, setReport] = useState<BrainHealthRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchReport = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
       const data = unwrapList(await supabase.rpc('get_brain_health_report', {
-        user_id_param: session.user.id
+        user_id_param: userId
       }));
       setReport(data);
     } catch (err: unknown) {
@@ -27,11 +29,13 @@ export default function BrainHealth({ session }: { session: Session }) {
     } finally {
       setLoading(false);
     }
-  }, [session.user.id]);
+  }, [userId]);
 
   useEffect(() => {
     void (async () => { await fetchReport(); })();
   }, [fetchReport]);
+
+  if (!userId) return null;
 
   return (
     <div className="rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md p-5 space-y-4 shadow-sm">

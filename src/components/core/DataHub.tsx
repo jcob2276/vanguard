@@ -25,7 +25,7 @@ export default function DataHub({ session, onBack = null, embedded = false }: Da
         </header>
       )}
 
-      <BrainHealth session={session} />
+      <BrainHealth />
 
 
 

@@ -55,7 +55,7 @@ export default function Dashboard({ session }: { session: Session }) {
   );
   if (s.view === 'keep') return (
     <Suspense fallback={<ViewFallback />}>
-      <Keep session={session} onBack={s.goBack} onNavigateTo={dest => s.navigate('/' + dest)} />
+      <Keep onBack={s.goBack} onNavigateTo={dest => s.navigate('/' + dest)} />
     </Suspense>
   );
   if (s.view === 'todo') return (
@@ -76,14 +76,14 @@ export default function Dashboard({ session }: { session: Session }) {
   if (s.view === 'sauna') return (
     <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
       <Suspense fallback={<ViewFallback />}>
-        <SaunaLoggerModal session={session} onSaved={() => { s.refresh(); s.setWorkoutKey(k => k + 1); s.navigate('/dzis'); }} onBack={() => { s.refresh(); s.navigate('/dzis'); }} />
+        <SaunaLoggerModal onSaved={() => { s.refresh(); s.setWorkoutKey(k => k + 1); s.navigate('/dzis'); }} onBack={() => { s.refresh(); s.navigate('/dzis'); }} />
       </Suspense>
     </div>
   );
   if (s.view === 'trening') return (
     <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
       <Suspense fallback={<ViewFallback />}>
-        <WorkoutLogger session={session} initial={s.workoutInitial} onSaved={() => { s.refresh(); s.setWorkoutKey(k => k + 1); s.navigate('/dzis'); }} onBack={() => { s.setWorkoutInitial(null); s.refresh(); s.navigate('/dzis'); }} />
+        <WorkoutLogger initial={s.workoutInitial} onSaved={() => { s.refresh(); s.setWorkoutKey(k => k + 1); s.navigate('/dzis'); }} onBack={() => { s.setWorkoutInitial(null); s.refresh(); s.navigate('/dzis'); }} />
       </Suspense>
     </div>
   );
@@ -147,7 +147,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <main className="flex-1 overflow-hidden vt-tab-main" onTouchStart={showLock ? undefined : s.handleMainTouchStart} onTouchEnd={showLock ? undefined : s.handleMainTouchEnd}>
           {showLock ? (
             <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
-              <OrientationFooter session={session} />
+              <OrientationFooter />
               <SpineGuideStrip guidance={s.spineGuidance} loading={s.spineGuidanceLoading} onNavigate={s.handleSpineGuideNavigate} onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan} />
               {weeklyReviewNudge}
               <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />

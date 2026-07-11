@@ -1,21 +1,18 @@
 import { notify } from '../../lib/notify';
 import { useState, useEffect, useCallback } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { RefreshCw, Brain } from 'lucide-react';
 import { PatternCard } from './PatternCard';
 import { listActivePatterns, triggerPatternDetection, type BehavioralPattern as PatternData } from '../../lib/insightsApi';
+import { useUserId } from '../../store/useStore';
 
-interface PatternsViewProps {
-  session: Session;
-}
-
-export function PatternsView({ session }: PatternsViewProps) {
+export function PatternsView() {
+  const userId = useUserId();
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
-  const userId = session.user.id;
 
   const fetchPatterns = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
       const data = await listActivePatterns(userId);
@@ -27,6 +24,8 @@ export function PatternsView({ session }: PatternsViewProps) {
   }, [userId]);
 
   useEffect(() => { void (async () => { await fetchPatterns(); })(); }, [fetchPatterns]);
+
+  if (!userId) return null;
 
   const runDetection = async () => {
     setRunning(true);
