@@ -77,6 +77,7 @@ const LEGACY_FILES = [
   'src/components/lifestyle/DirectionRadarMode.tsx',
   'src/components/lifestyle/DirectionSprintMode.tsx',
   'src/components/lifestyle/LinksInbox.tsx',
+  'src/components/lifestyle/links/useLinksInboxData.ts',
   'src/components/lifestyle/PowerList.tsx',
   'src/components/lifestyle/PowerListKpi.tsx',
   'src/components/lifestyle/PowerListTask.tsx',

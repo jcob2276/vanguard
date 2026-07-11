@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
-  Bookmark,
   BookOpen,
   Check,
-  ChevronDown,
   ChevronLeft,
-  ChevronUp,
   ExternalLink,
   Grid3X3,
   Inbox,
@@ -23,22 +19,8 @@ import {
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
-import { supabase } from '../../lib/supabase';
-import { notify, confirmDialog } from '../../lib/notify';
-import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/behavior/captureBridge';
-import { usePersistentDraft } from '../../hooks/usePersistentDraft';
 import { useHaptics } from '../../hooks/useHaptics';
-import {
-  fetchLinks as apiFetchLinks,
-  saveSharedLink as apiSaveSharedLink,
-  addNewLink as apiAddNewLink,
-  fetchTriageSuggestions as apiFetchTriageSuggestions,
-  updateLinkTriage as apiUpdateLinkTriage,
-  updateLinkNotes as apiUpdateLinkNotes,
-  deleteLink as apiDeleteLink,
-  type SavedLink,
-  type TriageSuggestion,
-} from '../../lib/linksApi';
+import { useLinksInboxData } from './links/useLinksInboxData';
 import { LinksTriagePanel } from './LinksTriagePanel';
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
@@ -64,229 +46,15 @@ function getYouTubeId(url: string): string | null {
 }
 
 export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
-  const [links, setLinks] = useState<SavedLink[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
-  const [sharingStatus, setSharingStatus] = useState<string | null>(null);
-  // Persisted — in-progress per-link notes and the URL being added must survive a
-  // backgrounded-tab kill before they're saved.
-  const [notesDrafts, setNotesDrafts] = usePersistentDraft<Record<string, string>>(`vanguard_link_notes_drafts_${session.user.id}`, {});
-  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
-  const [addUrl, setAddUrl] = usePersistentDraft(`vanguard_link_add_url_draft_${session.user.id}`, '');
-  const [showAddForm, setShowAddForm] = useState(() => Boolean(addUrl.trim()));
-  const [addLoading, setAddLoading] = useState(false);
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
-  const [bouncingIds, setBouncingIds] = useState<Set<string>>(new Set());
-  const [convertingLinkId, setConvertingLinkId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
-  const [triageLoading, setTriageLoading] = useState(false);
-  const [triageSuggestions, setTriageSuggestions] = useState<TriageSuggestion[]>([]);
-  const [showTriagePanel, setShowTriagePanel] = useState(false);
-
   const haptics = useHaptics();
   const haptic = (pattern: number | number[]) => {
     haptics.vibrate(pattern);
   };
+  const d = useLinksInboxData(session, haptic);
 
   const goTo = (view: string) => {
     if (onNavigateTo) onNavigateTo(view);
   };
-
-  const fetchLinks = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetchLinks(supabase, session.user.id);
-      setLinks(data);
-    } catch (err: unknown) {
-      console.error('[LinksInbox] fetchLinks failed:', err);
-      notify('Nie udało się załadować linków.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [session.user.id]);
-
-  const saveSharedLink = useCallback(async (actualUrl: string) => {
-    setLoading(true);
-    setSharingStatus('Zapisywanie udostępnionego linku...');
-    try {
-      await apiSaveSharedLink(actualUrl);
-      setSharingStatus('Zapisano!');
-      setTimeout(() => setSharingStatus(null), 2500);
-    } catch (err: unknown) {
-      console.error('[LinksInbox] Failed to process shared link:', err);
-      notify(`Błąd zapisu linku: ${(err as Error).message}`, 'error');
-      setSharingStatus(null);
-    } finally {
-      fetchLinks();
-    }
-  }, [fetchLinks]);
-
-  const handleAddLink = async () => {
-    const raw = addUrl.trim();
-    const urlMatch = raw.match(/https?:\/\/[^\s]+/);
-    if (!urlMatch) return;
-    setAddLoading(true);
-    try {
-      await apiAddNewLink(urlMatch[0]);
-      setAddUrl('');
-      setShowAddForm(false);
-      await fetchLinks();
-    } catch (err: unknown) {
-      notify(`Błąd: ${(err as Error).message}`, 'error');
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlCandidate = params.get('share_url') || params.get('share_text') || '';
-    const match = urlCandidate.match(/https?:\/\/[^\s]+/);
-    if (match) {
-      window.history.replaceState({}, document.title, '/');
-      void (async () => { await saveSharedLink(match[0]); })();
-    } else {
-      void (async () => { await fetchLinks(); })();
-    }
-  }, [fetchLinks, saveSharedLink]);
-
-  const toggleReadStatus = async (id: string, current: 'unread' | 'read') => {
-    haptic(current === 'unread' ? [8, 20, 8] : [5]);
-    setBouncingIds(prev => new Set([...prev, id]));
-    setTimeout(() => setBouncingIds(prev => { const n = new Set(prev); n.delete(id); return n; }), 400);
-    const next = current === 'unread' ? 'read' : 'unread';
-    setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
-    try {
-      await apiUpdateLinkTriage(supabase, id, { status: next });
-    } catch (err) {
-      console.error('[LinksInbox] toggleReadStatus failed:', err);
-      fetchLinks();
-    }
-  };
-
-  const saveNotes = async (id: string) => {
-    const draft = notesDrafts[id];
-    if (draft === undefined) return;
-    const link = links.find(l => l.id === id);
-    if (!link || draft === (link.notes ?? '')) return;
-    try {
-      await apiUpdateLinkNotes(supabase, id, draft);
-      setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
-      setSavedNoteId(id);
-      setTimeout(() => setSavedNoteId(null), 1800);
-    } catch (err) {
-      console.error('[LinksInbox] saveNotes failed:', err);
-      notify('Nie udało się zapisać notatki — spróbuj ponownie.', 'error');
-      setNotesDrafts(prev => ({ ...prev, [id]: link.notes ?? '' }));
-    }
-  };
-
-  const deleteLink = async (id: string) => {
-    if (!(await confirmDialog('Usuń ten link?'))) return;
-    haptic([12, 50, 18]);
-    setDeletingIds(prev => new Set([...prev, id]));
-    setTimeout(async () => {
-      setLinks(prev => prev.filter(l => l.id !== id));
-      setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      try {
-        await apiDeleteLink(supabase, id);
-      } catch (error) {
-        console.warn('[LinksInbox] delete failed:', (error as Error).message);
-      }
-    }, 260);
-  };
-
-  const updateLinkCategory = async (id: string, newCategory: string) => {
-    try {
-      await apiUpdateLinkTriage(supabase, id, { category: newCategory });
-      setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
-    } catch (err: unknown) {
-      console.error('[Action Error]', err);
-      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
-    }
-  };
-
-  const handleLinkToTodo = async (link: SavedLink) => {
-    setConvertingLinkId(link.id);
-    try {
-      await convertLinkToTodoItem(session.user.id, link);
-      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
-      notify('Dodano do zadań', 'success');
-    } catch (err: unknown) {
-      notify((err as Error).message || 'Nie udało się dodać do zadań', 'error');
-    } finally {
-      setConvertingLinkId(null);
-    }
-  };
-
-  const handleLinkToNote = async (link: SavedLink) => {
-    setConvertingLinkId(link.id);
-    try {
-      await convertLinkToKeepNote(session.user.id, link);
-      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
-      notify('Zapisano w notatkach', 'success');
-    } catch (err: unknown) {
-      notify((err as Error).message || 'Nie udało się zapisać notatki', 'error');
-    } finally {
-      setConvertingLinkId(null);
-    }
-  };
-
-  const handleAiTriage = async () => {
-    setTriageLoading(true);
-    setShowTriagePanel(true);
-    try {
-      const suggestions = await apiFetchTriageSuggestions(session.user.id);
-      setTriageSuggestions(suggestions);
-    } catch (err: unknown) {
-      console.error('[Triage Error]', err);
-      notify('AI Triage nie powiodło się', 'error');
-      setShowTriagePanel(false);
-    } finally {
-      setTriageLoading(false);
-    }
-  };
-
-  const applyTriageSuggestion = async (id: string, action: string, category: string, takeaways: string[]) => {
-    try {
-      const link = links.find(l => l.id === id);
-      if (!link) return;
-
-      if (action === 'archive') {
-        await apiUpdateLinkTriage(supabase, id, { status: 'read' });
-        setLinks(prev => prev.filter(l => l.id !== id));
-        notify('Oznaczono jako przeczytany', 'success');
-      } else if (action === 'todo') {
-        await convertLinkToTodoItem(session.user.id, link);
-        setLinks(prev => prev.filter(l => l.id !== id));
-        notify('Dodano do zadań', 'success');
-      } else {
-        await apiUpdateLinkTriage(supabase, id, { category, takeaways });
-        setLinks(prev => prev.map(l => l.id === id ? { ...l, category, takeaways } : l));
-        notify('Zaktualizowano dane linku', 'success');
-      }
-      setTriageSuggestions(prev => prev.filter(s => s.id !== id));
-    } catch (err: unknown) {
-      notify(`Błąd: ${(err as Error).message}`, 'error');
-    }
-  };
-
-  const filteredLinks = links.filter(link => {
-    const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
-    const matchesCategory = !categoryFilter || link.category === categoryFilter;
-    const q = search.toLowerCase().trim();
-    const matchesSearch = !q ||
-      (link.title || '').toLowerCase().includes(q) ||
-      (link.description || '').toLowerCase().includes(q) ||
-      (link.domain || '').toLowerCase().includes(q) ||
-      (link.category || '').toLowerCase().includes(q);
-    return matchesStatus && matchesCategory && matchesSearch;
-  });
-
-  const unreadCount = links.filter(l => l.status === 'unread').length;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-text-primary">
@@ -329,8 +97,8 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
-                className={`keep-sidebar-item ${categoryFilter === cat ? 'active' : ''}`}
-                onClick={() => setCategoryFilter(p => p === cat ? null : cat)}
+                className={`keep-sidebar-item ${d.categoryFilter === cat ? 'active' : ''}`}
+                onClick={() => d.setCategoryFilter(p => p === cat ? null : cat)}
               >
                 <span className={`h-2 w-2 rounded-full shrink-0 ${
                   cat === 'Kariera' ? 'bg-indigo-500' :
@@ -356,35 +124,35 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
           <div className="min-w-0 flex-1">
             <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Pocket</h1>
             <p className="text-[12px] text-text-muted">
-              {unreadCount > 0 ? `${unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
+              {d.unreadCount > 0 ? `${d.unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
             </p>
           </div>
           <button
             type="button"
-            onClick={() => setViewMode(v => v === 'card' ? 'list' : 'card')}
+            onClick={() => d.setViewMode(v => v === 'card' ? 'list' : 'card')}
             className="rounded-full p-2 text-text-muted hover:text-text-primary hover:bg-surface-solid/60 transition-colors"
-            title={viewMode === 'card' ? 'Widok listy' : 'Widok kart'}
+            title={d.viewMode === 'card' ? 'Widok listy' : 'Widok kart'}
           >
-            {viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
+            {d.viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
           </button>
           <button
-            onClick={handleAiTriage}
+            onClick={d.handleAiTriage}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
             title="Automatyczny Triage AI"
           >
             <Sparkles size={15} />
           </button>
           <button
-            onClick={() => { setShowAddForm(p => !p); setAddUrl(''); }}
+            onClick={() => { d.setShowAddForm(p => !p); d.setAddUrl(''); }}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
-            {showAddForm ? <X size={15} /> : <Plus size={15} />}
+            {d.showAddForm ? <X size={15} /> : <Plus size={15} />}
           </button>
         </header>
 
         {/* Inline add-link form */}
         <div
-          className={`grid-expand-wrapper ${showAddForm ? 'expanded' : ''}`}
+          className={`grid-expand-wrapper ${d.showAddForm ? 'expanded' : ''}`}
         >
           <div className="grid-expand-content border-b border-border-custom/60 bg-surface/60 backdrop-blur-sm">
             <div className="max-w-[640px] mx-auto flex items-center gap-2 px-5 py-3.5">
@@ -392,17 +160,17 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               <input
                 autoFocus
                 type="url"
-                value={addUrl}
-                onChange={e => setAddUrl(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAddLink(); if (e.key === 'Escape') setShowAddForm(false); }}
+                value={d.addUrl}
+                onChange={e => d.setAddUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') d.handleAddLink(); if (e.key === 'Escape') d.setShowAddForm(false); }}
                 placeholder="Wklej URL i naciśnij Enter..."
                 className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
               />
-              {addLoading
+              {d.addLoading
                 ? <Loader2 size={15} className="shrink-0 text-primary animate-spin" />
                 : <button
-                    onClick={handleAddLink}
-                    disabled={!addUrl.trim()}
+                    onClick={d.handleAddLink}
+                    disabled={!d.addUrl.trim()}
                     className="shrink-0 text-[12px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-opacity"
                   >
                     Zapisz
@@ -419,13 +187,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
             <div className="relative flex items-center gap-2.5 rounded-2xl bg-surface border border-border-custom/40 px-4 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               <Search size={15} className="text-text-muted shrink-0" />
               <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={d.search}
+                onChange={e => d.setSearch(e.target.value)}
                 placeholder="Szukaj po tytule, domenie lub kategorii..."
                 className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/40 outline-none w-full"
               />
-              {search && (
-                <button onClick={() => setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary">
+              {d.search && (
+                <button onClick={() => d.setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary">
                   <X size={15} />
                 </button>
               )}
@@ -436,9 +204,9 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               {STATUS_TABS.map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => { haptic([4]); setStatusFilter(tab.id); }}
+                  onClick={() => { haptic([4]); d.setStatusFilter(tab.id); }}
                   className={`btn-press flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all duration-150 active:scale-[0.93] ${
-                    statusFilter === tab.id
+                    d.statusFilter === tab.id
                       ? 'bg-background text-text-primary shadow-sm'
                       : 'text-text-muted hover:text-text-secondary'
                   }`}
@@ -448,19 +216,19 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               ))}
             </div>
 
-            {sharingStatus && (
+            {d.sharingStatus && (
               <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-[12px] font-semibold rounded-[14px] animate-pulse">
                 <Spinner size="sm" className="shrink-0" />
-                {sharingStatus}
+                {d.sharingStatus}
               </div>
             )}
 
             {/* Links */}
-            {loading ? (
+            {d.loading ? (
               <div className="flex min-h-[240px] items-center justify-center">
                 <Spinner size="md" />
               </div>
-            ) : filteredLinks.length === 0 ? (
+            ) : d.filteredLinks.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
                 <Inbox size={28} className="text-text-muted/40 mb-3" />
                 <p className="text-[14px] font-semibold text-text-secondary">Brak linków</p>
@@ -470,10 +238,10 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredLinks.map(link => {
+                {d.filteredLinks.map(link => {
                   const catStyle = CATEGORY_COLORS[link.category] || CATEGORY_COLORS['Inne'];
-                  const isExpanded = expandedLinkId === link.id;
-                  const isDeleting = deletingIds.has(link.id);
+                  const isExpanded = d.expandedLinkId === link.id;
+                  const isDeleting = d.deletingIds.has(link.id);
                   const youtubeId = getYouTubeId(link.url);
 
                   return (
@@ -483,14 +251,14 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         isDeleting ? 'opacity-0 scale-[0.93] -translate-y-2 pointer-events-none' : 'opacity-100 scale-100'
                       }`}
                     >
-                      {viewMode === 'list' ? (
+                      {d.viewMode === 'list' ? (
                         // List Mode
                         <div
                           className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-150 hover:bg-surface-solid/30 hover:shadow-md hover:scale-[1.005] ${
                             link.status === 'read' ? 'opacity-60 hover:opacity-90' : ''
                           }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none" onClick={() => d.setExpandedLinkId(p => p === link.id ? null : link.id)}>
                             <img
                               src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
                               alt=""
@@ -514,7 +282,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              onClick={() => toggleReadStatus(link.id, link.status)}
+                              onClick={() => d.toggleReadStatus(link.id, link.status)}
                               className={`btn-press rounded-full p-1.5 transition-all ${
                                 link.status === 'read'
                                   ? 'bg-emerald-500/10 text-emerald-500'
@@ -522,7 +290,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                               }`}
                               title={link.status === 'unread' ? 'Oznacz jako przeczytane' : 'Oznacz jako nieprzeczytane'}
                             >
-                              <Check size={13} className={bouncingIds.has(link.id) ? 'animate-pop-check' : ''} />
+                              <Check size={13} className={d.bouncingIds.has(link.id) ? 'animate-pop-check' : ''} />
                             </button>
                             <a
                               href={link.url}
@@ -534,7 +302,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                               <ExternalLink size={13} />
                             </a>
                             <button
-                              onClick={() => deleteLink(link.id)}
+                              onClick={() => d.deleteLink(link.id)}
                               className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10"
                             >
                               <Trash2 size={13} />
@@ -562,7 +330,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
                           {/* Top row */}
                           <div className="flex items-start gap-3">
-                            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedLinkId(p => p === link.id ? null : link.id)}>
+                            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => d.setExpandedLinkId(p => p === link.id ? null : link.id)}>
                               <div className="flex items-center gap-2 flex-wrap mb-1.5">
                                 <div className="flex items-center gap-1 select-none">
                                   <img
@@ -576,13 +344,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                                 <span
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setCategoryFilter(p => p === link.category ? null : link.category);
+                                    d.setCategoryFilter(p => p === link.category ? null : link.category);
                                   }}
                                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
                                 >
                                   {link.category}
                                 </span>
-                                {(link.notes || notesDrafts[link.id]) && (
+                                {(link.notes || d.notesDrafts[link.id]) && (
                                   <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
                                     <PenLine size={9} />
                                   </span>
@@ -617,7 +385,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                         className={`grid-expand-wrapper ${isExpanded ? 'expanded' : ''}`}
                       >
                         <div className="grid-expand-content">
-                          <div className={`mt-4 pt-3 space-y-4 ${viewMode === 'list' ? 'border border-t-0 border-border-custom/40 bg-surface-solid/5 rounded-b-2xl p-4 -mt-2' : 'border-t border-border-custom/40'}`}>
+                          <div className={`mt-4 pt-3 space-y-4 ${d.viewMode === 'list' ? 'border border-t-0 border-border-custom/40 bg-surface-solid/5 rounded-b-2xl p-4 -mt-2' : 'border-t border-border-custom/40'}`}>
                             {youtubeId && (
                               <div className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-inner border border-border-custom/50">
                                 <iframe
@@ -647,17 +415,17 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                             <div className="flex flex-wrap gap-2 border-t border-border-custom/40 pt-3">
                               <button
                                 type="button"
-                                disabled={convertingLinkId === link.id}
-                                onClick={() => handleLinkToTodo(link)}
+                                disabled={d.convertingLinkId === link.id}
+                                onClick={() => d.handleLinkToTodo(link)}
                                 className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-all disabled:opacity-50"
                               >
-                                {convertingLinkId === link.id ? <Loader2 size={12} className="animate-spin" /> : <ListTodo size={12} />}
+                                {d.convertingLinkId === link.id ? <Loader2 size={12} className="animate-spin" /> : <ListTodo size={12} />}
                                 Zrób zadanie
                               </button>
                               <button
                                 type="button"
-                                disabled={convertingLinkId === link.id}
-                                onClick={() => handleLinkToNote(link)}
+                                disabled={d.convertingLinkId === link.id}
+                                onClick={() => d.handleLinkToNote(link)}
                                 className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl border border-border-custom px-3 py-2 text-[11px] font-semibold text-text-muted hover:text-text-primary transition-all disabled:opacity-50"
                               >
                                 <StickyNote size={12} />
@@ -675,7 +443,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                                   return (
                                     <button
                                       key={cat}
-                                      onClick={() => updateLinkCategory(link.id, cat)}
+                                      onClick={() => d.updateLinkCategory(link.id, cat)}
                                       className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border transition-all ${
                                         isActive
                                           ? `${cStyle.pill} border-current ring-1 ring-current`
@@ -695,19 +463,19 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                                 <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                                   <PenLine size={10} /> Przemyślenia
                                 </p>
-                                {savedNoteId === link.id && (
+                                {d.savedNoteId === link.id && (
                                   <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-500">
                                     <Check size={10} /> Zapisano
                                   </span>
                                 )}
                               </div>
                               <textarea
-                                value={notesDrafts[link.id] ?? (link.notes || '')}
-                                onChange={e => setNotesDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
-                                onBlur={() => saveNotes(link.id)}
+                                value={d.notesDrafts[link.id] ?? (link.notes || '')}
+                                onChange={e => d.setNotesDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
+                                onBlur={() => d.saveNotes(link.id)}
                                 onFocus={e => {
-                                  if (notesDrafts[link.id] === undefined) {
-                                    setNotesDrafts(prev => ({ ...prev, [link.id]: link.notes || '' }));
+                                  if (d.notesDrafts[link.id] === undefined) {
+                                    d.setNotesDrafts(prev => ({ ...prev, [link.id]: link.notes || '' }));
                                   }
                                   e.currentTarget.style.height = 'auto';
                                   e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
@@ -751,13 +519,13 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
       </nav>
 
       <LinksTriagePanel
-        showTriagePanel={showTriagePanel}
-        setShowTriagePanel={setShowTriagePanel}
-        triageLoading={triageLoading}
-        triageSuggestions={triageSuggestions}
-        setTriageSuggestions={setTriageSuggestions}
-        links={links}
-        applyTriageSuggestion={applyTriageSuggestion}
+        showTriagePanel={d.showTriagePanel}
+        setShowTriagePanel={d.setShowTriagePanel}
+        triageLoading={d.triageLoading}
+        triageSuggestions={d.triageSuggestions}
+        setTriageSuggestions={d.setTriageSuggestions}
+        links={d.links}
+        applyTriageSuggestion={d.applyTriageSuggestion}
       />
     </div>
   );
