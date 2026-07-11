@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
-import {
-  subscribeToasts,
-  subscribeConfirm,
-  resolveConfirm,
-  type ToastItem,
-} from '../../lib/notify';
+import { subscribeToasts, type ToastItem } from '../../lib/notify';
+import ConfirmDialog from './ConfirmDialog';
 
 const ICONS = {
   success: CheckCircle2,
@@ -21,10 +17,8 @@ const TONE = {
 
 export function ToastHost() {
   const [items, setItems] = useState<ToastItem[]>([]);
-  const [confirm, setConfirm] = useState({ open: false, message: '' });
 
   useEffect(() => subscribeToasts(setItems), []);
-  useEffect(() => subscribeConfirm((open, message) => setConfirm({ open, message })), []);
 
   return (
     <>
@@ -52,29 +46,7 @@ export function ToastHost() {
         })}
       </div>
 
-      {confirm.open && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-border-custom bg-surface p-5 shadow-xl">
-            <p className="text-[13px] font-semibold text-text-primary leading-relaxed">{confirm.message}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => resolveConfirm(false)}
-                className="rounded-xl border border-border-custom px-4 py-2 text-[11px] font-bold text-text-muted hover:bg-surface-solid cursor-pointer"
-              >
-                Anuluj
-              </button>
-              <button
-                type="button"
-                onClick={() => resolveConfirm(true)}
-                className="rounded-xl bg-primary px-4 py-2 text-[11px] font-bold text-white hover:bg-primary-hover cursor-pointer"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog />
     </>
   );
 }
