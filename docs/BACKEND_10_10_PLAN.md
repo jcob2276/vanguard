@@ -42,6 +42,71 @@ Otwarte na przyszłość (świadomie zostawione, nie zgubione):
 - Repozytoria z Fazy 4 (`streamRepo`/`aggregatesRepo`/`reconciliationsRepo`) mają 1 realnego
   konsumenta (`vanguard-eval-interview`, 4 z 7 zapytań) — reszta ~70 rozproszonych zapytań do
   gorących tabel czeka na stopniowe przepięcie.
+- **Liczniki ratcheta stoją w miejscu** — `as any` w `supabase/functions/` = 73 (bez zmiany od
+  początku sesji, tylko 1 funkcja z ~30 kandydatów przepięta na typowane repo),
+  `rawJsonResponse` = 136 (bez zmiany, 3-5 funkcji na `serveJson`). To nie regresja — baseline
+  po prostu jeszcze nie zaczął spadać, bo Faza 7 dopiero się zaczyna.
+- **Smoke test (`npm run smoke`/`smoke:safe`) nie testuje realnego auth-matrix** — tylko
+  `auth=none` i `auth=service_role` na OPTIONS/POST. Nigdy nie zweryfikowano prawdziwym
+  user-JWT, że frontend faktycznie dostaje 200 tam, gdzie powinien (Faza 1.2 to *zakładała*,
+  ale dowód jest pośredni — kod na produkcji się zgadza, nie ma testu z realnym tokenem usera).
+- **23 pliki >300 linii z mapy `BACKEND_CONTRACT.md` §5 — zero rozbitych tej sesji.** Faza 7
+  jest formalnie "aktywna" (ratchet pilnuje), ale nikt jeszcze nie wykonał pierwszego kroku.
+
+## P1 — Bezpieczeństwo produkcyjne (znalezione w audycie 2026-07-11, NIGDY nie było w żadnym
+## pliku wykonawczym jako checklista — tylko w czacie, stąd łatwo było to zgubić)
+
+Znalezione przez `get_advisors` (Supabase MCP), zweryfikowane bezpośrednio w bazie tego samego
+dnia co Fazy 0-6. Żaden punkt niżej nie został jeszcze naprawiony — to nie jest "otwarte do
+rozważenia", to jest realny, nienaprawiony dług bezpieczeństwa z profilem ryzyka wyższym niż
+większość Fazy 7 (sekrety i uprawnienia, nie tylko jakość kodu).
+
+### P1.1 — Service-role secret plaintextem w 12 z 13 cronów
+`SELECT jobname, command FROM cron.job` pokazuje inline `Authorization: Bearer <service-role-key>`
+w komendzie SQL crona dla wszystkich poza `vanguard-sunday-cleanup` (to jedno wywołuje funkcję
+SQL bezpośrednio, bez HTTP). Każdy z uprawnieniem do odczytu `cron.job` (m.in. przez
+`pg_read_all_data` albo dowolny dostęp do bazy z rolą wyższą niż podstawowa) widzi klucz do
+wszystkiego.
+- [ ] Przenieś sekret do Supabase Vault (`vault.create_secret`), w komendach cron użyj
+      `vault.decrypted_secrets` zamiast literału.
+- [ ] Zrób to dla wszystkich 12 jobów w jednej migracji (`cron.alter_job`), nie po jednym.
+- [ ] Weryfikacja: `SELECT command FROM cron.job` nie zawiera już czytelnego klucza dla
+      żadnego joba; ręczne wywołanie każdego joba (albo poczekanie na najbliższe uruchomienie)
+      wciąż zwraca 200, nie 401.
+
+### P1.2 — SECURITY DEFINER RPC wykonywalne przez `anon`/`authenticated`
+Z `get_advisors(type=security)`: `oracle_readonly_query`, `sync_friction_proposals`,
+`trg_sync_oura_sleep_to_calendar`, `trg_sync_strava_activity_to_calendar`,
+`trg_sync_workout_session_to_calendar`, `trg_deduplicate_calendar_sleep`,
+`trigger_outbound_message_worker`, `trigger_vanguard_telegram_worker`,
+`sync_link_read_to_growth_pins`, `sync_todo_done_to_growth_pins`, `compute_navy_bf`,
+`handle_clarification_writeback`, `_recompute_daily_nutrition` — wszystkie wykonywalne przez
+`anon` REST endpoint (`/rest/v1/rpc/<nazwa>`), część też przez `authenticated`. Funkcje
+`trg_*`/`trigger_*` to triggery — w ogóle nie powinny być wywoływalne przez REST.
+- [ ] Dla każdej: `REVOKE EXECUTE ... FROM anon, authenticated` (albo `PUBLIC`), zostaw tylko
+      `service_role` gdzie to potrzebne backendowi.
+- [ ] `oracle_readonly_query` to najwyższe ryzyko — publiczny endpoint do odpytywania bazy
+      SQL-em, nawet z guardrailami "readonly". Sprawdź jego treść przed decyzją: czy guardraile
+      są wystarczające, czy REVOKE od razu.
+- [ ] Weryfikacja: `get_advisors(type=security)` — te findingi znikają z listy.
+
+### P1.3 — `vanguard_consolidated_activities` SECURITY DEFINER VIEW
+Jedyny ERROR (nie WARN) z advisors. Widok wykonuje się z uprawnieniami twórcy, nie
+wywołującego — potencjalne ominięcie RLS.
+- [ ] Przeczytaj definicję widoku, zdecyduj: przepisać jako SECURITY INVOKER (domyślne od
+      Postgres 15) czy zostawić z jawnym uzasadnieniem w komentarzu migracji.
+
+### P1.4 — RLS enabled bez polityk (4 tabele)
+`graveyard.food_parse_pending`, `public.pattern_events`, `public.vanguard_knowledge` i jedna
+czwarta (zweryfikuj świeżą listą `get_advisors` — mogła się zmienić od 2026-07-11) — RLS
+włączone, zero polityk = w praktyce nikt (poza service_role) nic nie widzi, co może być
+zamierzone (tabele tylko dla backendu) albo przeoczeniem.
+- [ ] Dla każdej: zdecyduj czy potrzebuje polityki (jeśli frontend ją czyta) czy jawnego
+      komentarza "service_role only by design".
+
+### Definition of Done P1
+`get_advisors(type=security)` nie pokazuje żadnego z powyższych; `cron.job.command` nie
+zawiera czytelnych sekretów. To najwyższy priorytet po P0 — rób przed dalszym ciągiem Fazy 7.
 
 ---
 
