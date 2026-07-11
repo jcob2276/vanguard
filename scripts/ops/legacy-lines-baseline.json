@@ -23,7 +23,7 @@
   "src/components/desktop/desktopUtils.ts": 413,
   "src/components/growth/GrowthView.tsx": 595,
   "src/components/growth/GrowthWeekPlan.tsx": 321,
-  "src/components/lifestyle/DirectionPlanningMode.tsx": 548,
+  "src/components/lifestyle/DirectionPlanningMode.tsx": 129,
   "src/components/lifestyle/LinksInbox.tsx": 533,
   "src/components/lifestyle/PowerList.tsx": 474,
   "src/components/lifestyle/usePowerListData.ts": 745,
