@@ -17,7 +17,7 @@
   "src/components/core/Dashboard.tsx": 233,
   "src/components/core/DashboardModals.tsx": 125,
   "src/components/core/Fundament.tsx": 260,
-  "src/components/core/MorningPlanModal.tsx": 829,
+  "src/components/core/MorningPlanModal.tsx": 219,
   "src/components/core/NutritionCard.tsx": 493,
   "src/components/core/NutritionChart.tsx": 164,
   "src/components/core/SearchModal.tsx": 250,

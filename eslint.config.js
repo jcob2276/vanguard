@@ -131,6 +131,8 @@ const LEGACY_FILES = [
 // scripts/ops/check-frontend-ratchets.mjs fails CI if any of these lists grows.
 
 const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
+  'src/components/core/morningPlan/useMorningPlanActions.ts',
+  'src/components/core/morningPlan/useMorningPlanData.ts',
   'src/components/desktop/health/useHabitsData.ts',
   'src/components/insights/TaskAnalyticsCard.tsx',
   'src/components/medical/GlassesCabinet.tsx',
@@ -202,7 +204,7 @@ export default defineConfig([
   {
     // Hooks are the data-fetching layer — they legitimately mix fetch logic with
     // exported types/interfaces. Line limits don't apply (see FRONTEND_GUIDE.md §1).
-    files: ['src/hooks/**/*.{ts,tsx}', 'src/components/**/hooks/**/*.{ts,tsx}'],
+    files: ['src/hooks/**/*.{ts,tsx}', 'src/components/**/hooks/**/*.{ts,tsx}', 'src/components/core/morningPlan/*.{ts,tsx}'],
     rules: {
       'max-lines': 'off',
       'max-lines-per-function': 'off',
