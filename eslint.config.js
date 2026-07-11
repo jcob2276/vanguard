@@ -8,7 +8,6 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const LEGACY_FILES = [
   'src/components/biometrics/DailyStrainCard.tsx',
   'src/components/biometrics/SaunaLoggerModal.tsx',
-  'src/components/biometrics/WorkoutLogger.tsx',
   'src/components/calendar/CalendarEventModal.tsx',
   'src/components/calendar/CalendarGrid.tsx',
   'src/components/calendar/grid/CalendarGridBlocks.tsx',
