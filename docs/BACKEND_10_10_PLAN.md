@@ -576,13 +576,23 @@ Nie istnieje — to jest stan ciągły. "10/10" nie znaczy "skończone i zamroż
 kolejna zmiana albo zmniejsza dług, albo przynajmniej go nie zwiększa, i to jest wymuszone
 mechanicznie, nie na honor.
 
-### Pierwsze realne zejście liczników (2026-07-11, commit `06f36d92`)
-`rawProviderFetch`: 7 → 4. Trzy duplikaty usunięte i wdrożone: Whisper (`vanguard-capture`
-miał własny fetch zamiast `_shared/openai.ts`), embeddings (`vanguard-oracle` to samo),
-Telegram (`vanguard-outbox-sender` łamał zasadę "no raw fetch outside `_shared/telegram.ts`").
-Zweryfikowane żywym testem `action=search` na produkcji — realny wynik `similarity: 0.526`
-z wektorowego wyszukiwania, nie tylko "nie rzuca błędu". Pozostałe 4 wystąpienia to
-udokumentowany wyjątek (bootstrap `vanguard-telegram`).
+### Pierwsze realne zejście liczników (2026-07-11/12, commity `06f36d92`..`548b84ef`)
+- `rawProviderFetch`: 7 → 4. Whisper/embeddings/Telegram duplikaty usunięte i wdrożone.
+  Zweryfikowane żywym testem `action=search` na produkcji — realny wynik `similarity: 0.526`
+  z wektorowego wyszukiwania, nie tylko "nie rzuca błędu". Pozostałe 4 to udokumentowany
+  wyjątek (bootstrap `vanguard-telegram`).
+- Inline daty Warsaw: 17 → 9. 8 czystych generatorów `YYYY-MM-DD` (en-CA/sv locale)
+  zamienione na `getWarsawDateString()` w 6 plikach. Pozostałe 9 to formatowanie do
+  wyświetlenia (nazwy dni tygodnia, DD.MM.YYYY w promptach) — świadomie zostawione, bo
+  `getWarsawDateString()` robi tylko `YYYY-MM-DD`. Po drodze złapany i cofnięty własny błąd:
+  przy ekstrakcji `handleGoalCreate` przypadkiem zamieniono format daty W PROMPCIE LLM
+  (`pl-PL DD.MM.YYYY` → `YYYY-MM-DD`) — to była zmiana zachowania przemycona do refaktoru
+  bez zmiany zachowania, cofnięta przed commitem.
+- Pierwszy moloch rozbity: `vanguard-oracle/index.ts` 795 → 590 linii. 3 handlery
+  (`handleSearch`/`handleGoalCreate`/`handleTaskBreakdown`) przeniesione do `handlers/*.ts`
+  dokładnie wg mapy w §5 ("już są funkcjami — tylko przenieść"). Zweryfikowane DWOMA żywymi
+  wywołaniami na produkcji po deployu (`action=search` → prawdziwy wynik wektorowy,
+  `action=task-breakdown` → sensowna lista podzadań), nie tylko smoke OPTIONS.
 
 ---
 
