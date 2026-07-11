@@ -27,6 +27,7 @@
     "audit:knip": "knip",
     "ratchet:frontend": "node scripts/ops/check-frontend-ratchets.mjs",
     "ratchet:backend": "node scripts/ops/check-backend-contract.mjs",
+    "contracts:check": "node scripts/ops/check-data-contracts.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
