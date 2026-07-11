@@ -21,7 +21,7 @@
   "src/components/desktop/general/HexagonPanel.tsx": 365,
   "src/components/desktop/health/SupplementsPanel.tsx": 73,
   "src/components/desktop/desktopUtils.ts": 413,
-  "src/components/growth/GrowthView.tsx": 595,
+  "src/components/growth/GrowthView.tsx": 283,
   "src/components/growth/GrowthWeekPlan.tsx": 321,
   "src/components/lifestyle/DirectionPlanningMode.tsx": 129,
   "src/components/lifestyle/LinksInbox.tsx": 533,
