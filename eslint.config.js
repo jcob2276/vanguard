@@ -23,7 +23,6 @@ const LEGACY_FILES = [
   'src/components/core/nutrition/FoodQuickCapture.tsx',
   'src/components/core/nutrition/useFoodEntryData.ts',
   'src/components/core/stats/FoodAnalysisSection.tsx',
-  'src/components/correlations/CorrelationsPage.tsx',
   'src/components/desktop/shell/DesktopDashboard.tsx',
   'src/components/desktop/fitness/FitnessScorePanel.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
@@ -46,10 +45,8 @@ const LEGACY_FILES = [
   'src/components/todo/useTodoCardAttachments.ts',
   'src/components/todo/useTodoCardSwipe.ts',
   'src/data/exercises.ts',
-  'src/components/growth/hooks/useGrowthData.ts',
   'src/lib/dailyPlanProposal.ts',
   'src/lib/database.types.ts',
-  'src/lib/health/foodLogging.ts',
 ]
 
 // Targeted debt lists for the frontend boundary rules below (see docs/FRONTEND_GUIDE.md).
