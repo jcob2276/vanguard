@@ -1,10 +1,12 @@
 import React from 'react';
-import { X, Clock, Repeat, Trash2, Calendar } from 'lucide-react';
+import { Clock, Trash2, Calendar } from 'lucide-react';
 import { useCalendarData } from './hooks/useCalendarData';
-import { monthLabel, recurringSeriesBaseId } from './calendarHelpers';
+import { monthLabel } from './calendarHelpers';
 
-import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 import Modal from '../ui/Modal';
+import CategoryPicker from './CategoryPicker';
+import RecurrencePicker from './RecurrencePicker';
+import DeleteEventConfirmModal from './DeleteEventConfirmModal';
 
 interface CalendarEventModalProps {
   calData: ReturnType<typeof useCalendarData>;
@@ -74,106 +76,6 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
     return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
   };
 
-  const renderCategoryPicker = (selected: string | null, onSelect: (key: string | null) => void) => (
-    <div className="flex flex-wrap gap-1.5">
-      {[{ id: null as string | null, label: 'Brak', dot: 'bg-slate-400', border: 'border-border-custom', bgSoft: 'bg-surface-solid' }, ...LIFE_SPHERES].map((cat) => {
-        const isSelected = selected === cat.id;
-        return (
-          <button
-            key={cat.id || 'none'}
-            type="button"
-            onClick={() => onSelect(cat.id)}
-            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
-              isSelected
-                ? cat.id
-                  ? `${cat.bgSoft.replace('/8', '/20')} ${cat.border} text-text-primary font-black shadow-sm`
-                  : 'bg-text-primary/10 border-text-primary/30 text-text-primary font-black shadow-sm'
-                : 'border-border-custom/40 bg-surface-solid/20 text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
-            <span>{cat.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  const renderRecurrencePicker = (
-    recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom',
-    setRecurrence: (r: '' | 'daily' | 'weekly' | 'monthly' | 'custom') => void,
-    customDays: string[],
-    setCustomDays: React.Dispatch<React.SetStateAction<string[]>>,
-    endDate: string,
-    setEndDate: (d: string) => void,
-    minDate: string,
-  ) => (
-    <div className="space-y-2">
-      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
-        <Repeat size={11} /> Powtarzanie
-      </label>
-      <div className="flex flex-wrap gap-1.5">
-        {(['', 'daily', 'weekly', 'monthly', 'custom'] as const).map((r) => (
-          <button
-            key={r || 'none'}
-            type="button"
-            onClick={() => setRecurrence(r)}
-            className={`flex-1 min-w-[70px] text-[10.5px] font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-          >
-            {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
-          </button>
-        ))}
-      </div>
-      {recurrence === 'custom' && (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {[
-            { key: 'MO', label: 'Pon' },
-            { key: 'TU', label: 'Wt' },
-            { key: 'WE', label: 'Śr' },
-            { key: 'TH', label: 'Czw' },
-            { key: 'FR', label: 'Pt' },
-            { key: 'SA', label: 'Sob' },
-            { key: 'SU', label: 'Ndz' },
-          ].map((day) => {
-            const isSelected = customDays.includes(day.key);
-            return (
-              <button
-                key={day.key}
-                type="button"
-                onClick={() => setCustomDays((prev) =>
-                  isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
-                )}
-                className={`w-10 text-[10.5px] font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-              >
-                {day.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {recurrence !== '' && (
-        <div className="flex items-center gap-2.5 pt-1">
-          <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            min={minDate}
-            className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
-          />
-          {endDate && (
-            <button
-              type="button"
-              onClick={() => setEndDate('')}
-              className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <>
@@ -232,19 +134,19 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
 
             <div className="space-y-2">
               <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Obszar życia:</span>
-              {renderCategoryPicker(quickCategory, setQuickCategory)}
+              <CategoryPicker selected={quickCategory} onSelect={setQuickCategory} />
             </div>
 
             {quickType === 'event' && (
-              renderRecurrencePicker(
-                quickRecurrence,
-                setQuickRecurrence,
-                quickCustomDays,
-                setQuickCustomDays,
-                quickRecurrenceEndDate,
-                setQuickRecurrenceEndDate,
-                quickCreate.date
-              )
+              <RecurrencePicker
+                recurrence={quickRecurrence}
+                setRecurrence={setQuickRecurrence}
+                customDays={quickCustomDays}
+                setCustomDays={setQuickCustomDays}
+                endDate={quickRecurrenceEndDate}
+                setEndDate={setQuickRecurrenceEndDate}
+                minDate={quickCreate.date}
+              />
             )}
 
             <div className="flex gap-2.5 pt-2">
@@ -292,18 +194,18 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
 
             <div className="space-y-2">
               <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Obszar życia:</span>
-              {renderCategoryPicker(editCategory, setEditCategory)}
+              <CategoryPicker selected={editCategory} onSelect={setEditCategory} />
             </div>
 
-            {renderRecurrencePicker(
-              editRecurrence,
-              setEditRecurrence,
-              editCustomDays,
-              setEditCustomDays,
-              editRecurrenceEndDate,
-              setEditRecurrenceEndDate,
-              editDate
-            )}
+            <RecurrencePicker
+              recurrence={editRecurrence}
+              setRecurrence={setEditRecurrence}
+              customDays={editCustomDays}
+              setCustomDays={setEditCustomDays}
+              endDate={editRecurrenceEndDate}
+              setEndDate={setEditRecurrenceEndDate}
+              minDate={editDate}
+            />
 
             <div className="flex gap-2.5 pt-2">
               <button
@@ -325,64 +227,14 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
       </Modal>
 
       {/* 3. Delete Confirmation Dialog */}
-      {showDeleteConfirm && (() => {
-        const isRecurringInstance = !!recurringSeriesBaseId(selectedEvent?.event_id || selectedEvent?.id);
-        return (
-          <Modal
-            isOpen
-            onClose={() => setShowDeleteConfirm(false)}
-            showCloseButton={false}
-            size="xs"
-          >
-            <p className="text-[14px] font-black text-text-primary text-center">Usuń wydarzenie</p>
-            <p className="text-[11.5px] font-bold text-text-secondary text-center">
-              {isRecurringInstance
-                ? 'To wydarzenie jest częścią cyklu. Usunąć tylko to wystąpienie, czy całą serię?'
-                : 'Czy na pewno chcesz usunąć to wydarzenie?'}
-            </p>
-            {isRecurringInstance ? (
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() => executeDelete('this')}
-                  disabled={deleting}
-                  className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
-                >
-                  {deleting ? 'Usuwanie...' : 'Usuń tylko to wystąpienie'}
-                </button>
-                <button
-                  onClick={() => executeDelete('all')}
-                  disabled={deleting}
-                  className="w-full rounded-xl border border-rose-500/40 hover:bg-rose-500/10 disabled:opacity-50 text-rose-500 py-2.5 text-[11.5px] font-bold transition-colors"
-                >
-                  {deleting ? 'Usuwanie...' : 'Usuń całą serię'}
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="w-full rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
-                >
-                  Anuluj
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={() => executeDelete('this')}
-                  disabled={deleting}
-                  className="flex-1 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
-                >
-                  {deleting ? 'Usuwanie...' : 'Usuń'}
-                </button>
-              </div>
-            )}
-          </Modal>
-        );
-      })()}
+      {showDeleteConfirm && (
+        <DeleteEventConfirmModal
+          selectedEvent={selectedEvent}
+          deleting={deleting}
+          onClose={() => setShowDeleteConfirm(false)}
+          executeDelete={executeDelete}
+        />
+      )}
     </>
   );
 };
