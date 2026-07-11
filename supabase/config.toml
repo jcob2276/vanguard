@@ -152,10 +152,6 @@ verify_jwt = false
 import_map = "./functions/import_map.json"
 verify_jwt = false
 
-[functions.analyze-training-load]
-import_map = "./functions/import_map.json"
-verify_jwt = false
-
 [functions.calendar-write]
 import_map = "./functions/import_map.json"
 verify_jwt = false

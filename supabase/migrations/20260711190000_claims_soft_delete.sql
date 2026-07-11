@@ -1,9 +1,9 @@
-﻿-- ============================================================
+-- ============================================================
 -- VANGUARD OS — CLAIMS SOFT DELETE MIGRATION (P0.3)
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.sync_vanguard_entity_links_to_claims()
-RETURNS TRIGGER AS 
+RETURNS TRIGGER AS $$
 DECLARE
   v_subject_uuid uuid;
   v_relation_uuid uuid;
@@ -170,6 +170,6 @@ BEGIN
 
   RETURN NEW;
 END;
- LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 ALTER FUNCTION public.sync_vanguard_entity_links_to_claims() SET search_path = public, pg_temp;
