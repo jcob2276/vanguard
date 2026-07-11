@@ -7,7 +7,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserId } from '../../store/useStore';
 import { useDailyStrainOura, biometricsKeys } from '../../lib/biometricsApi';
-import { zToVitalColor, CONF_PILL, SIGNAL_PILL, CONF_LABEL, STATUS_RING, STATUS_GLOW, READINESS_MAP } from './dailyStrainCardStyles';
+import { zToVitalColor, CONF_PILL, SIGNAL_PILL, CONF_LABEL, STATUS_RING, STATUS_GLOW, READINESS_MAP, type StrainComponents } from './dailyStrainCardStyles';
 import { useDailyStrainRefresh } from './hooks/useDailyStrainRefresh';
 
 
@@ -93,23 +93,21 @@ export default function DailyStrainCard({
 
   const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
   const isStale = row.date !== getTodayWarsaw();
-
-  const comp = (row.components as any) ?? {};
-  const recConf         = comp.recovery_confidence as 'calibrating' | 'building' | 'solid' | undefined;
-  const strConf         = comp.strain_confidence   as 'calibrating' | 'building' | 'solid' | undefined;
-  const caffeineMg      = comp.caffeine_active_mg  as number  | null | undefined;
-  const sleepDebtH      = comp.sleep_debt_h        as number  | null | undefined;
-  const hrvZ            = comp.hrv_z               as number  | null | undefined;
-  const rhrZ            = comp.rhr_z               as number  | null | undefined;
-  const sleepScoreToday = comp.sleep_score_today   as number  | null | undefined;
-  const sleepZ          = comp.sleep_z             as number  | null | undefined;
-  const fuelingScore      = comp.fueling_score     as number  | null | undefined;
-  const readinessSignals = comp.readiness_signals as Array<{ key: string; flag: string; detail: string }> | null | undefined;
-  const wellnessLoad      = comp.wellness_load     as number  | null | undefined;
-  const strainExplanation = comp.explanation       as string  | null | undefined;
-  const readinessLevel  = (row as any).readiness_level as string | null | undefined;
+  const comp = (row.components as unknown as StrainComponents) ?? {};
+  const recConf         = comp.recovery_confidence;
+  const strConf         = comp.strain_confidence;
+  const caffeineMg      = comp.caffeine_active_mg;
+  const sleepDebtH      = comp.sleep_debt_h;
+  const hrvZ            = comp.hrv_z;
+  const rhrZ            = comp.rhr_z;
+  const sleepScoreToday = comp.sleep_score_today;
+  const sleepZ          = comp.sleep_z;
+  const fuelingScore      = comp.fueling_score;
+  const readinessSignals = comp.readiness_signals;
+  const wellnessLoad      = comp.wellness_load;
+  const strainExplanation = comp.explanation;
+  const readinessLevel  = row.readiness_level;
   const readinessInfo   = readinessLevel ? READINESS_MAP[readinessLevel] : null;
-
   const metricCols = 2 + (fuelingScore != null ? 1 : 0) + (sleepDebtH != null ? 1 : 0);
 
   return (

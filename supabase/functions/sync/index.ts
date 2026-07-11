@@ -8,7 +8,7 @@
  * @consumer Zaktualizowane dane biometryczne, treningowe i kalendarza w aplikacji
  * @status active
  */
-import { corsHeaders } from '../_shared/supabase.ts'
+import { corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 import { runOuraSync } from './oura.ts'
 import { runStravaSync } from './strava.ts'
 import { runCalendarSync } from './calendar.ts'
@@ -20,6 +20,13 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url)
+    const body = (req.method === 'POST' || req.method === 'PUT')
+      ? await req.clone().json().catch(() => ({}))
+      : {}
+    const userId = url.searchParams.get('userId') || body.userId
+    
+    await resolveUserScope(req, userId ?? null)
+
     // Check searchParams first, then fall back to body JSON if request has payload
     let service = url.searchParams.get('service')
     

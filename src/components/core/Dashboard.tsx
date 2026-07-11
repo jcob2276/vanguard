@@ -5,9 +5,6 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
 import { DashboardModals } from './DashboardModals';
-import { DashboardDzisTab } from './DashboardDzisTab';
-import { DashboardTydzienTab } from './DashboardTydzienTab';
-import { DashboardHistoriaTab } from './DashboardHistoriaTab';
 import { DashboardFastCaptureMenu, DashboardFastCaptureFAB } from './DashboardFastCapture';
 import OrientationFooter from './OrientationFooter';
 import { SpineGuideStrip } from './SpineGuideStrip';
@@ -25,6 +22,10 @@ const Todo            = lazy(() => import('../todo/Todo'));
 const LinksInbox      = lazy(() => import('../lifestyle/LinksInbox'));
 const CalendarView    = lazy(() => import('../calendar/CalendarView'));
 const Projects        = lazy(() => import('../projects/Projects'));
+
+const DashboardDzisTab = lazy(() => import('./DashboardDzisTab').then(m => ({ default: m.DashboardDzisTab })));
+const DashboardTydzienTab = lazy(() => import('./DashboardTydzienTab').then(m => ({ default: m.DashboardTydzienTab })));
+const DashboardHistoriaTab = lazy(() => import('./DashboardHistoriaTab').then(m => ({ default: m.DashboardHistoriaTab })));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
@@ -161,33 +162,39 @@ export default function Dashboard({ session }: { session: Session }) {
             <>
               <ErrorBoundary>
                 {s.view === 'dzis' && (
-                  <DashboardDzisTab
-                    todayWin={s.todayWin}
-                    spineGuidance={s.spineGuidance} spineGuidanceLoading={s.spineGuidanceLoading}
-                    weeklyReviewNudge={weeklyReviewNudge} planDaySignal={s.planDaySignal}
-                    nutritionKey={s.nutritionKey} workoutKey={s.workoutKey}
-                    onRefresh={s.refresh} onSetNutritionKey={s.setNutritionKey}
-                    onOpenFoodModal={() => s.setShowQuickFoodEntry(true)}
-                    onOpenShutdown={() => s.setShowShutdown(true)}
-                    onSpineGuideNavigate={s.handleSpineGuideNavigate}
-                    onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan}
-                  />
+                  <Suspense fallback={<ViewFallback />}>
+                    <DashboardDzisTab
+                      todayWin={s.todayWin}
+                      spineGuidance={s.spineGuidance} spineGuidanceLoading={s.spineGuidanceLoading}
+                      weeklyReviewNudge={weeklyReviewNudge} planDaySignal={s.planDaySignal}
+                      nutritionKey={s.nutritionKey} workoutKey={s.workoutKey}
+                      onRefresh={s.refresh} onSetNutritionKey={s.setNutritionKey}
+                      onOpenFoodModal={() => s.setShowQuickFoodEntry(true)}
+                      onOpenShutdown={() => s.setShowShutdown(true)}
+                      onSpineGuideNavigate={s.handleSpineGuideNavigate}
+                      onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan}
+                    />
+                  </Suspense>
                 )}
               </ErrorBoundary>
               <ErrorBoundary>
                 {s.view === 'tydzien' && (
-                  <DashboardTydzienTab
-                    weeklyCalories={s.weeklyCalories}
-                    nutritionKey={s.nutritionKey} onOpenActionCenter={() => s.setActionCenterOpen(true)}
-                  />
+                  <Suspense fallback={<ViewFallback />}>
+                    <DashboardTydzienTab
+                      weeklyCalories={s.weeklyCalories}
+                      nutritionKey={s.nutritionKey} onOpenActionCenter={() => s.setActionCenterOpen(true)}
+                    />
+                  </Suspense>
                 )}
               </ErrorBoundary>
               <ErrorBoundary>
                 {s.view === 'historia' && (
-                  <DashboardHistoriaTab
-                    historySubTab={s.historySubTab}
-                    onSetSubTab={s.setHistorySubTab}
-                  />
+                  <Suspense fallback={<ViewFallback />}>
+                    <DashboardHistoriaTab
+                      historySubTab={s.historySubTab}
+                      onSetSubTab={s.setHistorySubTab}
+                    />
+                  </Suspense>
                 )}
               </ErrorBoundary>
               <ErrorBoundary>

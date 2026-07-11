@@ -65,6 +65,8 @@ export default function SearchModal({ session, onClose }: { session: Session; on
     results.notes.length > 0;
 
   return (
+    // NOTE: custom overlay — SearchModal is a command-palette anchored at pt-[10vh] (top of viewport).
+    // ui/Modal vertically-centers its content; we need top-aligned positioning, so a raw fixed overlay is used.
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 backdrop-blur-md bg-slate-950/70 animate-fade-in">
       {/* Backdrop click closer */}
       <div className="absolute inset-0" onClick={onClose} />

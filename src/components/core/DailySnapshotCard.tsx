@@ -56,7 +56,7 @@ export default function DailySnapshotCard() {
       const rec = recRes.data;
       const strain = strainRes.data;
       const history = historyRes.data;
-      if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, any>), day_score: rec.day_score, date: rec.date });
+      if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, unknown>), day_score: rec.day_score, date: rec.date });
       if (rec?.day_score != null) {
         setDayScore(rec.day_score);
       }
@@ -66,7 +66,7 @@ export default function DailySnapshotCard() {
       // Calculate consecutive rescue days
       let streak = 0;
       for (const row of (history ?? [])) {
-        const mode = (row.planning_summary as any)?.mode;
+        const mode = (row.planning_summary as { mode?: string })?.mode;
         if (mode === 'rescue') streak++;
         else break;
       }

@@ -1,7 +1,8 @@
 import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Glasses } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import EmptyState from '../ui/EmptyState';
 import type { User } from '@supabase/supabase-js';
 import PrescriptionCard from './PrescriptionCard';
 import AddPrescriptionModal from './AddPrescriptionModal';
@@ -103,17 +104,11 @@ export default function GlassesCabinet() {
       {loading ? (
         <div className="h-24 rounded-2xl border border-border-custom bg-surface/30 animate-pulse" />
       ) : prescriptions.length === 0 ? (
-        <div className="text-center p-12 border border-dashed border-border-custom rounded-3xl bg-surface/20">
-          <Glasses className="mx-auto text-text-muted opacity-50 mb-4" size={48} />
-          <h3 className="text-lg font-bold mb-2">Brak wprowadzonych szkieł</h3>
-          <p className="text-sm text-text-muted mb-6">Rozpocznij wypełnianie swojej szafki lub załaduj historyczne dane ze swojego arkusza Excela.</p>
-          <button 
-            onClick={loadFromExcel}
-            className="bg-emerald-500/10 text-emerald-500 font-bold px-6 py-3 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
-          >
-            Załaduj historię z Excela
-          </button>
-        </div>
+        <EmptyState
+          icon="👓"
+          label="Brak wprowadzonych szkieł. Zacznij od załadowania historii z Excela lub dodaj ręcznie."
+          action={{ label: 'Załaduj historię z Excela', onClick: loadFromExcel }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <PrescriptionCard title="Aktualna Normalizacja (Długi Dystans)" prescription={activeNormalized} />

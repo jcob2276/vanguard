@@ -9,6 +9,7 @@
  * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { requireServiceRole } from "../_shared/auth.ts";
 import { fetchWorldState } from "../_shared/worldState.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 // Force upload of domain package for shared dependencies
@@ -43,6 +44,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   try {
     const supabase = createServiceClient();

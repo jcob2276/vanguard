@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { getWeekStartWarsaw, shiftWeekStart } from '../../../lib/growth/growth';
+import { notify } from '../../../lib/notify';
 import { TodoSlot, CalEvent } from './types';
 
 export const PRIORITY_COLORS: Record<string, string> = {
@@ -109,8 +110,8 @@ export function useMorningPlanData({ userId, planningDate, isPlanningTomorrow }:
           setTodayWinId(winData.id);
           // Match existing power list items if any
           const presetList: (TodoSlot | null)[] = [null, null, null, null, null];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase join types are incomplete
-          const tasks = (winData as any).daily_win_tasks || [];
+           
+          const tasks = (winData as unknown as { daily_win_tasks: { slot: number; todo_id: string; title: string | null; done: boolean }[] }).daily_win_tasks || [];
           for (const t of tasks) {
             const i = t.slot; // 1-indexed slot
             if (i >= 1 && i <= 5 && t.todo_id) {
@@ -159,6 +160,7 @@ export function useMorningPlanData({ userId, planningDate, isPlanningTomorrow }:
         setWeekTaskCounts(counts);
       } catch (err: unknown) {
         console.error('[Action Error]', err);
+        notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
       } finally {
         setLoading(false);
       }

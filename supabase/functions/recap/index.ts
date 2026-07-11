@@ -8,7 +8,7 @@
  * @consumer Powiadomienia Telegram z podsumowaniem dnia/tygodnia
  * @status active
  */
-import { corsHeaders } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { runDailyReconciliation } from "./daily.ts";
 import { runWeeklySynthesis } from "./weekly-synthesis.ts";
 import { runWeeklyRecap } from "./weekly-recap.ts";
@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
         if (text) body = JSON.parse(text);
       } catch (_) {}
     }
+
+    const requestedUserId = url.searchParams.get("userId") || body.userId;
+    await resolveUserScope(req, requestedUserId ?? null);
 
     if (!type && body) {
       type = body.type || body.action;

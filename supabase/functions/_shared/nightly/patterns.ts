@@ -44,7 +44,7 @@ function insightToDetector(insight: PatternInsight): DetectorResult {
     last_seen: insight.lastSeenDate || today,
     occurrence_count: insight.sampleSize,
     confidence: insight.confidence,
-    status: visible ? "visible" : "hypothesis",
+    status: visible ? "visible" : "pending",
   };
 }
 

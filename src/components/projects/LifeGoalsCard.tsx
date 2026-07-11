@@ -47,7 +47,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
     if (!editing) void (async () => { setDraft(draftFrom(lifeGoals)); })();
   }, [lifeGoals, editing]);
 
-  const hasAnyGoal = PILLARS.some((p) => (lifeGoals as any)?.[`goal_${p}`]?.trim());
+  const hasAnyGoal = PILLARS.some((p) => ((lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | undefined)?.trim());
 
   const startEdit = () => {
     setDraft(draftFrom(lifeGoals));
@@ -96,8 +96,8 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
         hasAnyGoal ? (
           <div className="space-y-2.5">
             {PILLARS.map((p) => {
-              const goal = (lifeGoals as any)?.[`goal_${p}`] as string | null;
-              const date = (lifeGoals as any)?.[`date_${p}`] as string | null;
+              const goal = (lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | null;
+              const date = (lifeGoals as unknown as Record<string, unknown>)?.[`date_${p}`] as string | null;
               if (!goal) return null;
               const meta = PILLAR_META[p];
               const Icon = meta.icon;

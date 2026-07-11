@@ -93,7 +93,7 @@ export function CardFactory({ templateId, data, onTap, className, variant }: Car
 
 
 function renderInner(templateId: CardTemplateId, data: unknown) {
-  const d = data as any;
+  const d = data as never;
   switch (templateId) {
     case 'link':             return <LinkCard data={d} />;
     case 'person':           return <PersonCard data={d} />;

@@ -102,6 +102,8 @@ export function ActionCenterSheet({
   if (!open) return null;
 
   return (
+    // NOTE: custom overlay — ActionCenterSheet is a bottom-anchored slide-up sheet (items-end). ui/Modal
+    // renders a centered dialog and cannot produce this bottom-sheet layout with a full-width rounded-top panel.
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-t-[24px] border border-border-custom bg-surface-solid p-5 pb-8 max-h-[80vh] overflow-y-auto"

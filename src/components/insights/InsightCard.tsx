@@ -72,6 +72,9 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
       </div>
 
       {overlayOpen && (
+        // NOTE: custom overlay — InsightCard shows a long-press mobile context menu with circular action
+        // buttons anchored at the bottom-center. ui/Modal shows a dialog box and cannot render these
+        // floating radial buttons, so a raw fixed overlay is intentional here.
         <div
           className="fixed inset-0 z-50 flex items-end justify-center pb-12"
           style={{ background: 'rgba(0,0,0,0.6)' }}

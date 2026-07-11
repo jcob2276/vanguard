@@ -1,9 +1,16 @@
 import { supabase } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { notify } from './notify';
+
+// Dynamic table dispatch requires bypassing the generic table-name constraint.
+// This is intentional — the offline queue replays arbitrary serialised writes.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dynDb = supabase as SupabaseClient<any>;
 
 const DB_NAME = 'vanguard_offline';
 const STORE_NAME = 'queue';
-const DB_VERSION = 1;
+const DLQ_STORE_NAME = 'dead_letter';
+const DB_VERSION = 2;
 
 interface QueueEntry {
   id: string;
@@ -20,6 +27,9 @@ function openDb(): Promise<IDBDatabase> {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(DLQ_STORE_NAME)) {
+        db.createObjectStore(DLQ_STORE_NAME, { keyPath: 'id' });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -74,6 +84,36 @@ async function removeQueuedWrite(id: string): Promise<void> {
   db.close();
 }
 
+async function saveToDeadLetterQueue(entry: QueueEntry, error: unknown): Promise<void> {
+  try {
+    const db = await openDb();
+    const errMsg = error instanceof Error 
+      ? error.message 
+      : (typeof error === 'object' && error !== null && 'message' in error) 
+        ? String((error as Record<string, unknown>).message) 
+        : String(error);
+    const errCode = (typeof error === 'object' && error !== null && 'code' in error) 
+      ? String((error as Record<string, unknown>).code) 
+      : null;
+    
+    const dlqEntry = {
+      ...entry,
+      failedAt: Date.now(),
+      errorMessage: errMsg,
+      errorCode: errCode,
+    };
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(DLQ_STORE_NAME, 'readwrite');
+      tx.objectStore(DLQ_STORE_NAME).add(dlqEntry);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch (err) {
+    console.error('[offlineQueue] Failed to save entry to DLQ:', err);
+  }
+}
+
 async function getQueuedWriteCount(): Promise<number> {
   try {
     return (await getQueuedWrites()).length;
@@ -94,7 +134,7 @@ export async function rpcWithOfflineFallback(
   label: string,
 ): Promise<{ queued: boolean }> {
   try {
-    const { error } = await supabase.rpc(fn as any, args as any);
+    const { error } = await dynDb.rpc(fn, args);
     if (error) throw error;
     return { queued: false };
   } catch (err: unknown) {
@@ -117,12 +157,18 @@ async function writeWithOfflineFallback(
   label: string,
 ): Promise<{ queued: boolean }> {
   try {
-    let query = supabase.from(table as any) as any;
-    if (action === 'insert') query = query.insert(payload);
-    if (action === 'update') query = query.update(payload).match(match);
-    if (action === 'delete') query = query.delete().match(match);
+    let error = null;
+    if (action === 'insert') {
+      const res = await dynDb.from(table).insert(payload || {});
+      error = res.error;
+    } else if (action === 'update') {
+      const res = await dynDb.from(table).update(payload || {}).match(match);
+      error = res.error;
+    } else {
+      const res = await dynDb.from(table).delete().match(match);
+      error = res.error;
+    }
     
-    const { error } = await query;
     if (error) throw error;
     return { queued: false };
   } catch (err: unknown) {
@@ -148,20 +194,33 @@ async function flushOfflineQueue(): Promise<void> {
       let error = null;
       if (entry.fn.startsWith('table:')) {
         const [_, action, table] = entry.fn.split(':');
-        let query = supabase.from(table as any) as any;
-        if (action === 'insert') query = query.insert(entry.args.payload);
-        if (action === 'update') query = query.update(entry.args.payload).match(entry.args.match);
-        if (action === 'delete') query = query.delete().match(entry.args.match);
-        const res = await query;
-        error = res.error;
+        if (action === 'insert') {
+          const res = await dynDb.from(table).insert((entry.args.payload as Record<string, unknown>) || {});
+          error = res.error;
+        } else if (action === 'update') {
+          const res = await dynDb.from(table).update((entry.args.payload as Record<string, unknown>) || {}).match((entry.args.match as Record<string, unknown>) || {});
+          error = res.error;
+        } else {
+          const res = await dynDb.from(table).delete().match((entry.args.match as Record<string, unknown>) || {});
+          error = res.error;
+        }
       } else {
-        const res = await supabase.rpc(entry.fn as any, entry.args as any);
+        const res = await dynDb.rpc(entry.fn, entry.args);
         error = res.error;
       }
       
       if (error) {
-        console.error(`[offlineQueue] Replay failed for ${entry.fn}:`, error);
-        break; // stop — likely still offline or a persistent error; keep the rest queued in order
+        if (isOfflineError(error)) {
+          console.log(`[offlineQueue] Network offline during replay for ${entry.fn}. Stopping queue flush.`);
+          break; // Stop - we are offline again, keep in queue
+        } else {
+          console.error(`[offlineQueue] Persistent error during replay for ${entry.fn}:`, error);
+          // Move to Dead Letter Queue to avoid blocking the entire queue (poison pill prevention)
+          await saveToDeadLetterQueue(entry, error);
+          await removeQueuedWrite(entry.id);
+          notify(`Synchronizacja nie powiodła się dla "${entry.label}". Szczegóły: ${error.message || String(error)}`, 'error');
+          continue; // Move to next item
+        }
       }
       await removeQueuedWrite(entry.id);
       synced++;

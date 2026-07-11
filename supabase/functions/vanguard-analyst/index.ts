@@ -11,9 +11,13 @@
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
 import { sendMessage } from "../_shared/telegram.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { requireServiceRole } from "../_shared/auth.ts"
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const authError = requireServiceRole(req)
+  if (authError) return authError
 
   try {
     const supabase = createServiceClient()

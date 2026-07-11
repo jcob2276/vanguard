@@ -62,7 +62,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
     };
     const { error } = await supabase
       .from('oracle_clarification_requests')
-      .update({ status: 'answered', answer: answer as any, answered_at: new Date().toISOString() })
+      .update({ status: 'answered', answer: answer as never, answered_at: new Date().toISOString() })
       .eq('id', request.id);
     if (error) console.error('[clarification] answer failed:', error.message);
     setSubmitting(false);

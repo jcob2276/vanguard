@@ -164,6 +164,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
   if (loading) {
     return (
+      // NOTE: custom overlay — DailyShutdownModal is a multi-step wizard with a sticky header, sticky footer
+      // and a scrollable body. ui/Modal has no sticky-header/footer layout support, so we use a raw overlay.
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
           <Spinner size="md" />

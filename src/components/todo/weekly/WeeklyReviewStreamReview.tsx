@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Mic, Trash2, Pencil } from 'lucide-react';
+import EmptyState from '../../ui/EmptyState';
 import { isVoiceEntry, type StreamEntry } from '../../../lib/behavior/streamReview';
 import { formatStreamEntryDate } from './weeklyHelpers';
 
@@ -29,9 +30,7 @@ export default function WeeklyReviewStreamReview() {
       </div>
 
       {streamEntries.length === 0 ? (
-        <div className="py-12 text-center text-text-muted/60 italic text-[12px] bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-dashed border-border-custom/40">
-          Brak wpisów z Telegrama w ostatnich 7 dniach.
-        </div>
+        <EmptyState icon="🌊" label="Brak wpisów z Telegrama w ostatnich 7 dniach." />
       ) : (
         <div className="space-y-2.5">
           {streamEntries.map((entry: StreamEntry) => {

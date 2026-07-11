@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateTodoItem } from '../../lib/todo/todo';
+import type { TodoItemUpdate } from '../../lib/todo/todo';
 
 interface Item {
   id: string;
@@ -84,7 +85,8 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
         i.id === item.id ? { ...i, priority: newPriority, is_important: newImportant } : i,
       ),
     );
-    updateTodoItem(item.id, { priority: newPriority, is_important: newImportant } as any).catch(() => {
+    const patch: TodoItemUpdate = { priority: newPriority, is_important: newImportant };
+    updateTodoItem(item.id, patch).catch(() => {
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, priority: item.priority, is_important: item.is_important } : i)),
       );

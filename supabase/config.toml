@@ -131,3 +131,15 @@ verify_jwt = false
 [functions.vanguard-backtester]
 import_map = "./functions/import_map.json"
 verify_jwt = false
+
+[functions.vanguard-nightly]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.vanguard-capture]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.vanguard-keep-triage]
+import_map = "./functions/import_map.json"
+verify_jwt = false

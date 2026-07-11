@@ -8,7 +8,8 @@
  * @consumer Powiadomienia push w przeglądarce i Telegramie użytkownika
  * @status active
  */
-import { createServiceClient } from "../_shared/supabase.ts";
+import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { requireServiceRole } from "../_shared/auth.ts";
 // @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
 import { sendMessageParsed } from "../_shared/telegram.ts";
@@ -18,7 +19,12 @@ import type {} from "@vanguard/domain";
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
+
   const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY");
   const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY");
   const TG_TOKEN      = Deno.env.get("TELEGRAM_BOT_TOKEN");

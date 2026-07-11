@@ -9,23 +9,15 @@
  * @status active
  */
 import { corsHeaders, createServiceClient } from '../_shared/supabase.ts';
+import { requireServiceRole } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // 1. Authorize via Service Role Key
-  const authHeader = req.headers.get("Authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const serviceRoleKey = Deno.env.get("SB_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  
-  if (!serviceRoleKey || token !== serviceRoleKey) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   try {
     const supabase = createServiceClient();

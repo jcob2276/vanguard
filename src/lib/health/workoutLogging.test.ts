@@ -21,7 +21,7 @@ const localStorageMock = {
   length: 0,
   key: vi.fn((idx: number) => Object.keys(store)[idx] || null),
 };
-globalThis.localStorage = localStorageMock as any;
+globalThis.localStorage = localStorageMock as unknown as Storage;
 
 vi.mock('../supabase', () => ({
   supabase: {
@@ -143,13 +143,13 @@ describe('workoutLogging', () => {
       });
 
       expect(rpcSpy).toHaveBeenCalled();
-      const rpcArgs = rpcSpy.mock.calls[0][1] as any;
+      const rpcArgs = rpcSpy.mock.calls[0][1] as Record<string, unknown>;
       
       const expectedStart = new Date('2026-06-28T23:00:00').toISOString();
       const expectedEnd = new Date('2026-06-29T01:00:00').toISOString();
 
-      expect(rpcArgs.p_start_time).toBe(expectedStart);
-      expect(rpcArgs.p_end_time).toBe(expectedEnd);
+      expect(rpcArgs['p_start_time']).toBe(expectedStart);
+      expect(rpcArgs['p_end_time']).toBe(expectedEnd);
     });
   });
 

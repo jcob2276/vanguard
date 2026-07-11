@@ -53,7 +53,7 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
   async function addDream() {
     if (!newDreamTitle.trim() || !userId) return;
     const { data, error } = await supabase.from('dreams')
-      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory, life_goal: newDreamLifeGoal || null } as any)
+      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory, life_goal: newDreamLifeGoal || null } as never)
       .select().single();
     if (!error && data) {
       setDreams(prev => [data, ...prev]);
@@ -96,7 +96,7 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
     if (!editingDream) return;
     setSavingDream(true);
     const { data, error } = await supabase.from('dreams')
-      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat, life_goal: editDreamLifeGoal || null } as any)
+      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat, life_goal: editDreamLifeGoal || null } as never)
       .eq('id', editingDream.id).select().single();
     if (!error && data) {
       setDreams(prev => prev.map(d => d.id === editingDream.id ? data : d));

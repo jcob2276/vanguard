@@ -58,6 +58,9 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
 
   if (data.loading) {
     return (
+      // NOTE: custom overlay — MorningPlanModal is a multi-step week-planning wizard with a sticky week
+      // selector header and a scrollable body. ui/Modal has no sticky-header/footer layout support, so
+      // a raw fixed overlay is intentional here.
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
           <Spinner size="md" />
@@ -68,6 +71,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
   }
 
   return (
+    // NOTE: custom overlay — see loading block comment above.
     <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />

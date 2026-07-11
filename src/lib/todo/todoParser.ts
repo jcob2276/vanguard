@@ -67,7 +67,7 @@ function consumeMatch(text: string, match: RegExpMatchArray): string {
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
-  const tokens: Array<{ type: 'priority' | 'date' | 'duration' | 'time'; label: string; value: string }> = [];
+  const tokens: Array<{ type: 'priority' | 'date' | 'duration' | 'time' | 'recurrence'; label: string; value: string }> = [];
 
   const priorityMatch = title.match(/(^|\s)(p[1-4])(?=\s|$)/i);
   if (priorityMatch) {
@@ -166,20 +166,21 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     const raw = recurrenceMatch[2].toLowerCase();
     let value = '';
     let label = '';
-    if (raw.includes('dzien') || raw.includes('dzień') || raw === 'codziennie') {
-      value = 'daily';
-      label = 'Codziennie';
-    } else if (raw.includes('tydzien') || raw.includes('tydzień')) {
+    // Check weekly/monthly FIRST — "tydzień" contains "dzień", so order matters
+    if (raw.includes('tydzien') || raw.includes('tydzień')) {
       value = 'weekly';
       label = 'Co tydzień';
     } else if (raw.includes('miesiac') || raw.includes('miesiąc')) {
       value = 'monthly';
       label = 'Co miesiąc';
+    } else if (raw.includes('dzien') || raw.includes('dzień') || raw === 'codziennie') {
+      value = 'daily';
+      label = 'Codziennie';
     }
 
     if (value) {
       recurrence = value;
-      tokens.push({ type: 'recurrence' as any, label, value });
+      tokens.push({ type: 'recurrence', label, value });
       title = consumeMatch(title, recurrenceMatch);
       // If recurrence is daily/weekly/monthly and no due date is parsed yet, default due_date to today
       if (!tokens.some(t => t.type === 'date')) {

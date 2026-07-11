@@ -70,7 +70,7 @@ export function useFoodEntryActions({
           p_fiber: food.fiber,
           p_sugar: food.sugar,
           p_default_grams: defaultGrams,
-        } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+        } as never)
         .then(({ error }) => {
           if (error) {
             console.error('[FoodEntryModal] cacheToLibrary failed', error);

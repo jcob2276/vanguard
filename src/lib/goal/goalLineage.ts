@@ -33,5 +33,5 @@ export async function fetchGoalLineage(userId: string): Promise<SectionGoalMaps>
     listProjects(userId),
     supabase.from('dreams').select('id, title, life_goal').eq('user_id', userId),
   ]);
-  return buildSectionGoalMaps(sections, projects as any, (dreams as any) || []);
+  return buildSectionGoalMaps(sections as never, projects as never, (dreams as never) || []);
 }

@@ -9,6 +9,7 @@
  * @status active
  */
 import { corsHeaders, createServiceClient } from '../_shared/supabase.ts';
+import { requireServiceRole } from '../_shared/auth.ts';
 import { runSaveDailyAggregate } from '../_shared/nightly/aggregate.ts';
 import { runComputeDailyStrain } from '../_shared/nightly/metrics_strain.ts';
 import { runComputeIllnessSignal } from '../_shared/nightly/metrics_illness.ts';
@@ -72,6 +73,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   try {
     const supabase = createServiceClient();

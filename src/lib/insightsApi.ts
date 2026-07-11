@@ -25,6 +25,7 @@ export async function updatePatternStatus(patternId: string, newStatus: string):
 const STATUS_ORDER: Record<string, number> = {
   user_confirmed: 0,
   visible: 1,
+  pending: 2,
   hypothesis: 2,
   user_rejected: 3,
   archived: 4,
@@ -50,11 +51,11 @@ export async function listActivePatterns(userId: string): Promise<BehavioralPatt
     evidence_text: row.evidence_text ?? '',
     confidence: Number(row.confidence ?? 0),
     occurrence_count: row.occurrence_count ?? 0,
-    status: row.status ?? 'hypothesis',
+    status: row.status ?? 'pending',
     last_seen: row.last_seen ?? null,
   }));
 
-  mapped.sort((a, b) => (STATUS_ORDER[a.status ?? 'hypothesis'] ?? 9) - (STATUS_ORDER[b.status ?? 'hypothesis'] ?? 9));
+  mapped.sort((a, b) => (STATUS_ORDER[a.status ?? 'pending'] ?? 9) - (STATUS_ORDER[b.status ?? 'pending'] ?? 9));
   return mapped;
 }
 

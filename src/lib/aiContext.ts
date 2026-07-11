@@ -25,10 +25,10 @@ export async function gatherDailyWinsContext(session: Session) {
   ]);
   const [goalSpineRes, dreamsRes, activeDreamProjectsRes, todosRes] = settled;
 
-  const goalSpine = goalSpineRes.status === 'fulfilled' && (goalSpineRes.value as any)?.week !== undefined
+  const goalSpine = goalSpineRes.status === 'fulfilled' && goalSpineRes.value?.week !== undefined
     ? goalSpineRes.value
     : null;
-  const dreamsData: any[] = dreamsRes.status === 'fulfilled' ? (dreamsRes.value.data ?? []) : [];
+  const dreamsData = dreamsRes.status === 'fulfilled' ? (dreamsRes.value.data ?? []) : [];
   const activeDreamIds = new Set(
     (activeDreamProjectsRes.status === 'fulfilled' ? (activeDreamProjectsRes.value.data ?? []) : [])
       .map((p: { dream_id?: string | null }) => p.dream_id)
@@ -37,9 +37,9 @@ export async function gatherDailyWinsContext(session: Session) {
   const todos = todosRes.status === 'fulfilled' ? (todosRes.value.data ?? []) : [];
 
   return {
-    goal_spine: goalSpine ? goalSpineAiSnapshot(goalSpine as any) : null,
-    strategic_gaps: goalSpine ? strategicGapsFromSpine(goalSpine as any, dreamsData, activeDreamIds) : null,
-    open_todos: (todos ?? []).map((t: any) => ({
+    goal_spine: goalSpine ? goalSpineAiSnapshot(goalSpine) : null,
+    strategic_gaps: goalSpine ? strategicGapsFromSpine(goalSpine, dreamsData, activeDreamIds) : null,
+    open_todos: (todos ?? []).map((t) => ({
       title: t.title,
       priority: t.priority,
       bucket: t.ai_bucket ?? (t.due_date ? 'due:' + t.due_date : 'unclassified'),

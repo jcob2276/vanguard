@@ -24,7 +24,10 @@ $all = @(
   "vanguard-librarian",
   "vanguard-push-reminder",
   "vanguard-capture",
-  "vanguard-keep-triage"
+  "vanguard-keep-triage",
+  "vanguard-executor",
+  "vanguard-metabolism",
+  "vanguard-backtester"
 )
 
 $targets = if ($args.Count -gt 0) { $args } else { $all }

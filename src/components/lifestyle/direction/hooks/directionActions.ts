@@ -4,6 +4,11 @@
  */
 import type { Session } from '@supabase/supabase-js';
 import type { Tables, TablesUpdate } from '../../../../lib/database.types';
+import type { Json } from '../../../../lib/database.types';
+
+import type { SprintProjectDecision, SprintReview } from '../../../../lib/goal/goalSpine';
+
+type Phase2Recap = { narrative_check: string; deepening_questions?: string[]; block5_material?: { cialo: string; duch: string; konto: string } };
 import {
   completeMonthlyReview,
   completeSprintClose,
@@ -44,14 +49,14 @@ export interface MonthPayload {
   leverageNote: string;
   correctionNote: string;
   monthTheme: string;
-  monthRecap: any;
-  monthFacts: any;
+  monthRecap: { narrative: string; longterm_motif: string | null; question: string } | null;
+  monthFacts: Json | null;
 }
 
 export interface SprintPayload {
   sprintReflection: string;
   nextSprintGoal: string;
-  projectDecisions: Record<string, any>;
+  projectDecisions: Record<string, SprintProjectDecision>;
 }
 
 /** Returns action handlers bound to the provided state + setters. */
@@ -65,19 +70,19 @@ export function createDirectionActions(params: {
   planTargetWeekStart: string;
   // setters
   setHistory: (fn: (prev: DailyWinRow[]) => DailyWinRow[]) => void;
-  setCurrentReview: (v: any) => void;
+  setCurrentReview: (v: Tables<'weekly_reviews'> | null) => void;
   setReflectionPersisted: (v: boolean) => void;
-  setPhase2: (v: any) => void;
+  setPhase2: (v: Phase2Recap | null) => void;
   setPhase2Loading: (v: boolean) => void;
   setSavingReflection: (v: boolean) => void;
-  setMonthReview: (v: any) => void;
+  setMonthReview: (v: Tables<'monthly_reviews'> | null) => void;
   setMonthCompleting: (v: boolean) => void;
-  setSprintReview: (v: any) => void;
+  setSprintReview: (v: SprintReview | null) => void;
   setSprintCompleting: (v: boolean) => void;
   setCompleting: (v: boolean) => void;
   setRitualClosed: (v: boolean) => void;
   setForceWeeklyReview: (v: boolean) => void;
-  applyMonthCarry: (review: any, facts: any) => void;
+  applyMonthCarry: (review: { month_theme?: string | null; correction_note?: string | null; leverage_note?: string | null } | null, facts: Json) => void;
   fetchData: (opts?: { silent?: boolean }) => Promise<void>;
 }) {
   const {
@@ -120,7 +125,7 @@ export function createDirectionActions(params: {
     haptics.light();
     const { data: fresh } = await supabase.from('daily_wins').select('*').eq('id', dayWinStale.id).single();
     const dayWin = fresh ?? dayWinStale;
-    const dayWinAny = dayWin as any;
+    const dayWinAny = dayWin as never;
     const field = `done_${index + 1}`;
     const timeField = `completed_at_${index + 1}`;
     const newValue = !dayWinAny[field];
@@ -182,7 +187,7 @@ export function createDirectionActions(params: {
         correction_note: payload.correctionNote || null,
         month_theme: payload.monthTheme || null,
         ai_recap: payload.monthRecap ? { phase1: payload.monthRecap } : null,
-        ritual_stats: payload.monthFacts ? (payload.monthFacts as any) : null,
+        ritual_stats: payload.monthFacts ?? null,
       });
       if (data) {
         setMonthReview(data);

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FlaskConical } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import EmptyState from '../ui/EmptyState';
 import { useMedicalData } from './hooks/useMedicalData';
 import { useRetestSuggestions } from './hooks/useMedicalRetestContext';
 import {
@@ -114,13 +115,10 @@ export default function MedicalStudiesPage() {
             Nie udało się wczytać badań: {error}
           </div>
         ) : labs.length === 0 && bodyComposition.length === 0 ? (
-          <section className="rounded-2xl border border-dashed border-border-custom p-8 text-center space-y-2">
-            <FlaskConical size={32} className="mx-auto text-text-muted opacity-50" />
-            <p className="text-[14px] font-bold text-text-primary">Brak danych badań</p>
-            <p className="text-[11px] text-text-muted leading-relaxed max-w-md mx-auto">
-              Wyniki trafiają tu po imporcie z PDF. Gdy pojawią się w bazie, zobaczysz tabele, trendy i historię paneli.
-            </p>
-          </section>
+          <EmptyState
+            icon="🧪"
+            label="Brak danych badań. Wyniki pojawią się tu po imporcie z PDF."
+          />
         ) : (
           <>
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3 text-[11px] text-text-secondary leading-relaxed">

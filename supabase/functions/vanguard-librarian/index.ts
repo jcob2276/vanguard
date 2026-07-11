@@ -9,6 +9,7 @@
  * @status active
  */
 import { corsHeaders, createServiceClient } from '../_shared/supabase.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 // Force upload of domain package for shared dependencies
@@ -128,6 +129,9 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   
+  const authError = requireServiceRole(req)
+  if (authError) return authError
+
   try {
     const result = await runLibrarian()
     return new Response(JSON.stringify({ ok: true, ...result }), {

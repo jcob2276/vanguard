@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
+
+export const desktopKeys = {
+  all: ['desktop'] as const,
+  dashboard: (userId: string) => [...desktopKeys.all, 'dashboard', userId] as const,
+};
 
 function mapTodoToMove(row: {
   id: string;
@@ -87,142 +92,131 @@ async function fetchDashboardFallback(userId: string) {
   };
 }
 
-let globalCache: any = null;
-let lastFetchTime = 0;
+export function useDesktopData(userId: string | undefined): {
+  loading: boolean;
+  oura: any[];
+  nutrition: any[];
+  sessions: any[];
+  body: any[];
+  heightCm: number | null;
+  strain: any | null;
+  strava: any[];
+  projects: any[];
+  moves: any[];
+  goals: any | null;
+  sprintGoals: any[];
+  stream: any[];
+  patterns: any[];
+  wins: any[];
+  wiki: any[];
+  knowledge: any[];
+  lenieLogs: any[];
+  habits: any[];
+  habitLogs: any[];
+  marathon: any | null;
+  refresh: () => Promise<void>;
+} {
+  const queryClient = useQueryClient();
 
-export function useDesktopData(userId: string | undefined) {
-  const [s, setS] = useState<{
-    loading: boolean;
-    oura: any[];
-    nutrition: any[];
-    sessions: any[];
-    body: any[];
-    heightCm: number | null;
-    strain: any | null;
-    strava: any[];
-    projects: any[];
-    moves: any[];
-    goals: any | null;
-    sprintGoals: any[];
-    stream: any[];
-    patterns: any[];
-    wins: any[];
-    wiki: any[];
-    knowledge: any[];
-    lenieLogs: any[];
-    habits: any[];
-    habitLogs: any[];
-    marathon: any | null;
-  }>(() => {
-    if (globalCache) return { ...globalCache, loading: false };
-    return {
-      loading: true,
-      oura: [],
-      nutrition: [],
-      sessions: [],
-      body: [],
-      heightCm: null,
-      strain: null,
-      strava: [],
-      projects: [],
-      moves: [],
-      goals: null,
-      sprintGoals: [],
-      stream: [],
-      patterns: [],
-      wins: [],
-      wiki: [],
-      knowledge: [],
-      lenieLogs: [],
-      habits: [],
-      habitLogs: [],
-      marathon: null,
-    };
+  const query = useQuery({
+    queryKey: desktopKeys.dashboard(userId || ''),
+    queryFn: async () => {
+      if (!userId) throw new Error('User ID is required');
+
+      const { data, error } = await supabase.rpc('get_desktop_dashboard_data', { p_user_id: userId });
+      const { data: profile } = await supabase
+        .from('nutrition_profile')
+        .select('height_cm')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[useDesktopData] RPC failed, using direct fallback:', error.message);
+        const fallback = await fetchDashboardFallback(userId);
+        return {
+          oura: fallback.oura,
+          nutrition: fallback.nutrition,
+          sessions: fallback.sessions,
+          body: fallback.body,
+          heightCm: fallback.heightCm,
+          strain: fallback.strain,
+          strava: fallback.strava,
+          projects: fallback.projects,
+          moves: fallback.moves,
+          goals: fallback.goals,
+          sprintGoals: fallback.sprintGoals,
+          stream: [],
+          patterns: [],
+          wins: [],
+          wiki: [],
+          knowledge: [],
+          lenieLogs: [],
+          habits: fallback.habits,
+          habitLogs: fallback.habitLogs,
+          marathon: fallback.marathon,
+        };
+      }
+
+      const d = data as Record<string, unknown>;
+      return {
+        oura: (d['oura'] as unknown[]) || [],
+        nutrition: (d['nutrition'] as unknown[]) || [],
+        sessions: (d['sessions'] as unknown[]) || [],
+        body: (d['body'] as unknown[]) || [],
+        heightCm: profile?.height_cm != null ? Number(profile.height_cm) : null,
+        strain: d['strain'] || null,
+        strava: (d['strava'] as unknown[]) || [],
+        projects: (d['projects'] as unknown[]) || [],
+        moves: (d['moves'] as unknown[]) || [],
+        goals: d['goals'] || null,
+        sprintGoals: (d['sprintGoals'] as unknown[]) || [],
+        stream: (d['stream'] as unknown[]) || [],
+        patterns: (d['patterns'] as unknown[]) || [],
+        wins: (d['wins'] as unknown[]) || [],
+        wiki: (d['wiki'] as unknown[]) || [],
+        knowledge: (d['knowledge'] as unknown[]) || [],
+        lenieLogs: (d['lenieLogs'] as unknown[]) || [],
+        habits: (d['habits'] as unknown[]) || [],
+        habitLogs: (d['habitLogs'] as unknown[]) || [],
+        marathon: d['marathon'] || null,
+      };
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes stale time
   });
 
-  const load = useCallback(async (force = false) => {
-    if (!userId) return;
-    
-    if (!force && globalCache && Date.now() - lastFetchTime < 5 * 60 * 1000) {
-      setS({ ...globalCache, loading: false });
-      return;
-    }
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: desktopKeys.dashboard(userId || '') });
+  };
 
-    // Only set loading to true if we don't have cached data to prevent UI flashing
-    if (!globalCache) {
-      setS(p => ({ ...p, loading: true }));
-    }
-    
-    const { data, error } = await supabase.rpc('get_desktop_dashboard_data', { p_user_id: userId });
-    const { data: profile } = await supabase
-      .from('nutrition_profile')
-      .select('height_cm')
-      .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (error) {
-      console.warn('[useDesktopData] RPC failed, using direct fallback:', error.message);
-      const fallback = await fetchDashboardFallback(userId);
-      const fallbackData = {
-        oura: fallback.oura,
-        nutrition: fallback.nutrition,
-        sessions: fallback.sessions,
-        body: fallback.body,
-        heightCm: fallback.heightCm,
-        strain: fallback.strain,
-        strava: fallback.strava,
-        projects: fallback.projects,
-        moves: fallback.moves,
-        goals: fallback.goals,
-        sprintGoals: fallback.sprintGoals,
-        stream: [],
-        patterns: [],
-        wins: [],
-        wiki: [],
-        knowledge: [],
-        lenieLogs: [],
-        habits: fallback.habits,
-        habitLogs: fallback.habitLogs,
-        marathon: fallback.marathon,
-      };
-      globalCache = fallbackData;
-      lastFetchTime = Date.now();
-      setS({ ...fallbackData, loading: false });
-      return;
-    }
+  const fallbackData = {
+    oura: [],
+    nutrition: [],
+    sessions: [],
+    body: [],
+    heightCm: null,
+    strain: null,
+    strava: [],
+    projects: [],
+    moves: [],
+    goals: null,
+    sprintGoals: [],
+    stream: [],
+    patterns: [],
+    wins: [],
+    wiki: [],
+    knowledge: [],
+    lenieLogs: [],
+    habits: [],
+    habitLogs: [],
+    marathon: null,
+  };
 
-    const d = data as any;
-    const finalData = {
-      oura: d?.oura || [],
-      nutrition: d?.nutrition || [],
-      sessions: d?.sessions || [],
-      body: d?.body || [],
-      heightCm: profile?.height_cm != null ? Number(profile.height_cm) : null,
-      strain: d?.strain || null,
-      strava: d?.strava || [],
-      projects: d?.projects || [],
-      moves: d?.moves || [],
-      goals: d?.goals || null,
-      sprintGoals: d?.sprintGoals || [],
-      stream: d?.stream || [],
-      patterns: d?.patterns || [],
-      wins: d?.wins || [],
-      wiki: d?.wiki || [],
-      knowledge: d?.knowledge || [],
-      lenieLogs: d?.lenieLogs || [],
-      habits: d?.habits || [],
-      habitLogs: d?.habitLogs || [],
-      marathon: d?.marathon || null,
-    };
-    
-    globalCache = finalData;
-    lastFetchTime = Date.now();
-    setS({ ...finalData, loading: false });
-  }, [userId]);
+  const d = query.data || fallbackData;
 
-  useEffect(() => {
-    void (async () => { await load(); })();
-  }, [load]);
-
-  return { ...s, refresh: () => load(true) };
+  return {
+    loading: query.isLoading,
+    ...d,
+    refresh,
+  };
 }

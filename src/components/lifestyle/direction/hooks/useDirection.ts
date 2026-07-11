@@ -116,9 +116,9 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
       setWeekOura(raw.ouraData ?? []);
       setWeekRuns(raw.runsData ?? []);
       setWeekNutrition(raw.nutritionData ?? []);
-      setNutritionTarget((raw.nutritionTargetData as any)?.target_kcal ?? null);
-      setWeekDoneTasks((raw.doneTasksData ?? []).map((t: any) => ({ title: t.title, status: t.status })));
-      setActiveProjects((raw.projectsData ?? []).map((p: any) => ({ id: p.id, name: p.name })));
+      setNutritionTarget((raw.nutritionTargetData as { target_kcal?: number | null } | null)?.target_kcal ?? null);
+      setWeekDoneTasks((raw.doneTasksData ?? []).map((t: { title: string; status: string }) => ({ title: t.title, status: t.status })));
+      setActiveProjects((raw.projectsData ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
 
       if (raw.monthReviewData) {
         setMonthReview(raw.monthReviewData);
@@ -146,9 +146,9 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         if (reviewData.do_differently) setDoDifferently(reviewData.do_differently);
         if (reviewData.sabotage) setSabotage(reviewData.sabotage);
         if (reviewData.obligation) setObligation(reviewData.obligation);
-        if ((reviewData as any).week_highlight) setWeekHighlight((reviewData as any).week_highlight);
-        if ((reviewData as any).week_regret) setWeekRegret((reviewData as any).week_regret);
-        if ((reviewData as any).new_belief) setNewBelief((reviewData as any).new_belief);
+        if (reviewData.week_highlight) setWeekHighlight(reviewData.week_highlight);
+        if (reviewData.week_regret) setWeekRegret(reviewData.week_regret);
+        if (reviewData.new_belief) setNewBelief(reviewData.new_belief);
         if (reviewData.pillar_scores && typeof reviewData.pillar_scores === 'object' && !Array.isArray(reviewData.pillar_scores)) {
           setPillarScores(prev => ({ ...prev, ...(reviewData.pillar_scores as Partial<PillarScores>) }));
         }
@@ -162,13 +162,13 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         if (hasReflection) setReflectionPersisted(true);
       }
 
-      const planSource = raw.planReviewData ?? (isSunday ? null : reviewData);
+      const planSource: WeeklyReviewRow | null = raw.planReviewData ?? (isSunday ? null : reviewData);
       if (planSource) {
-        if ((planSource as any).week_intention) setWeekIntention((planSource as any).week_intention);
-        if ((planSource as any).week_commitment) setWeekCommitment((planSource as any).week_commitment);
-        if ((planSource as any).week_goal_cialo) setWeekGoalCialo((planSource as any).week_goal_cialo);
-        if ((planSource as any).week_goal_duch) setWeekGoalDuch((planSource as any).week_goal_duch);
-        if ((planSource as any).week_goal_konto) setWeekGoalKonto((planSource as any).week_goal_konto);
+        if (planSource.week_intention) setWeekIntention(planSource.week_intention);
+        if (planSource.week_commitment) setWeekCommitment(planSource.week_commitment);
+        if (planSource.week_goal_cialo) setWeekGoalCialo(planSource.week_goal_cialo);
+        if (planSource.week_goal_duch) setWeekGoalDuch(planSource.week_goal_duch);
+        if (planSource.week_goal_konto) setWeekGoalKonto(planSource.week_goal_konto);
       }
     } catch (err: unknown) {
       console.warn('[useDirection] Failed to fetch direction data:', err);
@@ -213,7 +213,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   const actions = createDirectionActions({
     userId, session, haptics,
     closingWeekStart, closingMonthStart, isSunday, planTargetWeekStart,
-    setHistory: setHistory as any,
+    setHistory,
     setCurrentReview, setReflectionPersisted,
     setPhase2, setPhase2Loading, setSavingReflection,
     setMonthReview, setMonthCompleting,

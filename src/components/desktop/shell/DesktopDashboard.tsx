@@ -51,12 +51,12 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const userId      = session?.user?.id;
   const accessToken = session?.access_token;
   const { pendingGrowthMustCount } = useNudgeData(userId);
-  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, habits: habitsData, habitLogs: habitLogsData, marathon, refresh } = useDesktopData(userId);
+  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, marathon, refresh } = useDesktopData(userId);
 
   const {
     habits, habitLogs, isAddingHabit, setIsAddingHabit,
     newHabit, setNewHabit, addHabit, deleteHabit, toggleHabit,
-  } = useHabitsData({ userId, habitsData, habitLogsData });
+  } = useHabitsData({ userId });
 
   const {
     dreams, newDreamTitle, setNewDreamTitle, newDreamCategory, setNewDreamCategory,

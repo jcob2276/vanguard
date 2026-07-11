@@ -13,11 +13,15 @@ import { createTelegramContext } from "../vanguard-telegram/_router/config.ts";
 import { handleCallbackQuery } from "../vanguard-telegram/_router/callbacks.ts";
 import { handleIncomingMessage } from "../vanguard-telegram/_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
+import { requireServiceRole } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   let recordId: string | null = null;
   try {

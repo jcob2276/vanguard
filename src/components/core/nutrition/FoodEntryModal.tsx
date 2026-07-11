@@ -81,6 +81,9 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     : savedFlash ? '✓ Dodano!' : 'Dodaj posiłek';
 
   return createPortal(
+    // NOTE: custom overlay — FoodEntryModal is a bottom-sheet that listens to window.visualViewport 'resize'
+    // events to adjust its margin-bottom dynamically and prevent iOS/Android virtual keyboards from
+    // covering the input area. ui/Modal has no visual-viewport keyboard detection, so a raw overlay is used.
     <div
       className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}

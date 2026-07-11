@@ -71,14 +71,14 @@ export function usePowerListEffects({
         const projectData = new Map((projects ?? []).map((p: any) => [p.id, p]));
         const result: Record<string, { name: string; color: string | null }> = {};
         for (const item of items ?? []) {
-          const section = sectionMap.get(item.section_id) as any;
-          const project = section?.project_id ? projectData.get(section.project_id) as any : null;
+          const section = sectionMap.get(item.section_id) as { project_id?: string } | undefined;
+          const project = section?.project_id ? projectData.get(section.project_id) as { name: string; color: string | null } | undefined : null;
           if (project) result[item.id] = { name: project.name, color: project.color };
         }
         for (let i = 1; i <= 5; i++) {
           const pid = todayWin?.[`task_${i}_project_id`] as string | null;
           if (pid && projectData.has(pid)) {
-            const project = projectData.get(pid) as any;
+            const project = projectData.get(pid) as { name: string; color: string | null };
             result[`task_project_${i}`] = { name: project.name, color: project.color };
           }
         }

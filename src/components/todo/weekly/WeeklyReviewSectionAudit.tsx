@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Folder, Calendar, Check, Trash2 } from 'lucide-react';
+import EmptyState from '../../ui/EmptyState';
 import type { Database } from '../../../lib/database.types';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
@@ -28,9 +29,7 @@ export default function WeeklyReviewSectionAudit() {
       </div>
 
       {activeSections.length === 0 ? (
-        <div className="py-12 text-center text-text-muted/60 italic text-[12px] bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-dashed border-border-custom/40">
-          Brak otwartych zadań w projektach do audytu.
-        </div>
+        <EmptyState icon="✅" label="Brak otwartych zadań w projektach do audytu." />
       ) : (
         <div className="space-y-4">
           {/* Current Section Indicator Tabs */}

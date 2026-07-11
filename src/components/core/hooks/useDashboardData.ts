@@ -1,5 +1,6 @@
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { startOfWeek } from 'date-fns';
 import { VanguardCore, computeSignals } from '../../../lib/vanguardCore';
@@ -8,6 +9,11 @@ import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
 import { useGoalSpineInvalidation } from '../../../hooks/useGoalSpineInvalidation';
 import { Session } from '@supabase/supabase-js';
 import type { WorldState } from '../../../../supabase/functions/_shared/worldState';
+
+export const mobileDashboardKeys = {
+  all: ['mobileDashboard'] as const,
+  main: (userId: string) => [...mobileDashboardKeys.all, 'main', userId] as const,
+};
 
 type DashboardData = {
   weeklyCalories: number;
@@ -21,26 +27,20 @@ type DashboardData = {
 };
 
 export function useDashboardData() {
-  const [data, setData] = useState<DashboardData>({
-    weeklyCalories: 0,
-    todayWin: null,
-    proteinToday: 0,
-    hasWorkoutToday: false,
-    ouraToday: [],
-    readiness: 0,
-    loading: true
-  });
+  const queryClient = useQueryClient();
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const mountedRef = useRef(true);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUserId(session.user.id);
+    });
+  }, []);
 
-  const fetchData = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      if (mountedRef.current) setData((prev) => ({ ...prev, loading: false }));
-      return;
-    }
-    
-    try {
+  const query = useQuery({
+    queryKey: mobileDashboardKeys.main(userId || ''),
+    queryFn: async () => {
+      if (!userId) throw new Error('User ID is required');
+
       const today = getTodayWarsaw();
       const todayDate = new Date(today + 'T12:00:00Z');
       const mondayDate = startOfWeek(todayDate, { weekStartsOn: 1 });
@@ -50,42 +50,32 @@ export function useDashboardData() {
       const { data: wsRow } = await supabase
         .from('vanguard_world_state')
         .select('state_json')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .eq('date', today)
         .maybeSingle();
 
       if (wsRow?.state_json) {
         const state = wsRow.state_json as unknown as WorldState;
-        // today_win is actively edited within the session (checking off wins) —
-        // world_state is only refreshed once nightly, so serving it from cache
-        // means every toggle click gets immediately overwritten by stale state
-        // on the refresh() that follows it. Always fetch it live; the rest of
-        // world_state (biometrics/nutrition/training) is fine cached.
+        // serve today_win live so updates reflect immediately on refresh()
         const { data: liveTodayWin } = await supabase
           .from('daily_wins')
           .select('*, daily_win_tasks(*)')
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .eq('date', today)
           .maybeSingle();
-        if (mountedRef.current) {
-          setData({
-            weeklyCalories: state.nutrition?.weekly_calories ?? 0,
-            todayWin: liveTodayWin ?? state.execution?.today_win ?? null,
-            proteinToday: state.nutrition?.protein_today ?? 0,
-            hasWorkoutToday: state.training?.has_workout_today ?? false,
-            ouraToday: state.biometrics?.oura_history ?? [],
-            readiness: state.biometrics?.readiness_score ?? 0,
-            loading: false
-          });
-          return;
-        }
+
+        return {
+          weeklyCalories: state.nutrition?.weekly_calories ?? 0,
+          todayWin: liveTodayWin ?? state.execution?.today_win ?? null,
+          proteinToday: state.nutrition?.protein_today ?? 0,
+          hasWorkoutToday: state.training?.has_workout_today ?? false,
+          ouraToday: state.biometrics?.oura_history ?? [],
+          readiness: state.biometrics?.readiness_score ?? 0,
+        };
       }
 
       // 2. Fallback to live computation if cached row is missing or there's an error
       console.log('[useDashboardData] Cached world state missing, falling back to live calculation');
-
-      let totalCal = 0;
-      let todayData = null;
 
       const [
         nutritionRes,
@@ -95,20 +85,13 @@ export function useDashboardData() {
         ouraDataRes,
         lastWorkoutRes
       ] = await Promise.all([
-        supabase.from('daily_nutrition').select('calories').eq('user_id', session.user.id).gte('date', monday),
-        supabase.from('daily_wins').select('*, daily_win_tasks(*)').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('daily_nutrition').select('protein').eq('user_id', session.user.id).eq('date', today).maybeSingle(),
-        supabase.from('workout_sessions').select('id').eq('user_id', session.user.id).eq('date', today).limit(1).maybeSingle(),
-        supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).order('date', { ascending: false }).limit(30),
-        supabase.from('workout_sessions').select('date').eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle()
+        supabase.from('daily_nutrition').select('calories').eq('user_id', userId).gte('date', monday),
+        supabase.from('daily_wins').select('*, daily_win_tasks(*)').eq('user_id', userId).eq('date', today).maybeSingle(),
+        supabase.from('daily_nutrition').select('protein').eq('user_id', userId).eq('date', today).maybeSingle(),
+        supabase.from('workout_sessions').select('id').eq('user_id', userId).eq('date', today).limit(1).maybeSingle(),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(30),
+        supabase.from('workout_sessions').select('date').eq('user_id', userId).order('date', { ascending: false }).limit(1).maybeSingle()
       ]);
-
-      if (nutritionRes.error) console.warn('[dashboard] nutrition:', nutritionRes.error.message);
-      if (tDataRes.error) console.warn('[dashboard] daily_wins:', tDataRes.error.message);
-      if (protDataRes.error) console.warn('[dashboard] protein:', protDataRes.error.message);
-      if (workoutTodayRes.error) console.warn('[dashboard] workout:', workoutTodayRes.error.message);
-      if (ouraDataRes.error) console.warn('[dashboard] oura:', ouraDataRes.error.message);
-      if (lastWorkoutRes.error) console.warn('[dashboard] lastWorkout:', lastWorkoutRes.error.message);
 
       const nutrition = nutritionRes.data;
       const tData = tDataRes.data;
@@ -117,39 +100,37 @@ export function useDashboardData() {
       const ouraData = ouraDataRes.data;
       const lastWorkout = lastWorkoutRes.data;
 
-      totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
-      todayData = tData;
+      const totalCal = nutrition?.reduce((sum, n) => sum + (n.calories || 0), 0) || 0;
 
       // --- NOWY SILNIK VANGUARD CORE ---
-      const core = new VanguardCore(session.user.id, supabase);
+      const core = new VanguardCore(userId, supabase);
 
       const signals = computeSignals(
         ouraData?.[0] || null,
-        todayData,
+        tData,
         { protein: protData?.protein || 0 },
         lastWorkout?.date || null
       );
 
       await core.determineState(signals);
 
-      if (!mountedRef.current) return;
-      setData({
+      return {
         weeklyCalories: totalCal,
-        todayWin: todayData,
+        todayWin: tData,
         proteinToday: protData?.protein || 0,
         hasWorkoutToday: !!workoutToday,
         ouraToday: ouraData || [],
         readiness: ouraData?.[0]?.readiness_score || 0,
-        loading: false
-      });
+      };
+    },
+    enabled: !!userId,
+  });
 
-    } catch (err: unknown) {
-      console.error('Error fetching dashboard data:', err);
-      setData(prev => ({ ...prev, loading: false, error: err instanceof Error ? (err as Error).message : 'Unknown error' }));
+  const refresh = useCallback(async () => {
+    if (userId) {
+      await queryClient.invalidateQueries({ queryKey: mobileDashboardKeys.main(userId) });
     }
-  }, []);
-
-  useGoalSpineInvalidation(fetchData);
+  }, [queryClient, userId]);
 
   const autoSyncCalendar = async (session: Session) => {
     try {
@@ -177,18 +158,34 @@ export function useDashboardData() {
         });
       }
     } catch (_e: unknown) {
-      // silent — calendar sync nie może blokować ładowania dashboardu
+      // silent
     }
   };
 
   useEffect(() => {
-    mountedRef.current = true;
-    void fetchData();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) autoSyncCalendar(session);
-    });
-    return () => { mountedRef.current = false; };
-  }, [fetchData]);
+    if (userId) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) autoSyncCalendar(session);
+      });
+    }
+  }, [userId]);
 
-  return { ...data, refresh: fetchData };
+  useGoalSpineInvalidation(refresh);
+
+  const fallbackData = {
+    weeklyCalories: 0,
+    todayWin: null,
+    proteinToday: 0,
+    hasWorkoutToday: false,
+    ouraToday: [],
+    readiness: 0,
+  };
+
+  const d = query.data || fallbackData;
+
+  return {
+    ...d,
+    loading: query.isLoading,
+    refresh,
+  };
 }

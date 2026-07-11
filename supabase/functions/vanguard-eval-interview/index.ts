@@ -9,6 +9,7 @@
  * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { requireServiceRole } from "../_shared/auth.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { sendMessageParsed } from "../_shared/telegram.ts";
@@ -72,6 +73,9 @@ function buildDeterministicMemoryQuestion(memoryContext: any): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   try {
     let manual = false;

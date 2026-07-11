@@ -92,7 +92,7 @@ export default function GoalCreateModal({
               <div className="space-y-2">
                 {PILLARS.map(p => {
                   const meta = PILLAR_META[p];
-                  const lg = (lifeGoals as any)?.[`goal_${p}`];
+                  const lg = (lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | undefined;
                   return (
                     <button
                       key={p}

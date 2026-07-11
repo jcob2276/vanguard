@@ -155,6 +155,9 @@ export default function EndMyopiaCalculator() {
           MEASURE PHASE — full-screen, immersive
       ══════════════════════════════════════════════ */}
       {phase === 'measure' && (
+        // NOTE: custom overlay — EndMyopiaCalculator renders full-screen immersive camera measurement phases
+        // (measure / captured / saved). These require full-viewport coverage with camera PIP and focus
+        // target elements. ui/Modal cannot provide this full-screen camera layout.
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
 
           {/* PIP Camera - top right corner */}
@@ -246,6 +249,7 @@ export default function EndMyopiaCalculator() {
           CAPTURED PHASE — result screen
       ══════════════════════════════════════════════ */}
       {phase === 'captured' && (
+        // NOTE: custom overlay — see 'measure' phase comment above.
         <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6 gap-8">
           <div className="w-full max-w-xs rounded-3xl bg-surface border-2 border-primary/30 p-8 text-center shadow-2xl">
             <p className="text-[10px] uppercase tracking-widest text-text-muted mb-5 font-bold">
@@ -295,6 +299,7 @@ export default function EndMyopiaCalculator() {
           SAVED PHASE — success flash
       ══════════════════════════════════════════════ */}
       {phase === 'saved' && (
+        // NOTE: custom overlay — see 'measure' phase comment above.
         <div className="fixed inset-0 z-50 bg-emerald-950 flex flex-col items-center justify-center gap-4">
           <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
             <Check size={36} className="text-emerald-400" />

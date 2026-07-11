@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { desktopKeys } from '../desktop/shell/useDesktopData';
 import {
   listProjects,
   listProjectCheckpoints,
@@ -26,6 +28,7 @@ export type GoalCreatePreview = {
 };
 
 export function useProjectsData(userId: string) {
+  const queryClient = useQueryClient();
   const [projects, setProjects]   = useState<ProjectRow[]>([]);
   const [sections, setSections]   = useState<TodoSectionRow[]>([]);
   const [items, setItems]         = useState<TodoItemRow[]>([]);
@@ -92,10 +95,14 @@ export function useProjectsData(userId: string) {
 
   const run = useCallback(async (fn: () => Promise<unknown>) => {
     setBusy(true);
-    try { await fn(); await fetchAll(); }
+    try {
+      await fn();
+      await fetchAll();
+      void queryClient.invalidateQueries({ queryKey: desktopKeys.dashboard(userId) });
+    }
     catch (err: unknown) { setError((err as Error).message); }
     finally { setBusy(false); }
-  }, [fetchAll]);
+  }, [fetchAll, queryClient, userId]);
 
   return {
     // raw data

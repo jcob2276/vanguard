@@ -240,6 +240,9 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   return (
     <WeeklyReviewContext.Provider value={contextValue}>
+      {/* NOTE: custom overlay — WeeklyReviewModal is a 6-step wizard with a sticky header (step indicator),
+          a scrollable body, and a sticky footer (navigation buttons). ui/Modal has no sticky-header/footer
+          layout support, so a raw fixed overlay is intentional here. */}
       <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
 

@@ -9,6 +9,7 @@
  * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { requireServiceRole } from "../_shared/auth.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
 import { openaiChat } from "../_shared/openai.ts"
@@ -424,6 +425,9 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   const supabase = createServiceClient();
 

@@ -35,3 +35,17 @@ export const READINESS_MAP: Record<string, { label: string; color: string; bg: s
   rundown:      { label: '↓ Wyczerpany',            color: 'text-rose-600 dark:text-rose-400',        bg: 'bg-rose-500/10 border-rose-500/20' },
   insufficient: { label: '– Za mało danych',        color: 'text-text-muted',                         bg: 'bg-surface-solid border-border-custom' },
 };
+export interface StrainComponents {
+  recovery_confidence?: 'calibrating' | 'building' | 'solid';
+  strain_confidence?: 'calibrating' | 'building' | 'solid';
+  caffeine_active_mg?: number | null;
+  sleep_debt_h?: number | null;
+  hrv_z?: number | null;
+  rhr_z?: number | null;
+  sleep_score_today?: number | null;
+  sleep_z?: number | null;
+  fueling_score?: number | null;
+  readiness_signals?: Array<{ key: string; flag: string; detail: string }> | null;
+  wellness_load?: number | null;
+  explanation?: string | null;
+}

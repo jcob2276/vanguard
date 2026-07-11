@@ -17,6 +17,9 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
   if (!show) return null;
   return (
     <>
+      {/* NOTE: custom overlay — DashboardFastCapturMenu is a FAB radial action popup anchored above the FAB
+          button via calc(bottom) coordinates. ui/Modal centers content on screen and cannot provide
+          the required position, so a raw fixed overlay is intentional here. */}
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-35 bg-black/40 backdrop-blur-[2.5px] transition-all animate-fadeIn"

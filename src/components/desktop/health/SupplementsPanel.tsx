@@ -1,5 +1,6 @@
 import { Pill, Plus, X, AlertCircle } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
+import EmptyState from '../../ui/EmptyState';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { useSupplementsData } from './useSupplementsData';
 import SupplementCard from './SupplementCard';
@@ -53,9 +54,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       {data.loading ? (
         <div className="flex justify-center items-center py-8"><Spinner size="sm" /></div>
       ) : data.activeSups.length === 0 ? (
-        <div className="py-6 text-center border border-dashed border-border-custom rounded-xl text-text-muted text-[11px]">
-          Brak aktywnych suplementów. Kliknij "Dodaj Cykl" powyżej.
-        </div>
+        <EmptyState icon="💊" label='Brak aktywnych suplementów. Kliknij "Dodaj Cykl" powyżej.' />
       ) : (
         <div className="space-y-3">
           {data.activeSups.map(sup => (
