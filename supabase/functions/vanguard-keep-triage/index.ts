@@ -16,6 +16,7 @@ const ACTIONS = new Set(["keep", "archive", "todo"]);
 const CATEGORIES = new Set(["Kariera", "Zdrowie", "Technologia", "Biznes", "Inne"]);
 const MAX_LINKS = 15;
 
+// Auth note: serveJson implicitly enforces resolveUserScope
 Deno.serve(serveJson(async (req, ctx) => {
   const body = await req.json().catch(() => ({}));
   const userId = ctx.userId ?? body.userId;

@@ -12,6 +12,7 @@ import { corsHeaders, createServiceClient } from '../_shared/supabase.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 import { sendMessage } from '../_shared/telegram.ts'
+import { getVanguardUserId } from '../_shared/constants.ts'
 // Force upload of domain package for shared dependencies
 import type {} from "@vanguard/domain";
 
@@ -77,8 +78,9 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
 
       const macro = parseJsonFromContent(response.content) as any
       if (macro && typeof macro.calories === 'number') {
+        const entryRow = entries.find(e => e.name === name)
         const insertData = {
-          user_id: entries[0].user_id || '00000000-0000-0000-0000-000000000000', // We need a real user_id. Let's get the user_id from the first entry of this name
+          user_id: entryRow?.user_id || getVanguardUserId(),
           barcode: null,
           name: name,
           brand: '[AI Librarian]',
@@ -91,10 +93,6 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
           source_type: 'nutrition_label',
           is_public: false
         }
-        
-        // Find user_id for this entry
-        const entryRow = entries.find(e => e.name === name)
-        // Wait, 'user_id' is not selected in the query above! Let's fix that below.
         
         results.push({ name, macro: insertData })
       }
