@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:edge": "deno test --no-check supabase/functions/_shared",
-    "db:update-types": "npx supabase gen types typescript --project-id pdvqkgfsqziqlhptatgf > src/lib/database.types.ts",
+    "db:update-types": "npx supabase gen types typescript --project-id pdvqkgfsqziqlhptatgf > src/lib/database.types.ts && cp src/lib/database.types.ts supabase/functions/_shared/database.types.ts",
     "db:check-drift": "node scripts/ops/check-migration-drift.mjs",
     "registry:generate": "node scripts/ops/generate-functions-registry.mjs",
     "check:edge": "node scripts/ops/check-edge-functions.mjs",
