@@ -1,5 +1,5 @@
 {
-  "src/components/biometrics/DailyStrainCard.tsx": 348,
+  "src/components/biometrics/DailyStrainCard.tsx": 268,
   "src/components/biometrics/WorkoutLogger.tsx": 442,
   "src/components/biometrics/workout/ExerciseCard.tsx": 390,
   "src/components/calendar/CalendarEventModal.tsx": 389,
@@ -20,7 +20,6 @@
   "src/components/desktop/health/SupplementsPanel.tsx": 73,
   "src/components/desktop/desktopUtils.ts": 413,
   "src/components/growth/GrowthView.tsx": 283,
-  "src/components/growth/GrowthWeekPlan.tsx": 321,
   "src/components/lifestyle/DirectionPlanningMode.tsx": 129,
   "src/components/lifestyle/LinksInbox.tsx": 533,
   "src/components/lifestyle/PowerList.tsx": 474,
@@ -33,6 +32,5 @@
   "src/components/growth/hooks/useGrowthData.ts": 384,
   "src/lib/dailyPlanProposal.ts": 361,
   "src/lib/database.types.ts": 6246,
-  "src/lib/health/foodLogging.ts": 386,
-  "src/lib/goal/goalSpine.mutations.ts": 345
+  "src/lib/health/foodLogging.ts": 386
 }

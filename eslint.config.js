@@ -35,7 +35,6 @@ const LEGACY_FILES = [
   'src/components/desktop/health/SupplementsPanel.tsx',
   'src/components/desktop/desktopUtils.ts',
   'src/components/growth/GrowthView.tsx',
-  'src/components/growth/GrowthWeekPlan.tsx',
   'src/components/lifestyle/DirectionPlanningMode.tsx',
   'src/components/lifestyle/LinksInbox.tsx',
   'src/components/lifestyle/PowerList.tsx',
@@ -53,7 +52,6 @@ const LEGACY_FILES = [
   'src/lib/dailyPlanProposal.ts',
   'src/lib/database.types.ts',
   'src/lib/health/foodLogging.ts',
-  'src/lib/goal/goalSpine.mutations.ts',
 ]
 
 // Targeted debt lists for the frontend boundary rules below (see docs/FRONTEND_GUIDE.md).

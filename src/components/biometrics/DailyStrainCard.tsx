@@ -1,53 +1,14 @@
 import { getTodayWarsaw } from '../../lib/date';
-import { NETWORK_TIMEOUT_MS, LIMITER_PL } from '../../lib/constants';
-import { useCallback, useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { RefreshCw, Zap, Activity, Moon, Thermometer, Footprints, BarChart2 } from 'lucide-react';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserId } from '../../store/useStore';
-import type { Tables } from '../../lib/database.types';
-import { useDailyStrainOura, useTriggerOuraSync, biometricsKeys } from '../../lib/biometricsApi';
-
-// VitalBands: color tile by z-score vs personal EWMA baseline (Strand VitalBands.swift)
-function zToVitalColor(z: number | null | undefined, defaultColor: string): string {
-  if (z == null) return defaultColor;
-  if (z >= 1.0)        return 'text-emerald-500 dark:text-emerald-400';
-  if (z >= -1.0)       return defaultColor;
-  if (z >= -2.0)       return 'text-amber-500 dark:text-amber-400';
-  return 'text-rose-500 dark:text-rose-400';
-}
-
-const CONF_PILL = {
-  solid:       'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  building:    'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  calibrating: 'bg-surface-solid text-text-muted border border-border-custom',
-};
-
-const SIGNAL_PILL: Record<string, string> = {
-  good:    'border-emerald-500/30 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400',
-  neutral: 'border-border-custom bg-surface-solid text-text-muted',
-  watch:   'border-amber-500/30 bg-amber-500/8 text-amber-600 dark:text-amber-400',
-  bad:     'border-rose-500/30 bg-rose-500/8 text-rose-600 dark:text-rose-400',
-};
-const CONF_LABEL = { solid: 'Solid', building: 'Building', calibrating: 'Calibrating' };
-
-const STATUS_RING = {
-  green:  '!border-emerald-500/20',
-  yellow: '!border-amber-500/20',
-  red:    '!border-rose-500/25',
-};
-const STATUS_GLOW = { green: 'bg-emerald-500/5', yellow: 'bg-amber-500/5', red: 'bg-rose-500/5' };
-
-const READINESS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  primed:       { label: '⚡ Gotowy do działania', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  balanced:     { label: '✓ Zbalansowany',          color: 'text-sky-600 dark:text-sky-400',         bg: 'bg-sky-500/10 border-sky-500/20' },
-  strained:     { label: '⚠ Zmęczony',             color: 'text-amber-600 dark:text-amber-400',      bg: 'bg-amber-500/10 border-amber-500/20' },
-  rundown:      { label: '↓ Wyczerpany',            color: 'text-rose-600 dark:text-rose-400',        bg: 'bg-rose-500/10 border-rose-500/20' },
-  insufficient: { label: '– Za mało danych',        color: 'text-text-muted',                         bg: 'bg-surface-solid border-border-custom' },
-};
+import { useDailyStrainOura, biometricsKeys } from '../../lib/biometricsApi';
+import { zToVitalColor, CONF_PILL, SIGNAL_PILL, CONF_LABEL, STATUS_RING, STATUS_GLOW, READINESS_MAP } from './dailyStrainCardStyles';
+import { useDailyStrainRefresh } from './hooks/useDailyStrainRefresh';
 
 
 export default function DailyStrainCard({
@@ -58,10 +19,9 @@ export default function DailyStrainCard({
   const userId = useUserId();
   const haptics = useHaptics();
   const queryClient = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
+  const { refreshing, refresh } = useDailyStrainRefresh(userId, queryClient, haptics);
 
   const { data: dbData, isLoading: loading, error: queryError } = useDailyStrainOura(userId!);
-  const triggerOuraSync = useTriggerOuraSync();
 
   // Force refetch on external refreshSignal
   useEffect(() => {
@@ -85,46 +45,6 @@ export default function DailyStrainCard({
   }, [dbData?.row?.date]);
 
   if (!userId) return null;
-
-  async function refresh(silent = false) {
-    if (refreshing) return;
-    setRefreshing(true);
-    if (!silent) haptics.light();
-    try {
-      const { data: { session: s } } = await supabase.auth.getSession();
-      const token = s?.access_token;
-      const base = import.meta.env.VITE_SUPABASE_URL;
-      const call = async (fn: string, body: Record<string, unknown>) => {
-        const response = await fetch(`${base}/functions/v1/${fn}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-        });
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          throw new Error(`${fn} failed: ${payload.error || response.statusText || response.status}`);
-        }
-        return response;
-      };
-
-      // sync runs enhanced + timeseries internally — one call does all three
-      await Promise.all([
-        call('sync', { service: 'strava' }).catch(err => console.warn('[DailyStrainCard] sync-strava failed:', err)),
-        call('sync', { service: 'oura', userId: userId }).catch(err => console.warn('[DailyStrainCard] sync-oura failed:', err)),
-      ]);
-
-      await call('vanguard-nightly?action=compute-daily-strain', { userId: userId, days: 2 });
-
-      await queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(userId!) });
-      if (!silent) haptics.success();
-    } catch (e: unknown) {
-      console.error('DailyStrainCard refresh:', e);
-      if (!silent) haptics.error();
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   if (loading) {
     return (
