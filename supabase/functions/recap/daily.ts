@@ -1,7 +1,7 @@
 import { sendMessageParsed } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
-import { getWarsawDayBoundaries } from "../_shared/time.ts";
+import { getWarsawDayBoundaries, getWarsawDateString } from "../_shared/time.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
@@ -125,7 +125,7 @@ export async function runDailyReconciliation(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const forceOverride = url.searchParams.get("force") === "true";
     const manual = url.searchParams.get("manual") === "true";
-    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+    const todayStr = getWarsawDateString();
 
     if (!forceOverride) {
       const { data: existing } = await supabase

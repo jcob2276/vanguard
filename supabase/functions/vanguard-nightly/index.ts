@@ -9,6 +9,7 @@
  * @status active
  */
 import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts';
+import { getWarsawDateString } from '../_shared/time.ts';
 import { requireServiceRole } from '../_shared/auth.ts';
 import { runSaveDailyAggregate } from '../_shared/nightly/aggregate.ts';
 import { runComputeDailyStrain } from '../_shared/nightly/metrics_strain.ts';
@@ -127,7 +128,7 @@ Deno.serve(async (req) => {
     const userId: string = body.userId;
     if (!userId) throw new Error('Missing userId in request body');
 
-    const todayStr = body.date || new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+    const todayStr = body.date || getWarsawDateString();
     const yesterdayStr = (() => {
       const d = new Date(todayStr + 'T12:00:00Z');
       d.setUTCDate(d.getUTCDate() - 1);

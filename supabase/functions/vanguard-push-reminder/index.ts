@@ -13,8 +13,7 @@ import { requireServiceRole } from "../_shared/auth.ts";
 // @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
 import { sendMessageParsed } from "../_shared/telegram.ts";
-// Force upload of domain package for shared dependencies
-import type {} from "@vanguard/domain";
+import { getWarsawDateString } from "../_shared/time.ts";
 
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
@@ -40,7 +39,7 @@ Deno.serve(async (req) => {
   const nowIso = now.toISOString();
 
   // Get current Warsaw date and time for supplement schedules
-  const warsawDate = now.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const warsawDate = getWarsawDateString(now);
   const warsawTime = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Warsaw",
     hour: "2-digit",

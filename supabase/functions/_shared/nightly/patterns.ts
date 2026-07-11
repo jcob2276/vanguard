@@ -27,7 +27,7 @@ interface DetectorResult {
 }
 
 function insightToDetector(insight: PatternInsight): DetectorResult {
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const today = getWarsawDateString();
   const signature = `${insight.type}:${insight.title.toLowerCase().replace(/\s+/g, "_").substring(0, 80)}`;
   const visible =
     insight.type === "plan_adherence_gap"

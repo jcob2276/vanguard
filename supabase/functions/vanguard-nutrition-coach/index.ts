@@ -13,12 +13,12 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { fetchMedicalContext } from "../_shared/medicalContext.ts";
-import { getWarsawDayBoundaries } from "../_shared/time.ts";
+import { getWarsawDayBoundaries, getWarsawDateString } from "../_shared/time.ts";
 
 const KCAL_PER_KG = 7700;            // ~kcal per kg body mass
 const OURA_CORRECTION = 0.88;        // wearables over-read active burn ~10-15%
 
-const toWarsaw = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+const toWarsaw = (d: Date) => getWarsawDateString(d);
 
 const mean = (xs: number[]): number | null =>
   xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;

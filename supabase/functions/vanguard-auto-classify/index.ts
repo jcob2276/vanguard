@@ -14,6 +14,7 @@ import { sendMessage } from '../_shared/telegram.ts'
 import { logCriticalError } from '../_shared/errorLogging.ts'
 import { logAuditEvent } from '../_shared/audit.ts'
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { getWarsawDateString } from "../_shared/time.ts";
 
 const TELEGRAM_TOKEN   = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
 const TELEGRAM_CHAT_ID = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') || '0');
@@ -103,7 +104,7 @@ async function handleTodoClassify(req: Request, body: any, supabase: any): Promi
     month: "long",
     year: "numeric",
   });
-  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const todayIso = getWarsawDateString();
 
   const userMsg = [
     `Zadanie: "${title}"`,
@@ -174,7 +175,7 @@ async function handleTodoExtract(req: Request, body: any): Promise<Response> {
   }
 
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
-  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Warsaw" });
+  const todayIso = getWarsawDateString();
   const system = TODO_EXTRACT_SYSTEM.replace("{{TODAY}}", todayIso);
 
   const result = await deepseekChat({
@@ -253,8 +254,7 @@ Deno.serve(async (req) => {
 
     console.log(`[auto-classify] start for record: ${record.id}`)
 
-    // Use Warsaw local date — toISOString() returns UTC which drifts at midnight (22:00 UTC in summer)
-    const today = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
+    const today = getWarsawDateString()
 
     const aggregate = await safeExecute(
       supabase
