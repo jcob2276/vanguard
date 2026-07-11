@@ -18,7 +18,7 @@
     "supabase/functions/vanguard-eval-interview/index.ts": 669,
     "supabase/functions/vanguard-eval-runner/index.ts": 535,
     "supabase/functions/vanguard-nutrition-coach/index.ts": 383,
-    "supabase/functions/vanguard-oracle/index.ts": 796,
+    "supabase/functions/vanguard-oracle/index.ts": 591,
     "supabase/functions/vanguard-oracle/oracle/rag.ts": 494,
     "supabase/functions/vanguard-oracle/oracle/systemPrompt.ts": 305,
     "supabase/functions/vanguard-telegram/_router/interceptors.ts": 733,
