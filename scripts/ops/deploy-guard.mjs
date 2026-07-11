@@ -12,8 +12,9 @@
 //   3. Records git_sha to audit_events after successful deploy
 
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 const root = process.cwd();
 const projectRef = "pdvqkgfsqziqlhptatgf";
@@ -119,18 +120,28 @@ if (targets.length > 0) {
 
 console.log("\n✓ Deploy complete. Recording to audit_events...");
 
+// Written to a temp file + `--file` instead of an inline quoted argument — embedded
+// newlines/quotes in the SQL broke shell quoting on Windows (cmd.exe splits on the
+// newline mid-argument, producing "syntax error at end of input"). See lessons.md.
+let sqlFile;
 try {
   const serviceName = targets.length === 1 ? targets[0] : "bulk-deploy";
-  const sql = `INSERT INTO audit_events (event_type, severity, message, metadata)
-VALUES ('deploy', 'info', 'Edge function deployed: ${serviceName}', '{"git_sha":"${sha}","functions":"${fnList}"}'::jsonb)`;
+  const metadata = JSON.stringify({ git_sha: sha, functions: fnList }).replace(/'/g, "''");
+  const message = `Edge function deployed: ${serviceName}`.replace(/'/g, "''");
+  const sql = `INSERT INTO audit_events (event_type, severity, message, metadata) VALUES ('deploy', 'info', '${message}', '${metadata}'::jsonb);`;
 
-  execSync(
-    `supabase db query --linked -o json "${sql.replace(/"/g, '\\"')}"`,
-    { cwd: root, encoding: "utf8" }
-  );
+  sqlFile = join(tmpdir(), `deploy-guard-${Date.now()}.sql`);
+  writeFileSync(sqlFile, sql, "utf8");
+
+  execSync(`supabase db query --linked -o json --file "${sqlFile}"`, {
+    cwd: root,
+    encoding: "utf8",
+  });
   console.log(`✓ Deploy logged: sha=${sha.substring(0, 8)}, fn=${serviceName}`);
 } catch (e) {
   console.warn(`⚠ Could not log deploy to audit_events: ${e.message}`);
+} finally {
+  if (sqlFile && existsSync(sqlFile)) unlinkSync(sqlFile);
 }
 
 console.log("\nDone. Run smoke test:");

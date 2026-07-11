@@ -73,7 +73,9 @@ const supabaseUrl =
   process.env.SUPABASE_URL?.replace(/\/$/, "") ||
   process.env.VITE_SUPABASE_URL?.replace(/\/$/, "") ||
   (PROJECT_REF !== "YOUR_PROJECT_REF" ? `https://${PROJECT_REF}.supabase.co` : "");
-const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// SB_SECRET_KEY is the var actually set in .env (matches _shared/supabase.ts's own
+// fallback order); SUPABASE_SERVICE_ROLE_KEY kept first for CI environments that set it.
+const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SB_SECRET_KEY || "";
 const cronSecret = process.env.VANGUARD_CRON_SECRET || "";
 const vanguardUserId =
   process.env.VANGUARD_USER_ID || "";
