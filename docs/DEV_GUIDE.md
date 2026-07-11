@@ -31,12 +31,17 @@ Funkcje ze statusem **`deprecated`** w README zwracają **410** — nie rozwijaj
 [ ] 4. Dodaj wiersz do supabase/functions/README.md (Status, Trigger, JWT, Key tables, LOC, Verified)
 [ ] 5. Jeśli verify_jwt: false — dodaj do listy w AGENTS.md i vanguard-ops.mdc
 [ ] 6. Jeśli cron — dodaj wiersz w docs/ARCHITECTURE.md (tabela pg_cron) + potwierdź w Supabase
-[ ] 7. Deploy → `npm run smoke` → sprawdź logi przez 5 minut → brak 401
+[ ] 7. Opcjonalnie: skrót w docs/TECHNICAL.md tylko jeśli sekcja jest oznaczona [CURRENT]
+[ ] 8. Deploy → `node scripts/ops/deploy-guard.mjs <function-name>` → `npm run smoke` → sprawdź logi przez 5 minut → brak 401
 ```
 
 ### Po deploy (obowiązkowe)
 
 ```powershell
+# Zalecana ścieżka deployu (sprawdza czyste drzewo + loguje git_sha):
+node scripts/ops/deploy-guard.mjs <function-name>
+
+# Lub ręcznie:
 npm run smoke
 # opcjonalnie po zmianie logiki (bez crona):
 npm run smoke:safe
