@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { PILLARS, PILLAR_META, GOAL_QUESTIONS, PillarId } from './projectUtils';
 import Spinner from '../ui/Spinner';
+import Modal from '../ui/Modal';
 
 export interface GoalCreateModalProps {
   lifeGoals: any;
@@ -68,22 +68,23 @@ export default function GoalCreateModal({
   const pm = goalCreatePillar ? PILLAR_META[goalCreatePillar] : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn">
-        {/* Header strip */}
-        <div className={`px-5 py-3 flex items-center justify-between ${pm ? pm.bg : 'bg-surface-solid/50'}`}>
-          <div className="flex items-center gap-2">
-            {pm && <pm.icon size={13} className={pm.text} />}
-            <span className={`text-[10px] font-black uppercase tracking-widest ${pm ? pm.text : 'text-text-muted'}`}>
-              {pm ? pm.label : 'Nowy cel'}
-            </span>
-          </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary cursor-pointer">
-            <X size={16} />
-          </button>
+    <Modal
+      isOpen
+      onClose={onClose}
+      showCloseButton={false}
+      size="sm"
+    >
+      {/* Header strip */}
+      <div className={`-mx-5 -mt-5 px-5 py-3 flex items-center justify-between ${pm ? pm.bg : 'bg-surface-solid/50'}`}>
+        <div className="flex items-center gap-2">
+          {pm && <pm.icon size={13} className={pm.text} />}
+          <span className={`text-[10px] font-black uppercase tracking-widest ${pm ? pm.text : 'text-text-muted'}`}>
+            {pm ? pm.label : 'Nowy cel'}
+          </span>
         </div>
+      </div>
 
-        <div className="p-5 space-y-5">
+      <div className="space-y-5">
           {/* PILLAR SELECTION */}
           {isPillar && (
             <div className="space-y-3">
@@ -257,7 +258,6 @@ export default function GoalCreateModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

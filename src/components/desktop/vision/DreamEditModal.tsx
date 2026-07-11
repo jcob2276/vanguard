@@ -1,5 +1,5 @@
-import { createPortal } from 'react-dom';
-import { Sparkles, X, Check, Star, Trash2 } from 'lucide-react';
+import { Sparkles, Check, Star, Trash2 } from 'lucide-react';
+import Modal from '../../ui/Modal';
 
 interface DreamEditModalProps {
   editingDream: any;
@@ -40,25 +40,14 @@ export default function DreamEditModal({
 }: DreamEditModalProps) {
   if (!editingDream) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
-      onClick={() => setEditingDream(null)}
+  return (
+    <Modal
+      isOpen
+      onClose={() => setEditingDream(null)}
+      title={<span className="flex items-center gap-2"><Sparkles size={14} className="text-primary" /> Pogłęb wizję</span>}
+      size="lg"
+      showCloseButton={false}
     >
-      <div
-        className="w-full max-w-lg rounded-[24px] border border-border-custom bg-surface p-6 shadow-2xl space-y-4"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-primary" />
-            <h2 className="font-display text-[15px] font-black text-text-primary">Pogłęb wizję</h2>
-          </div>
-          <button onClick={() => setEditingDream(null)} className="text-text-muted hover:text-text-primary cursor-pointer transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-
         <div className="space-y-1.5">
           <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
           <input
@@ -133,8 +122,6 @@ export default function DreamEditModal({
             <Trash2 size={13} />
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

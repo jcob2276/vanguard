@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Check, ListTodo, Plus, X } from 'lucide-react';
+import { BookOpen, ListTodo, Plus } from 'lucide-react';
 import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot, GrowthResourceType, LearningSkill } from '../../lib/growth/growth';
 import {
@@ -8,6 +8,7 @@ import {
   RESOURCE_TYPE_META,
   inferResourceType,
 } from '../../lib/growth/growth';
+import Modal from '../ui/Modal';
 
 export default function PinPickerModal({
   slot,
@@ -48,23 +49,22 @@ export default function PinPickerModal({
   const availableTodos = openTodos.filter((t) => !pinnedTodoIds.has(t.id));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-border-custom bg-background shadow-xl max-h-[88vh] flex flex-col">
-        <div className="flex items-center justify-between border-b border-border-custom px-4 py-3">
-          <div>
-            <h2 className="text-[13px] font-black uppercase tracking-wider text-text-primary">
-              Przypnij — {slot === 'must' ? 'MUST' : 'W toku'}
-            </h2>
-            <p className="text-[10px] text-text-muted mt-0.5">
-              Max {slot === 'must' ? MAX_MUST : MAX_ACTIVE} w slocie
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="p-1 text-text-muted cursor-pointer">
-            <X size={18} />
-          </button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="lg"
+      showCloseButton={false}
+    >
+      <div>
+        <h2 className="text-[13px] font-black uppercase tracking-wider text-text-primary">
+          Przypnij — {slot === 'must' ? 'MUST' : 'W toku'}
+        </h2>
+        <p className="text-[10px] text-text-muted mt-0.5">
+          Max {slot === 'must' ? MAX_MUST : MAX_ACTIVE} w slocie
+        </p>
+      </div>
 
-        <div className="px-4 pt-3 grid grid-cols-2 gap-2">
+      <div className="px-0 pt-3 grid grid-cols-2 gap-2">
           <div>
             <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Skill</label>
             <select
@@ -181,8 +181,7 @@ export default function PinPickerModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

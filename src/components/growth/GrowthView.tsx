@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Save, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
 import { notify } from '../../lib/notify';
@@ -17,6 +17,7 @@ import {
 import { getWeekEndExclusive } from '../../lib/growth/growthWeek';
 import { restoreDefaultSkillTree } from '../../lib/growth/growthSeed';
 import { DEFAULT_SKILL_TREE } from '../../lib/growth/growthSkills';
+import Modal from '../ui/Modal';
 import {
   buildLearningNeed,
   buildMediaQueue,
@@ -554,50 +555,39 @@ export default function GrowthView({ session }: { session: Session }) {
       )}
 
       {showScores && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border-custom bg-background shadow-xl">
-            <div className="sticky top-0 flex items-center justify-between border-b border-border-custom px-4 py-3 bg-background">
-              <p className="text-[11px] font-black uppercase text-text-muted">Oceny skilli · 0–5</p>
-              <div className="flex gap-2">
-                {editingScores && (
-                  <button
-                    type="button"
-                    onClick={() => void saveScores()}
-                    disabled={savingScores}
-                    className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[9px] font-black uppercase text-white cursor-pointer"
-                  >
-                    <Save size={10} /> Zapisz
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowScores(false);
-                    setEditingScores(false);
-                  }}
-                  className="p-1 text-text-muted cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-            <div className="p-4">
-              <SkillTreePanel
-                parents={parents}
-                childrenByParentId={childrenByParentId}
-                scores={editingScores ? draftScores : currentScores}
-                prevScores={null}
-                showPrev={false}
-                editing={editingScores}
-                draftScores={draftScores}
-                onDraftChange={(key, val) => setDraftScores((d) => ({ ...d, [key]: val }))}
-                grid={grid}
-                expandedParentId={expandedParentId}
-                onExpandParent={setExpandedParentId}
-              />
-            </div>
+        <Modal
+          isOpen
+          onClose={() => { setShowScores(false); setEditingScores(false); }}
+          title="Oceny skilli · 0–5"
+          size="xl"
+          showCloseButton={false}
+        >
+          <div className="flex justify-end gap-2 -mt-1 mb-2">
+            {editingScores && (
+              <button
+                type="button"
+                onClick={() => void saveScores()}
+                disabled={savingScores}
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[9px] font-black uppercase text-white cursor-pointer"
+              >
+                <Save size={10} /> Zapisz
+              </button>
+            )}
           </div>
-        </div>
+          <SkillTreePanel
+            parents={parents}
+            childrenByParentId={childrenByParentId}
+            scores={editingScores ? draftScores : currentScores}
+            prevScores={null}
+            showPrev={false}
+            editing={editingScores}
+            draftScores={draftScores}
+            onDraftChange={(key, val) => setDraftScores((d) => ({ ...d, [key]: val }))}
+            grid={grid}
+            expandedParentId={expandedParentId}
+            onExpandParent={setExpandedParentId}
+          />
+        </Modal>
       )}
     </div>
   );

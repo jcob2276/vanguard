@@ -1,6 +1,7 @@
 import React from 'react';
-import { Sparkles, X, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import type { SavedLink, TriageSuggestion } from '../../lib/linksApi';
+import Modal from '../ui/Modal';
 
 interface LinksTriagePanelProps {
   showTriagePanel: boolean;
@@ -24,18 +25,12 @@ export function LinksTriagePanel({
   if (!showTriagePanel) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70">
-      <div className="absolute inset-0" onClick={() => { if (!triageLoading) setShowTriagePanel(false); }} />
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-scale-up">
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-800 bg-slate-950/40">
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-[14px]">
-            <Sparkles size={16} />
-            <span>AI Triage - Sugestie Organizacji Linków</span>
-          </div>
-          <button onClick={() => setShowTriagePanel(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400">
-            <X size={16} />
-          </button>
-        </div>
+    <Modal
+      isOpen
+      onClose={() => { if (!triageLoading) setShowTriagePanel(false); }}
+      title={<span className="flex items-center gap-2 text-indigo-400"><Sparkles size={16} /> AI Triage - Sugestie Organizacji Linków</span>}
+      size="lg"
+    >
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {triageLoading && (
@@ -107,7 +102,6 @@ export function LinksTriagePanel({
             );
           })}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
