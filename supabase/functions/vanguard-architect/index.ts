@@ -2,7 +2,7 @@
  * @function vanguard-architect
  * @trigger HTTP POST / manual / webhook po zapisie streamu
  * @role Budowanie grafu wiedzy: przetwarza wpisy ze strumienia na encje i relacje (vanguard_entity_links).
- * @reads vanguard_stream, entities, vanguard_entity_links
+ * @reads vanguard_stream, entities, vanguard_entity_links, vanguard_daily_aggregates
  * @writes vanguard_entity_links, entities, entity_aliases
  * @calls deepseek-v4-flash
  * @consumer Graf wiedzy (wyświetlany w RAG Wyroczni i Wiki)

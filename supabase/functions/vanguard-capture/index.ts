@@ -2,8 +2,8 @@
  * @function vanguard-capture
  * @trigger HTTP POST / Frontend / extension
  * @role Szybkie przechwytywanie notatek tekstowych i głosowych oraz zapisywanie do bazy jako stream/linki.
- * @reads vanguard_stream, vanguard_entity_links, entities
- * @writes vanguard_stream, vanguard_raw_events, vanguard_entity_links, audit_events
+ * @reads vanguard_stream, vanguard_entity_links, entities, vanguard_relation_ontology, vanguard_links
+ * @writes vanguard_stream, vanguard_raw_events, vanguard_entity_links, audit_events, vanguard_relation_ontology, vanguard_links
  * @calls deepseek-v4-flash, text-embedding-3-small
  * @consumer Inbox w aplikacji frontendowej (stream i linki)
  * @status active

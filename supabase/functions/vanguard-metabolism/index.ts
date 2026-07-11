@@ -2,8 +2,8 @@
  * @function vanguard-metabolism
  * @trigger HTTP POST / manual
  * @role Metabolizm: kondensuje i trawi historyczne dane ze streamu, budując beliefs i narracje.
- * @reads vanguard_stream, entities, claims
- * @writes vanguard_stream (condensed/archived status)
+ * @reads vanguard_stream, entities, claims, vanguard_daily_aggregates, vanguard_entity_links
+ * @writes vanguard_stream (condensed/archived status), vanguard_daily_aggregates, vanguard_entity_links
  * @calls deepseek-v4-flash
  * @consumer Baza danych i RAG Wyroczni (zmniejszenie szumu)
  * @status active

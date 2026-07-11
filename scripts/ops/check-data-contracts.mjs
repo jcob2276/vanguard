@@ -89,7 +89,7 @@ function walk(dir) {
     const stat = fs.statSync(filePath);
     if (stat.isDirectory()) {
       if (file !== "node_modules" && file !== ".git") list = list.concat(walk(filePath));
-    } else if (/index\.ts$/.test(file) && !/\.test\.ts$/.test(file)) {
+    } else if (/\.ts$/.test(file) && !/\.test\.ts$/.test(file)) {
       list.push(filePath);
     }
   }
@@ -110,40 +110,62 @@ function ensureTable(name) {
   return tableMap.get(name);
 }
 
-const jsdocVsActual = []; // files where JSDoc @writes differs from actual
+// JSDoc @reads/@writes is a per-FUNCTION convention documented once on that function's
+// index.ts — it is meant to summarize the whole function, including its submodules
+// (_handlers/, _commands/, oracle/*.ts, etc.), which don't carry their own headers.
+// Comparing each submodule file against index.ts's header individually always "mismatches"
+// by design; the meaningful comparison is index.ts's JSDoc vs the UNION of actual access
+// across the whole function directory.
+const functionAccess = new Map(); // functionName -> { reads: Set, writes: Set, indexRel: string|null, indexJsdoc }
+
+function functionNameOf(rel) {
+  // rel like "supabase/functions/<fn>/..." -> "<fn>"
+  const parts = rel.split("/");
+  return parts[2] ?? null;
+}
 
 for (const file of allFiles) {
   const rel = path.relative(root, file).replace(/\\/g, "/");
   const content = fs.readFileSync(file, "utf8");
+  const isShared = rel.includes("_shared/");
 
-  // Skip _shared files for orphan reporting (they're libraries, not endpoints)
-  if (rel.includes("_shared/")) continue;
-
-  const jsdoc = parseJsDoc(content);
   const actual = scanActualAccess(content);
 
-  // JSDoc declared tables
-  for (const t of jsdoc.reads) {
-    ensureTable(t).readers.add(rel);
-  }
-  for (const t of jsdoc.writes) {
-    ensureTable(t).writers.add(rel);
-  }
+  // Actual .from() tables count for orphan-detection regardless of whether the file is an
+  // endpoint or a _shared/ library — a table read only from a _shared repo (e.g. entity_aliases
+  // via _shared/nightly/graphInvariants.ts) is NOT an orphan just because no index.ts touches it.
+  for (const t of actual.reads) ensureTable(t).readers.add(rel);
+  for (const t of actual.writes) ensureTable(t).writers.add(rel);
 
-  // Actual .from() tables (JSDoc might miss some)
-  for (const t of actual.reads) {
-    ensureTable(t).readers.add(rel);
-  }
-  for (const t of actual.writes) {
-    ensureTable(t).writers.add(rel);
-  }
+  if (isShared) continue;
 
-  // Check for JSDoc vs actual mismatch
-  const jsdocAll = new Set([...jsdoc.reads, ...jsdoc.writes]);
-  const actualAll = new Set([...actual.reads, ...actual.writes]);
+  const fn = functionNameOf(rel);
+  if (!fn) continue;
+  if (!functionAccess.has(fn)) {
+    functionAccess.set(fn, { reads: new Set(), writes: new Set(), indexRel: null, indexJsdoc: null });
+  }
+  const entry = functionAccess.get(fn);
+  for (const t of actual.reads) entry.reads.add(t);
+  for (const t of actual.writes) entry.writes.add(t);
+
+  const isIndex = rel === `supabase/functions/${fn}/index.ts`;
+  if (isIndex) {
+    const jsdoc = parseJsDoc(content);
+    entry.indexRel = rel;
+    entry.indexJsdoc = jsdoc;
+    for (const t of jsdoc.reads) ensureTable(t).readers.add(rel);
+    for (const t of jsdoc.writes) ensureTable(t).writers.add(rel);
+  }
+}
+
+const jsdocVsActual = []; // functions where index.ts JSDoc misses tables actually touched anywhere in the function
+for (const [fn, entry] of functionAccess) {
+  if (!entry.indexJsdoc) continue; // no index.ts found (shouldn't happen) — skip rather than false-flag
+  const jsdocAll = new Set([...entry.indexJsdoc.reads, ...entry.indexJsdoc.writes]);
+  const actualAll = new Set([...entry.reads, ...entry.writes]);
   const missingFromJsdoc = [...actualAll].filter((t) => !jsdocAll.has(t));
   if (missingFromJsdoc.length > 0) {
-    jsdocVsActual.push({ file: rel, missingInJsdoc: missingFromJsdoc });
+    jsdocVsActual.push({ file: entry.indexRel, missingInJsdoc: missingFromJsdoc });
   }
 }
 
@@ -166,7 +188,13 @@ for (const [table, { readers, writers }] of tableMap) {
 const jsonMode = process.argv.includes("--json");
 
 if (jsonMode) {
-  console.log(JSON.stringify({ orphans, jsdocVsActual, totalTables: tableMap.size }, null, 2));
+  const functionAccessOut = Object.fromEntries(
+    [...functionAccess.entries()].map(([fn, e]) => [
+      fn,
+      { reads: [...e.reads].sort(), writes: [...e.writes].sort(), indexRel: e.indexRel },
+    ]),
+  );
+  console.log(JSON.stringify({ orphans, jsdocVsActual, functionAccess: functionAccessOut, totalTables: tableMap.size }, null, 2));
 } else {
   console.log("Data contract check (supabase/functions/)\n");
 

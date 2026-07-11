@@ -2,7 +2,7 @@
  * @function vanguard-eval-runner
  * @trigger HTTP POST / manual
  * @role Uruchamia testy ewaluacyjne Wyroczni i zapisuje wyniki dokładności odpowiedzi.
- * @reads vanguard_eval_questions, vanguard_eval_runs, vanguard_eval_results, entities, claims, daily_reconciliations
+ * @reads vanguard_eval_questions, vanguard_eval_runs, vanguard_eval_results, entities, claims, daily_reconciliations, vanguard_daily_aggregates, daily_wins
  * @writes vanguard_eval_runs, vanguard_eval_results
  * @calls gpt-4o (jako sędzia w judgeAnswer), deepseek-v4-flash (wyrocznia testowana)
  * @consumer Wyniki ewaluacji widoczne w logach / bazie dla dewelopera

@@ -2,7 +2,7 @@
  * @function analyze-training-load
  * @trigger HTTP POST / Frontend / manual LLM analysis
  * @role Analiza obciążenia treningowego na podstawie sesji i planów.
- * @reads daily_strain, workout_sessions, strava_activities_clean, training_plan_workouts
+ * @reads daily_strain, workout_sessions, strava_activities_clean, training_plan_workouts, oura_daily_summary
  * @writes —
  * @calls deepseek-chat (w analysis.ts)
  * @consumer Sekcja treningowa w aplikacji

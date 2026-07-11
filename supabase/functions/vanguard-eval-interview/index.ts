@@ -2,8 +2,8 @@
  * @function vanguard-eval-interview
  * @trigger pg_cron Mon-Fri `0 10 * * 1-5` UTC (12:00 Warsaw) / manual
  * @role Interaktywny wywiad ("Wywiad"): zadaje na Telegramie jedno pytanie mające uzupełnić luki w grafie wiedzy.
- * @reads vanguard_eval_results, vanguard_eval_runs, vanguard_stream, daily_reconciliations
- * @writes vanguard_eval_results, vanguard_stream
+ * @reads vanguard_eval_results, vanguard_eval_runs, vanguard_stream, daily_reconciliations, vanguard_wiki_review_items, vanguard_entity_links, vanguard_curiosity_queue, vanguard_behavioral_patterns, vanguard_wiki_pages, confirmed_friction_events, oura_daily_summary, oracle_clarification_requests
+ * @writes vanguard_eval_results, vanguard_stream, oracle_clarification_requests, vanguard_wiki_review_items
  * @calls deepseek-v4-flash, api.telegram.org (poprzez send.ts)
  * @consumer Czat z botem na Telegramie (pytanie i odpowiedź)
  * @status active

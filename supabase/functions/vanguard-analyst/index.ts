@@ -2,8 +2,8 @@
  * @function vanguard-analyst
  * @trigger pg_cron `0 3 * * *` UTC (daily-analyst) / manual
  * @role Nocna analiza wzorców: wykrywa tarcia i sugeruje system_proposals na bazie korelacji.
- * @reads vanguard_stream, friction_events, vanguard_curiosity_queue, system_proposals
- * @writes system_proposals, audit_events
+ * @reads vanguard_stream, friction_events, vanguard_curiosity_queue, system_proposals, user_settings, vanguard_daily_aggregates, vanguard_behavioral_patterns, vanguard_entity_links, oura_hr_zones_daily, oura_enhanced
+ * @writes system_proposals, audit_events, vanguard_curiosity_queue, vanguard_stream
  * @calls deepseek-reasoner, api.telegram.org (poprzez send.ts)
  * @consumer Action Center w aplikacji frontendowej (propozycje system_proposals)
  * @status active
@@ -104,9 +104,12 @@ Deno.serve(async (req) => {
       .limit(20)
     if (graphErr) console.error('[analyst] graph query error:', graphErr);
 
-    // 3b. ZALEŻNOŚCI BIOMETRYCZNE — auto-liczone korelacje + obciążenie (Oura)
-    const [correlations, hrZones7d, ouraRecent] = await Promise.all([
-      supabase.from('oura_correlations').select('*').eq('user_id', user_id).maybeSingle(),
+    // 3b. ZALEŻNOŚCI BIOMETRYCZNE — obciążenie (Oura). Korelacje same liczą się w
+    // vanguard-nightly?action=compute-correlations (_shared/nightly/correlations.ts), nie tutaj —
+    // ta funkcja wcześniej odpytywała public.oura_correlations, tabelę która nigdy nie istniała
+    // (relikt sprzed drop'u vanguard_correlations, patrz ARCHITECTURE.md deprecated tables);
+    // zapytanie zawsze cicho failowało (błąd łapany, corr zawsze null) — usunięte.
+    const [hrZones7d, ouraRecent] = await Promise.all([
       supabase.from('oura_hr_zones_daily')
         .select('day, z3_tempo_min, z4_prog_min, z5_max_min, hr_max')
         .eq('user_id', user_id).order('day', { ascending: false }).limit(7),
@@ -114,21 +117,10 @@ Deno.serve(async (req) => {
         .select('date, readiness_score, sleep_score, stress_high_minutes, resilience_level, sleep_average_hrv')
         .eq('user_id', user_id).order('date', { ascending: false }).limit(7),
     ])
-    if (correlations.error) console.error('[analyst] correlations query error:', correlations.error);
     if (hrZones7d.error) console.error('[analyst] hrZones query error:', hrZones7d.error);
     if (ouraRecent.error) console.error('[analyst] ouraRecent query error:', ouraRecent.error);
 
-    // Tylko istotne zależności (|r| >= 0.25); reszta to szum przy małym n
-    const corr: any = correlations.data
-    let corrText = 'Brak danych korelacyjnych.'
-    if (corr) {
-      const strong = Object.entries(corr)
-        .filter(([k, v]) => k !== 'user_id' && k !== 'n_dni' && v !== null && Math.abs(Number(v)) >= 0.25)
-        .map(([k, v]) => `${k}: r=${v}`)
-      corrText = strong.length
-        ? `n=${corr.n_dni} dni. Istotne (|r|≥0.25): ${strong.join('; ')}`
-        : `n=${corr.n_dni} dni — brak istotnych korelacji (|r|<0.25). Za mało danych na pewne wnioski biometryczne.`
-    }
+    const corrText = 'Brak danych korelacyjnych.'
 
     const loadText = (hrZones7d.data || [])
       .map((z: any) => `${z.day}: Z3 ${z.z3_tempo_min || 0}min, Z4 ${z.z4_prog_min || 0}min, Z5 ${z.z5_max_min || 0}min, max ${z.hr_max || '—'}`)

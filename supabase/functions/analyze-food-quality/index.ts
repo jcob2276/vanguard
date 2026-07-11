@@ -2,8 +2,8 @@
  * @function analyze-food-quality
  * @trigger HTTP POST / Frontend / manual LLM analysis
  * @role Analiza jakości żywienia za dany dzień przy użyciu LLM.
- * @reads daily_food_entries, daily_nutrition
- * @writes —
+ * @reads daily_food_entries, daily_nutrition, fasting_logs, workout_sessions, strava_activities_clean
+ * @writes daily_food_entries, daily_nutrition
  * @calls deepseek-chat
  * @consumer Widok podsumowania jakości jedzenia w aplikacji
  * @status active

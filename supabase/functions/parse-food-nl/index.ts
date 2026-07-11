@@ -2,7 +2,7 @@
  * @function parse-food-nl
  * @trigger HTTP POST / Frontend NL meal parser
  * @role Parser posiłków z języka naturalnego na struktury danych z uwzględnieniem kontekstu użytkownika.
- * @reads daily_food_entries, user_settings, food_library
+ * @reads daily_food_entries, user_settings, food_library, nutrition_profile, nutrition_targets, body_metrics, food_favorites, food_corrections, user_portions
  * @writes —
  * @calls deepseek-chat (w foodParseCore.ts)
  * @consumer Zapis posiłków w aplikacji frontendowej i Telegramie

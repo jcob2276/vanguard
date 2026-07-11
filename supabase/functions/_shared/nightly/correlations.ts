@@ -128,7 +128,7 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
 
     const [
       strainR, ouraR, ouraEnhR, nutrR, aggregatesR, frictionR, foodR, consolidatedR,
-      winsR, reconR, suppLogR, suppR, stravaR, awR, habitR, bodyR, habitLogR,
+      winsR, reconR, suppLogR, suppR, stravaR, awR, bodyR, habitLogR,
     ] = await Promise.all([
       supabase.from('daily_strain')
         .select('date, strain_score, recovery_score, fueling_score, cardio_load, strength_load, cns_load, leg_load, mental_load_score, illness_score, components')
@@ -171,9 +171,6 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
         .eq('user_id', userId).gte('start_date', start90 + 'T00:00:00Z'),
       supabase.from('aw_daily_summary')
         .select('date, productivity_ratio, phone_active_seconds')
-        .eq('user_id', userId).gte('date', start90),
-      supabase.from('daily_habits')
-        .select('date, bar_hang, child_pose, chin_tucks, couch_stretch, glute_bridge, protein_170g')
         .eq('user_id', userId).gte('date', start90),
       supabase.from('body_metrics')
         .select('date, weight')
@@ -225,7 +222,8 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
       supplementRows,
       stravaRows,
       awRows: awR.data ?? [],
-      habitRows: habitR.data ?? [],
+      // daily_habits deprecated (see habit_logs/appendHabitLogMetrics) — dead query removed.
+      habitRows: [],
       bodyRows: bodyR.data ?? [],
     })
 

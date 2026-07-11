@@ -2,8 +2,8 @@
  * @function vanguard-telegram
  * @trigger HTTP POST / Telegram Webhook (wejście)
  * @role WEJŚCIE: Webhook od Telegrama, autoryzuje chat, odbiera wiadomości i wrzuca do vanguard_telegram_inbox.
- * @reads —
- * @writes vanguard_telegram_inbox
+ * @reads ai_chat_messages, audit_events, claims, daily_food_entries, daily_reconciliations, entities, fasting_logs, food_corrections, food_library, food_parse_pending, habit_logs, oracle_clarification_requests, supplement_logs, supplements, todo_items, user_fundament, vanguard_entity_links, vanguard_feedback, vanguard_links, vanguard_notes, vanguard_preferences, vanguard_stream, vanguard_stream_closure_proposals, vanguard_telegram_inbox
+ * @writes ai_chat_messages, audit_events, daily_food_entries, daily_reconciliations, fasting_logs, food_corrections, food_library, food_parse_pending, habit_logs, oracle_clarification_requests, supplement_logs, todo_items, user_fundament, vanguard_entity_links, vanguard_feedback, vanguard_links, vanguard_notes, vanguard_preferences, vanguard_stream, vanguard_stream_closure_proposals, vanguard_telegram_inbox
  * @calls api.telegram.org (poprzez setMyCommands/setWebhook)
  * @consumer Kolejka wejściowa Telegrama (inbox)
  * @status active

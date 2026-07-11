@@ -2,7 +2,7 @@
  * @function vanguard-keep-triage
  * @trigger HTTP POST / Frontend weekly ritual (Direction tab)
  * @role Klasyfikuje i segreguje notatki Google Keep (akcja: keep/archive/todo, kategoria).
- * @reads vanguard_notes, vanguard_stream (poprzez powiązania)
+ * @reads vanguard_notes, vanguard_stream (poprzez powiązania), vanguard_links
  * @writes vanguard_notes (status, kategoria), vanguard_stream
  * @calls deepseek-chat
  * @consumer Widok notatek w zakładce Direction w aplikacji

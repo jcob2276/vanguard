@@ -2,7 +2,7 @@
  * @function vanguard-backtester
  * @trigger HTTP POST / manual (wymaga Service Role Key)
  * @role Backtesting reguł i wzorców na historycznych danych biometrycznych/żywieniowych.
- * @reads daily_strain, oura_daily_summary, daily_nutrition
+ * @reads daily_strain, oura_daily_summary, daily_nutrition, vanguard_daily_aggregates, vanguard_predictions, oracle_recommendations
  * @writes —
  * @calls —
  * @consumer Narzędzia deweloperskie i analityczne

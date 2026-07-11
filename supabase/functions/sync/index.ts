@@ -2,8 +2,8 @@
  * @function sync
  * @trigger HTTP POST / manual / cron
  * @role Router dla synchronizacji zewnętrznych API: Oura, Strava, Google Calendar.
- * @reads oura_daily_summary, strava_activities, vanguard_calendar, user_settings, vanguard_tokens
- * @writes oura_daily_summary, strava_activities, vanguard_calendar, audit_events
+ * @reads oura_daily_summary, strava_activities, vanguard_calendar, user_settings, vanguard_tokens, oura_enhanced, strava_tokens, oura_heartrate, oura_sleep_hr_timeline, oura_sleep_hrv_timeline, oura_sleep_phase_timeline
+ * @writes oura_daily_summary, strava_activities, vanguard_calendar, audit_events, oura_enhanced, oura_heartrate, oura_sleep_phase_timeline, strava_tokens, vanguard_tokens
  * @calls ouraring.com, strava.com, googleapis.com/calendar, api.telegram.org (poprzez send.ts)
  * @consumer Zaktualizowane dane biometryczne, treningowe i kalendarza w aplikacji
  * @status active

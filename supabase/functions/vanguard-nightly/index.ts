@@ -1,9 +1,9 @@
 /**
  * @function vanguard-nightly
- * @trigger pg_cron `0 4 * * *` UTC (lub manualny HTTP POST)
+ * @trigger pg_cron `0 20 * * *` UTC (lub manualny HTTP POST / `?action=` z resolveUserScope)
  * @role Nightly Job Orchestrator: koordynuje wszystkie nocne agregacje, strain, korelacje, prognozy.
  * @reads daily_strain, oura_daily_summary, daily_nutrition, exercise_logs, behavior_log
- * @writes vanguard_daily_aggregates, daily_strain, audit_events, world_state
+ * @writes vanguard_daily_aggregates, daily_strain, audit_events, world_state, vanguard_pipeline_runs
  * @calls —
  * @consumer Zaktualizowany stan świata i korelacje w aplikacji i Wyroczni
  * @status active
