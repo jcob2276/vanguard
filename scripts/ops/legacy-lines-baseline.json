@@ -4,7 +4,6 @@
   "src/components/core/DailyShutdownModal.tsx": 407,
   "src/components/core/MorningPlanModal.tsx": 219,
   "src/components/core/nutrition/FoodQuickCapture.tsx": 422,
-  "src/components/core/stats/FoodAnalysisSection.tsx": 433,
   "src/components/desktop/shell/DesktopDashboard.tsx": 280,
   "src/components/desktop/fitness/FitnessScorePanel.tsx": 101,
   "src/components/desktop/fitness/fitnessScoreUtils.ts": 311,

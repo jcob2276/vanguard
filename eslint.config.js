@@ -19,7 +19,6 @@ const LEGACY_FILES = [
   'src/components/core/DailyShutdownModal.tsx',
   'src/components/core/MorningPlanModal.tsx',
   'src/components/core/nutrition/FoodQuickCapture.tsx',
-  'src/components/core/stats/FoodAnalysisSection.tsx',
   'src/components/desktop/shell/DesktopDashboard.tsx',
   'src/components/desktop/fitness/FitnessScorePanel.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
