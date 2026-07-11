@@ -13,6 +13,7 @@ import { requireServiceRole } from "../_shared/auth.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { sendMessageParsed } from "../_shared/telegram.ts";
+import { getStreamBySource, insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
 // Categories with worst eval performance — target these first
 const TARGET_CATEGORIES = ["fact_recall", "relation_reasoning"];
@@ -110,14 +111,11 @@ Deno.serve(async (req) => {
 
     // Guard: skip if a previous interview question sent < 20h ago still has no reply
     const twentyHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString();
-    const { data: recentInterview } = await supabase
-      .from("vanguard_stream")
-      .select("id, created_at, metadata")
-      .eq("user_id", userId)
-      .eq("source", "eval_interview")
-      .gte("created_at", twentyHoursAgo)
-      .limit(1)
-      .maybeSingle();
+    const recentInterviewRows = await getStreamBySource(supabase, userId, "eval_interview", {
+      from: twentyHoursAgo,
+      limit: 1,
+    });
+    const recentInterview = recentInterviewRows[0] ?? null;
 
     if (recentInterview) {
       // Check if there's a subsequent stream entry (user replied)
@@ -532,18 +530,18 @@ Zwróć tylko treść pytania, bez komentarza.`,
         : /praca|projekt|kariera|biznes/i.test(generatedPrompt) ? "work"
         : "other";
 
-      await supabase.from("vanguard_stream").insert({
+      await insertStreamRecord(supabase, {
         user_id: userId,
         source: "eval_interview",
         content: `[PYTANIE POGŁĘBIAJĘCE]: ${generatedPrompt}`,
-        metadata: { 
-          generated: true, 
-          sent_at: now.toISOString(), 
+        metadata: {
+          generated: true,
+          sent_at: now.toISOString(),
           topic_tag: topicTag,
           active_learning_type: activeLearningType || null,
           active_learning_item_id: activeLearningItemId || null
         },
-      }).throwOnError();
+      });
 
       console.log("[eval-interview] sent generated deepening question");
       return new Response(
@@ -554,12 +552,9 @@ Zwróć tylko treść pytania, bez komentarza.`,
 
     // Exclude questions asked in the last 14 days
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentlyAsked } = await supabase
-      .from("vanguard_stream")
-      .select("metadata")
-      .eq("user_id", userId)
-      .eq("source", "eval_interview")
-      .gte("created_at", fourteenDaysAgo);
+    const recentlyAsked = await getStreamBySource(supabase, userId, "eval_interview", {
+      from: fourteenDaysAgo,
+    });
 
     const recentQuestionIds = new Set(
       (recentlyAsked || [])
@@ -625,21 +620,21 @@ Zasady:
     const telegramMsg = `🎙️ Wywiad — ${categoryLabel}\n\n${interviewPrompt}\n\nOdpowiedz głosem lub tekstem — informacja trafi do Twojej pamięci.`;
 
     // Insert to stream BEFORE sending Telegram — if insert fails, abort (prevents spam on retry)
-    const { error: streamErr } = await supabase.from("vanguard_stream").insert({
-      user_id: userId,
-      source: "eval_interview",
-      content: `[WYWIAD WYSŁANY]: ${interviewPrompt}`,
-      metadata: {
-        eval_question_id: chosen.question_id,
-        eval_category: chosen.category,
-        eval_run_id: latestRun.id,
-        original_question: chosen.question,
-        sent_at: now.toISOString(),
-      },
-    });
-
-    if (streamErr) {
-      throw new Error(`[eval-interview] stream insert failed — aborting Telegram send: ${streamErr.message}`);
+    try {
+      await insertStreamRecord(supabase, {
+        user_id: userId,
+        source: "eval_interview",
+        content: `[WYWIAD WYSŁANY]: ${interviewPrompt}`,
+        metadata: {
+          eval_question_id: chosen.question_id,
+          eval_category: chosen.category,
+          eval_run_id: latestRun.id,
+          original_question: chosen.question,
+          sent_at: now.toISOString(),
+        },
+      });
+    } catch (e: any) {
+      throw new Error(`[eval-interview] stream insert failed — aborting Telegram send: ${e.message}`);
     }
 
     if (chatId && telegramToken) {

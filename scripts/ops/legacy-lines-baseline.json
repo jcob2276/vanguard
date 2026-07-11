@@ -6,6 +6,5 @@
   "src/components/medical/EndMyopiaCalculator.tsx": 413,
   "src/components/notes/EditNoteModal.tsx": 425,
   "src/components/notes/RichEditor.tsx": 846,
-  "src/components/todo/TodoCard.tsx": 442,
-  "src/lib/database.types.ts": 6246
+  "src/components/todo/TodoCard.tsx": 442
 }

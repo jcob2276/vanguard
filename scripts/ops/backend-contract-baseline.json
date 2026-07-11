@@ -15,7 +15,7 @@
     "supabase/functions/vanguard-architect/extraction/rules.ts": 373,
     "supabase/functions/vanguard-auto-classify/index.ts": 719,
     "supabase/functions/vanguard-capture/index.ts": 400,
-    "supabase/functions/vanguard-eval-interview/index.ts": 674,
+    "supabase/functions/vanguard-eval-interview/index.ts": 669,
     "supabase/functions/vanguard-eval-runner/index.ts": 535,
     "supabase/functions/vanguard-nutrition-coach/index.ts": 383,
     "supabase/functions/vanguard-oracle/index.ts": 810,
@@ -28,7 +28,6 @@
     "supabase/functions/_shared/nightly/correlations.ts": 358,
     "supabase/functions/_shared/nightly/metrics_strain.ts": 666,
     "supabase/functions/_shared/vanguardCore.ts": 476,
-    "supabase/functions/_shared/vanguardPatterns/blockers.ts": 328,
-    "supabase/functions/_shared/database.types.ts": 6246
+    "supabase/functions/_shared/vanguardPatterns/blockers.ts": 328
   }
 }

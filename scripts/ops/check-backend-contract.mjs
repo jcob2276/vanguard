@@ -19,6 +19,11 @@ const functionsRoot = path.join(root, "supabase", "functions");
 
 const MAX_LINES = 300;
 
+// Generated files reflect the DB schema, not hand-written complexity — they're expected to
+// grow as tables are added and are exempt from both the pattern counters (no hand-written
+// code to violate the contract) and the 300-line legacy freeze (growth here is healthy).
+const GENERATED_FILES = ["supabase/functions/_shared/database.types.ts"];
+
 // Kernel files allowed to own a given pattern. Everyone else importing/duplicating it is debt.
 const KERNEL_CLIENT = ["supabase/functions/_shared/supabase.ts"];
 const KERNEL_PROVIDER_FETCH = [
@@ -94,6 +99,7 @@ const oversized = {};
 
 for (const file of allFiles) {
   const rel = path.relative(root, file).replace(/\\/g, "/");
+  if (GENERATED_FILES.includes(rel)) continue;
   const content = fs.readFileSync(file, "utf8");
   for (const [key, def] of Object.entries(patternDefinitions)) {
     counts[key] += def.check(rel, content);

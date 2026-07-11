@@ -11,7 +11,9 @@
   "ignore": [
     "supabase/functions/_shared/**/*.test.ts",
     "src/sw.ts",
-    "src/lib/database.types.ts"
+    "src/lib/database.types.ts",
+    "supabase/functions/_shared/database.types.ts",
+    "supabase/functions/_shared/repos/**"
   ],
   "ignoreDependencies": [
     "npm"
