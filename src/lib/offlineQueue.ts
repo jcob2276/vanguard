@@ -114,13 +114,6 @@ async function saveToDeadLetterQueue(entry: QueueEntry, error: unknown): Promise
   }
 }
 
-async function getQueuedWriteCount(): Promise<number> {
-  try {
-    return (await getQueuedWrites()).length;
-  } catch {
-    return 0;
-  }
-}
 
 /**
  * Calls a Supabase RPC; on a genuine network failure, queues the call (by
@@ -140,40 +133,6 @@ export async function rpcWithOfflineFallback(
   } catch (err: unknown) {
     if (isOfflineError(err)) {
       await queueOfflineWrite(fn, args, label);
-      return { queued: true };
-    }
-    throw err;
-  }
-}
-
-/**
- * Executes a basic table mutation. On a genuine network failure, queues it for replay.
- */
-async function writeWithOfflineFallback(
-  table: string,
-  action: 'insert' | 'update' | 'delete',
-  match: Record<string, unknown>,
-  payload: Record<string, unknown> | null,
-  label: string,
-): Promise<{ queued: boolean }> {
-  try {
-    let error = null;
-    if (action === 'insert') {
-      const res = await dynDb.from(table).insert(payload || {});
-      error = res.error;
-    } else if (action === 'update') {
-      const res = await dynDb.from(table).update(payload || {}).match(match);
-      error = res.error;
-    } else {
-      const res = await dynDb.from(table).delete().match(match);
-      error = res.error;
-    }
-    
-    if (error) throw error;
-    return { queued: false };
-  } catch (err: unknown) {
-    if (isOfflineError(err)) {
-      await queueOfflineWrite(`table:${action}:${table}`, { match, payload }, label);
       return { queued: true };
     }
     throw err;
