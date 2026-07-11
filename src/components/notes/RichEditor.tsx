@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter, List, Code, AlertCircle } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
 import { notify } from '../../lib/notify';
+import { SLASH_COMMANDS } from './richEditorCommands';
 
 export default function RichEditor({
   value,
@@ -27,16 +28,6 @@ export default function RichEditor({
   const staticBarRef = useRef<HTMLDivElement>(null);
   // Saved selection before toolbar action steals focus
   const savedSelectionRef = useRef<{ range: Range } | null>(null);
-
-  // Notion Slash Command Menu items
-  const SLASH_COMMANDS = [
-    { key: 'todo', label: 'Zadanie Todo', sub: 'Checkbox checklisty', icon: '☑️' },
-    { key: 'h1', label: 'Nagłówek H1', sub: 'Wielki tytuł sekcji', icon: 'H1' },
-    { key: 'h2', label: 'Nagłówek H2', sub: 'Średni podtytuł', icon: 'H2' },
-    { key: 'bullet', label: 'Lista punktowana', sub: 'Kropkowane wyliczenie', icon: '•' },
-    { key: 'code', label: 'Blok kodu', sub: 'Monospace w ramce', icon: '💻' },
-    { key: 'callout', label: 'Wyróżnienie Callout', sub: 'Szara ramka ostrzeżenia', icon: '💡' },
-  ];
 
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [showWikiMenu, setShowWikiMenu] = useState(false);
