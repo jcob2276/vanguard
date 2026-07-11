@@ -21,14 +21,12 @@ const LEGACY_FILES = [
   'src/components/core/DailyShutdownModal.tsx',
   'src/components/core/MorningPlanModal.tsx',
   'src/components/core/nutrition/FoodQuickCapture.tsx',
-  'src/components/core/nutrition/useFoodEntryData.ts',
   'src/components/core/stats/FoodAnalysisSection.tsx',
   'src/components/desktop/shell/DesktopDashboard.tsx',
   'src/components/desktop/fitness/FitnessScorePanel.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
   'src/components/desktop/fitness/fitnessScoreHelpers.ts',
   'src/components/desktop/general/GeneralView.tsx',
-  'src/components/desktop/general/HexagonPanel.tsx',
   'src/components/desktop/health/SupplementsPanel.tsx',
   'src/components/desktop/desktopUtils.ts',
   'src/components/growth/GrowthView.tsx',
@@ -44,8 +42,6 @@ const LEGACY_FILES = [
   'src/components/todo/TodoCardSubtasks.tsx',
   'src/components/todo/useTodoCardAttachments.ts',
   'src/components/todo/useTodoCardSwipe.ts',
-  'src/data/exercises.ts',
-  'src/lib/dailyPlanProposal.ts',
   'src/lib/database.types.ts',
 ]
 
