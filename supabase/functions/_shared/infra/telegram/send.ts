@@ -151,7 +151,7 @@ export async function answerCallbackQuery(
   });
 }
 
-export async function editMessageReplyMarkup(
+async function editMessageReplyMarkup(
   token: string,
   chatId: number,
   messageId: number,

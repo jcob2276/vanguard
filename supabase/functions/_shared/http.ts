@@ -17,7 +17,7 @@ import { corsHeadersFor, createServiceClient, resolveUserScope } from './supabas
 import { requireServiceRole } from './auth.ts';
 import { logCriticalError } from './errorLogging.ts';
 
-export interface JsonCtx {
+interface JsonCtx {
   userId: string | null;
   isServiceRole: boolean;
   supabase: ReturnType<typeof createServiceClient>;

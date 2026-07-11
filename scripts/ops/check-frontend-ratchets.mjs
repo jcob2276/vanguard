@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..", "..");
@@ -242,6 +243,73 @@ if (legacyResults.length > 0) {
 
 if (failed) {
   console.log("\nA tracker grew past its baseline. Either undo the growth, or if it's deliberate,\nlower/raise the baselines in this commit and explain why.");
+  process.exit(1);
+}
+
+console.log("\nRunning Knip unused exports & files check...");
+let knipOutput = "";
+try {
+  knipOutput = execSync("npx knip --reporter json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+} catch (err) {
+  knipOutput = err.stdout || "";
+}
+
+let knipFailed = false;
+try {
+  if (knipOutput.trim()) {
+    const knipData = JSON.parse(knipOutput);
+    const filesIssues = [];
+    const exportsIssues = [];
+    const typesIssues = [];
+
+    if (knipData && Array.isArray(knipData.issues)) {
+      for (const issue of knipData.issues) {
+        if (Array.isArray(issue.files) && issue.files.length > 0) {
+          for (const f of issue.files) {
+            filesIssues.push(f.name);
+          }
+        }
+        if (Array.isArray(issue.exports) && issue.exports.length > 0) {
+          for (const exp of issue.exports) {
+            exportsIssues.push(`${exp.name} (${issue.file}:${exp.line}:${exp.col})`);
+          }
+        }
+        if (Array.isArray(issue.types) && issue.types.length > 0) {
+          for (const t of issue.types) {
+            typesIssues.push(`${t.name} (${issue.file}:${t.line}:${t.col})`);
+          }
+        }
+      }
+    }
+
+    if (filesIssues.length > 0) {
+      console.log("\n✖ Unused files found (must be deleted):");
+      for (const f of filesIssues) console.log(`  - ${f}`);
+      knipFailed = true;
+    }
+    if (exportsIssues.length > 0) {
+      console.log("\n✖ Unused exports found (remove 'export' keyword or delete):");
+      for (const exp of exportsIssues) console.log(`  - ${exp}`);
+      knipFailed = true;
+    }
+    if (typesIssues.length > 0) {
+      console.log("\n✖ Unused exported types/interfaces found (remove 'export' or delete):");
+      for (const t of typesIssues) console.log(`  - ${t}`);
+      knipFailed = true;
+    }
+  }
+} catch (parseErr) {
+  console.error("Warning: Failed to parse Knip JSON output:", parseErr);
+}
+
+if (!knipFailed) {
+  console.log("✓ Knip dead code check: 0 issues found.");
+} else {
+  failed = true;
+}
+
+if (failed) {
+  console.log("\nA tracker grew past its baseline or dead code was detected. Fix the issues before committing.");
   process.exit(1);
 }
 
