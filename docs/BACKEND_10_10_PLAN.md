@@ -576,6 +576,14 @@ Nie istnieje — to jest stan ciągły. "10/10" nie znaczy "skończone i zamroż
 kolejna zmiana albo zmniejsza dług, albo przynajmniej go nie zwiększa, i to jest wymuszone
 mechanicznie, nie na honor.
 
+### Pierwsze realne zejście liczników (2026-07-11, commit `06f36d92`)
+`rawProviderFetch`: 7 → 4. Trzy duplikaty usunięte i wdrożone: Whisper (`vanguard-capture`
+miał własny fetch zamiast `_shared/openai.ts`), embeddings (`vanguard-oracle` to samo),
+Telegram (`vanguard-outbox-sender` łamał zasadę "no raw fetch outside `_shared/telegram.ts`").
+Zweryfikowane żywym testem `action=search` na produkcji — realny wynik `similarity: 0.526`
+z wektorowego wyszukiwania, nie tylko "nie rzuca błędu". Pozostałe 4 wystąpienia to
+udokumentowany wyjątek (bootstrap `vanguard-telegram`).
+
 ---
 
 ## Co zrobić, jeśli utkniesz
