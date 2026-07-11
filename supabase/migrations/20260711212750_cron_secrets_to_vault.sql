@@ -9,7 +9,7 @@
 -- migration only repoints each job's command at that vault entry by name.
 --
 -- Pattern replacing every occurrence:
---   'Authorization','Bearer sb_secret_...'
+--   'Authorization','Bearer <literal service-role key, redacted>'
 --   -> 'Authorization','Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'vanguard_cron_service_role_key')
 
 SELECT cron.alter_job(job_id := 57, command := $cmd$
