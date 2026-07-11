@@ -67,6 +67,42 @@ export async function openaiChat(params: OpenAIChatParams): Promise<OpenAIChatRe
   }
 }
 
+/** Centralized Whisper transcription — takes a raw audio Blob (already fetched/uploaded).
+ *  Callers that need to fetch audio from Telegram first (transcribeAudio in
+ *  _shared/infra/telegram/send.ts) or receive a File from a form upload
+ *  (vanguard-capture) both delegate the actual OpenAI call here. */
+export async function transcribeBlob(
+  audioBlob: Blob,
+  apiKey: string,
+  opts?: { filename?: string; language?: string; timeoutMs?: number },
+): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 30000);
+  try {
+    const formData = new FormData();
+    formData.append("file", audioBlob, opts?.filename ?? "audio.ogg");
+    formData.append("model", "whisper-1");
+    formData.append("language", opts?.language ?? "pl");
+
+    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "unknown");
+      throw new Error(`Whisper HTTP error (${res.status}): ${errText.slice(0, 200)}`);
+    }
+    const data = await res.json();
+    if (data.error) throw new Error(`Whisper Error: ${data.error.message}`);
+    return data.text || "";
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function getEmbedding(text: string | string[], apiKey: string): Promise<number[] | number[][] | null> {
   if (!apiKey) {
     console.error("[OpenAI] Missing API key for embedding generation.");

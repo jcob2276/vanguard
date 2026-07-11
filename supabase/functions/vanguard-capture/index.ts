@@ -8,7 +8,7 @@
  * @consumer Inbox w aplikacji frontendowej (stream i linki)
  * @status active
  */
-import { getEmbedding } from "../_shared/openai.ts";
+import { getEmbedding, transcribeBlob } from "../_shared/openai.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { deprecateSupersededLinks } from "../_shared/deprecateSupersededLinks.ts";
@@ -302,23 +302,7 @@ Deno.serve(async (req) => {
       }
 
       if (!openAiKey) throw new Error("OPENAI_API_KEY is not configured");
-      const whisperForm = new FormData();
-      whisperForm.append("file", file);
-      whisperForm.append("model", "whisper-1");
-      whisperForm.append("language", "pl");
-
-      const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openAiKey}` },
-        body: whisperForm,
-      });
-
-      if (!whisperRes.ok) {
-        const errText = await whisperRes.text().catch(() => "unknown");
-        throw new Error(`Whisper HTTP error (${whisperRes.status}): ${errText.substring(0, 200)}`);
-      }
-      const whisperData = await whisperRes.json();
-      content = whisperData.text || "";
+      content = await transcribeBlob(file, openAiKey, { filename: file.name || "audio.webm" });
       metadata.from_voice = true;
       source = "voice";
 

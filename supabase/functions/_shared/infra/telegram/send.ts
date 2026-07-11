@@ -9,6 +9,7 @@
  */
 
 import { createServiceClient } from "../../supabase.ts";
+import { transcribeBlob } from "../../openai.ts";
 
 export interface SendMessageOptions {
   parseMode?: string;
@@ -40,6 +41,31 @@ async function queueOutbox(method: string, body: Record<string, unknown>): Promi
     console.error(`[telegram] outbox connection failed for ${method}:`, err);
     return false;
   }
+}
+
+/** Generic low-level Telegram Bot API call — any method, raw parsed JSON response.
+ *  Used by vanguard-outbox-sender (dispatches whatever {method, body} was queued
+ *  by queueOutbox above) so it doesn't need its own raw fetch to api.telegram.org. */
+export async function callTelegramMethod(
+  token: string,
+  method: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; description?: string; result?: unknown }> {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
+  });
+  const text = await res.text();
+  let data: { ok: boolean; description?: string; result?: unknown };
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { ok: false, description: text };
+  }
+  if (!res.ok && data.ok === undefined) data.ok = false;
+  return data;
 }
 
 /** sendMessage + parse Telegram JSON (for message_id / error handling). */
@@ -258,28 +284,5 @@ export async function transcribeAudio(
     clearTimeout(downloadTimeoutId);
   }
 
-  const formData = new FormData();
-  formData.append("file", audioBlob, "voice.ogg");
-  formData.append("model", "whisper-1");
-  formData.append("language", "pl");
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${openAiKey}` },
-    body: formData,
-    signal: controller.signal
-  });
-  clearTimeout(timeoutId);
-
-  if (!whisperRes.ok) {
-    const errText = await whisperRes.text().catch(() => 'unknown');
-    throw new Error(`Whisper HTTP error (${whisperRes.status}): ${errText.substring(0, 200)}`);
-  }
-  const whisperData = await whisperRes.json();
-  if (whisperData.error) throw new Error(`Whisper Error: ${whisperData.error.message}`);
-
-  return whisperData.text;
+  return transcribeBlob(audioBlob, openAiKey, { filename: "voice.ogg", timeoutMs });
 }

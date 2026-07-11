@@ -10,6 +10,7 @@
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
 import { requireServiceRole } from "../_shared/auth.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
+import { callTelegramMethod } from "../_shared/telegram.ts";
 // Force upload of domain package for shared dependencies
 import type {} from "@vanguard/domain";
 
@@ -54,24 +55,10 @@ Deno.serve(async (req) => {
     const method = record.payload.method || "sendMessage";
     const body = record.payload.body || {};
     
-    const telegramRes = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
-    });
+    const responseData = await callTelegramMethod(token, method, body);
 
-    const responseText = await telegramRes.text();
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      responseData = { ok: false, description: responseText };
-    }
-
-    if (!telegramRes.ok || !responseData.ok) {
-      const description = responseData.description || `HTTP ${telegramRes.status}`;
-      throw new Error(`Telegram API failed: ${description}`);
+    if (!responseData.ok) {
+      throw new Error(`Telegram API failed: ${responseData.description || "unknown error"}`);
     }
 
     // 3. Mark status as 'sent'

@@ -11,6 +11,7 @@
 import { deepseekChat, deepseekStream, parseJsonFromContent, type DeepSeekTool, type DeepSeekMessage } from "../_shared/deepseek.ts";
 import { runOracleReadonlyQuery } from "../_shared/oracleSql.ts";
 import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { getEmbedding } from "../_shared/openai.ts";
 import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../_shared/time.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
@@ -174,29 +175,14 @@ async function handleSearch(req: Request, body: any, db: any): Promise<Response>
   let graphResults: any[] = [];
   if (openAiKey) {
     try {
-      const embedRes = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${openAiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input: query,
-          model: "text-embedding-3-small",
-        }),
-      });
-
-      if (embedRes.ok) {
-        const embedData = await embedRes.json();
-        const embedding = embedData.data?.[0]?.embedding;
-        if (embedding) {
-          const { data: vectorData } = await db.rpc("search_entity_links", {
-            query_embedding: embedding,
-            match_user_id: userId,
-            match_count: 10,
-          });
-          if (vectorData) graphResults = vectorData;
-        }
+      const embedding = await getEmbedding(query, openAiKey);
+      if (embedding) {
+        const { data: vectorData } = await db.rpc("search_entity_links", {
+          query_embedding: embedding,
+          match_user_id: userId,
+          match_count: 10,
+        });
+        if (vectorData) graphResults = vectorData;
       }
     } catch (err) {
       console.warn("[search] embedding search failed, falling back:", err);
