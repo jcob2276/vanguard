@@ -21,7 +21,6 @@ const LEGACY_FILES = [
   'src/components/calendar/grid/types.ts',
   'src/components/core/DailyShutdownModal.tsx',
   'src/components/core/MorningPlanModal.tsx',
-  'src/components/core/NutritionCard.tsx',
   'src/components/core/Stats.tsx',
   'src/components/core/nutrition/FoodQuickCapture.tsx',
   'src/components/core/nutrition/useFoodEntryData.ts',

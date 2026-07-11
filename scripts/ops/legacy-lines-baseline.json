@@ -6,7 +6,6 @@
   "src/components/calendar/CalendarView.tsx": 461,
   "src/components/core/DailyShutdownModal.tsx": 407,
   "src/components/core/MorningPlanModal.tsx": 219,
-  "src/components/core/NutritionCard.tsx": 493,
   "src/components/core/Stats.tsx": 387,
   "src/components/core/nutrition/FoodQuickCapture.tsx": 422,
   "src/components/core/nutrition/useFoodEntryData.ts": 572,
