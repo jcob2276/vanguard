@@ -53,77 +53,7 @@ export async function fetchSupplementLogsSince(
   return (data || []) as SupplementLog[];
 }
 
-export async function toggleSupplementLog(
-  userId: string,
-  supplementId: string,
-  date = getTodayWarsaw(),
-  quantity = 1
-): Promise<boolean> {
-  const { data: existing, error: checkErr } = await supabase
-    .from('supplement_logs')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('supplement_id', supplementId)
-    .eq('date', date)
-    .limit(1);
 
-  if (checkErr) throw checkErr;
-
-  if (existing && existing.length > 0) {
-    const { error } = await supabase
-      .from('supplement_logs')
-      .delete()
-      .eq('user_id', userId)
-      .eq('supplement_id', supplementId)
-      .eq('date', date);
-    if (error) throw error;
-    return false; // Toggled off
-  } else {
-    const { error } = await supabase
-      .from('supplement_logs')
-      .insert({
-        user_id: userId,
-        supplement_id: supplementId,
-        quantity,
-        date,
-      });
-    if (error) throw error;
-    return true; // Toggled on
-  }
-}
-
-export async function addSupplementLog(
-  userId: string,
-  supplementId: string,
-  quantity: number,
-  date = getTodayWarsaw(),
-  note?: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('supplement_logs')
-    .insert({
-      user_id: userId,
-      supplement_id: supplementId,
-      quantity,
-      date,
-      note: note || null,
-    });
-  if (error) throw error;
-}
-
-async function deleteSupplementLogs(
-  userId: string,
-  supplementId: string,
-  date: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('supplement_logs')
-    .delete()
-    .eq('user_id', userId)
-    .eq('supplement_id', supplementId)
-    .eq('date', date);
-  if (error) throw error;
-}
 
 export async function saveSupplement(
   userId: string,
