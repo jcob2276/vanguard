@@ -2,7 +2,6 @@
   "src/components/biometrics/DailyStrainCard.tsx": 268,
   "src/components/biometrics/WorkoutLogger.tsx": 440,
   "src/components/calendar/CalendarEventModal.tsx": 241,
-  "src/components/calendar/CalendarView.tsx": 461,
   "src/components/core/DailyShutdownModal.tsx": 407,
   "src/components/core/MorningPlanModal.tsx": 219,
   "src/components/core/nutrition/FoodQuickCapture.tsx": 422,

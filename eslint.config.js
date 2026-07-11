@@ -11,7 +11,6 @@ const LEGACY_FILES = [
   'src/components/biometrics/WorkoutLogger.tsx',
   'src/components/calendar/CalendarEventModal.tsx',
   'src/components/calendar/CalendarGrid.tsx',
-  'src/components/calendar/CalendarView.tsx',
   'src/components/calendar/grid/CalendarGridBlocks.tsx',
   'src/components/calendar/grid/CalendarGridColumns.tsx',
   'src/components/calendar/grid/CalendarDayView.tsx',

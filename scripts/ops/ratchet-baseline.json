@@ -1,6 +1,6 @@
 {
   "_comment": "Ceilings for frontend debt trackers. CI (check-frontend-ratchets.mjs) fails if any current count exceeds its baseline here. Lower a number and commit this file in the same commit as the cleanup that earned it — never raise a number without writing why in the commit message.",
-  "LEGACY_FILES": 36,
+  "LEGACY_FILES": 35,
   "NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS": 9,
   "maxWarnings": 532,
   "patternCount_backgroundError": 0,
