@@ -13,7 +13,6 @@
   "src/components/growth/GrowthView.tsx": 283,
   "src/components/lifestyle/DirectionPlanningMode.tsx": 129,
   "src/components/lifestyle/LinksInbox.tsx": 533,
-  "src/components/lifestyle/usePowerListData.ts": 708,
   "src/components/medical/EndMyopiaCalculator.tsx": 408,
   "src/components/notes/EditNoteModal.tsx": 425,
   "src/components/notes/RichEditor.tsx": 846,
