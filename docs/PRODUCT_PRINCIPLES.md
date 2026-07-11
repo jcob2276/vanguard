@@ -425,16 +425,20 @@ Przed merge — czy narusza którąś z powyższych linii? Jeśli tak — wymaga
 
 Filtr dla przyszłych feature requestów. Jeśli propozycja wpada w którąś z poniższych kategorii — wymaga bardzo mocnego uzasadnienia.
 
+**Uwaga:** rewizja 2026-07-02 (banner na górze pliku) zdjęła blankietowy zakaz coach mode /
+prediction / gamification / auto-scheduling. Te trzy nie są już tu wymienione jako
+kategoryczny zakaz — są dozwolone, ale **tylko** na bazie policzonych efektów
+(`compute-behavior-effects`, `compute-correlations`) z widocznym `n`, nigdy z generic
+reasoning LLM bez evidence. Zasada "zero alertów prewencyjnych" (coach = pull, nie push)
+obowiązuje nadal. Poniższa lista to rzeczy zakazane bez zmian.
+
 | ❌ Nie jest | Dlaczego |
 |---|---|
 | AI-psycholog | Brak klinicznych podstaw, ryzyko Barnum effect |
 | Personality profiler | Małe datasety → pewna nadinterpretacja |
-| Coach mode | Rekomendacje bez outcome engine = zgadywanie |
-| Gamification layer | Zmienia motywację z intrinsic na extrinsic |
-| Prediction engine | Predykcje bez validated patterns = halucynacja |
 | Total life tracker | Scope creep zabija retention |
 | "Digital twin" | Zbyt duże obietnice, zbyt mały dataset |
-| Automatic insight generator | Bez human gate → semantic inflation |
+| Automatic insight generator (bez human gate) | Bez human gate → semantic inflation |
 | Therapy replacement | Poza zakresem etycznym i technicznym |
 
 ---

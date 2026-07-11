@@ -1,17 +1,40 @@
 # Vanguard Design System
 
-> Reguły tworzenia i modyfikacji UI w Vanguard OS.
+> SSOT dla wszystkiego co dotyczy wyglądu, interakcji i struktury UI w Vanguard OS.
 > Każdy agent (AI lub człowiek) PRZED zmianą UX czyta ten plik.
-> Dokument opisuje **mechanizmy** (jak robić), nie **stany** (co dziś wygląda).
+> Dokument opisuje **mechanizmy** (jak robić), nie **stany** (co dziś wygląda) —
+> wyjątek: sekcja "Definicja 10/10" poniżej, mierzalna przez grep/CI.
 
 ---
 
 ## Zasada nadrzędna
 
-**Nowy feature = nowy plik CSS + nowy komponent w `ui/`, nigdy inline w istniejącym pliku.**
+**Bałagan nie powstaje przez jeden zły commit. Powstaje przez 50 "małych wyjątków" które
+nikt nie rejestruje.** Nowy feature = nowy plik CSS + nowy komponent w `ui/`, nigdy inline
+w istniejącym pliku. Każda reguła w tym dokumencie ma odpowiadający mechanizm egzekwujący
+(grep, test, CI) — reguła bez mechanizmu nie istnieje.
 
-Bałagan nie powstaje przez jeden zły commit. Powstaje przez 50 "małych wyjątków" które
-nikt nie rejestruje. Ten plik jest rejestrem wyjątków i warunków brzegowych.
+---
+
+## Definicja 10/10 (mierzalna, nie uznaniowa)
+
+Frontend jest 10/10 wizualnie gdy **wszystkie** poniższe są prawdą:
+
+| # | Kryterium | Jak mierzone |
+|---|-----------|--------------|
+| 1 | Zero ręcznych overlay (`fixed inset-0`) poza `ui/Modal.tsx`/`ui/ConfirmDialog.tsx` | `grep "fixed inset-0" src/components/` — otwarte reszty: `BACKLOG.md` część IV §DS1 |
+| 2 | `index.css` ≤ 550 linii | `wc -l src/index.css` — **osiągnięte** (419 linii, 2026-07-11) |
+| 3 | Zero hardkodów kolorów w JSX (`bg-[#hex]`, `dark:bg-[#hex]`, `text-[#hex]`) | grep — **osiągnięte**, zweryfikowane 2026-07-11 |
+| 4 | Każdy empty state używa `ui/EmptyState` | `grep -r "border-dashed" src/components/` — otwarte reszty: `BACKLOG.md` część IV §DS1 |
+| 5 | Każdy spinner używa `ui/Spinner` | `grep -r "animate-spin"` poza `Spinner.tsx`/ikony Lucide — otwarte reszty: `BACKLOG.md` część IV §DS1 |
+| 6 | Każde potwierdzenie używa `ui/ConfirmDialog` | `grep "window\.alert\|window\.confirm"` — **osiągnięte**, 0 wystąpień |
+| 7 | Shared components w `ui/` mają testy | `ls src/components/ui/*.test.tsx` |
+| 8 | Touch targets ≥44px na mobile | ręczny audit — otwarte: `BACKLOG.md` część IV §DS4 |
+| 9 | Brak inline animacji w JSX | `grep -r "animation:" src/components/ | grep -v "\.css"` = 0 |
+
+**Czego NIE robimy** (obniżyłoby ocenę, nie podniosło): big-bang rewrite, nowe abstrakcje
+ponad istniejące (`ui/Modal`/`ui/EmptyState` już są — problem to adopcja), hurtowe
+refaktory god-files poza ratchetem.
 
 ---
 
@@ -280,19 +303,14 @@ między light a dark (inny kontrast, inna czytelność).
 
 ---
 
-## Przyszłe componenty do dodania (kolejność)
+## Shared components — status
 
-| Priorytet | Component | Gdzie | Kiedy dodać |
-|---|---|---|---|
-| P0 | `EmptyState.tsx` | `ui/` | Teraz — zastąpi 28× inline |
-| P0 | `Spinner.tsx` | `ui/` | Teraz — zastąpi 3× inline |
-| P0 | `ConfirmDialog.tsx` | `ui/` | Teraz — zastąpi 2× mechanizm |
-| P1 | `Skeleton.tsx` | `ui/` | Po P0 — placeholder ładowania |
-| P1 | `Badge.tsx` | `ui/` | Po P0 — notyfikacje, tagi, countery |
-| P1 | `Tabs.tsx` | `ui/` | Po P0 — przełącznik widoków |
-| P2 | `Select.tsx` | `ui/` | Po P1 — dropdown |
-| P2 | `Tooltip.tsx` | `ui/` | Po P1 — podpowiedzi |
-| P3 | `BottomSheet.tsx` | `ui/` | Po P2 — mobile-specific overlay |
+`ui/Modal`, `ui/Card`, `ui/ToastHost`, `ui/EmptyState`, `ui/Skeleton`, `ui/Spinner`,
+`ui/Badge`, `ui/Tabs`, `ui/ConfirmDialog`, `ui/DetailPageLayout`, `ui/BrandTitle`,
+`ui/CharacterAvatar`, `ui/PersonaAvatarButton` — wszystkie zbudowane z testami.
+
+Przyszli kandydaci (dodawaj gdy potrzeba się materializuje, nie na zapas): `Select.tsx`
+(dropdown), `Tooltip.tsx` (podpowiedzi), `BottomSheet.tsx` (mobile-specific overlay).
 
 ---
 
@@ -310,11 +328,18 @@ Przy przeglądzie kodu (PR review, audyt):
 
 ---
 
+## Authority (gdy sprzeczne)
+
+1. Ten plik — konstytucja UX.
+2. [`FRONTEND_GUIDE.md`](FRONTEND_GUIDE.md) — ogólne konwencje frontendu (architektura, nie wygląd).
+3. [`PRODUCT_PRINCIPLES.md`](PRODUCT_PRINCIPLES.md) — filozofia produktu.
+
 ## Ewolucja dokumentu
 
-Ten plik jest żywy. Aktualizuj go gdy:
-- Dodajesz nowy shared component do `ui/`
-- Odkryjesz nowy pattern który powinien być znormalizowany
-- Zmieniają się zasady (np. nowe breakpointy, nowe tokeny)
+Ten plik jest żywy. Aktualizuj go gdy dodajesz nowy shared component do `ui/`,
+odkryjesz pattern który powinien być znormalizowany, albo zmieniają się zasady
+(nowe breakpointy, nowe tokeny). Otwarta praca (reszta migracji na komponenty)
+żyje w `../BACKLOG.md` część IV, nie w tym pliku — ten plik opisuje mechanizm,
+nie postęp.
 
-Data ostatniej weryfikacji z kodem: 2026-07-10
+Data ostatniej weryfikacji z kodem: 2026-07-11

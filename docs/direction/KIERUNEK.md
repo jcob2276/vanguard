@@ -106,8 +106,30 @@ Budujemy:
 
 ---
 
+## Wersja 10/10 — praktyczna (Zintegrowany Kokpit)
+
+Wyżej opisana wersja idealna/groteskowa jest kierunkiem, nie specyfikacją najbliższego
+sprintu. Praktyczna wersja 10/10 — mierzalna, osiągalna — oznacza pełną unifikację,
+stabilność i rzetelność systemu jako **osobistego kokpitu samoobserwacji i logowania**:
+
+1. **Zunifikowane Centrum Dowodzenia** — jedno prywatne miejsce zamiast rozproszenia na
+   10 aplikacji: zarządzanie czasem i zadaniami (Todo, Projekty, Cele kierunkowe),
+   śledzenie zdrowia i sportu (Oura, Strava), przechowywanie myśli (Notatnik Keep, Linki),
+   dzienna pętla refleksyjna (Telegram reconciliation).
+2. **Rzetelna Pamięć Behawioralna** — system nie spekuluje i nie interpretuje, działa jako
+   bezwzględny archiwizator faktów. Lata czystych, ustrukturyzowanych danych (Evidence) o
+   tym, co rzeczywiście zjadłeś/wyćwiczyłeś/zapisałeś/zrealizowałeś — eliminujące
+   samooszukiwanie bez modeli predykcyjnych.
+3. **Zerowy Szum i Całkowita Kontrola** — zero powiadomień generujących sztuczną presję,
+   zero coachingowych monologów AI, szybki lokalny interfejs zorientowany na fakty.
+
+System, który nie wie "lepiej" od Ciebie — po prostu pamięta to, o czym Ty zapominasz.
+
+---
+
 **Powiązane dokumenty:**
 - `docs/PRODUCT_PRINCIPLES.md` — guardrails, które muszą być przestrzegane po drodze
 - `docs/FEATURE_LIFECYCLE.md` — co jest aktywne, co deprecated
+- `docs/OPEN_SOURCE.md` — co musi być prawdą przed publikacją repo publicznie
 
 Ten plik jest ważniejszy niż wszystkie inne.

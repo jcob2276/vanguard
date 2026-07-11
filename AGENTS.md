@@ -9,8 +9,9 @@ Entry point for AI agents working in this repository.
 - **Compiled memory:** `vanguard-architect` / `ingest-vault-log` build graph; `vanguard-wiki-compiler` builds derived wiki pages — not inline Oracle chat writes to evidence
 - **Function registry (SSOT):** [`supabase/functions/README.md`](supabase/functions/README.md)
 - **One-page architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- **Agent context map:** [`docs/agent/README.md`](docs/agent/README.md) indexes router/memory files; it does not override this constitution.
+- **Doc index / reading order:** [`docs/README.md`](docs/README.md) — does not override this constitution.
 - **Product language:** [`docs/PRODUCT_LANGUAGE.md`](docs/PRODUCT_LANGUAGE.md) is the canonical vocabulary for UI/docs/agents.
+- **Backlog (single file, all open work):** [`BACKLOG.md`](BACKLOG.md)
 
 ## Konstytucja (non-negotiable)
 
@@ -30,7 +31,7 @@ Full guardrails: [`docs/PRODUCT_PRINCIPLES.md`](docs/PRODUCT_PRINCIPLES.md)
 
 Monorepo for **Vanguard** (personal OS) on a Supabase project configured through environment variables.
 
-Local/Supabase sync: **40** edge functions (+ `_shared/`). Registry: [`supabase/functions/README.md`](supabase/functions/README.md). Last verified: **2026-06-30**.
+Local/Supabase sync: edge functions (+ `_shared/`) — exact count and last-verified date live only in [`supabase/functions/README.md`](supabase/functions/README.md) (the registry), not here. Do not copy the number into this file — it goes stale and this file has no mechanism to catch it.
 
 | Subsystem | Purpose | Key paths |
 |---|---|---|
@@ -68,7 +69,32 @@ Edge function gotchas:
 
 ## Where to read next
 
-**SSOT:** [`docs/READING_ORDER.md`](docs/READING_ORDER.md) — kanoniczna kolejność czytania dla agentów (quick start 5 min, pełne czytanie 15 min).
+**SSOT:** [`docs/README.md`](docs/README.md) — kanoniczna kolejność czytania dla agentów (quick start 5 min, pełne czytanie 15 min).
+
+## Reguły dokumentacji
+
+Ten repo miał w lipcu 2026 ponad 20 000 linii dokumentacji w 118 plikach — połowa martwa
+(archiwum, ukończone plany sesyjne, zdublowane routery). Konsolidacja 2026-07-11 to
+naprawiła; te reguły utrzymują stan naprawiony:
+
+1. **Doc ratchet:** nowy plik `.md` tylko jeśli żaden istniejący nie pasuje. Plan sesyjny/brief
+   dla agenta żyje w [`docs/agent/ACTIVE_WORK.md`](docs/agent/ACTIVE_WORK.md) (nadpisywany, nie
+   akumulowany) — nie jako nowy plik `FOO_PLAN.md`. Gdy praca się kończy: otwarte punkty
+   przenieś do [`BACKLOG.md`](BACKLOG.md), plik planu/brief **skasuj** w tym samym commicie.
+2. **Zakaz liczb, które gniją** w ręcznie pisanych dokumentach (liczba edge functions, LOC,
+   daty "last verified", numery wersji). Liczby wolno trzymać tylko w plikach generowanych
+   (`supabase/functions/README.md`/`FUNCTIONS.md`) albo policzyć na żądanie (`grep`/`wc -l`) —
+   nie kopiować jako statyczny tekst gdzie indziej.
+3. **Zakaz banerów "STALE — nie ufaj temu plikowi".** Dokument, który sam siebie oznacza jako
+   nieaktualny, ma dwie opcje: naprawić w tym samym commicie, albo skasować. Baner bez jednej
+   z tych dwóch akcji to szum, nie ostrzeżenie.
+4. **Jeden temat = jeden plik.** Zanim dopiszesz sekcję do istniejącego pliku, sprawdź `docs/README.md`
+   czy temat już nie ma swojego miejsca wyżej w hierarchii authority — nie twórz równoległego
+   pliku "v2"/"10/10"/"FINAL" obok istniejącego. Backlogi/plany łączą się w [`BACKLOG.md`](BACKLOG.md),
+   nie mnożą per audyt/sesja.
+5. **Holistyczność przy edycji:** przed zmianą pliku dokumentacji przeczytaj go w całości + sprawdź
+   `docs/README.md`, czy inny plik nie zawiera tej samej informacji (dubel = przyszła niespójność).
+   To samo co Zasada Skauta dla kodu (reguła 9 wyżej), rozciągnięte na dokumentację.
 
 ## Models (current)
 

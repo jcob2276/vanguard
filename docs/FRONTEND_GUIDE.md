@@ -152,6 +152,61 @@ components/todo/
 
 ---
 
-*Powiązane: [`DEV_GUIDE.md`](DEV_GUIDE.md) (backend), [`READING_ORDER.md`](READING_ORDER.md) (gdzie ten plik wpina się w kolejność czytania), `lessons.md` (incydenty, z których część reguł w sekcji 6 wynika wprost).*
+## 10. Wzorcowa struktura modułu — Wzorzec A (Feature Module)
 
-*Ostatnia weryfikacja z kodem: 2026-07-10*
+Dla modułów z danymi i stanem (`todo/`, `calendar/`, `core/nutrition/`, `notes/`, `desktop/`, `growth/`, `lifestyle/`, `projects/`, `medical/`, `biometrics/`):
+
+```
+components/<feature>/
+├── index.ts                  # fasada — jedyne, co świat zewnętrzny importuje
+├── <Feature>Container.tsx    # DANE: useQuery/*Api, stan, efekty. Zero JSX poza <View {...props}/>
+├── <Feature>View.tsx         # WIDOK: czysty prezenter — layout, JSX, style. Zero fetch/mutacji
+├── hooks/                    # logika interakcji specyficzna dla modułu
+├── subcomponents/            # klocki UI używane tylko wewnątrz modułu
+└── <feature>Utils.ts         # czyste funkcje pomocnicze specyficzne dla modułu
+```
+
+**Próg zastosowania:** plik >300 linii (limit lintera) LUB miesza dwie odpowiedzialności (fetch+JSX) niezależnie od rozmiaru. **Reguła rozstrzygająca podział:** plik z logiką danych (`useQuery`/`*Api`) albo plik z JSX — nigdy oba naraz w jednym pliku.
+
+Wzorcowy przykład: `components/todo/` — Container/View rozdzielone, `hooks/` z wąsko wyspecjalizowanymi hookami, `weekly/` jako zagnieżdżony pod-moduł (wzorzec jest rekurencyjny).
+
+### Wzorzec B — Type Registry
+
+Dla modułów renderujących "jedna rzecz, wiele wariantów" bez własnego stanu (`cards/`, `widgets/`): `Factory.tsx` (typ → komponent) + podfoldery wg taksonomii domenowej (`entities/`, `temporal/`, `textual/`...), nie wg warstwy technicznej.
+
+**Rozróżnienie A vs B:** jeden ekran/funkcja z jednym stanem → A. "Renderuj X zależnie od typu Y" bez własnego stanu → B.
+
+## 11. Próg dla `lib/` i własność dla `hooks/`
+
+**Reguła progu dla `lib/`:** grupa tematyczna plików płasko jest OK poniżej **6-8 plików** (nazwa pliku wystarcza za nawigację). Powyżej progu — dostaje podfolder (np. `lib/goal/`, `lib/growth/`, `lib/health/`). `*Api.ts` (warstwa dostępu do danych) NIE dostaje własnego katalogu technicznego (`lib/api/`) — zostaje przy swojej domenie, bo grupujemy wg domeny (feature), nie wg roli technicznej — spójnie z Wzorcem A.
+
+**Reguła własności dla `hooks/`:** nie "ile plików", tylko *czy hook ma jednego właściciela-feature, czy jest naprawdę cross-cutting?* Hook z jednym konsumentem-modułem → `<feature>/hooks/`. Prawdziwie globalne (używane przez niepowiązane moduły, brak jednego właściciela) → zostają w `src/hooks/`. Integration-layer sync hooks (Oura/Strava/Calendar) też zostają globalnie, ale oznacz komentarzem w pliku "integration layer, brak jednego feature-właściciela", żeby przyszły agent nie próbował ich przenieść do jednego konsumenta.
+
+## 12. Warstwa stylów — co robi co
+
+| Warstwa | Odpowiada za | Przykład |
+|---|---|---|
+| `tailwind.config.js` | statyczne, znane-przy-buildzie kolory marki/motywu | `bg-primary` |
+| `index.css` (CSS custom properties) | dynamiczne/wybieralne w runtime wartości (Tailwind nie generuje klas ze stringów budowanych w runtime) + globalne tokeny | `var(--keep-bg-red)` |
+| Tailwind utility classes w JSX | layout, spacing, typografia — 95% stylowania | `flex items-center gap-2 rounded-xl` |
+
+`index.css` jest **tylko** warstwą design tokenów i cross-cutting animacji (limit ~550 linii, patrz `DESIGN_SYSTEM.md`). CSS specyficzny dla jednego modułu (np. Keep/Notes) żyje w `components/<feature>/<feature>.css`, importowany w pliku wejściowym modułu — Vite wspiera to natywnie, zero konfiguracji.
+
+## 13. Higiena przy refaktorach strukturalnych (rozbijanie god-files, przenosiny)
+
+Zasady wypracowane na realnych regresjach podczas sesji porządkowania `lib/`/`hooks/`/`desktop/` i rozbijania plików >300 linii — nie pomijaj żadnej, nawet dla mechanicznego jednolinijkowego wydzielenia:
+
+1. **Audyt obsługi błędów przed edycją:** `grep -c "notify(\|console\.warn(\|console\.error(" plik` — zapisz liczbę. Po rozbiciu suma tych wywołań we WSZYSTKICH nowych plikach musi być **równa albo większa**, nigdy mniejsza. Realny incydent: rozbicie modala zgubiło `notify()` w catch-u ładowania danych — nie złapał tego ani typecheck, ani lint, ani pełna suite testów.
+2. **Po `git mv`/przeniesieniu pliku sprawdź `eslint.config.js` (`LEGACY_FILES`, `NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS`) i `scripts/ops/legacy-lines-baseline.json`** — te listy trzymają ścieżki jako stringi, nie śledzą `git mv`. Stara ścieżka po przenosinach = plik cicho traci wyjątek i lint/ratchet staje się czerwony bez związku z Twoją zmianą.
+3. **Nigdy nie dopisuj nowego pliku do `LEGACY_FILES`** żeby ominąć limit — ta lista ma tylko maleć (ratchet to sprawdza: `LEGACY_FILES: N / baseline M`). Plik z błędem lintera — napraw go (właściwy typ, split funkcji), nie chowaj za wyjątkiem.
+4. **Weryfikacja w tej kolejności, napraw przed kolejnym plikiem:** `npm run typecheck:ui` → `npx eslint <dotknięte>` → `npm run test` → `npm run ratchet:frontend`. Nie kumuluj długu do końca sesji.
+5. **Przy podziale hooka na kilka plików:** sprawdź, że żaden `useState`/`useEffect` nie został przypadkiem zduplikowany między starym a nowym miejscem (klasyczny błąd copy-paste zamiast move — dwa źródła prawdy dla tego samego stanu).
+6. **Jedna sesja = jeden commit.** Batch mechanicznych zmian (np. 3 pliki tego samego typu wydzielenia) — nadal jeden commit, ale ogranicz batch tak, żeby cofnięcie było tanie jeśli coś się posypie.
+7. **Klasyfikacja ryzyka przed rozbiciem** (przydatne przy każdym pliku >300 linii, nie tylko przy dużej sesji porządkowej): 300-400 linii + ≤4 `useState` + zero gestów/DOM-manipulacji (`onTouch`/`onDrag`/`execCommand`/`getSelection`) → mechaniczne, jedno wydzielenie zwykle wystarcza. 400-600 linii → prawdziwy split (Container/View albo dwa hooki), bez planu-do-akceptacji ale pełna weryfikacja. 600+ linii LUB jakiekolwiek trafienie na gesty/DOM-manipulację niezależnie od rozmiaru → wymaga planu tekstowego zaakceptowanego przed edycją + weryfikacji wizualnej w przeglądarce po. Niepewny przypadek — zaokrąglaj w górę (więcej ostrożności).
+8. **Pliki z gęsto powiązaną logiką kursora/selekcji/DOM** (np. rich text editor operujący bezpośrednio na `Range`/`document.execCommand`) są kandydatem do **świadomego wyjątku od limitu linii**, nie mechanicznego rozbicia — rozbicie takiego pliku grozi subtelnymi bugami (np. "skaczący kursor" w rzadkich sekwencjach klawiszy), notorycznie trudnymi do złapania testem. Udokumentuj wyjątek w komentarzu w pliku i w `eslint.config.js`.
+
+---
+
+*Powiązane: [`DEV_GUIDE.md`](DEV_GUIDE.md) (backend), [`README.md`](README.md) (kolejność czytania), [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) (wygląd/UI), `../BACKLOG.md` część IV (otwarta praca strukturalna: god-files, `as any`, itd.), `lessons.md` (incydenty, z których część reguł w sekcji 6/13 wynika wprost).*
+
+*Ostatnia weryfikacja z kodem: 2026-07-11*

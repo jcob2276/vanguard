@@ -17,6 +17,34 @@ Supabase project: configured per deployment through environment variables.
 | Legacy workout | Existing workout UI/data model | `src/`, `workout_*` tables |
 | **Behavior capture map** | Where each behavior type is logged (SSOT: `src/lib/behaviorCapture.ts`) | Desktop `BehaviorCapturePanel`, Telegram commands |
 
+### Top-level directories
+
+| Path | Purpose |
+|---|---|
+| `supabase/functions/` | Deno Edge Functions — CRONs, webhooks, AI logic. Each folder is one deployed function. |
+| `supabase/migrations/` | Applied SQL migrations. Immutable. |
+| `src/` | React 19 SPA — data visualization, timelines, specialized panels. |
+| `docs/` | Knowledge base (this file, `PRODUCT_PRINCIPLES.md`, `DEV_GUIDE.md`, `FRONTEND_GUIDE.md`). |
+| `scripts/` | Local ops automation, eval scripts, testing (`scripts/ops/`). |
+
+### Frontend directory map (`src/`)
+
+| Path | Purpose |
+|---|---|
+| `components/cards/` | Atomic timeline/Memex building blocks — `entities/` (person, place, link), `quantifiable/` (metric, mood, progress), `temporal/` (event, routine, task), `textual/` (article, insight_summary), `visual/` (canvas, video, snapshot). Type Registry pattern, see `FRONTEND_GUIDE.md` §10 Wzorzec B. |
+| `components/desktop/` | Multi-column cockpit dashboard (`DesktopDashboard`, `SprintMetricsGrid`, `SmartAlerts`, `MarathonPanel`). |
+| `components/growth/` | Skill tree, interventional learning, life experiments (`GrowthVault`, `SkillTreePanel`). |
+| `components/lifestyle/` | PowerList, direction radar, goal tracking. |
+| `components/medical/` | Lab results, biology scores, trend charts. |
+| `components/stats/` | Cross-domain analytics (workout history, body metrics, food analysis). |
+| `components/insights/` / `projects/` / `todo/` / `schedule/` | Domain-specific views. |
+| `widgets/` | Reusable charts and specialized visual components. |
+| `components/ui/` | Design system primitives — see `DESIGN_SYSTEM.md`. |
+| `lib/` | Frontend API clients (`*Api.ts`), parsers, domain logic. See `FRONTEND_GUIDE.md` §11 for folder-threshold rule. |
+| `hooks/` | React state over `lib/` — fetch orchestration, side effects, browser APIs. |
+
+**Runtime boundaries:** `supabase/functions/_shared/` is the single source of truth for backend logic — frontend must not duplicate scoring/calculation logic that already lives there. Never commit secrets; use `.env.local` for edge function testing.
+
 ---
 
 ## Data flow (canonical)
@@ -66,7 +94,27 @@ Evening: vanguard-daily-reconciliation summarizes 24h voice/stream and asks refl
 
 User input all day: `vanguard-telegram` (`index.ts` router → `_router/messages.ts` / `_handlers/*`) → `vanguard_stream` (most messages silent save; `?` / `!!` → Oracle).
 
-Detail: [vanguard-core.md](./vanguard-core.md)
+### Telegram input modes (`vanguard-telegram`)
+
+| Input | Mode | Behavior |
+|---|---|---|
+| plain text / short voice | `stream` | Save to `vanguard_stream`, no reply |
+| `?question` | `chat` | Oracle responds |
+| `!!question` | `deep` | Oracle with reasoner |
+| `##fact` | `knowledge` | Save to `vanguard_knowledge` |
+| `@topic` | `report` | Mirror/report mode |
+| `Poprawka: ...` | `knowledge` | User correction |
+| long voice (>120 words) | `knowledge` | Vault ingest |
+
+During active planning session (`planning_status = active`): all messages go to Oracle planning mode until "koniec"/"done"/"gotowe". During pending reconciliation (`status = sent`): response saved as day review.
+
+### What not to touch without reason
+
+- Planning `tension_action` guardrail (reverts to active if missing).
+- Stream dedup by `telegram_message_id`.
+- Confirmed gate / epistemic guardrails in Oracle prompts.
+
+See [.cursor/rules/vanguard-context.mdc](../.cursor/rules/vanguard-context.mdc) for philosophy.
 
 ---
 
@@ -154,7 +202,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) - **40 functions**, last pass 2026-06-30.
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **31 functions** (verify count there before quoting it elsewhere; do not hardcode it in other docs, it goes stale).
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 
@@ -162,8 +210,7 @@ Do not add or deploy a function that is not listed there with status `active` or
 
 ## Agent read order
 
-**SSOT:** [`docs/READING_ORDER.md`](./READING_ORDER.md) — kanoniczna kolejność czytania dla agentów.
-
+**SSOT:** [`docs/README.md`](./README.md) — kanoniczna kolejność czytania dla agentów.
 
 ---
 
