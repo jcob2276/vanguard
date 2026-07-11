@@ -32,7 +32,6 @@ const LEGACY_FILES = [
   'src/components/growth/GrowthView.tsx',
   'src/components/lifestyle/DirectionPlanningMode.tsx',
   'src/components/lifestyle/LinksInbox.tsx',
-  'src/components/lifestyle/PowerList.tsx',
   'src/components/lifestyle/usePowerListData.ts',
   'src/components/medical/EndMyopiaCalculator.tsx',
   'src/components/notes/EditNoteModal.tsx',
