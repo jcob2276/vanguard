@@ -1,8 +1,106 @@
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Tables, Json } from '../database.types';
 import { formatWarsawDate, shiftDateStr } from '../date';
 import { notify } from '../notify';
+
+// oura_derived_daily is not in generated database.types.ts yet
+interface OuraDerivedRow {
+  day: string;
+  sleep_hr_min: number | null;
+  sleep_hr_avg: number | null;
+  sleep_hr_max: number | null;
+  sleep_hrv_min: number | null;
+  sleep_hrv_avg: number | null;
+  sleep_hrv_peak: number | null;
+  awakenings: number | null;
+  deep_blocks: number | null;
+  met_peak: number | null;
+  met_avg: number | null;
+  vigorous_min: number | null;
+  moderate_min: number | null;
+  light_min: number | null;
+  hr_min_day: number | null;
+  hr_avg_day: number | null;
+  hr_max_day: number | null;
+  workout_count: number | null;
+  workout_minutes: number | null;
+  workout_calories: number | null;
+}
+
+interface StravaSplit {
+  split: number | null;
+  moving_time: number | null;
+  distance: number | null;
+  average_speed: number | null;
+  average_heartrate: number | null;
+  average_grade_adjusted_speed: number | null;
+  elevation_difference: number | null;
+  elapsed_time: number | null;
+}
+
+interface StravaBestEffort {
+  name: string;
+  moving_time: number;
+  pr_rank: number | null;
+}
+
+interface GcHrZone {
+  secsInZone: number | null;
+}
+
+interface AwAppEntry {
+  app: string;
+  seconds: number;
+}
+
+interface PhoneTopApp {
+  app: string;
+  min: number;
+}
+
+interface StravaRawActivity {
+  strava_id: number;
+  raw_data: { description?: string; athlete_comment?: string } | null;
+}
+
+interface StravaCleanActivity {
+  strava_id: number | null;
+  name: string | null;
+  sport_type: string | null;
+  start_date: string | null;
+  elapsed_time: number | null;
+  moving_time: number | null;
+  distance: number | null;
+  total_elevation_gain: number | null;
+  pace_sec_per_km: number | null;
+  cadence_spm: number | null;
+  hr_avg: number | null;
+  hr_max: number | null;
+  hr_source: string | null;
+  hr_frozen: boolean | null;
+  splits_with_hr: Json | null;
+  gear_name: string | null;
+  gear_distance_km: number | null;
+  has_pr: boolean | null;
+  pause_seconds: number | null;
+  is_oura: boolean | null;
+  perceived_exertion: number | null;
+  workout_type: number | null;
+  best_efforts: Json | null;
+  gc_hr_zones: Json | null;
+  gc_weather: Json | null;
+  gc_training_effect_aerobic: number | null;
+  gc_training_effect_anaerobic: number | null;
+  gc_vo2max: number | null;
+  gc_enriched_at: string | null;
+}
+
+// Typed empty response matching Supabase PostgrestResponse shape
+function emptyRes<T>(): { data: T[]; error: null; count: null; status: number; statusText: string } {
+  return { data: [], error: null, count: null, status: 200, statusText: 'OK' };
+}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -82,35 +180,35 @@ export async function exportStatsMarkdown({
       { data: awSummary },
       { data: phoneUsageData }
     ] = await Promise.all([
-      includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeNutrition ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeNutrition ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
+      includeWorkouts ? supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeBody ? supabase.from('body_metrics').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeNutrition ? supabase.from('daily_food_entries').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeNutrition ? supabase.from('daily_nutrition').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeJournal ? supabase.from('daily_wins').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeJournal ? supabase.from('vanguard_stream').select('id, content, source, created_at, metadata').eq('user_id', session.user.id).eq('source', 'telegram').gte('created_at', exportStartIso).lte('created_at', exportEndIso).order('created_at', { ascending: true }) : Promise.resolve(emptyRes()),
       supabase.from('weekly_reviews').select('*').eq('user_id', session.user.id).gte('week_start', dateRange.from).lte('week_start', dateRange.to),
       supabase.from('life_goals').select('*').eq('user_id', session.user.id).maybeSingle(),
-      includeHabits ? supabase.from('habits').select('*').eq('user_id', session.user.id) : Promise.resolve({ data: [], error: null } as any),
-      includeHabits ? supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [], error: null } as any),
-      includeOura ? supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [], error: null } as any),
-      includeOura ? supabase.from('oura_enhanced').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve({ data: [], error: null } as any),
-      includeOura ? supabase.from('oura_derived_daily').select('*').eq('user_id', session.user.id).gte('day', dateRange.from).lte('day', dateRange.to) : Promise.resolve({ data: [], error: null } as any),
+      includeHabits ? supabase.from('habits').select('*').eq('user_id', session.user.id) : Promise.resolve(emptyRes()),
+      includeHabits ? supabase.from('habit_logs').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve(emptyRes()),
+      includeOura ? supabase.from('oura_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve(emptyRes()),
+      includeOura ? supabase.from('oura_enhanced').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to) : Promise.resolve(emptyRes()),
+      includeOura ? supabase.from('oura_derived_daily').select('*').eq('user_id', session.user.id).gte('day', dateRange.from).lte('day', dateRange.to) : Promise.resolve(emptyRes()),
       supabase.from('progress_photos').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to),
       supabase.from('location_history').select('*').eq('user_id', session.user.id).gte('created_at', exportStartIso).lte('created_at', exportEndIso),
       supabase.from('user_fundament').select('*').eq('user_id', session.user.id).maybeSingle(),
-      includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts,gc_hr_zones,gc_weather,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
-      includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve({ data: [], error: null } as any),
-      includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve({ data: [], error: null } as any),
+      includeWorkouts ? supabase.from('strava_activities_clean').select('strava_id,name,sport_type,start_date,elapsed_time,moving_time,distance,total_elevation_gain,pace_sec_per_km,cadence_spm,hr_avg,hr_max,hr_source,hr_frozen,splits_with_hr,gear_name,gear_distance_km,has_pr,pause_seconds,is_oura,perceived_exertion,workout_type,best_efforts,gc_hr_zones,gc_weather,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at').eq('user_id', session.user.id).eq('is_oura', false).gte('start_date', exportStartIso).lte('start_date', exportEndIso).order('start_date', { ascending: true }) : Promise.resolve(emptyRes()),
+      includeWorkouts ? supabase.from('strava_activities').select('strava_id,raw_data').eq('user_id', session.user.id).gte('start_date', exportStartIso).lte('start_date', exportEndIso) : Promise.resolve(emptyRes()),
+      includeActivityWatch ? supabase.from('aw_daily_summary').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true }) : Promise.resolve(emptyRes()),
       supabase.from('phone_usage_daily').select('*').eq('user_id', session.user.id).gte('date', dateRange.from).lte('date', dateRange.to).order('date', { ascending: true })
     ]);
 
-    const foodEntries = (food as any[]) || [];
-    const nutritionEntries = (nutritionSummary as any[]) || [];
-    const journalEntries = (journal as any[]) || [];
-    const telegramEntries = (telegramLogs as any[]) || [];
-    const weeklyReviews = (reviews as any[]) || [];
-    const stravaCommentById = new Map((stravaRawData as any[] || []).map(a => [
-      a.strava_id,
+    const foodEntries = (food ?? []) as Tables<'daily_food_entries'>[];
+    const nutritionEntries = (nutritionSummary ?? []) as Tables<'daily_nutrition'>[];
+    const journalEntries = (journal ?? []) as Tables<'daily_wins'>[];
+    const telegramEntries = (telegramLogs ?? []) as { id: string; content: string | null; source: string | null; created_at: string | null; metadata: Json | null }[];
+    const weeklyReviews = (reviews ?? []) as Tables<'weekly_reviews'>[];
+    const stravaCommentById = new Map(((stravaRawData ?? []) as StravaRawActivity[]).map(a => [
+      String(a.strava_id),
       (a.raw_data?.description || a.raw_data?.athlete_comment || '').trim()
     ] as [string, string]).filter(([, comment]) => comment));
     const toWarsawDate = formatWarsawDate;
@@ -132,20 +230,21 @@ export async function exportStatsMarkdown({
     }
 
     let md = `# ROZDZIAŁ 0: FUNDAMENT TOŻSAMOŚCI I WIZJA\n\n`;
-    if (fundament as any) {
-      md += `## 1. TOŻSAMOŚĆ\n${(fundament as any).identity || 'Brak wpisów.'}\n\n`;
-      md += `## 2. WARTOŚCI I FILOZOFIA\n${(fundament as any).philosophy || 'Brak wpisów.'}\n\n`;
-      md += `## 3. WIZJA\n${(fundament as any).vision || 'Brak wpisów.'}\n\n`;
-      md += `## 4. PRACA I FINANSE\n${(fundament as any).finances || 'Brak wpisów.'}\n\n`;
-      md += `## 5. WIEDZA\n${(fundament as any).knowledge || 'Brak wpisów.'}\n\n`;
-      md += `## 6. RELACJE\n${(fundament as any).relationships || 'Brak wpisów.'}\n\n`;
+    const fundRow = (fundament ?? null) as Tables<'user_fundament'> | null;
+    if (fundRow) {
+      md += `## 1. TOŻSAMOŚĆ\n${fundRow.identity || 'Brak wpisów.'}\n\n`;
+      md += `## 2. WARTOŚCI I FILOZOFIA\n${fundRow.philosophy || 'Brak wpisów.'}\n\n`;
+      md += `## 3. WIZJA\n${fundRow.vision || 'Brak wpisów.'}\n\n`;
+      md += `## 4. PRACA I FINANSE\n${fundRow.finances || 'Brak wpisów.'}\n\n`;
+      md += `## 5. WIEDZA\n${fundRow.knowledge || 'Brak wpisów.'}\n\n`;
+      md += `## 6. RELACJE\n${fundRow.relationships || 'Brak wpisów.'}\n\n`;
     }
     md += `---\n\n`;
     md += `# RAPORT TRENINGOWY I LIFESTYLE\n`;
     md += `Okres: ${dateRange.from} do ${dateRange.to}\n\n`;
 
     // Averages helper for the new weekly dashboard
-    const getAvg = (arr: any[] | null, key: string, decimalPlaces: number | null = null) => {
+    const getAvg = (arr: readonly (Record<string, unknown>)[] | null, key: string, decimalPlaces: number | null = null) => {
       const valid = (arr || []).filter(x => x[key] != null && Number(x[key]) > 0);
       if (valid.length === 0) return '--';
       const sum = valid.reduce((acc, x) => acc + Number(x[key]), 0);
@@ -153,13 +252,13 @@ export async function exportStatsMarkdown({
       return decimalPlaces !== null ? avg.toFixed(decimalPlaces) : Math.round(avg);
     };
 
-    const avgWeight = getAvg(bodyMetrics, 'weight', 2);
-    const avgWaist = getAvg(bodyMetrics, 'waist', 1);
-    const avgCalories = getAvg(nutritionEntries, 'calories');
-    const avgProtein = getAvg(nutritionEntries, 'protein');
-    const avgSteps = getAvg(ouraData, 'steps');
-    const avgSleep = getAvg(ouraData, 'total_sleep_hours', 2);
-    const avgReadiness = getAvg(ouraData, 'readiness_score');
+    const avgWeight = getAvg(bodyMetrics as Record<string, unknown>[] | null, 'weight', 2);
+    const avgWaist = getAvg(bodyMetrics as Record<string, unknown>[] | null, 'waist', 1);
+    const avgCalories = getAvg(nutritionEntries as Record<string, unknown>[], 'calories');
+    const avgProtein = getAvg(nutritionEntries as Record<string, unknown>[], 'protein');
+    const avgSteps = getAvg(ouraData as Record<string, unknown>[] | null, 'steps');
+    const avgSleep = getAvg(ouraData as Record<string, unknown>[] | null, 'total_sleep_hours', 2);
+    const avgReadiness = getAvg(ouraData as Record<string, unknown>[] | null, 'readiness_score');
 
     md += `## 📊 PODSUMOWANIE TYGODNIA (DASHBOARD)\n\n`;
     md += `| Metryka | Średnia Wartość |\n`;
@@ -168,16 +267,17 @@ export async function exportStatsMarkdown({
     md += `| **Średnia talia** | ${avgWaist} cm |\n`;
     md += `| **Średnie kcal** | ${avgCalories} kcal |\n`;
     md += `| **Średnie białko** | ${avgProtein} g |\n`;
-    md += `| **Treningi (siłowe)** | ${(sessions as any[]).length} |\n`;
+    md += `| **Treningi (siłowe)** | ${(sessions ?? []).length} |\n`;
     md += `| **Średnie kroki** | ${avgSteps} |\n`;
     md += `| **Średni sen** | ${avgSleep} h |\n`;
     md += `| **Średni Readiness** | ${avgReadiness} |\n\n`;
 
-    if (goals as any) {
+    const goalsRow = (goals ?? null) as Tables<'life_goals'> | null;
+    if (goalsRow) {
       md += `## 🎯 TWOJE CELE (KONTEKST)\n`;
-      md += `- **Ciało:** ${(goals as any).goal_cialo}\n`;
-      md += `- **Duch:** ${(goals as any).goal_duch}\n`;
-      md += `- **Konto:** ${(goals as any).goal_konto}\n\n`;
+      md += `- **Ciało:** ${goalsRow.goal_cialo}\n`;
+      md += `- **Duch:** ${goalsRow.goal_duch}\n`;
+      md += `- **Konto:** ${goalsRow.goal_konto}\n\n`;
     }
 
     // Generate full date range to detect missing days
@@ -190,30 +290,31 @@ export async function exportStatsMarkdown({
     }
 
     allDatesInRange.forEach(dateStr => {
-      const daySessions = (sessions as any[]).filter(s => s.date === dateStr);
+      const daySessions = (sessions ?? []).filter(s => s.date === dateStr);
       const dayFood = foodEntries.filter(f => f.date === dateStr);
       const dayNutrition = nutritionEntries.find(n => n.date === dateStr);
       const dayJournal = journalEntries.find(j => j.date === dateStr);
       const seenContent = new Set();
       const dayTelegramLogs = telegramEntries
-        .filter(t => toWarsawDate(t.created_at) === dateStr)
-        .filter(t => t.metadata?.mode === 'stream')
+        .filter(t => t.created_at && toWarsawDate(t.created_at) === dateStr)
+        .filter(t => (t.metadata as Record<string, unknown>)?.mode === 'stream')
         .filter(t => {
           const key = (t.content || '').trim();
           if (seenContent.has(key)) return false;
           seenContent.add(key);
           return true;
         });
-      const dayBody = (bodyMetrics as any[]).find(b => b.date === dateStr);
-      const dayOura = (ouraData as any[])?.find(o => o.date === dateStr);
-      const dayOuraEnhanced = (ouraEnhanced as any[] || []).find(o => o.date === dateStr);
-      const dayOuraDerived = (ouraDerived as any[] || []).find(o => o.day === dateStr);
-      const dayPhotos = (photos as any[])?.filter(p => p.date === dateStr);
-      const dayStrava = (stravaData as any[] || []).filter(a => {
+      const dayBody = (bodyMetrics ?? []).find(b => b.date === dateStr);
+      const dayOura = (ouraData ?? [])?.find(o => o.date === dateStr);
+      const dayOuraEnhanced = (ouraEnhanced ?? []).find(o => o.date === dateStr);
+      const dayOuraDerived = (ouraDerived ?? []).find(o => o.day === dateStr);
+      const dayPhotos = (photos ?? [])?.filter(p => p.date === dateStr);
+      const dayStrava = ((stravaData ?? []) as StravaCleanActivity[]).filter(a => {
+        if (!a.start_date) return false;
         const d = toWarsawDate(a.start_date);
         return d === dateStr;
       });
-      const dayAw = includeActivityWatch ? (awSummary as any[] || []).find(a => a.date === dateStr) : null;
+      const dayAw = includeActivityWatch ? (awSummary ?? []).find(a => a.date === dateStr) : null;
 
       // Header and Lose Day Logic
       const hasAnyData = (includeWorkouts && (daySessions.length > 0 || dayStrava.length > 0)) || 
@@ -291,7 +392,7 @@ export async function exportStatsMarkdown({
         md += `- **Dyscyplina:** ${dayOura.is_disciplined ? 'TAK' : 'NIE'}\n\n`;
       }
 
-      const dayPhone = (phoneUsageData as any[] || []).find(p => p.date === dateStr);
+      const dayPhone = (phoneUsageData ?? []).find(p => p.date === dateStr);
       if (dayPhone) {
         const parts = [
           dayPhone.entertainment_minutes > 0 ? `🎬 ${dayPhone.entertainment_minutes}m` : null,
@@ -304,7 +405,7 @@ export async function exportStatsMarkdown({
         md += `### 📱 Telefon (AW)\n`;
         md += `- **Łącznie:** ${dayPhone.total_minutes}min | ${parts}${lnAlert}\n`;
         if (dayPhone.top_apps?.length) {
-          const top3 = (dayPhone.top_apps as any[]).slice(0, 3).map(a => `${a.app} (${a.min}m)`).join(', ');
+          const top3 = ((dayPhone.top_apps ?? []) as PhoneTopApp[]).slice(0, 3).map(a => `${a.app} (${a.min}m)`).join(', ');
           md += `- **Top:** ${top3}\n`;
         }
         md += `\n`;
@@ -338,21 +439,21 @@ export async function exportStatsMarkdown({
           md += `- **Ratio produktywności:** ${makeProgressBar(dayAw.productivity_ratio)} **${pct}%**\n`;
         }
         
-        if (dayAw.top_apps && (dayAw.top_apps as any[]).length > 0) {
+        if (dayAw.top_apps && (dayAw.top_apps as AwAppEntry[]).length > 0) {
           md += `- **Top aplikacje:**\n`;
-          (dayAw.top_apps as any[]).slice(0, 5).forEach((app, idx) => {
+          (dayAw.top_apps as AwAppEntry[]).slice(0, 5).forEach((app, idx) => {
             const appSec = app.seconds || 0;
             const appPct = dayAw.total_active_seconds ? Math.round((appSec / dayAw.total_active_seconds) * 100) : 0;
             md += `  ${idx + 1}. \`${app.app}\` — ${fmtSeconds(appSec)} (${appPct}%)\n`;
           });
         }
 
-        if (dayAw.web_domains && (dayAw.web_domains as any[]).length > 0) {
+        if (dayAw.web_domains && (dayAw.web_domains as AwAppEntry[]).length > 0) {
           md += `- **Top domeny:**\n`;
-          (dayAw.web_domains as any[]).slice(0, 5).forEach((domain, idx) => {
+          (dayAw.web_domains as AwAppEntry[]).slice(0, 5).forEach((domain, idx) => {
             const domSec = domain.seconds || 0;
             const domPct = dayAw.total_active_seconds ? Math.round((domSec / dayAw.total_active_seconds) * 100) : 0;
-            md += `  ${idx + 1}. \`${domain.domain}\` — ${fmtSeconds(domSec)} (${domPct}%)\n`;
+            md += `  ${idx + 1}. \`${domain.app}\` — ${fmtSeconds(domSec)} (${domPct}%)\n`;
           });
         }
         md += `\n`;
@@ -409,7 +510,7 @@ export async function exportStatsMarkdown({
         // Render exercise logs in their raw chronological order to preserve separate sets of the same exercise
         let currentExerciseName = "";
         let currentExerciseVolume = 0;
-        let currentSets: any[] = [];
+        let currentSets: Tables<'exercise_logs'>[] = [];
 
         const renderCurrentExercise = () => {
           if (currentSets.length > 0) {
@@ -460,12 +561,12 @@ export async function exportStatsMarkdown({
         };
         md += `### 🏃 Bieganie (Strava)\n\n`;
         dayStrava.forEach(a => {
-          const startTime = new Date(a.start_date).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+          const startTime = new Date(a.start_date ?? '').toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
           const distKm = a.distance ? (a.distance / 1000).toFixed(2) : null;
           const paceStr = a.pace_sec_per_km
             ? fmtPaceMd(a.pace_sec_per_km)
             : (a.moving_time && a.distance ? fmtPaceMd(Math.round(a.moving_time / (a.distance / 1000))) : '—');
-          const movingFmt = fmtTimeMd(a.moving_time);
+          const movingFmt = fmtTimeMd(a.moving_time ?? 0);
           const hrAvg = a.hr_avg ? Math.round(a.hr_avg) : null;
           const hrMax = a.hr_max ? Math.round(a.hr_max) : null;
           const hrSrc = a.hr_source === 'oura' ? 'Oura Ring' : a.hr_source === 'strava' ? 'Strava/GPS' : null;
@@ -473,7 +574,7 @@ export async function exportStatsMarkdown({
           const paused = (a.pause_seconds || 0) > 30;
 
           const workoutLabels: Record<number, string> = { 1: 'Wyścig 🏁', 2: 'Długi bieg 🏔️', 3: 'Trening / Interwały ⚡' };
-          const workoutLabel = workoutLabels[a.workout_type] || null;
+          const workoutLabel = a.workout_type != null ? workoutLabels[a.workout_type] || null : null;
 
           md += `#### ${a.name}${a.has_pr ? ' 🏆 PR' : ''} — ${startTime}${workoutLabel ? ` · ${workoutLabel}` : ''}\n`;
           md += `| Dystans | Tempo | Czas ruchu | Kadencja |\n`;
@@ -493,10 +594,13 @@ export async function exportStatsMarkdown({
             if (a.gc_training_effect_aerobic != null) gcParts.push(`TE aerob: **${a.gc_training_effect_aerobic}**`);
             if (a.gc_training_effect_anaerobic != null) gcParts.push(`TE anaerob: **${a.gc_training_effect_anaerobic}**`);
             if (a.gc_vo2max != null) gcParts.push(`VO2max: **${a.gc_vo2max}**`);
-            if (a.gc_weather?.temp_c != null) gcParts.push(`${a.gc_weather.temp_c}°C${a.gc_weather.condition ? ` ${a.gc_weather.condition}` : ''}${a.gc_weather.humidity != null ? ` ${a.gc_weather.humidity}% wilg.` : ''}`);
+            if ((a.gc_weather as Record<string, unknown>)?.temp_c != null) {
+              const gw = a.gc_weather as Record<string, unknown>;
+              gcParts.push(`${gw.temp_c}°C${gw.condition ? ` ${gw.condition}` : ''}${gw.humidity != null ? ` ${gw.humidity}% wilg.` : ''}`);
+            }
             if (gcParts.length > 0) md += `**Garmin Connect:** ${gcParts.join(' | ')}\n`;
             if (Array.isArray(a.gc_hr_zones) && a.gc_hr_zones.length > 0) {
-              const zones = (a.gc_hr_zones as any[]).map((z, i) => {
+              const zones = (a.gc_hr_zones as unknown as GcHrZone[]).map((z, i) => {
                 const mins = z.secsInZone != null ? Math.round(z.secsInZone / 60) : null;
                 return mins != null && mins > 0 ? `Z${i + 1}: ${mins}min` : null;
               }).filter(Boolean);
@@ -505,13 +609,13 @@ export async function exportStatsMarkdown({
           }
 
           // HRV context from Oura: pre-run (day of run) + post-run (day after)
-          const runDate = toWarsawDate(a.start_date);
+          const runDate = toWarsawDate(a.start_date ?? '');
           const [ry, rm, rd] = runDate.split('-').map(Number);
           const nextDateObj = new Date(ry, rm - 1, rd + 1);
           const nextDate = `${nextDateObj.getFullYear()}-${String(nextDateObj.getMonth()+1).padStart(2,'0')}-${String(nextDateObj.getDate()).padStart(2,'0')}`;
-          const ouraPreRun  = (ouraData as any[])?.find(o => o.date === runDate);
-          const ouraPostRun = (ouraData as any[])?.find(o => o.date === nextDate);
-          const enhancedPre = (ouraEnhanced as any[] || [])?.find(o => o.date === runDate);
+          const ouraPreRun  = (ouraData ?? [])?.find(o => o.date === runDate);
+          const ouraPostRun = (ouraData ?? [])?.find(o => o.date === nextDate);
+          const enhancedPre = (ouraEnhanced ?? [])?.find(o => o.date === runDate);
 
           if (ouraPreRun?.hrv_avg || ouraPostRun?.hrv_avg || enhancedPre?.vo2_max || enhancedPre?.temperature_deviation != null) {
             md += `**Kontekst Biometryczny (Oura):**\n`;
@@ -535,12 +639,12 @@ export async function exportStatsMarkdown({
 
           if (a.total_elevation_gain) md += `**Przewyższenie:** +${Math.round(a.total_elevation_gain)} m\n`;
           if (a.gear_name)            md += `**Buty:** ${a.gear_name}${a.gear_distance_km ? ` (${Math.round(a.gear_distance_km)} km przebiegu)` : ''}\n`;
-          if (paused)                 md += `**Przerwy:** ${fmtTimeMd(a.pause_seconds)}\n`;
-          const athleteComment = stravaCommentById.get(a.strava_id);
+          if (paused)                 md += `**Przerwy:** ${fmtTimeMd(a.pause_seconds ?? 0)}\n`;
+          const athleteComment = stravaCommentById.get(String(a.strava_id ?? ''));
           if (athleteComment)          md += `**Komentarz zawodnika:** ${athleteComment}\n`;
 
           // Splits table
-          const splits = a.splits_with_hr as any[];
+          const splits = a.splits_with_hr as unknown as StravaSplit[];
           if (splits && splits.length > 0) {
             const hasGapMd = splits.some(s => s.average_grade_adjusted_speed != null);
             md += `\n**Splity:**\n`;
@@ -569,7 +673,7 @@ export async function exportStatsMarkdown({
 
           // Best efforts
           const bestEffortNames = ['400m', '1K', '1 mile', '2 mile', '5K', '10K'];
-          const efforts = (a.best_efforts as any[] || []).filter(e => bestEffortNames.includes(e.name));
+          const efforts = ((a.best_efforts as unknown as StravaBestEffort[]) ?? []).filter(e => bestEffortNames.includes(e.name));
           if (efforts.length > 0) {
             md += `\n**Best Efforts:**\n`;
             efforts.forEach(e => {
@@ -644,7 +748,7 @@ export async function exportStatsMarkdown({
           const ilPer1000 = totalCal > 0 ? ((totalIL / totalCal) * 1000).toFixed(1) : '0.0';
 
           // Pierwsze i ostatnie logowanie posiłku
-          const loggedTimes = dayFood.map(f => f.logged_at).filter(Boolean).map(t => new Date(t));
+          const loggedTimes = dayFood.map(f => f.logged_at).filter((t): t is string => !!t).map(t => new Date(t));
           let mealWindowStr = '';
           if (loggedTimes.length >= 2) {
             const firstTs = new Date(Math.min(...loggedTimes.map(t => t.getTime())));
@@ -675,10 +779,11 @@ export async function exportStatsMarkdown({
         md += `### Notatnik (Telegram)\n`;
         md += `#### Logi z Telegrama\n`;
         dayTelegramLogs.forEach(log => {
-          const mode = log.metadata?.mode ? ` [${log.metadata.mode}]` : '';
+          const meta = log.metadata as Record<string, unknown> | null;
+          const mode = meta?.mode ? ` [${meta.mode}]` : '';
           const content = (log.content || '').trim().replace(/\n/g, '\n  ');
           if (content) {
-            md += `- **${toWarsawTime(log.created_at)}**${mode}: ${content}\n`;
+            md += `- **${toWarsawTime(log.created_at ?? '')}**${mode}: ${content}\n`;
           }
         });
         md += `\n`;
@@ -690,9 +795,9 @@ export async function exportStatsMarkdown({
         
         md += `#### Plan dnia:\n`;
         for (let i = 1; i <= 5; i++) {
-          const task = (dayJournal as any)[`task_${i}`];
-          const cat = (dayJournal as any)[`category_${i}`];
-          const done = (dayJournal as any)[`done_${i}`];
+          const task = dayJournal[`task_${i}` as keyof Tables<'daily_wins'>];
+          const cat = dayJournal[`category_${i}` as keyof Tables<'daily_wins'>];
+          const done = dayJournal[`done_${i}` as keyof Tables<'daily_wins'>];
           if (task) {
             md += `- [${done ? 'x' : ' '}] (${cat}) ${task}\n`;
           }
@@ -713,11 +818,11 @@ export async function exportStatsMarkdown({
       }
 
       // Daily Habits
-      const dayHabitLogs = (habitLogs as any[])?.filter(l => l.date === dateStr);
-      if (includeHabits && (dayHabitLogs as any[])?.length > 0) {
+      const dayHabitLogs = (habitLogs ?? []).filter(l => l.date === dateStr);
+      if (includeHabits && dayHabitLogs?.length > 0) {
         md += `### ✅ Nawyki Dnia\n`;
         dayHabitLogs.forEach(log => {
-          const habit = (habits as any[])?.find(h => h.id === log.habit_id);
+          const habit = (habits ?? []).find(h => h.id === log.habit_id);
           if (habit) {
             const label = habit.is_positive ? 'Wykonano' : 'Wpadka';
             const stimulus = log.final_stimulus ? ` — bodziec: "${log.final_stimulus}"` : '';
@@ -792,16 +897,16 @@ export async function exportOuraCsv({ supabase, session, dateRange }: ExportOura
     ]);
 
     if (enhancedRes.error) { notify('Błąd pobierania Oura: ' + enhancedRes.error.message, 'error'); return; }
-    const enhanced = (enhancedRes.data as any[]) || [];
-    const derived = (derivedRes.data as any[]) || [];
+    const enhanced = (enhancedRes.data ?? []) as unknown as Tables<'oura_enhanced'>[];
+    const derived = (derivedRes.data ?? []) as unknown as OuraDerivedRow[];
     if (enhanced.length === 0 && derived.length === 0) {
       notify('Brak danych Oura w wybranym zakresie dat.', 'error'); return;
     }
 
     // Scalanie po dacie — jeden wiersz na dzień
     const byDate: Record<string, Record<string, unknown> & { date: string }> = {};
-    enhanced.forEach(r => { byDate[r.date] = { date: r.date, ...r }; });
-    derived.forEach(r => { byDate[r.day] = { ...(byDate[r.day] || { date: r.day }), ...r }; });
+    enhanced.forEach(r => { const { date: _d, ...rest } = r; byDate[r.date] = { date: r.date, ...rest }; });
+    derived.forEach(r => { const { day: _d, ...rest } = r; byDate[r.day] = { ...(byDate[r.day] || { date: r.day }), ...rest }; });
     const merged = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 
     const columns = ['date', ...enhancedCols, ...derivedCols];
