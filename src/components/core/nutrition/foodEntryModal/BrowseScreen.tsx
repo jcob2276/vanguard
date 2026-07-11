@@ -1,14 +1,14 @@
 import { Search, Loader2, ScanLine, Plus, RotateCcw, Sparkles, X } from 'lucide-react';
 import FoodRow from '../FoodRow';
 import BarcodeScanner from '../BarcodeScanner';
-import { scale, dayLabel, type Favorite, type RecentEntry } from '../useFoodEntryData';
+import { scale, dayLabel, type Favorite, type RecentEntry, type FoodBase } from '../hooks/useFoodEntryData';
 
 interface BrowseScreenProps {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   query: string;
   setQuery: (v: string) => void;
   searching: boolean;
-  searchResults: Favorite[];
+  searchResults: FoodBase[];
   scannerOpen: boolean;
   setScannerOpen: (v: boolean) => void;
   scanLookingUp: boolean;
@@ -16,10 +16,10 @@ interface BrowseScreenProps {
   setError: (v: string | null) => void;
   setNlMode: (v: boolean) => void;
   setNlText: (v: string) => void;
-  setSelected: (v: Favorite | null) => void;
+  setSelected: (v: FoodBase | null) => void;
   setGrams: (v: string) => void;
   quickAddingId: string | null;
-  quickAddSearchResult: (r: Favorite) => void;
+  quickAddSearchResult: (r: FoodBase) => void;
   activeTab: 'favorites' | 'recent';
   setActiveTab: (tab: 'favorites' | 'recent') => void;
   loadingList: boolean;

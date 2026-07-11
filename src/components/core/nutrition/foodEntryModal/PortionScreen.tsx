@@ -1,4 +1,4 @@
-import type { Favorite } from '../useFoodEntryData';
+import type { FoodBase } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },
@@ -8,8 +8,8 @@ const MEAL_TYPES = [
 ];
 
 interface PortionScreenProps {
-  selected: Favorite;
-  setSelected: (v: Favorite | null) => void;
+  selected: FoodBase;
+  setSelected: (v: FoodBase | null) => void;
   grams: string;
   setGrams: (v: string) => void;
   mealType: string;

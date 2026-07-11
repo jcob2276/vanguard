@@ -39,7 +39,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       )}
 
       {data.showAddForm && (
-        <SupplementAddForm onClose={() => data.setShowAddForm(false)}
+        <SupplementAddForm
           name={data.name} setName={data.setName} emoji={data.emoji} setEmoji={data.setEmoji}
           unit={data.unit} setUnit={data.setUnit} skipQty={data.skipQty} setSkipQty={data.setSkipQty}
           hasCycle={data.hasCycle} setHasCycle={data.setHasCycle}

@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import type { RecentEntry } from '../useFoodEntryData';
+import type { RecentEntry } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },

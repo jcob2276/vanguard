@@ -4,7 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import {
   useFoodEntryData,
   type RecentEntry,
-} from './useFoodEntryData';
+} from './hooks/useFoodEntryData';
 import FoodEntryHeader from './foodEntryModal/FoodEntryHeader';
 import FoodEntryContent from './foodEntryModal/FoodEntryContent';
 

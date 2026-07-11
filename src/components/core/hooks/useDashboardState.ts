@@ -17,7 +17,7 @@ import { fetchLatestTaskReviewDate } from '../../../lib/todo/todo';
 import { getWeekStartWarsaw } from '../../../lib/growth/growth';
 import type { WorkoutLoggerInitial } from '../../../lib/health/workoutLogging';
 import { markWorkoutSessionActive } from '../../../lib/health/workoutLogging';
-import type { RecentEntry } from '../nutrition/useFoodEntryData';
+import type { RecentEntry } from '../nutrition/hooks/useFoodEntryData';
 import type { SpineGuideTarget } from '../../../lib/goal/goalSpineGuide';
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];

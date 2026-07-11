@@ -113,7 +113,7 @@ export default function DirectionPlanningMode({
       {reflectionSaved && (
         <DirectionPlanWeekPlan
           phase2={phase2} weekStart={weekStart} planWeekStart={planWeekStart}
-          direction={{ sprintGoal: direction.sprintGoal, bhagLine: direction.bhagLine, monthTheme: direction.monthTheme, monthLabel: direction.monthLabel }}
+          direction={{ sprintGoal: direction.sprintGoal ?? null, bhagLine: direction.bhagLine ?? null, monthTheme: direction.monthTheme ?? null, monthLabel: direction.monthLabel ?? null }}
           weekIntention={weekIntention} setWeekIntention={setWeekIntention}
           weekCommitment={weekCommitment} setWeekCommitment={setWeekCommitment}
           weekGoalCialo={weekGoalCialo} setWeekGoalCialo={setWeekGoalCialo}

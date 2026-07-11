@@ -1,6 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ParsedFoodItem } from '../../../../lib/health/foodLogging';
-import type { Favorite, RecentEntry } from '../useFoodEntryData';
+import type { Favorite, RecentEntry, FoodBase } from '../hooks/useFoodEntryData';
 import EditScreen from './EditScreen';
 import NLScreen from './NLScreen';
 import PortionScreen from './PortionScreen';
@@ -33,8 +33,8 @@ interface FoodEntryContentProps {
   setNlRemovedIdx: Dispatch<SetStateAction<Set<number>>>;
   nlSaving: boolean;
   saveNLItems: () => void;
-  selected: Favorite | null;
-  setSelected: (v: Favorite | null) => void;
+  selected: FoodBase | null;
+  setSelected: (v: FoodBase | null) => void;
   grams: string;
   setGrams: (v: string) => void;
   preview: { calories: number | null; protein: number | null; carbs: number | null; fat: number | null } | null;
@@ -45,13 +45,13 @@ interface FoodEntryContentProps {
   query: string;
   setQuery: (v: string) => void;
   searching: boolean;
-  searchResults: Favorite[];
+  searchResults: FoodBase[];
   scannerOpen: boolean;
   setScannerOpen: (v: boolean) => void;
   scanLookingUp: boolean;
   lookupBarcode: (barcode: string) => void;
   quickAddingId: string | null;
-  quickAddSearchResult: (r: Favorite) => void;
+  quickAddSearchResult: (r: FoodBase) => void;
   activeTab: 'favorites' | 'recent';
   setActiveTab: (tab: 'favorites' | 'recent') => void;
   loadingList: boolean;
