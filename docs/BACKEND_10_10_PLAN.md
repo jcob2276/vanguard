@@ -20,6 +20,29 @@
 > bezpośredniej weryfikacji wszystkich czterech punktów P0 z tamtego pliku, zanim ruszysz
 > dalej.
 
+## Status na 2026-07-11 (koniec sesji)
+
+Fazy 0, 1, 2, 4, 5, 6 **zamknięte i zweryfikowane żywym testem** (nie samą lekturą kodu —
+patrz dowody w tabeli faz niżej i commity `bc057dba`..`a7404ddd`). Faza 3 **zamknięta** —
+narzędzie naprawione (skanowało `_shared/` błędnie, agregacja JSDoc była per-plik zamiast
+per-funkcja), 33 orphany przetriażowane (13 false-positive/frontend, 4 VIEW, 1 trigger-sync,
+3 realne martwe zapytania naprawione i wdrożone, 1 zostawiony do decyzji produktowej —
+`vanguard_recipes`/`vanguard-executor`), JSDoc `@reads/@writes` domknięty na 19 funkcjach.
+
+**Faza 7 nie ma statusu "zamknięta"** — to stały tryb pracy (ratchet), nie zadanie z DoD.
+
+Otwarte na przyszłość (świadomie zostawione, nie zgubione):
+- `vanguard_recipes` / `vanguard-executor` — 0 wierszy, 0 wywołań, brak dokumentacji;
+  decyzja: usunąć czy dobudować, wymaga rozmowy o intencji produktowej.
+- 30 pozostałych orphanów z `npm run contracts:check` po naprawie tabeli danych — realnie
+  przetriażowane co do klasy (false-positive/VIEW/trigger/nieznane), ale nie każdy pojedynczo
+  potwierdzony wierszem w bazie — kolejna sesja może przejść resztę tą samą metodą.
+- `_shared/http.ts` (`serveJson`) ma na razie 3-5 konsumentów (Faza 2) — reszta funkcji do
+  przepięcia stopniowo, ratchet `rawJsonResponse` pilnuje kierunku.
+- Repozytoria z Fazy 4 (`streamRepo`/`aggregatesRepo`/`reconciliationsRepo`) mają 1 realnego
+  konsumenta (`vanguard-eval-interview`, 4 z 7 zapytań) — reszta ~70 rozproszonych zapytań do
+  gorących tabel czeka na stopniowe przepięcie.
+
 ---
 
 ## Zasady dla KAŻDEGO agenta wykonującego KTÓRĄKOLWIEK fazę tego planu
@@ -68,16 +91,16 @@ Czytaj to przed każdą sesją, nie tylko raz na początku pracy nad planem.
 
 ## Kolejność faz (od dziś do 10/10)
 
-| Faza | Temat | Czas | Blokuje kolejną? |
-|---|---|---|---|
-| 0 | Weryfikacja stanu — nie ufaj żadnemu wcześniejszemu raportowi | 30 min | Tak, zawsze pierwsza |
-| 1 | P0 — auth, które dziś krwawi w produkcji | 1-2h | Tak |
-| 2 | Kernel `serveJson` + auto-telemetria błędów | pół dnia | Nie, ale bardzo ułatwia 3-7 |
-| 3 | Kontrakt danych: generowany bilans `@reads/@writes` + orphan-check | pół dnia | Nie |
-| 4 | Typowana granica DB dla Deno + 3 repozytoria gorących tabel | 1-2 dni | Nie |
-| 5 | Higiena deploy: czyste drzewo + hash + eval-gate na prompty | pół dnia | Nie |
-| 6 | Invariant-check grafu wiedzy + retencja logów | pół dnia | Nie |
-| 7 | Ciągła spłata: dedup, rozbicie molochów, `as any` → 0 | ciągłe, sesja na kawałek | Nie, ratchet pilnuje |
+| Faza | Temat | Czas | Blokuje kolejną? | Status |
+|---|---|---|---|---|
+| 0 | Weryfikacja stanu — nie ufaj żadnemu wcześniejszemu raportowi | 30 min | Tak, zawsze pierwsza | ✅ Zamknięta 2026-07-11 |
+| 1 | P0 — auth, które dziś krwawi w produkcji | 1-2h | Tak | ✅ Zamknięta, potwierdzona `get_edge_function` na prod |
+| 2 | Kernel `serveJson` + auto-telemetria błędów | pół dnia | Nie, ale bardzo ułatwia 3-7 | ✅ Zamknięta, 3-5 konsumentów |
+| 3 | Kontrakt danych: generowany bilans `@reads/@writes` + orphan-check | pół dnia | Nie | ✅ Zamknięta, 3 realne bugi naprawione+wdrożone |
+| 4 | Typowana granica DB dla Deno + 3 repozytoria gorących tabel | 1-2 dni | Nie | ✅ Zamknięta (rebuild #3), 1 realny konsument, wdrożone |
+| 5 | Higiena deploy: czyste drzewo + hash + eval-gate na prompty | pół dnia | Nie | ✅ Zamknięta, 3 Windows-bugi w skrypcie naprawione |
+| 6 | Invariant-check grafu wiedzy + retencja logów | pół dnia | Nie | ✅ Zamknięta, krok wykonał się w nightly (status ok) |
+| 7 | Ciągła spłata: dedup, rozbicie molochów, `as any` → 0 | ciągłe, sesja na kawałek | Nie, ratchet pilnuje | ♾️ Nigdy "zamknięta" z definicji |
 
 Fazy 2-6 mogą iść w dowolnej kolejności między sesjami (nie zależą twardo od siebie), ale
 **Faza 0 i Faza 1 zawsze pierwsze**, i żadna faza 2-7 nie zaczyna się, dopóki Faza 1 nie jest
