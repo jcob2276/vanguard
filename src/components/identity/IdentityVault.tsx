@@ -25,16 +25,6 @@ const colorMap = {
 
 type VaultState = Record<string, string>;
 
-const emptyVault: VaultState = {
-  vision: '',
-  identity: '',
-  knowledge: '',
-  relationships: '',
-  philosophy: '',
-  finances: '',
-  work_edu: '',
-};
-
 function Section({ title, icon: Icon, value, onChange, placeholder, description, color }: {
   title: string;
   icon: LucideIcon;
@@ -142,7 +132,7 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
       await upsertUserFundament(uid, nonEmpty);
 
       setSaveStatus('success');
-      setVault({ identity: '', philosophy: '', finances: '', vision: '', knowledge: '', relationships: '', work_edu: '' });
+      await fetchVault();
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err: unknown) {
       console.error('Save error:', err);
