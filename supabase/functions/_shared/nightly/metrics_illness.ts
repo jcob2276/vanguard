@@ -3,28 +3,8 @@
 // alert wycisza się jeśli behavior_log/exercise_logs (sauna) wyjaśnia anomalię tego dnia.
 import { createServiceClient, corsHeaders, resolveUserScope } from '../supabase.ts'
 import { getWarsawDateString } from '../time.ts'
+import { ewmaBaseline } from './baselines.ts'
 
-// Ten samy EWMA port jak compute-daily-strain (Baselines.swift) — duplikat świadomy,
-// żeby ta funkcja była niezależna i nie zależała od wewnętrznej struktury components innej funkcji.
-function ewmaBaseline(
-  values: number[], minVal: number, maxVal: number, floorSpread: number,
-  halfLifeB = 14, halfLifeS = 21
-): { center: number; spread: number; nValid: number } | null {
-  const lb = 1 - Math.pow(0.5, 1 / halfLifeB)
-  const ls = 1 - Math.pow(0.5, 1 / halfLifeS)
-  const WINSOR_K = 3.0, HARD_K = 5.0, MIN_SEED = 4
-  let center: number | null = null, spread = floorSpread, nValid = 0
-  for (const v of values) {
-    if (v < minVal || v > maxVal) continue
-    if (center === null) { center = v; nValid = 1; continue }
-    if (nValid >= MIN_SEED && Math.abs(v - center) > HARD_K * spread) continue
-    const clamped = Math.max(center - WINSOR_K * spread, Math.min(center + WINSOR_K * spread, v))
-    center = lb * clamped + (1 - lb) * center
-    spread = Math.max(floorSpread, ls * Math.abs(v - center) + (1 - ls) * spread)
-    nValid++
-  }
-  return center !== null ? { center, spread, nValid } : null
-}
 
 const SIGMA = 1.253
 const Z_THRESHOLD = 2.0, K_Z_TO_SCORE = 22.0, PER_SIGNAL_CAP = 40.0
