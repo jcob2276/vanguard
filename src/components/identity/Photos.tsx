@@ -7,6 +7,7 @@ import exifr from 'exifr';
 import { notify, confirmDialog } from '../../lib/notify';
 import { generateThumbnail } from '../../lib/imageThumbnail';
 import { Session } from '@supabase/supabase-js';
+import Spinner from '../ui/Spinner';
 
 export default function Photos({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
@@ -131,7 +132,7 @@ export default function Photos({ session }: { session: Session }) {
         <div className="pt-2">
           <label className="inline-flex items-center gap-2 cursor-pointer bg-primary text-white font-display font-bold text-[11px] uppercase tracking-wider px-5 py-3 rounded-xl hover:bg-primary-hover transition-all active:scale-95 shadow-md shadow-primary/20 cursor-pointer">
             {uploading ? (
-              <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+              <Spinner size="sm" className="!border-white/30 !border-t-white" />
             ) : (
               <>
                 <Camera size={14} className="shrink-0" />
@@ -163,7 +164,7 @@ export default function Photos({ session }: { session: Session }) {
             <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Transformacja</h2>
           </div>
           <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-white shadow-sm">
-            {uploading ? <div className="animate-spin h-4 w-4 border-2 border-text-muted/30 border-t-primary rounded-full" /> : <Camera size={17} />}
+            {uploading ? <Spinner size="sm" /> : <Camera size={17} />}
             <input type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
           </label>
         </div>

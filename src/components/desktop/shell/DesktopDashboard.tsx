@@ -6,6 +6,7 @@ import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } fro
 import { Link } from 'react-router-dom';
 import SmartAlerts from '../hero/SmartAlerts';
 import DesktopHero from '../hero/DesktopHero';
+import Spinner from '../../ui/Spinner';
 import DesktopSectionNav from './DesktopSectionNav';
 import Heatmap from '../fitness/Heatmap';
 import {
@@ -252,14 +253,14 @@ export default function DesktopDashboard({ session }: { session: Session }) {
 
   if (showFundament) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
-      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Spinner size="md" /></div>}>
         <Fundament session={session} onBack={() => { setShowFundament(false); refresh(); }} onSyncCalendar={startGoogleAuth} isSyncing={syncing} />
       </Suspense>
     </div>
   );
 
   if (showWorkout) return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Spinner size="md" /></div>}>
       <WorkoutLogger
         session={session}
         initial={workoutInitial}
@@ -274,7 +275,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="relative h-16 w-16">
           <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-          <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <Spinner size="lg" />
         </div>
       </div>
     );

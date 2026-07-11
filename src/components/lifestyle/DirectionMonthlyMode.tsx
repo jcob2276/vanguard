@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Session } from '@supabase/supabase-js';
+import Spinner from '../ui/Spinner';
 import type { MonthFacts } from '../../lib/growth/monthReview';
 
 type MonthRecap = {
@@ -136,7 +137,7 @@ export default function DirectionMonthlyMode({
         <Divider title="Jak wyglądał twój miesiąc" />
         {recapLoading && (
           <div className="flex items-center gap-2 py-3 text-text-muted text-sm">
-            <div className="w-3.5 h-3.5 border-2 border-border-custom border-t-primary rounded-full animate-spin" />
+            <Spinner size="sm" />
             AI analizuje miesiąc…
           </div>
         )}

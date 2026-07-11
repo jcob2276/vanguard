@@ -15,6 +15,7 @@ import PowerList from '../lifestyle/PowerList';
 import SearchModal from './SearchModal';
 import { useDashboardState } from './hooks/useDashboardState';
 import { markWorkoutSessionActive } from '../../lib/health/workoutLogging';
+import Spinner from '../ui/Spinner';
 
 const WorkoutLogger   = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -30,7 +31,7 @@ const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 function ViewFallback() {
   return (
     <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Spinner size="md" />
     </div>
   );
 }
@@ -91,7 +92,7 @@ export default function Dashboard({ session }: { session: Session }) {
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="relative h-16 w-16">
         <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-        <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <Spinner size="lg" />
       </div>
     </div>
   );

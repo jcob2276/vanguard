@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { PILLARS, PILLAR_META, GOAL_QUESTIONS, PillarId } from './projectUtils';
+import Spinner from '../ui/Spinner';
 
 export interface GoalCreateModalProps {
   lifeGoals: any;
@@ -171,7 +172,7 @@ export default function GoalCreateModal({
           {/* LOADING */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-8 space-y-3">
-              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              <Spinner size="md" />
               <p className="text-[14px] font-semibold text-text-secondary">AI analizuje Twój cel...</p>
               <p className="text-[11px] text-text-muted">Generuje projekt, KPI i kamienie milowe</p>
             </div>

@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
+import Spinner from '../ui/Spinner';
 import { supabase } from '../../lib/supabase';
 import { notify, confirmDialog } from '../../lib/notify';
 import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../lib/behavior/captureBridge';
@@ -449,7 +450,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
 
             {sharingStatus && (
               <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-[12px] font-semibold rounded-[14px] animate-pulse">
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
+                <Spinner size="sm" className="shrink-0" />
                 {sharingStatus}
               </div>
             )}
@@ -457,7 +458,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
             {/* Links */}
             {loading ? (
               <div className="flex min-h-[240px] items-center justify-center">
-                <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <Spinner size="md" />
               </div>
             ) : filteredLinks.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">

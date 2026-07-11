@@ -2,13 +2,14 @@ import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
 import NutritionCard from './NutritionCard';
 import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
+import Spinner from '../ui/Spinner';
 
 const Direction = lazy(() => import('../lifestyle/Direction'));
 
 function ViewFallback() {
   return (
     <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Spinner size="md" />
     </div>
   );
 }

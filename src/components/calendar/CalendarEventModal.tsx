@@ -4,6 +4,7 @@ import { useCalendarData } from './useCalendarData';
 import { monthLabel, recurringSeriesBaseId } from './calendarHelpers';
 
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
+import Modal from '../ui/Modal';
 
 interface CalendarEventModalProps {
   calData: ReturnType<typeof useCalendarData>;
@@ -177,18 +178,8 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
   return (
     <>
       {/* 1. Quick Create Modal */}
-      {quickCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setQuickCreate(null)}>
-          <div className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">
-                {quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'}
-              </p>
-              <button onClick={() => setQuickCreate(null)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
+      <Modal isOpen={!!quickCreate} onClose={() => setQuickCreate(null)} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="sm">
+            {quickCreate && <>
             <div className="flex gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-border-custom/40">
               <button
                 type="button"
@@ -266,21 +257,11 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
                 {saving ? 'Zapisywanie...' : 'Zapisz'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            </>}
+      </Modal>
 
       {/* 2. Edit Event Modal */}
-      {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={() => setSelectedEvent(null)}>
-          <div className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Edytuj wydarzenie</p>
-              <button onClick={() => setSelectedEvent(null)} className="p-1 text-text-muted hover:text-text-primary transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
+      <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Edytuj wydarzenie" size="sm">
             <input
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
@@ -341,9 +322,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
                 {saving ? 'Zapisywanie...' : 'Zapisz'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* 3. Delete Confirmation Dialog */}
       {showDeleteConfirm && (() => {

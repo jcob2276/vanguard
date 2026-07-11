@@ -1,9 +1,10 @@
 import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
-import { X, Check, Trash2 } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import { combineDateTimeWarsawISO } from '../../../lib/date';
 import { updateTodoItem } from '../../../lib/todo/todo';
 import { addDays } from '../calendarHelpers';
+import Modal from '../../ui/Modal';
 
 export default function CalendarTodoModal() {
   const {
@@ -18,113 +19,104 @@ export default function CalendarTodoModal() {
   if (!editingTodo) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]" onClick={closeEditTodoModal}>
-      <div className="w-full max-w-sm rounded-2xl bg-background border border-border-custom/80 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] font-black text-text-primary uppercase tracking-wider">Edytuj zadanie</p>
-          <button onClick={closeEditTodoModal} className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer">
-            <X size={18} />
-          </button>
-        </div>
+    <Modal isOpen={!!editingTodo} onClose={closeEditTodoModal} title="Edytuj zadanie" size="sm">
+      <input
+        autoFocus
+        value={editingTodoTitle}
+        onChange={(e) => setEditingTodoTitle(e.target.value)}
+        onBlur={saveTodoTitle}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        className="w-full rounded-xl border border-border-custom/60 bg-surface-solid px-3 py-2 text-[13px] font-semibold text-text-primary outline-none focus:border-primary/40"
+      />
 
-        <input
-          autoFocus
-          value={editingTodoTitle}
-          onChange={(e) => setEditingTodoTitle(e.target.value)}
-          onBlur={saveTodoTitle}
-          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="w-full rounded-xl border border-border-custom/60 bg-surface-solid px-3 py-2 text-[13px] font-semibold text-text-primary outline-none focus:border-primary/40"
-        />
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              value={editingTodo.due_date || ''}
-              onChange={async (e) => {
-                const due_date = e.target.value || null;
-                const scheduled_time = editingTodo.scheduled_time && due_date
-                  ? combineDateTimeWarsawISO(due_date, editingTodo.scheduled_time.slice(11, 16))
-                  : editingTodo.scheduled_time;
-                setEditingTodo({ ...editingTodo, due_date, scheduled_time });
-                await updateTodoItem(editingTodo.id, { due_date, scheduled_time });
-                await fetchAllTodos();
-              }}
-              className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
-            />
-            <input
-              type="time"
-              value={editingTodo.scheduled_time ? editingTodo.scheduled_time.slice(11, 16) : ''}
-              onChange={async (e) => {
-                const timeVal = e.target.value;
-                const scheduled_time = timeVal && editingTodo.due_date
-                  ? combineDateTimeWarsawISO(editingTodo.due_date, timeVal)
-                  : null;
-                setEditingTodo({ ...editingTodo, scheduled_time });
-                await updateTodoItem(editingTodo.id, { scheduled_time });
-                await fetchAllTodos();
-              }}
-              className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={async () => {
-            await handleToggleTodo(editingTodo.id);
-            const isDone = !completedTodoIds.has(editingTodo.id);
-            setToastMessage(isDone ? `Ukończono: "${editingTodo.title}" ✅` : `Cofnięto ukończenie: "${editingTodo.title}"`);
-            closeEditTodoModal();
-          }}
-          className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-[12px] font-black uppercase transition-all active:scale-[0.98] cursor-pointer ${
-            completedTodoIds.has(editingTodo.id)
-              ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/15 border border-amber-500/20'
-              : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20'
-          }`}
-        >
-          <Check size={14} />
-          {completedTodoIds.has(editingTodo.id) ? 'Oznacz jako nieukończone' : 'Oznacz jako ukończone'}
-        </button>
-
-        {!completedTodoIds.has(editingTodo.id) && (
-          <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3.5 space-y-2.5">
-            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
-            <textarea
-              placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
-              value={editingTodo.notes || ''}
-              onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
-              className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-[11px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
-            />
-            <button
-              type="button"
-              onClick={async () => {
-                const currentDateStr = editingTodo.due_date || today;
-                const tomorrowStr = addDays(currentDateStr, 1);
-                let newScheduledTime = null;
-                if (editingTodo.scheduled_time) {
-                  const timePart = editingTodo.scheduled_time.slice(11, 16);
-                  newScheduledTime = combineDateTimeWarsawISO(tomorrowStr, timePart);
-                }
-                await updateTodoItem(editingTodo.id, { due_date: tomorrowStr, scheduled_time: newScheduledTime, notes: editingTodo.notes?.trim() || null });
-                await fetchAllTodos();
-                setToastMessage(`Przełożono na jutro: "${editingTodo.title}" ➡️`);
-                closeEditTodoModal();
-              }}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 py-2 text-[11px] font-black uppercase text-primary hover:bg-primary/15 transition-all active:scale-[0.98] cursor-pointer"
-            >
-              Przełóż na jutro
-            </button>
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-1">
-          <button onClick={deleteTodo} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 py-2.5 text-[12px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer">
-            <Trash2 size={13} /> Usuń
-          </button>
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="date"
+            value={editingTodo.due_date || ''}
+            onChange={async (e) => {
+              const due_date = e.target.value || null;
+              const scheduled_time = editingTodo.scheduled_time && due_date
+                ? combineDateTimeWarsawISO(due_date, editingTodo.scheduled_time.slice(11, 16))
+                : editingTodo.scheduled_time;
+              setEditingTodo({ ...editingTodo, due_date, scheduled_time });
+              await updateTodoItem(editingTodo.id, { due_date, scheduled_time });
+              await fetchAllTodos();
+            }}
+            className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+          />
+          <input
+            type="time"
+            value={editingTodo.scheduled_time ? editingTodo.scheduled_time.slice(11, 16) : ''}
+            onChange={async (e) => {
+              const timeVal = e.target.value;
+              const scheduled_time = timeVal && editingTodo.due_date
+                ? combineDateTimeWarsawISO(editingTodo.due_date, timeVal)
+                : null;
+              setEditingTodo({ ...editingTodo, scheduled_time });
+              await updateTodoItem(editingTodo.id, { scheduled_time });
+              await fetchAllTodos();
+            }}
+            className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+          />
         </div>
       </div>
-    </div>
+
+      <button
+        type="button"
+        onClick={async () => {
+          await handleToggleTodo(editingTodo.id);
+          const isDone = !completedTodoIds.has(editingTodo.id);
+          setToastMessage(isDone ? `Ukończono: "${editingTodo.title}" ✅` : `Cofnięto ukończenie: "${editingTodo.title}"`);
+          closeEditTodoModal();
+        }}
+        className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-[12px] font-black uppercase transition-all active:scale-[0.98] cursor-pointer ${
+          completedTodoIds.has(editingTodo.id)
+            ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/15 border border-amber-500/20'
+            : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20'
+        }`}
+      >
+        <Check size={14} />
+        {completedTodoIds.has(editingTodo.id) ? 'Oznacz jako nieukończone' : 'Oznacz jako ukończone'}
+      </button>
+
+      {!completedTodoIds.has(editingTodo.id) && (
+        <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3.5 space-y-2.5">
+          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
+          <textarea
+            placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
+            value={editingTodo.notes || ''}
+            onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
+            className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-[11px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              const currentDateStr = editingTodo.due_date || today;
+              const tomorrowStr = addDays(currentDateStr, 1);
+              let newScheduledTime = null;
+              if (editingTodo.scheduled_time) {
+                const timePart = editingTodo.scheduled_time.slice(11, 16);
+                newScheduledTime = combineDateTimeWarsawISO(tomorrowStr, timePart);
+              }
+              await updateTodoItem(editingTodo.id, { due_date: tomorrowStr, scheduled_time: newScheduledTime, notes: editingTodo.notes?.trim() || null });
+              await fetchAllTodos();
+              setToastMessage(`Przełożono na jutro: "${editingTodo.title}" ➡️`);
+              closeEditTodoModal();
+            }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 py-2 text-[11px] font-black uppercase text-primary hover:bg-primary/15 transition-all active:scale-[0.98] cursor-pointer"
+          >
+            Przełóż na jutro
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button onClick={deleteTodo} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 py-2.5 text-[12px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer">
+          <Trash2 size={13} /> Usuń
+        </button>
+      </div>
+    </Modal>
   );
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import type { Session } from "@supabase/supabase-js";
+import Spinner from "../ui/Spinner";
 import ProjectWeekKpis from "./ProjectWeekKpis";
 import WeekPlanningRecap from "./WeekPlanningRecap";
 import { useDirectionContext } from "./direction/hooks/useDirectionContext";
@@ -215,7 +216,7 @@ export default function DirectionPlanningMode({
 
         {phase1Loading && (
           <div className="flex items-center gap-2 py-3 text-text-muted text-sm">
-            <div className="w-3.5 h-3.5 border-2 border-border-custom border-t-primary rounded-full animate-spin" />
+            <Spinner size="sm" />
             AI analizuje tydzień…
           </div>
         )}
@@ -373,7 +374,7 @@ export default function DirectionPlanningMode({
             <span>Refleksja zapisana</span>
             {phase2Loading && (
               <span className="text-text-muted ml-1 flex items-center gap-1">
-                <span className="inline-block w-3 h-3 border border-border-custom border-t-primary rounded-full animate-spin" />
+                <Spinner size="sm" />
                 AI generuje pytania…
               </span>
             )}

@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lu
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { TIMEOUTS } from '../../lib/constants';
+import Spinner from '../ui/Spinner';
 import { Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -169,7 +170,7 @@ export default function StravaWidget({ session }: { session: Session }) {
 
       {loading ? (
         <div className="rounded-2xl border border-border-custom bg-surface/50 p-6 shadow-sm">
-          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-text-primary/10 border-t-orange-500" />
+          <Spinner size="sm" className="!border-text-primary/10 !border-t-orange-500" />
         </div>
       ) : activities.length === 0 ? (
         <div className="rounded-2xl border border-border-custom bg-surface/50 p-5 text-center shadow-sm">

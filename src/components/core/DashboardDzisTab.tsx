@@ -6,6 +6,7 @@ import { SpineGuideStrip } from './SpineGuideStrip';
 import OrientationFooter from './OrientationFooter';
 import PowerList from '../lifestyle/PowerList';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
+import Spinner from '../ui/Spinner';
 
 type DailyWinRow = Tables<'daily_wins'>;
 
@@ -16,7 +17,7 @@ const TodayEventsCard   = lazy(() => import('./TodayEventsCard'));
 function ViewFallback() {
   return (
     <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Spinner size="md" />
     </div>
   );
 }

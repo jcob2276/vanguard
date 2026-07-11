@@ -8,6 +8,7 @@ import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, type StreamEntry } from '../../lib/behavior/streamReview';
 import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
 import { Session } from '@supabase/supabase-js';
+import Spinner from '../ui/Spinner';
 
 import { WeeklyReviewContext, WeeklyReviewContextType, type WeeklyAiRecap } from './weekly/context/WeeklyReviewContext';
 import WeeklyReviewInboxTriage from './weekly/WeeklyReviewInboxTriage';
@@ -185,7 +186,7 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          <Spinner size="md" />
           <span className="text-[12px] font-bold text-text-muted">Wczytywanie Tygodniowego Przeglądu...</span>
         </div>
       </div>

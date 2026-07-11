@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Pill, Calendar, Bell, Plus, Check, Trash2, X, AlertCircle } from 'lucide-react';
+import Spinner from '../../ui/Spinner';
 import {
   fetchSupplements,
   fetchSupplementLogsSince,
@@ -332,7 +333,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       {/* Supplements List */}
       {loading ? (
         <div className="flex justify-center items-center py-8">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <Spinner size="sm" />
         </div>
       ) : activeSups.length === 0 ? (
         <div className="py-6 text-center border border-dashed border-border-custom rounded-xl text-text-muted text-[11px]">

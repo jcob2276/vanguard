@@ -1,17 +1,19 @@
 import { Suspense, lazy } from 'react';
 import { Activity, Sparkles } from 'lucide-react';
 import { useSession } from '../../store/useStore';
+import Spinner from '../ui/Spinner';
 
 const Stats             = lazy(() => import('./Stats'));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const TaskAnalyticsCard = lazy(() => import('../insights/TaskAnalyticsCard'));
 const StravaWidget      = lazy(() => import('../integrations/StravaWidget'));
+
 const Photos            = lazy(() => import('../identity/Photos'));
 
 function ViewFallback() {
   return (
     <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Spinner size="md" />
     </div>
   );
 }
