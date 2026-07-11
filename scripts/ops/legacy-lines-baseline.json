@@ -13,7 +13,7 @@
   "src/components/core/nutrition/useFoodEntryData.ts": 572,
   "src/components/core/stats/FoodAnalysisSection.tsx": 433,
   "src/components/correlations/CorrelationsPage.tsx": 379,
-  "src/components/desktop/shell/DesktopDashboard.tsx": 564,
+  "src/components/desktop/shell/DesktopDashboard.tsx": 280,
   "src/components/desktop/fitness/FitnessScorePanel.tsx": 101,
   "src/components/desktop/fitness/fitnessScoreUtils.ts": 311,
   "src/components/desktop/fitness/fitnessScoreHelpers.ts": 29,
