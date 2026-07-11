@@ -21,6 +21,7 @@ import { fetchWorldState, saveWorldState } from '../_shared/worldState.ts';
 import { resolvePastPredictions, generateTomorrowPredictions } from '../_shared/nightly/predictions.ts';
 import { resolveOracleRecommendations } from '../_shared/nightly/recommendations.ts';
 import { runRescoreWorkoutSessions, runRescoreWorkoutSessionsInternal } from '../_shared/nightly/rescore.ts';
+import { runGraphInvariantCheck } from '../_shared/nightly/graphInvariants.ts';
 
 async function runLedgerStep(
   supabase: any,
@@ -228,6 +229,15 @@ Deno.serve(async (req) => {
     // 7.5 generate tomorrow predictions
     await runLedgerStep(supabase, userId, runId, 'generate-tomorrow-predictions', false, async () => {
       await generateTomorrowPredictions(supabase, userId, todayStr);
+    });
+
+    // 8. graph invariant check (non-critical, audit-only)
+    await runLedgerStep(supabase, userId, runId, 'graph-invariants', false, async () => {
+      const violations = await runGraphInvariantCheck(supabase, userId);
+      if (violations.length > 0) {
+        console.warn(`[vanguard-nightly] Graph invariant violations: ${violations.length}`);
+      }
+      return { violations: violations.length };
     });
 
     console.log('[vanguard-nightly] Pipeline finished successfully.');
