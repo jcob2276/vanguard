@@ -54,7 +54,6 @@ const LEGACY_FILES = [
   'src/lib/database.types.ts',
   'src/lib/health/foodLogging.ts',
   'src/lib/goal/goalSpine.mutations.ts',
-  'src/lib/goal/goalSpine.queries.ts',
   'src/lib/health/workoutLogging.ts',
 ]
 
