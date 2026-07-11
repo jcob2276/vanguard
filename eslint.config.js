@@ -29,6 +29,8 @@ const LEGACY_FILES = [
   'src/components/correlations/CorrelationsPage.tsx',
   'src/components/desktop/shell/DesktopDashboard.tsx',
   'src/components/desktop/fitness/FitnessScorePanel.tsx',
+  'src/components/desktop/fitness/fitnessScoreUtils.ts',
+  'src/components/desktop/fitness/fitnessScoreHelpers.ts',
   'src/components/desktop/general/GeneralView.tsx',
   'src/components/desktop/general/HexagonPanel.tsx',
   'src/components/desktop/health/SupplementsPanel.tsx',
