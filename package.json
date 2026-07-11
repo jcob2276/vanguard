@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "lint": "eslint . --max-warnings=659",
+    "lint": "eslint . --max-warnings=496",
     "preview": "vite preview",
     "typecheck": "node scripts/ops/check-edge-functions.mjs",
     "typecheck:ui": "tsc --noEmit",
@@ -16,6 +16,8 @@
     "test:edge": "deno test --no-check supabase/functions/_shared",
     "db:update-types": "npx supabase gen types typescript --project-id pdvqkgfsqziqlhptatgf > src/lib/database.types.ts",
     "db:check-drift": "node scripts/ops/check-migration-drift.mjs",
+    "registry:generate": "node scripts/ops/generate-functions-registry.mjs",
+    "check:edge": "node scripts/ops/check-edge-functions.mjs",
     "audit:registry": "node scripts/analysis/audit-registry.mjs",
     "smoke:ui": "node scripts/ops/smoke-ui.mjs",
     "oss:audit": "node scripts/ops/oss-audit.mjs",
