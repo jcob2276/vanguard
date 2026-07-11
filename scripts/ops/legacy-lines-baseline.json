@@ -8,7 +8,6 @@
   "src/components/biometrics/WorkoutLogger.tsx": 442,
   "src/components/biometrics/workout/ExerciseCard.tsx": 390,
   "src/components/calendar/CalendarEventModal.tsx": 389,
-  "src/components/calendar/CalendarGrid.tsx": 834,
   "src/components/calendar/CalendarView.tsx": 461,
   "src/components/calendar/useCalendarData.ts": 547,
   "src/components/cards/CardFactory.tsx": 127,
