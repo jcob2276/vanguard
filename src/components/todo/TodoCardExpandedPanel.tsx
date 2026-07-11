@@ -34,30 +34,10 @@ interface TodoCardExpandedPanelProps {
 }
 
 export default function TodoCardExpandedPanel({
-  item,
-  isEditing,
-  editingTitle,
-  onEditStart,
-  onEditChange,
-  onEditSave,
-  onSetNotes,
-  onSetDueDate,
-  onSetPriority,
-  onSetReminder,
-  onSetTags,
-  onMoveSection,
-  onDrop,
-  onToggleExpand,
-  sections,
-  today,
-  childTasks,
-  onAddChildTask,
-  onToggleChildTask,
-  attachments,
-  uploadingFile,
-  fileInputRef,
-  handleFileUpload,
-  handleDeleteAttachment,
+  item, isEditing, editingTitle, onEditStart, onEditChange, onEditSave, onSetNotes, onSetDueDate,
+  onSetPriority, onSetReminder, onSetTags, onMoveSection, onDrop, onToggleExpand, sections, today,
+  childTasks, onAddChildTask, onToggleChildTask, attachments, uploadingFile, fileInputRef,
+  handleFileUpload, handleDeleteAttachment
 }: TodoCardExpandedPanelProps) {
   const [openPopover, setOpenPopover] = useState<'date' | 'reminder' | null>(null);
   const [tagInput, setTagInput] = useState('');

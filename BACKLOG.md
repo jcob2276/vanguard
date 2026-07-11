@@ -523,14 +523,14 @@ Kolejna piątka: `exportStats.ts` (mniejsza po PD1), `usePowerListData.ts` (745)
 
 **Target:** 496 (stan po P1-P4) → w dół, minimum -100/sesję.
 
-## P5 — Rozbicie 5 największych god-files (1/5 zrobione)
+## P5 — Rozbicie 5 największych god-files (4/5 zrobione)
 
 | # | Plik | Stan | Ryzyko |
 |---|---|---|---|
 | 1 | `MorningPlanModal.tsx` (829→219 linii) | ✅ zrobione (`4035c423`) — 1 realna regresja znaleziona i naprawiona (`notify()` zgubiony w catch-u, niezłapany przez typecheck/lint/107 testów) | — |
-| 2 | `CalendarGrid.tsx` (834) | nie zaczęte | średnie-wysokie — renderery współdzielone między day/week/agenda, nie da się rozdzielić 1:1 |
-| 3 | `LinksInbox.tsx` (889) | nie zaczęte | niskie — warstwa danych (`lib/linksApi.ts`) już czysta |
-| 4 | `TodoCard.tsx` (869) | nie zaczęte | wysokie — renderowany masowo, drag&drop/swipe/context menu; **wymaga planu tekstowego przed edycją** |
+| 2 | `CalendarGrid.tsx` (834→170 linii) | ✅ zrobione — extracted grid views, blocks, and drag-select hooks | — |
+| 3 | `LinksInbox.tsx` (889→281 linii) | ✅ zrobione — extracted hook (`useLinksInboxData`) and subcomponent (`LinksInboxItem`) | — |
+| 4 | `TodoCard.tsx` (869→442 linii) | ✅ zrobione — extracted `TodoCardExpandedPanel`, attachments hook, and swipe hook | — |
 | 5 | `RichEditor.tsx` (855) | **świadomie NIE dzielić** | gęsto powiązana logika `window.getSelection()`/`Range`/`execCommand` na jednym `editorRef`; jedyne bezpieczne wydzielenie: `SLASH_COMMANDS` → osobny plik, nic więcej |
 
 **Podział dla #2 (CalendarGrid):** `grid/CalendarGridBlocks.tsx` (renderery współdzielone dzień/tydzień jako nazwane funkcje z jawnymi argumentami), `grid/useCalendarDragSelect.ts`, `grid/CalendarDayView.tsx`, `grid/CalendarWeekView.tsx`, `grid/CalendarAgendaView.tsx` (jedyny naprawdę niezależny widok). Test manualny drag-to-create + drop + przełączanie widoków dla WSZYSTKICH 3 widoków.
