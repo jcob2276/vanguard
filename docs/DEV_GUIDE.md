@@ -26,7 +26,7 @@ Funkcje ze statusem **`deprecated`** w README zwracają **410** — nie rozwijaj
 
 ```
 [ ] 1. Plik: supabase/functions/<nazwa>/index.ts
-[ ] 2. Model: deepseek-v4-flash (nie deepseek-chat, nie deepseek-v3)
+[ ] 2. Model: wg tabeli w §5 (default v4-flash; structured JSON → deepseek-chat)
 [ ] 3. verify_jwt: ustal czy cron/webhook (false) czy frontend (true)
 [ ] 4. Dodaj wiersz do supabase/functions/README.md (Status, Trigger, JWT, Key tables, LOC, Verified)
 [ ] 5. Jeśli verify_jwt: false — dodaj do listy w AGENTS.md i vanguard-ops.mdc
@@ -47,36 +47,43 @@ Cron parity: [`scripts/ops/cron-check.sql`](../scripts/ops/cron-check.sql) vs [`
 
 ### Wzorzec struktury funkcji:
 
+> **Twarde reguły i kernel: [`docs/BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md)** — egzekwowane przez `npm run ratchet:backend`.
+> Nigdy nie pisz własnego `createClient`, corsHeaders ani auth-checka — wszystko jest w `_shared/`.
+
 ```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+/**
+ * @function nazwa-funkcji
+ * @trigger HTTP POST / Frontend
+ * @role Jedno zdanie po co istnieje.
+ * @reads tabela_a
+ * @writes tabela_b
+ * @consumer Kto konsumuje wynik (UI/cron/Telegram)
+ * @status active
+ */
+import { createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+// cron/DB-trigger zamiast resolveUserScope: import { requireServiceRole } from '../_shared/auth.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const body = await req.json().catch(() => ({}))
+    const { userId } = await resolveUserScope(req, body.userId ?? null)
+    const supabase = createServiceClient()
 
-    // logika
+    // logika — zapisy: sprawdzaj { error } albo używaj safeExecute()
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
+      status: 200,
     })
-
-  } catch (err: any) {
+  } catch (err) {
     console.error('[nazwa-funkcji] error:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : String(err)
+    const status = /Authorization|token|Forbidden/i.test(message) ? 401 : 500
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
+      status,
     })
   }
 })
@@ -213,17 +220,19 @@ CREATE POLICY "Service role bypass" ON nowa_tabela
   FOR ALL TO service_role USING (true);
 ```
 
-### Timezone — zawsze Warsaw:
+### Timezone — zawsze Warsaw, zawsze przez helper:
 
 ```typescript
-// Data lokalna (yyyy-MM-dd):
-const today = new Date().toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' })
+// Edge functions (Deno):
+import { getWarsawDateString } from '../_shared/time.ts'   // re-export z @vanguard/domain
+const today = getWarsawDateString()
 
-// Display string:
-const localTime = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })
+// Frontend:
+import { getTodayWarsaw } from '@/lib/date'
 ```
 
-Nigdy `new Date().toISOString().split('T')[0]` — to jest UTC, nie Warsaw.
+Nigdy inline `toLocaleDateString(... Europe/Warsaw)` (ratchet to liczy) i nigdy
+`new Date().toISOString().split('T')[0]` — to jest UTC, nie Warsaw.
 
 ---
 

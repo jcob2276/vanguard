@@ -7,7 +7,7 @@ export interface DeepSeekMessage {
   tool_call_id?: string;
 }
 
-export interface DeepSeekToolCall {
+interface DeepSeekToolCall {
   id: string;
   type: "function";
   function: { name: string; arguments: string };

@@ -26,6 +26,7 @@
     "e2e:loop": "node scripts/ops/e2e-daily-loop.mjs",
     "audit:knip": "knip",
     "ratchet:frontend": "node scripts/ops/check-frontend-ratchets.mjs",
+    "ratchet:backend": "node scripts/ops/check-backend-contract.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

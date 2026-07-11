@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import type { SprintProjectDecision } from './goalSpine.types';
 import { invalidateGoalSpineCache } from './goalSpine.queries';
 
-export async function saveSprintGoal(
+async function saveSprintGoal(
   userId: string,
   goalText: string,
   opts?: { personalYear?: number; sprintNumber?: number; focusProjectIds?: string[] },

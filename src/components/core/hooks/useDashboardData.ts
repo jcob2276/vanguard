@@ -10,7 +10,7 @@ import { useGoalSpineInvalidation } from '../../../hooks/useGoalSpineInvalidatio
 import { Session } from '@supabase/supabase-js';
 import type { WorldState } from '../../../../supabase/functions/_shared/worldState';
 
-export const mobileDashboardKeys = {
+const mobileDashboardKeys = {
   all: ['mobileDashboard'] as const,
   main: (userId: string) => [...mobileDashboardKeys.all, 'main', userId] as const,
 };

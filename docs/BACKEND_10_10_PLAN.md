@@ -1,0 +1,474 @@
+# Backend 10/10 — plan wykonawczy krok po kroku
+
+> Ten plik jest wykonywany przez agentów AI, w tym mniej kompetentnych i domyślnie leniwych.
+> Leniwy agent NIE wpadnie sam na to, żeby założyć porządny folder zamiast dopisać do
+> istniejącego pliku, żeby sprawdzić wynik swojej pracy zapytaniem SQL zamiast uwierzyć
+> własnemu podsumowaniu, albo żeby przeczytać cały plik przed edycją. Dlatego każda faza
+> niżej ma osobną sekcję **"Zasady tej fazy (nie idź na skróty)"** — to nie jest powtórka dla
+> stylu, to jest zabezpieczenie przed najczęstszym trybem porażki tego typu agenta.
+>
+> **Prawo nadrzędne:** [`docs/BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md). Ten plik mówi
+> *co robić w jakiej kolejności*, kontrakt mówi *jak wolno pisać kod*. Sprzeczność = wygrywa
+> kontrakt.
+>
+> **Relacja do `POLISH_10_10_PLAN.md`:** sekcja "P0 — Backend krytyczne" w tamtym pliku
+> została napisana wcześniej i **część jej punktów wygląda na już naprawioną** (P0.1 —
+> `vanguard_behavioral_patterns` ma dziś świeże wpisy; P0.3 — `vanguard_graph_cleanup()` był
+> przepisany migracją `20260710180000_resolution_layer_hardening.sql` na soft-merge przez
+> `merged_into`). **Nie ufaj temu zdaniu.** To dokładnie ten typ założenia, który lessons.md
+> każe weryfikować w kodzie/bazie, nie w pamięci. Faza 1 niżej zaczyna od ponownej,
+> bezpośredniej weryfikacji wszystkich czterech punktów P0 z tamtego pliku, zanim ruszysz
+> dalej.
+
+---
+
+## Zasady dla KAŻDEGO agenta wykonującego KTÓRĄKOLWIEK fazę tego planu
+
+Czytaj to przed każdą sesją, nie tylko raz na początku pracy nad planem.
+
+1. **Jedna faza = jedna sesja = jeden temat = jeden commit.** Nie łącz faz. Nie zaczynaj
+   fazy N+1, dopóki faza N nie ma zielonej weryfikacji.
+2. **"Zrobione" oznacza: uruchomiłeś komendę weryfikującą i przeczytałeś jej realny output.**
+   Nie oznacza: napisałeś kod, który wygląda poprawnie. Nie oznacza: funkcja zwróciła
+   `{success: true}` — response funkcji potrafi kłamać (patrz `lessons.md`, wpis
+   2026-07-04 o `vanguard-detect-patterns`). Jeśli krok mówi `SELECT count(*)` — wykonaj
+   to zapytanie i wklej realny wynik do swojego podsumowania, nie parafrazę.
+3. **Gdy krok mówi "stwórz plik/folder X" — stwórz dokładnie X, nie dopisuj do istniejącego
+   pliku, żeby było szybciej.** Struktura folderów w tym planie jest częścią zadania, nie
+   sugestią. Sprawdzenie: po skończeniu fazy zrób `git status` i porównaj listę nowych/
+   zmienionych plików z tym, co faza kazała stworzyć — jeśli się nie zgadza, popraw przed
+   commitem.
+4. **Przeczytaj cały plik przed edycją, jeśli ma mniej niż ~500 linii.** Dla większych —
+   przeczytaj sekcję, którą zmieniasz, plus jej bezpośrednie sąsiedztwo (importy, eksporty).
+   Nie edytuj na ślepo na podstawie samego grepa.
+5. **Nie zgaduj nazwy kolumny/tabeli.** Sprawdź `database.types.ts` albo
+   `list_tables`/`execute_sql` (Supabase MCP) zanim napiszesz `.eq()`/`.order()`/`ALTER TABLE`.
+   Zero wierszy z wartością w kolumnie ≠ kolumna martwa — grep całego repo, nie tylko COUNT.
+6. **Przed jakimkolwiek DROP/DELETE na schemacie: policz żywe wiersze, zgrepuj cały `src/` i
+   `supabase/functions/` po nazwie, i dopiero potem usuwaj.** To jest zasada, którą to repo
+   już raz złamało (`daily_wins.task_N_checkpoint_id`, `project_checkpoints`) — nie łam jej
+   trzeci raz.
+7. **Po skończeniu fazy uruchom WSZYSTKIE komendy z jej sekcji "Weryfikacja", w podanej
+   kolejności, i nie przechodź dalej, jeśli którakolwiek jest czerwona.** Napraw, uruchom
+   ponownie. Nie komentuj sobie "to nie powinno być istotne" — jeśli nie rozumiesz czemu coś
+   jest czerwone, to jest właśnie sygnał żeby się zatrzymać, nie żeby to zignorować.
+8. **Nie obniżaj baseline'u/limitu w pliku konfiguracyjnym bez realnego zejścia liczby.**
+   Baseline ma odzwierciedlać zmierzony stan po zmianie, nie stan docelowy życzeniowo.
+9. **Aktualizuj dokumentację, którą krok każe zaktualizować, w TYM SAMYM commicie**, nie
+   "przy okazji następnej sesji". `AGENTS.md`, `supabase/functions/README.md`,
+   `docs/ARCHITECTURE.md`, JSDoc nagłówki — to nie są opcjonalne notatki, to jest część
+   definicji "skończone" z `BACKEND_CONTRACT.md` §0.
+10. **Jeśli po drodze znajdziesz coś złamanego, co NIE jest w scope tej fazy — nie naprawiaj
+    tego po cichu w tym samym commicie.** Dopisz jedno zdanie do `lessons.md` albo zostaw
+    TODO z datą, i wróć do zakresu bieżącej fazy. Mieszanie zakresów utrudnia review i cofanie.
+11. **Nie deployuj z brudnego drzewa git** (`git status` musi być czyste poza plikami tej
+    fazy) i nie deployuj bez `npm run smoke` po deployu.
+
+---
+
+## Kolejność faz (od dziś do 10/10)
+
+| Faza | Temat | Czas | Blokuje kolejną? |
+|---|---|---|---|
+| 0 | Weryfikacja stanu — nie ufaj żadnemu wcześniejszemu raportowi | 30 min | Tak, zawsze pierwsza |
+| 1 | P0 — auth, które dziś krwawi w produkcji | 1-2h | Tak |
+| 2 | Kernel `serveJson` + auto-telemetria błędów | pół dnia | Nie, ale bardzo ułatwia 3-7 |
+| 3 | Kontrakt danych: generowany bilans `@reads/@writes` + orphan-check | pół dnia | Nie |
+| 4 | Typowana granica DB dla Deno + 3 repozytoria gorących tabel | 1-2 dni | Nie |
+| 5 | Higiena deploy: czyste drzewo + hash + eval-gate na prompty | pół dnia | Nie |
+| 6 | Invariant-check grafu wiedzy + retencja logów | pół dnia | Nie |
+| 7 | Ciągła spłata: dedup, rozbicie molochów, `as any` → 0 | ciągłe, sesja na kawałek | Nie, ratchet pilnuje |
+
+Fazy 2-6 mogą iść w dowolnej kolejności między sesjami (nie zależą twardo od siebie), ale
+**Faza 0 i Faza 1 zawsze pierwsze**, i żadna faza 2-7 nie zaczyna się, dopóki Faza 1 nie jest
+zielona — bo P0 to realne dziury bezpieczeństwa/utraty danych, reszta to jakość.
+
+---
+
+## Faza 0 — Weryfikacja stanu (30 min, ZAWSZE pierwsza sesja dnia pracy nad tym planem)
+
+### Cel
+Ustalić, co z poprzednich audytów jest wciąż prawdą, zanim wykonasz choćby jedną zmianę.
+Stan tego repo zmienia się między sesjami — commity 1ebbde89, b9952482, 474697c7 z dzisiaj
+już zmieniły część rzeczy opisanych w starszych dokumentach.
+
+### Zasady tej fazy (nie idź na skróty)
+Nie czytaj tylko `lessons.md`/planów i nie zakładaj, że opisany tam stan wciąż obowiązuje.
+**Każdy punkt niżej wymaga bezpośredniego sprawdzenia w kodzie lub bazie**, nie w pamięci
+dokumentu.
+
+### Kroki
+- [ ] `git log --oneline -20` i `git status` — co się zmieniło od ostatniego audytu backendu
+      (patrz nagłówek commitów wymienionych wyżej w tym pliku).
+- [ ] Supabase MCP `get_advisors` (`type: security` i `type: performance`) — świeża lista,
+      nie ta z pamięci/starego audytu.
+- [ ] `SELECT jobname, schedule, active FROM cron.job ORDER BY jobname` — porównaj z tabelą
+      cronów w `docs/ARCHITECTURE.md`; jeśli się różnią, zanotuj rozbieżność (naprawi ją
+      Faza 5/dokumentacja, teraz tylko zanotuj).
+- [ ] Dla KAŻDEGO punktu P0.1-P0.4 z `POLISH_10_10_PLAN.md`: sprawdź bezpośrednio w kodzie/
+      bazie, czy wciąż jest prawdziwy. Nie wierz nagłówkowi tego pliku, że "wygląda na
+      naprawione" — to jest hipoteza do potwierdzenia, nie fakt.
+  - P0.1: `grep -n "hypothesis" supabase/functions/_shared/nightly/patterns.ts` +
+    `SELECT status, count(*) FROM vanguard_behavioral_patterns GROUP BY status`.
+  - P0.2: `grep -n "requireServiceRole\|Authorization" supabase/functions/vanguard-nightly/index.ts
+    supabase/functions/vanguard-telegram-worker/index.ts`.
+  - P0.3: przeczytaj całą funkcję `vanguard_graph_cleanup()` (`execute_sql` na
+    `pg_get_functiondef`) — potwierdź czy DELETE na `entities`/kaskada na `claims` wciąż
+    istnieje, czy zastąpiona przez `merged_into` UPDATE.
+  - P0.4: `SELECT count(*) FROM vanguard_predictions`, `oracle_recommendations`,
+    `vanguard_pipeline_runs`, i `max(created_at)` każdej — świeże dane czy stare?
+- [ ] Zapisz wynik tej weryfikacji jako listę w PR/commit message Fazy 1 ("P0.1: naprawione,
+      potwierdzone przez X. P0.3: naprawione migracją Y. P0.2: wciąż otwarte, ale w innej
+      postaci niż opisano — patrz Faza 1.1..." itd). To jest dokumentacja dla następnego
+      agenta, nie tylko dla Ciebie.
+
+### Weryfikacja
+- [ ] Masz jedną listę: dla każdego z 4 punktów P0 ze starego planu — status "otwarte" /
+      "naprawione" / "częściowo", z dowodem (query, grep, link do migracji).
+
+### Definition of Done
+Lista istnieje, każdy punkt ma dowód, żaden nie jest oparty na "prawdopodobnie" albo na
+treści starszego dokumentu.
+
+---
+
+## Faza 1 — P0: auth, które dziś krwawi (1-2h)
+
+### Cel
+Zamknąć dwie potwierdzone dziury z audytu 2026-07-11: brak auth w `vanguard-outbox-sender`
+(otwarte proxy do Telegram Bot API) i błędny auth w akcjach `vanguard-nightly` (frontend
+dostaje 401 na rzeczy, które powinien móc wywołać).
+
+### Zasady tej fazy (nie idź na skróty)
+Auth to nie miejsce na "chyba działa". Dla KAŻDEJO zmiany auth w tej fazie musisz
+przetestować **obie strony**: żądanie bez poprawnych danych → 401/403; żądanie z poprawnymi
+→ 200. Sam happy path nie wystarczy — brak testu negatywnego to dokładnie to, jak powstała
+dziura w `outbox-sender`.
+
+### Kroki
+
+**1.1 — `vanguard-outbox-sender` bez auth**
+- [ ] Dodaj `requireServiceRole(req)` na początku handlera (wzorzec: dowolna z 13 funkcji,
+      które już to robią, np. `vanguard-nightly/index.ts:77`).
+- [ ] Sprawdź `config.toml` — funkcja musi mieć `verify_jwt = false` (trigger pg_net) +
+      `requireServiceRole` w kodzie jako druga linia obrony (nagłówek `Authorization` z
+      service-role secret musi być ustawiony w triggerze DB, sprawdź migrację triggera).
+- [ ] Test negatywny: POST bez `Authorization` → oczekuj 401. Test pozytywny: prawdziwy
+      trigger insertu do `outbound_messages` → wciąż działa (sprawdź `outbound_messages.status`
+      przechodzi `processing → sent`).
+
+**1.2 — `vanguard-nightly` akcje zwracają 401 dla frontendu**
+- [ ] W gałęzi `if (action)` ([index.ts:88](../supabase/functions/vanguard-nightly/index.ts))
+      zamień `requireServiceRole(req)` (dziś na starcie całego handlera, blokuje też akcje)
+      na rozróżnienie: pełny pipeline bez `action` → `requireServiceRole` zostaje; gałąź z
+      `action` → `resolveUserScope(req, body.userId ?? null)` (service-role token nadal
+      przechodzi przez tę funkcję, patrz `_shared/supabase.ts:18`).
+- [ ] Test: wywołanie z frontendowym user-tokenem na `?action=compute-daily-strain` → 200.
+      Wywołanie bez tokenu → 401. Cron bez `action` (pełny pipeline) → nadal wymaga
+      service-role, nie user-tokenu.
+- [ ] **Nie zostawiaj trzech równoległych ścieżek frontendowych wywołujących to samo.**
+      Skonsoliduj `src/lib/health/strainRefresh.ts`,
+      `src/components/biometrics/hooks/useDailyStrainRefresh.ts` i inline wywołanie w
+      `DesktopDashboard.tsx:124` do jednej funkcji w `strainRefresh.ts`; pozostałe dwa
+      miejsca mają ją importować, nie duplikować `invokeEdge(...)`.
+- [ ] `src/lib/insightsApi.ts:63` (`triggerPatternDetection`) i
+      `useCorrelationsData.ts:54-55` — te dwa zostają jako explicit user-triggered akcje
+      (przycisk), ale sprawdź czy `useCorrelationsData` nie woła tego automatycznie przy
+      każdym mouncie komponentu (dziś prawdopodobnie tak — jeśli tak, to osobne zadanie w
+      Fazie 3/4: docelowo powinien czytać wynik z tabeli, nie przeliczać przy każdym wejściu
+      w zakładkę; nie rób tej zmiany w Fazie 1, tylko zanotuj w `lessons.md`).
+
+### Weryfikacja
+- [ ] `npm run smoke` — zero 401 tam, gdzie nie powinno być.
+- [ ] Ręczny test w przeglądarce: otwórz widok korelacji i zaloguj posiłek/trening — sprawdź
+      w Network tab, że wywołanie `vanguard-nightly?action=...` zwraca 200, nie 401.
+- [ ] Edge logi (`get_logs`, service `edge-function`) przez 5 minut po deployu — zero
+      nieoczekiwanych 401/500 na `vanguard-nightly` i `vanguard-outbox-sender`.
+- [ ] `npm run ratchet:backend` — zielone.
+
+### Definition of Done
+Oba fixy wdrożone, oba mają test negatywny i pozytywny wykonany naprawdę (nie opisany
+teoretycznie), `lessons.md` ma nowy wpis jeśli po drodze wyszło coś nieoczywistego.
+
+---
+
+## Faza 2 — Kernel `serveJson` + automatyczna telemetria błędów (pół dnia)
+
+### Cel
+Dziś każda funkcja ręcznie robi CORS/OPTIONS/try-catch/`JSON.stringify` (140 wystąpień, 44
+pliki) i błędy giną w logach edge, które nikt nie czyta na bieżąco (tylko 11 z 31 funkcji
+woła `logCriticalError`). Efekt: żeby znaleźć błąd, trzeba przeszukiwać logi ręcznie zamiast
+zapytać bazę. Ta faza to naprawia u źródła, jednym miejscem.
+
+### Zasady tej fazy (nie idź na skróty)
+**Nie migruj wszystkich 31 funkcji w tej sesji.** To gwarantowana katastrofa review — zbyt
+duży diff, zbyt duże ryzyko regresji naraz. Zbuduj helper, migruj **3-5 najprostszych
+funkcji jako dowód działania**, resztę zostaw ratchetowi (licznik `rawJsonResponse` w
+`backend-contract-baseline.json` będzie spadał sesja po sesji przy okazji dotykania innych
+plików — to jest zamierzone, nie lenistwo).
+
+**Nie twórz helpera "w locie" wewnątrz jednej funkcji i nie przenoś go później.** Od razu
+twórz go we właściwym miejscu: `supabase/functions/_shared/http.ts`. Jeśli w trakcie pracy
+uznasz, że lepsza nazwa/lokalizacja — zmień od razu, nie zostawiaj tymczasowej.
+
+### Kroki
+- [ ] Stwórz **nowy plik** `supabase/functions/_shared/http.ts` (nie dopisuj do
+      `supabase.ts` — to inna odpowiedzialność: HTTP framing, nie DB/auth).
+- [ ] W nim: `export async function serveJson(handler, opts?: { auth?: 'service' | 'user' | 'none' })`.
+      Wewnątrz: obsługa OPTIONS, `corsHeaders`, wywołanie `handler(req, ctx)` gdzie `ctx`
+      zawiera już rozwiązany `userId`/`isServiceRole` wg `opts.auth`, catch-wszystko z
+      **automatycznym wywołaniem `logCriticalError`** (nazwa funkcji z `ctx`, error, request
+      URL/method — bez body jeśli może zawierać dane wrażliwe), mapowanie błędu na status
+      (401 dla auth-error wzorem już istniejącym w `vanguard-wiki-compiler`, 500 reszta).
+- [ ] Migruj **3-5 funkcji** o najmniejszym ryzyku (kandydaci: `vanguard-kpi-suggest`,
+      `vanguard-keep-triage`, `compute-behavior-effects`, `lookup-food`,
+      `parse-workout-nl` — sprawdź LOC i brak specjalnych wymagań streamingu/webhooków
+      przed wyborem, nie kopiuj tej listy bezmyślnie jeśli któraś z tych funkcji ma inny
+      kształt niż zwykły request/response).
+- [ ] Dla każdej zmigrowanej funkcji: zachowaj identyczny kontrakt odpowiedzi (te same pola
+      JSON, te same kody statusu) — to jest refaktor bez zmiany zachowania, nie okazja do
+      poprawek przy okazji.
+
+### Weryfikacja
+- [ ] Dla każdej z 3-5 zmigrowanych funkcji: wywołanie z poprawnym tokenem → identyczny JSON
+      jak przed zmianą (porównaj ręcznie, nie zakładaj). Wywołanie bez tokenu → 401 z
+      wpisem w `audit_events` (`SELECT * FROM audit_events ORDER BY created_at DESC LIMIT 5`
+      po teście — musi się pojawić wiersz).
+- [ ] Sztucznie wywołaj wyjątek w jednej zmigrowanej funkcji (np. chwilowo zepsuj zapytanie)
+      i potwierdź, że `audit_events` dostaje wpis z nazwą funkcji i stack trace, **potem
+      cofnij tę sztuczną zmianę przed commitem**.
+- [ ] `npm run ratchet:backend` — licznik `rawJsonResponse` spadł dokładnie o tyle, ile
+      wystąpień usunąłeś; obniż baseline o dokładnie tę liczbę, nie "z zapasem".
+
+### Definition of Done
+`_shared/http.ts` istnieje i ma prawdziwych konsumentów (min. 3 funkcje), auto-telemetria
+potwierdzona żywym testem w `audit_events`, baseline obniżony zgodnie ze zmierzonym stanem.
+
+---
+
+## Faza 3 — Kontrakt danych: generowany bilans `@reads`/`@writes` (pół dnia)
+
+### Cel
+Sześć razy w historii tego repo (`life_goals`, `vanguard_knowledge`, `oracle_recommendations`,
+`ai_recap`, `weekly_kpi_reviews`, kolumna `sort_order`/`position`) coś było czytane bez
+pisarza, pisane bez czytelnika, albo odpytywane pod nieistniejącą nazwą kolumny — i za
+każdym razem odkrywał to człowiek przypadkiem, nie narzędzie. Ta faza buduje narzędzie.
+
+### Zasady tej fazy (nie idź na skróty)
+To jest skrypt analizujący, nie refaktor kodu — **nie zmieniaj logiki żadnej funkcji w tej
+fazie**, tylko buduj narzędzie, które o niej wnioskuje. Jeśli w trakcie znajdziesz realną
+sierotę (tabela/kolumna bez pisarza lub czytelnika) — **nie naprawiaj jej w tym samym
+commicie**. Zapisz jako finding, dopisz do `lessons.md` albo utwórz osobne zadanie. Mieszanie
+"buduję narzędzie" z "naprawiam co narzędzie znalazło" w jednym commicie to dokładnie ten
+błąd, przed którym ostrzega zasada #10 na górze tego pliku.
+
+### Kroki
+- [ ] Stwórz **nowy plik** `scripts/ops/check-data-contracts.mjs` (analogiczny do
+      `check-backend-contract.mjs` — czytaj go jako wzorzec stylu, nie kopiuj mechanicznie).
+- [ ] Skrypt: dla każdego pliku `.ts` w `supabase/functions/**` (poza `_shared/`) wyciągnij
+      z JSDoc nagłówka wartości `@reads` i `@writes` (parsowanie już istnieje częściowo w
+      `scripts/ops/generate-functions-registry.mjs` — przeczytaj go i policz, czy da się
+      wydzielić wspólny parser zamiast pisać drugi od zera; jeśli tak, wydziel do
+      `scripts/ops/lib/jsdocParser.mjs` i importuj w obu miejscach).
+- [ ] Osobno: regexem znajdź faktyczne `.from('tabela')` w treści każdego pliku (nie tylko
+      JSDoc — JSDoc może kłamać, patrz `lessons.md` o `vanguard-nightly` niedeklarującym
+      zapisu do `vanguard_pipeline_runs`). Zbuduj mapę `tabela → [pliki, które ją realnie
+      dotykają, i czy przez .select vs .insert/.update/.upsert]`.
+- [ ] Wyjście skryptu: lista tabel z **zerem plików czytających** mimo że ktoś pisze (sierota
+      zapisu) i tabel z **zerem plików piszących** mimo że ktoś czyta (sierota odczytu —
+      to jest dokładnie kształt bugu `life_goals`/`oracle_recommendations`).
+- [ ] Dodaj do `package.json`: `"contracts:check": "node scripts/ops/check-data-contracts.mjs"`.
+- [ ] Nie failuj jeszcze CI tym skryptem (na start on tylko raportuje) — dopiero gdy lista
+      sierot spadnie do zera albo do nazwanych, świadomych wyjątków (np. tabela dopiero co
+      utworzona migracją, celowo jeszcze bez konsumenta na jedną sesję), przełącz na
+      ratchet z baseline jak w `check-backend-contract.mjs`.
+
+### Weryfikacja
+- [ ] Uruchom `npm run contracts:check`, przeczytaj CAŁY output, nie tylko podsumowanie.
+- [ ] Dla każdej znalezionej sieroty: potwierdź ręcznie (grep + `execute_sql`), czy to
+      realny problem czy fałszywy alarm skryptu (np. tabela czytana tylko przez raw SQL w
+      migracji, którego regex nie złapał) — popraw regex skryptu, jeśli fałszywych alarmów
+      jest dużo, zamiast ignorować.
+- [ ] Zapisz listę potwierdzonych sierot jako osobne zadania (nie napraw ich tutaj — patrz
+      zasady tej fazy).
+
+### Definition of Done
+Skrypt istnieje, uruchamia się, jego output został ręcznie zweryfikowany na przykładzie
+minimum 3 tabel, lista realnych sierot jest spisana do dalszej pracy (nie zgubiona w
+terminalu).
+
+---
+
+## Faza 4 — Typowana granica DB dla Deno + repozytoria gorących tabel (1-2 dni)
+
+### Cel
+73 `as any` w `supabase/functions/` to objaw: Deno nie ma typów bazy (frontend ma
+`database.types.ts`, edge functions nie mają nic). Efekt: literówka w nazwie kolumny nie
+jest błędem kompilacji, tylko cichym `catch` w runtime. Do tego 31 rozproszonych
+`.from('vanguard_stream')`, 25 `.from('vanguard_daily_aggregates')`, 23
+`.from('daily_reconciliations')` w kilkunastu plikach każda — bez wspólnej warstwy.
+
+### Zasady tej fazy (nie idź na skróty)
+**Nie rób tego jako jeden wielki refaktor wszystkich wywołań naraz.** To jest zadanie na
+kilka sesji: (a) wygenerować typy, (b) zbudować 3 repozytoria dla trzech najgorętszych
+tabel, (c) przepiąć wywołania **stopniowo**, plik po pliku, z realnym testem po każdym. Nie
+przepinaj funkcji, której nie rozumiesz w pełni — przeczytaj ją całą najpierw (zasada #4).
+
+Repozytorium ma być **cienką warstwą typowanych zapytań**, nie miejscem na logikę biznesową.
+Jeśli łapiesz się na tym, że dopisujesz tam warunki/transformacje specyficzne dla jednego
+konsumenta — to nie należy do repo, zostaw to w funkcji wywołującej.
+
+### Kroki
+- [ ] Sprawdź, czy da się re-użyć `src/lib/database.types.ts` po stronie Deno (import przez
+      `packages/domain` albo bezpośredni relative import — Deno wymaga `.ts` w importach,
+      patrz `lessons.md` 2026-07-08 o `packages/domain`). Jeśli import wprost nie działa w
+      Deno (sprawdź realnie, `deno check`, nie zgaduj), rozważ wygenerowanie osobnego pliku
+      typów dla `supabase/functions/_shared/database.types.ts` tym samym poleceniem
+      `db:update-types` z innym targetem — **ale wtedy dopisz krok do checklisty w
+      `DEV_GUIDE.md` §2, żeby oba pliki typów były zawsze regenerowane razem**, inaczej
+      odtworzysz dokładnie ten bug z lessons.md o dwóch plikach o tej samej nazwie w różnych
+      miejscach (`database.types.ts` żywy vs martwy).
+- [ ] Stwórz **nowy folder** `supabase/functions/_shared/repos/` z trzema plikami:
+      `streamRepo.ts`, `aggregatesRepo.ts`, `reconciliationsRepo.ts` — każdy eksportuje
+      typowane funkcje odpowiadające realnym, powtarzającym się wzorcom zapytań, które
+      znajdziesz grepem (`.from('vanguard_stream')` itd.) — nie zgaduj z góry jakie funkcje
+      są potrzebne, wyprowadź je z istniejących wywołań.
+- [ ] Przepnij **jeden plik na raz** na repo, zacznij od tego z największą liczbą powtórzeń
+      (`vanguard-eval-interview` ma 7 własnych zapytań do `vanguard_stream` — dobry
+      pierwszy kandydat). Po każdym pliku: `npm run typecheck`, `deno check` na dotkniętym
+      pliku, i jeśli to funkcja z realnym ruchem (cron/webhook) — manualny test wywołania
+      przed przejściem do kolejnego pliku.
+- [ ] Licznik `as any` w `backend-contract-baseline.json` — obniżaj dokładnie o tyle, ile
+      realnie zniknęło w danej sesji, po każdej sesji osobno, nie na końcu całej fazy.
+
+### Weryfikacja
+- [ ] Po każdym przepiętym pliku: `npm run typecheck` zielony, `npm run ratchet:backend`
+      zielony z obniżonym (nie tym samym) licznikiem `as any` jeśli coś zniknęło.
+- [ ] Po repo dla `vanguard_stream`: sztucznie podaj złą nazwę kolumny w jednym miejscu i
+      potwierdź, że **kompilator** to łapie (nie runtime) — to jest dowód, że typowanie
+      faktycznie działa, nie tylko że kod się kompiluje.
+
+### Definition of Done
+3 repozytoria istnieją i mają realnych konsumentów, przynajmniej jedna funkcja z dużą
+liczbą własnych zapytań została w pełni przepięta i przetestowana, `as any` zmierzalnie
+spadło i baseline to odzwierciedla.
+
+---
+
+## Faza 5 — Higiena deploy: czyste drzewo + hash + eval-gate na prompty (pół dnia)
+
+### Cel
+Repo już dwa razy złapało drift "wdrożona wersja funkcji ≠ to, co jest w git" (patrz
+`lessons.md`: `get_brain_health_report`, `vanguard-detect-patterns`). Przyczyna: deploy przez
+MCP nie wymaga czystego drzewa i nic nie zapisuje, jaki commit poszedł na produkcję. Osobno:
+zmiany promptów LLM wchodzą bez przepuszczenia przez `vanguard-eval-runner`, mimo że to
+narzędzie istnieje właśnie po to.
+
+### Zasady tej fazy (nie idź na skróty)
+Nie buduj tego jako "miękkie przypomnienie" (komentarz w docs) — to musi być **skrypt, który
+odmawia deployu**, jeśli warunek nie jest spełniony. Miękkie przypomnienia już nie działały
+(stąd dwa incydenty w historii).
+
+### Kroki
+- [ ] Stwórz **nowy plik** `scripts/ops/deploy-guard.mjs` (lub rozszerz istniejący skrypt
+      deployu, jeśli taki jest — sprawdź `scripts/ops/` przed tworzeniem duplikatu):
+      sprawdza `git status --porcelain` (musi być puste), pobiera `git rev-parse HEAD`,
+      i **dopiero po tych sprawdzeniach** wywołuje właściwy deploy.
+- [ ] Po udanym deployu: insert do `audit_events` (albo nowej, dedykowanej tabeli
+      `deploy_log` jeśli `audit_events` nie pasuje semantycznie — zdecyduj i uzasadnij
+      jednym zdaniem w komentarzu migracji) z `function_name`, `git_sha`, `deployed_at`.
+- [ ] Dla zmian promptów: sprawdź `git diff` na plikach zawierających prompty (grep
+      `content:` w kontekście `deepseekChat`/systemowych promptów) — jeśli diff dotyka
+      promptu, skrypt deployu ma **przypomnieć** (nie musi blokować w pierwszej wersji —
+      zdecyduj świadomie i zapisz decyzję w komentarzu skryptu) o uruchomieniu
+      `vanguard-eval-runner` przed deployem.
+- [ ] Zaktualizuj `docs/DEV_GUIDE.md` §2 checklist deployu, żeby wskazywał na ten skrypt
+      zamiast (albo obok) ręcznych kroków.
+
+### Weryfikacja
+- [ ] Sztucznie zostaw niescommitowaną zmianę i uruchom skrypt — musi odmówić deployu z
+      jasnym komunikatem. Cofnij sztuczną zmianę.
+- [ ] Prawdziwy deploy jednej małej funkcji przez skrypt — potwierdź wpis w
+      `audit_events`/`deploy_log` z poprawnym `git_sha` (`git rev-parse HEAD` musi się
+      zgadzać z tym, co w bazie).
+
+### Definition of Done
+Skrypt istnieje, odmawia deployu z brudnym drzewem (przetestowane), zapisuje hash po
+udanym deployu (przetestowane), `DEV_GUIDE.md` wskazuje na niego jako kanoniczną ścieżkę.
+
+---
+
+## Faza 6 — Invariant-check grafu wiedzy + retencja logów (pół dnia)
+
+### Cel
+Graf wiedzy (`entities`/`claims`/`vanguard_entity_links`) jest najmłodszym i najbardziej
+złożonym subsystemem (bi-temporalny, już wymagał kilku migracji naprawczych w ciągu 2 dni).
+Bez cyklicznego sprawdzenia niezmienników zepsuje się cicho. Osobno: `vanguard_llm_usage` i
+`vanguard_pipeline_runs` rosną bez końca.
+
+### Zasady tej fazy (nie idź na skróty)
+Nie zgaduj, jakie niezmienniki mają sens — wyprowadź je z realnych incydentów opisanych w
+`lessons.md` (merge encji kasujący claims, `merged_into` bez aliasów, duplikaty aktywnych
+claims dla tej samej encji). Jeśli dopiszesz niezmiennik, którego żaden wcześniejszy
+incydent nie uzasadnia — to nie jest błąd, ale oznacz go jako "prewencyjny", nie "z
+incydentu", żeby następny agent wiedział, że to hipoteza.
+
+### Kroki
+- [ ] Stwórz **nowy plik** `supabase/functions/_shared/nightly/graphInvariants.ts` z
+      funkcją `runGraphInvariantCheck(supabase, userId)` — sprawdza minimum: (a) czy istnieją
+      claims wskazujące na encję, która ma `merged_into` ustawione (powinny być
+      przepisane na winnera), (b) czy są duplikaty aktywnych (nie-superseded) claims dla tej
+      samej encji+atrybutu, (c) czy są `entity_aliases` bez odpowiadającej encji-winnera.
+      Każde naruszenie → wiersz w `audit_events`, nie tylko `console.warn`.
+- [ ] Dopnij jako krok w `vanguard-nightly` (wzorem istniejących `runLedgerStep`, non-critical
+      żeby nie blokował reszty pipeline'u przy pierwszym uruchomieniu).
+- [ ] Migracja retencji: `vanguard_llm_usage` i `vanguard_pipeline_runs` — polityka kasowania
+      wierszy starszych niż 90 dni. Zdecyduj: cron SQL (`DELETE ... WHERE created_at < now() -
+      interval '90 days'`) w nowym jobie tygodniowym, albo partycjonowanie jeśli wolumen na
+      to wskazuje (sprawdź realny wolumen `SELECT count(*), pg_size_pretty(...)` przed
+      wyborem — nie zakładaj, że potrzebujesz cięższego rozwiązania niż DELETE).
+
+### Weryfikacja
+- [ ] Uruchom `runGraphInvariantCheck` ręcznie na produkcyjnych danych (read-only część —
+      przed dopięciem do nightly) i przeczytaj realny output, nie zgaduj czy graf jest czysty.
+- [ ] Po dopięciu do nightly: poczekaj na cron albo wywołaj ręcznie z service-role tokenem,
+      potwierdź krok w `vanguard_pipeline_runs`.
+- [ ] Test retencji na kopii/`WHERE false` najpierw (dry-run przez `EXPLAIN` albo `SELECT`
+      zamiast `DELETE`), dopiero potem prawdziwy `DELETE`, i potwierdź `count(*)` przed/po.
+
+### Definition of Done
+Invariant-check działa i raportuje do `audit_events`, wpięty w nightly jako non-critical
+krok, retencja wdrożona i przetestowana na realnym `SELECT` przed jakimkolwiek `DELETE`.
+
+---
+
+## Faza 7 — Ciągła spłata długu (bez końca, sesja na kawałek)
+
+To nie jest jednorazowa faza — to codzienna praktyka egzekwowana przez
+`npm run ratchet:backend` i mapę molochów w `BACKEND_CONTRACT.md` §5.
+
+### Zasady (nie idź na skróty, obowiązują na zawsze, nie tylko podczas tego planu)
+- Dotykasz pliku >300 linii z listy legacy → wydzielasz moduł, nie dopisujesz. Zero
+  wyjątków, ratchet to wymusi (fail buildu), ale **nie czekaj na fail — zaplanuj to od razu**.
+- Każdy nowy `as any` musi być uzasadniony w PR/komentarzu, dlaczego typ jest niemożliwy do
+  wyrażenia — w 99% przypadków to nieprawda, popraw typ.
+- Duplikat kernela (raw `createClient`, raw `fetch` do znanego API, inline data Warsaw) —
+  zero tolerancji, ratchet ma to na 0 dla nowego kodu.
+- Raz na kilka sesji: `npm run contracts:check` (Faza 3) i przejrzyj, czy nie przybyła nowa
+  sierota danych.
+
+### Definition of Done tej fazy
+Nie istnieje — to jest stan ciągły. "10/10" nie znaczy "skończone i zamrożone", znaczy: każda
+kolejna zmiana albo zmniejsza dług, albo przynajmniej go nie zwiększa, i to jest wymuszone
+mechanicznie, nie na honor.
+
+---
+
+## Co zrobić, jeśli utkniesz
+
+Nie improwizuj cichej zmiany zakresu. Jeśli krok w tej fazie okazuje się niewykonalny tak,
+jak opisany (np. import typów w Deno faktycznie nie działa mimo prób) — zatrzymaj się, opisz
+dokładnie co próbowałeś i dlaczego nie działa, zapisz to jako blocker w commit message albo
+w `lessons.md`, i albo zapytaj, albo wybierz najbliższą alternatywę opisaną w tym samym kroku
+(większość kroków ma "jeśli X nie działa, rozważ Y" wbudowane właśnie na taki wypadek). Nie
+oznaczaj fazy jako skończonej, jeśli obszedłeś problem po cichu zamiast go rozwiązać.

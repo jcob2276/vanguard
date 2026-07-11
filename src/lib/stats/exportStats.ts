@@ -6,7 +6,7 @@ import { downloadBlob, getAvg } from './exportStatsHelpers';
 import { fetchExportData } from './exportStatsFetch';
 import { renderDailySummaryMarkdown } from './exportStatsDaily';
 
-export type { ExportStatsMarkdownParams, ExportOuraCsvParams } from './exportStatsTypes';
+export type { ExportStatsMarkdownParams } from './exportStatsTypes';
 export { exportOuraCsv } from './exportOuraCsv';
 
 export async function exportStatsMarkdown({

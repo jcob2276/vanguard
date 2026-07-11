@@ -127,7 +127,7 @@ async function loadSprintReview(userId: string): Promise<SprintReview | null> {
   return data;
 }
 
-export async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
+async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
   const [projects, dreamsRes, kpisRes, lifeGoalsRes] = await Promise.all([
     listProjects(userId),
     supabase.from('dreams').select('id, life_goal').eq('user_id', userId),

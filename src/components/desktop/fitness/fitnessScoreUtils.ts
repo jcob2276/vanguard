@@ -16,7 +16,7 @@ import { stravaDay, countQualityStrengthSets, summarizeStravaWindow } from './fi
 
 export type ScoreKey = 'consistency' | 'endurance' | 'strength' | 'habits' | 'progress' | 'volume';
 
-export type DimensionBreakdown = {
+type DimensionBreakdown = {
   key: ScoreKey;
   label: string;
   score: number;

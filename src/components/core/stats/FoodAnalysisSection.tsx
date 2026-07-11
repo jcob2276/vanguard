@@ -1,13 +1,13 @@
 import FoodAnalysisSingle from './foodAnalysis/FoodAnalysisSingle';
 import FoodAnalysisRange from './foodAnalysis/FoodAnalysisRange';
 
-export interface FoodQualityItem {
+interface FoodQualityItem {
   food_quality_score: number;
   name: string;
   quality_reason: string;
 }
 
-export interface ProteinDistribution {
+interface ProteinDistribution {
   meal: string;
   protein_g: number;
   mps?: boolean;

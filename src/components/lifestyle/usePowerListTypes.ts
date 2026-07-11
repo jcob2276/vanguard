@@ -34,13 +34,6 @@ export const TIME_SLOT_LABELS = {
   evening: '🌙 Wieczór',
 };
 
-export const SPHERE_SLOTS = [
-  { category: 'cialo', label: 'Ciało' },
-  { category: 'duch',  label: 'Duch' },
-  { category: 'konto', label: 'Konto' },
-] as const;
-
-export const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 export function powerListDraftKey(userId: string, date: string) {
   return `vanguard_powerlist_draft_${userId}_${date}`;

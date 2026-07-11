@@ -6,7 +6,7 @@ import type {
   DirectionFocus,
 } from '../../../../lib/dailyPlanProposal';
 
-export function resolvePinTitle(
+function resolvePinTitle(
   pin: {
     entity_type: string;
     entity_id: string | null;

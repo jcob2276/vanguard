@@ -10,7 +10,7 @@ import {
   type SupplementLog,
 } from './supplementsClient';
 
-export const supplementsKeys = {
+const supplementsKeys = {
   all: ['supplements'] as const,
   list: (userId: string) => [...supplementsKeys.all, 'list', userId] as const,
   logs: (userId: string, sinceDate: string) => [...supplementsKeys.all, 'logs', userId, sinceDate] as const,

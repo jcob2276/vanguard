@@ -48,18 +48,3 @@ export function useDailyStrainOura(userId: string) {
   });
 }
 
-// ── MUTATIONS ──
-
-export function useTriggerOuraSync() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ userId }: { userId: string; accessToken?: string }) => {
-      return invokeEdge('sync?service=oura', {
-        body: { userId },
-      });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: biometricsKeys.dailyStrainOura(variables.userId) });
-    },
-  });
-}

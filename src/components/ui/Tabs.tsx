@@ -1,4 +1,4 @@
-export interface Tab {
+interface Tab {
   key: string;
   label: string;
 }

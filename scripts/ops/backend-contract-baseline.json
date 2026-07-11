@@ -1,0 +1,33 @@
+{
+  "patternCount_rawCreateClient": 0,
+  "patternCount_rawProviderFetch": 7,
+  "patternCount_inlineWarsawDate": 17,
+  "patternCount_asAnyFunctions": 73,
+  "patternCount_rawJsonResponse": 140,
+  "patternCount_secretKeyOutsideKernel": 6,
+  "legacyLines": {
+    "supabase/functions/analyze-food-quality/index.ts": 522,
+    "supabase/functions/analyze-training-load/analysis.ts": 673,
+    "supabase/functions/recap/weekly-recap.ts": 659,
+    "supabase/functions/recap/weekly-synthesis.ts": 307,
+    "supabase/functions/sync/strava.ts": 378,
+    "supabase/functions/vanguard-analyst/index.ts": 573,
+    "supabase/functions/vanguard-architect/extraction/rules.ts": 373,
+    "supabase/functions/vanguard-auto-classify/index.ts": 719,
+    "supabase/functions/vanguard-capture/index.ts": 400,
+    "supabase/functions/vanguard-eval-interview/index.ts": 674,
+    "supabase/functions/vanguard-eval-runner/index.ts": 535,
+    "supabase/functions/vanguard-nutrition-coach/index.ts": 383,
+    "supabase/functions/vanguard-oracle/index.ts": 810,
+    "supabase/functions/vanguard-oracle/oracle/rag.ts": 494,
+    "supabase/functions/vanguard-oracle/oracle/systemPrompt.ts": 305,
+    "supabase/functions/vanguard-telegram/_router/interceptors.ts": 733,
+    "supabase/functions/vanguard-telegram/_router/messageHelpers.ts": 506,
+    "supabase/functions/vanguard-wiki-compiler/index.ts": 849,
+    "supabase/functions/_shared/foodParse/reconcile.ts": 429,
+    "supabase/functions/_shared/nightly/correlations.ts": 358,
+    "supabase/functions/_shared/nightly/metrics_strain.ts": 666,
+    "supabase/functions/_shared/vanguardCore.ts": 476,
+    "supabase/functions/_shared/vanguardPatterns/blockers.ts": 328
+  }
+}

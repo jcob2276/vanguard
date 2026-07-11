@@ -9,7 +9,7 @@ import type { Database } from '../database.types';
 export type HabitRow = Database['public']['Tables']['habits']['Row'];
 export type HabitLogRow = Database['public']['Tables']['habit_logs']['Row'];
 
-export const habitsKeys = {
+const habitsKeys = {
   all: ['habits'] as const,
   list: (userId: string) => [...habitsKeys.all, 'list', userId] as const,
   logs: (userId: string) => [...habitsKeys.all, 'logs', userId] as const,
