@@ -1,36 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Save } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw, warsawDayBoundsISO } from '../../lib/date';
-import { notify } from '../../lib/notify';
+import { ChevronDown, Save } from 'lucide-react';
+import { getTodayWarsaw } from '../../lib/date';
 import { useGrowthData } from './hooks/useGrowthData';
-import {
-  formatWeekRange,
-  getWeekStartWarsaw,
-  isCurrentWeek,
-  partitionSkillTree,
-  scoresFromSnapshot,
-  shiftWeekStart,
-} from '../../lib/growth/growth';
-import { getWeekEndExclusive } from '../../lib/growth/growthWeek';
-import { restoreDefaultSkillTree } from '../../lib/growth/growthSeed';
-import { DEFAULT_SKILL_TREE } from '../../lib/growth/growthSkills';
+import { getWeekStartWarsaw, shiftWeekStart } from '../../lib/growth/growth';
 import Modal from '../ui/Modal';
-import {
-  buildLearningNeed,
-  buildMediaQueue,
-  buildSkillInventory,
-  buildWeekLearningLog,
-  deriveFocusProposal,
-  filterReadLinksInWeek,
-} from '../../lib/growth/growthOverview';
+import GrowthViewHeader from './GrowthViewHeader';
 import GrowthLearningPanel from './GrowthLearningPanel';
 import GrowthMediaQueue from './GrowthMediaQueue';
 import GrowthProjectsPanel from './GrowthProjectsPanel';
 import GrowthSkillsList from './GrowthSkillsList';
-import { pinTitle } from './PinPickerModal';
 import SkillTreePanel from './SkillTreePanel';
 import PinPickerModal from './PinPickerModal';
 import FocusEditorModal from './FocusEditorModal';
@@ -38,8 +17,8 @@ import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
 import { useDirectionContext } from '../lifestyle/direction/hooks/useDirectionContext';
-import { computeTheoryPracticeBalance } from '../../lib/growth/growthMastery';
-import { matchLinkToSkill, type GrowthPinSlot } from '../../lib/growth/growth';
+import { useGrowthActions } from './hooks/useGrowthActions';
+import { useGrowthViewDerived } from './useGrowthViewDerived';
 
 export default function GrowthView({ session }: { session: Session }) {
   const userId = session.user.id;
@@ -64,305 +43,72 @@ export default function GrowthView({ session }: { session: Session }) {
     refresh,
   } = useGrowthData(userId, weekStart);
 
-  const [showScores, setShowScores] = useState(false);
-  const [editingScores, setEditingScores] = useState(false);
-  const [pickerSlot, setPickerSlot] = useState<GrowthPinSlot | null>(null);
-  const [pickerDefaultProjectId, setPickerDefaultProjectId] = useState<string | null>(null);
-  const [showFocusEditor, setShowFocusEditor] = useState(false);
-  const [draftScores, setDraftScores] = useState<Record<string, number>>({});
-  const [savingScores, setSavingScores] = useState(false);
   const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
 
-  const { parents, childrenByParentId } = useMemo(() => partitionSkillTree(skills), [skills]);
-  const skillsById = useMemo(() => new Map(skills.map((s) => [s.id, s])), [skills]);
-  const hasLegacySkillTree = useMemo(() => {
-    const expected = new Set(DEFAULT_SKILL_TREE.map((n) => n.key));
-    return parents.length === 0 || parents.some((p) => !expected.has(p.key));
-  }, [parents]);
+  const {
+    parents,
+    childrenByParentId,
+    readOnly,
+    currentScores,
+    allLinks,
+    linksById,
+    focusProposal,
+    focusParentId,
+    skillInventory,
+    learningNeed,
+    focusProjectId,
+    focusLinks,
+    weekLearningLog,
+    mediaQueue,
+    mustDone,
+    mustTotal,
+    balance,
+    grid,
+  } = useGrowthViewDerived({
+    weekStart,
+    skills,
+    snapshots,
+    focus,
+    pins,
+    unreadLinks,
+    readLinks,
+    openTodos,
+    activeProjects,
+    weekNotes,
+  });
 
-  const readOnly = !isCurrentWeek(weekStart);
-  const latestSnapshot = snapshots[0] ?? null;
-  const currentScores = useMemo(
-    () => scoresFromSnapshot(skills, latestSnapshot),
-    [skills, latestSnapshot],
-  );
-
-  const allLinks = useMemo(() => {
-    const m = new Map<string, (typeof unreadLinks)[0]>();
-    [...unreadLinks, ...readLinks].forEach((l) => m.set(l.id, l));
-    return [...m.values()];
-  }, [unreadLinks, readLinks]);
-  const linksById = useMemo(() => new Map(allLinks.map((l) => [l.id, l])), [allLinks]);
-  const todosById = useMemo(() => new Map(openTodos.map((t) => [t.id, t])), [openTodos]);
-
-  const focusProposal = useMemo(
-    () => deriveFocusProposal(parents, childrenByParentId, currentScores, focus, skillsById),
-    [parents, childrenByParentId, currentScores, focus, skillsById],
-  );
-
-  const focusParentId = focusProposal?.parentId ?? focus?.skill_id ?? null;
-  const skillInventory = useMemo(
-    () => buildSkillInventory(parents, childrenByParentId, currentScores, focusParentId),
-    [parents, childrenByParentId, currentScores, focusParentId],
-  );
-
-  const learningNeed = useMemo(
-    () => buildLearningNeed(focusProposal, focus, parents, childrenByParentId, currentScores),
-    [focusProposal, focus, parents, childrenByParentId, currentScores],
-  );
-
-  const { fromISO: weekFromISO } = useMemo(() => warsawDayBoundsISO(weekStart), [weekStart]);
-  const weekEnd = useMemo(() => getWeekEndExclusive(weekStart), [weekStart]);
-  
-  const focusSkillKey = focusParentId ? skillsById.get(focusParentId)?.key : null;
-  
-  // Derive which project best matches the focus skill (heuristic by name/goal keywords)
-  const focusProjectId = useMemo(() => {
-    if (activeProjects.length === 0) return null;
-    const focusSkillId = focusParentId;
-    if (focusSkillId) {
-      const bySkill = activeProjects.find((p) => p.primarySkillId === focusSkillId);
-      if (bySkill) return bySkill.id;
-    }
-    if (!focusSkillKey) return activeProjects[0]?.id ?? null;
-    const skillKws: Record<string, string[]> = {
-      storytelling: ['pewnosc', 'charyzma', 'komunikacja', 'sprzedaz', 'perswazja', 'storytelling'],
-      voice_presence: ['pewnosc', 'charyzma', 'dykcja', 'glos'],
-      closing: ['sprzedaz', 'dochod', 'klient', 'business'],
-      social_exposure: ['poznawanie', 'zwiazek', 'relacj', 'ludzi'],
-      body_base: ['cialo', 'tluszcz', 'trening', 'redukcja'],
-      deep_work: ['praca', 'egzekucja', 'dyscyplina'],
-      negotiation: ['sprzedaz', 'negocjacja'],
-      setting: ['komunikacja', 'sprzedaz', 'rozmowa'],
-    };
-    const kws = skillKws[focusSkillKey] ?? [];
-    const match = activeProjects.find(p => {
-      const text = (p.name + ' ' + (p.goal ?? '')).toLowerCase();
-      return kws.some(kw => text.includes(kw));
-    });
-    return match?.id ?? activeProjects[0]?.id ?? null;
-  }, [focusSkillKey, activeProjects]);
-
-  const focusLinks = useMemo(() => {
-    if (!focusSkillKey) return [];
-    return unreadLinks.filter(l => matchLinkToSkill(l, focusSkillKey));
-  }, [unreadLinks, focusSkillKey]);
-
-  const readLinksThisWeek = useMemo(
-    () => filterReadLinksInWeek(readLinks, weekFromISO),
-    [readLinks, weekFromISO],
-  );
-
-  const weekLearningLog = useMemo(
-    () =>
-      buildWeekLearningLog({
-        pins,
-        resolvePinTitle: (pin) => pinTitle(pin, linksById, todosById),
-        weekNotes,
-        readLinksThisWeek,
-        snapshots: snapshots.map((s) => ({ snapshot_date: s.snapshot_date, scores: s.scores })),
-        skills,
-        weekStart,
-        weekEnd,
-      }),
-    [pins, linksById, todosById, weekNotes, readLinksThisWeek, snapshots, skills, weekStart, weekEnd],
-  );
-
-  const mediaQueue = useMemo(() => buildMediaQueue(unreadLinks, 16), [unreadLinks]);
-
-  const mustDone = pins.filter((p) => p.slot === 'must' && p.done).length;
-  const mustTotal = pins.filter((p) => p.slot === 'must').length;
-
-  const balance = useMemo(() => computeTheoryPracticeBalance(pins, linksById), [pins, linksById]);
-
-  const handleSaveFocus = async (
-    skillId: string | null,
-    why: string,
-    drill: string,
-    targetLevel: number,
-  ) => {
-    try {
-      const { error } = await supabase.from('learning_week_focus').upsert(
-        {
-          user_id: userId,
-          week_start: weekStart,
-          skill_id: skillId,
-          why_text: why,
-          drill_text: drill,
-          target_level: targetLevel,
-        },
-        { onConflict: 'user_id,week_start' },
-      );
-      if (error) throw error;
-      notify('Zapisano focus tygodnia', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');
-      throw e;
-    }
-  };
-
-  const handleDonePin = async (pin: typeof pins[0]) => {
-    try {
-      const today = getTodayWarsaw();
-      const { error } = await supabase
-        .from('learning_week_pins')
-        .update({ done: true, done_at: today })
-        .eq('id', pin.id);
-      if (error) throw error;
-
-      if (pin.entity_type === 'link' && pin.entity_id) {
-        const { error: linkErr } = await supabase.from('vanguard_links').update({ status: 'read' }).eq('id', pin.entity_id);
-        if (linkErr) throw linkErr;
-      } else if (pin.entity_type === 'todo' && pin.entity_id) {
-        const { error: todoErr } = await supabase.from('todo_items').update({ status: 'done' }).eq('id', pin.entity_id);
-        if (todoErr) throw todoErr;
-      }
-
-      notify('Gotowe!', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-    }
-  };
-
-  const handleRemovePin = async (pinId: string) => {
-    try {
-      const { error } = await supabase.from('learning_week_pins').delete().eq('id', pinId);
-      if (error) throw error;
-      notify('Odpięto element', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-    }
-  };
-
-  const handleAddMustForProject = (projectId: string) => {
-    setPickerDefaultProjectId(projectId);
-    setPickerSlot('must');
-  };
-
-  const openPicker = (slot: GrowthPinSlot) => {
-    setPickerDefaultProjectId(focusProjectId);
-    setPickerSlot(slot);
-  };
-
-  const closePicker = () => {
-    setPickerSlot(null);
-    setPickerDefaultProjectId(null);
-  };
-
-  const handleQuickPinLink = async (linkId: string, slot: GrowthPinSlot) => {
-    try {
-      const { error } = await supabase.from('learning_week_pins').insert({
-        user_id: userId,
-        week_start: weekStart,
-        slot,
-        entity_type: 'link',
-        entity_id: linkId,
-        project_id: focusProjectId,
-        sort_order: pins.filter((p) => p.slot === slot).length,
-      });
-      if (error) throw error;
-      notify('Przypięto link', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-    }
-  };
-
-  const handleQuickPinTodo = async (todoId: string, slot: GrowthPinSlot) => {
-    try {
-      const { error } = await supabase.from('learning_week_pins').insert({
-        user_id: userId,
-        week_start: weekStart,
-        slot,
-        entity_type: 'todo',
-        entity_id: todoId,
-        project_id: focusProjectId,
-        sort_order: pins.filter((p) => p.slot === slot).length,
-      });
-      if (error) throw error;
-      notify('Przypięto zadanie', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-    }
-  };
-
-  const theme =
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
-      ? 'dark'
-      : 'light';
-  const grid = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-
-  const startEditScores = () => {
-    setDraftScores({ ...currentScores });
-    setEditingScores(true);
-    setShowScores(true);
-  };
-
-  const saveScores = async () => {
-    setSavingScores(true);
-    try {
-      const today = getTodayWarsaw();
-      const { error } = await supabase.from('learning_skill_snapshots').upsert(
-        { user_id: userId, snapshot_date: today, scores: draftScores },
-        { onConflict: 'user_id,snapshot_date' },
-      );
-      if (error) throw error;
-      setEditingScores(false);
-      notify('Zapisano oceny skilli', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');
-    } finally {
-      setSavingScores(false);
-    }
-  };
-
-  const handleRestoreSkillTree = async () => {
-    try {
-      await restoreDefaultSkillTree(supabase, userId);
-      notify('Przywrócono domyślne skilli', 'success');
-      await refresh();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-    }
-  };
-
+  const actions = useGrowthActions({ userId, weekStart, pins, focusProjectId, refresh });
+  const {
+    pickerSlot,
+    pickerDefaultProjectId,
+    showFocusEditor, setShowFocusEditor,
+    draftScores, setDraftScores,
+    savingScores,
+    showScores, setShowScores,
+    editingScores, setEditingScores,
+    handleSaveFocus,
+    handleDonePin,
+    handleRemovePin,
+    handleAddMustForProject,
+    openPicker,
+    closePicker,
+    handleQuickPinLink,
+    handleQuickPinTodo,
+    startEditScores,
+    saveScores,
+    handlePickLink,
+    handlePickTodo,
+    handlePickManual,
+  } = actions;
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
-      <header className="sticky top-0 z-30 w-full border-b border-border-custom bg-background/95 backdrop-blur-md">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
-          <Link
-            to="/"
-            className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-black font-display uppercase tracking-tight">Rozwój</h1>
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => setWeekStart((w) => shiftWeekStart(w, -1))} className="p-1 text-text-muted hover:text-primary cursor-pointer">
-                  <ChevronLeft size={15} />
-                </button>
-                <span className="text-[11px] font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
-                <button type="button" onClick={() => setWeekStart((w) => shiftWeekStart(w, 1))} disabled={isCurrentWeek(weekStart)} className="p-1 text-text-muted hover:text-primary disabled:opacity-30 cursor-pointer">
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
-          </div>
-          {!readOnly && (
-            <button type="button" onClick={startEditScores} className="rounded-xl border border-border-custom px-3 py-2 text-[10px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer shrink-0">
-              Oceń skilli
-            </button>
-          )}
-        </div>
-      </header>
+      <GrowthViewHeader
+        weekStart={weekStart}
+        onShiftWeek={(dir) => setWeekStart((w) => shiftWeekStart(w, dir))}
+        readOnly={readOnly}
+        onEditScores={() => startEditScores(currentScores)}
+      />
 
       <div className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-6">
         {loading ? (
@@ -446,7 +192,7 @@ export default function GrowthView({ session }: { session: Session }) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <GrowthSkillsList
                   rows={skillInventory}
-                  onEditScores={startEditScores}
+                  onEditScores={() => startEditScores(currentScores)}
                   readOnly={readOnly}
                   unreadLinks={unreadLinks}
                   onQuickPinLink={handleQuickPinLink}
@@ -481,67 +227,9 @@ export default function GrowthView({ session }: { session: Session }) {
           pinnedLinkIds={new Set(pins.filter((p) => p.entity_type === 'link').map((p) => p.entity_id).filter(Boolean) as string[])}
           pinnedTodoIds={new Set(pins.filter((p) => p.entity_type === 'todo').map((p) => p.entity_id).filter(Boolean) as string[])}
           onClose={closePicker}
-          onPickLink={async (linkId, skillId, projectId) => {
-            try {
-              const { error } = await supabase.from('learning_week_pins').insert({
-                user_id: userId,
-                week_start: weekStart,
-                slot: pickerSlot,
-                entity_type: 'link',
-                entity_id: linkId,
-                skill_id: skillId,
-                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
-                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
-              });
-              if (error) throw error;
-              notify('Przypięto link', 'success');
-              closePicker();
-              await refresh();
-            } catch (e: unknown) {
-              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-            }
-          }}
-          onPickTodo={async (todoId, skillId, projectId) => {
-            try {
-              const { error } = await supabase.from('learning_week_pins').insert({
-                user_id: userId,
-                week_start: weekStart,
-                slot: pickerSlot,
-                entity_type: 'todo',
-                entity_id: todoId,
-                skill_id: skillId,
-                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
-                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
-              });
-              if (error) throw error;
-              notify('Przypięto zadanie', 'success');
-              closePicker();
-              await refresh();
-            } catch (e: unknown) {
-              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-            }
-          }}
-          onPickManual={async (title, type, skillId, projectId) => {
-            try {
-              const { error } = await supabase.from('learning_week_pins').insert({
-                user_id: userId,
-                week_start: weekStart,
-                slot: pickerSlot,
-                entity_type: 'manual',
-                manual_title: title,
-                manual_resource_type: type,
-                skill_id: skillId,
-                project_id: projectId ?? pickerDefaultProjectId ?? focusProjectId,
-                sort_order: pins.filter((p) => p.slot === pickerSlot).length,
-              });
-              if (error) throw error;
-              notify('Dodano element do planu', 'success');
-              closePicker();
-              await refresh();
-            } catch (e: unknown) {
-              notify(e instanceof Error ? (e as Error).message : 'Błąd', 'error');
-            }
-          }}
+          onPickLink={handlePickLink}
+          onPickTodo={handlePickTodo}
+          onPickManual={handlePickManual}
         />
       )}
 
