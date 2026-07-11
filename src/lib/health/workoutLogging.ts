@@ -1,9 +1,9 @@
 import { supabase } from '../supabase'
 import { scheduleStrainRecompute } from './strainRefresh'
-import { getTodayWarsaw, shiftDateStr } from '../date'
 import { invokeEdge } from '../supabase'
 import { TIMEOUTS } from '../constants'
 import { rpcWithOfflineFallback } from '../offlineQueue'
+import { shiftDateStr } from '../date'
 import {
   newActivity,
   newExercise,
@@ -12,149 +12,11 @@ import {
   type WorkoutExercise,
 } from './workout'
 
-export interface WorkoutLoggerInitial {
-  workoutName: string
-  exercises: WorkoutExercise[]
-  activities: WorkoutActivity[]
-  notes: string
-  sessionRpe: number | null
-}
+export * from './workoutDraft'
 
-export interface WorkoutDraft extends WorkoutLoggerInitial {
-  workoutDate: string
-  timerStart: number | null
-  manualTime: boolean
-  startTimeManual: string
-  endTimeManual: string
-  savedAt: number
-}
-
-const DRAFT_KEY = (userId: string) => `vanguard_workout_draft_${userId}`
-const ACTIVE_SESSION_KEY = (userId: string) => `vanguard_workout_session_active_${userId}`
 const INSIGHT_KEY = (userId: string, date: string) => `vanguard_training_insight_${userId}_${date}`
 
 const loadTimers = new Map<string, ReturnType<typeof setTimeout>>()
-
-function readWorkoutDraftRaw(userId: string): WorkoutDraft | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY(userId))
-    if (!raw) return null
-    return JSON.parse(raw) as WorkoutDraft
-  } catch {
-    return null
-  }
-}
-
-/** Real session in progress — not an empty logger that was opened and closed. */
-export function hasResumableWorkoutDraftContent(draft: WorkoutDraft): boolean {
-  if (draft.workoutName?.trim()) return true
-  if (draft.notes?.trim()) return true
-  if (draft.sessionRpe != null) return true
-  if (draft.activities?.some((a) => a.name?.trim())) return true
-  if (draft.exercises?.some((e) => e.name?.trim())) return true
-  if (draft.exercises?.some((e) => (e.sets ?? []).some((s) => s.kg?.trim() || s.reps?.trim()))) {
-    return true
-  }
-  return false
-}
-
-function hasPlyoCheckoffProgress(userId: string): boolean {
-  try {
-    const raw = localStorage.getItem(`vanguard_plyo_checkoff_${userId}`)
-    if (!raw) return false
-    const parsed = JSON.parse(raw) as { done?: boolean[][] }
-    return (parsed.done ?? []).some((row) => row.some(Boolean))
-  } catch {
-    return false
-  }
-}
-
-export function markWorkoutSessionActive(userId: string): void {
-  try {
-    localStorage.setItem(ACTIVE_SESSION_KEY(userId), String(Date.now()))
-  } catch {
-    /* quota */
-  }
-}
-
-function clearWorkoutSessionActive(userId: string): void {
-  try {
-    localStorage.removeItem(ACTIVE_SESSION_KEY(userId))
-  } catch {
-    /* ignore */
-  }
-}
-
-export function isWorkoutSessionActive(userId: string): boolean {
-  try {
-    return localStorage.getItem(ACTIVE_SESSION_KEY(userId)) != null
-  } catch {
-    return false
-  }
-}
-
-export function shouldAutoResumeWorkout(userId: string): boolean {
-  const draft = readWorkoutDraftRaw(userId)
-  const hasPlyo = hasPlyoCheckoffProgress(userId)
-  const hasDraft = draft != null && hasResumableWorkoutDraftContent(draft)
-
-  if (isWorkoutSessionActive(userId)) {
-    if (hasDraft || hasPlyo) return true
-    clearWorkoutSessionActive(userId)
-    clearWorkoutDraft(userId)
-    return false
-  }
-
-  if (hasDraft) return true
-  if (hasPlyo) return true
-  return false
-}
-
-export function purgeStaleWorkoutDraft(userId: string): void {
-  if (isWorkoutSessionActive(userId)) return
-  const draft = readWorkoutDraftRaw(userId)
-  if (draft && !hasResumableWorkoutDraftContent(draft)) {
-    clearWorkoutDraft(userId)
-  }
-}
-
-export function loadWorkoutDraft(userId: string): WorkoutDraft | null {
-  const parsed = readWorkoutDraftRaw(userId)
-  if (!parsed) return null
-  if (isWorkoutSessionActive(userId) || hasResumableWorkoutDraftContent(parsed)) {
-    return parsed
-  }
-  clearWorkoutDraft(userId)
-  return null
-}
-
-/** Persist in-progress logger state (e.g. before app backgrounds). */
-export function persistWorkoutDraft(userId: string, draft: WorkoutDraft): void {
-  if (isWorkoutSessionActive(userId) || hasResumableWorkoutDraftContent(draft)) {
-    saveWorkoutDraft(userId, draft)
-  }
-}
-
-export function endWorkoutSession(userId: string): void {
-  clearWorkoutDraft(userId)
-  clearWorkoutSessionActive(userId)
-}
-
-export function saveWorkoutDraft(userId: string, draft: WorkoutDraft): void {
-  try {
-    localStorage.setItem(DRAFT_KEY(userId), JSON.stringify({ ...draft, savedAt: Date.now() }))
-  } catch {
-    /* quota */
-  }
-}
-
-function clearWorkoutDraft(userId: string): void {
-  try {
-    localStorage.removeItem(DRAFT_KEY(userId))
-  } catch {
-    /* ignore */
-  }
-}
 
 function storeTrainingInsight(userId: string, date: string, line: string): void {
   try {
@@ -223,7 +85,7 @@ function logsToExercises(logs: Array<{
   return { exercises, activities }
 }
 
-export async function loadWorkoutTemplate(userId: string, workoutDay?: string): Promise<WorkoutLoggerInitial | null> {
+export async function loadWorkoutTemplate(userId: string, workoutDay?: string): Promise<import('./workoutDraft').WorkoutLoggerInitial | null> {
   let query = supabase
     .from('workout_sessions')
     .select('id, workout_day, session_notes, session_rpe')
@@ -254,7 +116,7 @@ export async function loadWorkoutTemplate(userId: string, workoutDay?: string): 
 
   if (!logs?.length) return null
 
-  const { exercises, activities } = logsToExercises(logs as any)
+  const { exercises, activities } = logsToExercises(logs)
   return {
     workoutName: session.workout_day ?? '',
     exercises: exercises.length ? exercises : [newExercise()],
@@ -378,106 +240,6 @@ export async function saveWorkoutSession(
   }
   return { queued }
 }
-
-const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling']
-
-export function isWellnessOnlySession(session: {
-  workout_day?: string | null
-  exercise_logs?: Array<{ exercise_name?: string | null; muscle_tags?: string[] | null }> | null
-}): boolean {
-  const logs = session.exercise_logs ?? []
-  if (!logs.length) {
-    return WELLNESS_NAMES.includes((session.workout_day || '').toLowerCase())
-  }
-  return logs.every((l) => (l.muscle_tags ?? []).includes('wellness'))
-}
-
-export function sessionDateKey(date: string | null | undefined): string {
-  if (!date) return ''
-  return date.slice(0, 10)
-}
-
-function isSaunaSession(session: {
-  workout_day?: string | null
-  exercise_logs?: Array<{ exercise_name?: string | null; muscle_tags?: string[] | null; reps?: number | null }> | null
-}): boolean {
-  const logs = session.exercise_logs ?? []
-  if (logs.some((l) => (l.exercise_name || '').toLowerCase().includes('sauna'))) return true
-  const day = (session.workout_day || '').toLowerCase()
-  if (day.includes('sauna')) return true
-  return logs.some(
-    (l) =>
-      (l.muscle_tags ?? []).includes('wellness') &&
-      WELLNESS_NAMES.some((w) => (l.exercise_name || '').toLowerCase().startsWith(w) && w === 'sauna'),
-  )
-}
-
-function sumSaunaMinutes(session: {
-  exercise_logs?: Array<{ exercise_name?: string | null; reps?: number | null }> | null
-}): number {
-  return (session.exercise_logs ?? [])
-    .filter((l) => (l.exercise_name || '').toLowerCase().includes('sauna'))
-    .reduce((sum, l) => sum + (Number(l.reps) || 0), 0)
-}
-
-export function getSaunaStats(
-  sessions: Array<{
-    date: string
-    workout_day?: string | null
-    exercise_logs?: Array<{ exercise_name?: string | null; muscle_tags?: string[] | null; reps?: number | null }> | null
-  }>,
-  sinceDate: string,
-) {
-  const recent = sessions.filter(
-    (s) => sessionDateKey(s.date) >= sinceDate && isSaunaSession(s),
-  )
-  const sessionsCount = recent.length
-  const totalMinutes = recent.reduce((sum, s) => sum + sumSaunaMinutes(s), 0)
-  return { sessionsCount, totalMinutes }
-}
-
-
-
-export async function saveSaunaSession(
-  userId: string,
-  opts: {
-    minutes: number
-    celsius: number | null
-    sessionRpe: number | null
-    notes: string
-    workoutDate?: string
-  },
-): Promise<void> {
-  if (!opts.minutes || opts.minutes < 1) throw new Error('Podaj czas w minutach')
-
-  const exercise: WorkoutExercise = {
-    ...newExercise(),
-    name: 'Sauna',
-    tags: ['wellness'],
-    sets: [
-      {
-        ...newSet(),
-        reps: String(opts.minutes),
-        kg: opts.celsius != null && opts.celsius > 0 ? String(Math.round(opts.celsius)) : '',
-      },
-    ],
-  }
-
-  await saveWorkoutSession(userId, {
-    workoutName: 'Sauna',
-    exercises: [exercise],
-    activities: [],
-    notes: opts.notes.trim(),
-    sessionRpe: opts.sessionRpe,
-    workoutDate: opts.workoutDate ?? getTodayWarsaw(),
-    timerStart: null,
-    manualTime: false,
-    startTimeManual: '',
-    endTimeManual: '',
-  })
-}
-
-
 
 async function runTrainingLoadAnalysis(userId: string, date: string): Promise<void> {
   try {

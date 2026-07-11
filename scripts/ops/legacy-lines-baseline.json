@@ -35,6 +35,5 @@
   "src/lib/dailyPlanProposal.ts": 361,
   "src/lib/database.types.ts": 6246,
   "src/lib/health/foodLogging.ts": 386,
-  "src/lib/goal/goalSpine.mutations.ts": 345,
-  "src/lib/health/workoutLogging.ts": 522
+  "src/lib/goal/goalSpine.mutations.ts": 345
 }

@@ -1,5 +1,5 @@
 import { daysBefore } from '../desktopUtils';
-import { getSaunaStats, isWellnessOnlySession, sessionDateKey } from '../../../lib/health/workoutLogging';
+import { getSaunaStats, isWellnessOnlySession, sessionDateKey } from '../../../lib/health/workoutSauna';
 import { getTodayWarsaw } from '../../../lib/date';
 import { getWeekStartWarsaw } from '../../../lib/growth/growth';
 import {

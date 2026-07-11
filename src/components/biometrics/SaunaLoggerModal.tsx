@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, Flame, Save } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
 import { notify } from '../../lib/notify';
-import { saveSaunaSession } from '../../lib/health/workoutLogging';
+import { saveSaunaSession } from '../../lib/health/workoutSauna';
 import { numInput } from './workout/workoutUtils';
 import { useUserId } from '../../store/useStore';
 

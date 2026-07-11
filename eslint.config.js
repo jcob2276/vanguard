@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 const LEGACY_FILES = [
   'src/components/biometrics/DailyStrainCard.tsx',
+  'src/components/biometrics/SaunaLoggerModal.tsx',
   'src/components/biometrics/WorkoutLogger.tsx',
   'src/components/biometrics/workout/ExerciseCard.tsx',
   'src/components/calendar/CalendarEventModal.tsx',
@@ -54,7 +55,6 @@ const LEGACY_FILES = [
   'src/lib/database.types.ts',
   'src/lib/health/foodLogging.ts',
   'src/lib/goal/goalSpine.mutations.ts',
-  'src/lib/health/workoutLogging.ts',
 ]
 
 // Targeted debt lists for the frontend boundary rules below (see docs/FRONTEND_GUIDE.md).
