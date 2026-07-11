@@ -18,13 +18,6 @@ type Measurement = {
   diopters: number;
 };
 
-type DailyLog = {
-  id: string;
-  date: string;
-  active_focus_minutes: number | null;
-  screen_time_hours: number | null;
-};
-
 function getTimeOfDay(dateStr: string): 'Rano' | 'Południe' | 'Wieczór' {
   const hour = new Date(dateStr).getHours();
   if (hour >= 4 && hour < 12) return 'Rano';
@@ -40,18 +33,16 @@ function getMonthYear(dateStr: string) {
 
 export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
-  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
 
   useEffect(() => {
     async function loadData() {
-      const [mRes, logsRes] = await Promise.all([
-        supabase.from('endmyopia_measurements').select('*').order('measured_at', { ascending: true }),
-        supabase.from('endmyopia_daily_logs').select('*').order('date', { ascending: true })
-      ]);
-      if (mRes.data) setMeasurements(mRes.data);
-      if (logsRes.data) setDailyLogs(logsRes.data);
+      const { data } = await supabase
+        .from('endmyopia_measurements')
+        .select('*')
+        .order('measured_at', { ascending: true });
+      if (data) setMeasurements(data);
       setLoading(false);
     }
     loadData();
