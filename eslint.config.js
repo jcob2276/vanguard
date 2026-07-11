@@ -18,7 +18,6 @@ const LEGACY_FILES = [
   'src/components/calendar/grid/CalendarWeekView.tsx',
   'src/components/calendar/grid/CalendarAgendaView.tsx',
   'src/components/calendar/grid/types.ts',
-  'src/components/calendar/useCalendarData.ts',
   'src/components/core/DailyShutdownModal.tsx',
   'src/components/core/MorningPlanModal.tsx',
   'src/components/core/NutritionCard.tsx',

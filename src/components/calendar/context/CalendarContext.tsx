@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { useCalendarData } from '../useCalendarData';
+import type { useCalendarData } from '../hooks/useCalendarData';
 import type { useCalendarTodos } from '../hooks/useCalendarTodos';
 import type { useTimeBudgets } from '../hooks/useTimeBudgets';
 

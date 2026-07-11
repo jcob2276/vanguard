@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { useCalendarData } from './useCalendarData';
+import { useCalendarData } from './hooks/useCalendarData';
 import {
   PX_PER_HOUR,
   addDays,

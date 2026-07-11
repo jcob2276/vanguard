@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Clock, Repeat, Trash2, Calendar } from 'lucide-react';
-import { useCalendarData } from './useCalendarData';
+import { useCalendarData } from './hooks/useCalendarData';
 import { monthLabel, recurringSeriesBaseId } from './calendarHelpers';
 
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';

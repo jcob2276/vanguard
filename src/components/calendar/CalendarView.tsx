@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Session } from '@supabase/supabase-js';
 
-import { useCalendarData } from './useCalendarData';
+import { useCalendarData } from './hooks/useCalendarData';
 import { useTimeBudgets } from './hooks/useTimeBudgets';
 import { useCalendarTodos } from './hooks/useCalendarTodos';
 import { useAIScheduling } from './hooks/useAIScheduling';

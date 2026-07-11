@@ -4,7 +4,6 @@
   "src/components/biometrics/workout/ExerciseCard.tsx": 390,
   "src/components/calendar/CalendarEventModal.tsx": 389,
   "src/components/calendar/CalendarView.tsx": 461,
-  "src/components/calendar/useCalendarData.ts": 547,
   "src/components/core/DailyShutdownModal.tsx": 407,
   "src/components/core/MorningPlanModal.tsx": 219,
   "src/components/core/NutritionCard.tsx": 493,
