@@ -25,7 +25,6 @@ const LEGACY_FILES = [
   'src/components/desktop/fitness/FitnessScorePanel.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
   'src/components/desktop/fitness/fitnessScoreHelpers.ts',
-  'src/components/desktop/general/GeneralView.tsx',
   'src/components/desktop/health/SupplementsPanel.tsx',
   'src/components/desktop/desktopUtils.ts',
   'src/components/growth/GrowthView.tsx',
