@@ -8,6 +8,7 @@
  * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { requireServiceRole } from "../_shared/auth.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 // Force upload of domain package for shared dependencies
 import type {} from "@vanguard/domain";
@@ -16,6 +17,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   let recordId: string | null = null;
   try {

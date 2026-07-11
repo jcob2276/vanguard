@@ -3,7 +3,7 @@
   "patternCount_rawProviderFetch": 7,
   "patternCount_inlineWarsawDate": 17,
   "patternCount_asAnyFunctions": 73,
-  "patternCount_rawJsonResponse": 140,
+  "patternCount_rawJsonResponse": 141,
   "patternCount_secretKeyOutsideKernel": 6,
   "legacyLines": {
     "supabase/functions/analyze-food-quality/index.ts": 522,

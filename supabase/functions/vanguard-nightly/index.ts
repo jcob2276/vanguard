@@ -8,7 +8,7 @@
  * @consumer Zaktualizowany stan świata i korelacje w aplikacji i Wyroczni
  * @status active
  */
-import { corsHeaders, createServiceClient } from '../_shared/supabase.ts';
+import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts';
 import { requireServiceRole } from '../_shared/auth.ts';
 import { runSaveDailyAggregate } from '../_shared/nightly/aggregate.ts';
 import { runComputeDailyStrain } from '../_shared/nightly/metrics_strain.ts';
@@ -74,24 +74,32 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
-
   try {
     const supabase = createServiceClient();
-    
+
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || body.action;
 
     if (action) {
+      // Actions accept both service-role and user tokens
+      let scope;
+      try {
+        scope = await resolveUserScope(req, body.userId ?? null);
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const reqForSub = new Request(req.url, {
         method: req.method,
         headers: req.headers,
         body: JSON.stringify(body)
       });
-      
+
       switch (action) {
         case 'compute-daily-strain':
           return await runComputeDailyStrain(reqForSub);
@@ -108,6 +116,10 @@ Deno.serve(async (req) => {
           });
       }
     }
+
+    // Full pipeline requires service-role
+    const authError = requireServiceRole(req);
+    if (authError) return authError;
 
     console.log('[vanguard-nightly] Starting unified nightly pipeline...');
 

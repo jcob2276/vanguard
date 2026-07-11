@@ -143,3 +143,7 @@ verify_jwt = false
 [functions.vanguard-keep-triage]
 import_map = "./functions/import_map.json"
 verify_jwt = false
+
+[functions.vanguard-outbox-sender]
+import_map = "./functions/import_map.json"
+verify_jwt = false
