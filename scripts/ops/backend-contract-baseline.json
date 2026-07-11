@@ -20,7 +20,6 @@
     "supabase/functions/vanguard-oracle/index.ts": 591,
     "supabase/functions/vanguard-oracle/oracle/rag.ts": 494,
     "supabase/functions/vanguard-oracle/oracle/systemPrompt.ts": 305,
-    "supabase/functions/vanguard-telegram/_router/interceptors.ts": 733,
     "supabase/functions/vanguard-telegram/_router/messageHelpers.ts": 506,
     "supabase/functions/vanguard-wiki-compiler/index.ts": 849,
     "supabase/functions/_shared/foodParse/reconcile.ts": 429,
