@@ -51,7 +51,10 @@ const targets = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 if (targets.length > 0 || !checkOnly) {
   // Check if any staged/committed files contain prompt changes
   try {
-    const diff = run("git diff HEAD~1 --name-only 2>/dev/null || echo ''");
+    // No shell-level redirection (2>/dev/null, || echo '') — execSync spawns cmd.exe on
+    // Windows by default and doesn't understand Unix shell syntax; the surrounding
+    // try/catch already handles the "no previous commit" failure case.
+    const diff = run("git diff HEAD~1 --name-only");
     if (diff) {
       const files = diff.split("\n").filter(Boolean);
       const promptFiles = files.filter(
