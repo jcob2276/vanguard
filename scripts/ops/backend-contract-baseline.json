@@ -13,7 +13,6 @@
     "supabase/functions/sync/strava.ts": 378,
     "supabase/functions/vanguard-analyst/index.ts": 565,
     "supabase/functions/vanguard-architect/extraction/rules.ts": 373,
-    "supabase/functions/vanguard-auto-classify/index.ts": 719,
     "supabase/functions/vanguard-capture/index.ts": 384,
     "supabase/functions/vanguard-eval-interview/index.ts": 669,
     "supabase/functions/vanguard-eval-runner/index.ts": 535,
