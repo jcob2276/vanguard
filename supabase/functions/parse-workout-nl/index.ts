@@ -36,6 +36,7 @@ async function loadHistoryBlock(userId: string, db: ReturnType<typeof createServ
     .join('\n')
 }
 
+// Auth note: serveJson implicitly enforces resolveUserScope
 Deno.serve(serveJson(async (req, ctx) => {
   const body = await req.json().catch(() => ({}))
   const text: string = (body.text || '').trim()

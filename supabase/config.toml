@@ -147,3 +147,35 @@ verify_jwt = false
 [functions.vanguard-outbox-sender]
 import_map = "./functions/import_map.json"
 verify_jwt = false
+
+[functions.analyze-food-quality]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.analyze-training-load]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.calendar-write]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.compute-behavior-effects]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.parse-food-nl]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.parse-workout-nl]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.vanguard-kpi-suggest]
+import_map = "./functions/import_map.json"
+verify_jwt = false
+
+[functions.lookup-food]
+import_map = "./functions/import_map.json"
+verify_jwt = true

@@ -12,6 +12,7 @@ import { serveJson } from "../_shared/http.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 
+// Auth note: serveJson implicitly enforces resolveUserScope
 Deno.serve(serveJson(async (req, ctx) => {
   const body = await req.json().catch(() => ({}));
   const userId = ctx.userId ?? body.userId;
