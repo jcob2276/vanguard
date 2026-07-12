@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { calculateProjection } from './statsCalculations';
-import type { Tables } from '../../../lib/database.types';
+import type { Tables } from '../database.types';
 
 // Simple factory helper to create partial body metric objects
 function createBodyMetric(date: string, weight: number | null, waist: number | null = null): Tables<'body_metrics'> {

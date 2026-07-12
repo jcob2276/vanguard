@@ -1,38 +1,40 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useStore, useUserId } from '../../../store/useStore';
 import type { Tables, TablesInsert } from '../../../lib/database.types';
-import { calculateProjection } from '../stats/statsCalculations';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from '../stats/statsApi';
 import { exportStatsMarkdown, exportOuraCsv } from '../../../lib/stats/exportStats';
 import { notify, confirmDialog } from '../../../lib/notify';
 import type { NewMetricState } from '../stats/BodyMetricsSection';
-import { bodyTrend, mergeBodyMetricSavePayload } from '../../../lib/health/bodyMetrics';
+import { mergeBodyMetricSavePayload } from '../../../lib/health/bodyMetrics';
 import type { FoodAnalysisResult } from '../stats/FoodAnalysisSection';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
+import { useStatsOverviewQuery, statsOverviewKeys } from '../../../lib/statsOverviewApi';
 
-type BodyMetricRow = Tables<'body_metrics'>;
 type ExerciseLogRow = Tables<'exercise_logs'>;
 type EditableExerciseLog = Omit<ExerciseLogRow, 'weight' | 'reps'> & {
   weight: number | string | null;
   reps: number | string | null;
 };
 type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: ExerciseLogRow[]; duration?: number | string };
-type TrendPoint = { cur: number | null; prev: number | null };
-type TrendsState = Partial<Record<'weight' | 'waist' | 'readiness' | 'sleep' | 'protein', TrendPoint>>;
-type ProjectionResult = { value: string; change: string } | null;
-type ProjectionState = Partial<Record<'weight' | 'waist', ProjectionResult>>;
 type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
 type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
 
 export function useStatsData() {
   const userId = useUserId();
   const { userSettings } = useStore();
-  const [loading, setLoading] = useState(true);
-  const [bodyData, setBodyData] = useState<BodyMetricRow[]>([]);
-  const [recentSessions, setRecentSessions] = useState<WorkoutSessionRow[]>([]);
+  const queryClient = useQueryClient();
+  const { data: overview, isLoading: loading } = useStatsOverviewQuery(userId);
+  const bodyData = overview?.bodyData ?? [];
+  const recentSessions = overview?.recentSessions ?? [];
+  const heightCm = overview?.heightCm ?? null;
+  const trends = overview?.trends ?? {};
+  const projections = overview?.projections ?? null;
+  const refetchStats = () => {
+    if (userId) queryClient.invalidateQueries({ queryKey: statsOverviewKeys.forUser(userId) });
+  };
   const [newMetric, setNewMetric] = useState<NewMetricState>({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
-  const [heightCm, setHeightCm] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
     from: shiftDateStr(getTodayWarsaw(), -7),
     to: getTodayWarsaw()
@@ -53,72 +55,9 @@ export function useStatsData() {
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [editForm, setEditForm] = useState<EditFormState>({ date: '', workout_day: '', logs: [] });
-  const [trends, setTrends] = useState<TrendsState>({});
-  const [projections, setProjections] = useState<ProjectionState | null>(null);
 
   const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
   const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
-
-  const fetchStats = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const [
-        { data: body },
-        { data: sessions },
-        { data: oura },
-        { data: profile },
-      ] = await Promise.all([
-        supabase.from('body_metrics').select('*').eq('user_id', userId).order('date', { ascending: true }),
-        supabase.from('workout_sessions').select('*, exercise_logs(*)').eq('user_id', userId).order('date', { ascending: false }),
-        supabase.from('oura_daily_summary').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(60),
-        supabase.from('nutrition_profile').select('height_cm').eq('user_id', userId).maybeSingle(),
-      ]);
-      if (profile?.height_cm != null) setHeightCm(Number(profile.height_cm));
-
-      if (body) setBodyData(body);
-
-      if (sessions) {
-        setRecentSessions(sessions.map(s => ({
-          ...s,
-          duration: s.start_time && s.end_time ? Math.round((new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / 60000) : '--'
-        })));
-      }
-
-      // Calculate Trends
-      const newTrends: TrendsState = {};
-      const ouraRaw = oura || [];
-
-      if (body && body.length >= 2) {
-        const weightTrend = bodyTrend(body, 'weight');
-        const waistTrend = bodyTrend(body, 'waist');
-        if (weightTrend) newTrends.weight = weightTrend;
-        if (waistTrend) newTrends.waist = waistTrend;
-      }
-      if (ouraRaw.length >= 2) {
-        newTrends.readiness = { cur: ouraRaw[0].readiness_score, prev: ouraRaw[1].readiness_score };
-        newTrends.sleep = { cur: ouraRaw[0].total_sleep_hours, prev: ouraRaw[1].total_sleep_hours };
-      }
-      setTrends(newTrends);
-
-      // Calculate Projections (6 weeks)
-      if (body && body.length >= 3) {
-        setProjections({
-          weight: calculateProjection(body, 'weight'),
-          waist: calculateProjection(body, 'waist')
-        });
-      }
-    } catch (err: unknown) {
-      console.error('[Action Error]', err);
-      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    void (async () => { await fetchStats(); })();
-  }, [fetchStats]);
 
   async function saveMetrics(e: React.FormEvent) {
     e.preventDefault();
@@ -136,7 +75,7 @@ export function useStatsData() {
     else {
       notify('Zapisano!', 'success');
       setNewMetric({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
-      fetchStats();
+      refetchStats();
     }
   }
 
@@ -144,7 +83,7 @@ export function useStatsData() {
     if (!(await confirmDialog('Usunąć trening?'))) return;
     const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
     if (error) { notify(error.message, 'error'); return; }
-    fetchStats();
+    refetchStats();
   }
 
   async function analyzeFood() {
@@ -233,7 +172,7 @@ export function useStatsData() {
 
       notify('Trening zaktualizowany!', 'success');
       setEditingSession(null);
-      fetchStats();
+      refetchStats();
     } catch (err: unknown) {
       notify('Błąd podczas aktualizacji', 'error');
     }

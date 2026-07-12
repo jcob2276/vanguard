@@ -1,4 +1,4 @@
-import type { Tables } from '../../../lib/database.types';
+import type { Tables } from '../database.types';
 
 export function calculateProjection(
   data: Tables<'body_metrics'>[] | null | undefined,
