@@ -776,6 +776,29 @@ funkcji dzielą się na: 6 świadomie odłożonych (udokumentowane wyżej, wymag
 handlerów PRZED migracją, nie samego przepięcia) i 4 jeszcze nieocenione
 (`vanguard-eval-runner`, `vanguard-eval-interview`, `vanguard-oracle`, `vanguard-telegram`).
 
+### 2026-07-12 (ciąg dalszy 4): eval-runner + eval-interview — 23/31 na `serveJson`, `rawJsonResponse` = 84
+
+Commit `813934fa`: `vanguard-eval-runner`, `vanguard-eval-interview` — oba samodzielne (brak
+delegacji do pod-handlerów zwracających `Response`), migracja standardowym wzorcem
+`requireServiceRole` → `auth:'service'`. `rawJsonResponse`: 94 → 84.
+
+Przy okazji drobny porządek w `eval-interview`: parsowanie opcjonalnej flagi `manual` z body
+miało własny try/catch, który przy niepoprawnym JSON dawał twardy 500 (i to bez nagłówków
+CORS — osobny mały bug) — uproszczone do tego samego `.catch(() => ({}))`, którego używa
+reszta kodebase'u dla opcjonalnych pól.
+
+Zweryfikowano żywo: `vanguard-eval-runner`'s `action:'status'` (bezpieczna ścieżka
+tylko-odczyt) zwróciło prawdziwe dane realnego eval run. `vanguard-eval-interview` NIE
+zostało wywołane live — wysyła prawdziwą wiadomość Telegram, a dzisiaj (niedziela) nie jest
+w jego normalnym oknie cron (Pon-Pt), więc manualne wywołanie ominęłoby guard i wysłałoby
+nieplanowane pytanie na czacie użytkownika.
+
+**Stan: 23/31 funkcji na `serveJson`, `rawJsonResponse` = 84 (start sesji: 147, -43%)**.
+Pozostało 8 nieprzepiętych: 6 świadomie odłożonych (wymagają refaktoru handlerów) +
+`vanguard-oracle` i `vanguard-telegram` — obie duże, centralne funkcje (RAG chat, główny
+webhook Telegrama) jeszcze nieocenione pod kątem migracji; wymagają osobnej, ostrożnej
+analizy zamiast tego samego szybkiego wzorca.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
