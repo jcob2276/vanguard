@@ -732,6 +732,50 @@ o JSON body.
 sesji: 147, start dnia: ~3-5). `as any` i molochy nadal 0. Wszystkie 12 zmian zweryfikowane
 żywym wywołaniem produkcyjnym, nie tylko typecheckiem.
 
+### 2026-07-12 (ciąg dalszy 3): jeszcze 6 funkcji — 21/31 na `serveJson`, `rawJsonResponse` = 94
+
+Stop hook odrzucił poprzedni checkpoint jako niewystarczający (cel `/goal` wymaga pełnego
+pokrycia, nie częściowego postępu) — kontynuacja bez pytania, zgodnie z dyrektywą.
+
+Kolejna paczka (commity `f62123ab`, `b5ddf175`, `76c9aa42`, `e0e6888b`): `vanguard-outbox-sender`,
+`calendar-write`, `vanguard-mcp-server`, `parse-food-nl`, `vanguard-analyst`,
+`vanguard-telegram-worker`. `rawJsonResponse`: 115 → 108 → 102 → 98 → 94.
+
+**Dwa wzorce non-standard wymagające ręcznej uwagi (nie ślepego kopiowania szablonu)**:
+- `vanguard-outbox-sender` i `vanguard-telegram-worker` **deliberately zawsze zwracają 200**,
+  nawet przy błędzie — to async DB-trigger (pg_net/pg_cron), które inaczej retry'owałyby
+  bez końca na porażce domenowej (np. nieudany wysył Telegrama). `serveJson`'s throw→401/500
+  złamałby to; zachowano przez łapanie błędu WEWNĄTRZ handlera i zwracanie zwykłej wartości
+  zamiast throw. Przy okazji naprawiono realny bug strukturalny w `vanguard-telegram-worker`:
+  zagnieżdżony catch (błąd zapisu do DB przy logowaniu innego błędu) zwracał surowy obiekt
+  `Response` w środku handlera — `serveJson` tego nie potrafi zserializować (handler musi
+  zwracać zwykłą wartość). Teraz loguje i połyka błąd, zgodnie z oczywistą pierwotną
+  intencją (best-effort zapis nie powinien blokować głównej ścieżki obsługi błędu).
+- `parse-food-nl` ma świadomy fallback dla anonimowych wywołań: `resolveUserScope` jest
+  wołane ręcznie w try/catch, więc porażka autoryzacji NIE blokuje żądania (spada do
+  `body.userId`/profilu domyślnego) zamiast dawać twarde 401. Użyto `auth:'none'` +
+  ręcznej replikacji tej logiki, żeby nie złamać tego zachowania.
+- `vanguard-mcp-server` ma customowy bearer-check (`MCP_SERVER_SECRET`, nie
+  `requireServiceRole`/`resolveUserScope`) — `throw new Error("Unauthorized")` trafia
+  dokładnie w `serveJson`'s wbudowaną detekcję auth-error → 401, więc status kodu ścieżki
+  autoryzacji zachowany 1:1 bez żadnej specjalnej logiki. Zweryfikowano żywym wywołaniem
+  z błędnym tokenem — potwierdzone 401.
+
+**Kolejne 4 funkcje świadomie odłożone** (ten sam wzorzec co `auto-classify`/`capture`):
+`sync` i `recap` to routery delegujące do pod-handlerów (`oura.ts`/`strava.ts`/`calendar.ts`,
+`daily.ts`/`weekly-*.ts`), które zwracają gotowe `Response` — migracja wymagałaby najpierw
+przepisania tych handlerów. `vanguard-wiki-compiler` ma 3-drożną customową autoryzację
+(cron-secret bypass + `resolveUserScope` + service-role-implicit) i status 207 przy
+częściowym sukcesie — nie mapuje się czysto na binarne tryby auth `serveJson`. `vanguard-nightly`
+to ten sam wzorzec Response-delegacji w gałęzi `action=`, dodatkowo nieobserwowany nocny
+pipeline — ryzyko subtelnej zmiany zachowania wyższe niż gdzie indziej.
+
+**Stan na koniec tej rundy: 21/31 funkcji na `serveJson` (start sesji: 3-5), `rawJsonResponse`
+= 94 (start sesji: 147, -36%)**. `as any` i molochy nadal 0. Pozostałe 10 nieprzepiętych
+funkcji dzielą się na: 6 świadomie odłożonych (udokumentowane wyżej, wymagają refaktoru
+handlerów PRZED migracją, nie samego przepięcia) i 4 jeszcze nieocenione
+(`vanguard-eval-runner`, `vanguard-eval-interview`, `vanguard-oracle`, `vanguard-telegram`).
+
 ---
 
 ## Co zrobić, jeśli utkniesz
