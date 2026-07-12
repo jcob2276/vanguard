@@ -711,6 +711,27 @@ Dodatkowo: `vanguard-metabolism`, `vanguard-executor`, `analyze-food-quality` do
 część to webhooki/streaming/multipart gdzie `serveJson` nie pasuje 1:1 i będzie wymagać
 osobnej oceny per-funkcja, nie ślepego kopiowania wzorca.
 
+### 2026-07-12 (ciąg dalszy 2): jeszcze 3 funkcje, 2 świadomie odłożone (Response-returning handlery)
+
+Kolejna paczka (commity `f94c7d9f`, `1507d935`): `vanguard-architect`, `vanguard-push-reminder`,
+`vanguard-backtester`. `rawJsonResponse`: 123 → 117 → 115. Każda: typecheck →
+`ratchet:backend` → commit → `deploy-guard.mjs` → `npm run smoke` → żywe POST z realnymi
+danymi (backtester zwrócił realne MAE z 30-dniowego okna, push-reminder poprawnie zwrócił
+zero przy braku zaległości, architect przetworzył 1 realny rekord streamu).
+
+**Dwie funkcje świadomie pominięte, nie zapomniane**: `vanguard-auto-classify` i
+`vanguard-capture` mają handlery (`handlers/todoClassify.ts`, `handlers/todoExtract.ts`,
+`handlers/classify.ts`, `vaultIngest.ts`) które **zwracają gotowe obiekty `Response`**
+zamiast czystych danych — `serveJson` zakłada, że handler zwraca JS value do
+zserializowania, więc migracja tych dwóch wymagałaby najpierw przepisania handlerów na
+zwracanie danych (osobna, większa zmiana, nie "szybki win" jak reszta). `vanguard-capture`
+dodatkowo ma ścieżkę `multipart/form-data`, która nie pasuje do założenia `serveJson`
+o JSON body.
+
+**Stan na koniec tej rundy: 12/31 funkcji na `serveJson`, `rawJsonResponse` = 115** (start
+sesji: 147, start dnia: ~3-5). `as any` i molochy nadal 0. Wszystkie 12 zmian zweryfikowane
+żywym wywołaniem produkcyjnym, nie tylko typecheckiem.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
