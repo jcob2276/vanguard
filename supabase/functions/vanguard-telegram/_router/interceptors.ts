@@ -1,5 +1,6 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
+import { getReconciliationById } from "../../_shared/repos/reconciliationsRepo.ts";
 import type { TelegramRouterContext } from "./config.ts";
 
 type VoiceLikeAttachment = { file_id: string; duration?: number };
@@ -108,11 +109,7 @@ export async function tryResumeStuckReconciliationVoice(
   const reconId = (existing.metadata as { reconciliation_id?: string } | null)?.reconciliation_id;
   if (!reconId) return false;
 
-  const { data: recon } = await supabase
-    .from("daily_reconciliations")
-    .select("id, date, status")
-    .eq("id", reconId)
-    .maybeSingle();
+  const recon = await getReconciliationById(supabase, reconId);
 
   if (recon?.status !== "sent") return false;
 

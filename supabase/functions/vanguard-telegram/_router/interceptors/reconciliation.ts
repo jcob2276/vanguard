@@ -1,4 +1,5 @@
 import { handleReconciliation } from "../../_handlers/reconciliation.ts";
+import { getLatestSentReconciliation } from "../../../_shared/repos/reconciliationsRepo.ts";
 import { MessageContext, MessageInterceptor } from "../interceptors.ts";
 
 // 8. Reconciliation context detector
@@ -8,23 +9,16 @@ export class ReconciliationContextInterceptor implements MessageInterceptor {
     const hasCommandPrefix = /^(\?|!!|##|@|poprawka:)/i.test(ctx.text.trim());
 
     if (!hasCommandPrefix && (ctx.mode === "stream" || ctx.mode === "chat")) {
-      const { data: reconciliation } = await ctx.supabase
-        .from("daily_reconciliations")
-        .select("id, date, created_at, mode, parsed_response")
-        .eq("user_id", ctx.vanguardUserId)
-        .eq("status", "sent")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const reconciliation = await getLatestSentReconciliation(ctx.supabase, ctx.vanguardUserId);
 
-      if (reconciliation) {
+      if (reconciliation?.created_at) {
         const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
         if (ageMs >= 0 && ageMs <= 6 * 60 * 60 * 1000) {
           ctx.pendingReconciliation = {
             id: reconciliation.id,
             date: reconciliation.date,
-            mode: reconciliation.mode,
-            parsed_response: reconciliation.parsed_response,
+            mode: reconciliation.mode ?? undefined,
+            parsed_response: (reconciliation.parsed_response as { mode?: string; [key: string]: unknown } | null) ?? undefined,
           };
           ctx.shouldRespond = true; // Oracle responds even during reconciliation
           ctx.mode = "daily_reconciliation_response";

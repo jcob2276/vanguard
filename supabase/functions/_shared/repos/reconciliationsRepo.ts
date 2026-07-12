@@ -86,3 +86,32 @@ export async function getLatestReconciliation(
   if (error) throw error;
   return data;
 }
+
+export async function getReconciliationById(
+  db: Client,
+  id: string,
+): Promise<ReconciliationRow | null> {
+  const { data, error } = await db
+    .from("daily_reconciliations")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getLatestSentReconciliation(
+  db: Client,
+  userId: string,
+): Promise<ReconciliationRow | null> {
+  const { data, error } = await db
+    .from("daily_reconciliations")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "sent")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}

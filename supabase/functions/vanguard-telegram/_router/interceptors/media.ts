@@ -1,4 +1,5 @@
 import { sendChatAction, transcribeAudio } from "../../../_shared/telegram.ts";
+import { getLatestSentReconciliation } from "../../../_shared/repos/reconciliationsRepo.ts";
 import { handleKeepCommand } from "../commands.ts";
 import { MessageContext, MessageInterceptor, tryResumeStuckReconciliationVoice } from "../interceptors.ts";
 
@@ -35,19 +36,17 @@ export class TranscriptionInterceptor implements MessageInterceptor {
       return true;
     }
 
-    const { data: reconciliation } = await ctx.supabase
-      .from("daily_reconciliations")
-      .select("id, date, created_at")
-      .eq("user_id", ctx.vanguardUserId)
-      .eq("status", "sent")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const reconciliation = await getLatestSentReconciliation(ctx.supabase, ctx.vanguardUserId);
 
-    if (reconciliation) {
+    if (reconciliation?.created_at) {
       const ageMs = Date.now() - new Date(reconciliation.created_at).getTime();
       if (ageMs >= 0 && ageMs <= 6 * 60 * 60 * 1000) {
-        ctx.pendingReconciliation = reconciliation;
+        ctx.pendingReconciliation = {
+          id: reconciliation.id,
+          date: reconciliation.date,
+          mode: reconciliation.mode ?? undefined,
+          parsed_response: (reconciliation.parsed_response as { mode?: string; [key: string]: unknown } | null) ?? undefined,
+        };
       }
     }
 
