@@ -24,7 +24,7 @@ export function buildTrainingContext(workouts: any[], stravaRuns: any[]): string
     const topSets = Object.entries(
       sets.reduce((acc: Record<string, any[]>, l: any) => { (acc[l.exercise_name] ??= []).push(l); return acc }, {})
     ).slice(0, 5).map(([name, s]) => {
-      const best = (s as any[]).reduce((b, x) => { const w = Number(x.weight) * (1 + Number(x.reps) / 30); return w > (Number(b.weight) * (1 + Number(b.reps) / 30)) ? x : b })
+      const best = (s as Record<string, unknown>[]).reduce((b, x) => { const w = Number(x.weight) * (1 + Number(x.reps) / 30); return w > (Number(b.weight) * (1 + Number(b.reps) / 30)) ? x : b })
       return `${name} ${best.weight}kg×${best.reps}`
     }).join(', ')
     parts.push(`Siłownia [${w.workout_day}]: ${sets.length} serii${muscles ? `, partie: ${muscles}` : ''}${w.duration_minutes ? `, ${w.duration_minutes}min` : ''}${w.session_rpe ? `, RPE${w.session_rpe}` : ''}${w.msp_passed ? ', MSP ✓' : ''}\n  Ćwiczenia: ${topSets || '—'}`)

@@ -41,7 +41,7 @@ export async function detectMorningProtocolImpact(
     const nextDate = recs[i + 1].date; // bierzemy następny dzień z danych, niekoniecznie +1 kalendarzowo
 
     const first90Protected = todayRec.first_90_protected;
-    const ops = (todayRec.planning_summary as any)?.operational_facts || {};
+    const ops = ((todayRec.planning_summary as Record<string, unknown>)?.operational_facts as Record<string, unknown>) || {};
     const phoneFirst = ops.phone_first === true;
 
     // Pobierz aggregate następnego dnia

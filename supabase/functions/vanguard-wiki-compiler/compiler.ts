@@ -8,10 +8,8 @@ import {
 } from "./deterministic.ts";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
-
 export async function compileForUser(supabase: any, userId: string, opts: { mode: string; days: number; limit: number; dryRun: boolean }) {
-  const now = new Date();
-  const today = getWarsawDateString(now);
+  const now = new Date(); const today = getWarsawDateString(now);
   const cutStream = new Date(now.getTime() - opts.days * 864e5).toISOString();
   const cutFriction = new Date(now.getTime() - Math.max(opts.days, 30) * 864e5).toISOString();
   const cut14Date = getWarsawDateString(new Date(now.getTime() - 13 * 864e5));
@@ -29,7 +27,6 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
     const r = res as QueryResult;
     if (r.error) console.warn(`[wiki-compiler] source query failed: ${name}: ${r.error.message}`);
   }
-
   const sourceBundle = [
     ...compactSources(streamRes.data || [], "vanguard_stream", ["category", "content"]),
     ...compactSources(frictionRes.data || [], "confirmed_friction_events", ["friction_type", "raw_text", "actual_behavior", "declared_intention"]),
@@ -51,7 +48,6 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
 
   console.log("[wiki-compiler] LLM Raw Response:", content);
   const parsed = parseJsonFromContent(content) || {};
-  console.log("[wiki-compiler] LLM Parsed:", JSON.stringify(parsed, null, 2));
   const lp = parsed as Record<string, unknown>;
   let pages = safeArray<WikiPageDraft>((lp.pages || lp.wiki_pages) as WikiPageDraft[] | undefined);
   let reviews = safeArray<ReviewDraft>((lp.review_items || lp.reviews) as ReviewDraft[] | undefined);

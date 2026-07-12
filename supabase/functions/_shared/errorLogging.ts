@@ -19,8 +19,8 @@ export async function logCriticalError(params: {
   if (params.error instanceof Error) {
     err = params.error;
   } else if (params.error && typeof params.error === 'object') {
-    const obj = params.error as any;
-    const msg = obj.message || obj.error_description || obj.error || JSON.stringify(obj);
+    const obj = params.error as unknown as Record<string, unknown>;
+    const msg = String(obj.message || obj.error_description || obj.error || JSON.stringify(obj));
     err = new Error(msg);
     if (obj.details || obj.hint || obj.code) {
       enrichedMetadata = {

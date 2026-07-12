@@ -25,7 +25,7 @@ export async function runOracleReadonlyQuery(
   }
 
   if (data && typeof data === "object" && !Array.isArray(data) && "error" in data) {
-    const errorMsg = (data as any).error as string;
+    const errorMsg = (data as Record<string, unknown>).error as string;
     await logAuditEvent({
       eventType: "oracle_sql_tool_call",
       severity: "warning",

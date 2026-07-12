@@ -176,7 +176,7 @@ Tekst: "${cleanText}"`;
         if (!auditError && auditEvent?.id) pendingClaimsList.push({ id: auditEvent.id, text: claim.text });
       }
     }
-    if (pendingClaimsList.length > 0) (ctx as any).resolvedClaims = pendingClaimsList;
+    if (pendingClaimsList.length > 0) (ctx as Record<string, unknown>).resolvedClaims = pendingClaimsList;
   }
 
   // Save chat messages

@@ -43,9 +43,9 @@ export async function detectRecurringBlockers(
   const blockerOccurrences: Array<{ blocker: string; date: string }> = [];
 
   for (const r of reconciliations) {
-    const p2 = r.p2_parsed as any;
+    const p2 = r.p2_parsed as Record<string, unknown>;
     if (!p2?.blocker_candidates || !Array.isArray(p2.blocker_candidates)) continue;
-    if ((p2.parse_confidence ?? 0) < 0.35) continue; // za mało wiarygodne
+    if (Number(p2.parse_confidence ?? 0) < 0.35) continue; // za mało wiarygodne
 
     for (const b of p2.blocker_candidates) {
       if (typeof b === 'string' && b.trim().length > 3) {

@@ -40,7 +40,7 @@ Deno.serve(serveJson(async (req, ctx) => {
   const stravaCheck = stravaCheckRes.data;
   const nutritionCheck = nutritionCheckRes.data;
 
-  const g = lifeGoals as any;
+  const g = lifeGoals as Record<string, unknown>;
   const hasStrava = (stravaCheck ?? []).length > 0;
   const hasNutrition = (nutritionCheck ?? []).length > 0;
 

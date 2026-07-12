@@ -93,18 +93,21 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
       const passedAll = allRes.filter(r => r.passed).length;
       const avgAll = totalAll > 0 ? allRes.reduce((s, r) => s + (r.score || 0), 0) / totalAll : 0;
 
-      const byCategoryAll: Record<string, any> = {};
-      const byDifficultyAll: Record<string, any> = {};
+      const byCategoryAll: Record<string, { passed: number; total: number; total_score?: number; avg_score?: number }> = {};
+      const byDifficultyAll: Record<string, { passed: number; total: number; total_score?: number; avg_score?: number }> = {};
       for (const r of allRes) {
-        const cat = (r as any).category || 'fact_recall';
+        const row = r as Record<string, unknown>;
+        const cat = (row.category as string) || 'fact_recall';
         if (!byCategoryAll[cat]) byCategoryAll[cat] = { passed: 0, total: 0, total_score: 0 };
-        byCategoryAll[cat].total++; byCategoryAll[cat].total_score += r.score || 0; if (r.passed) byCategoryAll[cat].passed++;
-        const diff = (r as any).difficulty || 'medium';
+        const cd = byCategoryAll[cat];
+        cd.total++; cd.total_score = (cd.total_score ?? 0) + ((r.score as number) || 0); if (r.passed) cd.passed++;
+        const diff = (row.difficulty as string) || 'medium';
         if (!byDifficultyAll[diff]) byDifficultyAll[diff] = { passed: 0, total: 0, total_score: 0 };
-        byDifficultyAll[diff].total++; byDifficultyAll[diff].total_score += r.score || 0; if (r.passed) byDifficultyAll[diff].passed++;
+        const dd = byDifficultyAll[diff];
+        dd.total++; dd.total_score = (dd.total_score ?? 0) + ((r.score as number) || 0); if (r.passed) dd.passed++;
       }
-      for (const cat of Object.keys(byCategoryAll)) { const d = byCategoryAll[cat]; d.avg_score = Math.round((d.total_score / d.total) * 1000) / 1000; delete d.total_score; }
-      for (const diff of Object.keys(byDifficultyAll)) { const d = byDifficultyAll[diff]; d.avg_score = Math.round((d.total_score / d.total) * 1000) / 1000; delete d.total_score; }
+      for (const cat of Object.keys(byCategoryAll)) { const d = byCategoryAll[cat]; d.avg_score = Math.round(((d.total_score ?? 0) / d.total) * 1000) / 1000; delete d.total_score; }
+      for (const diff of Object.keys(byDifficultyAll)) { const d = byDifficultyAll[diff]; d.avg_score = Math.round(((d.total_score ?? 0) / d.total) * 1000) / 1000; delete d.total_score; }
 
       const summary = { total: totalAll, passed: passedAll, failed: totalAll - passedAll, avg_score: Math.round(avgAll * 1000) / 1000, pass_rate: totalAll > 0 ? Math.round((passedAll / totalAll) * 1000) / 1000 : 0, by_category: byCategoryAll, by_difficulty: byDifficultyAll, judge_model: 'gpt-4o-mini' };
 
@@ -140,7 +143,7 @@ Deno.serve(async (req) => {
       const passed = results.filter(r => r.passed).length;
       const avgScore = total > 0 ? results.reduce((s, r) => s + (r.score || 0), 0) / total : 0;
       const byCategory: Record<string, { total: number; passed: number }> = {};
-      for (const r of results) { const cat = (r as any).category || 'unknown'; if (!byCategory[cat]) byCategory[cat] = { total: 0, passed: 0 }; byCategory[cat].total++; if (r.passed) byCategory[cat].passed++; }
+      for (const r of results) { const cat = (r as Record<string, unknown>).category as string || 'unknown'; if (!byCategory[cat]) byCategory[cat] = { total: 0, passed: 0 }; byCategory[cat].total++; if (r.passed) byCategory[cat].passed++; }
       return new Response(JSON.stringify({ run: runRes.data, results_count: total, passed, avg_score: Math.round(avgScore * 1000) / 1000, by_category: byCategory }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

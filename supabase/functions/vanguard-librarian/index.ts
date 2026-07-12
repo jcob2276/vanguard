@@ -37,13 +37,13 @@ export async function runLibrarian() {
     .gte('date', cutoffStr)
     .filter('parse_meta->>macroSource', 'eq', 'llm_estimate')
 
-  const entries = rawEntries as any[] | null
+  const entries = rawEntries as Record<string, unknown>[] | null
   if (error || !entries || entries.length === 0) {
     return { count: 0, items: [] }
   }
 
   // Deduplicate by name
-  const names = [...new Set(entries.map((e) => e.name?.trim()).filter(Boolean))]
+  const names = [...new Set(entries.map((e) => (e.name as string | undefined)?.trim()).filter(Boolean))]
   if (names.length === 0) return { count: 0, items: [] }
 
   const results: any[] = []
@@ -76,7 +76,7 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
         responseFormat: { type: 'json_object' }
       })
 
-      const macro = parseJsonFromContent(response.content) as any
+      const macro = parseJsonFromContent(response.content) as Record<string, unknown> | null
       if (macro && typeof macro.calories === 'number') {
         const entryRow = entries.find(e => e.name === name)
         const insertData = {

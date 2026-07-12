@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     });
 
     if (structuredResponse.clarification_request) await saveClarificationRequest(supabase, user_id, structuredResponse.clarification_request);
-    if (structuredResponse.schedule_mutation) console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as any)?.action);
+    if (structuredResponse.schedule_mutation) console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as Record<string, unknown>)?.action);
 
     if (structuredResponse.mint_fact_id) {
       try {

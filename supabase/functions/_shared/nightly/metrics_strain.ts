@@ -49,7 +49,7 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
         const { data: respBase } = await supabase.from('oura_enhanced').select('date, sleep_average_breath, temperature_deviation').eq('user_id', uid).gte('date', start90).lte('date', endStr).order('date');
         const respByDate: Record<string, number | null> = {};
         const skinTempByDate: Record<string, number | null> = {};
-        for (const row of (respBase || []) as any[]) { respByDate[row.date] = row.sleep_average_breath != null ? Number(row.sleep_average_breath) : null; skinTempByDate[row.date] = row.temperature_deviation != null ? Number(row.temperature_deviation) : null; }
+        for (const row of (respBase || []) as Record<string, unknown>[]) { respByDate[row.date as string] = row.sleep_average_breath != null ? Number(row.sleep_average_breath) : null; skinTempByDate[row.date as string] = row.temperature_deviation != null ? Number(row.temperature_deviation) : null; }
 
         const getBaselinesForDate = (targetDate: string) => {
           const hrvVals = (base || []).filter((r) => r.date < targetDate).map((r) => r.hrv_avg).filter((v): v is number => v != null);

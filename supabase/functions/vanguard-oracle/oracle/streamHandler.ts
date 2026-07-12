@@ -104,7 +104,7 @@ export async function handleStreamingResponse(
       }
 
       if (structuredResponse.schedule_mutation) {
-        console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as any)?.action);
+        console.log('[oracle] schedule_mutation emitted:', (structuredResponse.schedule_mutation as Record<string, unknown>)?.action);
       }
 
       if (structuredResponse.mint_fact_id) {

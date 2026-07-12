@@ -76,7 +76,7 @@ Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "questi
         db.from("vanguard_stream").select("timestamp, source, classification, content, importance_score").eq("user_id", userId).gte("timestamp", eightWeeksBack).lt("timestamp", weekStart + "T00:00:00").or("importance_score.gte.5,source.eq.identity_vault").order("importance_score", { ascending: false }).limit(40),
       ]);
 
-      const prevReviews = (prevReviewsRes.data ?? []) as any[];
+      const prevReviews = (prevReviewsRes.data ?? []) as Record<string, unknown>[];
       const lastWeekReview = prevReviews.find((r) => r.week_start === prevWeekStart);
 
       const lastWeekPlan = lastWeekReview ? [
@@ -87,13 +87,13 @@ Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "questi
       ].filter(Boolean).join(" · ") : null;
 
       const reviewHistory = prevReviews.slice(-4).map((r) => {
-        const scores = r.pillar_scores ?? {};
+        const scores = (r.pillar_scores ?? {}) as Record<string, unknown>;
         const parts = [scores.cialo && `Ciało ${scores.cialo}`, scores.duch && `Duch ${scores.duch}`, scores.konto && `Konto ${scores.konto}`, r.obligation && `musi zejść: ${r.obligation}`, r.week_regret && `żałuję: ${r.week_regret}`];
         return parts.length ? `${r.week_start}: ${parts.filter(Boolean).join(" · ")}` : null;
       }).filter(Boolean);
 
-      const historicalVoice = ((historicalStreamRes.data ?? []) as any[]).filter((s) => s.source === "identity_vault" || (s.source === "telegram" && s.content?.length > 150)).slice(0, 20).map((s) => {
-        const d = new Date(s.timestamp).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw", day: "numeric", month: "short", year: "numeric" });
+      const historicalVoice = ((historicalStreamRes.data ?? []) as Record<string, unknown>[]).filter((s) => s.source === "identity_vault" || (s.source === "telegram" && String(s.content ?? "").length > 150)).slice(0, 20).map((s) => {
+        const d = new Date(s.timestamp as string).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw", day: "numeric", month: "short", year: "numeric" });
         return `${d}: ${String(s.content).slice(0, 250)}`;
       });
 

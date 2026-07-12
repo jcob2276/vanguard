@@ -160,7 +160,7 @@ export async function insertStreamRecord(
       }
 
       if (emotionRes && 'content' in emotionRes) {
-        emotionData = parseJsonFromContent(emotionRes.content || '{}') as any;
+        emotionData = parseJsonFromContent(emotionRes.content || '{}') as { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null;
       }
     } catch (err) {
       await logCriticalError({

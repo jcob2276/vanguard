@@ -54,24 +54,24 @@ export async function detectPlanAdherenceGaps(
     ),
   ]);
 
-  const plan = (planRow as any)?.planning_summary;
+  const plan = (planRow as Record<string, unknown>)?.planning_summary as Record<string, unknown> | undefined;
   if (!plan) return [];
 
-  const prodArtifact = plan.production_artifact?.artifact || plan.one_clear_move;
-  const tension = plan.tension_action?.action;
+  const prodArtifact = (plan.production_artifact as Record<string, unknown>)?.artifact || plan.one_clear_move;
+  const tension = (plan.tension_action as Record<string, unknown>)?.action;
 
   if (!prodArtifact && !tension) return [];
 
-  const p2 = (todayP2 as any)?.p2_parsed;
-  const frictions = (todayFriction as any) || [];
-  const agg = todayAggregate as any;
+  const p2 = (todayP2 as Record<string, unknown>)?.p2_parsed as Record<string, unknown> | undefined;
+  const frictions = (todayFriction as Record<string, unknown>[]) || [];
+  const agg = todayAggregate as Record<string, unknown>;
 
   const gaps: string[] = [];
 
   // Prosta heurystyka rozjazdu
-  const hadBigCost = p2?.biggest_cost && p2.biggest_cost.length > 5;
+  const hadBigCost = typeof p2?.biggest_cost === 'string' && p2.biggest_cost.length > 5;
   const highFriction = frictions.length >= 3;
-  const badState = agg && (agg.final_state === 'CHAOS' || agg.final_state === 'AVOIDANCE' || (agg.execution_score ?? 1) < 0.4);
+  const badState = agg && (agg.final_state === 'CHAOS' || agg.final_state === 'AVOIDANCE' || Number(agg.execution_score ?? 1) < 0.4);
 
   if (prodArtifact && hadBigCost) {
     gaps.push(`zdefiniowałeś artefakt "${prodArtifact}", a wieczorem nazwałeś duży koszt`);
@@ -82,7 +82,7 @@ export async function detectPlanAdherenceGaps(
   if ((prodArtifact || tension) && badState) {
     gaps.push(`plan był konkretny, a dzień zakończył się w stanie ${agg?.final_state ?? 'słabym'}`);
   }
-  if (p2?.day_score != null && p2.day_score <= 2 && (prodArtifact || tension)) {
+  if (p2?.day_score != null && Number(p2.day_score) <= 2 && (prodArtifact || tension)) {
     gaps.push(`planowałeś konkretnie, a oceniłeś dzień na ${p2.day_score}/5`);
   }
 

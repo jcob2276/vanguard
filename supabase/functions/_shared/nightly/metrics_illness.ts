@@ -59,10 +59,10 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
           .lte('date', endStr)
           .order('date')
 
-        const enhByDate: Record<string, any> = {}
-        for (const row of (enh || []) as any[]) enhByDate[row.date] = row
-        const baseByDate: Record<string, any> = {}
-        for (const row of (base || []) as any[]) baseByDate[row.date] = row
+        const enhByDate: Record<string, Record<string, unknown>> = {}
+        for (const row of (enh || []) as Record<string, unknown>[]) enhByDate[row.date as string] = row
+        const baseByDate: Record<string, Record<string, unknown>> = {}
+        for (const row of (base || []) as Record<string, unknown>[]) baseByDate[row.date as string] = row
 
         // Dynamic baseline provider to prevent future leak in backfills
         const getBaselinesForDate = (targetDate: string) => {
@@ -87,12 +87,12 @@ export const runComputeIllnessSignal = async (req: Request): Promise<Response> =
 
         const confounderDates = new Set<string>()
         const unwellDates = new Set<string>()
-        for (const row of (behaviorRows || []) as any[]) {
-          if (CONFOUNDER_KEYS.test(row.behavior_key)) confounderDates.add(row.date)
-          if (UNWELL_KEYS.test(row.behavior_key)) unwellDates.add(row.date)
+        for (const row of (behaviorRows || []) as Record<string, unknown>[]) {
+          if (CONFOUNDER_KEYS.test(row.behavior_key as string)) confounderDates.add(row.date as string)
+          if (UNWELL_KEYS.test(row.behavior_key as string)) unwellDates.add(row.date as string)
         }
-        for (const row of (saunaRows || []) as any[]) {
-          const d = row.workout_sessions?.date
+        for (const row of (saunaRows || []) as Record<string, unknown>[]) {
+          const d = (row.workout_sessions as Record<string, unknown>)?.date as string | undefined
           if (d && d >= startStr && d <= endStr) confounderDates.add(d)
         }
 

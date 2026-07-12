@@ -82,20 +82,23 @@ export const runSaveDailyAggregate = async (req: Request): Promise<Response> => 
       return `${m}:${String(s).padStart(2, '0')} /km`
     }
 
-    const stravaActivities = ((stravaRaw as any[]) || []).map((a: any) => {
-      const startWarsawHour = new Date(a.start_date).toLocaleTimeString('pl-PL', {
+    const stravaActivities = ((stravaRaw as Record<string, unknown>[]) || []).map((a: Record<string, unknown>) => {
+      const startWarsawHour = new Date(a.start_date as string).toLocaleTimeString('pl-PL', {
         timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit'
       })
-      const distKm = a.distance ? +(a.distance / 1000).toFixed(2) : null
+      const distanceM = a.distance != null ? Number(a.distance) : null
+      const elapsedTime = a.elapsed_time != null ? Number(a.elapsed_time) : null
+      const movingTime = a.moving_time != null ? Number(a.moving_time) : null
+      const distKm = distanceM ? +(distanceM / 1000).toFixed(2) : null
       return {
         name:                 a.name,
         sport_type:           a.sport_type,
         start_time:           startWarsawHour,
         start_date:           a.start_date,
         distance_km:          distKm,
-        elapsed_time_fmt:     a.elapsed_time ? fmtTime(a.elapsed_time) : null,
-        moving_time_fmt:      a.moving_time  ? fmtTime(a.moving_time)  : null,
-        pace_per_km:          fmtPace(a.moving_time, a.distance),
+        elapsed_time_fmt:     elapsedTime ? fmtTime(elapsedTime) : null,
+        moving_time_fmt:      movingTime  ? fmtTime(movingTime)  : null,
+        pace_per_km:          movingTime && distanceM ? fmtPace(movingTime, distanceM) : '—',
         average_heartrate:    a.hr_avg ?? null,
         max_heartrate:        a.hr_max ?? null,
         total_elevation_gain: a.total_elevation_gain ?? null,
@@ -128,12 +131,12 @@ export const runSaveDailyAggregate = async (req: Request): Promise<Response> => 
 
     // Protein: kara gdy <0.5 sigma poniżej baseline (adaptacyjne)
     if (!bl.calibrating && bl.means.execution != null) {
-      const proteinBaseline = (bl as any).means.protein ?? 140  // fallback do 140g jeśli brak historii proteiny
+      const proteinBaseline = (bl.means as Record<string, unknown>)?.protein as number ?? 140
       const zProtein = signals.protein_grams > 0 ? (signals.protein_grams - proteinBaseline) / Math.max(proteinBaseline * 0.15, 20) : -2
       if (zProtein < -0.5) identityScore -= Math.round(Math.min(20, (Math.abs(zProtein) - 0.5) * 10))
     } else {
       // calibrating — fallback do sztywnego progu
-      if ((nutrition as any)?.protein < 140) identityScore -= 15
+      if ((nutrition as Record<string, unknown>)?.protein as number < 140) identityScore -= 15
     }
 
     // Sleep: kara gdy poniżej personal baseline (nie sztywne 6.5h)

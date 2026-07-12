@@ -45,7 +45,7 @@ export async function detectEarlyWarningSignals(
 
   if (recentRecs) {
     for (const r of recentRecs) {
-      const ops = (r.planning_summary as any)?.operational_facts || {};
+      const ops = ((r.planning_summary as Record<string, unknown>)?.operational_facts as Record<string, unknown>) || {};
       const phoneFirst = ops.phone_first === true;
       const first90Broken = r.first_90_protected === false;
 
@@ -239,7 +239,7 @@ export async function detectEarlyWarningSignals(
     for (const r of recentRecs) {
       const day = new Date(r.date).getDay();
       if (day === 1 || day === 2) { // Poniedziałek lub Wtorek
-        const ops = (r.planning_summary as any)?.operational_facts || {};
+        const ops = ((r.planning_summary as Record<string, unknown>)?.operational_facts as Record<string, unknown>) || {};
         const phoneFirst = ops.phone_first === true;
         const first90Broken = r.first_90_protected === false;
         if (phoneFirst || first90Broken) {

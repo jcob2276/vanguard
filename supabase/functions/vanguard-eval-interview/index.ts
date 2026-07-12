@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: "All failing questions asked recently (< 14d)" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const chosen = eligibleQuestions[0] as any;
+    const chosen = eligibleQuestions[0];
     let interviewPrompt = chosen.question;
     try {
       const reformulationResult = await deepseekChat({

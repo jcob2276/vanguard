@@ -76,7 +76,7 @@ Deno.serve(serveJson(async (req, ctx) => {
   if (!parsed) throw new Error("Invalid AI JSON: " + content.slice(0, 200));
 
   const validIds = new Set((unreadLinks ?? []).map((l) => l.id));
-  const rawSuggestions = Array.isArray((parsed as any).suggestions) ? (parsed as any).suggestions : [];
+  const rawSuggestions = (Array.isArray((parsed as Record<string, unknown>).suggestions) ? (parsed as Record<string, unknown>).suggestions : []) as unknown[];
 
   const suggestions = rawSuggestions
     .filter((s: any) => s && validIds.has(s.id) && ACTIONS.has(s.action))

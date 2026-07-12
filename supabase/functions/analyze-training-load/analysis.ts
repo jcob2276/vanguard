@@ -51,7 +51,7 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
   const byWeek = (arr: any[], key = 'date'): any[][] => {
     const r: any[][] = [[], [], [], []];
     for (const x of arr) {
-      const w = weekOf((x as any)[key] || warsaw(new Date((x as any).start_date)), now, warsaw);
+      const w = weekOf(((x as Record<string, unknown>)[key] as string) || warsaw(new Date((x as Record<string, unknown>).start_date as string)), now, warsaw);
       if (w >= 0 && w <= 3) r[w].push(x);
     }
     return r;

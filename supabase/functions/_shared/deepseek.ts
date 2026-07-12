@@ -72,18 +72,19 @@ export async function deepseekChat(
       throw new Error(`DeepSeek error (${res.status}): ${errText.slice(0, 200)}`);
     }
 
-    const raw = await res.json();
-    const content: string = (raw as any)?.choices?.[0]?.message?.content || "";
-    const reasoning_content: string | undefined = (raw as any)?.choices?.[0]?.message?.reasoning_content;
-    const tool_calls: DeepSeekToolCall[] | undefined = (raw as any)?.choices?.[0]?.message?.tool_calls;
+    const raw = await res.json() as Record<string, unknown>;
+    const msg = (raw.choices as Record<string, unknown>[])?.[0]?.message as Record<string, unknown> | undefined;
+    const content: string = (msg?.content as string) || "";
+    const reasoning_content: string | undefined = msg?.reasoning_content as string | undefined;
+    const tool_calls: DeepSeekToolCall[] | undefined = msg?.tool_calls as DeepSeekToolCall[] | undefined;
 
     // Log LLM token usage and estimated cost to the database
     try {
-      const usage = (raw as any)?.usage;
+      const usage = raw.usage as Record<string, unknown> | undefined;
       if (usage) {
-        const promptTokens = usage.prompt_tokens ?? 0;
-        const completionTokens = usage.completion_tokens ?? 0;
-        const totalTokens = usage.total_tokens ?? 0;
+        const promptTokens = Number(usage.prompt_tokens ?? 0);
+        const completionTokens = Number(usage.completion_tokens ?? 0);
+        const totalTokens = Number(usage.total_tokens ?? 0);
         const selectedModel = params.model ?? "deepseek-v4-flash";
         
         let costEst = 0.0;

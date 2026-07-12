@@ -30,19 +30,19 @@ export async function retrieveRagContext(
       const signal = getPlanQualitySignal(recentPlan.planning_summary);
       recentPlanQuality = {
         ...signal,
-        target_date: (recentPlan.planning_summary as any).target_date || null,
+        target_date: (recentPlan.planning_summary as Record<string, unknown>)?.target_date || null,
       };
     }
 
     // P2 adoption: last evening's user reflection (biggest_cost, best_move, blockers)
     if (recentPlan?.p2_parsed) {
-      const p2 = recentPlan.p2_parsed as any;
-      if (p2.parse_confidence >= 0.4 && (p2.biggest_cost || p2.best_move || p2.blocker_candidates?.length)) {
+      const p2 = recentPlan.p2_parsed as Record<string, unknown>;
+      if (Number(p2.parse_confidence) >= 0.4 && (p2.biggest_cost || p2.best_move || (p2.blocker_candidates as unknown[] | undefined)?.length)) {
         lastEveningReflection = {
           date: recentPlan.date,
           biggest_cost: p2.biggest_cost,
           best_move: p2.best_move,
-          blocker_candidates: p2.blocker_candidates?.slice(0, 3) || [],
+          blocker_candidates: (p2.blocker_candidates as unknown[] | undefined)?.slice(0, 3) || [],
           day_score: p2.day_score,
           needs_manual_review: !!p2.needs_manual_review,
         };

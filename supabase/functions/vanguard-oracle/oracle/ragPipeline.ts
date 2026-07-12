@@ -25,7 +25,7 @@ export async function runRagPipeline(
       query_text: current_query.substring(0, 1000),
       user_id_param: user_id
     });
-    const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
+    const entitiesInQuery = (mentioned as Record<string, unknown>[])?.map(m => String(m.entity_name)) || [];
     const graphSeeds = buildGraphSeeds(current_query, intent, entitiesInQuery);
     const graphLayer = intent === 'biometric' ? null : 'intelligence';
 

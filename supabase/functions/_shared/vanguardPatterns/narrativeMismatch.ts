@@ -51,14 +51,14 @@ export async function detectNarrativeBiometricMismatch(
   const tiredKeywords = [/zmęczen/i, /zmęczo/i, /brak.*sił/i, /słab.*sen/i, /niewyspa/i, /padam/i, /wykończo/i, /padnię/i];
 
   for (const r of recs) {
-    const textToCheck = `${r.user_response || ''} ${(r.p2_parsed as any)?.biggest_cost || ''}`;
+    const textToCheck = `${r.user_response || ''} ${(r.p2_parsed as Record<string, unknown>)?.biggest_cost || ''}`;
     const mentionsTiredness = tiredKeywords.some(kw => kw.test(textToCheck));
 
     if (mentionsTiredness) {
       const agg = aggMap.get(r.date);
       if (agg && agg.sleep_hours != null && agg.readiness_score != null) {
         if (agg.sleep_hours >= 6.8 && agg.readiness_score >= 65) {
-          const declaredCost = (r.p2_parsed as any)?.biggest_cost || '';
+          const declaredCost = String((r.p2_parsed as Record<string, unknown>)?.biggest_cost ?? '');
           mismatchDates.push({
             date: r.date,
             sleep: agg.sleep_hours,

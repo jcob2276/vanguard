@@ -217,8 +217,9 @@ JSON:
   });
 
   const parsed = parseJsonFromContent(content) || {};
-  const page = (parsed as any).page || safeArray<WikiPageDraft>((parsed as any).pages)[0];
-  const reviews = safeArray<ReviewDraft>((parsed as any).review_items || (parsed as any).reviews);
+  const lp = parsed as Record<string, unknown>;
+  const page = lp.page || safeArray<WikiPageDraft>(lp.pages as WikiPageDraft[] | undefined)[0];
+  const reviews = safeArray<ReviewDraft>((lp.review_items || lp.reviews) as ReviewDraft[] | undefined);
   return page ? { pages: [page as WikiPageDraft], reviews } : { pages: [], reviews };
 }
 
