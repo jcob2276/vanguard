@@ -8,6 +8,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getAggregateByDate } from '../repos/aggregatesRepo.ts';
 import { getWarsawDateString } from '../time.ts';
 import type { PatternInsight } from './types.ts';
 
@@ -45,14 +46,7 @@ export async function detectMorningProtocolImpact(
     const phoneFirst = ops.phone_first === true;
 
     // Pobierz aggregate następnego dnia
-    const nextAgg = await safeExecute(
-      supabase
-        .from('vanguard_daily_aggregates')
-        .select('execution_score, identity_score, final_state')
-        .eq('user_id', userId)
-        .eq('date', nextDate)
-        .maybeSingle()
-    );
+    const nextAgg = await getAggregateByDate(supabase, userId, nextDate);
 
     if (!nextAgg) continue;
 

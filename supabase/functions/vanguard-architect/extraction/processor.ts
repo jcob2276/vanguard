@@ -1,6 +1,7 @@
 import { getWarsawDateString } from "../../_shared/time.ts"
 import { deepseekChat } from "../../_shared/deepseek.ts"
 import { deprecateSupersededLinks } from "../../_shared/deprecateSupersededLinks.ts"
+import { getAggregateByDate } from "../../_shared/repos/aggregatesRepo.ts"
 import { extractJsonObject, normalizeText } from "./helpers.ts"
 import { allowedRelations, deterministicTriads } from "./rules.ts"
 
@@ -21,13 +22,10 @@ export async function processRecords(
     if (!record.content) continue
 
     const recordDate = getWarsawDateString(new Date(record.created_at))
-    const { data: dailyBio, error: dailyBioErr } = await supabase
-      .from("vanguard_daily_aggregates")
-      .select("hrv_avg, sleep_hours, final_state, execution_score, dopamine_load_index")
-      .eq("user_id", userId)
-      .eq("date", recordDate)
-      .maybeSingle()
-    if (dailyBioErr) {
+    let dailyBio = null
+    try {
+      dailyBio = await getAggregateByDate(supabase, userId, recordDate)
+    } catch (dailyBioErr) {
       console.error(`[architect] daily aggregate query error for date ${recordDate}:`, dailyBioErr)
     }
     const activeLinksText = currentActiveLinks

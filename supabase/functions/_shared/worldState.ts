@@ -1,5 +1,6 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getWarsawDateString } from "./time.ts";
+import { getAggregateByDate } from "./repos/aggregatesRepo.ts";
 
 interface WorldStateMeta {
   source: string;
@@ -98,7 +99,10 @@ export async function fetchWorldState(
     .limit(30);
 
   const oura = ouraData?.find((o: any) => o.date === date) || ouraData?.[0] || null;
-  const ouraFreshness = calculateFreshness(oura?.updated_at);
+  // oura_daily_summary has no updated_at column — created_at is the real write timestamp
+  // (calculateFreshness(undefined) silently returned 999h/"stale" for every call before
+  // this fix, since the original query's `.updated_at` never existed on the row).
+  const ouraFreshness = calculateFreshness(oura?.created_at);
 
   // 2. Daily Wins (Execution with tasks)
   const { data: wins } = await supabase
@@ -108,7 +112,8 @@ export async function fetchWorldState(
     .eq('date', date)
     .maybeSingle();
 
-  const winsFreshness = calculateFreshness(wins?.updated_at);
+  // daily_wins has no updated_at column either — same fix as oura above.
+  const winsFreshness = calculateFreshness(wins?.created_at);
   let tasksDone = 0;
   if (wins?.daily_win_tasks) {
     tasksDone = wins.daily_win_tasks.filter((t: any) => t.done).length;
@@ -121,14 +126,15 @@ export async function fetchWorldState(
   }
 
   // 3. Vanguard Aggregates (System State)
-  const { data: aggregate } = await supabase
-    .from('vanguard_daily_aggregates')
-    .select('final_state, execution_score, identity_score, updated_at')
-    .eq('user_id', userId)
-    .eq('date', date)
-    .maybeSingle();
+  const aggregate = await getAggregateByDate(supabase, userId, date).catch(() => null);
 
-  const aggFreshness = calculateFreshness(aggregate?.updated_at);
+  // vanguard_daily_aggregates has no write-timestamp column at all (verified against the
+  // live schema) — calculateFreshness(undefined) silently returned 999h/"stale" for every
+  // call before this fix. Anchor on noon UTC of the aggregate's own `date` as the best
+  // available proxy: a same-day row reads as ~0-12h old, naturally crossing the existing
+  // 24h staleness threshold once the row's date is no longer today.
+  const aggUpdatedAt = aggregate ? new Date(aggregate.date + 'T12:00:00Z').toISOString() : null;
+  const aggFreshness = calculateFreshness(aggUpdatedAt);
 
   // 4. Daily Strain (Training & Recovery context)
   const { data: strain } = await supabase
@@ -160,12 +166,13 @@ export async function fetchWorldState(
   // 6. Nutrition details (Today + Weekly Calories)
   const { data: nutritionToday } = await supabase
     .from('daily_nutrition')
-    .select('calories, protein, updated_at')
+    .select('calories, protein, created_at')
     .eq('user_id', userId)
     .eq('date', date)
     .maybeSingle();
 
-  const nutritionFreshness = calculateFreshness(nutritionToday?.updated_at);
+  // daily_nutrition has no updated_at column either — same fix as oura/wins above.
+  const nutritionFreshness = calculateFreshness(nutritionToday?.created_at);
 
   // Weekly calories calculation (Monday to today)
   const mondayDate = (() => {
@@ -198,7 +205,7 @@ export async function fetchWorldState(
         source: 'oura_daily_summary',
         freshness_hours: ouraFreshness,
         confidence: oura ? calculateConfidence(ouraFreshness, 24) : 0.0,
-        last_updated: oura?.updated_at || null
+        last_updated: oura?.created_at || null
       }
     },
     execution: {
@@ -209,7 +216,7 @@ export async function fetchWorldState(
         source: 'daily_wins',
         freshness_hours: winsFreshness,
         confidence: wins ? calculateConfidence(winsFreshness, 12) : 0.0,
-        last_updated: wins?.updated_at || null
+        last_updated: wins?.created_at || null
       }
     },
     system: {
@@ -220,7 +227,7 @@ export async function fetchWorldState(
         source: 'vanguard_daily_aggregates',
         freshness_hours: aggFreshness,
         confidence: aggregate ? calculateConfidence(aggFreshness, 24) : 0.0,
-        last_updated: aggregate?.updated_at || null
+        last_updated: aggUpdatedAt
       }
     },
     training: {
@@ -245,7 +252,7 @@ export async function fetchWorldState(
         source: 'daily_nutrition',
         freshness_hours: nutritionFreshness,
         confidence: nutritionToday ? calculateConfidence(nutritionFreshness, 24) : 0.0,
-        last_updated: nutritionToday?.updated_at || null
+        last_updated: nutritionToday?.created_at || null
       }
     }
   };

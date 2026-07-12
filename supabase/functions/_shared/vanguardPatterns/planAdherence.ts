@@ -6,6 +6,7 @@
  */
 
 import { safeExecute } from '../supabase.ts';
+import { getAggregateByDate } from '../repos/aggregatesRepo.ts';
 import type { PatternInsight } from './types.ts';
 
 export async function detectPlanAdherenceGaps(
@@ -44,14 +45,7 @@ export async function detectPlanAdherenceGaps(
         .in('event_kind', ['friction_event'])
         .limit(15)
     ),
-    safeExecute(
-      supabase
-        .from('vanguard_daily_aggregates')
-        .select('execution_score, final_state, identity_score')
-        .eq('user_id', userId)
-        .eq('date', yesterdayDate)
-        .maybeSingle()
-    ),
+    getAggregateByDate(supabase, userId, yesterdayDate),
   ]);
 
   const plan = (planRow as Record<string, unknown>)?.planning_summary as Record<string, unknown> | undefined;

@@ -1,4 +1,5 @@
 import { createServiceClient } from '../supabase.ts';
+import { getAggregateByDate } from '../repos/aggregatesRepo.ts';
 
 /**
  * Generuje prognozę na jutro dla kluczowych metryk (sen, gotowość, wykonanie zadań).
@@ -120,20 +121,16 @@ export async function resolvePastPredictions(
   }
 
   for (const pred of pending) {
-    const { data: actualRow, error: actualErr } = await supabase
-      .from('vanguard_daily_aggregates')
-      .select(pred.metric)
-      .eq('user_id', userId)
-      .eq('date', pred.prediction_date)
-      .maybeSingle();
-
-    if (actualErr) {
-      console.error(`[predictions] Fetching actual for ${pred.prediction_date} failed:`, actualErr.message);
+    let actualRow: Record<string, unknown> | null = null;
+    try {
+      actualRow = await getAggregateByDate(supabase, userId, pred.prediction_date);
+    } catch (actualErr) {
+      console.error(`[predictions] Fetching actual for ${pred.prediction_date} failed:`, actualErr);
       continue;
     }
 
     if (actualRow && actualRow[pred.metric] != null) {
-      const actualValue = actualRow[pred.metric];
+      const actualValue = Number(actualRow[pred.metric]);
       const errorValue = Math.abs(pred.predicted_value - actualValue);
 
       const { error: updateErr } = await supabase

@@ -1,5 +1,6 @@
 import { getEmbedding } from "../../_shared/openai.ts";
 import { safeExecute } from "../../_shared/supabase.ts";
+import { getAggregateByDate } from "../../_shared/repos/aggregatesRepo.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
@@ -30,14 +31,7 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
 
   const today = getWarsawDateString();
 
-  const aggregate = await safeExecute(
-    supabase
-      .from('vanguard_daily_aggregates')
-      .select('hrv_avg, sleep_hours, final_state')
-      .eq('user_id', record.user_id)
-      .eq('date', today)
-      .maybeSingle()
-  );
+  const aggregate = await getAggregateByDate(supabase, record.user_id, today);
 
   const contextStr = aggregate
     ? `BIOMETRIA DZIŚ: HRV ${aggregate.hrv_avg}, Sen ${aggregate.sleep_hours}h, Stan: ${aggregate.final_state}.`

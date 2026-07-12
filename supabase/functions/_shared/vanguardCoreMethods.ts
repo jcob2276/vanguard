@@ -1,5 +1,6 @@
 import { zScore } from './stats.ts';
 import { getWarsawDateString } from './time.ts';
+import { getAggregateByDate } from './repos/aggregatesRepo.ts';
 
 export function generateActiveSignature(footprint: any[] = [], metrics: any = {}) {
   if (footprint.length < 5) return { sequence: [] as string[], state: 'INSUFFICIENT_DATA' };
@@ -108,10 +109,10 @@ export function detectLagCorrelations(history: any[]) {
 export async function evaluateIdentityVault(db: any, userId: string) {
   const today = getWarsawDateString(new Date());
   
-  const [fundamentRes, journalRes, aggregateRes, knowledgeRes] = await Promise.all([
+  const [fundamentRes, journalRes, aggregate, knowledgeRes] = await Promise.all([
     db.from('user_fundament').select('*').eq('user_id', userId).maybeSingle(),
     db.from('daily_wins').select('journal_entry, gratitude_entry, mood_score').eq('user_id', userId).eq('date', today).maybeSingle(),
-    db.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+    getAggregateByDate(db, userId, today).catch(() => null),
     db.from('vanguard_knowledge').select('*').eq('user_id', userId).order('importance_score', { ascending: false }).limit(3),
   ]);
 
@@ -124,7 +125,7 @@ export async function evaluateIdentityVault(db: any, userId: string) {
       gratitude: journalRes.data?.gratitude_entry,
       mood: journalRes.data?.mood_score,
     },
-    today_metrics: aggregateRes.data || {},
+    today_metrics: aggregate || {},
     knowledge_vault: knowledgeRes.data || [],
   };
 }
@@ -132,21 +133,21 @@ export async function evaluateIdentityVault(db: any, userId: string) {
 export async function getEpisodeForDate(db: any, userId: string, date: string) {
   const [oura, aggregate, wins] = await Promise.all([
     db.from('oura_daily_summary').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
-    db.from('vanguard_daily_aggregates').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
+    getAggregateByDate(db, userId, date).catch(() => null),
     db.from('daily_wins').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
   ]);
 
   return {
     date,
     metrics: {
-      hrv: aggregate.data?.hrv_avg || oura.data?.hrv_avg,
-      sleep: aggregate.data?.sleep_hours || oura.data?.total_sleep_hours,
-      readiness: aggregate.data?.readiness_score || oura.data?.readiness_score,
-      identity_score: aggregate.data?.identity_score,
-      state: aggregate.data?.final_state,
+      hrv: aggregate?.hrv_avg || oura.data?.hrv_avg,
+      sleep: aggregate?.sleep_hours || oura.data?.total_sleep_hours,
+      readiness: aggregate?.readiness_score || oura.data?.readiness_score,
+      identity_score: aggregate?.identity_score,
+      state: aggregate?.final_state,
     },
     behavior: {
-      tasks_done: aggregate.data?.execution_score ? aggregate.data.execution_score * 5 : 0,
+      tasks_done: aggregate?.execution_score ? aggregate.execution_score * 5 : 0,
       journal: wins.data?.journal_entry,
       mood: wins.data?.mood_score,
     },
