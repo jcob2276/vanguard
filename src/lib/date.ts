@@ -1,4 +1,5 @@
 export * from '@vanguard/domain';
+import { TIMEZONE } from '@vanguard/domain';
 
 export function formatDayLabel(dateStr: string, todayStr: string, yesterdayStr?: string, padZero = false): string {
   if (dateStr === todayStr) return 'Dziś';
@@ -14,6 +15,6 @@ export function formatDashboardDate(): string {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    timeZone: 'Europe/Warsaw',
+    timeZone: TIMEZONE,
   });
 }

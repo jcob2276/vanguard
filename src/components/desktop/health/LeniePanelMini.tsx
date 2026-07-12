@@ -1,23 +1,16 @@
+import { TIMEZONE } from '../../../lib/date';
 import React from 'react';
-import { computeLenieInsight, daysBefore } from '../desktopUtils';
-
-type LenieLog = {
-  date: string;
-  final_stimulus?: string | null;
-  context_note?: string | null;
-};
+import { computeLenieInsight, daysBefore, type LenieLogRow } from '../desktopUtils';
 
 export interface LeniePanelMiniProps {
-  logs?: LenieLog[];
-  userId?: string | null;
-  accessToken?: string | null;
+  logs?: LenieLogRow[];
 }
 
-export default function LeniePanelMini({ logs, userId = null, accessToken = null }: LeniePanelMiniProps) {
+export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
   const totalMonth = (logs || []).filter(l => l.date >= daysBefore(30)).length;
   const totalWeek = (logs || []).filter(l => l.date >= daysBefore(7)).length;
   const lastDate = (logs || [])[0]?.date ?? null;
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE });
   const daysFree = lastDate ? Math.round((new Date(todayStr + 'T12:00:00Z').getTime() - new Date(lastDate + 'T12:00:00Z').getTime()) / 86400000) : null;
   const freeColor =
     daysFree === null

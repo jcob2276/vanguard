@@ -63,7 +63,7 @@ export default function TodoSidebar({
   onAddSection,
   onRenameSection,
   onDeleteSection,
-  onQuickAdd,
+  onQuickAdd: _onQuickAdd,
   onFocusSearch,
   onNavigateTo,
 }: TodoSidebarProps) {

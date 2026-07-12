@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import type { Tables } from '../database.types';
 import type { AwAppEntry, PhoneTopApp } from './exportStatsTypes';
 
@@ -14,7 +15,7 @@ export function renderOuraSection({ dayOura, dayOuraEnhanced, dayOuraDerived }: 
   if (dayOuraEnhanced?.bedtime_start || dayOuraEnhanced?.bedtime_end) {
     const fmtWaw = (iso: string | null) => {
       if (!iso) return '--';
-      return new Date(iso).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+      return new Date(iso).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' });
     };
     const bedStart = dayOuraEnhanced.bedtime_start;
     const latMin = dayOuraEnhanced.sleep_latency_minutes || 0;
@@ -186,7 +187,7 @@ export function renderNutritionSection({ dayFood, dayNutrition, foodError }: Nut
           ].filter(Boolean).join(' | ');
           const brandStr = item.brand ? ` — ${item.brand}` : '';
           const timeStr = item.logged_at
-            ? `${new Date(item.logged_at).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })} — `
+            ? `${new Date(item.logged_at).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' })} — `
             : '';
           md += `- ${timeStr}${item.name}${brandStr} (${item.amount || ''}): ${item.calories} kcal | B: ${item.protein}g | W: ${item.carbs || 0}g | T: ${item.fat || 0}g${extras ? ' | ' + extras : ''}\n`;
         });

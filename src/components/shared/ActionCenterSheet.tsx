@@ -9,7 +9,6 @@ import {
   fetchPendingProposals,
   resolveProposal,
   syncFrictionProposals,
-  type SystemProposal,
 } from '../../lib/systemProposals';
 
 interface PendingClarification {

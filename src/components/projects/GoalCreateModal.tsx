@@ -3,19 +3,18 @@ import { supabase } from '../../lib/supabase';
 import { PILLARS, PILLAR_META, GOAL_QUESTIONS, PillarId } from './projectUtils';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
+import type { GoalCreatePreview } from './useProjectsData';
 
 export interface GoalCreateModalProps {
-  lifeGoals: any;
-  dreams: any[];
+  lifeGoals: Record<string, unknown> | null;
   busy: boolean;
   onClose: () => void;
-  onConfirm: (preview: any, pillar: PillarId) => void;
+  onConfirm: (preview: GoalCreatePreview, pillar: PillarId) => void;
   onError: (err: string) => void;
 }
 
 export default function GoalCreateModal({
   lifeGoals,
-  dreams,
   busy,
   onClose,
   onConfirm,
@@ -30,7 +29,7 @@ export default function GoalCreateModal({
     blockers: '',
     weekly_actions: ''
   });
-  const [goalCreatePreview, setGoalCreatePreview] = useState<any>(null);
+  const [goalCreatePreview, setGoalCreatePreview] = useState<GoalCreatePreview | null>(null);
 
   const handleGoalCreateNext = (currentVal: string) => {
     const step = goalCreateStep as number;
@@ -92,7 +91,7 @@ export default function GoalCreateModal({
               <div className="space-y-2">
                 {PILLARS.map(p => {
                   const meta = PILLAR_META[p];
-                  const lg = (lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | undefined;
+                  const lg = lifeGoals?.[`goal_${p}`] as string | undefined;
                   return (
                     <button
                       key={p}
@@ -197,7 +196,7 @@ export default function GoalCreateModal({
                     KPI (leading indicators)
                   </p>
                   <div className="space-y-1.5">
-                    {goalCreatePreview.kpis.map((kpi: any, i: number) => (
+                    {(goalCreatePreview.kpis ?? []).map((kpi, i) => (
                       <div key={i} className={`flex items-center gap-2 rounded-[10px] px-3 py-2 ${pm.bg}`}>
                         <div className={`h-1.5 w-1.5 rounded-full ${pm.dot}`} />
                         <span className="text-[12px] font-semibold text-text-primary flex-1">
@@ -217,7 +216,7 @@ export default function GoalCreateModal({
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Kamienie milowe</p>
                   <div className="space-y-1.5">
-                    {goalCreatePreview.checkpoints.map((cp: any, i: number) => (
+                    {(goalCreatePreview.checkpoints ?? []).map((cp, i) => (
                       <div key={i} className="flex items-start gap-2.5">
                         <div className="h-3.5 w-3.5 shrink-0 rounded-full border border-border-custom mt-0.5" />
                         <span className="text-[12px] text-text-secondary flex-1 min-w-0">

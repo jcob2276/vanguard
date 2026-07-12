@@ -81,6 +81,16 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
           onClick={() => setOverlayOpen(false)}
         >
           <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
+            {onPin && (
+              <button
+                type="button"
+                onClick={() => { onPin(card.id); setOverlayOpen(false); }}
+                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                style={{ background: '#5B6CFF', boxShadow: '0 0 20px rgba(91,108,255,0.4)' }}
+              >
+                <Pin size={20} color="white" />
+              </button>
+            )}
             {onSort && (
               <button
                 type="button"

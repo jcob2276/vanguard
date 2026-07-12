@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Sun, Calendar, FolderKanban, Clock } from 'lucide-react';
@@ -11,7 +12,6 @@ import { SpineGuideStrip } from './SpineGuideStrip';
 import PowerList from '../lifestyle/PowerList';
 import SearchModal from './SearchModal';
 import { useDashboardState } from './hooks/useDashboardState';
-import { markWorkoutSessionActive } from '../../lib/health/workoutLogging';
 import Spinner from '../ui/Spinner';
 
 const WorkoutLogger   = lazy(() => import('../biometrics/WorkoutLogger'));
@@ -39,7 +39,7 @@ function ViewFallback() {
 
 function isAfter20(): boolean {
   try {
-    const h = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }).format(new Date()), 10);
+    const h = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }).format(new Date()), 10);
     return h >= 20;
   } catch { return new Date().getHours() >= 20; }
 }

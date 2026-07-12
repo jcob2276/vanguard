@@ -1,6 +1,6 @@
 import { getTodayWarsaw } from '../../lib/date';
-import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
@@ -12,7 +12,6 @@ import Spinner from '../ui/Spinner';
 
 export default function Photos() {
   const userId = useUserId();
-  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [photoDate, setPhotoDate] = useState(getTodayWarsaw());
 
@@ -33,13 +32,13 @@ export default function Photos() {
     enabled: !!userId,
   });
 
-  const photos = photosQuery.data ?? [];
+  const photos = useMemo(() => photosQuery.data ?? [], [photosQuery.data]);
   const loading = photosQuery.isLoading;
 
   // Set default selection when photos load
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
     if (photos.length > 0 && baseId === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
       setBaseId(photos[0].id);
       setTargetId(photos[photos.length - 1].id);
     }
@@ -75,7 +74,6 @@ export default function Photos() {
         const dateObj = tags?.DateTimeOriginal || tags?.CreateDate || tags?.ModifyDate;
         if (dateObj) {
           occurredDate = format(new Date(dateObj), 'yyyy-MM-dd');
-          console.log('[EXIF] extracted date taken:', occurredDate);
         }
       } catch (exifErr: unknown) {
       console.error('[Action Error]', exifErr);

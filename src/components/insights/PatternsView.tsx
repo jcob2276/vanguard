@@ -73,7 +73,7 @@ export function PatternsView() {
       ) : (
         <div className="space-y-3">
           {patterns.map((p) => (
-            <PatternCard key={p.id} pattern={p} userId={userId} onFeedback={handleFeedback} />
+            <PatternCard key={p.id} pattern={p} onFeedback={handleFeedback} />
           ))}
         </div>
       )}

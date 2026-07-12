@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 import { useCalendarData } from './hooks/useCalendarData';
 import { useTimeBudgets } from './hooks/useTimeBudgets';
@@ -145,8 +145,6 @@ export default function CalendarView({
         </div>
         <CalendarEventModal
           calData={calData}
-          userId={userId}
-          accessToken={accessToken}
           handleQuickSave={actions.handleQuickSave}
           handleEditSave={actions.handleEditSave}
         />

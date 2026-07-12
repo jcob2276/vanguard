@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock3, Repeat, X, CalendarDays, Sun, Sofa } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock3, X, CalendarDays, Sun, Sofa } from 'lucide-react';
 import { parseTodoQuickInput } from '../../lib/todo/todoParser';
 import { shiftDateStr } from '../../lib/date';
 
@@ -36,7 +36,6 @@ function weekdayShort(key: string): string {
 export default function TodoDatePickerPopover({
   dueDate,
   scheduledTime,
-  recurrence,
   today,
   onChange,
   onClose,
@@ -44,7 +43,6 @@ export default function TodoDatePickerPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [freeText, setFreeText] = useState('');
   const [showTime, setShowTime] = useState(!!scheduledTime);
-  const [showRecurrence, setShowRecurrence] = useState(!!recurrence);
 
   const anchorKey = dueDate || today;
   const [anchorY, anchorM] = anchorKey.split('-').map(Number);
@@ -74,7 +72,7 @@ export default function TodoDatePickerPopover({
 
   const pickDate = (key: string | null) => {
     onChange({ due_date: key });
-    if (!key) { setShowTime(false); setShowRecurrence(false); onChange({ scheduled_time: null, recurrence: null }); }
+    if (!key) { setShowTime(false); onChange({ scheduled_time: null, recurrence: null }); }
   };
 
   const handleFreeText = (text: string) => {

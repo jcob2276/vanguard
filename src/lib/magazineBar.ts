@@ -2,7 +2,7 @@ import { addDays, format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { DirectionContextData } from './dailyPlanProposal';
 import type { ScheduleViewData, ScheduleItem } from '../types/schedule';
-import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from './date';
+import { getTodayWarsaw, shiftDateStr } from './date';
 import { sweepPastEventsInState } from '../types/schedule';
 import { formatSprintWeekBridge } from './goal/goalSpine.queries';
 import { formatSprintFromLongTerm } from './goal/longTermBridge';

@@ -8,7 +8,7 @@ export type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 export type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
 export type TodoSectionRow = Database['public']['Tables']['todo_sections']['Row'];
 type TodoSmartListRow = Database['public']['Tables']['todo_smart_lists']['Row'];
-type TodoAttachmentRow = Database['public']['Tables']['todo_attachments']['Row'];
+export type TodoAttachmentRow = Database['public']['Tables']['todo_attachments']['Row'];
 
 export async function listTodoSections(userId: string): Promise<TodoSectionRow[]> {
   return unwrapList(

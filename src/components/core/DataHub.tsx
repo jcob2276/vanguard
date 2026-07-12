@@ -1,14 +1,12 @@
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
-import type { Session } from '@supabase/supabase-js';
 import BrainHealth from '../biometrics/BrainHealth';
 
 type DataHubProps = {
-  session: Session;
   onBack?: (() => void) | null;
   embedded?: boolean;
 };
 
-export default function DataHub({ session, onBack = null, embedded = false }: DataHubProps) {
+export default function DataHub({ onBack = null, embedded = false }: DataHubProps) {
   return (
     <div className={`${embedded ? 'space-y-6' : 'min-h-screen bg-black p-6 space-y-8 animate-in fade-in duration-500'}`}>
       {!embedded && (

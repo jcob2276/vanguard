@@ -82,10 +82,14 @@ const LIFE_GOAL_PILLARS: Array<{
   },
 ];
 
+type KpiWithCurrent = Pick<Tables<'goal_kpis'>, 'id' | 'project_id' | 'name' | 'target' | 'unit'> & {
+  current_value: number | null;
+};
+
 export function lifeGoalDisplayRowsFromProjects(
   projects: ProjectGoalSource[],
   dreams: DreamPillarSource[],
-  kpis: any[] = [],
+  kpis: KpiWithCurrent[] = [],
 ): LifeGoalDisplayRow[] {
   const dreamById = Object.fromEntries(dreams.map((d) => [d.id, d]));
   const today = getTodayWarsaw();
@@ -142,14 +146,3 @@ export function lifeGoalDisplayRowsFromProjects(
   });
 }
 
-function daysBadgeClass(days: number | null, badge: string): string {
-  if (days === null) return badge;
-  if (days < 0) return 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400';
-  if (days <= 30) return 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400';
-  return badge;
-}
-
-function formatDaysLabel(days: number | null): string | null {
-  if (days === null) return null;
-  return days < 0 ? `${Math.abs(days)}d po terminie` : `${days}d`;
-}

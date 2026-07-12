@@ -1,11 +1,12 @@
 import { Plus, X, Star, Check, Trash2 } from 'lucide-react';
 import { Panel } from '../shell/Panel';
+import type { DreamRow } from '../../../lib/dreamsApi';
 
 interface DreamsPanelProps {
-  dreams: any[];
+  dreams: DreamRow[];
   doneDreams: number;
-  top5Dreams: any[];
-  filteredDreams: any[];
+  top5Dreams: DreamRow[];
+  filteredDreams: DreamRow[];
   dreamFilter: string;
   setDreamFilter: (v: string) => void;
   isAddingDream: boolean;
@@ -17,8 +18,8 @@ interface DreamsPanelProps {
   newDreamLifeGoal: string | null;
   setNewDreamLifeGoal: (v: string | null) => void;
   addDream: () => void;
-  openDreamModal: (dream: any) => void;
-  toggleDream: (dream: any) => void;
+  openDreamModal: (dream: DreamRow) => void;
+  toggleDream: (dream: DreamRow) => void;
   deleteDream: (id: string) => void;
   DREAM_CATEGORIES: string[];
   DREAM_CAT_LABEL: Record<string, string>;

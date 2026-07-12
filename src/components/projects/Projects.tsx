@@ -228,7 +228,7 @@ export default function Projects({
 
       {goalCreateOpen && (
         <GoalCreateModal
-          lifeGoals={lifeGoals} dreams={dreams} busy={busy}
+          lifeGoals={lifeGoals} busy={busy}
           onClose={() => setGoalCreateOpen(false)}
           onConfirm={(preview, pillar) => handlers.handleGoalCreateConfirm(preview, pillar, dreams, setGoalCreateOpen)}
           onError={err => data.setError(err)}

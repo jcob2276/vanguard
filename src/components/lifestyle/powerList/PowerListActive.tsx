@@ -1,13 +1,16 @@
 import { SPHERE_SLOTS } from './powerListConstants';
 import PowerListTask from '../PowerListTask';
 
+import { type DailyWinWithTasks } from '../usePowerListData';
+import type { Tables } from '../../../lib/database.types';
+
 interface PowerListActiveProps {
-  checkpointPrompt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setCheckpointPrompt: (v: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  checkpointPrompt: { index: number; checkpointId: string; title: string } | null;
+  setCheckpointPrompt: (v: { index: number; checkpointId: string; title: string } | null) => void;
   markingCheckpoint: boolean;
   confirmCheckpointDone: () => Promise<void>;
-  todayWin: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  projectMap: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  todayWin: DailyWinWithTasks;
+  projectMap: Record<string, { name: string; color: string | null }>;
   toggleTask: (index: number) => void;
   eveningCloseDue: boolean;
 }
@@ -50,8 +53,8 @@ export default function PowerListActive({
       )}
 
       {(todayWin.daily_win_tasks || [])
-        .sort((a: any, b: any) => a.slot - b.slot) // eslint-disable-line @typescript-eslint/no-explicit-any
-        .map((t: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        .sort((a: Tables<'daily_win_tasks'>, b: Tables<'daily_win_tasks'>) => a.slot - b.slot)
+        .map((t: Tables<'daily_win_tasks'>) => {
           const sphere = t.slot <= 3 ? SPHERE_SLOTS[t.slot - 1] : null;
           return (
             <PowerListTask

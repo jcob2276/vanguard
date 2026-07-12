@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Shield, Fingerprint, Lock, Zap } from 'lucide-react';
+import { SYSTEM_VERSION, NEURAL_LINK_VERSION } from '../../lib/constants';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ export default function Auth() {
               <Fingerprint className="text-primary relative z-10 animate-pulse" size={40} />
             </div>
             <h1 className="text-3xl font-display font-black tracking-tight text-text-primary uppercase italic">
-              Vanguard OS <span className="text-primary not-italic text-sm align-top ml-1">v3.0</span>
+              Vanguard OS <span className="text-primary not-italic text-sm align-top ml-1">v{SYSTEM_VERSION}</span>
             </h1>
             <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.4em] mt-2">Identity Verification Required</p>
           </div>
@@ -151,7 +152,7 @@ export default function Auth() {
         </div>
 
         <p className="text-center mt-8 text-[8px] font-black text-text-muted/50 uppercase tracking-[0.5em]">
-          Authorized Personnel Only • Neural Link 3.1
+          Authorized Personnel Only • Neural Link {NEURAL_LINK_VERSION}
         </p>
       </div>
     </div>

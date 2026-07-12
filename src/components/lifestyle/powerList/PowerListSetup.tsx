@@ -1,11 +1,14 @@
-import { Sparkles, Wand2, Link2, X, Upload } from 'lucide-react';
+import { Sparkles, Link2, X, Upload } from 'lucide-react';
 import PlanningCheckpointsStrip from '../../shared/PlanningCheckpointsStrip';
 import TodoPicker from './TodoPicker';
 import { SPHERE_SLOTS, PRIORITY_DOT } from './powerListConstants';
-import type { TaskSlot } from '../usePowerListData';
+import { type TaskSlot, type DailyWinWithTasks } from '../usePowerListData';
+import type { Tables } from '../../../lib/database.types';
+import type { DirectionContextData } from '../../../lib/dailyPlanProposal';
+import type { TodoItemRow } from '../../../lib/todo/todo';
 
 interface YesterdayRecapProps {
-  yesterdayWin: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  yesterdayWin: DailyWinWithTasks | null;
   yesterdayNote: string;
   setYesterdayNote: (v: string) => void;
   yesterdayNoteRequired: boolean;
@@ -24,7 +27,7 @@ function YesterdayRecap({
         Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
       </p>
       <ul className="space-y-1">
-        {(yesterdayWin.daily_win_tasks || []).map((t: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
+        {(yesterdayWin.daily_win_tasks || []).map((t: Tables<'daily_win_tasks'>) => (
           <li key={t.id} className="flex items-center gap-2 text-[11px] font-medium">
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${t.done ? 'bg-dayC' : 'bg-text-muted/30'}`} />
             <span className={t.done ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
@@ -88,19 +91,19 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
 }
 
 interface PowerListSetupProps {
-  yesterdayWin: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  yesterdayWin: DailyWinWithTasks | null;
   yesterdayNote: string;
   setYesterdayNote: (v: string) => void;
   yesterdayNoteRequired: boolean;
-  direction: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  fillSlotFromCheckpoint: (checkpoint: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  direction: DirectionContextData | null;
+  fillSlotFromCheckpoint: (checkpoint: { title: string; checkpointId: string; projectId: string }) => void;
   occupiedSlots: boolean[];
   aiQuestions: string | null;
   aiLoading: boolean;
   generateQuestions: () => void;
   newTaskForm: TaskSlot[];
   updateSlot: (i: number, u: Partial<TaskSlot>) => void;
-  todoItems: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  todoItems: TodoItemRow[];
   pickerSlot: number;
   setPickerSlot: (v: number) => void;
   pickerRef: React.RefObject<HTMLDivElement | null>;
@@ -221,7 +224,7 @@ export default function PowerListSetup({
 
               {pickerSlot === i && (
                 <TodoPicker
-                  items={todoItems.filter((item: any) => !newTaskForm.some((s: TaskSlot, idx: number) => idx !== i && s.todoId === item.id))} // eslint-disable-line @typescript-eslint/no-explicit-any
+                  items={todoItems.filter((item: TodoItemRow) => !newTaskForm.some((s: TaskSlot, idx: number) => idx !== i && s.todoId === item.id))}
                   onSelect={(item) => updateSlot(i, { task: item.title, todoId: item.id, checkpointId: null, pinId: null })}
                   onClose={() => setPickerSlot(-1)}
                 />

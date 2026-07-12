@@ -2,8 +2,24 @@ import { useCallback, useEffect } from 'react';
 import { notify } from '../lib/notify';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 
-const GOOGLE_CLIENT_ID = '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+
+/**
+ * Redirects the browser to Google OAuth consent screen.
+ * Standalone so both useSyncActions and DesktopDashboard can use the same implementation.
+ */
+export function startGoogleAuth(): void {
+  const options: Record<string, string> = {
+    redirect_uri: window.location.origin,
+    client_id: GOOGLE_CLIENT_ID,
+    access_type: 'offline',
+    response_type: 'code',
+    prompt: 'consent',
+    scope: GOOGLE_CALENDAR_SCOPE,
+  };
+  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(options).toString()}`);
+}
 
 export function useSyncActions({
   userId,
@@ -69,22 +85,14 @@ export function useSyncActions({
     }
   }, [base, accessToken, userId, syncCalendar, setSyncing]);
 
-  const startGoogleAuth = useCallback(() => {
-    const options: Record<string, string> = {
-      redirect_uri: window.location.origin,
-      client_id: GOOGLE_CLIENT_ID,
-      access_type: 'offline',
-      response_type: 'code',
-      prompt: 'consent',
-      scope: GOOGLE_CALENDAR_SCOPE,
-    };
-    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(options).toString()}`);
-  }, []);
+  // Delegate to the standalone exported startGoogleAuth — avoids duplicating OAuth redirect logic.
+  // Wrapped in useCallback to maintain a stable reference for callers using it as a prop.
+  const startGoogleAuthCb = useCallback(() => startGoogleAuth(), []);
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code');
     if (code && userId) handleGoogleCallback(code);
   }, [handleGoogleCallback, userId]);
 
-  return { syncCalendar, startGoogleAuth };
+  return { syncCalendar, startGoogleAuth: startGoogleAuthCb };
 }

@@ -5,15 +5,17 @@ import { type BodyRow } from '@vanguard/domain';
 import { Activity } from 'lucide-react';
 import { computeFitnessProfile } from './fitnessScoreUtils';
 import FitnessRadarChart from './FitnessRadarChart';
+import type { OuraRow, NutritionDayRow } from '../desktopUtils';
+import type { DesktopSessionRow, StravaActivityRow, HabitRow, HabitLogRow } from '../shell/useDesktopData';
 
 interface FitnessScorePanelProps {
-  oura: any[];
-  nutrition: any[];
-  sessions: any[];
-  strava: any[];
-  habits: any[];
-  habitLogs: any[];
-  volData: any[];
+  oura: OuraRow[];
+  nutrition: NutritionDayRow[];
+  sessions: DesktopSessionRow[];
+  strava: StravaActivityRow[];
+  habits: HabitRow[];
+  habitLogs: HabitLogRow[];
+  volData: { week: string; vol: number }[];
   body: BodyRow[];
   heightCm: number | null;
   theme: string;

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Tag } from 'lucide-react';
 import { COLORS, getColor } from './keepUtils';
 import RichEditor from './RichEditor';
@@ -19,15 +19,15 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
   const [isExpanded, setIsExpanded] = useState(() => Boolean(title.trim() || content.trim()));
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setTitle('');
     setContent('');
     setColor('default');
     setTagsText('');
     setIsExpanded(false);
-  };
+  }, [setTitle, setContent, setTagsText]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
     if (!trimmedTitle && !trimmedContent) {
@@ -40,7 +40,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
       .filter(Boolean);
     onSave({ title: trimmedTitle, content: trimmedContent, color, tags });
     handleClose();
-  };
+  }, [title, content, tagsText, color, onSave, handleClose]);
 
   // Close when clicking outside
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
       document.addEventListener('mousedown', handleOutsideClick);
     }
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isExpanded, title, content, color, tagsText]);
+  }, [isExpanded, title, content, handleClose, handleSave]);
 
   const c = getColor(color);
 

@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
 import type { SpineGuidance, SpineGuideTarget } from '../../lib/goal/goalSpineGuide';
@@ -24,7 +25,7 @@ function ViewFallback() {
 
 function isAfter20(): boolean {
   try {
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false });
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, hour: 'numeric', hour12: false });
     return parseInt(formatter.format(new Date()), 10) >= 20;
   } catch {
     return new Date().getHours() >= 20;

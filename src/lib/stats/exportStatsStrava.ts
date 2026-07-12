@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import type { StravaCleanActivity, StravaSplit, StravaBestEffort, GcHrZone } from './exportStatsTypes';
 import type { Tables as DatabaseTables } from '../database.types';
 
@@ -34,7 +35,7 @@ export function renderStravaSection({
 
   let out = result + `### 🏃 Bieganie (Strava)\n\n`;
   dayStrava.forEach(a => {
-    const startTime = new Date(a.start_date ?? '').toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+    const startTime = new Date(a.start_date ?? '').toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' });
     const distKm = a.distance ? (a.distance / 1000).toFixed(2) : null;
     const paceStr = a.pace_sec_per_km
       ? fmtPaceMd(a.pace_sec_per_km)

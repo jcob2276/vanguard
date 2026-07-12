@@ -8,7 +8,7 @@ import {
   needsReview,
 } from '../../../../lib/health/foodLogging';
 import type { NLItem } from './foodEntryUtils';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 interface UseFoodEntryNLOptions {
   userId: string | undefined;

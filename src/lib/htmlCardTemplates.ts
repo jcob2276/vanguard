@@ -45,7 +45,6 @@ const HTML_CARD_TEMPLATES: Record<string, string> = {
 </div>`,
 };
 
-const HTML_CARD_TEMPLATE_IDS = Object.keys(HTML_CARD_TEMPLATES);
 
 export function resolveHtmlTemplate(templateOrHtml: string): string {
   return HTML_CARD_TEMPLATES[templateOrHtml] ?? templateOrHtml;

@@ -1,12 +1,13 @@
-import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
+import { getTodayWarsaw, shiftDateStr, TIMEZONE } from '../../lib/date';
+
+const warsawOffsetFormatter = new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, timeZoneName: 'shortOffset' });
 
 export function getWarsawOffset(date?: string | Date): string {
   const d = date ? new Date(date) : new Date();
   if (isNaN(d.getTime())) {
     throw new Error(`Invalid date passed to getWarsawOffset: ${date}`);
   }
-  const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Warsaw', timeZoneName: 'shortOffset' });
-  const tzPart = f.formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
+  const tzPart = warsawOffsetFormatter.formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
   if (!tzPart) {
     const month = d.getMonth();
     return (month >= 3 && month <= 9) ? '+02:00' : '+01:00';
@@ -70,23 +71,23 @@ export function monthLabel(dateStr: string) {
   return new Date(y, m - 1, d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+const warsawPartsFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false
+});
+
 function getWarsawParts(isoStr: string) {
   const normalized = isoStr.includes(' ') && !isoStr.includes('T') ? isoStr.replace(' ', 'T') : isoStr;
   const date = new Date(normalized);
   if (isNaN(date.getTime())) throw new Error(`Invalid date string: ${isoStr}`);
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Warsaw',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(date);
+  const parts = warsawPartsFormatter.formatToParts(date);
   const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
   
   return {

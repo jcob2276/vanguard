@@ -5,8 +5,6 @@ import {
   useAddHabit,
   useDeleteHabit,
   useToggleHabit,
-  type HabitRow,
-  type HabitLogRow,
 } from '../../../lib/health/habitsApi';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { notify, confirmDialog } from '../../../lib/notify';
@@ -38,7 +36,7 @@ export function useHabitsData({ userId }: UseHabitsDataProps) {
         icon: newHabit.icon,
         is_positive: newHabit.is_positive,
       });
-    } catch (err) {
+    } catch {
       notify('Błąd dodawania nawyku.', 'error');
     } finally {
       setNewHabit({ name: '', icon: '✅', is_positive: true });
@@ -50,7 +48,7 @@ export function useHabitsData({ userId }: UseHabitsDataProps) {
     if (!(await confirmDialog('Usunąć nawyk?'))) return;
     try {
       await deleteHabitMutation.mutateAsync({ userId, id });
-    } catch (err) {
+    } catch {
       notify('Błąd usuwania nawyku.', 'error');
     }
   }

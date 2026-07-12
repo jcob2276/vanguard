@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { notify } from '../../lib/notify';
-import { listAttachments, uploadAttachment, deleteAttachment } from '../../lib/todo/todo';
+import { listAttachments, uploadAttachment, deleteAttachment, type TodoAttachmentRow } from '../../lib/todo/todo';
 
 export function useTodoCardAttachments(expanded: boolean, itemId: string, userId: string) {
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<TodoAttachmentRow[]>([]);
   const [attachmentsLoaded, setAttachmentsLoaded] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +26,7 @@ export function useTodoCardAttachments(expanded: boolean, itemId: string, userId
     }
   };
 
-  const handleDeleteAttachment = async (att: any) => {
+  const handleDeleteAttachment = async (att: TodoAttachmentRow) => {
     setAttachments((prev) => prev.filter((a) => a.id !== att.id));
     try { await deleteAttachment(att); } catch (e: unknown) { notify('Nie udało się usunąć załącznika.', 'error'); console.warn('[TodoCard] Failed to delete attachment:', e); }
   };

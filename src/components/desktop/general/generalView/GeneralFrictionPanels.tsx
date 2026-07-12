@@ -1,9 +1,17 @@
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Panel, Tip } from '../../shell/Panel';
 
+import { GeneralViewFriction } from '../hooks/useGeneralViewData';
+
+interface FrictionBarItem {
+  type: string;
+  count: number;
+  color: string;
+}
+
 interface GeneralFrictionPanelsProps {
-  frictionBar: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  friction: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  frictionBar: FrictionBarItem[];
+  friction: GeneralViewFriction[];
   frictionColor: Record<string, string>;
   tick: string;
 }

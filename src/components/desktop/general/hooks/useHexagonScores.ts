@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../../../lib/date';
 import { useEffect, useState } from 'react';
 import { notify } from '../../../../lib/notify';
 import {
@@ -13,7 +14,7 @@ const SAVED_AT_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
-  timeZone: 'Europe/Warsaw',
+  timeZone: TIMEZONE,
 });
 
 export function formatSavedAt(iso: string | null) {

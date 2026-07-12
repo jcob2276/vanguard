@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { formatWarsawDate, getTodayWarsaw, shiftDateStr } from './date';
+import { getTodayWarsaw, shiftDateStr } from './date';
 import { supabase } from './supabase';
 
 export type EnrichedCheckpoint = {

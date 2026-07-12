@@ -3,6 +3,7 @@
  * Wszystkie obliczenia są deterministyczne (czysta matematyka, zero API calls).
  * Domyślna lokalizacja: Warszawa
  */
+import { TIMEZONE } from '../lib/date';
 import * as SunCalc from 'suncalc';
 
 const LAT_DEFAULT = 52.2297;  // Warszawa
@@ -101,7 +102,7 @@ export function getMoonPhase(date: Date | string): MoonPhaseInfo {
  */
 export function formatTimeWarsaw(date: Date): string {
   return date.toLocaleTimeString('pl-PL', {
-    timeZone: 'Europe/Warsaw',
+    timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

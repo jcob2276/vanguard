@@ -7,7 +7,7 @@ import NutritionForecastPanel from './nutrition/NutritionForecastPanel';
 import NutritionTargetsGrid from './nutrition/NutritionTargetsGrid';
 import { useNutritionData, type TodayEntry } from './useNutritionData';
 import NutritionChart from './NutritionChart';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 interface NutritionCardProps {
   weeklyCalories: number;
@@ -33,8 +33,6 @@ export default function NutritionCard({
     isExpanded, setIsExpanded,
     selectedMealType, setSelectedMealType,
     activeChartTab, setActiveChartTab,
-    fetchRows,
-    fetchTodayEntries,
     handleSaved,
     deleteEntry,
     caloriesProgress,

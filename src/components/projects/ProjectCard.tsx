@@ -117,15 +117,9 @@ export default function ProjectCard({
           project={project}
           s={s}
           col={col}
-          pillar={pillar}
-          kpis={kpis}
           healthScore={healthScore}
-          healthLevel={healthLevel}
           healthColors={healthColors}
-          momentum={momentum}
-          momentumMeta={momentumMeta}
           nextAction={nextAction}
-          visibleCps={visibleCps}
           projectCheckpoints={projectCheckpoints}
           doneCheckpoints={doneCheckpoints}
           busy={busy}
@@ -140,9 +134,6 @@ export default function ProjectCard({
           handleAddCheckpoint={handleAddCheckpoint}
           handleToggleCheckpoint={handleToggleCheckpoint}
           deleteCheckpoint={deleteCheckpoint}
-          editingKpiId={editingKpiId}
-          setEditingKpiId={setEditingKpiId}
-          handleUpdateKpiValue={handleUpdateKpiValue}
           handleToggleTask={handleToggleTask}
           newTask={newTask}
           setNewTask={setNewTask}
@@ -152,9 +143,6 @@ export default function ProjectCard({
           handleDelete={handleDelete}
           userId={userId}
           parentSkills={parentSkills}
-          editingKpiId__inline={editingKpiId}
-          setEditingKpiId__inline={setEditingKpiId}
-          handleUpdateKpiValue__inline={handleUpdateKpiValue}
         />
       )}
     </div>

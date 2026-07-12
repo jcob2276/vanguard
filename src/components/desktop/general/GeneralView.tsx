@@ -6,8 +6,8 @@ import {
   buildSleepHrvScatter,
 } from './generalView/generalViewUtils';
 
-import { FRICTION_COLOR as FRICTION_COLOR_TYPED } from '../../../../supabase/functions/_shared/domain.ts';
-import { C } from '../desktopUtils';
+import { FRICTION_COLOR as FRICTION_COLOR_TYPED } from '../../../lib/frictionColors';
+import { C, OuraRow } from '../desktopUtils';
 
 import GeneralHealthCharts from './generalView/GeneralHealthCharts';
 import GeneralFrictionPanels from './generalView/GeneralFrictionPanels';
@@ -21,7 +21,7 @@ export default function GeneralView({
   oura: ouraProp,
 }: {
   userId: string;
-  oura?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  oura?: OuraRow[];
 }) {
   const {
     strain,

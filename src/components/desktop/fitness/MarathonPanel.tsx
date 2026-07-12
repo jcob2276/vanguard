@@ -1,29 +1,29 @@
 import React from 'react';
 import { differenceInDays } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { RACE_DATE, C, weeklyRunKm, avg } from '../desktopUtils';
+import { C, weeklyRunKm, avg, type StravaActivitySummary } from '../desktopUtils';
 import { Panel, Tip } from '../shell/Panel';
 
+type MarathonTargetTime = string | { hours?: number; minutes?: number } | null | undefined;
+
 export interface MarathonPanelProps {
-  strava: any[];
+  strava: StravaActivitySummary[];
   grid: string;
   tick: string;
   marathon?: {
     name: string;
     date: string;
-    target_time?: any;
+    target_time?: MarathonTargetTime;
     status: string;
   } | null;
 }
 
-function formatInterval(t: any): string | null {
+function formatInterval(t: MarathonTargetTime): string | null {
   if (!t) return null;
   if (typeof t === 'string') {
     const parts = t.split(':');
     if (parts.length >= 2) {
-      const h = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10);
-      return `${h}h ${m}m`;
+      return `${parts[0]}h ${parts[1]}m`;
     }
     return t;
   }
@@ -36,12 +36,12 @@ function formatInterval(t: any): string | null {
 }
 
 export default function MarathonPanel({ strava, grid, tick, marathon }: MarathonPanelProps) {
-  const raceDate = marathon?.date ? new Date(marathon.date + 'T00:00:00') : RACE_DATE;
-  const raceName = marathon?.name || "Maraton Gdańsk";
+  const raceDate = marathon?.date ? new Date(marathon.date + 'T00:00:00') : null;
+  const raceName = marathon?.name || "Brak nadchodzących maratonów";
   const targetTime = formatInterval(marathon?.target_time);
 
-  const daysLeft = differenceInDays(raceDate, new Date());
-  const weeksLeft = Math.ceil(daysLeft / 7);
+  const daysLeft = raceDate ? differenceInDays(raceDate, new Date()) : null;
+  const weeksLeft = daysLeft !== null ? Math.ceil(daysLeft / 7) : null;
   const kmData = weeklyRunKm(strava);
   const recent4 = kmData.slice(-4);
   const avgKm = recent4.length ? Math.round((avg(recent4.map(w => w.km)) ?? 0) * 10) / 10 : null;
@@ -49,17 +49,19 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
 
   const formattedDate = marathon?.date
     ? new Date(marathon.date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '04.10.2026';
+    : null;
 
   return (
-    <Panel title={`${raceName} — ${formattedDate}`}>
+    <Panel title={formattedDate ? `${raceName} — ${formattedDate}` : raceName}>
       <div className="flex items-start justify-between mb-5">
         <div>
           <p className="font-display text-[40px] font-black leading-none text-text-primary">
-            {daysLeft >= 0 ? daysLeft : 0}
+            {daysLeft !== null ? (daysLeft >= 0 ? daysLeft : 0) : '—'}
           </p>
           <p className="text-[10px] font-bold text-text-muted mt-1">
-            {daysLeft >= 0 ? `dni do startu · ${weeksLeft} tygodni` : 'Wydarzenie zakończone'}
+            {daysLeft !== null
+              ? (daysLeft >= 0 ? `dni do startu · ${weeksLeft} tygodni` : 'Wydarzenie zakończone')
+              : 'Skonfiguruj nadchodzący maraton w bazie danych'}
           </p>
           {targetTime && (
             <div className="mt-2.5">

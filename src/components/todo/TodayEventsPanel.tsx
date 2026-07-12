@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import { Clock } from 'lucide-react';
 import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 
@@ -10,7 +11,7 @@ const CAT_DOT: Record<string, string> = {
 };
 
 function fmt(iso: string) {
-  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
+  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE });
 }
 
 export default function TodayEventsPanel({ userId, today }: { userId: string; today: string }) {

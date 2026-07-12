@@ -88,4 +88,3 @@ export const DEFAULT_SKILL_TREE: DefaultSkillTreeNode[] = [
   },
 ];
 
-const MAX_PARENT_SKILLS = 10;

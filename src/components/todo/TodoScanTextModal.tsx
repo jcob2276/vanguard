@@ -35,7 +35,7 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
         body: { text, userId },
       });
       if (fnError) throw fnError;
-      const extracted: ExtractedTask[] = (data?.tasks || []).map((t: any) => ({
+      const extracted: ExtractedTask[] = (data?.tasks || []).map((t: { title: string; due_date?: string | null; priority?: string | null }) => ({
         title: t.title,
         due_date: t.due_date ?? null,
         priority: t.priority ?? null,

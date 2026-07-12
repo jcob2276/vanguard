@@ -27,7 +27,6 @@ interface DashboardHeaderProps {
   staleNoteCount: number;
   handleLogoPressStart: () => void;
   handleLogoPressEnd: () => void;
-  isCompactLogo?: boolean;
 }
 
 export function DashboardHeader({
@@ -44,7 +43,6 @@ export function DashboardHeader({
   staleNoteCount,
   handleLogoPressStart,
   handleLogoPressEnd,
-  isCompactLogo = false,
 }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]">

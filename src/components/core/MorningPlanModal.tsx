@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import Spinner from '../ui/Spinner';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import { useMorningPlanData } from './morningPlan/useMorningPlanData';
 import { useMorningPlanActions } from './morningPlan/useMorningPlanActions';
-import { isoDateStr, isoDurationMin } from './morningPlan/morningPlanHelpers';
-import { CAPACITY_HOURS } from './morningPlan/useMorningPlanData';
+import MorningPlanWeekStrip from './morningPlan/MorningPlanWeekStrip';
+import MorningPlanFooterActions from './morningPlan/MorningPlanFooterActions';
 import MorningPlanStep1Review from './morningPlan/MorningPlanStep1Review';
 import MorningPlanStep2PowerList from './morningPlan/MorningPlanStep2PowerList';
 import MorningPlanStep3TimeBox from './morningPlan/MorningPlanStep3TimeBox';
@@ -22,7 +22,6 @@ interface Props {
 
 export default function MorningPlanModal({ session, onClose, targetDate }: Props) {
   const userId = session?.user?.id as string | undefined;
-  const accessToken = session?.access_token as string | undefined;
   const actualToday = getTodayWarsaw();
   const planningDate = targetDate ?? actualToday;
   const isPlanningTomorrow = planningDate !== actualToday;
@@ -37,7 +36,6 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
 
   const actions = useMorningPlanActions({
     userId,
-    accessToken,
     planningDate,
     onClose,
     yesterdayTasks: data.yesterdayTasks,
@@ -96,40 +94,13 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
         </div>
 
         {/* Week-at-a-glance strip */}
-        <div className="flex items-stretch gap-0.5 px-3 pt-2.5 pb-1.5 border-b border-border-custom/10 shrink-0">
-          {weekDays.map((d) => {
-            const isTarget = d === planningDate;
-            const isRealToday = d === actualToday;
-            const hours = data.weekCalendarEvents
-              .filter((e) => e.start_time && isoDateStr(e.start_time) === d)
-              .reduce((sum, e) => sum + (e.end_time ? isoDurationMin(e.start_time, e.end_time) : 0), 0) / 60;
-            const taskCount = data.weekTaskCounts[d] || 0;
-            const loadPct = Math.min(100, (hours / CAPACITY_HOURS) * 100);
-            const weekdayLabel = new Date(`${d}T12:00:00Z`).toLocaleDateString('pl-PL', { weekday: 'short' }).replace('.', '');
-            const dayNum = Number(d.slice(8, 10));
-            return (
-              <div
-                key={d}
-                className={`flex-1 flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${isTarget ? 'bg-primary/10' : ''}`}
-              >
-                <span className={`text-[8px] font-black uppercase tracking-wide ${isTarget ? 'text-primary' : 'text-text-muted/70'}`}>
-                  {weekdayLabel}
-                </span>
-                <span
-                  className={`text-[11px] font-black ${
-                    isTarget ? 'text-primary' : isRealToday ? 'text-text-primary' : 'text-text-secondary'
-                  }`}
-                >
-                  {dayNum}
-                </span>
-                <div className="w-4 h-1 rounded-full bg-border-custom/30 overflow-hidden">
-                  <div className="h-full bg-primary/50" style={{ width: `${loadPct}%` }} />
-                </div>
-                <span className="text-[7px] font-bold text-text-muted/60 h-2.5">{taskCount > 0 ? `${taskCount}z` : ''}</span>
-              </div>
-            );
-          })}
-        </div>
+        <MorningPlanWeekStrip
+          weekDays={weekDays}
+          planningDate={planningDate}
+          actualToday={actualToday}
+          weekCalendarEvents={data.weekCalendarEvents}
+          weekTaskCounts={data.weekTaskCounts}
+        />
 
         {/* Wizard Progress Line */}
         <div className="grid grid-cols-3 h-1 bg-border-custom/20 shrink-0">
@@ -183,39 +154,13 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
-          {step > 1 ? (
-            <button
-              onClick={() => setStep((prev) => (prev - 1) as 1 | 2 | 3)}
-              className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5"
-            >
-              <ChevronLeft size={16} />
-              Wróć
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {step < 3 ? (
-            <button
-              onClick={() => setStep((prev) => (prev + 1) as 1 | 2 | 3)}
-              className="px-5 py-3 rounded-xl bg-primary text-white text-[12px] font-black hover:bg-primary/95 transition-all flex items-center gap-1.5 ml-auto"
-            >
-              Dalej
-              <ChevronRight size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={actions.handleSubmitPlan}
-              disabled={actions.sending}
-              className="px-5 py-3 rounded-xl bg-primary text-white text-[12px] font-black hover:bg-primary/95 transition-all flex items-center gap-1.5 ml-auto shadow-lg shadow-primary/10 disabled:opacity-40"
-            >
-              <Send size={14} />
-              {actions.sending ? 'Zapisuję plan...' : `Zatwierdź Plan${dayWordCap === 'Jutro' ? ' na Jutro' : ''}`}
-            </button>
-          )}
-        </div>
+        <MorningPlanFooterActions
+          step={step}
+          setStep={setStep}
+          dayWordCap={dayWordCap}
+          sending={actions.sending}
+          onSubmit={actions.handleSubmitPlan}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { supabase, invokeEdge } from '../supabase'
+import { invokeEdge } from '../supabase'
 import { TIMEOUTS } from '../constants'
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>()

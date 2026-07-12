@@ -1,15 +1,18 @@
 import { useEffect } from 'react';
 import { Target } from 'lucide-react';
 import { usePowerListData } from './usePowerListData';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 import PowerListHeader from './powerList/PowerListHeader';
 import PowerListSetup from './powerList/PowerListSetup';
 import PowerListActive from './powerList/PowerListActive';
 
+import { type DailyWinWithTasks } from './usePowerListData';
+import type { Tables } from '../../lib/database.types';
+
 export interface PowerListProps {
   session: Session;
-  todayWin: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  todayWin: DailyWinWithTasks | null;
   onUpdate?: (data: Record<string, unknown>) => void;
   planDaySignal?: number;
 }
@@ -77,7 +80,7 @@ export default function PowerList({
         ) : todayWin && (() => {
           const tasks = todayWin.daily_win_tasks || [];
           const total = tasks.length;
-          const doneCount = tasks.filter((t: any) => t.done).length; // eslint-disable-line @typescript-eslint/no-explicit-any
+          const doneCount = tasks.filter((t: Tables<'daily_win_tasks'>) => t.done).length;
           return total > 0 ? (
             <div className="flex items-center gap-1.5">
               <div className="flex gap-1">

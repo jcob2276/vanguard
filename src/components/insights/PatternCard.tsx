@@ -25,11 +25,10 @@ const PATTERN_EMOJI: Record<string, string> = {
 
 interface PatternCardProps {
   pattern: PatternData;
-  userId: string;
   onFeedback?: (id: string, feedback: string) => void;
 }
 
-export function PatternCard({ pattern, userId, onFeedback }: PatternCardProps) {
+export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 

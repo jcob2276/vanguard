@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import type { Database } from '../../lib/database.types';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 export type TodayEntry = Database['public']['Tables']['daily_food_entries']['Row'];
 export type DailyNutritionRow = Database['public']['Tables']['daily_nutrition']['Row'];

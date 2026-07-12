@@ -78,20 +78,19 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
   const tasks = dataQuery.data?.tasks ?? [];
   const loading = dataQuery.isLoading;
 
-  const invalidate = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['weekly-balance-hexagon', userId, weekStart] });
-  }, [queryClient, userId, weekStart]);
-
-  const targetFor = (sphere: LifeSphereId) => budgets[sphere]?.max ?? budgets[sphere]?.min ?? 0;
+  const targetFor = useCallback(
+    (sphere: LifeSphereId) => budgets[sphere]?.max ?? budgets[sphere]?.min ?? 0,
+    [budgets],
+  );
 
   const axisScale = useMemo(() => {
     const values = LIFE_SPHERES.flatMap((s) => [targetFor(s.id), actuals?.[s.id] ?? 0]);
     return Math.max(6, ...values) * 1.15;
-  }, [budgets, actuals]);
+  }, [targetFor, actuals]);
 
   const budgetPoints = useMemo(
     () => polygonPoints(LIFE_SPHERES.map((s) => targetFor(s.id)), axisScale),
-    [budgets, axisScale],
+    [targetFor, axisScale],
   );
   const actualPoints = useMemo(
     () => polygonPoints(LIFE_SPHERES.map((s) => actuals?.[s.id] ?? 0), axisScale),

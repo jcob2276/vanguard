@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { calculateProjection } from './statsCalculations';
 import type { Tables } from '../database.types';
 
@@ -28,53 +28,6 @@ function createBodyMetric(date: string, weight: number | null, waist: number | n
   };
 }
 
-function createWorkoutSession(date: string, workoutDay: string): Tables<'workout_sessions'> {
-  return {
-    id: Math.random().toString(),
-    user_id: 'test-user',
-    created_at: null,
-    date,
-    workout_day: workoutDay,
-    duration_minutes: null,
-    embedding: null,
-    end_time: null,
-    importance_score: null,
-    msp_passed: null,
-    session_notes: null,
-    session_rpe: null,
-    start_time: null,
-    hr_avg_bpm: null,
-    hr_kcal_est: null,
-    hr_peak_bpm: null,
-    hr_rescored_at: null,
-    hr_strain_score: null,
-  };
-}
-
-function createOuraSummary(date: string, totalSleepHours: number): Tables<'oura_daily_summary'> {
-  return {
-    id: Math.random().toString(),
-    user_id: 'test-user',
-    created_at: null,
-    date,
-    total_sleep_hours: totalSleepHours,
-    active_calories: null,
-    bedtime_timestamp: null,
-    deep_sleep_hours: null,
-    hrv_avg: null,
-    is_disciplined: null,
-    latency_minutes: null,
-    readiness_score: null,
-    rem_sleep_hours: null,
-    rhr_avg: null,
-    sleep_efficiency: null,
-    sleep_score: null,
-    steps: null,
-    stress_score: null,
-    temp_deviation: null,
-    total_calories: null,
-  };
-}
 
 describe('statsCalculations - calculateProjection', () => {
   it('should return null if data is null, undefined, or empty', () => {

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { getTodayWarsaw } from '../date';
+import type { Json } from '../database.types';
 
 export type Supplement = {
   id: string;
@@ -8,7 +8,7 @@ export type Supplement = {
   name: string;
   emoji: string;
   unit: string;
-  dose_per_unit: any;
+  dose_per_unit: Record<string, unknown>;
   sort_order: number;
   active: boolean;
   start_date: string | null;
@@ -67,7 +67,7 @@ export async function saveSupplement(
         name: supplement.name,
         emoji: supplement.emoji,
         unit: supplement.unit,
-        dose_per_unit: supplement.dose_per_unit,
+        dose_per_unit: supplement.dose_per_unit as Json,
         sort_order: supplement.sort_order,
         active: supplement.active,
         start_date: supplement.start_date || null,
@@ -98,7 +98,7 @@ export async function saveSupplement(
         name: supplement.name,
         emoji: supplement.emoji,
         unit: supplement.unit,
-        dose_per_unit: supplement.dose_per_unit || {},
+        dose_per_unit: (supplement.dose_per_unit || {}) as Json,
         sort_order: supplement.sort_order ?? nextOrder,
         active: supplement.active ?? true,
         start_date: supplement.start_date || null,

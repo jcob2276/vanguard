@@ -2,6 +2,7 @@
  * Async action handlers for useDirection.
  * All "write" operations live here — separated from state management.
  */
+import { TIMEZONE } from '../../../../lib/date';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables, TablesUpdate } from '../../../../lib/database.types';
 import type { Json } from '../../../../lib/database.types';
@@ -141,7 +142,7 @@ export function createDirectionActions(params: {
     if (allDone) updates.result = 'Z';
     else {
       if (dayWin.result === 'Z') updates.result = null;
-      const isPastDeadline = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).getHours() >= 23;
+      const isPastDeadline = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE })).getHours() >= 23;
       if (isPastDeadline && !allDone) updates.result = 'P';
     }
 

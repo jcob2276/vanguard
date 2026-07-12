@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
-import type { Tables } from '../../../../lib/database.types';
+import type { Tables, Json } from '../../../../lib/database.types';
 import { monthCarryToWeekPlan } from '../../../../lib/growth/monthCarry';
 import { getSprintInfo } from '../../../../lib/growth/sprintUtils';
 import { useHaptics } from '../../../../hooks/useHaptics';
@@ -11,8 +11,14 @@ import { calculateStats, calculateWeekFacts } from '../../directionHelpers';
 import { fetchDirectionData } from './directionFetcher';
 import { createDirectionActions } from './directionActions';
 import { computeDirectionDateContext, directionDraftKeys } from './directionKeys';
+import type { SprintProjectDecision } from '../../../../lib/goal/goalSpine';
+import type { DirectionRawData } from './directionFetcher';
+import type { MonthFacts } from '../../../../lib/growth/monthReview';
+import type { SprintReview } from '../../../../lib/goal/goalSpine.types';
+import type { SprintFacts } from '../../../../lib/growth/sprintReview';
 
 type DailyWinRow = Tables<'daily_wins'>;
+type CalendarEventRow = DirectionRawData['calData'] extends (infer T)[] | null ? T : never;
 type WeeklyReviewRow = Tables<'weekly_reviews'>;
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
 type MonthRecap = Phase1Recap;
@@ -50,7 +56,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
   // ── Core state (synced from query) ─────────────────────────────────────
   const [history, setHistory] = useState<DailyWinRow[]>([]);
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
-  const [allCalEvents, setAllCalEvents] = useState<any[]>([]);
+  const [allCalEvents, setAllCalEvents] = useState<CalendarEventRow[]>([]);
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
   const [weekDoneTasks, setWeekDoneTasks] = useState<{ title: string; status: string }[]>([]);
   const [weekOura, setWeekOura] = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
@@ -88,7 +94,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
 
   // ── Monthly state ───────────────────────────────────────────────────────
   const [monthReview, setMonthReview]         = useState<Tables<'monthly_reviews'> | null>(null);
-  const [monthFacts, setMonthFacts]           = useState<any>(null);
+  const [monthFacts, setMonthFacts]           = useState<MonthFacts | null>(null);
   const [monthRecap, setMonthRecap]           = useState<MonthRecap | null>(null);
   const [monthRecapLoading, setMonthRecapLoading] = useState(false);
   const [monthCompleting, setMonthCompleting] = useState(false);
@@ -98,12 +104,12 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
   const [monthTheme, setMonthTheme]       = usePersistentDraft(monthKey('theme'), '');
 
   // ── Sprint state ────────────────────────────────────────────────────────
-  const [sprintReview, setSprintReview]   = useState<any>(null);
-  const [sprintFacts, setSprintFacts]     = useState<any>(null);
+  const [sprintReview, setSprintReview]   = useState<SprintReview | null>(null);
+  const [sprintFacts, setSprintFacts]     = useState<SprintFacts | null>(null);
   const [sprintCompleting, setSprintCompleting] = useState(false);
   const [sprintReflection, setSprintReflection] = usePersistentDraft(sprintDraftKey('reflection'), '');
   const [nextSprintGoal, setNextSprintGoal]     = usePersistentDraft(sprintDraftKey('nextGoal'), '');
-  const [projectDecisions, setProjectDecisions] = usePersistentDraft<Record<string, any>>(sprintDraftKey('projects'), {});
+  const [projectDecisions, setProjectDecisions] = usePersistentDraft<Record<string, SprintProjectDecision>>(sprintDraftKey('projects'), {});
   const [intentionFromMonth, setIntentionFromMonth] = useState(false);
   const [carryMonthTheme, setCarryMonthTheme]       = useState<string | null>(null);
   const [planCarriedFromMonth, setPlanCarriedFromMonth] = useState(false);
@@ -195,8 +201,8 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
 
   // ── Month carry ─────────────────────────────────────────────────────────
   const applyMonthCarry = useCallback(
-    (review: { month_theme?: string | null; correction_note?: string | null; leverage_note?: string | null } | null, facts: any) => {
-      const carry = monthCarryToWeekPlan(review, facts);
+    (review: { month_theme?: string | null; correction_note?: string | null; leverage_note?: string | null } | null, facts: MonthFacts | Json | null) => {
+      const carry = monthCarryToWeekPlan(review, facts as MonthFacts | null);
       let applied = false;
       if (carry.intention && !weekIntention.trim()) { setWeekIntention(carry.intention); setIntentionFromMonth(true); applied = true; }
       if (carry.commitment && !weekCommitment.trim()) { setWeekCommitment(carry.commitment); applied = true; }

@@ -159,7 +159,7 @@ for (const file of allFiles) {
 }
 
 const jsdocVsActual = []; // functions where index.ts JSDoc misses tables actually touched anywhere in the function
-for (const [fn, entry] of functionAccess) {
+for (const [_fn, entry] of functionAccess) {
   if (!entry.indexJsdoc) continue; // no index.ts found (shouldn't happen) — skip rather than false-flag
   const jsdocAll = new Set([...entry.indexJsdoc.reads, ...entry.indexJsdoc.writes]);
   const actualAll = new Set([...entry.reads, ...entry.writes]);

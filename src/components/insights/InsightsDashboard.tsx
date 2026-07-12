@@ -35,7 +35,7 @@ export function InsightsDashboard() {
     enabled: !!userId,
   });
 
-  const cards = cardsQuery.data ?? [];
+  const cards = useMemo(() => cardsQuery.data ?? [], [cardsQuery.data]);
   const cardsLoading = cardsQuery.isLoading;
 
   const activityTrend = useMemo(() => {

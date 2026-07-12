@@ -36,7 +36,7 @@ function nowMinutes() {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-export default function TimelineView({ items, sectionGoalMap, today, onToggle, onExpand }: Props) {
+export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const pending = useMemo(

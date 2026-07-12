@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter, List, Code, AlertCircle } from 'lucide-react';
+import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
 import { notify } from '../../lib/notify';
 import { SLASH_COMMANDS } from './richEditorCommands';
@@ -543,7 +543,7 @@ export default function RichEditor({
           let frag: DocumentFragment;
           try {
             frag = afterRange.extractContents();
-          } catch (err: unknown) {
+          } catch {
             frag = document.createDocumentFragment();
           }
 

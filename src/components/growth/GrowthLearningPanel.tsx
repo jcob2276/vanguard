@@ -1,5 +1,7 @@
 import { BookOpen, CheckCircle2, ExternalLink, FileText, Link2, TrendingUp } from 'lucide-react';
 import type { LearningNeedItem, WeekLearningItem } from '../../lib/growth/growthOverview';
+import type { GrowthLinkRow } from './hooks/useGrowthData';
+import type { GrowthPinSlot } from '../../lib/growth/growth';
 
 const KIND_ICON = {
   pin: CheckCircle2,
@@ -38,8 +40,8 @@ export default function GrowthLearningPanel({
   drill: string | null;
   weekItems: WeekLearningItem[];
   readOnly: boolean;
-  focusLinks?: any[];
-  onQuickPinLink?: (linkId: string, slot: any) => void;
+  focusLinks?: GrowthLinkRow[];
+  onQuickPinLink?: (linkId: string, slot: GrowthPinSlot) => void;
 }) {
   return (
     <div className="space-y-4 h-full flex flex-col">

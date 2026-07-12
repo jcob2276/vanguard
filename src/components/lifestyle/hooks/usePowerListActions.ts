@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { TIMEZONE } from '../../../lib/date';
 import { supabase } from '../../../lib/supabase';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { notify } from '../../../lib/notify';
@@ -186,7 +187,7 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
   if (allDone) updates.result = 'Z';
   else {
     if (todayWin.result === 'Z') updates.result = null;
-    const warsawHour = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
+    const warsawHour = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }), 10);
     if (warsawHour >= 23 && !allDone) updates.result = 'P';
   }
 

@@ -1,7 +1,8 @@
-import { formatWarsawDate, getTodayWarsaw, shiftDateStr } from '../../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../lib/database.types';
 import { TIMEOUTS } from '../../../lib/constants';
+import type { TrainingAnalysis } from './TrainingAnalysisSection';
 
 export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
   const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -32,7 +33,7 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
   }
 }
 
-export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from, to }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; from: string; to: string }) {
+export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from, to }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; from: string; to: string }): Promise<TrainingAnalysis> {
   const { data: { session: authSession } } = await supabase.auth.getSession();
   if (!authSession) throw new Error('No active session found');
   try {

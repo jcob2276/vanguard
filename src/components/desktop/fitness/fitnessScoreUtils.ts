@@ -13,6 +13,8 @@ import {
 } from '@vanguard/domain';
 import { mergeLatestBodyMetrics } from '../../../lib/health/bodyMetrics';
 import { stravaDay, countQualityStrengthSets, summarizeStravaWindow } from './fitnessScoreHelpers';
+import type { OuraRow, NutritionDayRow } from '../desktopUtils';
+import type { DesktopSessionRow, StravaActivityRow, HabitRow, HabitLogRow } from '../shell/useDesktopData';
 
 export type ScoreKey = 'consistency' | 'endurance' | 'strength' | 'habits' | 'progress' | 'volume';
 
@@ -25,21 +27,31 @@ type DimensionBreakdown = {
 };
 
 export function computeFitnessProfile(input: {
-  oura: any[];
-  nutrition: any[];
-  sessions: any[];
-  strava: any[];
-  habits: any[];
-  habitLogs: any[];
-  volData: any[];
+  oura: OuraRow[];
+  nutrition: NutritionDayRow[];
+  sessions: DesktopSessionRow[];
+  strava: StravaActivityRow[];
+  habits: HabitRow[];
+  habitLogs: HabitLogRow[];
+  volData: { week: string; vol: number }[];
   body: BodyRow[];
   heightCm: number | null;
   today: string;
 }) {
-  const { oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today } = input;
+  const { oura, nutrition, sessions: rawSessions, strava, habits, habitLogs: rawHabitLogs, volData, body, heightCm, today } = input;
   const since7 = daysBefore(7);
   const since14 = daysBefore(14);
   const weekStart = getWeekStartWarsaw(getTodayWarsaw());
+
+  // Domain-lib helpers require non-null dates/ids/numbers; DB columns are nullable, so normalize once here.
+  const sessions = rawSessions.map((s) => ({ ...s, date: s.date ?? '' }));
+  const sessionsForDomain = sessions.map((s) => ({
+    ...s,
+    exercise_logs: s.exercise_logs.map((l) => ({ ...l, weight: l.weight != null ? Number(l.weight) : null, reps: l.reps != null ? Number(l.reps) : null })),
+  }));
+  const habitLogs = rawHabitLogs
+    .filter((l): l is typeof l & { habit_id: string; date: string } => l.habit_id != null && l.date != null);
+  const stravaForDomain = strava.map((a) => ({ ...a, distance: a.distance ?? undefined, moving_time: a.moving_time ?? undefined }));
 
   const trainingSessions7d = sessions.filter(
     (s) => sessionDateKey(s.date) >= since7 && !isWellnessOnlySession(s),
@@ -70,7 +82,7 @@ export function computeFitnessProfile(input: {
     ),
   );
   const enduranceScore = (() => {
-    const cooperKm = cooperBestKm(strava);
+    const cooperKm = cooperBestKm(stravaForDomain);
     const cooperPts = cooperToPoints(cooperKm);
     if (cooperPts.score <= 0) return aerobicPoints;
     return Math.min(
@@ -81,7 +93,7 @@ export function computeFitnessProfile(input: {
       ),
     );
   })();
-  const cooperKm = cooperBestKm(strava);
+  const cooperKm = cooperBestKm(stravaForDomain);
   const cooperPts = cooperToPoints(cooperKm);
 
   const workouts14d = sessions.filter((s) => s.date >= since14 && !isWellnessOnlySession(s));
@@ -107,7 +119,7 @@ export function computeFitnessProfile(input: {
   const mergedBody = mergeLatestBodyMetrics(body);
   const latestWeight = mergedBody?.weight ?? null;
   const weightAsOf = mergedBody?.asOfDate ?? null;
-  const liftPRs = extractLiftPRs(sessions, today);
+  const liftPRs = extractLiftPRs(sessionsForDomain, today);
   const capacity = strengthCapacityScore(liftPRs, latestWeight, weightAsOf);
   const strengthScore =
     capacity.score > 0
@@ -135,11 +147,11 @@ export function computeFitnessProfile(input: {
   const sleepPoints = (avgSleepScore - 50) / 5;
 
   const nutr7d = nutrition.filter((n) => n.date >= since7);
-  const proteinDays = nutr7d.filter((n) => n.protein >= 140).length;
+  const proteinDays = nutr7d.filter((n) => (n.protein ?? 0) >= 140).length;
   const proteinTargetMetRate = proteinDays / 7;
   const nutritionPoints = proteinTargetMetRate * 4;
 
-  const { sessionsCount: saunaCount7d, totalMinutes: saunaMinutes7d } = getSaunaStats(sessions, since7);
+  const { sessionsCount: saunaCount7d, totalMinutes: saunaMinutes7d } = getSaunaStats(sessionsForDomain, since7);
   const saunaPoints = Math.min(
     4,
     parseFloat((saunaCount7d * 1.2 + saunaMinutes7d * 0.06).toFixed(1)),

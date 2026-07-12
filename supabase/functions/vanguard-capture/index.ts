@@ -43,7 +43,7 @@ Deno.serve(serveJson(async (req, ctx) => {
 
       const declaredMeta = formData.get("metadata");
       if (declaredMeta) {
-        try { metadata = JSON.parse(String(declaredMeta)); } catch (_) {}
+        try { metadata = JSON.parse(String(declaredMeta)); } catch (err) { console.debug("[vanguard-capture] Failed to parse declaredMeta json:", err); }
       }
 
       if (!openAiKey) throw new Error("OPENAI_API_KEY is not configured");

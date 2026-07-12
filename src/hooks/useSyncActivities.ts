@@ -58,7 +58,6 @@ export function useSyncActivities({
       if (eventsErr) throw eventsErr;
 
       let createdCount = 0;
-      let skippedCount = 0;
 
       const eventExists = (startTime: string, summarySub: string) => {
         const startSec = new Date(startTime).getTime();
@@ -76,7 +75,7 @@ export function useSyncActivities({
           if (!session.start_time) continue;
 
           const isSauna = session.exercise_logs?.some(
-            (el: any) => el.exercise_name?.toLowerCase() === 'sauna'
+            (el: { exercise_name?: string | null }) => el.exercise_name?.toLowerCase() === 'sauna'
           );
 
           const summary = isSauna ? 'Sauna 🧖' : 'Siłownia 🏋️';
@@ -94,7 +93,6 @@ export function useSyncActivities({
           const endISO = new Date(new Date(startISO).getTime() + duration * 60 * 1000).toISOString();
 
           if (eventExists(startISO, isSauna ? 'sauna' : 'siłownia')) {
-            skippedCount++;
             continue;
           }
 
@@ -119,7 +117,6 @@ export function useSyncActivities({
           const endISO = new Date(new Date(startISO).getTime() + durationSec * 1000).toISOString();
 
           if (eventExists(startISO, 'bieg')) {
-            skippedCount++;
             continue;
           }
 

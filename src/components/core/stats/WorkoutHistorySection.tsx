@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { Trash2, Zap } from 'lucide-react';
-import { Session } from '@supabase/supabase-js';
+import type { WorkoutSessionRow, EditFormState, EditableExerciseLog } from '../hooks/useStatsData';
 
 export function WorkoutHistorySection({
   recentSessions,
@@ -15,16 +15,16 @@ export function WorkoutHistorySection({
   deleteLog,
   setEditingSession,
 }: {
-  recentSessions: any[];
+  recentSessions: WorkoutSessionRow[];
   showAllSessions: boolean;
   setShowAllSessions: React.Dispatch<React.SetStateAction<boolean>>;
   editingSession: string | null;
-  editForm: any;
-  setEditForm: React.Dispatch<React.SetStateAction<any>>;
-  startEditing: (session: any) => void;
+  editForm: EditFormState;
+  setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
+  startEditing: (session: WorkoutSessionRow) => void;
   updateSession: () => void;
-  deleteSession: (id: any) => void;
-  deleteLog: (id: any) => void;
+  deleteSession: (id: string) => void;
+  deleteLog: (id: string) => void;
   setEditingSession: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   return (
@@ -41,18 +41,18 @@ export function WorkoutHistorySection({
             </tr>
           </thead>
           <tbody className="divide-y divide-border-custom text-[10px] font-semibold text-text-primary">
-            {recentSessions.slice(0, showAllSessions ? 12 : 4).map((s: any) => (
+            {recentSessions.slice(0, showAllSessions ? 12 : 4).map((s) => (
               <tr key={s.id} className="transition-colors hover:bg-primary/[0.02] dark:hover:bg-white/[0.02]">
                 <td className="p-3">
                   {editingSession === s.id ? (
                     <input 
                       type="date" 
-                      value={editForm.date} 
+                      value={editForm.date ?? ""} 
                       onChange={e => setEditForm({...editForm, date: e.target.value})} 
                       className="bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] text-text-primary outline-none focus:border-primary/50" 
                     />
                   ) : (
-                    format(parseISO(s.date), 'dd.MM')
+                    format(parseISO(s.date ?? ""), 'dd.MM')
                   )}
                 </td>
                 <td className="p-3 text-center text-text-secondary">
@@ -65,12 +65,12 @@ export function WorkoutHistorySection({
                         placeholder="Nazwa treningu..."
                         className="w-full bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] font-bold text-text-primary outline-none focus:border-primary/50"
                       />
-                      {editForm.logs.map((log: any, idx: number) => {
+                      {editForm.logs.map((log, idx) => {
                         const isWellness = log.muscle_tags?.includes('wellness') ||
                           ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling'].some(
                             w => (log.exercise_name || '').toLowerCase().startsWith(w)
                           );
-                        const updateLog = (field: string, value: any) => {
+                        const updateLog = (field: keyof EditableExerciseLog, value: string) => {
                           const newLogs = [...editForm.logs];
                           newLogs[idx] = { ...newLogs[idx], [field]: value };
                           setEditForm({...editForm, logs: newLogs});
@@ -82,14 +82,14 @@ export function WorkoutHistorySection({
                             <>
                               <input
                                 type="number"
-                                value={log.reps}
+                                value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}
                                 className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
                               />
                               <span className="text-[8px] text-text-muted">min</span>
                               <input
                                 type="number"
-                                value={log.weight}
+                                value={log.weight ?? ""}
                                 onChange={e => updateLog('weight', e.target.value)}
                                 className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
                               />
@@ -100,14 +100,14 @@ export function WorkoutHistorySection({
                               <input
                                 type="number"
                                 step="0.5"
-                                value={log.weight}
+                                value={log.weight ?? ""}
                                 onChange={e => updateLog('weight', e.target.value)}
                                 className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
                               />
                               <span className="text-[8px] text-text-muted">kg x</span>
                               <input
                                 type="number"
-                                value={log.reps}
+                                value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}
                                 className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
                               />

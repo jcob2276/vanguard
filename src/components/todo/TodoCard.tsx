@@ -1,21 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { shiftDateStr } from '../../lib/date';
-import { Bell, Check, Repeat2, Link2, Pencil, X, GripVertical, Clock, Sparkles, Paperclip, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Repeat2, Link2, Pencil, X, GripVertical, Clock, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
 import {
   GOAL_ICON,
-  PRIORITY,
-  PRIORITY_ORDER,
   splitEmoji,
   relativeDate,
   RECURRENCE_LABELS
 } from './todoUtils';
-import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 import TodoCardExpandedPanel from './TodoCardExpandedPanel';
 import { useTodoCardAttachments } from './useTodoCardAttachments';
 import { useTodoCardSwipe } from './useTodoCardSwipe';
+import type { TodoItemRow } from '../../lib/todo/todo';
 
 export interface TodoCardProps {
-  item: any;
+  item: TodoItemRow;
   onToggle: () => void;
   onDrop: () => void;
   onSetPriority: (p: string) => void;
@@ -24,7 +21,7 @@ export interface TodoCardProps {
   busy: boolean;
   today: string;
   isLinkedToPlan: boolean;
-  sections: any[];
+  sections: { id: string; name: string }[];
   onMoveSection: (sId: string | null) => void;
   isEditing: boolean;
   editingTitle: string;
@@ -33,9 +30,9 @@ export interface TodoCardProps {
   onEditSave: () => void;
   sectionName?: string | null;
   sectionGoalKey?: string | null;
-  onDragStart?: (item: any, clientX: number, clientY: number) => void;
+  onDragStart?: (item: TodoItemRow, clientX: number, clientY: number) => void;
   isDragging: boolean;
-  onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
+  onShowContextMenu: (item: TodoItemRow, clientX: number, clientY: number) => void;
   onMoveToToday?: () => void;
   onSetDueDate: (date: string | null) => void;
   onSetRecurrence: (r: string | null) => void;
@@ -47,9 +44,9 @@ export interface TodoCardProps {
   onAiBreakdown: () => Promise<string[]>;
   onSetTitle: (title: string) => void;
   onSetNotes?: (notes: string | null) => void;
-  childTasks?: any[];
+  childTasks?: TodoItemRow[];
   onAddChildTask?: (title: string) => void;
-  onToggleChildTask?: (child: any) => void;
+  onToggleChildTask?: (child: TodoItemRow) => void;
 }
 
 export default function TodoCard({
@@ -74,16 +71,10 @@ export default function TodoCard({
   onDragStart,
   isDragging,
   onShowContextMenu,
-  onMoveToToday,
   onSetDueDate,
-  onSetRecurrence,
   dreamTitle,
   onSetReminder,
-  onCancelReminder,
   onSetTags,
-  onSetSphere,
-  onAiBreakdown,
-  onSetTitle,
   onSetNotes,
   childTasks = [],
   onAddChildTask,
@@ -120,19 +111,13 @@ export default function TodoCard({
     }
   }, [expanded]);
 
-  const description = (item.notes || '').trim();
   const totalSubtaskCount = childTasks.length;
   const doneSubtaskCount = childTasks.filter((c) => c.status === 'done').length;
-  const p = PRIORITY[item.priority] ?? PRIORITY.normal;
   const isDone = item.status === 'done';
 
   const leftBorder = '';
   const { icon, label } = splitEmoji(item.title);
   const dateInfo = relativeDate(item.due_date, today);
-  const tomorrowStr = useMemo(() => {
-    if (!today) return '';
-    return shiftDateStr(today, 1);
-  }, [today]);
 
   return (
     <div

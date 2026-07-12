@@ -5,7 +5,6 @@ import {
   addProjectKpi,
   fetchProjectWeekKpis,
   setProjectKpiTarget,
-  type ProjectWeekKpi,
 } from '../../lib/goal/goalSpine';
 import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
 

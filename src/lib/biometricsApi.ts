@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { supabase, invokeEdge } from './supabase';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from './supabase';
 import { getTodayWarsaw } from './date';
 
 export const biometricsKeys = {

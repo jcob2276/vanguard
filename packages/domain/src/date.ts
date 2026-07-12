@@ -1,4 +1,5 @@
-const WARSAW_TZ = 'Europe/Warsaw';
+export const TIMEZONE = 'Europe/Warsaw';
+export const WARSAW_TZ = TIMEZONE;
 
 export function getTodayWarsaw(): string {
   return formatWarsawDate(new Date());
@@ -65,28 +66,30 @@ export function combineDateTimeWarsawISO(dateStr: string, timeStr: string): stri
   return `${dateStr}T${timeStr}:00${offset}`;
 }
 
+const warsawTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: WARSAW_TZ,
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
 /** Reads the "HH:MM" wall-clock time (Warsaw) back off a stored timestamptz ISO string. */
 export function warsawTimeOfDay(isoStr: string): string {
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: WARSAW_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  return formatter.format(new Date(isoStr));
+  return warsawTimeFormatter.format(new Date(isoStr));
 }
+
+const warsawDateFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: WARSAW_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
 
 export function formatWarsawDate(date: Date | string | number): string {
   try {
     const d = new Date(date);
     if (isNaN(d.getTime())) return '';
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: WARSAW_TZ,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const parts = formatter.formatToParts(d);
+    const parts = warsawDateFormatter.formatToParts(d);
     const year = parts.find(p => p.type === 'year')?.value;
     const month = parts.find(p => p.type === 'month')?.value;
     const day = parts.find(p => p.type === 'day')?.value;

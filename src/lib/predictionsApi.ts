@@ -23,7 +23,6 @@ export async function listWeeklyPredictions(
   userId: string,
   weekStart: string
 ): Promise<Prediction[]> {
-  const start = new Date(weekStart + 'T12:00:00Z');
   const weekEnd = shiftDateStr(weekStart, 6);
 
   const { data, error } = await supabase

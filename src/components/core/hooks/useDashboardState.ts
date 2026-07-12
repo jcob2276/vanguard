@@ -6,7 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useStore } from '../../../store/useStore';
 import { useDashboardData } from './useDashboardData';
-import { getTodayWarsaw } from '../../../lib/date';
+import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { useNudgeData } from './useNudgeData';
 import { useSyncActions } from '../../../hooks/useSyncActions';
@@ -165,6 +165,10 @@ export function useDashboardState(session: Session) {
   }, [openModal]);
 
   // View event tracking
+  // Note: viewEventMutation identity changes on every status transition (idle/pending/success).
+  // We store the mutate fn in a ref so the effect below only re-fires when userId or view
+  // actually changes — not on every mutation lifecycle tick. This prevents an infinite
+  // insert loop into view_events (seen at 87k+ rows when the mutation was in the deps array).
   const viewEventMutation = useMutation({
     mutationFn: async (viewName: string) => {
       if (!userId) return;
@@ -172,12 +176,14 @@ export function useDashboardState(session: Session) {
       if (error) throw error;
     }
   });
+  const viewEventMutateRef = useRef(viewEventMutation.mutate);
+  useEffect(() => { viewEventMutateRef.current = viewEventMutation.mutate; });
 
   useEffect(() => {
     if (userId && view) {
-      viewEventMutation.mutate(view);
+      viewEventMutateRef.current(view);
     }
-  }, [userId, view, viewEventMutation]);
+  }, [userId, view]);
 
   // Task review status
   const { data: latestTaskReviewDate } = useQuery({
@@ -222,7 +228,7 @@ export function useDashboardState(session: Session) {
   // Data
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
   const { isSyncing, setSyncing } = useStore();
-  const { weeklyCalories, todayWin, loading, refresh } = useDashboardData();
+  const { weeklyCalories, todayWin, loading, refresh } = useDashboardData(session);
   const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
   const { syncCalendar, startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
   const { reviewOverdueDays, urgentTodoCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
@@ -236,7 +242,7 @@ export function useDashboardState(session: Session) {
       if (localStorage.getItem('vanguard_shutdown_dismissed') === today) return;
     } catch (e: unknown) { console.warn('[useDashboardState] Failed to read shutdown dismissed date from localStorage:', e); }
     const warsawHour = parseInt(
-      new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }),
+      new Date().toLocaleTimeString('en-CA', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }),
       10
     );
     if (warsawHour >= 20) { setTimeout(() => setShowShutdown(true), 0); }

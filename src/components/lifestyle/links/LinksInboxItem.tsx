@@ -8,10 +8,12 @@ import {
   ListTodo,
   StickyNote
 } from 'lucide-react';
+import type { SavedLink } from '../../../lib/linksApi';
+import type { useLinksInboxData } from './useLinksInboxData';
 
 interface LinksInboxItemProps {
-  link: any;
-  d: any;
+  link: SavedLink;
+  d: ReturnType<typeof useLinksInboxData>;
   haptic: (pattern: number | number[]) => void;
   CATEGORY_COLORS: Record<string, { pill: string }>;
   CATEGORIES: string[];
@@ -261,11 +263,11 @@ export function LinksInboxItem({
               </div>
               <textarea
                 value={d.notesDrafts[link.id] ?? (link.notes || '')}
-                onChange={e => d.setNotesDrafts((prev: any) => ({ ...prev, [link.id]: e.target.value }))}
+                onChange={e => d.setNotesDrafts((prev) => ({ ...prev, [link.id]: e.target.value }))}
                 onBlur={() => d.saveNotes(link.id)}
                 onFocus={e => {
                   if (d.notesDrafts[link.id] === undefined) {
-                    d.setNotesDrafts((prev: any) => ({ ...prev, [link.id]: link.notes || '' }));
+                    d.setNotesDrafts((prev) => ({ ...prev, [link.id]: link.notes || '' }));
                   }
                   e.currentTarget.style.height = 'auto';
                   e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';

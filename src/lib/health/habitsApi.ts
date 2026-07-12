@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
-import { getTodayWarsaw, shiftDateStr } from '../date';
+import { getTodayWarsaw } from '../date';
 import { isOfflineError, queueOfflineWrite } from '../offlineQueue';
 import { mirrorHabitLogToStream } from '../behavior/behaviorEvidence';
-import { notify } from '../notify';
 import type { Database } from '../database.types';
 
 export type HabitRow = Database['public']['Tables']['habits']['Row'];
@@ -77,7 +76,7 @@ export function useAddHabit() {
 export function useDeleteHabit() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, id }: { userId: string; id: string }) => {
+    mutationFn: async ({ userId: _userId, id }: { userId: string; id: string }) => {
       try {
         const { error } = await supabase.from('habits').delete().eq('id', id);
         if (error) throw error;
@@ -101,7 +100,7 @@ export function useToggleHabit() {
       habitId,
       habit,
       existingLog,
-      sinceDate,
+      sinceDate: _sinceDate,
     }: {
       userId: string;
       habitId: string;

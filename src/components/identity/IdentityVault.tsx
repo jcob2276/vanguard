@@ -84,10 +84,10 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
   });
 
   // Sync query result → editable vault state
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
     const data = vaultQuery.data;
     if (data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
       setVault({
         vision: data.vision || '',
         identity: data.identity || '',

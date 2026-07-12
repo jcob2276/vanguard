@@ -1,14 +1,59 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../../../lib/date';
+import { fetchOracleRecommendations } from '../../../../lib/recommendationsApi';
+import { OuraRow } from '../../desktopUtils';
+
+export interface GeneralViewStrain {
+  date: string;
+  recovery_score: number | null;
+  strain_score: number | null;
+  readiness_level: string | null;
+  components: unknown;
+}
+
+export interface GeneralViewPattern {
+  pattern_type: string;
+  title: string;
+  evidence_text: string | null;
+  occurrence_count: number;
+  confidence: number;
+  status: string;
+  last_seen: string | null;
+}
+
+export interface GeneralViewWiki {
+  title: string;
+  page_type: string;
+  status: string;
+  confidence: number | null;
+  summary: string | null;
+  tags: string[] | null;
+  last_seen_at: string | null;
+}
+
+export interface GeneralViewCuriosity {
+  hypothesis: string;
+  provocation: string | null;
+  confidence_score: number;
+  category: string | null;
+  evidence_count: number;
+  created_at: string;
+}
+
+export interface GeneralViewFriction {
+  occurred_at: string;
+  friction_type: string;
+  actual_behavior: string | null;
+  immediate_cost: string | null;
+  deviation: number | null;
+  confidence: number | null;
+}
 
 interface UseGeneralViewDataOptions {
   userId: string;
-  ouraProp?: any[];
+  ouraProp?: OuraRow[];
 }
-
-import { fetchOracleRecommendations } from '../../../../lib/recommendationsApi';
 
 export function useGeneralViewData({ userId, ouraProp }: UseGeneralViewDataOptions) {
   const { data, isLoading: loading } = useQuery({

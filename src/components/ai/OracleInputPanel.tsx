@@ -5,7 +5,6 @@ interface OracleInputPanelProps {
   input: string;
   setInput: (val: string) => void;
   loading: boolean;
-  focused: boolean;
   setFocused: (val: boolean) => void;
   storageScope: 'default' | 'medical';
   pendingImages: File[];
@@ -21,7 +20,6 @@ export function OracleInputPanel({
   input,
   setInput,
   loading,
-  focused,
   setFocused,
   storageScope,
   pendingImages,

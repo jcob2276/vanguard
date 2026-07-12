@@ -1,5 +1,6 @@
 import { Check, Link2 } from 'lucide-react';
-import { TIME_SLOT_LABELS } from './usePowerListData';
+
+type SphereIconType = React.ComponentType<{ size?: number | string; className?: string }>;
 
 const COLOR_DOT: Record<string, string> = {
   indigo: 'bg-indigo-500',
@@ -19,7 +20,7 @@ export interface PowerListTaskProps {
   linkedProjectId: string | null;
   projectMap: Record<string, { name: string; color: string | null }>;
   toggleTask: (index: number) => void;
-  sphere: { category: string; label: string; icon: React.ComponentType<any>; text: string; bg: string } | null;
+  sphere: { category: string; label: string; icon: SphereIconType; text: string; bg: string } | null;
   targetValue: string | null;
   timeSlot: 'morning' | 'noon' | 'afternoon' | 'evening' | null;
 }
@@ -35,7 +36,6 @@ export default function PowerListTask({
   toggleTask,
   sphere,
   targetValue,
-  timeSlot,
 }: PowerListTaskProps) {
   const SphereIcon = sphere?.icon;
   const targetValueLabel = targetValue ? (/^\d+$/.test(targetValue.trim()) ? `${targetValue.trim()}×` : targetValue.trim()) : null;
@@ -69,6 +69,11 @@ export default function PowerListTask({
             <p className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
               {task}
             </p>
+            {targetValueLabel && (
+              <span className="shrink-0 rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-text-muted/70 bg-text-primary/5">
+                {targetValueLabel}
+              </span>
+            )}
           </div>
           {done && completedAt && (
             <p className="mt-0.5 text-[9px] font-semibold text-dayC/80">

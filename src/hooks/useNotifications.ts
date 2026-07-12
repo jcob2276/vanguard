@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { getTodayWarsaw } from '../lib/date';
+import { getTodayWarsaw, TIMEZONE } from '../lib/date';
 
 function getWarsawHourMinute(): { hour: number; minute: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Warsaw',
+    timeZone: TIMEZONE,
     hour: 'numeric',
     minute: 'numeric',
     hour12: false,

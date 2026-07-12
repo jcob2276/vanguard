@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../../lib/date';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { defaultMealType } from '../../../../lib/health/foodLogging';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 // Re-export types and utilities for backward compatibility
 export * from './foodEntryUtils';

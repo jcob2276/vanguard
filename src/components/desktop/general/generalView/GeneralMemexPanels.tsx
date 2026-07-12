@@ -1,10 +1,12 @@
 import { Panel } from '../../shell/Panel';
 import ScoreBar from './ScoreBar';
 
+import { GeneralViewPattern, GeneralViewCuriosity, GeneralViewWiki } from '../hooks/useGeneralViewData';
+
 interface GeneralMemexPanelsProps {
-  patterns: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  curiosity: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  wiki: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  patterns: GeneralViewPattern[];
+  curiosity: GeneralViewCuriosity[];
+  wiki: GeneralViewWiki[];
   emeraldColor: string;
 }
 

@@ -23,7 +23,9 @@ Deno.serve(serveJson(async (req) => {
     const text = await req.clone().text().catch(() => "");
     try {
       if (text) body = JSON.parse(text);
-    } catch (_) {}
+    } catch (err) {
+      console.debug("[recap] Failed to parse request body text:", err);
+    }
   }
 
   const requestedUserId = url.searchParams.get("userId") || body.userId;

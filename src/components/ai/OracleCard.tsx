@@ -182,7 +182,6 @@ export default function OracleCard({
             input={input}
             setInput={setInput}
             loading={loading}
-            focused={focused}
             setFocused={setFocused}
             storageScope={storageScope}
             pendingImages={pendingImages}

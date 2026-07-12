@@ -1,11 +1,8 @@
-import { AlertTriangle, Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap } from 'lucide-react';
+import { Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProjectCheckpoint } from '../../lib/projects/projects';
 import { TodoItemRow } from '../../lib/todo/todo';
-import {
-  COLORS, PILLAR_META, STATUS_LABEL, PillarId, ProjectStats, ProjectRow, GoalKpiRow,
-  calculateHealthScore, getHealthLevel, HEALTH_COLORS, getNextAction, getProjectMomentum
-} from './projectUtils';
+import { COLORS, STATUS_LABEL, ProjectStats, ProjectRow } from './projectUtils';
 import ProjectEvidenceStrip from './ProjectEvidenceStrip';
 
 const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
@@ -15,15 +12,9 @@ interface ProjectCardExpandedProps {
   project: ProjectRow;
   s: ProjectStats;
   col: ReturnType<typeof import('./projectUtils').colorOf>;
-  pillar: PillarId | null;
-  kpis: GoalKpiRow[];
-  healthScore: number;
-  healthLevel: 'critical' | 'at-risk' | 'ok' | 'great';
   healthColors: { bg: string; text: string };
-  momentum: string;
-  momentumMeta: { label: string; cls: string };
+  healthScore: number;
   nextAction: string | null;
-  visibleCps: ProjectCheckpoint[];
   projectCheckpoints: ProjectCheckpoint[];
   doneCheckpoints: number;
   busy: boolean;
@@ -41,10 +32,6 @@ interface ProjectCardExpandedProps {
   handleToggleCheckpoint: (checkpoint: ProjectCheckpoint) => void;
   deleteCheckpoint: (id: string) => void;
 
-  editingKpiId: string | null;
-  setEditingKpiId: (id: string | null) => void;
-  handleUpdateKpiValue: (kpiId: string, raw: string) => void;
-
   handleToggleTask: (item: TodoItemRow) => void;
   newTask: { projectId: string; title: string; recurrence: string } | null;
   setNewTask: React.Dispatch<React.SetStateAction<{ projectId: string; title: string; recurrence: string } | null>>;
@@ -55,17 +42,13 @@ interface ProjectCardExpandedProps {
   handleDelete: (id: string) => void;
   userId: string;
   parentSkills: { id: string; label: string }[];
-  editingKpiId__inline: string | null;
-  setEditingKpiId__inline: (id: string | null) => void;
-  handleUpdateKpiValue__inline: (kpiId: string, raw: string) => void;
 }
 
 export default function ProjectCardExpanded({
-  project, s, col, pillar, kpis, healthScore, healthLevel, healthColors,
-  momentum, momentumMeta, nextAction, visibleCps, projectCheckpoints, doneCheckpoints, busy,
+  project, s, col, healthScore, healthColors,
+  nextAction, projectCheckpoints, doneCheckpoints, busy,
   editingProjectId, editForm, setEditForm, startEditProject, setEditingProjectId, handleSaveProject,
   newCheckpoint, setNewCheckpoint, handleAddCheckpoint, handleToggleCheckpoint, deleteCheckpoint,
-  editingKpiId, setEditingKpiId, handleUpdateKpiValue,
   handleToggleTask, newTask, setNewTask, handleAddTask,
   handleStatusCycle, updateProjectStatus, handleDelete, userId, parentSkills,
 }: ProjectCardExpandedProps) {

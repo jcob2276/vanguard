@@ -14,7 +14,6 @@ import {
   fetchPendingProposals,
   resolveProposal,
   syncFrictionProposals,
-  type SystemProposal,
 } from '../../lib/systemProposals';
 import { getTodayWarsaw } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';

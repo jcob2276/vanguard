@@ -19,16 +19,6 @@ export type MedicalLabRow = {
   notes: string | null;
 };
 
-type MedicalDocumentRow = {
-  id: string;
-  document_date: string;
-  document_type: string;
-  source_name: string;
-  provider: string | null;
-  clinical_validity: string;
-  summary: string | null;
-  notes: string | null;
-};
 
 export type BodyCompositionRow = {
   id: string;

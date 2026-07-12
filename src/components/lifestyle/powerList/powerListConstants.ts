@@ -1,5 +1,4 @@
-import { Shield, Wallet } from 'lucide-react';
-import ZapWrapper from './ZapWrapper';
+import { Shield, Wallet, Zap } from 'lucide-react';
 
 export const SPHERE_SLOTS = [
   {
@@ -14,7 +13,7 @@ export const SPHERE_SLOTS = [
   {
     category: 'duch',
     label: 'Duch',
-    icon: ZapWrapper,
+    icon: Zap,
     text: 'text-indigo-600 dark:text-indigo-400',
     bg: 'bg-indigo-500/10',
     border: 'border-indigo-500/20',

@@ -1,26 +1,28 @@
 import { AlertTriangle, Info, RefreshCw } from 'lucide-react';
 
+// Tokens use CSS custom properties (--text-primary, --border, --surface) defined in index.css
+// for both light and dark mode — avoids the previous dark-only text-white/35 hardcoded values.
 const TONES = {
   info: {
     icon: Info,
-    border: 'border-white/5',
-    bg: 'bg-neutral-950/55',
-    iconTone: 'text-white/35',
-    titleTone: 'text-white/70',
+    border: 'border-[var(--border)]',
+    bg: 'bg-[var(--surface)]/60',
+    iconTone: 'text-[var(--text-muted)]',
+    titleTone: 'text-[var(--text-secondary)]',
   },
   warning: {
     icon: AlertTriangle,
-    border: 'border-amber-500/15',
+    border: 'border-amber-500/20',
     bg: 'bg-amber-500/5',
-    iconTone: 'text-amber-400/75',
-    titleTone: 'text-amber-300/85',
+    iconTone: 'text-amber-500/80',
+    titleTone: 'text-amber-600 dark:text-amber-300/85',
   },
   loading: {
     icon: RefreshCw,
-    border: 'border-white/5',
-    bg: 'bg-neutral-950/55',
-    iconTone: 'text-white/35',
-    titleTone: 'text-white/70',
+    border: 'border-[var(--border)]',
+    bg: 'bg-[var(--surface)]/60',
+    iconTone: 'text-[var(--text-muted)]',
+    titleTone: 'text-[var(--text-secondary)]',
   },
 };
 
@@ -42,7 +44,7 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
           {title}
         </p>
         {detail && (
-          <p className="text-[10px] font-semibold leading-relaxed text-white/40">
+          <p className="text-[10px] font-semibold leading-relaxed text-[var(--text-muted)]">
             {detail}
           </p>
         )}

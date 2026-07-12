@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../../lib/date';
 import React from 'react';
 import { Check } from 'lucide-react';
 import {
@@ -21,16 +22,16 @@ export const renderTimeGutter = ({
   dayKey,
   weather,
 }: CalendarGridTimeGutterProps) => {
-  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: TIMEZONE });
   const tomorrow = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+    return d.toLocaleDateString('sv-SE', { timeZone: TIMEZONE });
   })();
   const showHourlyWeather = dayKey === today || dayKey === tomorrow;
   const hourlyForDay = showHourlyWeather && weather?.hourly?.[dayKey!] ? weather.hourly[dayKey!] : null;
 
-  const hourlyByHour: Record<number, any> = {};
+  const hourlyByHour: Record<number, { hour: number; temp: number; weatherCode: number; precipProb: number }> = {};
   if (hourlyForDay) {
     for (const h of hourlyForDay) {
       hourlyByHour[h.hour] = h;
@@ -161,7 +162,7 @@ export const renderDayColumn = ({
       )}
       {(() => {
         const layouts = layoutDayEvents(dayEvents);
-        return dayEvents.map((ev: any) => {
+        return dayEvents.map((ev) => {
           const layout = layouts.get(ev.id) || { left: '0%', width: '100%' };
           return renderEventBlock({ ev, left: layout.left, width: layout.width, handleEventMouseDown });
         });

@@ -170,7 +170,7 @@ async function flushOfflineQueue(): Promise<void> {
       
       if (error) {
         if (isOfflineError(error)) {
-          console.log(`[offlineQueue] Network offline during replay for ${entry.fn}. Stopping queue flush.`);
+          console.debug(`[offlineQueue] Network offline during replay for ${entry.fn}. Stopping queue flush.`);
           break; // Stop - we are offline again, keep in queue
         } else {
           console.error(`[offlineQueue] Persistent error during replay for ${entry.fn}:`, error);

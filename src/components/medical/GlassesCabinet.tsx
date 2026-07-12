@@ -1,6 +1,6 @@
 import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { Plus } from 'lucide-react';
 import EmptyState from '../ui/EmptyState';
@@ -25,7 +25,6 @@ export type Prescription = {
 
 export default function GlassesCabinet() {
   const [user, setUser] = useState<User | null>(null);
-  const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {

@@ -10,12 +10,16 @@ import {
 } from '../calendarHelpers';
 import { WMO_WEATHER_DESC, getWMOWeatherIcon } from '../CalendarWeather';
 import { renderTimeGutter, renderDayColumn, renderAllDayTodos } from './CalendarGridColumns';
+import type { CalRow } from '../calendarHelpers';
+import type { CalendarTodo } from '../hooks/useCalendarTodos';
+import type { WeatherState } from '../hooks/useCalendarWeather';
+import type { GoalChip } from './types';
 
 interface CalendarWeekViewProps {
   weekStart: string;
   setWeekStart: (start: string) => void;
   setSelectedDay: (day: string) => void;
-  weather: any;
+  weather: WeatherState | null | undefined;
   today: string;
   nowMin: number;
   weekDays: string[];
@@ -24,19 +28,19 @@ interface CalendarWeekViewProps {
     startMin: number;
     currentMin: number;
   } | null;
-  goalChipFor: (sectionId: string | null) => any;
+  goalChipFor: (sectionId: string | null) => GoalChip;
   completedTodoIds: Set<string>;
-  getEventsForDay: (day: string) => any[];
-  todosForDay: (day: string) => any[];
+  getEventsForDay: (day: string) => CalRow[];
+  todosForDay: (day: string) => CalendarTodo[];
   handleColumnMouseDown: (day: string, e: React.MouseEvent) => void;
   handleColumnMouseMove: (day: string, e: React.MouseEvent) => void;
-  handleEventMouseDown: (ev: any, e: React.MouseEvent<HTMLDivElement>, action: 'move' | 'resize') => void;
+  handleEventMouseDown: (ev: CalRow, e: React.MouseEvent<HTMLDivElement>, action: 'move' | 'resize') => void;
   handleToggleTodo: (id: string) => void;
-  setEditingTodo: (todo: any) => void;
+  setEditingTodo: (todo: CalendarTodo | null) => void;
   setEditingTodoTitle: (title: string) => void;
   setToastMessage: (msg: string) => void;
   setSaving: (saving: boolean) => void;
-  scheduleTodoAt: (todo: any, day: string, startMin: number, duration: number) => Promise<any>;
+  scheduleTodoAt: (todo: { id: string }, day: string, startMin: number, duration: number) => Promise<unknown>;
   gridRef: React.RefObject<HTMLDivElement | null>;
 }
 

@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 // Typed empty response matching Supabase PostgrestResponse shape
 export function emptyRes<T>(): { data: T[]; error: null; count: null; status: number; statusText: string } {
   return { data: [], error: null, count: null, status: 200, statusText: 'OK' };
@@ -49,4 +50,4 @@ export const parseLocalDateToIso = (dateStr: string, timeStr: string): string =>
 };
 
 export const toWarsawTime = (value: string | number | Date) =>
-  new Date(value).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
+  new Date(value).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' });

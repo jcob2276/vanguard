@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getTodayWarsaw, getYesterdayWarsaw } from '../../lib/date';
+import { getTodayWarsaw, getYesterdayWarsaw, TIMEZONE } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useLifeGoals } from '../projects/hooks/useLifeGoals';
 import { useDirectionContext } from './direction/hooks/useDirectionContext';
@@ -12,20 +11,22 @@ import {
   EMPTY_SLOT,
   powerListKpiKey,
   type UsePowerListDataProps,
+  type DailyWinWithTasks,
 } from './usePowerListTypes';
-import { type PillarProjectBinding } from '../../lib/dailyPlanProposal';
+import { type PillarProjectBinding, type DirectionProjectSummary } from '../../lib/dailyPlanProposal';
+import type { LifeGoalDisplayRow } from '../../lib/projects/lifeGoals';
 
 export type { TaskSlot, UsePowerListDataProps } from './usePowerListTypes';
 export { TIME_SLOT_LABELS } from './usePowerListTypes';
 
-function getPillarProjects(lifeGoalRows: any[]): PillarProjectBinding[] {
+function getPillarProjects(lifeGoalRows: LifeGoalDisplayRow[]): PillarProjectBinding[] {
   return lifeGoalRows
     .filter((r) => r.projectId)
     .map((r) => ({
       pillar: r.id as 'cialo' | 'duch' | 'konto',
       projectId: r.projectId!,
       name: r.subtitle || r.title,
-      kpis: (r.kpis ?? []).map((k: any) => ({
+      kpis: (r.kpis ?? []).map((k) => ({
         id: k.id,
         name: k.name,
         current: k.current,
@@ -34,7 +35,13 @@ function getPillarProjects(lifeGoalRows: any[]): PillarProjectBinding[] {
     }));
 }
 
-function getAllProjectOptions(activeProjects: any[] | undefined): any[] {
+interface ProjectOption {
+  id: string;
+  name: string;
+  kpis: { id: string; name: string; current: number | null; target: number | null }[];
+}
+
+function getAllProjectOptions(activeProjects: DirectionProjectSummary[] | undefined): ProjectOption[] {
   return activeProjects?.map((p) => ({
     id: p.id,
     name: p.name,
@@ -42,14 +49,14 @@ function getAllProjectOptions(activeProjects: any[] | undefined): any[] {
   })) ?? [];
 }
 
-function getEveningCloseDue(todayWin: any): boolean {
+function getEveningCloseDue(todayWin: DailyWinWithTasks | null): boolean {
   if (!todayWin) return false;
   if (todayWin.day_note?.trim()) return false;
   if (!todayWin.task_1?.trim()) return false;
   if (todayWin.result === 'Z' || todayWin.result === 'P') return true;
   const h = parseInt(
     new Date().toLocaleTimeString('en-CA', {
-      timeZone: 'Europe/Warsaw',
+      timeZone: TIMEZONE,
       hour: 'numeric',
       hour12: false,
     }),
@@ -81,7 +88,7 @@ export function usePowerListData({
   const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
   const [checkpointPrompt, setCheckpointPrompt] = useState<{ index: number; checkpointId: string; title: string } | null>(null);
   const [markingCheckpoint, setMarkingCheckpoint] = useState(false);
-  const [yesterdayWin, setYesterdayWin] = useState<any>(null);
+  const [yesterdayWin, setYesterdayWin] = useState<DailyWinWithTasks | null>(null);
   const [yesterdayNote, setYesterdayNote] = useState('');
   const yesterdayNoteRequired = !!yesterdayWin && !yesterdayWin.day_note;
   const [newTaskForm, setNewTaskForm] = useState<TaskSlot[]>(getInitialTaskForm);

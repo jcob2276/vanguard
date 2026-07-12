@@ -11,14 +11,15 @@ import {
   Target,
   UploadCloud,
   Zap,
+  type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
-function SectionHeader({ icon: Icon, title, detail }: { icon: React.ComponentType<any>; title: string; detail?: string | null }) {
+function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail?: string | null }) {
   return (
     <header className="space-y-1">
       <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
@@ -219,7 +220,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
                 <RefreshCw size={15} className={`text-primary ${isSyncing ? 'animate-spin' : ''}`} />
               </button>
 
-              <DataHub session={session} embedded />
+              <DataHub embedded />
             </div>
           </section>
 

@@ -1,5 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function buildTimeline(strainRows: any[], ouraRows: any[]) {
+import { GeneralViewStrain, GeneralViewOura } from '../hooks/useGeneralViewData';
+
+export interface TimelineItem {
+  d: string;
+  date: string;
+  recovery: number | null;
+  strain: number | null;
+  readiness: string | null;
+  hrv: number | null;
+  rhr: number | null;
+  sleepH: number | null;
+  sleepScore: number | null;
+  hrv_z: number | null;
+  rhr_z: number | null;
+  sleep_z: number | null;
+  ouraReadiness: number | null;
+}
+
+export function buildTimeline(
+  strainRows: GeneralViewStrain[],
+  ouraRows: GeneralViewOura[]
+): TimelineItem[] {
   const ouraMap = Object.fromEntries(ouraRows.map((r) => [r.date, r]));
   const strainMap = Object.fromEntries(strainRows.map((r) => [r.date, r]));
   const dates = [...new Set([...strainRows.map((r) => r.date), ...ouraRows.map((r) => r.date)])].sort();
@@ -26,7 +46,7 @@ export function buildTimeline(strainRows: any[], ouraRows: any[]) {
   });
 }
 
-export function buildSleepHrvScatter(ouraRows: any[]) {
+export function buildSleepHrvScatter(ouraRows: GeneralViewOura[]) {
   return ouraRows
     .slice(0, -1)
     .map((r, i) => ({

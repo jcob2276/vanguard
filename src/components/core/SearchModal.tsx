@@ -4,11 +4,38 @@ import type { Session } from '@supabase/supabase-js';
 import { notify } from '../../lib/notify';
 import { invokeEdge } from '../../lib/supabase';
 
+interface GraphSearchResult {
+  source_entity: string;
+  relation: string;
+  target_entity: string;
+  fact_text: string | null;
+}
+
+interface TodoSearchResult {
+  id: string;
+  title: string;
+  status: string;
+  notes: string | null;
+}
+
+interface ProjectSearchResult {
+  id: string;
+  name: string;
+  status: string;
+  goal: string | null;
+}
+
+interface NoteSearchResult {
+  id: string;
+  title: string | null;
+  content: string | null;
+}
+
 interface SearchResult {
-  graph: any[];
-  todos: any[];
-  projects: any[];
-  notes: any[];
+  graph: GraphSearchResult[];
+  todos: TodoSearchResult[];
+  projects: ProjectSearchResult[];
+  notes: NoteSearchResult[];
 }
 
 export default function SearchModal({ session, onClose }: { session: Session; onClose: () => void }) {
@@ -120,7 +147,7 @@ export default function SearchModal({ session, onClose }: { session: Session; on
                 <span>Baza Wiedzy (Graf)</span>
               </div>
               <div className="grid gap-2">
-                {results.graph.map((item: any, i: number) => (
+                {results.graph.map((item, i) => (
                   <div
                     key={i}
                     className="p-3 bg-indigo-950/20 hover:bg-indigo-950/30 border border-indigo-900/30 hover:border-indigo-800/40 rounded-xl transition-all"
@@ -151,7 +178,7 @@ export default function SearchModal({ session, onClose }: { session: Session; on
                 <span>Zadania (Todos)</span>
               </div>
               <div className="grid gap-2">
-                {results.todos.map((todo: any) => (
+                {results.todos.map((todo) => (
                   <div
                     key={todo.id}
                     className="p-3 bg-emerald-950/10 hover:bg-emerald-950/20 border border-emerald-900/20 hover:border-emerald-800/30 rounded-xl transition-all"
@@ -181,7 +208,7 @@ export default function SearchModal({ session, onClose }: { session: Session; on
                 <span>Projekty</span>
               </div>
               <div className="grid gap-2">
-                {results.projects.map((proj: any) => (
+                {results.projects.map((proj) => (
                   <div
                     key={proj.id}
                     className="p-3 bg-amber-950/10 hover:bg-amber-950/20 border border-amber-900/20 hover:border-amber-800/30 rounded-xl transition-all"
@@ -211,7 +238,7 @@ export default function SearchModal({ session, onClose }: { session: Session; on
                 <span>Notatki</span>
               </div>
               <div className="grid gap-2">
-                {results.notes.map((note: any) => (
+                {results.notes.map((note) => (
                   <div
                     key={note.id}
                     className="p-3 bg-sky-950/10 hover:bg-sky-950/20 border border-sky-900/20 hover:border-sky-800/30 rounded-xl transition-all"

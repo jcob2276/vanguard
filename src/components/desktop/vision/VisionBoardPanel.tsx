@@ -1,5 +1,6 @@
 import { Plus, X, Sparkles, ImageIcon, Type } from 'lucide-react';
 import { Panel } from '../shell/Panel';
+import type { Tables } from '../../../lib/database.types';
 
 interface VBColor {
   bg: string;
@@ -8,7 +9,7 @@ interface VBColor {
 }
 
 interface VisionBoardPanelProps {
-  visionItems: any[];
+  visionItems: Tables<'vision_board_items'>[];
   isAddingVision: boolean;
   setIsAddingVision: React.Dispatch<React.SetStateAction<boolean>>;
   newVisionType: string;

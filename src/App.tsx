@@ -47,7 +47,7 @@ function AppRoutes() {
   useEffect(() => {
     if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('[sw] Registered successfully:', reg.scope))
+        .then((reg) => console.debug('[sw] Registered successfully:', reg.scope))
         .catch((err) => console.error('[sw] Registration failed:', err));
     }
   }, []);

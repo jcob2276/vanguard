@@ -61,9 +61,6 @@ export function monthThemeSourceStart(today: string = getTodayWarsaw()): string 
   return format(startOfMonth(subMonths(parseISO(`${today}T12:00:00`), 1)), 'yyyy-MM-dd');
 }
 
-function monthThemeSourceForWeek(weekStart: string): string {
-  return format(startOfMonth(subMonths(parseISO(`${weekStart}T12:00:00`), 1)), 'yyyy-MM-dd');
-}
 
 function dayOfMonthWarsaw(today: string): number {
   return parseISO(`${today}T12:00:00`).getDate();

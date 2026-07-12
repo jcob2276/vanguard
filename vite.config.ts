@@ -98,6 +98,17 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/oura-api/, ''),
         secure: false
       }
+    },
+    // Pre-transform the heavy lazy-loaded routes on server start so the first
+    // click into them doesn't pay a cold multi-file dev-server waterfall.
+    warmup: {
+      clientFiles: [
+        './src/components/projects/Projects.tsx',
+        './src/components/core/DashboardHistoriaTab.tsx',
+        './src/components/core/DashboardTydzienTab.tsx',
+        './src/components/calendar/CalendarView.tsx',
+        './src/components/todo/Todo.tsx',
+      ]
     }
   },
   build: {

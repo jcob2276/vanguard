@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { BookOpen, Search } from 'lucide-react';
 import { PRIORITY_DOT } from './powerListConstants';
 
+import { type TodoItemRow } from '../../../lib/todo/todo';
+
 interface TodoPickerProps {
-  items: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  onSelect: (item: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  items: TodoItemRow[];
+  onSelect: (item: TodoItemRow) => void;
   onClose: () => void;
 }
 

@@ -33,21 +33,20 @@ export default function EndMyopiaCalculator() {
   const faceDetected = distance !== null;
   const capturedDiopters = capturedDistance ? (-100 / capturedDistance) : null;
 
-  // Use function declaration for hoisting support in useEffect
-  function startMeasure(eye: Eye) {
+  const startMeasure = useCallback((eye: Eye) => {
     setSelectedEye(eye);
     setCapturedDistance(null);
     setSaveError(false);
     resetStability();
     setPhase('measure');
-  }
+  }, [resetStability]);
 
   // Skip calibrate phase if already calibrated
   useEffect(() => {
     if (calibrationFactor && phase === 'calibrate') {
       void (async () => { startMeasure('left'); })();
     }
-  }, [calibrationFactor]);
+  }, [calibrationFactor, phase, startMeasure]);
 
   // Auto-capture when stability reaches 1 (only in auto mode)
   useEffect(() => {
@@ -60,7 +59,7 @@ export default function EndMyopiaCalculator() {
         resetStability();
       })();
     }
-  }, [stability, phase, distance, autoCapture]);
+  }, [stability, phase, distance, autoCapture, haptics, resetStability]);
 
   const handleManualCapture = () => {
     if (distance === null) return;

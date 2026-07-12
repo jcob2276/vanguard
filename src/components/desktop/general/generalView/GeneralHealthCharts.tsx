@@ -24,8 +24,10 @@ const READINESS_COLOR: Record<string, string> = {
   insufficient: '#6b7280',
 };
 
+import { TimelineItem } from './generalViewUtils';
+
 interface ChartProps {
-  timelineData: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  timelineData: TimelineItem[];
   tick: string;
 }
 
@@ -49,12 +51,17 @@ function VitalBandsChart({ timelineData, tick }: ChartProps) {
   );
 }
 
+interface SleepChartItem {
+  d: string;
+  value: number | null;
+}
+
 function SleepScoreChart({
   sleepChartData,
   sleepUsesHours,
   tick,
 }: {
-  sleepChartData: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  sleepChartData: SleepChartItem[];
   sleepUsesHours: boolean;
   tick: string;
 }) {
@@ -80,11 +87,16 @@ function SleepScoreChart({
   );
 }
 
+interface SleepHrvCorrItem {
+  sleep: number | null;
+  hrvNext: number | null;
+}
+
 function SleepHrvScatterChart({
   sleepHrvCorr,
   tick,
 }: {
-  sleepHrvCorr: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  sleepHrvCorr: SleepHrvCorrItem[];
   tick: string;
 }) {
   return sleepHrvCorr.length === 0 ? (
@@ -119,10 +131,10 @@ function HrvRhrChart({ timelineData, tick }: ChartProps) {
 }
 
 interface GeneralHealthChartsProps {
-  timelineData: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  sleepChartData: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  timelineData: TimelineItem[];
+  sleepChartData: SleepChartItem[];
   sleepUsesHours: boolean;
-  sleepHrvCorr: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  sleepHrvCorr: SleepHrvCorrItem[];
   readinessCounts: Record<string, number>;
   strainLength: number;
   tick: string;

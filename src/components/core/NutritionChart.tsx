@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHaptics } from '../../hooks/useHaptics';
 
 function getWeekdayAbbr(dateStr: string): string {
   try {
@@ -27,7 +28,7 @@ export interface NutritionChartProps {
   kcalTarget: number;
   proteinGoal: number;
   todayRaw: string;
-  haptics: any;
+  haptics: ReturnType<typeof useHaptics>;
 }
 
 export default function NutritionChart({

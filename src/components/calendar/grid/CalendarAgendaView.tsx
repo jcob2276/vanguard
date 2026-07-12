@@ -7,16 +7,19 @@ import {
   addDays,
 } from '../calendarHelpers';
 import { GOAL_ICON } from '../../todo/todoUtils';
+import type { CalRow } from '../calendarHelpers';
+import type { CalendarTodo } from '../hooks/useCalendarTodos';
+import type { GoalChip } from './types';
 
 interface CalendarAgendaViewProps {
   today: string;
-  events: any[];
+  events: CalRow[];
   loading: boolean;
-  getEventsForDay: (day: string) => any[];
-  todosForDay: (day: string) => any[];
-  goalChipFor: (sectionId: string | null) => any;
+  getEventsForDay: (day: string) => CalRow[];
+  todosForDay: (day: string) => CalendarTodo[];
+  goalChipFor: (sectionId: string | null) => GoalChip;
   completedTodoIds: Set<string>;
-  handleEventClick: (ev: any) => void;
+  handleEventClick: (ev: CalRow) => void;
   handleToggleTodo: (id: string) => void;
   setToastMessage: (msg: string) => void;
   onSyncCalendar: () => void;
@@ -55,7 +58,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
               )}
             </div>
             <div className="space-y-1.5">
-              {dayEv.map((ev: any) => (
+              {dayEv.map((ev) => (
                 <div
                   key={ev.id}
                   onClick={() => handleEventClick(ev)}

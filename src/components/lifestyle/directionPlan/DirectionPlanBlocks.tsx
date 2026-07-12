@@ -2,11 +2,6 @@ import Spinner from '../../ui/Spinner';
 import ProjectWeekKpis from '../ProjectWeekKpis';
 
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
-type Phase2Recap = {
-  narrative_check: string;
-  deepening_questions?: string[];
-  block5_material?: { cialo: string; duch: string; konto: string };
-};
 type WeekFacts = {
   doneCount: number;
   totalCount: number;

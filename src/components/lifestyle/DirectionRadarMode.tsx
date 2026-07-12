@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Calendar, Check, Target } from 'lucide-react';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
+import { getTodayWarsaw, formatWarsawDate, shiftDateStr, TIMEZONE } from '../../lib/date';
 import type { Tables } from '../../lib/database.types';
 import { DAYS_PL, SENTIMENTS } from './directionConstants';
 
@@ -180,7 +180,7 @@ export default function DirectionRadarMode({
                       {dayEvents.map((ev, idx) => (
                         <div key={idx} className="flex items-baseline gap-1.5 text-[10px] font-semibold text-text-secondary font-display">
                           <span className="text-primary font-black shrink-0 text-[8.5px] mr-1">
-                            {new Date(ev.start_time!).toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })}
+                            {new Date(ev.start_time!).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <span className="truncate">{ev.summary}</span>
                         </div>

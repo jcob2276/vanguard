@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   type Supplement,
-  type SupplementLog,
 } from '../../../lib/health/supplementsClient';
 import {
   useSupplements,

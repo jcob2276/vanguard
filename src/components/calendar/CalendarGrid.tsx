@@ -11,6 +11,9 @@ import { useCalendarDragSelect } from './grid/useCalendarDragSelect';
 import { CalendarDayView } from './grid/CalendarDayView';
 import { CalendarWeekView } from './grid/CalendarWeekView';
 import { CalendarAgendaView } from './grid/CalendarAgendaView';
+import type { CalRow } from './calendarHelpers';
+import type { CalendarTodo } from './hooks/useCalendarTodos';
+import type { GoalChip } from './grid/types';
 
 interface CalendarGridProps {
   calData: ReturnType<typeof useCalendarData>;
@@ -19,9 +22,9 @@ interface CalendarGridProps {
   isSyncing: boolean;
   handleToggleTodo: (id: string) => void;
   completedTodoIds: Set<string>;
-  todosForDay: (day: string) => any[];
-  goalChipFor: (sectionId: string | null) => any;
-  scheduleTodoAt: (todo: any, day: string, startMin: number, duration: number) => Promise<any>;
+  todosForDay: (day: string) => CalendarTodo[];
+  goalChipFor: (sectionId: string | null) => GoalChip;
+  scheduleTodoAt: (todo: { id: string }, day: string, startMin: number, duration: number) => Promise<unknown>;
 }
 
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
@@ -72,8 +75,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const eventsByDay = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    const add = (day: string, ev: any) => {
+    const map: Record<string, CalRow[]> = {};
+    const add = (day: string, ev: CalRow) => {
       if (!map[day]) map[day] = [];
       map[day].push(ev);
     };

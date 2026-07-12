@@ -1,8 +1,9 @@
 import React from 'react';
 import Modal from '../ui/Modal';
+import type { ProjectRow } from './projectUtils';
 
 export interface RetroModalProps {
-  retroProject: any;
+  retroProject: ProjectRow | null;
   retroForm: { good: string; improve: string; rating: number };
   setRetroForm: React.Dispatch<React.SetStateAction<{ good: string; improve: string; rating: number }>>;
   onSubmit: (skip: boolean) => void;

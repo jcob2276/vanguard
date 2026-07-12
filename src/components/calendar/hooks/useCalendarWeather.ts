@@ -35,7 +35,7 @@ interface WeatherDailyPoint {
   tempMin: number;
 }
 
-interface WeatherState {
+export interface WeatherState {
   current: WeatherCurrent | null;
   daily: Record<string, WeatherDailyPoint>;
   hourly: Record<string, WeatherHourlyPoint[]>;

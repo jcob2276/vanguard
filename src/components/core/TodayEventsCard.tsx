@@ -1,3 +1,4 @@
+import { TIMEZONE } from '../../lib/date';
 import { CalendarDays } from 'lucide-react';
 import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 import { useUserId } from '../../store/useStore';
@@ -19,7 +20,7 @@ export default function TodayEventsCard() {
   }
 
   const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
+    new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE });
 
   return (
     <section className="animate-fadeIn card p-4 space-y-2.5">

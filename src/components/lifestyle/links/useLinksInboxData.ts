@@ -48,7 +48,7 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     queryFn: () => apiFetchLinks(supabase, userId),
   });
 
-  const links = linksQuery.data ?? [];
+  const links = useMemo(() => linksQuery.data ?? [], [linksQuery.data]);
   const loading = linksQuery.isLoading;
 
   const invalidate = useCallback(() => {
@@ -87,13 +87,13 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     }
   };
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate side effect on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlCandidate = params.get('share_url') || params.get('share_text') || '';
     const match = urlCandidate.match(/https?:\/\/[^\s]+/);
     if (match) {
       window.history.replaceState({}, document.title, '/');
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate side effect on mount
       void saveSharedLink(match[0]);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount

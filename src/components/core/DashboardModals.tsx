@@ -1,10 +1,13 @@
 import type { Session } from '@supabase/supabase-js';
-import MorningPlanModal from './MorningPlanModal';
-import DailyShutdownModal from './DailyShutdownModal';
-import WeeklyReviewModal from '../todo/WeeklyReviewModal';
-import FoodEntryModal from './nutrition/FoodEntryModal';
-import { ActionCenterSheet } from '../shared/ActionCenterSheet';
+import { Suspense, lazy } from 'react';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
+import type { RecentEntry } from './nutrition/hooks/useFoodEntryData';
+
+const MorningPlanModal = lazy(() => import('./MorningPlanModal'));
+const DailyShutdownModal = lazy(() => import('./DailyShutdownModal'));
+const WeeklyReviewModal = lazy(() => import('../todo/WeeklyReviewModal'));
+const FoodEntryModal = lazy(() => import('./nutrition/FoodEntryModal'));
+const ActionCenterSheet = lazy(() => import('../shared/ActionCenterSheet').then(m => ({ default: m.ActionCenterSheet })));
 
 interface DashboardModalsProps {
   session: Session;
@@ -19,8 +22,8 @@ interface DashboardModalsProps {
   setTaskReviewDoneThisWeek: (val: boolean) => void;
   showQuickFoodEntry: boolean;
   setShowQuickFoodEntry: (val: boolean) => void;
-  foodEditEntry: any;
-  setFoodEditEntry: (val: any) => void;
+  foodEditEntry: RecentEntry | null;
+  setFoodEditEntry: (val: RecentEntry | null) => void;
   actionCenterOpen: boolean;
   setActionCenterOpen: (val: boolean) => void;
   reloadPendingActions: () => void;
@@ -50,7 +53,7 @@ export function DashboardModals({
   setNutritionKey,
 }: DashboardModalsProps) {
   return (
-    <>
+    <Suspense fallback={null}>
       {showMorningPlan && (
         <MorningPlanModal
           session={session}
@@ -118,6 +121,6 @@ export function DashboardModals({
           onUpdated={() => void reloadPendingActions()}
         />
       )}
-    </>
+    </Suspense>
   );
 }

@@ -33,7 +33,19 @@ const getYesterdayLabel = (targetDate: string, mealType: string) => {
   return `Ostatnio na ${mealName}`
 }
 
-type FavoriteChip = FoodFavoriteRow;
+interface YesterdayFoodEntry {
+  id: string;
+  name: string;
+  brand: string | null;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  fiber: number | null;
+  sugar: number | null;
+  amount: string | null;
+  date: string;
+}
 
 export default function FoodQuickCapture({
   session,
@@ -68,7 +80,7 @@ export default function FoodQuickCapture({
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<ParsedFoodItem[] | null>(null)
   const [removed, setRemoved] = useState<Set<number>>(new Set())
-  const [yesterdayEntries, setYesterdayEntries] = useState<any[]>([])
+  const [yesterdayEntries, setYesterdayEntries] = useState<YesterdayFoodEntry[]>([])
 
   const queryClient = useQueryClient()
 
@@ -79,10 +91,10 @@ export default function FoodQuickCapture({
   })
 
   // Sync query result → local totals state
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
     const ctx = contextQuery.data
     if (ctx) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
       setTotals({
         calories: ctx.calories,
         protein: ctx.protein,
@@ -131,8 +143,8 @@ export default function FoodQuickCapture({
     enabled: !!userId,
   })
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
     if (yesterdayQuery.data) setYesterdayEntries(yesterdayQuery.data)
   }, [yesterdayQuery.data])
 
@@ -192,7 +204,7 @@ export default function FoodQuickCapture({
     }
   }
 
-  const handleFavorite = async (fav: any) => {
+  const handleFavorite = async (fav: Omit<FoodFavoriteRow, 'barcode'> & { barcode?: string | null }) => {
     if (saving) return
     setSaving(true)
     try {
@@ -208,7 +220,7 @@ export default function FoodQuickCapture({
     }
   }
 
-  const handleLogYesterdayEntry = async (entry: any) => {
+  const handleLogYesterdayEntry = async (entry: YesterdayFoodEntry) => {
     if (saving) return
     setSaving(true)
     try {

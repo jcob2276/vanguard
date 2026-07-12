@@ -7,10 +7,8 @@ export type { CalendarEvent };
 
 export function useCalendarWrite({
   userId,
-  accessToken,
 }: {
   userId: string | undefined;
-  accessToken: string | undefined;
 }) {
   const call = useCallback(
     async (action: 'create' | 'update' | 'delete', event: CalendarEvent) => {

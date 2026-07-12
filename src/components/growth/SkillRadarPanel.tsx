@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LearningSkill, LearningSkillSnapshot } from '../../lib/growth/growth';
+import type { LearningSkill } from '../../lib/growth/growth';
 import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
 
 const CHART_SIZE = 280;

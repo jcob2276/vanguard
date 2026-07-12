@@ -254,7 +254,7 @@ if (failed) {
 }
 
 console.log("\nRunning Knip unused exports & files check...");
-let knipOutput = "";
+let knipOutput;
 try {
   knipOutput = execSync("npx knip --reporter json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 } catch (err) {

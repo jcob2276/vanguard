@@ -128,7 +128,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
             setDistance(null);
             setStability(0);
           }
-        } catch (e: unknown) {
+        } catch {
           console.debug('MediaPipe detection skipped during unmount');
         }
       }

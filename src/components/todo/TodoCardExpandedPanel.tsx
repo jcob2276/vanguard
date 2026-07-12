@@ -5,9 +5,10 @@ import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import TodoCardSubtasks from './TodoCardSubtasks';
 import type { useTodoCardAttachments } from './useTodoCardAttachments';
+import type { TodoItemRow, TodoAttachmentRow } from '../../lib/todo/todo';
 
 interface TodoCardExpandedPanelProps {
-  item: any;
+  item: TodoItemRow;
   isEditing: boolean;
   editingTitle: string;
   onEditStart: (t: string) => void;
@@ -21,16 +22,16 @@ interface TodoCardExpandedPanelProps {
   onMoveSection: (sId: string | null) => void;
   onDrop: () => void;
   onToggleExpand: (id: string) => void;
-  sections: any[];
+  sections: { id: string; name: string }[];
   today: string;
-  childTasks: any[];
+  childTasks: TodoItemRow[];
   onAddChildTask?: (title: string) => void;
-  onToggleChildTask?: (child: any) => void;
+  onToggleChildTask?: (child: TodoItemRow) => void;
   attachments: ReturnType<typeof useTodoCardAttachments>['attachments'];
   uploadingFile: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileUpload: (file: File) => void;
-  handleDeleteAttachment: (att: any) => void;
+  handleDeleteAttachment: (att: TodoAttachmentRow) => void;
 }
 
 export default function TodoCardExpandedPanel({

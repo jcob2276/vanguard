@@ -1,12 +1,28 @@
+import { TIMEZONE } from '../../lib/date';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { TIMEOUTS } from '../../lib/constants';
 import Spinner from '../ui/Spinner';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+interface StravaActivityItem {
+  strava_id: number | null;
+  name: string | null;
+  sport_type: string | null;
+  start_date: string | null;
+  distance: number | null;
+  moving_time: number | null;
+  pace_sec_per_km: number | null;
+  hr_avg: number | null;
+  perceived_exertion: number | null;
+  total_elevation_gain: number | null;
+  has_pr: boolean | null;
+  is_oura: boolean | null;
+}
 
 function fmtPace(secPerKm: number | null | undefined) {
   if (!secPerKm) return '--';
@@ -26,18 +42,18 @@ function fmtTime(seconds: number | null | undefined) {
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString('pl-PL', {
-    timeZone: 'Europe/Warsaw',
+    timeZone: TIMEZONE,
     day: '2-digit',
     month: '2-digit',
   });
 }
 
-function isRun(activity: any) {
-  const text = `${activity.sport_type || ''} ${activity.type || ''} ${activity.name || ''}`.toLowerCase();
+function isRun(activity: StravaActivityItem) {
+  const text = `${activity.sport_type || ''} ${activity.name || ''}`.toLowerCase();
   return text.includes('run') || text.includes('bieg');
 }
 
-function RunRow({ activity }: { activity: any }) {
+function RunRow({ activity }: { activity: StravaActivityItem }) {
   const distance = activity.distance ? (Number(activity.distance) / 1000).toFixed(2) : '--';
   const hrAvg = activity.hr_avg ? Math.round(activity.hr_avg) : null;
 
@@ -90,7 +106,7 @@ function RunRow({ activity }: { activity: any }) {
 }
 
 export default function StravaWidget({ session }: { session: Session }) {
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<StravaActivityItem[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

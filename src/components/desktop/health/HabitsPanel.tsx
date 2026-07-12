@@ -1,6 +1,7 @@
 import { Plus, X, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { subDays } from 'date-fns';
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
+import type { HabitRow, HabitLogRow } from '../../../lib/health/habitsApi';
 
 interface NewHabit {
   name: string;
@@ -9,8 +10,8 @@ interface NewHabit {
 }
 
 interface HabitsPanelProps {
-  habits: any[];
-  habitLogs: any[];
+  habits: HabitRow[];
+  habitLogs: HabitLogRow[];
   isAddingHabit: boolean;
   setIsAddingHabit: React.Dispatch<React.SetStateAction<boolean>>;
   newHabit: NewHabit;

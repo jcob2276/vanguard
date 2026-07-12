@@ -6,7 +6,7 @@ import { SPRINT_SEASON } from '../desktopUtils';
 import SprintMetricsGrid from '../fitness/SprintMetricsGrid';
 import { LIMITER_PL } from '../../../lib/constants';
 
-function cockpitDecision(status: string, limiter: string | null, strain: number | null, provisional: boolean) {
+function cockpitDecision(status: string, limiter: string | null, strain: number | null, provisional: boolean | null) {
   const fuelLimiter = limiter === 'calories' || limiter === 'carbs';
   if (status === 'green') return 'Możesz cisnąć — wszystko na zielono';
   if (status === 'red') {

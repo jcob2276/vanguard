@@ -1,13 +1,16 @@
 import { useState, useRef, useCallback } from 'react';
+import type { TodoItemRow } from '../../lib/todo/todo';
+
+type SwipeableItem = TodoItemRow;
 
 interface UseTodoCardSwipeOptions {
   isDragging: boolean;
   isDone: boolean;
   onToggle: () => void;
   onDrop: () => void;
-  onShowContextMenu: (item: any, clientX: number, clientY: number) => void;
-  item: any;
-  onDragStart?: (item: any, clientX: number, clientY: number) => void;
+  onShowContextMenu: (item: SwipeableItem, clientX: number, clientY: number) => void;
+  item: SwipeableItem;
+  onDragStart?: (item: SwipeableItem, clientX: number, clientY: number) => void;
   expanded: boolean;
   isEditing: boolean;
   onEditStart: (title: string) => void;
@@ -31,8 +34,8 @@ export function useTodoCardSwipe({
   const [touchStartY, setTouchStartY] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
-  const longPressTimer = useRef<any>(null);
-  const gripLongPressTimer = useRef<any>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gripLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevSwipeRef = useRef(0);
   const [completing, setCompleting] = useState(false);
   const [completingOut, setCompletingOut] = useState(false);
@@ -66,7 +69,7 @@ export function useTodoCardSwipe({
   }, [isDragging, onShowContextMenu, item]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    clearTimeout(longPressTimer.current);
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (isDragging) return;
     const dx = e.targetTouches[0].clientX - touchStartX;
     const dy = Math.abs(e.targetTouches[0].clientY - touchStartY);
@@ -78,7 +81,7 @@ export function useTodoCardSwipe({
   }, [isDragging, touchStartX, touchStartY]);
 
   const onTouchEnd = useCallback(() => {
-    clearTimeout(longPressTimer.current);
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
     prevSwipeRef.current = 0;
     if (!isDragging) {
       if (swipeOffset > 100) {
@@ -110,12 +113,12 @@ export function useTodoCardSwipe({
 
   const onGripTouchEnd = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
-    clearTimeout(gripLongPressTimer.current);
+    if (gripLongPressTimer.current) clearTimeout(gripLongPressTimer.current);
   }, []);
 
   const onGripTouchMove = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
-    clearTimeout(gripLongPressTimer.current);
+    if (gripLongPressTimer.current) clearTimeout(gripLongPressTimer.current);
   }, []);
 
   const onGripMouseDown = useCallback((e: React.MouseEvent) => {
@@ -143,7 +146,7 @@ export function useTodoCardSwipe({
       }
     };
 
-    const onMouseUp = (upEvent: MouseEvent) => {
+    const onMouseUp = (_upEvent: MouseEvent) => {
       cleanup();
       if (!dragStarted) {
         if (expanded) {

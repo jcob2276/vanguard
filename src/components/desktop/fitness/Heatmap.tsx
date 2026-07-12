@@ -5,17 +5,31 @@ import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
 
 interface ExerciseLog {
   exercise_name: string;
-  weight: number | null;
-  reps: number;
-  muscle_tags: string[];
+  weight: number | string | null;
+  reps: number | string | null;
+  muscle_tags?: string[];
 }
 
 interface SessionItem {
   id: string;
   date: string | null;
-  workout_day: string;
+  workout_day: string | null;
   session_rpe: number | null;
   exercise_logs: ExerciseLog[];
+}
+
+interface HeatmapCellData {
+  vol: number;
+  wellness: boolean;
+  name: string | null;
+  exercises: string[];
+  rpe: number | null;
+}
+
+interface HeatmapDay {
+  date: string;
+  future: boolean;
+  data: HeatmapCellData | null;
 }
 
 interface StravaActivity {
@@ -33,7 +47,7 @@ import { isLogWellness, sessionVol } from '../../biometrics/workout/workoutUtils
 
 export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   const [tooltip, setTooltip] = useState<{
-    day: { date: string; future: boolean; data: any };
+    day: HeatmapDay;
     kmRun: number;
     rect: DOMRect;
   } | null>(null);
@@ -41,7 +55,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   const todayStr = getTodayWarsaw();
   const today = new Date(todayStr + 'T12:00:00Z');
 
-  const dateMap: Record<string, { vol: number; wellness: boolean; name: string; exercises: string[]; rpe: number | null }> = {};
+  const dateMap: Record<string, HeatmapCellData> = {};
   for (const s of sessions) {
     if (!s.date) continue;
     const vol = sessionVol(s);
@@ -65,7 +79,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   const start = new Date(thisMonday);
   start.setUTCDate(thisMonday.getUTCDate() - 12 * 7);
 
-  const weeks: Array<Array<{ date: string; future: boolean; data: any }>> = [];
+  const weeks: HeatmapDay[][] = [];
   const cur = new Date(start);
   while (weeks.length < 13) {
     const week = [];
@@ -77,7 +91,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     weeks.push(week);
   }
 
-  const cellColor = ({ future, date, data }: { future: boolean; date: string; data: any }) => {
+  const cellColor = ({ future, date, data }: HeatmapDay) => {
     if (future) return 'bg-transparent border border-border-custom/20';
     const hasRun = !!runMap[date];
     const hasGym = !!data;
@@ -91,7 +105,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     }
     // both gym + run
     if (hasRun && hasGym) return 'bg-violet-500/70';
-    const v = data.vol;
+    const v = data!.vol;
     if (v < 3000)  return 'bg-indigo-400/30';
     if (v < 8000)  return 'bg-indigo-500/55';
     if (v < 15000) return 'bg-indigo-600/80';

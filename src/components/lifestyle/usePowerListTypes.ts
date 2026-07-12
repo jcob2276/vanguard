@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import type { Tables } from '../../lib/database.types';
 
 export interface TaskSlot {
   task: string;
@@ -45,7 +46,12 @@ export function powerListKpiKey(userId: string, date: string) {
 
 export interface UsePowerListDataProps {
   session: Session;
-  todayWin: any;
+  todayWin: DailyWinWithTasks | null;
   onUpdate?: (data: Record<string, unknown>) => void;
   planDaySignal?: number;
 }
+
+export type DailyWinWithTasks = Tables<'daily_wins'> & {
+  daily_win_tasks?: Tables<'daily_win_tasks'>[];
+};
+

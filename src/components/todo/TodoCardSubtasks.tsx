@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import type { TodoItemRow } from '../../lib/todo/todo';
 
 interface TodoCardSubtasksProps {
-  childTasks: any[];
+  childTasks: TodoItemRow[];
   onAddChildTask?: (title: string) => void;
-  onToggleChildTask?: (child: any) => void;
+  onToggleChildTask?: (child: TodoItemRow) => void;
 }
 
 export default function TodoCardSubtasks({ childTasks, onAddChildTask, onToggleChildTask }: TodoCardSubtasksProps) {

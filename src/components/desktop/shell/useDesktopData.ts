@@ -1,6 +1,99 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
+import type { Tables } from '../../../lib/database.types';
+import type { OuraRow, NutritionDayRow, WorkoutSessionSummary, LenieLogRow } from '../desktopUtils';
+import type { PatternRow, WikiRow, KnowledgeRow } from '../general/IntelligencePanel';
+import type { StrainData } from '../hero/CockpitBanner';
+
+export interface DesktopSessionRow extends WorkoutSessionSummary {
+  id: string;
+  workout_day: string | null;
+  session_rpe: number | null;
+}
+
+export interface StravaActivityRow {
+  sport_type: string;
+  distance: number | null;
+  moving_time: number | null;
+  start_date: string;
+  best_efforts: unknown;
+}
+
+interface ProjectRow {
+  id: string;
+  name: string;
+  status: string;
+  goal: string | null;
+  color: string | null;
+  deadline: string | null;
+  sense_status?: string | null;
+}
+
+interface MoveRow {
+  id: string;
+  title: string;
+  status: string;
+  completed_at: string | null;
+  planned_for: string | null;
+  project_id: string | null;
+}
+
+export interface GoalsRow {
+  goal_cialo: string | null;
+  goal_duch: string | null;
+  goal_konto: string | null;
+  date_cialo: string | null;
+  date_duch: string | null;
+  date_konto: string | null;
+}
+
+export interface SprintGoalRow {
+  id: string;
+  personal_year: number;
+  sprint_number: number;
+  goal_text: string | null;
+}
+
+interface WinRow {
+  [key: string]: unknown;
+}
+
+interface MarathonRow {
+  name: string;
+  date: string;
+  target_time: string | null;
+  status: string;
+}
+
+export type HabitRow = Tables<'habits'>;
+export type HabitLogRow = Tables<'habit_logs'>;
+type BodyMetricRow = { date: string | null; weight: number | null; waist: number | null; neck: number | null; hips: number | null; body_fat: number | null };
+
+interface DesktopDashboardData {
+  loading: boolean;
+  oura: OuraRow[];
+  nutrition: NutritionDayRow[];
+  sessions: DesktopSessionRow[];
+  body: BodyMetricRow[];
+  heightCm: number | null;
+  strain: StrainData | null;
+  strava: StravaActivityRow[];
+  projects: ProjectRow[];
+  moves: MoveRow[];
+  goals: GoalsRow | null;
+  sprintGoals: SprintGoalRow[];
+  stream: unknown[];
+  patterns: PatternRow[];
+  wins: WinRow[];
+  wiki: WikiRow[];
+  knowledge: KnowledgeRow[];
+  lenieLogs: LenieLogRow[];
+  habits: HabitRow[];
+  habitLogs: HabitLogRow[];
+  marathon: MarathonRow | null;
+  refresh: () => Promise<void>;
+}
 
 export const desktopKeys = {
   all: ['desktop'] as const,
@@ -92,33 +185,12 @@ async function fetchDashboardFallback(userId: string) {
   };
 }
 
-export function useDesktopData(userId: string | undefined): {
-  loading: boolean;
-  oura: any[];
-  nutrition: any[];
-  sessions: any[];
-  body: any[];
-  heightCm: number | null;
-  strain: any | null;
-  strava: any[];
-  projects: any[];
-  moves: any[];
-  goals: any | null;
-  sprintGoals: any[];
-  stream: any[];
-  patterns: any[];
-  wins: any[];
-  wiki: any[];
-  knowledge: any[];
-  lenieLogs: any[];
-  habits: any[];
-  habitLogs: any[];
-  marathon: any | null;
-  refresh: () => Promise<void>;
-} {
+type DesktopQueryResult = Omit<DesktopDashboardData, 'loading' | 'refresh'>;
+
+export function useDesktopData(userId: string | undefined): DesktopDashboardData {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  const query = useQuery<DesktopQueryResult>({
     queryKey: desktopKeys.dashboard(userId || ''),
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
@@ -133,6 +205,8 @@ export function useDesktopData(userId: string | undefined): {
       if (error) {
         console.warn('[useDesktopData] RPC failed, using direct fallback:', error.message);
         const fallback = await fetchDashboardFallback(userId);
+        // fetchDashboardFallback's inferred column types are a structural match for
+        // DesktopQueryResult but aren't declared against it directly; assert the contract.
         return {
           oura: fallback.oura,
           nutrition: fallback.nutrition,
@@ -154,31 +228,33 @@ export function useDesktopData(userId: string | undefined): {
           habits: fallback.habits,
           habitLogs: fallback.habitLogs,
           marathon: fallback.marathon,
-        };
+        } as DesktopQueryResult;
       }
 
+      // The RPC's return shape is opaque to Postgres/Supabase codegen; we trust it matches
+      // the same contract as fetchDashboardFallback above (that's why the fallback exists).
       const d = data as Record<string, unknown>;
       return {
-        oura: (d['oura'] as unknown[]) || [],
-        nutrition: (d['nutrition'] as unknown[]) || [],
-        sessions: (d['sessions'] as unknown[]) || [],
-        body: (d['body'] as unknown[]) || [],
+        oura: (d['oura'] as OuraRow[]) || [],
+        nutrition: (d['nutrition'] as NutritionDayRow[]) || [],
+        sessions: (d['sessions'] as DesktopSessionRow[]) || [],
+        body: (d['body'] as BodyMetricRow[]) || [],
         heightCm: profile?.height_cm != null ? Number(profile.height_cm) : null,
-        strain: d['strain'] || null,
-        strava: (d['strava'] as unknown[]) || [],
-        projects: (d['projects'] as unknown[]) || [],
-        moves: (d['moves'] as unknown[]) || [],
-        goals: d['goals'] || null,
-        sprintGoals: (d['sprintGoals'] as unknown[]) || [],
+        strain: (d['strain'] as StrainData) || null,
+        strava: (d['strava'] as StravaActivityRow[]) || [],
+        projects: (d['projects'] as ProjectRow[]) || [],
+        moves: (d['moves'] as MoveRow[]) || [],
+        goals: (d['goals'] as GoalsRow) || null,
+        sprintGoals: (d['sprintGoals'] as SprintGoalRow[]) || [],
         stream: (d['stream'] as unknown[]) || [],
-        patterns: (d['patterns'] as unknown[]) || [],
-        wins: (d['wins'] as unknown[]) || [],
-        wiki: (d['wiki'] as unknown[]) || [],
-        knowledge: (d['knowledge'] as unknown[]) || [],
-        lenieLogs: (d['lenieLogs'] as unknown[]) || [],
-        habits: (d['habits'] as unknown[]) || [],
-        habitLogs: (d['habitLogs'] as unknown[]) || [],
-        marathon: d['marathon'] || null,
+        patterns: (d['patterns'] as PatternRow[]) || [],
+        wins: (d['wins'] as WinRow[]) || [],
+        wiki: (d['wiki'] as WikiRow[]) || [],
+        knowledge: (d['knowledge'] as KnowledgeRow[]) || [],
+        lenieLogs: (d['lenieLogs'] as LenieLogRow[]) || [],
+        habits: (d['habits'] as HabitRow[]) || [],
+        habitLogs: (d['habitLogs'] as HabitLogRow[]) || [],
+        marathon: (d['marathon'] as MarathonRow) || null,
       };
     },
     enabled: !!userId,
@@ -189,7 +265,7 @@ export function useDesktopData(userId: string | undefined): {
     await queryClient.invalidateQueries({ queryKey: desktopKeys.dashboard(userId || '') });
   };
 
-  const fallbackData = {
+  const fallbackData: DesktopQueryResult = {
     oura: [],
     nutrition: [],
     sessions: [],

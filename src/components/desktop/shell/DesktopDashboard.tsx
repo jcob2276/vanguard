@@ -1,5 +1,5 @@
 import { notify } from '../../../lib/notify';
-import { getTodayWarsaw } from '../../../lib/date';
+import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
 import { mergeLatestBodyMetrics } from '../../../lib/health/bodyMetrics';
 import { syncOura, syncCalendar, syncStrava, computeDailyStrain } from '../../../lib/syncApi';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } from 'react';
@@ -9,7 +9,6 @@ import Spinner from '../../ui/Spinner';
 import DesktopSectionNav from './DesktopSectionNav';
 import Heatmap from '../fitness/Heatmap';
 import { format, parseISO } from 'date-fns';
-import DashboardModuleShortcuts from '../../core/DashboardModuleShortcuts';
 import SystemHealth from '../health/SystemHealth';
 import { useNudgeData } from '../../core/hooks/useNudgeData';
 import { loadWorkoutTemplate, markWorkoutSessionActive, purgeStaleWorkoutDraft, shouldAutoResumeWorkout, type WorkoutLoggerInitial } from '../../../lib/health/workoutLogging';
@@ -30,9 +29,9 @@ import GeneralView from '../general/GeneralView';
 import ScoreboardPanel from '../fitness/ScoreboardPanel';
 import { useHabitsData } from '../health/useHabitsData';
 import { useDreamsData } from '../vision/useDreamsData';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
+import { startGoogleAuth } from '../../../hooks/useSyncActions';
 import {
-  C,
   getSprintInfo,
   sprintMetrics,
   computeAlerts,
@@ -49,9 +48,8 @@ const MedicalDesktopTeaser = lazy(() => import('../../medical/MedicalDesktopTeas
 
 export default function DesktopDashboard({ session }: { session: Session }) {
   const userId      = session?.user?.id;
-  const accessToken = session?.access_token;
   const { pendingGrowthMustCount } = useNudgeData(userId);
-  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wins, wiki, knowledge, lenieLogs, marathon, refresh } = useDesktopData(userId);
+  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wiki, knowledge, lenieLogs, marathon, refresh } = useDesktopData(userId);
 
   const {
     habits, habitLogs, isAddingHabit, setIsAddingHabit,
@@ -125,18 +123,6 @@ export default function DesktopDashboard({ session }: { session: Session }) {
     setShowWorkout(true);
   }, [userId]);
 
-  function startGoogleAuth() {
-    const root = 'https://accounts.google.com/o/oauth2/v2/auth';
-    const options = {
-      redirect_uri: window.location.origin,
-      client_id: '111163364613-nqd67ulputbk8ehbusls071g0ae4k2om.apps.googleusercontent.com',
-      access_type: 'offline',
-      response_type: 'code',
-      prompt: 'consent',
-      scope: ['https://www.googleapis.com/auth/calendar.events'].join(' ')
-    };
-    window.location.assign(`${root}?${new URLSearchParams(options).toString()}`);
-  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -151,12 +137,10 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   }, [syncAll, openWorkout]);
 
   const oura14    = oura.slice(-14);
-  const lastS     = [...sessions].reverse()[0] ?? null;
-  const daysSince = lastS ? Math.round((new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastS.date + 'T12:00:00Z').getTime()) / 86400000) : null;
   const alerts    = computeAlerts(oura, sessions, nutrition);
   const mergedBodySnapshot = useMemo(() => mergeLatestBodyMetrics(body), [body]);
   const currentWeight = mergedBodySnapshot?.weight ?? null;
-  const weight30ago   = currentWeight ? +([...body].reverse().find(b => b.date <= daysBefore(28))?.weight || 0) || null : null;
+  const weight30ago   = currentWeight ? +([...body].reverse().find(b => (b.date ?? '') <= daysBefore(28))?.weight || 0) || null : null;
 
   const sprint      = getSprintInfo();
   const sprintGoal  = sprintGoals.find(g => g.personal_year === sprint.personalYear && g.sprint_number === sprint.sprintNumber) ?? null;
@@ -173,7 +157,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const sleepData = oura14.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Sen: r.total_sleep_hours ? +r.total_sleep_hours.toFixed(1) : null, HRV: r.hrv_avg || null }));
   const nutrData  = nutrition.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Kcal: r.calories || 0, Białko: r.protein || 0 }));
   const volData   = weeklyVolume(sessions);
-  const now       = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Warsaw' });
+  const now       = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TIMEZONE });
 
   if (showHealth) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
@@ -246,7 +230,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
               <div className="flex items-center gap-3"><div className="h-px flex-1 bg-border-custom" /><span className="pixel-label">Kierunek długoterminowy</span><div className="h-px flex-1 bg-border-custom" /></div>
               <HexagonPanel userId={userId} theme={theme} grid={grid} onSaved={refresh} />
               <div className="grid grid-cols-2 gap-4">
-                <LeniePanelMini logs={lenieLogs} userId={userId} accessToken={accessToken} />
+                <LeniePanelMini logs={lenieLogs} />
                 <HabitsPanel habits={habits} habitLogs={habitLogs} isAddingHabit={isAddingHabit} setIsAddingHabit={setIsAddingHabit} newHabit={newHabit} setNewHabit={setNewHabit} addHabit={addHabit} deleteHabit={deleteHabit} toggleHabit={toggleHabit} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -257,7 +241,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
               <VisionBoardPanel visionItems={visionItems} isAddingVision={isAddingVision} setIsAddingVision={setIsAddingVision} newVisionType={newVisionType} setNewVisionType={setNewVisionType} newVisionColor={newVisionColor} setNewVisionColor={setNewVisionColor} newVisionContent={newVisionContent} setNewVisionContent={setNewVisionContent} addVisionItem={addVisionItem} deleteVisionItem={deleteVisionItem} VB_COLORS={VB_COLORS} />
             </section>
 
-            <IntelligencePanel oura={oura} sessions={sessions} nutrition={nutrition} wins={wins} patterns={patterns} wiki={wiki} knowledge={knowledge} />
+            <IntelligencePanel oura={oura} sessions={sessions} nutrition={nutrition} patterns={patterns} wiki={wiki} knowledge={knowledge} />
           </div>
         </div>
       </main>

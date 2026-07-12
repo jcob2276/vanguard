@@ -2,7 +2,7 @@ import { getSprintInfo } from '../growth/sprintUtils';
 import type { LifeGoalDisplayRow } from '../projects/lifeGoals';
 import type { WeekDirectionGoals } from '../growth/growthWeek';
 import type { Json, Tables, TablesInsert, TablesUpdate } from '../database.types';
-import type { MonthlyReviewRow, MonthlyReviewFields } from '../growth/monthReview';
+import type { MonthlyReviewRow } from '../growth/monthReview';
 
 export type { MonthlyReviewRow, MonthlyReviewFields } from '../growth/monthReview';
 export type { SprintProjectDecision } from '../growth/sprintReview';

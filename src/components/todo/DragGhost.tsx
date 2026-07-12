@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { splitEmoji, PRIORITY } from './todoUtils';
+import type { TodoItemRow } from '../../lib/todo/todo';
 
 export interface DragGhostProps {
-  item: any;
+  item: TodoItemRow;
   posRef: React.MutableRefObject<{ x: number; y: number }>;
 }
 

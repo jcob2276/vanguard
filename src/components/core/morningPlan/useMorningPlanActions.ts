@@ -11,7 +11,6 @@ import { TimelineBlock } from '../../shared/DayTimeline';
 
 interface UseMorningPlanActionsArgs {
   userId: string | undefined;
-  accessToken: string | undefined;
   planningDate: string;
   onClose: () => void;
   yesterdayTasks: TodoSlot[];
@@ -29,7 +28,6 @@ interface UseMorningPlanActionsArgs {
 
 export function useMorningPlanActions({
   userId,
-  accessToken,
   planningDate,
   onClose,
   yesterdayTasks,
@@ -47,7 +45,7 @@ export function useMorningPlanActions({
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
 
-  const { createEvent } = useCalendarWrite({ userId, accessToken });
+  const { createEvent } = useCalendarWrite({ userId });
 
   const handleYesterdayAction = async (taskId: string, action: 'today' | 'later' | 'backlog' | 'drop' | 'done') => {
     const target = yesterdayTasks.find((t) => t.id === taskId);

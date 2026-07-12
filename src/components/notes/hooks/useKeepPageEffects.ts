@@ -55,7 +55,7 @@ export function useKeepPageEffects({
     if (autoNewNote && !autoNewNoteHandled.current) {
       autoNewNoteHandled.current = true;
       window.history.replaceState({}, '', window.location.pathname);
-      try { localStorage.removeItem('vanguard_keep_new'); } catch {}
+      try { localStorage.removeItem('vanguard_keep_new'); } catch (err) { console.debug('[useKeepPageEffects] failed to remove new note draft', err); }
       void handleNewNote().then(id => {
         if (id) setEditingId(id);
       });

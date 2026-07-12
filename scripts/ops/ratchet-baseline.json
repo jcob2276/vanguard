@@ -4,10 +4,10 @@
   "NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS": 7,
   "maxWarnings": 532,
   "patternCount_backgroundError": 0,
-  "patternCount_functionsV1": 13,
+  "patternCount_functionsV1": 12,
   "patternCount_setUTCDate": 3,
   "patternCount_toIsoStringSplitSlice": 0,
   "patternCount_asAny": 0,
   "patternCount_fixedInset": 11,
-  "patternCount_sessionProp": 28
+  "patternCount_sessionProp": 27
 }

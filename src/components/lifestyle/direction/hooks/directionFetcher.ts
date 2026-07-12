@@ -23,25 +23,40 @@ import {
 } from '../../../../lib/goal/goalSpine';
 import { monthThemeSourceStart } from '../../../../lib/growth/monthReview';
 import { getTodayWarsaw, warsawDayBoundsISO } from '../../../../lib/date';
+import type { Tables } from '../../../../lib/database.types';
+import type { WeeklyReviewRow } from '../../../../lib/goal/goalSpine.types';
+import type { MonthlyReviewRow } from '../../../../lib/growth/monthReview';
+import type { MonthFacts } from '../../../../lib/growth/monthReview';
+import type { SprintReview } from '../../../../lib/goal/goalSpine.types';
+import type { SprintFacts } from '../../../../lib/growth/sprintReview';
+
+type DailyWinRow = Tables<'daily_wins'>;
+type CalendarEventRow = Pick<Tables<'vanguard_calendar'>, 'summary' | 'start_time' | 'end_time'>;
+type OuraSummaryRow = Pick<Tables<'oura_daily_summary'>, 'total_sleep_hours' | 'readiness_score'>;
+type StravaRunRow = Pick<Tables<'strava_activities'>, 'distance'>;
+type NutritionRow = Pick<Tables<'daily_nutrition'>, 'calories'>;
+type NutritionTargetRow = Pick<Tables<'nutrition_targets'>, 'target_kcal'>;
+type DoneTaskRow = Pick<Tables<'todo_items'>, 'title' | 'status'>;
+type ActiveProjectRow = Pick<Tables<'projects'>, 'id' | 'name'>;
 
 export interface DirectionRawData {
-  historyData: any[] | null;
-  reviewData: any | null;
-  planReviewData: any | null;
-  calData: any[] | null;
-  prevReviewData: any | null;
-  ouraData: any[] | null;
-  runsData: any[] | null;
-  nutritionData: any[] | null;
-  nutritionTargetData: any | null;
-  doneTasksData: any[] | null;
-  projectsData: any[] | null;
-  monthReviewData: any | null;
-  monthFactsData: any | null;
-  sprintReviewData: any | null;
-  sprintFactsData: any | null;
-  activeThemeReviewData: any | null;
-  pastUnfinished: any[];
+  historyData: DailyWinRow[] | null;
+  reviewData: WeeklyReviewRow | null;
+  planReviewData: WeeklyReviewRow | null;
+  calData: CalendarEventRow[] | null;
+  prevReviewData: WeeklyReviewRow | null;
+  ouraData: OuraSummaryRow[] | null;
+  runsData: StravaRunRow[] | null;
+  nutritionData: NutritionRow[] | null;
+  nutritionTargetData: NutritionTargetRow | null;
+  doneTasksData: DoneTaskRow[] | null;
+  projectsData: ActiveProjectRow[] | null;
+  monthReviewData: MonthlyReviewRow | null;
+  monthFactsData: MonthFacts | null;
+  sprintReviewData: SprintReview | null;
+  sprintFactsData: SprintFacts | null;
+  activeThemeReviewData: MonthlyReviewRow | null;
+  pastUnfinished: DailyWinRow[];
 }
 
 export async function fetchDirectionData(
@@ -99,11 +114,11 @@ export async function fetchDirectionData(
   ]);
 
   // Mark past unfinished wins as partial (side effect, but fits cleanly here)
-  const pastUnfinished = (historyData ?? []).filter((d: any) => d.date && d.date < today && d.result === null);
-  let refreshedHistory: any[] | null = historyData;
+  const pastUnfinished = (historyData ?? []).filter((d) => d.date && d.date < today && d.result === null);
+  let refreshedHistory: DailyWinRow[] | null = historyData;
   if (pastUnfinished.length > 0) {
     try {
-      await markDailyWinsPartial(userId, pastUnfinished.map((d: any) => d.id));
+      await markDailyWinsPartial(userId, pastUnfinished.map((d) => d.id));
       const { data: updated } = await supabase
         .from('daily_wins')
         .select('*')

@@ -11,15 +11,15 @@ import { mergeBodyMetricSavePayload } from '../../../lib/health/bodyMetrics';
 import type { FoodAnalysisResult } from '../stats/FoodAnalysisSection';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { useStatsOverviewQuery, statsOverviewKeys } from '../../../lib/statsOverviewApi';
+import type { TrainingAnalysis } from '../stats/TrainingAnalysisSection';
 
 type ExerciseLogRow = Tables<'exercise_logs'>;
-type EditableExerciseLog = Omit<ExerciseLogRow, 'weight' | 'reps'> & {
+export type EditableExerciseLog = Omit<ExerciseLogRow, 'weight' | 'reps'> & {
   weight: number | string | null;
   reps: number | string | null;
 };
-type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: ExerciseLogRow[]; duration?: number | string };
-type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
-type TrainingAnalysisResult = Record<string, unknown> & { success?: boolean; error?: string };
+export type WorkoutSessionRow = Tables<'workout_sessions'> & { exercise_logs?: ExerciseLogRow[]; duration?: number | string };
+export type EditFormState = { date: string | null; workout_day: string; logs: EditableExerciseLog[] };
 
 export function useStatsData() {
   const userId = useUserId();
@@ -52,7 +52,7 @@ export function useStatsData() {
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [editForm, setEditForm] = useState<EditFormState>({ date: '', workout_day: '', logs: [] });
-  const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
+  const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysis | null>(null);
 
   const saveMetricsMutation = useMutation({
     mutationFn: async () => {

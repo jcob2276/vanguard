@@ -1,23 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { Pencil, Calendar, Sun, CalendarDays, MoreHorizontal, Flag, FolderInput, Copy, Trash2, ChevronRight } from 'lucide-react';
 import { shiftDateStr } from '../../lib/date';
+import type { TodoItemRow } from '../../lib/todo/todo';
 
 export interface ContextMenuProps {
   x: number;
   y: number;
-  item: any;
+  item: TodoItemRow;
   today: string;
-  sections: any[];
+  sections: { id: string; name: string }[];
   onClose: () => void;
-  onComplete: () => void;
   onDelete: () => void;
-  onMoveToToday: () => void;
   onSetDueDate: (date: string | null) => void;
   onMoveSection: (sId: string | null) => void;
   onEditStart: () => void;
   onSetPriority: (priority: string) => void;
   onDuplicate: () => void;
-  onToggleImportant?: () => void;
 }
 
 export default function ContextMenu({
@@ -27,15 +25,12 @@ export default function ContextMenu({
   today,
   sections,
   onClose,
-  onComplete,
   onDelete,
-  onMoveToToday,
   onSetDueDate,
   onMoveSection,
   onEditStart,
   onSetPriority,
   onDuplicate,
-  onToggleImportant,
 }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -73,11 +68,6 @@ export default function ContextMenu({
     const day = date.getUTCDay(); // 0 is Sunday, 6 is Saturday
     const daysToAdd = day === 0 ? 6 : 6 - day + (day === 6 ? 7 : 0);
     return shiftDateStr(today, daysToAdd);
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.origin + `/todo?id=${item.id}`);
-    onClose();
   };
 
   return (

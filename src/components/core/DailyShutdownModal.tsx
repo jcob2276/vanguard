@@ -4,8 +4,13 @@ import { supabase } from "../../lib/supabase";
 import { getTodayWarsaw } from "../../lib/date";
 import { notify } from "../../lib/notify";
 import { updateDailyWin } from "../../lib/goal/goalSpine.mutations";
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
+import type { Tables } from '../../lib/database.types';
+
+function taskField(win: Tables<'daily_wins'>, key: string): string | null {
+  return (win as unknown as Record<string, string | null>)[key] ?? null;
+}
 
 interface Props {
   session: Session;
@@ -22,7 +27,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<1 | 2>(1); // Step 1: Consolidated Form, Step 2: Success Screen
 
-  const [todayWin, setTodayWin] = useState<any>(null);
+  const [todayWin, setTodayWin] = useState<Tables<'daily_wins'> | null>(null);
   const [completedTasks, setCompletedTasks] = useState<boolean[]>([false, false, false, false, false]);
   const [reflectionText, setReflectionText] = useState("");
   const [actualAccomplishmentText, setActualAccomplishmentText] = useState("");
@@ -79,7 +84,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
         // Prefill RPE from today's workouts if available
         if (workoutsRes.data && workoutsRes.data.length > 0) {
-          const maxRpe = Math.max(...workoutsRes.data.map((w: any) => w.session_rpe || 0));
+          const maxRpe = Math.max(...workoutsRes.data.map((w) => w.session_rpe || 0));
           if (maxRpe > 0) {
             setRpeScore(maxRpe);
           }
@@ -97,8 +102,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
     if (!userId || !todayWin) return;
     setSaving(true);
     try {
-      const activeTasksCount = [1, 2, 3, 4, 5].filter((i) => todayWin["task_" + i]?.trim()).length;
-      const doneCount = [1, 2, 3, 4, 5].filter((i, idx) => todayWin["task_" + i]?.trim() && completedTasks[idx]).length;
+      const activeTasksCount = [1, 2, 3, 4, 5].filter((i) => taskField(todayWin, "task_" + i)?.trim()).length;
+      const doneCount = [1, 2, 3, 4, 5].filter((i, idx) => taskField(todayWin, "task_" + i)?.trim() && completedTasks[idx]).length;
       const allDone = activeTasksCount > 0 && doneCount === activeTasksCount;
       const result = allDone ? "Z" : "P";
 
@@ -154,8 +159,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
   const tasksList = todayWin
     ? [1, 2, 3, 4, 5]
         .map((i, idx) => ({
-          title: todayWin["task_" + i],
-          todoId: todayWin["task_" + i + "_todo_id"],
+          title: taskField(todayWin, "task_" + i),
+          todoId: taskField(todayWin, "task_" + i + "_todo_id"),
           done: completedTasks[idx],
           idx,
         }))

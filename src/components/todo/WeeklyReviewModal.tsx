@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted, TodoItemRow, TodoItemUpdate, TodoSectionRow } from '../../lib/todo/todo';
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, type StreamEntry } from '../../lib/behavior/streamReview';
 import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
 
 import { WeeklyReviewContext, WeeklyReviewContextType, type WeeklyAiRecap } from './weekly/context/WeeklyReviewContext';

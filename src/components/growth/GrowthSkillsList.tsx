@@ -13,7 +13,8 @@ function scoreBar(val: number) {
   );
 }
 
-import { matchLinkToSkill } from '../../lib/growth/growth';
+import { matchLinkToSkill, type GrowthPinSlot } from '../../lib/growth/growth';
+import type { GrowthLinkRow } from './hooks/useGrowthData';
 
 export default function GrowthSkillsList({
   rows,
@@ -25,8 +26,8 @@ export default function GrowthSkillsList({
   rows: SkillInventoryRow[];
   onEditScores?: () => void;
   readOnly: boolean;
-  unreadLinks?: any[];
-  onQuickPinLink?: (linkId: string, slot: any) => void;
+  unreadLinks?: GrowthLinkRow[];
+  onQuickPinLink?: (linkId: string, slot: GrowthPinSlot) => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 

@@ -7,7 +7,7 @@ import { createTodoItem, deleteTodoItem, updateTodoItem } from '../../lib/todo/t
 export default function TodoContextMenuConnected() {
   const {
     contextMenu, setContextMenu, today, sections, userId,
-    setItems, setError, setEditingId, setEditingTitle, handleComplete,
+    setItems, setError, setEditingId, setEditingTitle,
   } = useTodoContext();
 
   if (!contextMenu) return null;
@@ -20,11 +20,6 @@ export default function TodoContextMenuConnected() {
       today={today}
       sections={sections}
       onClose={() => setContextMenu(null)}
-      onComplete={() => {
-        const cm = contextMenu;
-        setContextMenu(null);
-        handleComplete(cm.item);
-      }}
       onDelete={() => {
         const cm = contextMenu;
         setContextMenu(null);
@@ -37,12 +32,6 @@ export default function TodoContextMenuConnected() {
             });
           }
         });
-      }}
-      onMoveToToday={() => {
-        const cm = contextMenu;
-        setContextMenu(null);
-        const patch = { due_date: today, ai_bucket: 'today', ai_classified_at: new Date().toISOString() };
-        applyOptimisticPatch(setItems, cm.item, patch, () => updateTodoItem(cm.item.id, patch), setError);
       }}
       onSetDueDate={(dateStr) => {
         const cm = contextMenu;
@@ -82,12 +71,6 @@ export default function TodoContextMenuConnected() {
         }).catch((err) => {
           setError(err instanceof Error ? err.message : String(err));
         });
-      }}
-      onToggleImportant={() => {
-        const cm = contextMenu;
-        setContextMenu(null);
-        const nextVal = !cm.item.is_important;
-        applyOptimisticPatch(setItems, cm.item, { is_important: nextVal }, () => updateTodoItem(cm.item.id, { is_important: nextVal }), setError);
       }}
     />
   );

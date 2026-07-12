@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from 'lucide-react';
-import { PRIORITY } from './todoUtils';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import NlpHighlightInput from './NlpHighlightInput';
@@ -25,7 +24,7 @@ interface TodoQuickCaptureProps {
   setIsExpanded: (v: boolean) => void;
   busy: boolean;
   addItem: () => void;
-  sections: any[];
+  sections: { id: string; name: string }[];
   parsedInput: {
     title: string;
     priority: string | null;
@@ -42,7 +41,6 @@ export default function TodoQuickCapture({
   quickCaptureRef,
   form,
   setForm,
-  isExpanded,
   setIsExpanded,
   busy,
   addItem,

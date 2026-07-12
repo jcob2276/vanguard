@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
-import { getTodayWarsaw } from '../date';
 import { isOfflineError, queueOfflineWrite } from '../offlineQueue';
 import {
   fetchSupplements,
@@ -43,7 +42,7 @@ export function useToggleSupplement() {
       userId,
       supplementId,
       date,
-      sinceDate,
+      sinceDate: _sinceDate,
       existingLog,
     }: {
       userId: string;

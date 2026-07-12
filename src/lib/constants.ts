@@ -22,3 +22,7 @@ export const LIMITER_PL: Record<string, string> = {
   mental_load: 'głowa',
   recovery_ok: 'OK',
 };
+
+export const SYSTEM_VERSION = '3.0';
+export const NEURAL_LINK_VERSION = '3.1';
+
