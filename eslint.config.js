@@ -141,7 +141,6 @@ const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
   'src/components/insights/TaskAnalyticsCard.tsx',
   'src/components/medical/GlassesCabinet.tsx',
   'src/components/medical/VisionJournal.tsx',
-  'src/components/projects/KpiTrendSparkline.tsx',
   'src/components/settings/SettingsView.tsx',
   'src/components/shared/ActionCenterSheet.tsx',
 ]

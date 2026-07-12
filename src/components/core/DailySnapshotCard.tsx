@@ -1,8 +1,7 @@
-import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
-import { useEffect, useState } from 'react';
+import { getTodayWarsaw } from '../../lib/date';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useUserId } from '../../store/useStore';
+import { useDailySnapshotQuery, useSaveDayScoreMutation } from '../../lib/dailySnapshotApi';
 
 const MODE_STYLE: Record<string, { label: string; cls: string }> = {
   rescue:   { label: 'Tryb ratunkowy', cls: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
@@ -18,78 +17,21 @@ export default function DailySnapshotCard() {
   const today = getTodayWarsaw();
   const hourNum = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: 'Europe/Warsaw', hour: 'numeric', hour12: false }), 10);
 
-  const [snap, setSnap] = useState<any>(null);
-  const [strainState, setStrainState] = useState<{ daily_status: string | null; main_limiter: string | null } | null>(null);
-  const [midday, setMidday] = useState<{ status: string | null; blocker: string | null } | null>(null);
-  const [dayScore, setDayScore] = useState<number | null>(null);
-  const [rescueStreak, setRescueStreak] = useState(0);
-  const [savingScore, setSavingScore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useDailySnapshotQuery(userId, today);
+  const saveScoreMutation = useSaveDayScoreMutation(userId, today);
 
-  useEffect(() => {
-    if (!userId) return;
-    const yesterday = shiftDateStr(today, -1);
-    const ago14 = shiftDateStr(today, -14);
-
-    Promise.all([
-      supabase
-        .from('daily_reconciliations')
-        .select('date, planning_summary, day_score, midday_status, midday_blocker')
-        .eq('user_id', userId)
-        .in('date', [today, yesterday])
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('daily_strain')
-        .select('date, daily_status, main_limiter')
-        .eq('user_id', userId)
-        .eq('date', today)
-        .maybeSingle(),
-      supabase
-        .from('daily_reconciliations')
-        .select('date, planning_summary')
-        .eq('user_id', userId)
-        .gte('date', ago14)
-        .order('date', { ascending: false }),
-    ]).then(([recRes, strainRes, historyRes]) => {
-      const rec = recRes.data;
-      const strain = strainRes.data;
-      const history = historyRes.data;
-      if (rec?.planning_summary) setSnap({ ...(rec.planning_summary as Record<string, unknown>), day_score: rec.day_score, date: rec.date });
-      if (rec?.day_score != null) {
-        setDayScore(rec.day_score);
-      }
-      if (strain) setStrainState({ daily_status: strain.daily_status, main_limiter: strain.main_limiter });
-      if (rec?.midday_status || rec?.midday_blocker) setMidday({ status: rec.midday_status, blocker: rec.midday_blocker });
-
-      // Calculate consecutive rescue days
-      let streak = 0;
-      for (const row of (history ?? [])) {
-        const mode = (row.planning_summary as { mode?: string })?.mode;
-        if (mode === 'rescue') streak++;
-        else break;
-      }
-      setRescueStreak(streak);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [userId, today]);
+  const snap = data?.snap ?? null;
+  const strainState = data?.strainState ?? null;
+  const midday = data?.midday ?? null;
+  const dayScore = data?.dayScore ?? null;
+  const rescueStreak = data?.rescueStreak ?? 0;
+  const savingScore = saveScoreMutation.isPending;
 
   if (!userId) return null;
 
-  const saveScore = async (score: number) => {
+  const saveScore = (score: number) => {
     if (savingScore) return;
-    setSavingScore(true);
-    setDayScore(score);
-    const { error } = await supabase.from('daily_reconciliations').upsert(
-      { user_id: userId, date: today, status: 'answered', mode: 'checkin', day_score: score },
-      { onConflict: 'user_id,date', ignoreDuplicates: false }
-    );
-    if (error) {
-      console.warn('[DailySnapshotCard] saveScore failed:', error.message);
-      setDayScore(null);
-    }
-    setSavingScore(false);
+    saveScoreMutation.mutate(score);
   };
 
   if (loading || !snap) return null;
