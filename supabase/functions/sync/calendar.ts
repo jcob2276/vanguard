@@ -1,7 +1,6 @@
-import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
 
 export async function runCalendarSync(req: Request): Promise<unknown> {
-  try {
     const body = await req.json().catch(() => ({}))
     const { code, redirectUri } = body
     const { userId } = await resolveUserScope(req, body.userId ?? null)
@@ -137,17 +136,8 @@ export async function runCalendarSync(req: Request): Promise<unknown> {
       })
     )
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return {
+      success: true,
       calendarCount: calendarEvents.length
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    })
-  }
+    }
 }

@@ -8,13 +8,12 @@
  * @consumer Sekcja Wiki / Baza wiedzy w aplikacji frontendowej
  * @status active
  */
-import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { compileForUser } from "./compiler.ts";
 
 Deno.serve(serveJson(async (req, ctx) => {
-  const supabase = ctx.supabase;
-  try {
+    const supabase = ctx.supabase;
     const body = await req.json().catch(() => ({}));
     const requestedUserId = body.userId ? String(body.userId) : null;
     const authHeader = req.headers.get("Authorization") || "";
@@ -60,15 +59,5 @@ Deno.serve(serveJson(async (req, ctx) => {
     }
 
     const ok = results.every((r: any) => r.success);
-    return new Response(JSON.stringify({ success: ok, results }), {
-      status: ok ? 200 : 207,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    const message = String((err as Error)?.message || err);
-    const status = /Authorization|token|Forbidden|Missing userId/i.test(message) ? 401 : 500;
-    return new Response(JSON.stringify({ success: false, error: String((err as Error)?.message || err) }), {
-      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    return { success: ok, results };
 }, { auth: 'none' }));

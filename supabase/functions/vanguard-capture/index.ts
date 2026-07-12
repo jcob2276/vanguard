@@ -9,13 +9,12 @@
  * @status active
  */
 import { transcribeBlob } from "../_shared/openai.ts";
-import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { fetchUrlMetadata, generateLinkAnalysis } from "../vanguard-telegram/_handlers/savedLinks.ts";
 import { handleVaultIngest } from "./vaultIngest.ts";
 
 Deno.serve(serveJson(async (req, ctx) => {
-  try {
     const db = ctx.supabase;
     const openAiKey = Deno.env.get("OPENAI_API_KEY") || "";
     const deepseekApiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
@@ -100,9 +99,7 @@ Deno.serve(serveJson(async (req, ctx) => {
       }).select("*").single();
 
       if (error) throw error;
-      return new Response(JSON.stringify({ ok: true, type: "link", data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return { ok: true, type: "link", data };
     }
 
     const { data, error } = await db.from("vanguard_stream").insert({
@@ -114,15 +111,5 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     if (error) throw error;
 
-    return new Response(JSON.stringify({ ok: true, type: "stream", data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (err: any) {
-    console.error("[capture] Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
-  }
+    return { ok: true, type: "stream", data };
 }, { auth: 'none' }));

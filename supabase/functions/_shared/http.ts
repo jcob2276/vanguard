@@ -106,7 +106,8 @@ export function serveJson(
       const isAuthError = err instanceof Error && (
         err.message.includes('Unauthorized') ||
         err.message.includes('Missing Authorization') ||
-        err.message.includes('Invalid user token')
+        err.message.includes('Invalid user token') ||
+        err.message.includes('Forbidden')
       );
       const status = isAuthError ? 401 : 500;
       const message = err instanceof Error ? err.message : String(err);

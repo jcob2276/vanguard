@@ -8,60 +8,46 @@
  * @consumer Powiadomienia Telegram z podsumowaniem dnia/tygodnia
  * @status active
  */
-import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { runDailyReconciliation } from "./daily.ts";
 import { runWeeklySynthesis } from "./weekly-synthesis.ts";
 import { runWeeklyRecap } from "./weekly-recap.ts";
 
 Deno.serve(serveJson(async (req) => {
-  try {
-    const url = new URL(req.url);
-    let type = url.searchParams.get("type") || url.searchParams.get("action");
+  const url = new URL(req.url);
+  let type = url.searchParams.get("type") || url.searchParams.get("action");
 
-    let body: any = {};
-    if (req.method === "POST") {
-      const text = await req.clone().text().catch(() => "");
-      try {
-        if (text) body = JSON.parse(text);
-      } catch (_) {}
-    }
+  let body: any = {};
+  if (req.method === "POST") {
+    const text = await req.clone().text().catch(() => "");
+    try {
+      if (text) body = JSON.parse(text);
+    } catch (_) {}
+  }
 
-    const requestedUserId = url.searchParams.get("userId") || body.userId;
-    await resolveUserScope(req, requestedUserId ?? null);
+  const requestedUserId = url.searchParams.get("userId") || body.userId;
+  await resolveUserScope(req, requestedUserId ?? null);
 
-    if (!type && body) {
-      type = body.type || body.action;
-    }
+  if (!type && body) {
+    type = body.type || body.action;
+  }
 
-    if (!type) {
-      return new Response(JSON.stringify({ error: "Missing type or action parameter" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  if (!type) {
+    throw new Error("Missing type or action parameter");
+  }
 
-    switch (type) {
-      case "daily":
-      case "reflection":
-        return await runDailyReconciliation(req);
-      case "weekly-synthesis":
-      case "synthesis":
-        return await runWeeklySynthesis(req);
-      case "weekly-recap":
-      case "recap":
-        return await runWeeklyRecap(req);
-      default:
-        return new Response(JSON.stringify({ error: `Unknown type: ${type}` }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-  } catch (err: any) {
-    console.error("[recap router] error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  switch (type) {
+    case "daily":
+    case "reflection":
+      return await runDailyReconciliation(req);
+    case "weekly-synthesis":
+    case "synthesis":
+      return await runWeeklySynthesis(req);
+    case "weekly-recap":
+    case "recap":
+      return await runWeeklyRecap(req);
+    default:
+      throw new Error(`Unknown type: ${type}`);
   }
 }, { auth: 'none' }));

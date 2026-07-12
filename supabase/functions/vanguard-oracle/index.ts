@@ -12,11 +12,10 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import type { DeepSeekMessage } from "../_shared/deepseek.ts";
 import { z } from "npm:zod";
 import { runOracleReadonlyQuery } from "../_shared/oracleSql.ts";
-import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../_shared/time.ts";
-import { logCriticalError } from "../_shared/errorLogging.ts";
 import { compressHistoryIfNeeded } from "../_shared/contextCompression.ts";
 import { mintRecordFactId } from "../_shared/mintRecordFactId.ts";
 
@@ -51,19 +50,13 @@ Deno.serve(serveJson(async (req, ctx) => {
       if (action === "search") return await handleSearch(req, body, db);
       if (action === "goal-create") return await handleGoalCreate(req, body);
       if (action === "task-breakdown") return await handleTaskBreakdown(req, body);
-      return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      throw new Error(`Unknown action: ${action}`);
     }
 
     const { state_vector, history, current_query, user_id: requestedUserId, mode = 'chat', thinking = false, agent_run_mode = 'auto', user_conf, override_date, stream, resolved_claims } = body;
     const { userId } = await resolveUserScope(req, requestedUserId ?? null);
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Missing user_id" }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      throw new Error("Missing user_id");
     }
     const user_id = userId;
     const supabase = db;
@@ -229,17 +222,15 @@ Deno.serve(serveJson(async (req, ctx) => {
     if (structuredResponse.insight_cards_mutation) await applyInsightCardsMutation(supabase, user_id, structuredResponse.insight_cards_mutation);
 
     console.log(`[oracle] response returned`, Date.now() - t0);
-    return new Response(JSON.stringify({
+    return {
       ...structuredResponse, text, sources: rag.retrievedSources,
       intent_confirmed: structuredResponse.intent_confirmed || rag.intent,
       compressed_history: wasCompressed ? compressedHistory : undefined,
       pending_action: pendingAction || undefined
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    };
 
   } catch (error: any) {
-    await logCriticalError({ area: 'oracle', error, message: 'Oracle function fatal error' });
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500
-    });
+    console.error('[oracle] fatal:', error);
+    throw error;
   }
 }, { auth: 'none' }));

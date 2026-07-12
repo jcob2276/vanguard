@@ -8,7 +8,7 @@
  * @consumer Zaktualizowany stan świata i korelacje w aplikacji i Wyroczni
  * @status active
  */
-import { corsHeaders, resolveUserScope } from '../_shared/supabase.ts';
+import { resolveUserScope } from '../_shared/supabase.ts';
 import { serveJson } from '../_shared/http.ts';
 import { getWarsawDateString } from '../_shared/time.ts';
 import { requireServiceRole } from '../_shared/auth.ts';
@@ -73,7 +73,6 @@ async function runLedgerStep(
 }
 
 Deno.serve(serveJson(async (req, ctx) => {
-  try {
     const supabase = ctx.supabase;
 
     // Parse request body
@@ -83,15 +82,7 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     if (action) {
       // Actions accept both service-role and user tokens
-      let scope;
-      try {
-        scope = await resolveUserScope(req, body.userId ?? null);
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      await resolveUserScope(req, body.userId ?? null);
 
       const reqForSub = new Request(req.url, {
         method: req.method,
@@ -109,10 +100,7 @@ Deno.serve(serveJson(async (req, ctx) => {
         case 'rescore-workout-sessions':
           return await runRescoreWorkoutSessions(reqForSub);
         default:
-          return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+          throw new Error(`Unknown action: ${action}`);
       }
     }
 
@@ -239,17 +227,13 @@ Deno.serve(serveJson(async (req, ctx) => {
     });
 
     console.log('[vanguard-nightly] Pipeline finished successfully.');
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return {
+      success: true,
       run_id: runId,
       freshness: {
         oura_fresh: !!ouraIsFresh,
         nutrition_fresh: !!nutritionIsFresh,
         warnings: freshnessWarnings
       }
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    console.error('[vanguard-nightly] Pipeline fatal error:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
+    };
 }, { auth: 'none' }));

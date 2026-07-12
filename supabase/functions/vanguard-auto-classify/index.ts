@@ -8,46 +8,28 @@
  * @consumer Zapis tarcia i regeneracji (baza dowodów)
  * @status active
  */
-import { corsHeaders } from '../_shared/supabase.ts';
 import { serveJson } from '../_shared/http.ts';
-import { logCriticalError } from '../_shared/errorLogging.ts';
 import { handleTodoClassify } from './handlers/todoClassify.ts';
 import { handleTodoExtract } from './handlers/todoExtract.ts';
 import { handleStreamRecord } from './handlers/classify.ts';
 
 // resolveUserScope is executed in handlers/, not here — auth:'none' below is intentional.
 Deno.serve(serveJson(async (req, ctx) => {
-  try {
-    const supabase = ctx.supabase;
-    const body = await req.clone().json().catch(() => ({}));
-    const url = new URL(req.url);
-    const action = url.searchParams.get("action") || body.action;
+  const supabase = ctx.supabase;
+  const body = await req.clone().json().catch(() => ({}));
+  const url = new URL(req.url);
+  const action = url.searchParams.get("action") || body.action;
 
-    if (action) {
-      if (action === "todo-classify") {
-        return await handleTodoClassify(req, body, supabase);
-      }
-      if (action === "todo-extract") {
-        return await handleTodoExtract(req, body);
-      }
-      return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  if (action) {
+    if (action === "todo-classify") {
+      return await handleTodoClassify(req, body, supabase);
     }
-
-    const { record } = body;
-    return await handleStreamRecord(record, supabase);
-
-  } catch (error: any) {
-    await logCriticalError({
-      area: 'auto-classify',
-      error,
-      message: 'Auto-classify function error',
-    });
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (action === "todo-extract") {
+      return await handleTodoExtract(req, body);
+    }
+    throw new Error(`Unknown action: ${action}`);
   }
+
+  const { record } = body;
+  return await handleStreamRecord(record, supabase);
 }, { auth: 'none' }));

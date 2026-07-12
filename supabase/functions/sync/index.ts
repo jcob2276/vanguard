@@ -8,47 +8,37 @@
  * @consumer Zaktualizowane dane biometryczne, treningowe i kalendarza w aplikacji
  * @status active
  */
-import { corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { resolveUserScope } from '../_shared/supabase.ts'
 import { serveJson } from '../_shared/http.ts'
 import { runOuraSync } from './oura.ts'
 import { runStravaSync } from './strava.ts'
 import { runCalendarSync } from './calendar.ts'
 
 Deno.serve(serveJson(async (req) => {
-  try {
-    const url = new URL(req.url)
-    const body = (req.method === 'POST' || req.method === 'PUT')
-      ? await req.clone().json().catch(() => ({}))
-      : {}
-    const userId = url.searchParams.get('userId') || body.userId
-    
-    await resolveUserScope(req, userId ?? null)
+  const url = new URL(req.url)
+  const body = (req.method === 'POST' || req.method === 'PUT')
+    ? await req.clone().json().catch(() => ({}))
+    : {}
+  const userId = url.searchParams.get('userId') || body.userId
 
-    // Check searchParams first, then fall back to body JSON if request has payload
-    let service = url.searchParams.get('service')
-    
-    if (!service && (req.method === 'POST' || req.method === 'PUT')) {
-      // Clone req to allow body parsing without consuming the stream for downstream handlers
-      const body = await req.clone().json().catch(() => ({}))
-      service = body.service
-    }
+  await resolveUserScope(req, userId ?? null)
 
-    if (service === 'oura') {
-      return await runOuraSync(req)
-    } else if (service === 'strava') {
-      return await runStravaSync(req)
-    } else if (service === 'calendar') {
-      return await runCalendarSync(req)
-    } else {
-      return new Response(JSON.stringify({ error: `Unknown or missing service parameter: ${service}` }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message || String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+  // Check searchParams first, then fall back to body JSON if request has payload
+  let service = url.searchParams.get('service')
+
+  if (!service && (req.method === 'POST' || req.method === 'PUT')) {
+    // Clone req to allow body parsing without consuming the stream for downstream handlers
+    const body = await req.clone().json().catch(() => ({}))
+    service = body.service
+  }
+
+  if (service === 'oura') {
+    return await runOuraSync(req)
+  } else if (service === 'strava') {
+    return await runStravaSync(req)
+  } else if (service === 'calendar') {
+    return await runCalendarSync(req)
+  } else {
+    throw new Error(`Unknown or missing service parameter: ${service}`)
   }
 }, { auth: 'none' }))
