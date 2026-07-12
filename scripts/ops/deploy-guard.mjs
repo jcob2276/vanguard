@@ -103,10 +103,17 @@ const fnList = targets.length > 0 ? targets.join(" ") : "(all functions)";
 console.log(`\nDeploying: ${fnList}`);
 
 if (targets.length > 0) {
+  // Do NOT force --no-verify-jwt here. config.toml's [functions.<name>] verify_jwt is the
+  // declared source of truth (DEV_GUIDE.md checklist item 3) and the CLI reads it when no
+  // flag overrides it. A blanket --no-verify-jwt silently flips verify_jwt=true functions to
+  // false on the platform regardless of what's declared — found the hard way: this exact
+  // bug turned analyze-food-quality's gateway JWT check off during a bulk deploy. It happened
+  // to be harmless there (resolveUserScope enforces auth in-code too), but the script must
+  // not rely on that being true for every function.
   for (const fn of targets) {
-    console.log(`\n>> supabase functions deploy ${fn} --project-ref ${projectRef} --no-verify-jwt`);
+    console.log(`\n>> supabase functions deploy ${fn} --project-ref ${projectRef}`);
     execSync(
-      `supabase functions deploy ${fn} --project-ref ${projectRef} --no-verify-jwt`,
+      `supabase functions deploy ${fn} --project-ref ${projectRef}`,
       { cwd: root, stdio: "inherit" }
     );
   }
