@@ -8,8 +8,8 @@
  * @consumer Wyniki ewaluacji widoczne w logach / bazie dla dewelopera
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
-import { requireServiceRole } from "../_shared/auth.ts"
+import { createServiceClient } from "../_shared/supabase.ts"
+import { serveJson } from "../_shared/http.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
 import { evaluateQuestion } from "./evalEngine.ts"
@@ -123,64 +123,55 @@ async function runEval(run_id: string, questions: any[], user_id: string, offset
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
+Deno.serve(serveJson(async (req, ctx) => {
+  const supabase = ctx.supabase;
+  const body = await req.clone().json().catch(() => ({}));
 
-  const supabase = createServiceClient();
-  try {
-    const body = await req.json().catch(() => ({}));
-
-    if (body.action === 'status' && body.run_id) {
-      const run_id = body.run_id;
-      const [runRes, resultsRes] = await Promise.all([
-        supabase.from('vanguard_eval_runs').select('status, summary, started_at').eq('id', run_id).single(),
-        supabase.from('vanguard_eval_results').select('score, passed, category, difficulty').eq('run_id', run_id)
-      ]);
-      const results = resultsRes.data || [];
-      const total = results.length;
-      const passed = results.filter(r => r.passed).length;
-      const avgScore = total > 0 ? results.reduce((s, r) => s + (r.score || 0), 0) / total : 0;
-      const byCategory: Record<string, { total: number; passed: number }> = {};
-      for (const r of results) { const cat = (r as Record<string, unknown>).category as string || 'unknown'; if (!byCategory[cat]) byCategory[cat] = { total: 0, passed: 0 }; byCategory[cat].total++; if (r.passed) byCategory[cat].passed++; }
-      return new Response(JSON.stringify({ run: runRes.data, results_count: total, passed, avg_score: Math.round(avgScore * 1000) / 1000, by_category: byCategory }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const suite = body.suite || 'vanguard_v1';
-    const user_id = body.user_id || getVanguardUserId();
-    const oracle_version = body.oracle_version || 'v1';
-    const model = body.model || 'deepseek-v4-flash';
-    const batch_size = body.batch_size ? Number(body.batch_size) : 8;
-    const offset = body.offset ? Number(body.offset) : 0;
-
-    let run_id: string;
-    let allQuestions: any[];
-
-    if (body.run_id) {
-      run_id = body.run_id;
-      const { data: qs, error: qErr } = await supabase.from('vanguard_eval_questions').select('*').eq('suite', suite).eq('is_active', true).order('id');
-      if (qErr) throw new Error(`Failed to fetch questions: ${qErr.message}`);
-      allQuestions = qs || [];
-    } else {
-      const { data: qs, error: qErr } = await supabase.from('vanguard_eval_questions').select('*').eq('suite', suite).eq('is_active', true).order('id');
-      if (qErr) throw new Error(`Failed to fetch questions: ${qErr.message}`);
-      if (!qs || qs.length === 0) throw new Error(`No active questions in suite: ${suite}`);
-      allQuestions = qs;
-
-      const { data: runData, error: runErr } = await supabase.from('vanguard_eval_runs').insert({ user_id, suite, model, oracle_version, status: 'running', started_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).toISOString() }).select('id').single();
-      if (runErr) throw new Error(`Failed to create run: ${runErr.message}`);
-      run_id = runData.id;
-    }
-
-    const total = allQuestions.length;
-    const batch = allQuestions.slice(offset, offset + batch_size);
-    const finished = offset + batch.length >= total;
-    await runEval(run_id, batch, user_id, offset, total, finished);
-
-    return new Response(JSON.stringify({ success: true, run_id, offset_next: offset + batch.length, batch_done: batch.length, total, finished, message: `Batch ${offset}–${offset + batch.length - 1} of ${total} started` }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-  } catch (err: any) {
-    console.error('[eval-runner] Fatal error:', err);
-    return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+  if (body.action === 'status' && body.run_id) {
+    const run_id = body.run_id;
+    const [runRes, resultsRes] = await Promise.all([
+      supabase.from('vanguard_eval_runs').select('status, summary, started_at').eq('id', run_id).single(),
+      supabase.from('vanguard_eval_results').select('score, passed, category, difficulty').eq('run_id', run_id)
+    ]);
+    const results = resultsRes.data || [];
+    const total = results.length;
+    const passed = results.filter(r => r.passed).length;
+    const avgScore = total > 0 ? results.reduce((s, r) => s + (r.score || 0), 0) / total : 0;
+    const byCategory: Record<string, { total: number; passed: number }> = {};
+    for (const r of results) { const cat = (r as Record<string, unknown>).category as string || 'unknown'; if (!byCategory[cat]) byCategory[cat] = { total: 0, passed: 0 }; byCategory[cat].total++; if (r.passed) byCategory[cat].passed++; }
+    return { run: runRes.data, results_count: total, passed, avg_score: Math.round(avgScore * 1000) / 1000, by_category: byCategory };
   }
-});
+
+  const suite = body.suite || 'vanguard_v1';
+  const user_id = body.user_id || getVanguardUserId();
+  const oracle_version = body.oracle_version || 'v1';
+  const model = body.model || 'deepseek-v4-flash';
+  const batch_size = body.batch_size ? Number(body.batch_size) : 8;
+  const offset = body.offset ? Number(body.offset) : 0;
+
+  let run_id: string;
+  let allQuestions: any[];
+
+  if (body.run_id) {
+    run_id = body.run_id;
+    const { data: qs, error: qErr } = await supabase.from('vanguard_eval_questions').select('*').eq('suite', suite).eq('is_active', true).order('id');
+    if (qErr) throw new Error(`Failed to fetch questions: ${qErr.message}`);
+    allQuestions = qs || [];
+  } else {
+    const { data: qs, error: qErr } = await supabase.from('vanguard_eval_questions').select('*').eq('suite', suite).eq('is_active', true).order('id');
+    if (qErr) throw new Error(`Failed to fetch questions: ${qErr.message}`);
+    if (!qs || qs.length === 0) throw new Error(`No active questions in suite: ${suite}`);
+    allQuestions = qs;
+
+    const { data: runData, error: runErr } = await supabase.from('vanguard_eval_runs').insert({ user_id, suite, model, oracle_version, status: 'running', started_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' })).toISOString() }).select('id').single();
+    if (runErr) throw new Error(`Failed to create run: ${runErr.message}`);
+    run_id = runData.id;
+  }
+
+  const total = allQuestions.length;
+  const batch = allQuestions.slice(offset, offset + batch_size);
+  const finished = offset + batch.length >= total;
+  await runEval(run_id, batch, user_id, offset, total, finished);
+
+  return { success: true, run_id, offset_next: offset + batch.length, batch_done: batch.length, total, finished, message: `Batch ${offset}–${offset + batch.length - 1} of ${total} started` };
+}, { auth: 'service' }));

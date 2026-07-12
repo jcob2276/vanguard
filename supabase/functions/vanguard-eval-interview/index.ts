@@ -8,8 +8,7 @@
  * @consumer Czat z botem na Telegramie (pytanie i odpowiedź)
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
-import { requireServiceRole } from "../_shared/auth.ts";
+import { serveJson } from "../_shared/http.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { sendMessageParsed } from "../_shared/telegram.ts";
@@ -18,26 +17,15 @@ import { isUsableQuestion, buildDeterministicMemoryQuestion, generateActiveLearn
 
 const TARGET_CATEGORIES = ["fact_recall", "relation_reasoning"];
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+Deno.serve(serveJson(async (req, ctx) => {
+  const supabase = ctx.supabase;
+  let manual = false;
+  if (req.method === "POST") {
+    const payload = await req.clone().json().catch(() => ({}));
+    manual = payload?.manual === true;
+  }
 
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
-
-  try {
-    let manual = false;
-    if (req.method === "POST") {
-      try {
-        const payload = await req.json();
-        manual = payload?.manual === true;
-      } catch (_: unknown) {
-        console.error('[Edge Function Error]', _);
-        return new Response(JSON.stringify({ error: _ instanceof Error ? _.message : String(_) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-      }
-    }
-
-    const supabase = createServiceClient();
-    const userId = getVanguardUserId();
+  const userId = getVanguardUserId();
     const telegramToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
     const chatId = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") ?? "0");
     const deepseekApiKey = Deno.env.get("DEEPSEEK_API_KEY") ?? "";
@@ -46,7 +34,7 @@ Deno.serve(async (req) => {
     const now = new Date();
     const isoDay = now.toLocaleDateString("en-US", { timeZone: "Europe/Warsaw", weekday: "long" });
     if (isoDay === "Saturday" && !manual) {
-      return new Response(JSON.stringify({ skipped: true, reason: "Saturday — saturday_checkin handles this" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { skipped: true, reason: "Saturday — saturday_checkin handles this" };
     }
 
     // Guard: skip if previous question unanswered < 20h ago
@@ -59,7 +47,7 @@ Deno.serve(async (req) => {
         .neq("source", "eval_interview").neq("source", "oracle_chat")
         .gt("created_at", recentInterview.created_at).limit(1).maybeSingle();
       if (!userReply && !manual) {
-        return new Response(JSON.stringify({ skipped: true, reason: "Previous interview question still unanswered" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return { skipped: true, reason: "Previous interview question still unanswered" };
       }
     }
 
@@ -219,7 +207,7 @@ Deno.serve(async (req) => {
       });
 
       console.log("[eval-interview] sent generated deepening question");
-      return new Response(JSON.stringify({ success: true, generated: true, prompt_sent: generatedPrompt, active_learning_type: activeLearningType }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { success: true, generated: true, prompt_sent: generatedPrompt, active_learning_type: activeLearningType };
     }
 
     // ── EVAL QUESTION REPHRASE + SEND ──────────────────────────────────────
@@ -230,7 +218,7 @@ Deno.serve(async (req) => {
     let eligibleQuestions = resolvedFailingResults.filter((q: any) => !recentQuestionIds.has(q.question_id));
     if (eligibleQuestions.length === 0 && manual) eligibleQuestions = resolvedFailingResults;
     if (eligibleQuestions.length === 0) {
-      return new Response(JSON.stringify({ skipped: true, reason: "All failing questions asked recently (< 14d)" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { skipped: true, reason: "All failing questions asked recently (< 14d)" };
     }
 
     const chosen = eligibleQuestions[0];
@@ -267,9 +255,5 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[eval-interview] sent question_id=${chosen.question_id} category=${chosen.category} score=${chosen.score}`);
-    return new Response(JSON.stringify({ success: true, question_id: chosen.question_id, category: chosen.category, score: chosen.score, prompt_sent: interviewPrompt }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (err: any) {
-    console.error("[eval-interview] fatal error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
-  }
-});
+    return { success: true, question_id: chosen.question_id, category: chosen.category, score: chosen.score, prompt_sent: interviewPrompt };
+}, { auth: 'service' }));
