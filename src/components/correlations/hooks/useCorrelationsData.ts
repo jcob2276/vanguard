@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type {
-  BehaviorEffectResult,
-  CorrelationCategory,
-  CorrelationResult,
-  CorrelationStats,
-} from '@vanguard/domain';
+import { useMemo, useState } from 'react';
+import type { CorrelationCategory, CorrelationResult } from '@vanguard/domain';
 import { isInterestingCorrelationClient, isSleepStageDriver } from '@vanguard/domain';
 import { useUserId } from '../../../store/useStore';
+import { useCorrelationsQuery } from '../../../lib/correlationsApi';
 
 const COVERAGE_HINTS: Record<string, string> = {
   caffeine_mg: 'Loguj kawę z godziną (logged_at)',
@@ -35,41 +30,19 @@ function scorePair(c: CorrelationResult) {
 
 export function useCorrelationsData() {
   const userId = useUserId();
-  const [correlations, setCorrelations] = useState<CorrelationResult[]>([]);
-  const [behaviors, setBehaviors] = useState<BehaviorEffectResult[]>([]);
-  const [coverage, setCoverage] = useState<Record<string, number>>({});
-  const [stats, setStats] = useState<CorrelationStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<CorrelationCategory | 'all'>('all');
   const [includeWeak, setIncludeWeak] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = { user_id: userId, include_weak: includeWeak };
-      const [corrRes, behRes] = await Promise.all([
-        supabase.functions.invoke('vanguard-nightly?action=compute-correlations', { body: payload }),
-        supabase.functions.invoke('compute-behavior-effects', { body: payload }),
-      ]);
-      if (corrRes.error) throw corrRes.error;
-      if (behRes.error) throw behRes.error;
-      if (corrRes.data?.error) throw new Error(corrRes.data.error);
-      if (behRes.data?.error) throw new Error(behRes.data.error);
-      setCorrelations(corrRes.data?.results ?? []);
-      setCoverage(corrRes.data?.coverage ?? {});
-      setStats(corrRes.data?.stats ?? null);
-      setBehaviors(behRes.data?.results ?? []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? (e as Error).message : 'Błąd ładowania korelacji');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, includeWeak]);
-
-  useEffect(() => { void (async () => { await load(); })(); }, [load]);
+  const query = useCorrelationsQuery(userId, includeWeak);
+  const correlations = useMemo(() => query.data?.correlations ?? [], [query.data]);
+  const behaviors = query.data?.behaviors ?? [];
+  const coverage = useMemo(() => query.data?.coverage ?? {}, [query.data]);
+  const stats = query.data?.stats ?? null;
+  const loading = query.isLoading;
+  const error = query.error
+    ? (query.error instanceof Error ? query.error.message : 'Błąd ładowania korelacji')
+    : null;
+  const load = query.refetch;
 
   const visibleCorrelations = useMemo(() => {
     if (includeWeak) return correlations;
