@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useState } from 'react';
 import { notify } from '../../../lib/notify';
-import { fetchSprintReview, type SprintReview } from '../../../lib/goal/goalSpine';
-import type { Database } from '../../../lib/database.types';
+import {
+  type DreamRow,
+  type VisionBoardItemRow,
+  useDreamsQuery,
+  useVisionItemsQuery,
+  useSprintReviewQuery,
+  useAddDreamMutation,
+  useToggleDreamMutation,
+  useToggleTop5Mutation,
+  useDeleteDreamMutation,
+  useSaveDreamEditMutation,
+  useAddVisionItemMutation,
+  useDeleteVisionItemMutation,
+} from '../../../lib/dreamsApi';
 
-export type DreamRow = Database['public']['Tables']['dreams']['Row'];
-export type VisionBoardItemRow = Database['public']['Tables']['vision_board_items']['Row'];
 
 export interface UseDreamsDataProps {
   userId: string;
@@ -13,7 +22,18 @@ export interface UseDreamsDataProps {
 }
 
 export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
-  const [dreams, setDreams] = useState<DreamRow[]>([]);
+  const { data: dreams = [] } = useDreamsQuery(userId);
+  const { data: visionItems = [] } = useVisionItemsQuery(userId);
+  const { data: sprintReview = null } = useSprintReviewQuery(userId, loading);
+
+  const addDreamMutation = useAddDreamMutation(userId);
+  const toggleDreamMutation = useToggleDreamMutation(userId);
+  const toggleTop5Mutation = useToggleTop5Mutation(userId);
+  const deleteDreamMutation = useDeleteDreamMutation(userId);
+  const saveDreamEditMutation = useSaveDreamEditMutation(userId);
+  const addVisionItemMutation = useAddVisionItemMutation(userId);
+  const deleteVisionItemMutation = useDeleteVisionItemMutation(userId);
+
   const [newDreamTitle, setNewDreamTitle] = useState('');
   const [newDreamCategory, setNewDreamCategory] = useState('inne');
   const [dreamFilter, setDreamFilter] = useState('all');
@@ -24,64 +44,45 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
   const [editDreamCat, setEditDreamCat] = useState('inne');
   const [editDreamLifeGoal, setEditDreamLifeGoal] = useState<string | null>(null);
   const [newDreamLifeGoal, setNewDreamLifeGoal] = useState<string | null>(null);
-  const [savingDream, setSavingDream] = useState(false);
-  const [sprintReview, setSprintReview] = useState<SprintReview | null>(null);
 
-  const [visionItems, setVisionItems] = useState<VisionBoardItemRow[]>([]);
   const [newVisionContent, setNewVisionContent] = useState('');
   const [newVisionType, setNewVisionType] = useState('affirmation');
   const [newVisionColor, setNewVisionColor] = useState('indigo');
   const [isAddingVision, setIsAddingVision] = useState(false);
 
-  useEffect(() => {
-    if (!userId) return;
-    supabase.from('dreams').select('*').eq('user_id', userId)
-      .order('is_done', { ascending: true })
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setDreams(data); });
-    supabase.from('vision_board_items').select('*').eq('user_id', userId)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setVisionItems(data); });
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    void fetchSprintReview(userId).then(setSprintReview);
-  }, [userId, loading]);
-
   async function addDream() {
     if (!newDreamTitle.trim() || !userId) return;
-    const { data, error } = await supabase.from('dreams')
-      .insert({ user_id: userId, title: newDreamTitle.trim(), category: newDreamCategory, life_goal: newDreamLifeGoal || null } as never)
-      .select().single();
-    if (!error && data) {
-      setDreams(prev => [data, ...prev]);
+    try {
+      await addDreamMutation.mutateAsync({
+        title: newDreamTitle.trim(),
+        category: newDreamCategory,
+        lifeGoal: newDreamLifeGoal || null,
+      });
       setNewDreamTitle('');
       setNewDreamLifeGoal(null);
       setIsAddingDream(false);
-    }
+    } catch { /* mirrors previous silent-fail on error */ }
   }
 
   async function toggleDream(dream: DreamRow) {
-    const is_done = !dream.is_done;
-    const { data, error } = await supabase.from('dreams')
-      .update({ is_done, done_at: is_done ? new Date().toISOString() : null })
-      .eq('id', dream.id).select().single();
-    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
+    try {
+      await toggleDreamMutation.mutateAsync(dream);
+    } catch { /* mirrors previous silent-fail on error */ }
   }
 
   async function deleteDream(id: string) {
-    const { error } = await supabase.from('dreams').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    setDreams(prev => prev.filter(d => d.id !== id));
-    if (editingDream?.id === id) setEditingDream(null);
+    try {
+      await deleteDreamMutation.mutateAsync(id);
+      if (editingDream?.id === id) setEditingDream(null);
+    } catch (err: unknown) {
+      notify(err instanceof Error ? err.message : 'Nie udało się usunąć marzenia', 'error');
+    }
   }
 
   async function toggleTop5(dream: DreamRow) {
-    const is_top5 = !dream.is_top5;
-    const { data, error } = await supabase.from('dreams').update({ is_top5 }).eq('id', dream.id).select().single();
-    if (!error && data) setDreams(prev => prev.map(d => d.id === dream.id ? data : d));
+    try {
+      await toggleTop5Mutation.mutateAsync(dream);
+    } catch { /* mirrors previous silent-fail on error */ }
   }
 
   function openDreamModal(dream: DreamRow) {
@@ -94,29 +95,37 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
 
   async function saveDreamEdit() {
     if (!editingDream) return;
-    setSavingDream(true);
-    const { data, error } = await supabase.from('dreams')
-      .update({ title: editDreamTitle.trim(), description: editDreamDesc.trim() || null, category: editDreamCat, life_goal: editDreamLifeGoal || null } as never)
-      .eq('id', editingDream.id).select().single();
-    if (!error && data) {
-      setDreams(prev => prev.map(d => d.id === editingDream.id ? data : d));
+    try {
+      await saveDreamEditMutation.mutateAsync({
+        id: editingDream.id,
+        title: editDreamTitle.trim(),
+        description: editDreamDesc.trim() || null,
+        category: editDreamCat,
+        lifeGoal: editDreamLifeGoal || null,
+      });
       setEditingDream(null);
-    }
-    setSavingDream(false);
+    } catch { /* mirrors previous silent-fail on error */ }
   }
 
   async function addVisionItem() {
     if (!newVisionContent.trim() || !userId) return;
-    const { data, error } = await supabase.from('vision_board_items')
-      .insert({ user_id: userId, type: newVisionType, content: newVisionContent.trim(), color: newVisionColor })
-      .select().single();
-    if (!error && data) { setVisionItems(prev => [data, ...prev]); setNewVisionContent(''); setIsAddingVision(false); }
+    try {
+      await addVisionItemMutation.mutateAsync({
+        content: newVisionContent.trim(),
+        type: newVisionType,
+        color: newVisionColor,
+      });
+      setNewVisionContent('');
+      setIsAddingVision(false);
+    } catch { /* mirrors previous silent-fail on error */ }
   }
 
   async function deleteVisionItem(id: string) {
-    const { error } = await supabase.from('vision_board_items').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    setVisionItems(prev => prev.filter(v => v.id !== id));
+    try {
+      await deleteVisionItemMutation.mutateAsync(id);
+    } catch (err: unknown) {
+      notify(err instanceof Error ? err.message : 'Nie udało się usunąć elementu', 'error');
+    }
   }
 
   const DREAM_CATEGORIES = ['all', 'finanse', 'ciało', 'relacje', 'doświadczenia', 'wolność', 'inne'];
@@ -137,7 +146,7 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
   const top5Dreams = dreams.filter(d => d.is_top5 && !d.is_done).slice(0, 5);
 
   return {
-    dreams, setDreams,
+    dreams,
     newDreamTitle, setNewDreamTitle,
     newDreamCategory, setNewDreamCategory,
     dreamFilter, setDreamFilter,
@@ -148,9 +157,9 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
     editDreamCat, setEditDreamCat,
     editDreamLifeGoal, setEditDreamLifeGoal,
     newDreamLifeGoal, setNewDreamLifeGoal,
-    savingDream, setSavingDream,
-    sprintReview, setSprintReview,
-    visionItems, setVisionItems,
+    savingDream: saveDreamEditMutation.isPending,
+    sprintReview,
+    visionItems,
     newVisionContent, setNewVisionContent,
     newVisionType, setNewVisionType,
     newVisionColor, setNewVisionColor,
