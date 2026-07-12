@@ -1,5 +1,3 @@
-import { createServiceClient, resolveUserScope, corsHeaders } from "../supabase.ts";
-
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 // Edwards 5-zone TRIMP (StrainScorer.swift): %HRR thresholds → zone weight
@@ -99,39 +97,31 @@ export async function runRescoreWorkoutSessionsInternal(supabase: any, userId: s
   return { user_id: userId, sessions_checked: sessions?.length || 0, sessions_rescored: updates.length };
 }
 
-export async function runRescoreWorkoutSessions(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+export async function runRescoreWorkoutSessions(
+  supabase: any,
+  scopedUserId: string | null,
+  days: number
+): Promise<{ success: boolean; results: any[] }> {
+  let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null);
+  if (scopedUserId) uq = uq.eq('user_id', scopedUserId);
+  const { data: users, error: uErr } = await uq;
+  if (uErr) throw uErr;
 
-  try {
-    const supabase = createServiceClient();
-    const body = await req.json().catch(() => ({}));
-    const days: number = body.days ?? 3;
-    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
-
-    let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null);
-    if (scopedUserId) uq = uq.eq('user_id', scopedUserId);
-    const { data: users, error: uErr } = await uq;
-    if (uErr) throw uErr;
-
-    const results: any[] = [];
-    for (const u of (users || [])) {
-      const uid = u.user_id;
-      try {
-        const res = await runRescoreWorkoutSessionsInternal(supabase, uid, days);
-        results.push(res);
-      } catch (error: any) {
-        console.error(`[rescore] user ${uid} failed`, error);
-        results.push({ user_id: uid, error: error.message || String(error) });
-      }
+  const results: any[] = [];
+  for (const u of (users || [])) {
+    const uid = u.user_id;
+    try {
+      const res = await runRescoreWorkoutSessionsInternal(supabase, uid, days);
+      results.push(res);
+    } catch (error: any) {
+      console.error(`[rescore] user ${uid} failed`, error);
+      results.push({ user_id: uid, error: error.message || String(error) });
     }
-
-    return new Response(JSON.stringify({ success: true, results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  } catch (error: any) {
-    console.error('[rescore] fatal', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
   }
+
+  const scopedError = scopedUserId && results.length === 1 && results[0]?.error;
+  if (scopedError) {
+    throw new Error(scopedError);
+  }
+  return { success: true, results };
 }

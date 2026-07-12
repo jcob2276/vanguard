@@ -1,26 +1,21 @@
-import { createServiceClient, resolveUserScope } from '../supabase.ts';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getWarsawDateString } from '../time.ts';
 import { ewmaBaseline } from './baselines.ts';
 import { byKey, type OuraDailySummaryRow, type OuraEnhancedRow, type OuraHrZonesDailyRow, type DailyNutritionRow, type WorkoutSessionRow, type StravaActivityRow, type DailyFoodEntryRow, type BehaviorLogRow, type DailyReconciliationRow } from './metricsTypes.ts';
 import { buildIllnessDates, computePerDay } from './computePerDay.ts';
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
-
-export const runComputeDailyStrain = async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  try {
-    const supabase = createServiceClient();
-    const body = await req.json().catch(() => ({}));
-    const days: number = body.days ?? 2;
-    const dateFrom: string | null = body.dateFrom ?? null;
-    const dateTo: string | null = body.dateTo ?? null;
-    const algoVersion: number = body.algoVersion ?? 1;
-    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
-
-    let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null);
-    if (scopedUserId) uq = uq.eq('user_id', scopedUserId);
-    const { data: users, error: uErr } = await uq;
-    if (uErr) throw uErr;
+export const runComputeDailyStrain = async (
+  supabase: SupabaseClient,
+  scopedUserId: string | null,
+  dateFrom: string | null,
+  dateTo: string | null,
+  days: number,
+  algoVersion: number
+): Promise<{ success: boolean; results: any[] }> => {
+  let uq = supabase.from('user_settings').select('user_id').not('oura_token', 'is', null);
+  if (scopedUserId) uq = uq.eq('user_id', scopedUserId);
+  const { data: users, error: uErr } = await uq;
+  if (uErr) throw uErr;
 
     const now = new Date();
     const todayWarsaw = getWarsawDateString(now);
@@ -116,11 +111,10 @@ export const runComputeDailyStrain = async (req: Request): Promise<Response> => 
       }
     };
 
-    const results = await Promise.all((users || []).map(computeForUser));
-    const scopedError = scopedUserId && results.length === 1 && results[0]?.error;
-    return new Response(JSON.stringify({ success: !scopedError, results, error: scopedError || undefined }), { status: scopedError ? 400 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    console.error('[strain] fatal', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const results = await Promise.all((users || []).map(computeForUser));
+  const scopedError = scopedUserId && results.length === 1 && results[0]?.error;
+  if (scopedError) {
+    throw new Error(scopedError);
   }
+  return { success: true, results };
 };

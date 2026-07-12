@@ -3,7 +3,7 @@
   "patternCount_rawProviderFetch": 4,
   "patternCount_inlineWarsawDate": 9,
   "patternCount_asAnyFunctions": 0,
-  "patternCount_rawJsonResponse": 25,
-  "patternCount_secretKeyOutsideKernel": 6,
+  "patternCount_rawJsonResponse": 4,
+  "patternCount_secretKeyOutsideKernel": 4,
   "legacyLines": {}
 }

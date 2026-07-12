@@ -1,5 +1,3 @@
-import { createServiceClient, corsHeadersFor, resolveUserScope } from '../supabase.ts';
-import { getVanguardUserId } from '../constants.ts';
 import { getWarsawDateString } from '../time.ts';
 import {
   detectRecurringBlockers,
@@ -10,8 +8,6 @@ import {
   detectNarrativeBiometricMismatch,
   type PatternInsight,
 } from '../vanguardPatterns.ts';
-
-const supabase = createServiceClient();
 
 interface DetectorResult {
   signature: string;
@@ -48,7 +44,7 @@ function insightToDetector(insight: PatternInsight): DetectorResult {
   };
 }
 
-async function upsertPattern(userId: string, pattern: DetectorResult): Promise<string> {
+async function upsertPattern(supabase: any, userId: string, pattern: DetectorResult): Promise<string> {
   const { data: existing } = await supabase
     .from("vanguard_behavioral_patterns")
     .select("id, status")
@@ -98,64 +94,46 @@ async function upsertPattern(userId: string, pattern: DetectorResult): Promise<s
   return data.id;
 }
 
-export const runDetectPatterns = async (req: Request): Promise<Response> => {
-  const cors = corsHeadersFor(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+export const runDetectPatterns = async (
+  supabase: any,
+  userId: string
+): Promise<{
+  patterns_found: number;
+  patterns_inserted: number;
+  patterns_updated: number;
+}> => {
+  console.log(`[detect-patterns] Running for user ${userId}`);
+
+  const yesterday = getWarsawDateString(new Date(Date.now() - 86400000));
+
+  const [s1, s2, s3, s4, s5, s6] = await Promise.all([
+    detectRecurringBlockers(supabase, userId),
+    detectMorningProtocolImpact(supabase, userId),
+    detectSleepFrictionLink(supabase, userId),
+    detectPlanAdherenceGaps(supabase, userId, yesterday),
+    detectEarlyWarningSignals(supabase, userId),
+    detectNarrativeBiometricMismatch(supabase, userId),
+  ]);
+
+  const all = [...s1, ...s2, ...s3, ...s4, ...s5, ...s6].map(insightToDetector);
+  console.log(`[detect-patterns] Found ${all.length} patterns total`);
+
+  let inserted = 0;
+  let updated = 0;
+  const today = getWarsawDateString(new Date());
+  for (const p of all) {
+    const patternId = await upsertPattern(supabase, userId, p);
+    const { error: evErr } = await supabase.from("pattern_events").upsert({
+       pattern_id: patternId,
+       occurred_on: today
+    }, { onConflict: "pattern_id,occurred_on" });
+    if (evErr) console.warn("Failed to insert pattern_event", evErr.message);
+    updated++;
   }
 
-  try {
-    let userId = getVanguardUserId();
-    if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      if (body?.user_id) {
-        const scope = await resolveUserScope(req, body.user_id);
-        userId = scope.userId ?? userId;
-      }
-    }
-
-    console.log(`[detect-patterns] Running for user ${userId}`);
-
-    const yesterday = getWarsawDateString(new Date(Date.now() - 86400000));
-
-    const [s1, s2, s3, s4, s5, s6] = await Promise.all([
-      detectRecurringBlockers(supabase, userId),
-      detectMorningProtocolImpact(supabase, userId),
-      detectSleepFrictionLink(supabase, userId),
-      detectPlanAdherenceGaps(supabase, userId, yesterday),
-      detectEarlyWarningSignals(supabase, userId),
-      detectNarrativeBiometricMismatch(supabase, userId),
-    ]);
-
-    const all = [...s1, ...s2, ...s3, ...s4, ...s5, ...s6].map(insightToDetector);
-    console.log(`[detect-patterns] Found ${all.length} patterns total`);
-
-    let inserted = 0;
-    let updated = 0;
-    const today = getWarsawDateString(new Date());
-    for (const p of all) {
-      const patternId = await upsertPattern(userId, p);
-      const { error: evErr } = await supabase.from("pattern_events").upsert({
-         pattern_id: patternId,
-         occurred_on: today
-      }, { onConflict: "pattern_id,occurred_on" });
-      if (evErr) console.warn("Failed to insert pattern_event", evErr.message);
-      updated++;
-    }
-
-    return new Response(
-      JSON.stringify({
-        patterns_found: all.length,
-        patterns_inserted: inserted,
-        patterns_updated: updated,
-      }),
-      { headers: { ...cors, "Content-Type": "application/json" } },
-    );
-  } catch (err) {
-    console.error("[detect-patterns] error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...cors, "Content-Type": "application/json" },
-    });
-  }
+  return {
+    patterns_found: all.length,
+    patterns_inserted: inserted,
+    patterns_updated: updated,
+  };
 }

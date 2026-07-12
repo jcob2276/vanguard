@@ -1,4 +1,4 @@
-import { createServiceClient, corsHeaders, resolveUserScope } from '../supabase.ts'
+
 import {
   confidenceTier, dualCorrelation, interpretR, laggedPairs, type CorrelationMethod, type ScatterPoint,
 } from '../correlationEngine.ts'
@@ -129,15 +129,12 @@ function computePair(
   return dual.primary ? { dual, scatter } : null
 }
 
-export const runComputeCorrelations = async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
+export const runComputeCorrelations = async (
+  supabase: any,
+  userId: string,
+  includeWeak = false
+): Promise<{ success: boolean; results: any[]; coverage: any; stats: any; window_days: number; filtered: boolean; mode: string }> => {
   try {
-    const supabase = createServiceClient()
-    const body = await req.json().catch(() => ({}))
-    const { userId } = await resolveUserScope(req, body.userId ?? null)
-    const includeWeak = body.include_weak === true
-    if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
     const todayWarsaw = getWarsawDateString(now)
@@ -275,16 +272,10 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
       metrics_tracked: metrics.length,
     }
 
-    return new Response(
-      JSON.stringify({ success: true, results: output, coverage, stats, window_days: 90, filtered: !includeWeak, mode: 'discovery' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    return { success: true, results: output, coverage, stats, window_days: 90, filtered: !includeWeak, mode: 'discovery' }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[compute-correlations]', err)
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    throw new Error(message)
   }
 }

@@ -82,23 +82,25 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     if (action) {
       // Actions accept both service-role and user tokens
-      await resolveUserScope(req, body.userId ?? null);
-
-      const reqForSub = new Request(req.url, {
-        method: req.method,
-        headers: req.headers,
-        body: JSON.stringify(body)
-      });
+      const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
+      if (!scopedUserId) throw new Error("Unauthorized");
 
       switch (action) {
         case 'compute-daily-strain':
-          return await runComputeDailyStrain(reqForSub);
+          return await runComputeDailyStrain(
+            supabase,
+            scopedUserId,
+            body.dateFrom ?? null,
+            body.dateTo ?? null,
+            body.days ?? 2,
+            body.algoVersion ?? 1
+          );
         case 'detect-patterns':
-          return await runDetectPatterns(reqForSub);
+          return await runDetectPatterns(supabase, scopedUserId);
         case 'compute-correlations':
-          return await runComputeCorrelations(reqForSub);
+          return await runComputeCorrelations(supabase, scopedUserId, body.include_weak === true);
         case 'rescore-workout-sessions':
-          return await runRescoreWorkoutSessions(reqForSub);
+          return await runRescoreWorkoutSessions(supabase, scopedUserId, body.days ?? 3);
         default:
           throw new Error(`Unknown action: ${action}`);
       }
@@ -138,19 +140,8 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     // 2. save-daily-aggregate (today + finalize yesterday)
     await runLedgerStep(supabase, userId, runId, 'save-daily-aggregate', true, async () => {
-      const aggRes = await runSaveDailyAggregate(new Request(req.url, {
-        method: req.method,
-        headers: req.headers,
-        body: JSON.stringify({ userId, date: todayStr })
-      }));
-      if (!aggRes.ok) throw new Error(`Aggregate (today) failed: ${aggRes.status}`);
-
-      const aggYesterdayRes = await runSaveDailyAggregate(new Request(req.url, {
-        method: req.method,
-        headers: req.headers,
-        body: JSON.stringify({ userId, date: yesterdayStr })
-      }));
-      if (!aggYesterdayRes.ok) throw new Error(`Aggregate (yesterday finalize) failed: ${aggYesterdayRes.status}`);
+      await runSaveDailyAggregate(supabase, userId, todayStr);
+      await runSaveDailyAggregate(supabase, userId, yesterdayStr);
     });
 
     // 2.5 resolve past predictions
@@ -169,30 +160,24 @@ Deno.serve(serveJson(async (req, ctx) => {
     });
 
     // 3. compute metrics
-    const metricRequest = new Request(req.url, {
-      method: 'POST',
-      headers: req.headers,
-      body: JSON.stringify({
-        userId,
-        date: todayStr,
-        dateFrom: body.dateFrom ?? null,
-        dateTo: body.dateTo ?? null,
-        algoVersion: body.algoVersion ?? 1
-      })
-    });
+    const dateFrom = body.dateFrom ?? null;
+    const dateTo = body.dateTo ?? null;
+    const days = body.days ?? 2;
+    const algoVersion = body.algoVersion ?? 1;
+
     await runLedgerStep(supabase, userId, runId, 'compute-daily-strain', true, async () => {
-      await runComputeDailyStrain(metricRequest);
+      await runComputeDailyStrain(supabase, userId, dateFrom, dateTo, days, algoVersion);
     });
     await runLedgerStep(supabase, userId, runId, 'compute-illness-signal', true, async () => {
-      await runComputeIllnessSignal(metricRequest);
+      await runComputeIllnessSignal(supabase, userId, dateFrom, dateTo, days, algoVersion);
     });
     await runLedgerStep(supabase, userId, runId, 'compute-recovery-forecast', true, async () => {
-      await runComputeRecoveryForecast(metricRequest);
+      await runComputeRecoveryForecast(supabase, userId, body.plannedSleepHours ?? null, body.needSleepHours ?? 8.0);
     });
 
     // 4. vanguard-detect-patterns
     await runLedgerStep(supabase, userId, runId, 'detect-patterns', false, async () => {
-      await runDetectPatterns(metricRequest);
+      await runDetectPatterns(supabase, userId);
     });
 
     // 5. pattern-outcomes
@@ -202,7 +187,7 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     // 6. correlations
     await runLedgerStep(supabase, userId, runId, 'compute-correlations', false, async () => {
-      await runComputeCorrelations(metricRequest);
+      await runComputeCorrelations(supabase, userId, body.include_weak === true);
     });
 
     // 7. Cache World State
