@@ -8,8 +8,8 @@
  * @consumer Powiadomienia w Telegramie i baza danych produktów
  * @status active
  */
-import { corsHeaders, createServiceClient } from '../_shared/supabase.ts'
-import { requireServiceRole } from '../_shared/auth.ts'
+import { createServiceClient } from '../_shared/supabase.ts'
+import { serveJson } from '../_shared/http.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { getVanguardUserId } from '../_shared/constants.ts'
@@ -124,22 +124,7 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
   return { count: results.length, items: results }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  
-  const authError = requireServiceRole(req)
-  if (authError) return authError
-
-  try {
-    const result = await runLibrarian()
-    return new Response(JSON.stringify({ ok: true, ...result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  } catch (err) {
-    console.error('[vanguard-librarian] Error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
-})
+Deno.serve(serveJson(async () => {
+  const result = await runLibrarian()
+  return { ok: true, ...result }
+}, { auth: 'service' }))

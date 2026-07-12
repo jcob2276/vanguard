@@ -13,7 +13,7 @@
 // par ciągłych metryk — TA funkcja pokrywa to, czego tam nie ma: behavior_log to
 // dane kategorialne/dawka (zalogowano/nie, ile), więc potrzebuje group-comparison
 // (Welch t-test + Cohen's d), nie korelacji Pearsona.
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts"
+import { serveJson } from "../_shared/http.ts"
 import { studentTPValue } from "../_shared/stats.ts"
 import { isInterestingBehaviorEffect } from "../_shared/correlationInterest.ts"
 import { getWarsawDateString } from "../_shared/time.ts"
@@ -87,15 +87,11 @@ function shiftDay(day: string, delta: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
-  try {
-    const supabase = createServiceClient()
-    const body = await req.json().catch(() => ({}))
-    const { userId } = await resolveUserScope(req, body.userId ?? null)
-    const includeWeak = body.include_weak === true
-    if (!userId) throw new Error('Missing userId')
+Deno.serve(serveJson(async (req, ctx) => {
+  const { userId, supabase } = ctx
+  const body = await req.clone().json().catch(() => ({}))
+  const includeWeak = body.include_weak === true
+  if (!userId) throw new Error('Missing userId')
 
     const now = new Date()
     const todayWarsaw = getWarsawDateString(now)
@@ -200,7 +196,7 @@ Deno.serve(async (req) => {
     }, { includePrivate: includeWeak }))
     const output = includeWeak ? results : interesting
 
-    return new Response(JSON.stringify({
+    return {
       success: true,
       results: output,
       behaviors_tracked: Object.keys(byKey).length,
@@ -208,13 +204,5 @@ Deno.serve(async (req) => {
       hidden_weak: computedTotal - interesting.length,
       window_days: 90,
       filtered: !includeWeak,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  } catch (error: any) {
-    console.error('[behavior-effects] fatal', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
-})
+    }
+}))

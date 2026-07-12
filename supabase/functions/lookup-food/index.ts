@@ -8,7 +8,7 @@
  * @consumer Modal dodawania jedzenia (FoodEntryModal) w aplikacji
  * @status active
  */
-import { corsHeaders } from '../_shared/supabase.ts'
+import { serveJson } from '../_shared/http.ts'
 import { GENERIC_FOODS, searchGenericFoods, pickBestGenericMatch } from '../_shared/foodGeneric.ts'
 import { lookupReferencePl } from '../_shared/foodReferencePl.ts'
 
@@ -115,12 +115,8 @@ async function fetchOffWithRetry(url: string): Promise<Response | null> {
       if (res.ok) return res
       console.warn(`[lookup-food] OFF attempt ${attempt + 1} -> ${res.status}`)
     } catch (err: unknown) {
-    console.error('[Edge Function Error]', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+      console.warn(`[lookup-food] OFF attempt ${attempt + 1} threw:`, err instanceof Error ? err.message : String(err))
+    }
   }
   return null
 }
@@ -163,38 +159,19 @@ async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
   return products.map((p: any) => offProductToResult(p, p.code || null)).filter(Boolean) as FoodResult[]
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+Deno.serve(serveJson(async (req) => {
+  const url = new URL(req.url)
+  const barcode = url.searchParams.get('barcode')
+  const q = url.searchParams.get('q')
 
-  try {
-    const url = new URL(req.url)
-    const barcode = url.searchParams.get('barcode')
-    const q = url.searchParams.get('q')
-
-    let results: FoodResult[] = []
-
-    if (barcode) {
-      results = await lookupByBarcode(barcode)
-    } else if (q) {
-      const refPl = searchReferencePl(q)
-      const generic = searchGeneric(q)
-      const off = await searchOpenFoodFacts(q)
-      results = [...refPl, ...generic, ...off]
-    } else {
-      return new Response(JSON.stringify({ error: 'Provide barcode or q' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    return new Response(JSON.stringify({ results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    console.error('[lookup-food] error:', err)
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  if (barcode) {
+    return { results: await lookupByBarcode(barcode) }
   }
-})
+  if (q) {
+    const refPl = searchReferencePl(q)
+    const generic = searchGeneric(q)
+    const off = await searchOpenFoodFacts(q)
+    return { results: [...refPl, ...generic, ...off] }
+  }
+  throw new Error('Provide barcode or q')
+}, { auth: 'none' }))

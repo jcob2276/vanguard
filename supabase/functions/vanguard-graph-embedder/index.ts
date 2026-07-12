@@ -9,8 +9,8 @@
  * @status active
  */
 import { getEmbedding } from "../_shared/openai.ts";
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
-import { requireServiceRole } from "../_shared/auth.ts"
+import { createServiceClient } from "../_shared/supabase.ts"
+import { serveJson } from "../_shared/http.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
 
@@ -151,38 +151,21 @@ async function runBackfillBatch(
   return { processed: links.length, updated: links.length, remaining: remaining ?? null };
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+Deno.serve(serveJson(async (req) => {
+  const body = await req.clone().json().catch(() => ({}));
+  const user_id = body.user_id || getVanguardUserId();
+  const batch_size = body.batch_size ? Number(body.batch_size) : 50;
+  const force_reembed = body.force_reembed === true;
+  const hype_mode = body.hype_mode === true; // HyPE: generate questions at index time
 
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
+  const result = await runBackfillBatch(user_id, batch_size, force_reembed, hype_mode);
 
-  try {
-    const body = await req.json().catch(() => ({}));
-    const user_id = body.user_id || getVanguardUserId();
-    const batch_size = body.batch_size ? Number(body.batch_size) : 50;
-    const force_reembed = body.force_reembed === true;
-    const hype_mode = body.hype_mode === true; // HyPE: generate questions at index time
-
-    const result = await runBackfillBatch(user_id, batch_size, force_reembed, hype_mode);
-
-    return new Response(JSON.stringify({
-      success: true,
-      ...result,
-      message: result.remaining === 0
-        ? 'Backfill complete'
-        : `Batch embedded; ~${result.remaining} triples remaining — invoke again`,
-      estimated_cost_usd: ((result.processed || 0) * 0.000002).toFixed(4),
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-
-  } catch (err: any) {
-    console.error('[embedder] Error:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
-  }
-});
+  return {
+    success: true,
+    ...result,
+    message: result.remaining === 0
+      ? 'Backfill complete'
+      : `Batch embedded; ~${result.remaining} triples remaining — invoke again`,
+    estimated_cost_usd: ((result.processed || 0) * 0.000002).toFixed(4),
+  };
+}, { auth: 'service' }));
