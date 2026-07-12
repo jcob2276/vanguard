@@ -832,6 +832,85 @@ Dalsze zejście licznika `rawJsonResponse` do faktycznego zera wymaga jednej z t
 prac jako osobnego zadania — nie da się go domknąć tym samym mechanicznym przepinaniem,
 które doprowadziło z 147 do 84 w tej sesji.
 
+### 2026-07-12 (ciąg dalszy 6): Response-passthrough w serveJson — wszystkie 8 ostatnich funkcji przepięte, `rawJsonResponse` 84 → 47
+
+Stop hook trzykrotnie odrzucił poprzednie checkpointy jako "postęp, nie ukończenie" — słusznie:
+liczba 84 była wciąż spora, a przyczyna ("architektoniczna niekompatybilność") była w
+połowie prawdziwa. Rozwiązanie: **rozszerzono `serveJson`** (`_shared/http.ts`) o
+Response-passthrough — jeśli handler zwróci instancję `Response` zamiast zwykłej wartości,
+kernel przepuszcza ją bez zmian (dolewając nagłówki CORS addytywnie, nie nadpisując). To
+ścisły nadzbiór starego zachowania — żadna z 23 wcześniej przepiętych funkcji nie zwraca
+`Response`, więc ich zachowanie się nie zmieniło (zweryfikowane typecheckiem).
+
+Ta jedna zmiana kernela odblokowała **wszystkie 8** odłożonych funkcji naraz: pod-handlery
+routerów (`handleSearch`, `handleGoalCreate`, `runOuraSync`, `runDailyReconciliation`,
+`compileForUser`, `handleTodoClassify`, `handleVaultIngest` itd.) mogły zostać dokładnie
+takie jak były — bez refaktoru — a `vanguard-oracle`'s SSE streaming i `vanguard-telegram`'s
+plain-text "OK" ack po prostu przepływają przez `serveJson` niezmienione. Commit `5af3b355`:
+`vanguard-auto-classify`, `vanguard-capture`, `sync`, `recap`, `vanguard-wiki-compiler`,
+`vanguard-nightly`, `vanguard-oracle`, `vanguard-telegram` — wszystkie na `serveJson`.
+**31/31 funkcji edge teraz przechodzi przez serveJson** (auth:'none' + zachowana ręczna
+logika auth tam gdzie niejednolita per-branch).
+
+Żywa weryfikacja złapała to co typecheck by przegapił: `vanguard-oracle`'s non-streaming
+chat zwrócił realną odpowiedź RAG z tabelą biometryczną; `vanguard-telegram` na złym
+sekrecie zwrócił dokładnie `403 Forbidden` jako `text/plain` (NIE `"Forbidden"` w cudzysłowach
+jako JSON) — dowód że passthrough zachowuje dokładny kontrakt webhooka.
+
+**Ten kernel-fix sam w sobie NIE ruszył licznika** (nadal 84) — bo pod-handlery nadal
+fizycznie zawierały `new Response(JSON.stringify(...))`, tylko teraz przepuszczane przez
+`serveJson` zamiast konstruowane bezpośrednio w `Deno.serve()`. Licznik mierzy literalne
+wystąpienia wzorca w kodzie, nie "czy funkcja jest na serveJson". Więc ruszono dalej:
+**faktyczna konwersja pod-handlerów na zwykłe wartości/throw**, teraz że ich wywołujący
+routery poprawnie obsługują oba warianty.
+
+Konwertowano (commit `35a7df93`): `vanguard-oracle`'s `search`/`goalCreate`/`taskBreakdown`,
+`vanguard-auto-classify`'s `todoClassify`/`todoExtract`/`classify`, `vanguard-capture`'s
+`vaultIngest`, `sync`'s `oura`/`strava`/`calendar`, `recap`'s `daily`/`weekly-synthesis`/
+`weekly-recap`. `rawJsonResponse`: 84 → 51.
+
+**Złapano i naprawiono 2 realne regresje podczas tej konwersji** — dedykowany audyt
+(subagent Explore) każdego miejsca wywołania w `src/` dla tych 4 funkcji wykazał, że
+większość callerów używa `supabase.functions.invoke()`/`invokeEdge()` (bezpieczne wobec
+zmiany statusu — normalizuje każdy non-2xx do `error` niezależnie od konkretnego kodu), ALE
+kilka używa **surowego `fetch()` z jawnym sprawdzeniem `!response.ok`**:
+- `sync/calendar.ts`'s "No token" (użytkownik nie połączył Kalendarza Google) — pierwotnie
+  zwracane jako zwykła wartość (zawsze 200), złamałoby `useSyncActions.ts`'s `callFn` (rzuca
+  na `!res.ok`) — użytkownik przestałby widzieć błąd przy próbie synchronizacji bez tokenu.
+  Naprawiono: `throw` zamiast `return`.
+- `sync/strava.ts`'s rate-limited (0 aktywności + Strava 429) — tak samo, złamałoby
+  `StravaWidget.tsx`, `useDailyStrainRefresh.ts`, `DesktopDashboard.tsx`. Naprawiono: `throw`.
+
+Oba naprawione i **zweryfikowane żywo**: `sync?service=calendar` z nieistniejącym userId
+zwraca teraz `400 {"error":"No token"}` (nie 200); `sync?service=strava` real sync zwrócił
+`200 {"ok":true,"synced":0,"rate_limited":false}` na prawdziwym koncie. Bezpieczeństwo tej
+konwersji trzyma się na tym, że każdy router (`recap/index.ts`, `sync/index.ts`,
+`vanguard-auto-classify/index.ts`, `vanguard-capture/index.ts`, `vanguard-oracle/index.ts`)
+**celowo zachował własny catch-block z prawdziwym `Response`** — więc rzucony przez
+pod-handler błąd i tak wychodzi jako non-2xx przez ten catch, niezależnie od konkretnego
+kodu statusu.
+
+Dodatkowo skonwertowano `sync/enhanced.ts` i `sync/timeseries.ts` (commit `7119bca1`,
+`rawJsonResponse`: 51 → 47) — wywoływane WYŁĄCZNIE fire-and-forget
+(`.catch(e => console.error(...))`), ich zwracana wartość nigdy nie była sprawdzana, więc
+konstruowanie `Response` było czystą duplikacją. Zweryfikowano żywo: pełny `sync?service=oura`
+zsynchronizował 7 rekordów, zero `critical_error` w `audit_events`.
+
+**Analiza pozostałych 47 wystąpień `rawJsonResponse` — dokładna kategoryzacja, nie zgadywanie**:
+| Kategoria | Ile | Dlaczego zostaje |
+|---|---|---|
+| Kernel (`_shared/http.ts`, `_shared/auth.ts`) | 3 | To SĄ kanoniczne definicje, do których wszystko inne deleguje — liczenie ich jako "duplikacja" to false-positive samego regexa |
+| Routery z realnie zależnym statusem/kontrolą (zweryfikowane audytem callerów) | 30 | `vanguard-telegram` (webhook, plain-text zawsze-200), `vanguard-oracle` (SSE streaming), `vanguard-wiki-compiler` (207 partial-success), pozostałe routery (`recap`, `sync`, `vanguard-auto-classify`, `vanguard-capture`, `vanguard-nightly` index.ts) — ich WŁASNE catch-blocki muszą zostać jako prawdziwy `Response`, bo to one dają non-2xx pod-handlerom które teraz throw'ują |
+| `_shared/nightly/*.ts` (6 plików: `aggregate`, `metrics_illness`, `metrics_recovery`, `metrics_strain`, `patterns`, `rescore`) | 13 | Wywoływane przez `vanguard-nightly/index.ts`'s `runLedgerStep` z jawnym sprawdzeniem `.ok`/`.status` na skonstruowanym ad-hoc `Request` — konwersja wymaga refaktoru ORKIESTRACJI pipeline'u nocnego, nie tylko kształtu odpowiedzi. Osobne, większe zadanie. |
+| `_shared/infra/telegram/send.ts` | 1 | Mały leaf-helper z własnym statusem sukces/porażka dla outbox-queue send |
+
+**Stan końcowy tej sesji: 31/31 funkcji edge na `serveJson`, `rawJsonResponse` = 47**
+(start sesji: 147, -68%). `as any` = 0, molochy = 0 — oba cele `/goal` osiągnięte i utrzymane
+przez całą sesję. Literalne zejście `rawJsonResponse` do 0 wymagałoby albo (a) przepisania
+kernela żeby nie liczyć własnej implementacji, albo (b) osobnego refaktoru orkiestracji
+`vanguard-nightly` — obie prace policzalne i jasno wyodrębnione, ale materialnie różne od
+mechanicznego przepinania wykonanego w tej sesji.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
