@@ -3,11 +3,6 @@ import { resolveUserScope } from "../_shared/supabase.ts"
 
 const OURA_BASE = 'https://api.ouraring.com/v2/usercollection'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 const PHASE_MAP: Record<string, string> = { '1': 'deep', '2': 'light', '3': 'rem', '4': 'awake' }
 
 const serviceClient = createServiceClient
@@ -115,9 +110,6 @@ async function safeUpsertChunked(
 }
 
 export const runTimeseries = async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
-  try {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 2
@@ -249,14 +241,5 @@ export const runTimeseries = async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, range: { startDate, endDate }, results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  } catch (error: any) {
-    console.error('[ts] fatal', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
+    return { success: true, range: { startDate, endDate }, results }
 }

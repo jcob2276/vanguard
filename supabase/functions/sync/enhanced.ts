@@ -3,11 +3,6 @@ import { resolveUserScope } from "../_shared/supabase.ts"
 
 const OURA_BASE = 'https://api.ouraring.com/v2/usercollection'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 const serviceClient = createServiceClient
 
 // Robust fetch — Oura zwraca 404/426 dla endpointów, których dany ring/plan nie obsługuje.
@@ -37,9 +32,6 @@ async function fetchOura(url: string, headers: Record<string, string>, attempt =
 }
 
 export const runEnhanced = async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
-  try {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
     const days: number = body.days ?? 5        // okno bezpieczeństwa — 5 dni bo Oura opóźnia szczegółowe fazy snu
@@ -218,14 +210,5 @@ export const runEnhanced = async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, range: { startDate, endDate }, results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  } catch (error: any) {
-    console.error('[oura-enh] fatal', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
+    return { success: true, range: { startDate, endDate }, results }
 }
