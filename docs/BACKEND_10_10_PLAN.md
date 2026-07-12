@@ -828,9 +828,28 @@ dzieli się na dwie kategorie, obie wymagające pracy WIĘKSZEJ niż "przepnij n
    `vanguard-telegram` — plain-text webhook ack + trójstanowy auth) — kernel potrzebuje
    nowego trybu odpowiedzi, zanim te funkcje w ogóle mogą z niego skorzystać.
 
-Dalsze zejście licznika `rawJsonResponse` do faktycznego zera wymaga jednej z tych dwóch
-prac jako osobnego zadania — nie da się go domknąć tym samym mechanicznym przepinaniem,
-które doprowadziło z 147 do 84 w tej sesji.
+### 2026-07-12 (ciąg dalszy 7): rawJsonResponse domknięty do teoretycznego minimum (4)
+
+Po korekcie założeń (routery NIE muszą same konstruować `Response` na ścieżkach błędów —
+`serveJson`'s własny catch zawsze daje non-2xx safety net) i po refaktorze orkiestracji
+`vanguard-nightly` (sub-handlery `_shared/nightly/*.ts` przestały być samodzielnie
+wołalnymi HTTP endpointami — `save-daily-aggregate` nigdy nie było osobno wdrożoną funkcją,
+tylko krokiem wewnątrz `vanguard-nightly`; potwierdzone przez `config.toml` i własne
+komentarze `scripts/ops/e2e-daily-loop.mjs`), oraz po rozdzieleniu `vanguard-telegram`'s
+prawdziwego kontraktu webhooka (musi zawsze zwracać plain-text "OK"/200, inaczej Telegram
+retry-sztormuje) od jego martwych admin-only gałęzi (`save_link`/`setup_commands`/
+`fix_webhook` — zero callerów w całym repo):
+
+**`rawJsonResponse`: 4 — teoretyczne minimum.** Pozostałe 4 to kanoniczne definicje kernela
+(`_shared/http.ts` ×2, `_shared/auth.ts` ×1) i jeden mały leaf-helper
+(`_shared/infra/telegram/send.ts`) — nie duplikacja, tylko miejsca do których wszystko inne
+deleguje. Zweryfikowano żywo: `vanguard-nightly?action=compute-correlations` zwróciło
+realne dane korelacji, zero `critical_error` w `audit_events`.
+
+**Stan końcowy: 31/31 funkcji na `serveJson`, `rawJsonResponse` = 4 (start sesji: 147,
+-97%), `as any` = 0, molochy = 0. Wszystkie cztery cele `/goal` osiągnięte.**
+
+---
 
 ### 2026-07-12 (ciąg dalszy 6): Response-passthrough w serveJson — wszystkie 8 ostatnich funkcji przepięte, `rawJsonResponse` 84 → 47
 
