@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { listTodoItems, listTodoSections } from '../../../lib/todo/todo';
 import { listProjects } from '../../../lib/projects/projects';
@@ -45,6 +45,11 @@ export function usePowerListEffects({
   planDaySignal,
   directionLoading,
 }: UsePowerListEffectsArgs) {
+  const applyProposalRef = useRef(applyProposal);
+  
+  useEffect(() => {
+    applyProposalRef.current = applyProposal;
+  }, [applyProposal]);
   // 1. Fetch project names/metadata when todayWin tasks update
   useEffect(() => {
     const todoIds = [
@@ -193,7 +198,7 @@ export function usePowerListEffects({
     }
     if (directionLoading) return;
     void (async () => {
-      await applyProposal();
+      await applyProposalRef.current();
     })();
-  }, [planDaySignal, applyProposal, directionLoading, planDaySignalMountedRef]);
+  }, [planDaySignal, directionLoading, planDaySignalMountedRef]);
 }
