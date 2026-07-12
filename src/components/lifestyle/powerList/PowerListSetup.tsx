@@ -95,7 +95,6 @@ interface PowerListSetupProps {
   direction: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   fillSlotFromCheckpoint: (checkpoint: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
   occupiedSlots: boolean[];
-  applyProposal: () => void;
   aiQuestions: string | null;
   aiLoading: boolean;
   generateQuestions: () => void;
@@ -117,7 +116,6 @@ export default function PowerListSetup({
   direction,
   fillSlotFromCheckpoint,
   occupiedSlots,
-  applyProposal,
   aiQuestions,
   aiLoading,
   generateQuestions,
@@ -150,19 +148,9 @@ export default function PowerListSetup({
       />
 
       <div>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
-            Zdefiniuj 5 zwycięstw
-          </h3>
-          <button
-            type="button"
-            onClick={applyProposal}
-            disabled={direction.loading}
-            className="flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[9px] font-black uppercase text-primary hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-          >
-            <Wand2 size={11} /> Wypełnij propozycją
-          </button>
-        </div>
+        <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
+          Zdefiniuj 5 zwycięstw
+        </h3>
         <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary">
           Wpisz ręcznie lub wybierz z{' '}
           <span className="inline-flex items-center gap-1 font-bold text-primary">

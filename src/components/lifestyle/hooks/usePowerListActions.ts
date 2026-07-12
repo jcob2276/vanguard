@@ -6,11 +6,6 @@ import { markCheckpointDone } from '../../../lib/checkpoints';
 import { gatherDailyWinsContext } from '../../../lib/aiContext';
 import { updateTodoItem } from '../../../lib/todo/todo';
 import type { TablesUpdate } from '../../../lib/database.types';
-import type { WorldState } from '../../../../supabase/functions/_shared/worldState';
-import {
-  buildDailyPlanProposal,
-  type DirectionContextData,
-} from '../../../lib/dailyPlanProposal';
 import {
   applyKpiRollup,
   currentWeekStart,
@@ -63,7 +58,6 @@ export function usePowerListActions(args: UsePowerListActionsArgs) {
   return {
     fillSlotFromCheckpoint: (payload: any, slotIndex?: number) =>
       fillSlotFromCheckpointHelper(payload, slotIndex, args.newTaskForm, args.setNewTaskForm, haptics),
-    applyProposal: () => applyProposalHelper(args, haptics),
     confirmCheckpointDone: () => confirmCheckpointDoneHelper(args),
     generateQuestions: () => generateQuestionsHelper(args),
     saveEveningClose: (win: any) => saveEveningCloseHelper(args, win, haptics),
@@ -102,71 +96,6 @@ function fillSlotFromCheckpointHelper(
     return next;
   });
   haptics.light();
-}
-
-async function applyProposalHelper(args: UsePowerListActionsArgs, haptics: ReturnType<typeof useHaptics>) {
-  if (args.direction.loading) return;
-
-  let readinessScore: number | null = null;
-  let recoveryScore: number | null = null;
-
-  try {
-    const { data: wsData } = await supabase
-      .from('vanguard_world_state')
-      .select('state_json')
-      .eq('user_id', args.userId)
-      .eq('date', args.today)
-      .maybeSingle();
-
-    if (wsData?.state_json) {
-      const state = wsData.state_json as unknown as WorldState;
-      readinessScore = state.biometrics?.readiness_score ?? null;
-      recoveryScore = state.training?.recovery_score ?? null;
-    }
-  } catch (e) {
-    console.warn('[usePowerListData] Failed to fetch world state for proposal:', e);
-  }
-
-  const ctx: DirectionContextData = {
-    weekStart: args.direction.weekStart ?? args.today,
-    weekGoals: args.direction.weekGoals ?? { intention: null, commitment: null, cialo: null, duch: null, konto: null },
-    checkpoints: args.direction.checkpoints,
-    mustPins: args.direction.mustPins ?? [],
-    openMustPins: args.direction.openMustPins ?? [],
-    urgentTodos: args.direction.urgentTodos ?? [],
-    activeProjects: args.direction.activeProjects ?? [],
-    powerListStats: args.direction.powerListStats ?? { daysLogged: 0, daysWithWins: 0, tasksDone: 0, tasksSet: 0 },
-    sprintGoal: args.direction.sprintGoal ?? null,
-    sprintLabel: args.direction.sprintLabel ?? null,
-    sprintFocusProjectIds: args.direction.sprintFocusProjectIds ?? [],
-    monthTheme: args.direction.monthTheme ?? null,
-    monthLabel: args.direction.monthLabel ?? null,
-    bhagLine: args.direction.bhagLine ?? null,
-    focus: args.direction.focus ?? { skillId: null, skillLabel: null, subskillLabel: null, targetLevel: null },
-    weekCheckpointsDone: args.direction.weekCheckpointsDone ?? 0,
-    weekCheckpointsDue: args.direction.weekCheckpointsDue ?? 0,
-    skills: args.direction.skills ?? [],
-    readinessScore,
-    recoveryScore,
-  };
-  if (ctx.checkpoints.all.length === 0 && ctx.openMustPins.length === 0 && !ctx.weekGoals.cialo && !ctx.weekGoals.duch && !ctx.weekGoals.konto) {
-    notify('Brak danych do propozycji — uzupełnij tydzień lub checkpointy.', 'error');
-    return;
-  }
-  const proposal = buildDailyPlanProposal(ctx, args.pillarProjects);
-  args.setNewTaskForm(
-    proposal.map((p, i) => ({
-      task: p.task,
-      todoId: p.todoId,
-      checkpointId: p.checkpointId,
-      projectId: p.projectId,
-      pinId: p.pinId,
-      targetValue: p.targetValue ?? args.newTaskForm[i]?.targetValue ?? '',
-      timeSlot: args.newTaskForm[i]?.timeSlot ?? 'morning',
-    }))
-  );
-  haptics.success();
-  notify('Wypełniono propozycją — popraw i zacznij dzień.', 'success');
 }
 
 async function confirmCheckpointDoneHelper(args: UsePowerListActionsArgs) {

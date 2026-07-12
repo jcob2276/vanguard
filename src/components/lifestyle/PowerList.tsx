@@ -41,7 +41,6 @@ export default function PowerList({
     aiLoading,
     occupiedSlots,
     fillSlotFromCheckpoint,
-    applyProposal,
     confirmCheckpointDone,
     generateQuestions,
     updateSlot,
@@ -108,7 +107,6 @@ export default function PowerList({
           direction={direction}
           fillSlotFromCheckpoint={fillSlotFromCheckpoint}
           occupiedSlots={occupiedSlots}
-          applyProposal={applyProposal}
           aiQuestions={aiQuestions}
           aiLoading={aiLoading}
           generateQuestions={generateQuestions}

@@ -154,7 +154,6 @@ export function usePowerListData({
     setYesterdayWin,
     setProjectMap,
     setTodoItems,
-    applyProposal: actions.applyProposal,
     planDaySignal,
     directionLoading: direction.loading,
   });
@@ -191,7 +190,6 @@ export function usePowerListData({
     occupiedSlots,
     eveningCloseDue,
     fillSlotFromCheckpoint: actions.fillSlotFromCheckpoint,
-    applyProposal: actions.applyProposal,
     confirmCheckpointDone: actions.confirmCheckpointDone,
     generateQuestions: actions.generateQuestions,
     saveEveningClose: () => actions.saveEveningClose(todayWin),

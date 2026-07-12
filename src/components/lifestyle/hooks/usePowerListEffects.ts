@@ -23,7 +23,6 @@ interface UsePowerListEffectsArgs {
   setYesterdayWin: React.Dispatch<React.SetStateAction<any>>;
   setProjectMap: React.Dispatch<React.SetStateAction<Record<string, { name: string; color: string | null }>>>;
   setTodoItems: React.Dispatch<React.SetStateAction<any[]>>;
-  applyProposal: () => Promise<void>;
   planDaySignal: number | undefined;
   directionLoading: boolean;
 }
@@ -41,15 +40,9 @@ export function usePowerListEffects({
   setYesterdayWin,
   setProjectMap,
   setTodoItems,
-  applyProposal,
   planDaySignal,
   directionLoading,
 }: UsePowerListEffectsArgs) {
-  const applyProposalRef = useRef(applyProposal);
-  
-  useEffect(() => {
-    applyProposalRef.current = applyProposal;
-  }, [applyProposal]);
   // 1. Fetch project names/metadata when todayWin tasks update
   useEffect(() => {
     const todoIds = [
@@ -189,16 +182,4 @@ export function usePowerListEffects({
       })
       .catch(() => {});
   }, [userId, today, todayWin, setTodoItems]);
-
-  // 6. Auto-proposal trigger
-  useEffect(() => {
-    if (!planDaySignalMountedRef.current) {
-      planDaySignalMountedRef.current = true;
-      return;
-    }
-    if (directionLoading) return;
-    void (async () => {
-      await applyProposalRef.current();
-    })();
-  }, [planDaySignal, directionLoading, planDaySignalMountedRef]);
 }
