@@ -1,7 +1,8 @@
 import React from 'react';
 import { Panel } from '../../shell/Panel';
-import type { OracleRecommendation } from '../../../../lib/oracleApi';
+import type { OracleRecommendation } from '../../../../lib/recommendationsApi';
 import { Target, CheckCircle2, XCircle, HelpCircle, Calendar } from 'lucide-react';
+import { getTodayWarsaw } from '../../../../lib/date';
 
 interface GeneralRecommendationsPanelProps {
   recommendations: OracleRecommendation[];
@@ -13,9 +14,106 @@ const METRIC_LABELS: Record<string, string> = {
   execution_score: 'Zadania (%)',
 };
 
+function getDaysRemaining(createdAt: string, windowDays: number, todayStr: string) {
+  const createdDate = new Date(createdAt.slice(0, 10) + 'T12:00:00Z');
+  const endDate = new Date(createdDate.getTime() + windowDays * 24 * 60 * 60 * 1000);
+  const today = new Date(todayStr + 'T12:00:00Z');
+  const diffTime = endDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+}
+
+function getOutcomeBadge(outcome: string | null) {
+  switch (outcome) {
+    case 'success':
+      return (
+        <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+          <CheckCircle2 size={10} />
+          Sukces
+        </span>
+      );
+    case 'fail':
+      return (
+        <span className="flex items-center gap-1 bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+          <XCircle size={10} />
+          Porażka
+        </span>
+      );
+    case 'no_data':
+      return (
+        <span className="flex items-center gap-1 bg-slate-500/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+          <HelpCircle size={10} />
+          Brak Danych
+        </span>
+      );
+    default:
+      return (
+        <span className="flex items-center gap-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+          Ewaluacja
+        </span>
+      );
+  }
+}
+
+function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendation; todayStr: string }) {
+  const daysLeft = getDaysRemaining(rec.created_at, rec.evaluation_window_days, todayStr);
+  return (
+    <div className="rounded-xl border border-border-custom bg-surface-solid/40 p-3 hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2">
+      <p className="text-[11px] font-bold text-text-primary leading-relaxed">
+        {rec.recommendation_text}
+      </p>
+      <div className="flex flex-wrap items-center gap-3 text-[9px] text-text-muted pt-1 border-t border-border-custom/30">
+        <span className="flex items-center gap-1 bg-primary/5 text-primary border border-primary/10 px-1.5 py-0.5 rounded-md font-bold">
+          <Target size={10} />
+          {METRIC_LABELS[rec.related_metric] || rec.related_metric}
+          {rec.success_threshold !== null && ` ≥ ${rec.success_threshold}`}
+        </span>
+        <span className="flex items-center gap-1">
+          <Calendar size={10} />
+          {daysLeft > 0 ? `${daysLeft} dni do końca` : 'Dziś ewaluacja'}
+        </span>
+        <span className="ml-auto text-[8px] font-medium opacity-60">
+          Dodano: {rec.created_at.slice(0, 10)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationHistoryCard({ rec }: { rec: OracleRecommendation }) {
+  const baselineVal = rec.baseline_value !== null ? rec.baseline_value.toFixed(1) : '—';
+  const actualVal = rec.actual_value !== null ? rec.actual_value.toFixed(1) : '—';
+  return (
+    <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3 flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150">
+      <p className="text-[10px] text-text-secondary leading-relaxed font-medium">
+        {rec.recommendation_text}
+      </p>
+      <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 text-[9px] text-text-muted">
+        <div className="flex justify-between items-center">
+          <span>Status:</span>
+          {getOutcomeBadge(rec.outcome)}
+        </div>
+        <div className="flex justify-between items-center">
+          <span>Metryka:</span>
+          <span className="font-semibold text-text-secondary">
+            {METRIC_LABELS[rec.related_metric] || rec.related_metric}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span>Wynik (Bazowy → Rzecz.):</span>
+          <span className="font-semibold text-text-secondary">
+            {baselineVal} → {actualVal}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GeneralRecommendationsPanel({
   recommendations,
 }: GeneralRecommendationsPanelProps) {
+  const todayStr = React.useMemo(() => getTodayWarsaw(), []);
   const pending = recommendations.filter((r) => r.status === 'pending');
   const evaluated = recommendations.filter((r) => r.status === 'evaluated');
 
@@ -26,46 +124,6 @@ export default function GeneralRecommendationsPanel({
   const totalEvaluated = successes + fails;
   const successRate = totalEvaluated > 0 ? Math.round((successes / totalEvaluated) * 100) : null;
 
-  const getDaysRemaining = (createdAt: string, windowDays: number) => {
-    const createdDate = new Date(createdAt);
-    const endDate = new Date(createdDate.getTime() + windowDays * 24 * 60 * 60 * 1000);
-    const diffTime = endDate.getTime() - Date.now();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  };
-
-  const getOutcomeBadge = (outcome: string | null) => {
-    switch (outcome) {
-      case 'success':
-        return (
-          <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-            <CheckCircle2 size={10} />
-            Sukces
-          </span>
-        );
-      case 'fail':
-        return (
-          <span className="flex items-center gap-1 bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-            <XCircle size={10} />
-            Porażka
-          </span>
-        );
-      case 'no_data':
-        return (
-          <span className="flex items-center gap-1 bg-slate-500/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-            <HelpCircle size={10} />
-            Brak Danych
-          </span>
-        );
-      default:
-        return (
-          <span className="flex items-center gap-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-            Ewaluacja
-          </span>
-        );
-    }
-  };
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -73,33 +131,9 @@ export default function GeneralRecommendationsPanel({
         <div className="md:col-span-2">
           <Panel title={`Aktywne Zalecenia Wyroczni (${pending.length})`}>
             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-              {pending.map((rec) => {
-                const daysLeft = getDaysRemaining(rec.created_at, rec.evaluation_window_days);
-                return (
-                  <div
-                    key={rec.id}
-                    className="rounded-xl border border-border-custom bg-surface-solid/40 p-3 hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2"
-                  >
-                    <p className="text-[11px] font-bold text-text-primary leading-relaxed">
-                      {rec.recommendation_text}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-[9px] text-text-muted pt-1 border-t border-border-custom/30">
-                      <span className="flex items-center gap-1 bg-primary/5 text-primary border border-primary/10 px-1.5 py-0.5 rounded-md font-bold">
-                        <Target size={10} />
-                        {METRIC_LABELS[rec.related_metric] || rec.related_metric}
-                        {rec.success_threshold !== null && ` ≥ ${rec.success_threshold}`}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={10} />
-                        {daysLeft > 0 ? `${daysLeft} dni do końca` : 'Dziś ewaluacja'}
-                      </span>
-                      <span className="ml-auto text-[8px] font-medium opacity-60">
-                        Dodano: {rec.created_at.slice(0, 10)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {pending.map((rec) => (
+                <RecommendationPendingCard key={rec.id} rec={rec} todayStr={todayStr} />
+              ))}
               {pending.length === 0 && (
                 <div className="text-center py-8 text-text-muted text-[11px] font-semibold border border-dashed border-border-custom/60 rounded-xl bg-surface/20">
                   Brak aktywnych zaleceń. Zapytaj Wyrocznię o radę, aby wyznaczyć nowe zalecenia.
@@ -150,38 +184,9 @@ export default function GeneralRecommendationsPanel({
       {evaluated.length > 0 && (
         <Panel title={`Historia Zaleceń (${evaluated.length})`}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 max-h-[350px] overflow-y-auto pr-1">
-            {evaluated.map((rec) => {
-              const baselineVal = rec.baseline_value !== null ? rec.baseline_value.toFixed(1) : '—';
-              const actualVal = rec.actual_value !== null ? rec.actual_value.toFixed(1) : '—';
-              return (
-                <div
-                  key={rec.id}
-                  className="rounded-xl border border-border-custom bg-surface-solid/30 p-3 flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150"
-                >
-                  <p className="text-[10px] text-text-secondary leading-relaxed font-medium">
-                    {rec.recommendation_text}
-                  </p>
-                  <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 text-[9px] text-text-muted">
-                    <div className="flex justify-between items-center">
-                      <span>Status:</span>
-                      {getOutcomeBadge(rec.outcome)}
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Metryka:</span>
-                      <span className="font-semibold text-text-secondary">
-                        {METRIC_LABELS[rec.related_metric] || rec.related_metric}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Wynik (Bazowy → Rzecz.):</span>
-                      <span className="font-semibold text-text-secondary">
-                        {baselineVal} → {actualVal}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {evaluated.map((rec) => (
+              <RecommendationHistoryCard key={rec.id} rec={rec} />
+            ))}
           </div>
         </Panel>
       )}

@@ -8,7 +8,7 @@ interface UseGeneralViewDataOptions {
   ouraProp?: any[];
 }
 
-import { fetchOracleRecommendations, type OracleRecommendation } from '../../../../lib/oracleApi';
+import { fetchOracleRecommendations } from '../../../../lib/recommendationsApi';
 
 export function useGeneralViewData({ userId, ouraProp }: UseGeneralViewDataOptions) {
   const { data, isLoading: loading } = useQuery({
