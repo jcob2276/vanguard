@@ -8,8 +8,7 @@
  * @consumer Powiadomienia push w przeglądarce i Telegramie użytkownika
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
-import { requireServiceRole } from "../_shared/auth.ts";
+import { serveJson } from "../_shared/http.ts";
 // @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
 import { sendMessageParsed } from "../_shared/telegram.ts";
@@ -17,12 +16,8 @@ import { getWarsawDateString } from "../_shared/time.ts";
 
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
+Deno.serve(serveJson(async (_req, ctx) => {
+  const supabase = ctx.supabase;
 
   const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY");
   const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY");
@@ -30,10 +25,9 @@ Deno.serve(async (req) => {
   const TG_CHAT_ID    = Deno.env.get("TELEGRAM_CHAT_ID");
 
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return new Response(JSON.stringify({ error: "VAPID keys not configured" }), { status: 500 });
+    throw new Error("VAPID keys not configured");
   }
   webpush.setVapidDetails(CONTACT_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
-  const supabase = createServiceClient();
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -103,7 +97,7 @@ Deno.serve(async (req) => {
   const dueSupsCount = dueSupplements.length;
 
   if (dueTodosCount === 0 && dueSupsCount === 0) {
-    return new Response(JSON.stringify({ sent_todos: 0, sent_supplements: 0 }));
+    return { sent_todos: 0, sent_supplements: 0 };
   }
 
   // Gather unique user IDs involved in notifications
@@ -221,5 +215,5 @@ Deno.serve(async (req) => {
     if (markErr) console.error("[push-reminder] mark supplement sent failed:", supl.id, markErr.message);
   }
 
-  return new Response(JSON.stringify({ sent_todos: sentTodos, sent_supplements: sentSups }));
-});
+  return { sent_todos: sentTodos, sent_supplements: sentSups };
+}, { auth: 'service' }));
