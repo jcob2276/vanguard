@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getPastWeekStarts } from './date';
+import { isOfflineError, queueOfflineWrite } from './offlineQueue';
 
 export interface KpiSnapshot {
   recorded_at: string;
@@ -53,7 +54,15 @@ export function useIncrementKpiMutation(userId: string, kpiId: string, currentWe
       });
 
       if (incErr) {
-        // Fallback: direct upsert if the atomic RPC fails
+        if (isOfflineError(incErr)) {
+          await queueOfflineWrite('increment_kpi_entry_for_week', {
+            p_kpi_id: kpiId,
+            p_week_start: currentWeekStart,
+            p_delta: 1,
+          }, 'Zwiększenie wartości KPI');
+          return next;
+        }
+        // Fallback: direct upsert if the atomic RPC fails for a non-network reason
         const { error: upsertErr } = await supabase
           .from('kpi_entries')
           .upsert(
