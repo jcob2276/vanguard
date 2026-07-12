@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { notify } from '../../../lib/notify';
 import {
   type DreamRow,
-  type VisionBoardItemRow,
   useDreamsQuery,
   useVisionItemsQuery,
   useSprintReviewQuery,
