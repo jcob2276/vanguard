@@ -640,6 +640,77 @@ Dwa z czterech celów z `/goal` ("0 as any", "0 molochów") są teraz faktem, ni
 Pozostają: pełne pokrycie `serveJson` (Faza 2, dziś 3-5/31 funkcji) i domknięcie ostatnich
 9 inline dat / 4 raw fetch (już tylko udokumentowane wyjątki, nie realny dług).
 
+### 2026-07-12 (ciąg dalszy): 9 funkcji przepiętych na `serveJson`, 2 realne bugi znalezione i naprawione live
+
+Kontynuacja ataku na `rawJsonResponse` (jedyny z czterech celów `/goal` jeszcze w ruchu).
+9 funkcji przepięto na `serveJson` w dwóch zweryfikowanych paczkach, każda: typecheck →
+`check-edge-functions.mjs` (statyczny skan auth) → `ratchet:backend` → commit → deploy przez
+`deploy-guard.mjs` → `npm run smoke` → gdzie bezpieczne, żywe wywołanie produkcyjne.
+
+**Paczka 1** (commit `c356b609`): `vanguard-metabolism`, `vanguard-executor`,
+`analyze-training-load`, `analyze-food-quality`, `vanguard-nutrition-coach`.
+**Paczka 2** (commit `0909bd63`): `lookup-food`, `compute-behavior-effects`,
+`vanguard-graph-embedder`, `vanguard-librarian`. `rawJsonResponse`: 147 → 133 → 123.
+
+`analyze-food-quality`/`analyze-training-load` traciły przy migracji własne kody 404/400 na
+rzecz jednolitego throw→401/500 z `serveJson`. Zweryfikowano bezpieczeństwo tej zmiany
+*przed* migracją: wszystkie miejsca w froncie (`foodLogging.ts`, `workoutLogging.ts`,
+`statsApi.ts`) łapią błąd przez `try/catch` albo `response.ok`, nigdy nie rozgałęziają się po
+konkretnym kodzie — więc kolaps kodów jest bezpieczny funkcjonalnie, mimo że technicznie
+widoczny w devtools.
+
+**`check-edge-functions.mjs` wymagał poprawki**: statyczny skaner autoryzacji szukał
+literałów `requireServiceRole`/`resolveUserScope` w `index.ts`, których po migracji już tam
+nie ma (żyją wewnątrz `serveJson`). Naprawiono, żeby uznawał `serveJson(...)` bez
+`auth:'none'` za wystarczające (fail-closed: jawne `auth:'none'` dalej wymaga własnego
+uzasadnienia — patrz `lookup-food` niżej).
+
+**`lookup-food`**: `verify_jwt=true` na bramce (JWT już wymuszony), funkcja nigdy nie
+scope'owała po userze — przepięto na `auth:'none'`, zachowując dokładnie to zachowanie.
+Przy okazji naprawiono realny bug: `fetchOffWithRetry`'s catch block konstruował i zwracał
+pełny `Response` zamiast retry/`null`, cicho przełamując pętlę retry i maskując realne
+błędy Open Food Facts jako "nie znaleziono".
+
+**Żywa weryfikacja `vanguard-metabolism` odkryła 2 realne, niezwiązane z migracją bugi** —
+funkcja nigdy w historii nie zakończyła się sukcesem:
+1. Zapytanie SELECT-owało `oura_sleep_score, total_strain, calories_consumed, protein,
+   blockers_notes` — **żadna z tych kolumn nie istnieje** na `vanguard_daily_aggregates`
+   (potwierdzone `information_schema.columns`). Tylko `date`/`execution_score` były realne.
+   Naprawiono na rzeczywiste kolumny (`sleep_hours, hrv_avg, readiness_score, final_state`).
+2. Insert do `vanguard_entity_links` używał `relation: 'HISTORYCZNY_WRAŻLIWY_PUNKT'` — spoza
+   `vanguard_relation_ontology` (74 dozwolonych relacji, wymuszane triggerem `P0001`) — ORAZ
+   nie ustawiał `source_type`/`target_type` (kolumny NOT NULL bez defaultu). Naprawiono na
+   `relation: 'ma_wspomnienie_z'` (dokładne dopasowanie semantyczne, zgodne z konwencją
+   `source_type='person', target_type='memory'` używaną już w 4 innych wierszach tabeli).
+
+Po obu poprawkach: żywe POST zwróciło realny wygenerowany "belief", 3 dni oznaczone
+`condensed=true`, wiersz faktycznie wstawiony do `vanguard_entity_links` — potwierdzone
+bezpośrednim zapytaniem SQL, nie samą odpowiedzią HTTP. Cotygodniowy cron (`0 3 * * 1`) od
+teraz faktycznie coś robi, zamiast cicho logować `critical_error` do `audit_events` co
+tydzień.
+
+Dodatkowo: `vanguard-metabolism`, `vanguard-executor`, `analyze-food-quality` dopisane do
+`smoke-manifest.mjs` (były wdrożone, ale bez pokrycia smoke).
+
+**Stan liczników po tej rundzie:**
+| Licznik | Wartość |
+|---|---|
+| `as any` w `supabase/functions/` | **0** ✅ |
+| pliki >300 linii (molochy) | **0** ✅ |
+| `rawProviderFetch` poza kernelem | 4 (bez zmiany — udokumentowany wyjątek) |
+| inline daty Warsaw | 9 (bez zmiany — udokumentowany wyjątek) |
+| `rawJsonResponse` (serveJson coverage) | **123** (z 147 na starcie rundy), 13/31 funkcji |
+| `SB_SECRET_KEY` poza kernelem | 6 (bez zmiany) |
+
+`rawJsonResponse` wciąż jedyny realnie ruchomy licznik z `/goal`. Kolejni kandydaci
+(sprawdzeni, nieprzepięci): `vanguard-backtester` (270 linii), `vanguard-push-reminder`,
+`vanguard-capture`, `vanguard-wiki-compiler`, `vanguard-architect`, `vanguard-auto-classify`,
+`sync`, `recap`, `parse-food-nl`, `vanguard-eval-runner`, `vanguard-eval-interview`,
+`vanguard-analyst`, `vanguard-oracle`, `vanguard-telegram`, `vanguard-outbox-sender`,
+`vanguard-nightly`, `calendar-write`, `vanguard-mcp-server`, `vanguard-telegram-worker` —
+część to webhooki/streaming/multipart gdzie `serveJson` nie pasuje 1:1 i będzie wymagać
+osobnej oceny per-funkcja, nie ślepego kopiowania wzorca.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
