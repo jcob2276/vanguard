@@ -2,7 +2,7 @@
 
 > **Egzekwowane mechanicznie przez `npm run ratchet:backend`** (`scripts/ops/check-backend-contract.mjs` + `backend-contract-baseline.json`).
 > Reguła bez mechanizmu nie istnieje — jeśli dodajesz regułę do tego pliku, dodaj licznik do skryptu w tym samym commicie.
-> Ostatnia weryfikacja z kodem: **2026-07-11**.
+> Ostatnia weryfikacja z kodem: **2026-07-12**.
 
 ---
 
@@ -27,6 +27,7 @@ Potrzebujesz X → importujesz Y. Napisanie własnej wersji = duplikat = narusze
 
 | Potrzebujesz | Import | Zakazany odpowiednik |
 |---|---|---|
+| Cały handler HTTP (OPTIONS/CORS/auth/error-logging/JSON framing) | `serveJson(handler, {auth})` z `_shared/http.ts` — handler zwraca zwykłą wartość (auto-wrap 200 JSON) albo `Response` (przepuszczana bez zmian, dla webhooków/streamingu) | ręczny `if (req.method==='OPTIONS')`, ręczny `try/catch` + `new Response(JSON.stringify(...))` |
 | Klient DB | `createServiceClient()` z `_shared/supabase.ts` | `createClient(...)` inline |
 | Auth: cron / DB-trigger | `requireServiceRole(req)` z `_shared/auth.ts` | ręczne porównanie nagłówka |
 | Auth: wywołanie z UI (też mixed) | `resolveUserScope(req, userId)` z `_shared/supabase.ts` | brak auth / własny check |
@@ -45,23 +46,30 @@ Zasady przy zapisach bez `safeExecute`: po **każdym** `.insert()/.update()/.ups
 
 ---
 
-## 2. Zakazy z licznikami (stan baseline 2026-07-11)
+## 2. Zakazy z licznikami (stan 2026-07-12 — po sesji domykającej `/goal` 10/10)
 
 Ratchet pilnuje, żeby liczby **nigdy nie rosły**. Zmniejszyłeś — obniż baseline w tym samym commicie.
 
-| Zakaz | Baseline | Docelowo |
+| Zakaz | Stan | Docelowo |
 |---|---|---|
-| `createClient(` poza kernelem | **0** | 0 (twarde) |
-| raw `fetch` do telegram/openai/deepseek poza `_shared` | **7** | 0 |
-| inline `toLocaleDateString(` w funkcjach | **17** | 0 |
-| `as any` w `supabase/functions/` | **73** | 0 |
-| `new Response(JSON.stringify(...))` zamiast helpera | **140** | 0 (po zbudowaniu `jsonResponse`/`serveJson` w kernelu) |
-| `SB_SECRET_KEY` poza kernelem | **6** | 0 |
-| Pliki > 300 linii | **23 pliki** (zamrożone, tylko maleją) | 0 |
+| `createClient(` poza kernelem | **0** | 0 (twarde) — osiągnięte |
+| raw `fetch` do telegram/openai/deepseek poza `_shared` | **4** | udokumentowany wyjątek bootstrap (patrz niżej) |
+| inline `toLocaleDateString(` w funkcjach | **9** | udokumentowany wyjątek — formatowanie do wyświetlenia, nie generatory dat |
+| `as any` w `supabase/functions/` | **0** | 0 (twarde) — osiągnięte |
+| `new Response(JSON.stringify(...))` zamiast helpera | **4** | teoretyczne minimum — 3 to kanoniczne definicje `serveJson`/`requireServiceRole` w kernelu, 1 mały leaf-helper (`_shared/infra/telegram/send.ts`) |
+| `SB_SECRET_KEY` poza kernelem | **4** | udokumentowany wyjątek — service-to-service auth (patrz niżej) |
+| Pliki > 300 linii | **0** (poza `_shared/database.types.ts`, generowany, zwolniony) | 0 — osiągnięte |
+
+Wszystkie 31 funkcji edge przechodzą przez `serveJson` (`_shared/http.ts`) — jednolity
+CORS/OPTIONS/auth/error-logging. Handler może zwrócić zwykłą wartość (JSON-wrapowana
+automatycznie) LUB instancję `Response` (przepuszczaną bez zmian — dla webhooków,
+streamingu, czy niestandardowych statusów, które faktycznie sprawdza jakiś caller).
 
 Nazwane wyjątki (jedyne legalne):
 - `_shared/vanguardCore.ts` ma prywatną kopię date-helpera (zero-dependency by design, opisane w nagłówku pliku).
 - Endpointy setup w `vanguard-telegram/index.ts` (setWebhook/setMyCommands) mogą wołać Telegram API bezpośrednio — to bootstrap, nie runtime.
+- `vanguard-telegram/index.ts` i `_router/config.ts` czytają `SB_SECRET_KEY` jako fallback dla admin-only utility branches (setup_commands/fix_webhook) i do budowy kontekstu routera — service-to-service auth, nie duplikacja.
+- `parse-food-nl/index.ts` czyta `SUPABASE_SERVICE_ROLE_KEY` do przekazania jako bearer token przy wywołaniu innej funkcji edge (nie do tworzenia klienta DB).
 
 Dodatkowe zakazy bez licznika (łapane na review):
 - **HTTP 200 z `{ error }`** przy realnej porażce — błąd to 4xx/5xx. Wyjątek: handlery DB-trigger (outbox, worker), które zwracają 200 żeby pg_net nie retryował — ale wtedy failure MUSI iść do `logCriticalError` + status w tabeli kolejki.
@@ -81,7 +89,14 @@ Dodatkowe zakazy bez licznika (łapane na review):
 | Embeddings | `text-embedding-3-small` | zgodność wektorów w DB |
 | Transkrypcja | `whisper-1` | — |
 
-Jeśli widzisz w kodzie `v4-flash` + `json_object` razem — to bug albo ta tabela jest nieaktualna: **zweryfikuj empirycznie i popraw jedno albo drugie w tym samym commicie** (aktualnie: `vanguard-auto-classify` używa tej kombinacji i działa — sprzeczność do rozstrzygnięcia).
+**Rozstrzygnięte 2026-07-12**: `vanguard-auto-classify` (`handlers/classify.ts`) używa `v4-flash` +
+`json_object` i działa poprawnie — zweryfikowano empirycznie: 0 zdarzeń
+`classify_parse_fallback`/`friction_parse_fallback` w `audit_events` za ostatnie 30 dni,
+realne zróżnicowane kategorie w `vanguard_stream` (Duch/Ciało/Chaos/Relacje/Konto, nie same
+"Chaos" które sygnalizowałoby stały fallback). Ostrzeżenie z lessons 2026-06-21 dotyczyło
+innej sytuacji lub wcześniejszej wersji modelu — nieaktualne dla obecnego stanu. Zasada w
+tabeli wyżej ("Structured JSON → `deepseek-chat`") zostaje jako bezpieczny domyślny wybór
+dla NOWEGO kodu, ale `v4-flash`+`json_object` nie jest już traktowane jako automatyczny bug.
 
 ---
 
@@ -91,6 +106,7 @@ Jeśli widzisz w kodzie `v4-flash` + `json_object` razem — to bug albo ta tabe
 packages/domain/          czysta logika (daty, statystyka, fitness) — zero IO, testowalna w Vitest i Deno
 supabase/functions/
   _shared/
+    http.ts                serveJson — JEDYNY sposób obsługi HTTP (CORS/OPTIONS/auth/error-logging/framing)
     supabase.ts, auth.ts  kernel dostępu i auth (JEDYNE miejsce z kluczami)
     infra/                cały świat zewnętrzny: deepseek, openai, telegram (JEDYNE fetch'e wychodzące)
     nightly/              kroki pipeline'u jako czyste funkcje (ctx) => result, bez parsowania Request
@@ -110,21 +126,20 @@ Zasady kierunkowe:
 
 ---
 
-## 5. Mapa rozbicia molochów (kolejność wg wartości)
+## 5. Molochy — stan: 0 (zweryfikowane 2026-07-12)
 
-Przy DOTKNIĘCIU któregokolwiek z tych plików: wydziel moduł, obniż baseline. Nie dopisuj.
+Wszystkie pliki z historycznej mapy rozbicia zostały rozbite ≤300 linii w sesjach
+2026-07-11/12 (patrz `BACKEND_10_10_PLAN.md`). Aktualny stan całego `supabase/functions/`:
+**zero plików >300 linii** poza `_shared/database.types.ts` (generowany przez
+`supabase gen types`, świadomie zwolniony w `GENERATED_FILES` w
+`scripts/ops/check-backend-contract.mjs` — rośnie ze schematem, to nie dług).
 
-| Plik | Linie | Plan podziału |
-|---|---|---|
-| `vanguard-wiki-compiler/index.ts` | 776 | `compile/`, `review/`, `prompts.ts`, router |
-| `vanguard-oracle/index.ts` | 723 | `handlers/search.ts`, `handlers/goalCreate.ts`, `handlers/taskBreakdown.ts` (funkcje już są — tylko przenieść) |
-| `vanguard-telegram/_router/interceptors.ts` | 666 | 4 funkcje po ~150 linii → osobne pliki per interceptor |
-| `vanguard-auto-classify/index.ts` | 638 | `prompts.ts` (~250 linii promptów!), `handlers/todoClassify.ts`, `handlers/todoExtract.ts`, `classify.ts` |
-| `vanguard-eval-interview/index.ts` | 609 | `questionBuilder.ts`, `curiosity.ts`, router |
-| `analyze-training-load/analysis.ts` | 603 | sekcje analizy → moduły per metryka |
-| `_shared/nightly/metrics_strain.ts` | 602 | strain vs recovery vs readiness (3 porty NOOP) |
-| `recap/weekly-recap.ts` | 552 | `phase1.ts` / `phase2.ts` / formatters |
-| pozostałe 15 plików 300-500 | — | przy dotknięciu |
+Najbliższe do limitu (dla świadomości, nie akcji — żaden nie wymaga podziału):
+`vanguard-wiki-compiler/compiler.ts` (299), `vanguard-oracle/oracle/rag.ts` (299),
+`vanguard-telegram/_handlers/savedLinks.ts` (298), `_shared/correlationSeries.ts` (295).
+
+**Zasada nadal obowiązuje**: przy DOTKNIĘCIU pliku, który przekroczy 300 linii — wydziel
+moduł, obniż baseline. Nie dopisuj do rosnącego pliku bez podziału.
 
 ---
 
