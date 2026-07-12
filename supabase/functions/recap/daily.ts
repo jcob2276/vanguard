@@ -1,5 +1,6 @@
 import { sendMessageParsed } from "../_shared/telegram.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { getStreamForDailyReconciliation } from "../_shared/repos/streamRepo.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDayBoundaries, getWarsawDateString } from "../_shared/time.ts";
 import { logAuditEvent } from "../_shared/audit.ts";
@@ -147,15 +148,14 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
 
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
 
-    const [streamRes, frictionRes] = await Promise.all([
-      supabase
-        .from("vanguard_stream")
-        .select("id, content, created_at, metadata")
-        .eq("user_id", VANGUARD_USER_ID)
-        .gte("created_at", dayStart)
-        .lt("created_at", dayEnd)
-        .order("created_at", { ascending: true })
-        .limit(80),
+    const [streamData, frictionRes] = await Promise.all([
+      getStreamForDailyReconciliation(
+        supabase,
+        VANGUARD_USER_ID,
+        dayStart,
+        dayEnd,
+        80,
+      ),
       supabase
         .from("friction_events")
         .select("id, event_kind, friction_type, actual_behavior, declared_intention, immediate_cost, occurred_at")
@@ -166,10 +166,9 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
         .limit(30),
     ]);
 
-    if (streamRes.error) throw streamRes.error;
     if (frictionRes.error) console.error("[reconciliation] friction query error:", frictionRes.error);
 
-    const streamRows = (streamRes.data || []) as StreamRow[];
+    const streamRows = streamData as StreamRow[];
     const voiceRows = streamRows.filter((row) => {
       const metadata = row.metadata || {};
       return typeof metadata.voice_duration_seconds === "number" || typeof metadata.voice_wpm === "number";

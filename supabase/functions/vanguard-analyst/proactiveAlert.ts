@@ -1,5 +1,6 @@
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { sendMessage } from "../_shared/telegram.ts";
+import { getRecentAlertRecord, insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
 export async function checkProactiveAlert(
   supabase: any,
@@ -14,14 +15,11 @@ export async function checkProactiveAlert(
     if (!telegramToken || !chatId) return
 
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-    const { data: recentAlert } = await supabase
-      .from('vanguard_stream')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('source', 'analyst_alert')
-      .gte('created_at', fortyEightHoursAgo)
-      .limit(1)
-      .maybeSingle()
+    const recentAlert = await getRecentAlertRecord(
+      supabase,
+      userId,
+      fortyEightHoursAgo,
+    );
 
     if (recentAlert) return
 
@@ -99,7 +97,7 @@ export async function checkProactiveAlert(
 
     await sendMessage(telegramToken, chatId, alertMsg, { parseMode: 'Markdown' })
 
-    await supabase.from('vanguard_stream').insert({
+    await insertStreamRecord(supabase, {
       user_id: userId,
       source: 'analyst_alert',
       content: `[ALERT]: ${alertReason}`,
@@ -110,7 +108,7 @@ export async function checkProactiveAlert(
         recent_readiness: recent3Readiness,
         alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : alertEmoji === '⚠️🚨' ? 'downward_spiral' : alertEmoji === '✅🔥' ? 'upward_momentum' : 'overreach_risk',
       },
-    }).throwOnError()
+    });
 
     console.log(`[analyst] proactive alert sent: ${alertReason.substring(0, 80)}`)
   } catch (alertErr) {

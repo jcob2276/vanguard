@@ -1,6 +1,6 @@
 # Mapa Edge Functions Vanguard
 
-Ten plik jest generowany automatycznie i opisuje mapę domenową, triggery oraz statusy wszystkich **31 aktywnych Edge Functions** w monorepo.
+Ten plik jest generowany automatycznie i opisuje mapę domenową, triggery oraz statusy wszystkich **30 aktywnych Edge Functions** w monorepo.
 
 ## Skaner Domenowy (Główna Mapa)
 

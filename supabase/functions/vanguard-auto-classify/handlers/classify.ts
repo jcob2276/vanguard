@@ -2,6 +2,7 @@ import { getEmbedding } from "../../_shared/openai.ts";
 import { safeExecute } from "../../_shared/supabase.ts";
 import { getAggregateByDate } from "../../_shared/repos/aggregatesRepo.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
+import { updateStreamClassification } from "../../_shared/repos/streamRepo.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { CLASSIFY_SYSTEM, FRICTION_SYSTEM } from "../prompts.ts";
@@ -208,20 +209,15 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
   }
 
   // === Update stream record (mint-then-fill: zapisane na końcu) ===
-  await safeExecute(
-    supabase
-      .from('vanguard_stream')
-      .update({
-        importance_score: classification.importance_score,
-        category: classification.category,
-        tags: classification.tags,
-        situation_fingerprint: embedding,
-        classification: classification.category?.toLowerCase(),
-        valid_from: record.valid_from || record.created_at || new Date().toISOString(),
-        valid_until: classification.expiration_date || null,
-      })
-      .eq('id', record.id)
-  );
+  await updateStreamClassification(supabase, record.id, {
+    importance_score: classification.importance_score,
+    category: classification.category,
+    tags: classification.tags,
+    situation_fingerprint: embedding,
+    classification: classification.category?.toLowerCase(),
+    valid_from: record.valid_from || record.created_at || new Date().toISOString(),
+    valid_until: classification.expiration_date || null,
+  });
 
   return {
     success: true,

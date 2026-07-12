@@ -980,6 +980,17 @@ bo pierwszy cache po prostu utrwalał złe wartości na stałe dla danego dnia.
 Faza 4 (typed repos) ma teraz 4 realne konsumowane wzorce zamiast 1, i przy okazji naprawiła
 najpoważniejszy znaleziony w tej sesji bug produkcyjny.
 
+### 2026-07-12 (ciąg dalszy 9): Hybrydowa Faza 4 (Core Repositories vs Typed Inline Queries)
+
+Weryfikacja dużych plików analitycznych (np. `gatherWeekFacts.ts`, który agreguje 18 tabel naraz) wykazała, że próba wciśnięcia ich zapytań do repozytoriów tworzy olbrzymi narzut boilerplate'u i bespoke funkcji odczytu używanych tylko raz.
+
+W związku z tym ustala się **Hybrydowy Model Fazy 4**:
+
+1. **Core Repositories (Grupa 1):** Zapisy (mutacje) oraz reużywane odczyty dla głównych encji (np. `stream`, `todo_items`, `daily_wins`, `nutrition_targets`, `reconciliations`) bezwzględnie przechodzą przez repozytoria (`streamRepo`, `todosRepo` itp.). Zapewnia to jedną kanoniczną ścieżkę zapisu, kluczową dla invalidacji cache (np. `goalSpine`) i spójności audytu.
+2. **Typed Inline Queries (Grupa 2):** Zapytania w plikach analitycznych, raportach i recaps (gdzie w jednym miejscu pobieranych jest 10+ tabel) pozostają jako inline `db.from()`. Klient bazy danych (`db` lub `supabase`) musi być jednak ściśle typowany jako `SupabaseClient<Database>`, a nie `any`.
+   - *Uwaga:* Sam import typu `Database` na kliencie Supabase w Deno nie gwarantuje 100% wykrywania wszystkich nadmiarowych pól przy `.insert()` (przez ograniczenia excess-property-check w generykach TS), ale natychmiastowo wyłapuje literówki w nazwach tabel i kolumn w `.from()` i `.select()`.
+   - *Pilot:* Pomyślnie zmigrowano `gatherWeekFacts.ts` na typowanie `db: SupabaseClient<Database>`. Deno check bezbłędnie kompiluje dotychczasowe rzutowania na `any`, jednocześnie blokując literówki w strukturze zapytań (potwierdzone testem `daily_winss` -> error).
+
 ---
 
 ## Co zrobić, jeśli utkniesz

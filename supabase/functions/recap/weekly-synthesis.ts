@@ -4,6 +4,7 @@ import { getVanguardUserId } from "../_shared/constants.ts";
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
+import { getStreamForWeeklySynthesis, insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
 export async function runWeeklySynthesis(req: Request): Promise<unknown> {
   const VANGUARD_USER_ID = getVanguardUserId();
@@ -51,14 +52,11 @@ export async function runWeeklySynthesis(req: Request): Promise<unknown> {
         .limit(3),
     );
 
-    const stream = await safeExecute(
-      supabase.from('vanguard_stream')
-        .select('content, created_at, category')
-        .eq('user_id', VANGUARD_USER_ID)
-        .gte('created_at', cut7d.toISOString())
-        .not('source', 'eq', 'system')
-        .order('created_at', { ascending: false })
-        .limit(35),
+    const stream = await getStreamForWeeklySynthesis(
+      supabase,
+      VANGUARD_USER_ID,
+      cut7d.toISOString(),
+      35,
     );
 
     // Etap 1: Powtarzalne wzorce behawioralne (z dedykowanej tabeli)
@@ -251,13 +249,14 @@ ${streamText || 'brak wpisów'}`
     }
 
     // --- Log to stream ---
-    const { error: streamInsertErr } = await supabase.from('vanguard_stream').insert({
-      user_id: VANGUARD_USER_ID,
-      content: `[weekly synthesis sent] ${weekStart} – ${weekEnd} | friction: ${frictionSorted.map(([t, c]) => `${t}:${c}`).join(',')}`,
-      source: 'system',
-      classification: 'system:weekly',
-    });
-    if (streamInsertErr) {
+    try {
+      await insertStreamRecord(supabase, {
+        user_id: VANGUARD_USER_ID,
+        content: `[weekly synthesis sent] ${weekStart} – ${weekEnd} | friction: ${frictionSorted.map(([t, c]) => `${t}:${c}`).join(',')}`,
+        source: 'system',
+        classification: 'system:weekly',
+      });
+    } catch (streamInsertErr: any) {
       console.error('[weekly-synthesis] stream insert failed:', streamInsertErr);
       throw new Error(`Stream insert failed: ${streamInsertErr.message}`);
     }

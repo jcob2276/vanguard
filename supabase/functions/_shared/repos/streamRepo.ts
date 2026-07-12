@@ -138,3 +138,78 @@ export async function closeStreamRecords(
     .in("id", ids);
   if (error) throw error;
 }
+
+export async function getStreamForWeeklySynthesis(
+  db: Client,
+  userId: string,
+  since: string,
+  limit = 35,
+): Promise<Pick<StreamRow, "content" | "created_at" | "category">[]> {
+  const { data, error } = await db
+    .from("vanguard_stream")
+    .select("content, created_at, category")
+    .eq("user_id", userId)
+    .gte("created_at", since)
+    .not("source", "eq", "system")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getRecentAlertRecord(
+  db: Client,
+  userId: string,
+  since: string,
+): Promise<StreamRow | null> {
+  const { data, error } = await db
+    .from("vanguard_stream")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("source", "analyst_alert")
+    .gte("created_at", since)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getStreamForDailyReconciliation(
+  db: Client,
+  userId: string,
+  from: string,
+  to: string,
+  limit = 80,
+): Promise<Pick<StreamRow, "id" | "content" | "created_at" | "metadata">[]> {
+  const { data, error } = await db
+    .from("vanguard_stream")
+    .select("id, content, created_at, metadata")
+    .eq("user_id", userId)
+    .gte("created_at", from)
+    .lt("created_at", to)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updateStreamClassification(
+  db: Client,
+  id: string,
+  updates: {
+    importance_score?: number | null;
+    category?: string | null;
+    tags?: string[] | null;
+    // situation_fingerprint is pgvector, same type-generator gap as StreamInsert.embedding above.
+    situation_fingerprint?: number[] | string | null;
+    classification?: string | null;
+    valid_from?: string | null;
+    valid_until?: string | null;
+  },
+): Promise<void> {
+  const { error } = await db
+    .from("vanguard_stream")
+    .update(updates as Database["public"]["Tables"]["vanguard_stream"]["Update"])
+    .eq("id", id);
+  if (error) throw error;
+}

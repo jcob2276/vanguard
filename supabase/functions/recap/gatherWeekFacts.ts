@@ -1,4 +1,6 @@
 import { addDaysStr, getSprintInfoForDate, monthThemeSourceForWeek, mean, isVoiceEntry, avgBedtimeLabel } from "./helpers.ts";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { Database } from "../_shared/database.types.ts";
 
 const PILLAR_LABEL: Record<string, string> = { cialo: "Ciało", duch: "Duch", konto: "Konto" };
 
@@ -6,7 +8,7 @@ const PILLAR_LABEL: Record<string, string> = { cialo: "Ciało", duch: "Duch", ko
 // Using Record<string, unknown>[] instead of any[] to preserve runtime safety.
 type Row = any;
 
-export async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
+export async function gatherWeekFacts(db: SupabaseClient<Database>, userId: string, weekStart: string) {
   const weekEnd = addDaysStr(weekStart, 6);
 
   const [
