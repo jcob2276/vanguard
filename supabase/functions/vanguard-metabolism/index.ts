@@ -23,7 +23,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
   // 1. Pobieramy max 30 nieskondensowanych dni starszych niż 90 dni
   const { data: rawDays, error } = await supabase
     .from('vanguard_daily_aggregates')
-    .select('date, execution_score, oura_sleep_score, total_strain, calories_consumed, protein, blockers_notes')
+    .select('date, execution_score, sleep_hours, hrv_avg, readiness_score, final_state')
     .eq('user_id', userId)
     .eq('condensed', false)
     .lt('date', cutoffDate)
@@ -39,7 +39,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
   const lastDate = rawDays[rawDays.length - 1].date;
 
   const dataDump = rawDays.map(d =>
-    `Data: ${d.date} | Exec: ${d.execution_score || '-'} | Sen: ${d.oura_sleep_score || '-'} | Strain: ${d.total_strain || '-'} | Kcal: ${d.calories_consumed || '-'} | Białko: ${d.protein || '-'} | Blocker: ${d.blockers_notes || '-'}`
+    `Data: ${d.date} | Exec: ${d.execution_score ?? '-'} | Sen(h): ${d.sleep_hours ?? '-'} | HRV: ${d.hrv_avg ?? '-'} | Readiness: ${d.readiness_score ?? '-'} | Stan: ${d.final_state ?? '-'}`
   ).join('\n');
 
   const prompt = `Jesteś procesem "Vanguard Metabolism". Twoim zadaniem jest skondensowanie starych, surowych logów z okresu (${firstDate} do ${lastDate}) do jednego wartościowego "wspomnienia" (Narrative Belief).
@@ -48,7 +48,7 @@ SUROWE DANE:
 ${dataDump}
 
 INSTRUKCJA:
-Przeanalizuj te ${rawDays.length} dni. Wyciągnij GŁÓWNE WNIOSKI: co Jakuba w tym okresie najczęściej blokowało? Jakie było jego średnie wykonanie i sen? Czy widoczny jest jakiś schemat (np. "gdy jadł za mało białka, sen był gorszy")?
+Przeanalizuj te ${rawDays.length} dni. Wyciągnij GŁÓWNE WNIOSKI: co Jakuba w tym okresie najczęściej blokowało? Jakie było jego średnie wykonanie, sen i gotowość (readiness)? Czy widoczny jest jakiś schemat (np. "gdy sen był krótszy, execution_score spadał")?
 Napisz 1 zwięzły paragraf (max 500 znaków), który zostanie zapisany jako "Belief" w jego grafie wiedzy. Ma to być informacja przydatna w przyszłości.
 Odpowiedz TYLKO JSONem w formacie:
 {"narrative_belief": "..."}`;

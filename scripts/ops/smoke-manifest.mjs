@@ -28,6 +28,9 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-keep-triage",
   "vanguard-backtester",
   "vanguard-outbox-sender",
+  "vanguard-metabolism",
+  "vanguard-executor",
+  "analyze-food-quality",
 ];
 
 
@@ -58,6 +61,9 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-keep-triage", post: "skip", sideEffects: "AI triage for unread links (calls DeepSeek)" },
   { name: "vanguard-backtester", post: "skip", sideEffects: "Historical backtest simulation — OPTIONS only for smoke" },
   { name: "vanguard-outbox-sender", post: "skip", sideEffects: "Sends Telegram messages from outbox queue asynchronously" },
+  { name: "vanguard-metabolism", post: "skip", sideEffects: "Calls DeepSeek + condenses/writes daily aggregates — OPTIONS only" },
+  { name: "vanguard-executor", post: "skip", sideEffects: "Evaluates recipes, may send Telegram notifications — OPTIONS only" },
+  { name: "analyze-food-quality", post: "skip", sideEffects: "Calls DeepSeek + writes food quality scores — manual/user trigger only" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */
