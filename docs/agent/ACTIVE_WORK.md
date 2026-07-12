@@ -8,9 +8,10 @@ nie zostają tutaj.
 
 ## Stan: nic w toku
 
-Ostatnia wieloetapowa sesja (frontend 10/10 + spłata długu, 2026-07-10/11) zamknięta
-i skonsolidowana do `BACKLOG.md`, część IV. Następna praca do podjęcia — patrz tam:
-P5 (3 pozostałe god-files), P6 (klasyfikacja ~111 plików), DS1/DS4 (reszta audytu UI).
+Ostatnia sesja: Faza 7 molochów — 20 plików >300 linii rozbitych do <300
+(commity sesji 2026-07-12). Ratchet `check-line-limit.mjs` dodany do lint-staged.
+Baseline `legacyLines` wyciszony (0 plików nad limitem). Faza 7 kontynuuje się
+z ratchetem jako mechanizmem egzekwującym.
 
 ## Jak używać tego pliku
 

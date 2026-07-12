@@ -220,27 +220,19 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
           if (shouldSkipDiscoveryPair(xMetric, yMetric, lagDays)) continue
           const pk = pairKey(xMetric, yMetric, lagDays)
           if (seen.has(pk)) continue
-
           const computed = computePair(series, xMetric, yMetric, lagDays)
           if (!computed) continue
           const p = computed.dual.primary!
           if (!passesDiscoveryGate(Math.abs(p.r), p.n, p.p)) continue
-
           const crossDomain = isCrossDomainPair(xMetric, yMetric)
           const row = buildResult(xMetric, yMetric, lagDays, computed.dual, computed.scatter, labels, crossDomain)
           if (!row) continue
-
           candidates.push(row)
           seen.add(pk)
         }
       }
     }
-
-    candidates.sort((a, b) => {
-      const scoreA = discoveryScore(a.r_abs, a.n, a.p, a.cross_domain)
-      const scoreB = discoveryScore(b.r_abs, b.n, b.p, b.cross_domain)
-      return scoreB - scoreA
-    })
+    candidates.sort((a, b) => discoveryScore(b.r_abs, b.n, b.p, b.cross_domain) - discoveryScore(a.r_abs, a.n, a.p, a.cross_domain))
 
     const capped = candidates.slice(0, DISCOVERY_MAX_RESULTS * 3)
     const computedTotal = capped.length
@@ -251,52 +243,23 @@ export const runComputeCorrelations = async (req: Request): Promise<Response> =>
     }))
     interesting.sort((a, b) => correlationInterestScore(b) - correlationInterestScore(a))
 
-    // Bridge: save top 10 interesting significant correlations as entity links (memory_type: 'correlation')
+    // Bridge: save top 10 interesting significant correlations as entity links
     for (const r of interesting.slice(0, 10)) {
       if (!r.significant) continue;
-      const xLabel = labels[r.x_metric] ?? r.x_metric;
-      const yLabel = labels[r.y_metric] ?? r.y_metric;
+      const xLabel = labels[r.x_metric] ?? r.x_metric, yLabel = labels[r.y_metric] ?? r.y_metric;
       const lagText = r.lag_days > 0 ? ` z opóźnieniem ${r.lag_days}d` : '';
       const fact_text = `${xLabel} koreluje z ${yLabel}${lagText} (r = ${r.r}, p = ${r.p}, N = ${r.n})`;
-
-      const { error: upsertErr } = await supabase
-        .from('vanguard_entity_links')
-        .upsert({
-          user_id: userId,
-          source_entity: xLabel,
-          source_type: 'metric',
-          relation: 'koreluje_z',
-          target_entity: yLabel,
-          target_type: 'metric',
-          confidence_score: r.r_abs,
-          memory_type: 'correlation',
-          status: 'active',
-          temporal_status: 'current',
-          fact_text,
-          metadata: {
-            x_metric: r.x_metric,
-            y_metric: r.y_metric,
-            lag_days: r.lag_days,
-            r: r.r,
-            p: r.p,
-            n: r.n,
-            discovered_at: new Date().toISOString()
-          }
-        }, {
-          onConflict: 'user_id,source_entity,relation,target_entity'
-        });
-
-      if (upsertErr) {
-        console.error(`[correlations] Failed to save correlation link: ${upsertErr.message}`);
-      } else {
-        console.log(`[correlations] Saved correlation link: ${xLabel} -> koreluje_z -> ${yLabel}`);
-      }
+      const { error: upsertErr } = await supabase.from('vanguard_entity_links').upsert({
+        user_id: userId, source_entity: xLabel, source_type: 'metric', relation: 'koreluje_z',
+        target_entity: yLabel, target_type: 'metric', confidence_score: r.r_abs, memory_type: 'correlation',
+        status: 'active', temporal_status: 'current', fact_text,
+        metadata: { x_metric: r.x_metric, y_metric: r.y_metric, lag_days: r.lag_days, r: r.r, p: r.p, n: r.n, discovered_at: new Date().toISOString() },
+      }, { onConflict: 'user_id,source_entity,relation,target_entity' });
+      if (upsertErr) console.error(`[correlations] Failed to save correlation link: ${upsertErr.message}`);
     }
 
     const output = (includeWeak ? capped : interesting).slice(0, DISCOVERY_MAX_RESULTS)
-
     output.sort((a, b) => correlationInterestScore(b) - correlationInterestScore(a))
-
     const coverage: Record<string, number> = {}
     for (const [k, v] of Object.entries(series)) coverage[k] = v.length
 

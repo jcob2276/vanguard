@@ -160,7 +160,7 @@ Zwróć TYLKO JSON: {"narrative_check": "...", "deepening_questions": ["...", ".
     const phase2 = {
       narrative_check: parsed.narrative_check,
       deepening_questions: parsed.deepening_questions.slice(0, 3).map(String),
-      block5_material: { cialo: String((parsed.block5_material as any).cialo ?? ""), duch: String((parsed.block5_material as any).duch ?? ""), konto: String((parsed.block5_material as any).konto ?? "") },
+      block5_material: { cialo: String((parsed.block5_material as Record<string, unknown>)?.cialo ?? ""), duch: String((parsed.block5_material as Record<string, unknown>)?.duch ?? ""), konto: String((parsed.block5_material as Record<string, unknown>)?.konto ?? "") },
     };
 
     const { data: existingForMerge } = await db.from("weekly_reviews").select("ai_recap").eq("user_id", userId).eq("week_start", weekStart).maybeSingle();

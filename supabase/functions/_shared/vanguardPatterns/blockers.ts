@@ -98,56 +98,16 @@ export async function detectRecurringBlockers(
       return 'education';
     }
 
-    // 4. Sleep & Waking Routine
-    if (/sen|wstawać|wczesno|zasnąć|spać|łóżk|zgrzeb|wstał/i.test(t)) {
-      return 'sleep_routine';
-    }
-
-    // 5. Mental State / Overthinking / Alignment / Avoidance
-    if (/chaos|overthinking|bałem|strach|niepokój|dryf|kierunek|cel|wahan|myśli|unika/i.test(t)) {
-      return 'mental_state';
-    }
-
-    // 6. Cold Calls / Sales / Business Outreach
-    if (/telefon|dzwonić|rozmow|klient|lead|zimny|outreach|sprzedaż|pitch/i.test(t)) {
-      return 'cold_calls';
-    }
-
-    // 7. Email Followup
-    if (/mail|email|odpowiedzieć|odpisać|korespondencja|inbox/.test(t)) {
-      return 'email_followup';
-    }
-
-    // 8. Training & Physical Activity
-    if (/trening|siłown|sport|ruch|ćwicz|workout/i.test(t)) {
-      return 'training';
-    }
-
-    // 9. Eating / Nutrition
-    if (/jedzenie|dieta|jedz|przekąska|jedzenie/i.test(t)) {
-      return 'eating';
-    }
-
-    // 10. Writing / Content Creation
-    if (/pisanie|tekst|artykuł|content|raport|writing/i.test(t)) {
-      return 'writing_content';
-    }
-
-    // 11. Admin / Organization
-    if (/admin|organizacja|planowanie|zadania|todo|inbox zero|porządkowanie/i.test(t)) {
-      return 'admin';
-    }
-
-    // 12. Creative
-    if (/kreatywny|twórczy|pomysł|brainstorm|content creation/i.test(t)) {
-      return 'creative';
-    }
-
-    // 13. Business / Finances
-    if (/pieniądze|finanse|biznes/i.test(t)) {
-      return 'business';
-    }
-
+    if (/sen|wstawać|wczesno|zasnąć|spać|łóżk|zgrzeb|wstał/i.test(t)) return 'sleep_routine';
+    if (/chaos|overthinking|bałem|strach|niepokój|dryf|kierunek|cel|wahan|myśli|unika/i.test(t)) return 'mental_state';
+    if (/telefon|dzwonić|rozmow|klient|lead|zimny|outreach|sprzedaż|pitch/i.test(t)) return 'cold_calls';
+    if (/mail|email|odpowiedzieć|odpisać|korespondencja|inbox/.test(t)) return 'email_followup';
+    if (/trening|siłown|sport|ruch|ćwicz|workout/i.test(t)) return 'training';
+    if (/jedzenie|dieta|jedz|przekąska|jedzenie/i.test(t)) return 'eating';
+    if (/pisanie|tekst|artykuł|content|raport|writing/i.test(t)) return 'writing_content';
+    if (/admin|organizacja|planowanie|zadania|todo|inbox zero|porządkowanie/i.test(t)) return 'admin';
+    if (/kreatywny|twórczy|pomysł|brainstorm|content creation/i.test(t)) return 'creative';
+    if (/pieniądze|finanse|biznes/i.test(t)) return 'business';
     return 'other';
   }
 
@@ -200,29 +160,17 @@ export async function detectRecurringBlockers(
     }
   }
 
-  // Po zbudowaniu grup — wybierz lepszego reprezentanta frazy dla każdej grupy
-  // (to jest podpięcie pickBestRepresentativePhrase do rzeczywistego grupowania)
+  // Pick best representative phrase per group
   const improvedGroups = new Map<string, string[]>();
-
   for (const [_oldKey, dates] of blockerGroups) {
-    const phrasesInGroup = blockerOccurrences
-      .filter(o => dates.includes(o.date))
-      .map(o => o.blocker);
-
+    const phrasesInGroup = blockerOccurrences.filter(o => dates.includes(o.date)).map(o => o.blocker);
     const bestPhrase = pickBestRepresentativePhrase(phrasesInGroup);
     const finalKey = bestPhrase.length > 60 ? bestPhrase.substring(0, 60) : bestPhrase;
-
-    if (improvedGroups.has(finalKey)) {
-      improvedGroups.get(finalKey)!.push(...dates);
-    } else {
-      improvedGroups.set(finalKey, [...dates]);
-    }
+    if (improvedGroups.has(finalKey)) improvedGroups.get(finalKey)!.push(...dates);
+    else improvedGroups.set(finalKey, [...dates]);
   }
-
   blockerGroups.clear();
-  for (const [k, v] of improvedGroups) {
-    blockerGroups.set(k, v);
-  }
+  for (const [k, v] of improvedGroups) blockerGroups.set(k, v);
 
   const insights: PatternInsight[] = [];
 

@@ -28,37 +28,9 @@ export async function runWeeklySynthesis(req: Request): Promise<Response> {
         .order('occurred_at', { ascending: false }),
     );
 
-    const biometrics = await safeExecute(
-      supabase.from('vanguard_daily_aggregates')
-        .select('date, sleep_hours, hrv_avg, readiness_score, execution_score, final_state')
-        .eq('user_id', VANGUARD_USER_ID)
-        .gte('date', weekStart)
-        .order('date', { ascending: false }),
-    );
-
-    const plannings = await safeExecute(
-      supabase.from('daily_reconciliations')
-        .select('date, planning_summary, p2_parsed')
-        .eq('user_id', VANGUARD_USER_ID)
-        .gte('date', weekStart)
-        .not('planning_summary', 'is', null)
-        .order('date', { ascending: false }),
-    );
-
-    // Free-text reflections written in the evening shutdown ritual (day_note = "Refleksja",
-    // journal_entry = "Co realnie zrobiłeś") — previously only reached the LLM indirectly
-    // (and only if not crowded out of the 35-item stream cap below).
-    const dailyReflections = await safeExecute(
-      supabase.from('daily_wins')
-        .select('date, day_note, journal_entry, result')
-        .eq('user_id', VANGUARD_USER_ID)
-        .gte('date', weekStart)
-        .or('day_note.not.is.null,journal_entry.not.is.null')
-        .order('date', { ascending: true }),
-    );
-
-    // The deliberate "Refleksja tygodnia" from the Tydzień tab — most recent one completed
-    // in the synthesis window. Previously never read by any analysis job.
+    const biometrics = await safeExecute(supabase.from('vanguard_daily_aggregates').select('date, sleep_hours, hrv_avg, readiness_score, execution_score, final_state').eq('user_id', VANGUARD_USER_ID).gte('date', weekStart).order('date', { ascending: false }));
+    const plannings = await safeExecute(supabase.from('daily_reconciliations').select('date, planning_summary, p2_parsed').eq('user_id', VANGUARD_USER_ID).gte('date', weekStart).not('planning_summary', 'is', null).order('date', { ascending: false }));
+    const dailyReflections = await safeExecute(supabase.from('daily_wins').select('date, day_note, journal_entry, result').eq('user_id', VANGUARD_USER_ID).gte('date', weekStart).or('day_note.not.is.null,journal_entry.not.is.null').order('date', { ascending: true }));
     const weeklyReflectionRows = await safeExecute(
       supabase.from('weekly_reviews')
         .select('week_start, proud_of, do_differently, sabotage, obligation, week_highlight, week_regret, new_belief, bottleneck, review_completed_at')

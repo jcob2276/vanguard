@@ -7,6 +7,8 @@ import {
   buildDeterministicDomainPages, compileDomainPage, uniqueReviewKey,
 } from "./deterministic.ts";
 
+type QueryResult = { data: unknown; error: { message: string } | null };
+
 export async function compileForUser(supabase: any, userId: string, opts: { mode: string; days: number; limit: number; dryRun: boolean }) {
   const now = new Date();
   const today = getWarsawDateString(now);
@@ -24,7 +26,8 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
   ]);
 
   for (const [name, res] of Object.entries({ streamRes, frictionRes, recRes, aggregateRes, existingRes, patternsRes })) {
-    if ((res as any).error) console.warn(`[wiki-compiler] source query failed: ${name}: ${(res as any).error.message}`);
+    const r = res as QueryResult;
+    if (r.error) console.warn(`[wiki-compiler] source query failed: ${name}: ${r.error.message}`);
   }
 
   const sourceBundle = [
@@ -49,9 +52,10 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
   console.log("[wiki-compiler] LLM Raw Response:", content);
   const parsed = parseJsonFromContent(content) || {};
   console.log("[wiki-compiler] LLM Parsed:", JSON.stringify(parsed, null, 2));
-  let pages = safeArray<WikiPageDraft>((parsed as any).pages || (parsed as any).wiki_pages);
-  let reviews = safeArray<ReviewDraft>((parsed as any).review_items || (parsed as any).reviews);
-  const archivedPages = safeArray<string>((parsed as any).archived_pages || (parsed as any).archived || []);
+  const lp = parsed as Record<string, unknown>;
+  let pages = safeArray<WikiPageDraft>((lp.pages || lp.wiki_pages) as WikiPageDraft[] | undefined);
+  let reviews = safeArray<ReviewDraft>((lp.review_items || lp.reviews) as ReviewDraft[] | undefined);
+  const archivedPages = safeArray<string>((lp.archived_pages || lp.archived) as string[] | undefined);
   const deterministicPages = buildDeterministicDomainPages(sourceBundle);
 
   if (opts.mode.includes("domain") && deterministicPages.length > 0) {
@@ -83,7 +87,7 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
     reviews = domainResults.flatMap((r) => r.reviews);
   }
 
-  if ((pages.length === 0 || pages.every((p) => (p.metadata as any)?.fallback)) && deterministicPages.length > 0) pages = deterministicPages;
+  if ((pages.length === 0 || pages.every((p) => (p.metadata as Record<string, unknown>)?.fallback)) && deterministicPages.length > 0) pages = deterministicPages;
 
   if (pages.length === 0 && sourceBundle.length > 0) {
     pages = buildFallbackPages(sourceBundle);
@@ -258,18 +262,14 @@ async function persistResults(supabase: any, userId: string, now: Date, pages: W
         }, { onConflict: "page_id,source_table,source_id" });
         if (sourceErr) console.error(`[wiki-compiler] Failed to upsert source for ${data.slug}:`, sourceErr);
       }
-    } catch (err: unknown) {
-      console.error('[Edge Function Error]', err);
-    }
+    } catch (err: unknown) { console.error('[Edge Function Error]', err); }
   }
-
   if (archivedPages.length > 0) {
     const { error: archiveErr } = await supabase.from("vanguard_wiki_pages")
       .update({ status: "archived", updated_at: now.toISOString() })
       .eq("user_id", userId).in("slug", archivedPages.map(s => slugify(s)));
     if (archiveErr) console.error("[wiki-compiler] Failed to archive pages:", archiveErr);
   }
-
   for (const item of reviews.slice(0, 8)) {
     const dedupeKey = uniqueReviewKey(userId, item);
     const existing = await supabase.from("vanguard_wiki_review_items").select("id")

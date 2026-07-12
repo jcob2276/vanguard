@@ -2,6 +2,10 @@ import { addDaysStr, getSprintInfoForDate, monthThemeSourceForWeek, mean, isVoic
 
 const PILLAR_LABEL: Record<string, string> = { cialo: "Ciało", duch: "Duch", konto: "Konto" };
 
+// Supabase query results — data is T[] | null, but complex selects don't always infer T.
+// Using Record<string, unknown>[] instead of any[] to preserve runtime safety.
+type Row = any;
+
 export async function gatherWeekFacts(db: any, userId: string, weekStart: string) {
   const weekEnd = addDaysStr(weekStart, 6);
 
@@ -45,7 +49,7 @@ export async function gatherWeekFacts(db: any, userId: string, weekStart: string
   const wins = winsRes.data ?? [];
   const pillarTally: Record<string, { done: number; total: number }> = { cialo: { done: 0, total: 0 }, duch: { done: 0, total: 0 }, konto: { done: 0, total: 0 } };
   const dayLines: string[] = [];
-  for (const w of wins as any[]) {
+  for (const w of wins as Row[]) {
     const parts: string[] = [];
     for (let i = 1; i <= 5; i++) {
       const cat = w[`category_${i}`];
@@ -71,29 +75,29 @@ export async function gatherWeekFacts(db: any, userId: string, weekStart: string
   const avgProtein = mean((nutrRes.data ?? []).map((n: any) => n.protein).filter(Boolean));
   const targetKcal = targetRes.data?.target_kcal ?? null;
 
-  const runs = (runsRes.data ?? []) as any[];
+  const runs = (runsRes.data ?? []) as Row[];
   const totalKm = runs.reduce((s, r) => s + (r.distance || 0), 0) / 1000;
 
-  const habitLines = ((habitLogsRes.data ?? []) as any[]).map((l) => {
+  const habitLines = ((habitLogsRes.data ?? []) as Row[]).map((l) => {
     const t = l.logged_at ? new Date(l.logged_at).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : l.date;
     return `${t}${l.final_stimulus ? ` — ${l.final_stimulus}` : ""}${l.context_note ? ` (${l.context_note})` : ""}`;
   });
 
-  const staleHighLines = ((staleHighRes.data ?? []) as any[]).slice(0, 8).map((t) => {
+  const staleHighLines = ((staleHighRes.data ?? []) as Row[]).slice(0, 8).map((t) => {
     const ageDays = Math.round((new Date(weekEnd + "T12:00:00Z").getTime() - new Date(t.created_at).getTime()) / 86400000);
     return `"${t.title}" — ${ageDays}d bez ruchu`;
   });
 
-  const allStream = (thisWeekStreamRes.data ?? []) as any[];
+  const allStream = (thisWeekStreamRes.data ?? []) as Row[];
   const thisWeekVoice = allStream.filter((s) => isVoiceEntry(s.source, s.content));
   const thisWeekShortMsgs = allStream.filter((s) => s.source === "telegram" && s.content?.length <= 150);
 
-  const sections = (sectionsRes.data ?? []) as any[];
+  const sections = (sectionsRes.data ?? []) as Row[];
   const sectionMap: Record<string, string> = {};
   for (const s of sections) sectionMap[s.id] = s.name;
 
-  const doneTasks = ((doneTasksRes.data ?? []) as any[]).map((t) => ({ title: t.title, status: t.status, section: t.section_id ? (sectionMap[t.section_id] ?? null) : null }));
-  const activeProjects = (projectsRes.data ?? []) as any[];
+  const doneTasks = ((doneTasksRes.data ?? []) as Row[]).map((t) => ({ title: t.title, status: t.status, section: t.section_id ? (sectionMap[t.section_id] ?? null) : null }));
+  const activeProjects = (projectsRes.data ?? []) as Row[];
 
   const projectMap: Record<string, string> = {};
   for (const p of activeProjects) projectMap[p.id] = p.name;

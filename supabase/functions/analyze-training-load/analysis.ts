@@ -255,21 +255,9 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     : '  (brak aktywnego planu)';
 
   // ── Muscle coverage ───────────────────────────────────────────────────────
-  const weekMuscleTags = [...new Set(
-    workoutsByWeek[0].flatMap((w: any) => w.exercise_logs || []).flatMap((l: any) => Array.isArray(l.muscle_tags) ? l.muscle_tags : []).filter(Boolean)
-  )];
-
-  // ── CoachBrain ────────────────────────────────────────────────────────────
-  const coachSignals = buildCoachBrain({
-    workoutsAll, stravaByWeek, w0, baseStrain, today, todayDow,
-    z2Ceiling, thresholdHr, allTimeE1rm,
-  });
-
-  // ── Build prompt ──────────────────────────────────────────────────────────
-  const dataQualityNote = queryErrors.length
-    ? `\n⚠️ DATA_QUALITY: zapytania do [${queryErrors.join(', ')}] nie powiodły się — traktuj jako NIEZNANE.\n`
-    : '';
-
+  const weekMuscleTags = [...new Set(workoutsByWeek[0].flatMap((w: any) => w.exercise_logs || []).flatMap((l: any) => Array.isArray(l.muscle_tags) ? l.muscle_tags : []).filter(Boolean))];
+  const coachSignals = buildCoachBrain({ workoutsAll, stravaByWeek, w0, baseStrain, today, todayDow, z2Ceiling, thresholdHr, allTimeE1rm });
+  const dataQualityNote = queryErrors.length ? `\n⚠️ DATA_QUALITY: zapytania do [${queryErrors.join(', ')}] nie powiodły się — traktuj jako NIEZNANE.\n` : '';
   const systemPrompt = buildSystemPrompt();
   const userMsg = buildUserMsg({
     dataQualityNote, hrMax, z2Ceiling, thresholdHr, today, todayDowLabel, todayDow,
@@ -279,38 +267,25 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     complianceLines, exerciseHistoryLines, coachSignals,
   });
 
-  const result = await deepseekChat({
-    apiKey, model: 'deepseek-chat',
-    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }],
-    maxTokens: 4000, temperature: 0.2, timeoutMs: 90000,
-  });
-
+  const result = await deepseekChat({ apiKey, model: 'deepseek-chat', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }], maxTokens: 4000, temperature: 0.2, timeoutMs: 90000 });
   const parsed: any = parseJsonFromContent(result.content);
   if (!parsed) throw new Error(`No JSON in response. Raw: ${result.content.slice(0, 300)}`);
 
+  const bA = (vals: (number | null | undefined)[]) => { const f = vals.filter(Boolean) as number[]; return f.length ? avg(f) : null; };
+  const bR = (vals: (number | null | undefined)[]) => { const v = bA(vals); return v != null ? Math.round(v) : null; };
   parsed.stats = {
-    week_strain: w0.strainAvg != null ? +w0.strainAvg.toFixed(1) : null,
-    base_strain: avg([w1.strainAvg, w2.strainAvg, w3.strainAvg].filter(Boolean) as number[])?.toFixed(1) ?? null,
-    week_recovery: w0.recovAvg != null ? Math.round(w0.recovAvg) : null,
-    base_recovery: avg([w1.recovAvg, w2.recovAvg, w3.recovAvg].filter(Boolean) as number[]) != null ? Math.round(avg([w1.recovAvg, w2.recovAvg, w3.recovAvg].filter(Boolean) as number[])!) : null,
-    week_hrv: w0.hrvAvg != null ? Math.round(w0.hrvAvg) : null,
-    base_hrv: avg([w1.hrvAvg, w2.hrvAvg, w3.hrvAvg].filter(Boolean) as number[]) != null ? Math.round(avg([w1.hrvAvg, w2.hrvAvg, w3.hrvAvg].filter(Boolean) as number[])!) : null,
-    week_sleep: w0.sleepAvg != null ? +w0.sleepAvg.toFixed(1) : null,
-    base_sleep: avg([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg].filter(Boolean) as number[]) != null ? +(avg([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg].filter(Boolean) as number[])!.toFixed(1)) : null,
+    week_strain: w0.strainAvg != null ? +w0.strainAvg.toFixed(1) : null, base_strain: bA([w1.strainAvg, w2.strainAvg, w3.strainAvg])?.toFixed(1) ?? null,
+    week_recovery: w0.recovAvg != null ? Math.round(w0.recovAvg) : null, base_recovery: bR([w1.recovAvg, w2.recovAvg, w3.recovAvg]),
+    week_hrv: w0.hrvAvg != null ? Math.round(w0.hrvAvg) : null, base_hrv: bR([w1.hrvAvg, w2.hrvAvg, w3.hrvAvg]),
+    week_sleep: w0.sleepAvg != null ? +w0.sleepAvg.toFixed(1) : null, base_sleep: bA([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg]) != null ? +(bA([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg])!.toFixed(1)) : null,
     week_sets: w0.sets, base_sets_pw: Math.round(avg([w1.sets, w2.sets, w3.sets]) ?? 0),
     week_run_km: w0.km, base_run_km_pw: +(avg([w1.km, w2.km, w3.km])?.toFixed(1) ?? '0'),
     week_sauna: w0.saunaCount, base_sauna_pw: +(avg([w1.saunaCount, w2.saunaCount, w3.saunaCount])?.toFixed(1) ?? '0'),
     muscle_tags: weekMuscleTags, hr_max: hrMax, z2_ceiling: z2Ceiling,
-    today, day_of_week: todayDow, day_of_week_label: todayDowLabel,
-    week_progress: +weekProgress.toFixed(2), early_week: earlyWeek,
-    expected_run_km_to_date: expectedRunKmToDate, expected_sets_to_date: expectedSetsToDate,
-    expected_strain_to_date: expectedStrainToDate, coach_signals: coachSignals,
-    km_trend: [w3.km, w2.km, w1.km, w0.km],
-    sets_trend: [w3.sets, w2.sets, w1.sets, w0.sets],
-    strain_trend: [w3.strainAvg, w2.strainAvg, w1.strainAvg, w0.strainAvg],
-    acwr, acwr_band: acwr != null ? acwrBand(acwr) : null,
-    monotony, acute_load: acuteLoad != null ? +acuteLoad.toFixed(1) : null,
-    chronic_load: chronicLoad != null ? +chronicLoad.toFixed(1) : null,
+    today, day_of_week: todayDow, day_of_week_label: todayDowLabel, week_progress: +weekProgress.toFixed(2), early_week: earlyWeek,
+    expected_run_km_to_date: expectedRunKmToDate, expected_sets_to_date: expectedSetsToDate, expected_strain_to_date: expectedStrainToDate, coach_signals: coachSignals,
+    km_trend: [w3.km, w2.km, w1.km, w0.km], sets_trend: [w3.sets, w2.sets, w1.sets, w0.sets], strain_trend: [w3.strainAvg, w2.strainAvg, w1.strainAvg, w0.strainAvg],
+    acwr, acwr_band: acwr != null ? acwrBand(acwr) : null, monotony, acute_load: acuteLoad != null ? +acuteLoad.toFixed(1) : null, chronic_load: chronicLoad != null ? +chronicLoad.toFixed(1) : null,
   };
 
   return parsed;
