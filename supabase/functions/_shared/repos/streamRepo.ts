@@ -8,7 +8,12 @@ import type { Database } from "../database.types.ts";
 
 type Client = SupabaseClient<Database>;
 type StreamRow = Database["public"]["Tables"]["vanguard_stream"]["Row"];
-type StreamInsert = Database["public"]["Tables"]["vanguard_stream"]["Insert"];
+// Generated type says `embedding: string | null` (pgvector is a USER-DEFINED column, poorly
+// inferred by the type generator) but every caller actually builds it as a raw number[] from
+// OpenAI embeddings — widen just that field instead of casting at every call site.
+type StreamInsert =
+  & Omit<Database["public"]["Tables"]["vanguard_stream"]["Insert"], "embedding">
+  & { embedding?: number[] | number[][] | string | null };
 
 export async function getStreamByUser(
   db: Client,
@@ -36,7 +41,7 @@ export async function insertStreamRecord(
 ): Promise<StreamRow> {
   const { data, error } = await db
     .from("vanguard_stream")
-    .insert(record)
+    .insert(record as Database["public"]["Tables"]["vanguard_stream"]["Insert"])
     .select()
     .single();
   if (error) throw error;
@@ -98,4 +103,38 @@ export async function getStreamByClassification(
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
+}
+
+/** Content+timestamp only, for RAG context windows (Oracle prompt building). */
+export async function getStreamContentInRange(
+  db: Client,
+  userId: string,
+  opts: { gte?: string; lt?: string; limit?: number },
+): Promise<Pick<StreamRow, "content" | "created_at">[]> {
+  let q = db
+    .from("vanguard_stream")
+    .select("content, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (opts.gte) q = q.gte("created_at", opts.gte);
+  if (opts.lt) q = q.lt("created_at", opts.lt);
+  if (opts.limit) q = q.limit(opts.limit);
+
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Bi-temporal soft-close (sets valid_until) — used by closure-proposal approval flow. */
+export async function closeStreamRecords(
+  db: Client,
+  ids: string[],
+  validUntil: string,
+): Promise<void> {
+  const { error } = await db
+    .from("vanguard_stream")
+    .update({ valid_until: validUntil })
+    .in("id", ids);
+  if (error) throw error;
 }

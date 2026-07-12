@@ -1,16 +1,17 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { safeExecute } from "./supabase.ts";
+import type { Database } from "./database.types.ts";
 import { getStreamCutoffs } from "./time.ts";
+import { getStreamContentInRange } from "./repos/streamRepo.ts";
 
 export type StreamRow = {
-  content: string;
+  content: string | null;
   category?: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 /** Oracle RAG: 72h priority + optional 3–21d window when pattern query. */
 export async function fetchOracleStreamSlices(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
   options: { includePatternWindow?: boolean; patternLimit?: number } = {},
 ): Promise<{ current: StreamRow[]; recent: StreamRow[] }> {
@@ -18,26 +19,9 @@ export async function fetchOracleStreamSlices(
   const patternLimit = options.patternLimit ?? (options.includePatternWindow ? 15 : 5);
 
   const [current, recent] = await Promise.all([
-    safeExecute(
-      supabase
-        .from("vanguard_stream")
-        .select("content, created_at")
-        .eq("user_id", userId)
-        .gte("created_at", cut24h)
-        .order("created_at", { ascending: false })
-        .limit(15),
-    ),
+    getStreamContentInRange(supabase, userId, { gte: cut24h, limit: 15 }).catch(() => []),
     options.includePatternWindow
-      ? safeExecute(
-          supabase
-            .from("vanguard_stream")
-            .select("content, created_at")
-            .eq("user_id", userId)
-            .lt("created_at", cut72h)
-            .gte("created_at", cut21d)
-            .order("created_at", { ascending: false })
-            .limit(patternLimit),
-        )
+      ? getStreamContentInRange(supabase, userId, { lt: cut72h, gte: cut21d, limit: patternLimit }).catch(() => [])
       : Promise.resolve([] as StreamRow[]),
   ]);
 

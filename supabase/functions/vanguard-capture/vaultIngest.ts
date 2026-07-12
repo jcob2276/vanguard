@@ -1,5 +1,6 @@
 import { deprecateSupersededLinks } from "../_shared/deprecateSupersededLinks.ts";
 import { chunkText, embed, sha256, extractTriadsWithOntology } from "./captureHelpers.ts";
+import { insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
 export async function handleVaultIngest(
   db: any,
@@ -59,7 +60,7 @@ export async function handleVaultIngest(
     const chunk = chunks[i];
     const embedding = openaiKey ? await embed(chunk, openaiKey) : null;
 
-    const { data: streamInserted, error: streamInsertError } = await db.from("vanguard_stream").insert({
+    const streamInserted = await insertStreamRecord(db, {
       user_id: userId,
       source: "identity_vault",
       classification: category,
@@ -72,10 +73,9 @@ export async function handleVaultIngest(
         ingested_at: new Date().toISOString(),
         raw_event_id: rawEventId,
       },
-    }).select("id").single();
+    });
 
-    if (streamInsertError) throw streamInsertError;
-    if (streamInserted?.id) streamIds.push(streamInserted.id);
+    streamIds.push(streamInserted.id);
     streamCount++;
   }
 

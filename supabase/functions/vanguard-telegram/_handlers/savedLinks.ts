@@ -1,6 +1,6 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
-import { getStreamByTelegramMessageId } from "../../_shared/repos/streamRepo.ts";
+import { getStreamByTelegramMessageId, insertStreamRecord } from "../../_shared/repos/streamRepo.ts";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -213,13 +213,16 @@ export async function handleSavedLink(
     }
     // A silently-failed anchor write defeats the whole point of this block — a Telegram
     // retry of this same message would find no `existing` row and re-process the link.
-    const { error: anchorErr } = await supabase.from('vanguard_stream').insert({
-      user_id: vanguardUserId,
-      source: 'telegram',
-      content: url,
-      metadata: { telegram_chat_id: chatId, telegram_message_id: messageId.toString(), mode: 'url_saved' }
-    });
-    if (anchorErr) console.error('[savedLinks] idempotency anchor insert failed:', anchorErr);
+    try {
+      await insertStreamRecord(supabase, {
+        user_id: vanguardUserId,
+        source: 'telegram',
+        content: url,
+        metadata: { telegram_chat_id: chatId, telegram_message_id: messageId.toString(), mode: 'url_saved' }
+      });
+    } catch (anchorErr) {
+      console.error('[savedLinks] idempotency anchor insert failed:', anchorErr);
+    }
   }
 
   // 1. Send processing indicator

@@ -1,6 +1,7 @@
 import { deepseekChat, parseJsonFromContent } from '../../_shared/deepseek.ts'
 import { safeSendTelegram } from '../_utils/helpers.ts'
 import { getWarsawDateString } from '../../_shared/time.ts'
+import { getStreamBySource } from '../../_shared/repos/streamRepo.ts'
 
 export async function handleMealCorrection(
   replyToText: string,
@@ -148,18 +149,12 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
 
     // Fetch original query to log it in food_corrections
     let queryName = entry.name
-    const { data: lastStream } = await supabase
-      .from('vanguard_stream')
-      .select('content')
-      .eq('user_id', userId)
-      .eq('source', 'telegram')
-      .order('created_at', { ascending: false })
-      .limit(2)
+    const lastStream = await getStreamBySource(supabase, userId, 'telegram', { limit: 2 })
 
     if (lastStream && lastStream.length > 0) {
       // Find one that was likely the meal text
-      const candidate = lastStream.find((s: any) => !s.content.startsWith('/') && !s.content.startsWith('?'))
-      if (candidate) {
+      const candidate = lastStream.find((s) => s.content && !s.content.startsWith('/') && !s.content.startsWith('?'))
+      if (candidate?.content) {
         queryName = candidate.content.trim()
       }
     }

@@ -14,6 +14,7 @@ import {
   clearInlineKeyboard,
 } from "../../_shared/telegram.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
+import { closeStreamRecords } from "../../_shared/repos/streamRepo.ts";
 
 export function isClosureCallback(data: string): boolean {
   return data.startsWith("closure_approve_") || data.startsWith("closure_reject_");
@@ -62,12 +63,9 @@ export async function handleClosureCallback(
 
   if (isApprove) {
     // Close the target stream records
-    const { error: streamErr } = await supabase
-      .from("vanguard_stream")
-      .update({ valid_until: now })
-      .in("id", proposal.target_record_ids);
-
-    if (streamErr) {
+    try {
+      await closeStreamRecords(supabase, proposal.target_record_ids, now);
+    } catch (streamErr) {
       console.error("[closureProposal] stream update error:", streamErr);
       await answerCallbackQuery(telegramToken, callbackId, { text: "❌ Błąd zamknięcia" });
       return;

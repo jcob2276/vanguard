@@ -13,6 +13,7 @@ import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { fetchUrlMetadata, generateLinkAnalysis } from "../vanguard-telegram/_handlers/savedLinks.ts";
 import { handleVaultIngest } from "./vaultIngest.ts";
+import { insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
 Deno.serve(serveJson(async (req, ctx) => {
     const db = ctx.supabase;
@@ -102,14 +103,7 @@ Deno.serve(serveJson(async (req, ctx) => {
       return { ok: true, type: "link", data };
     }
 
-    const { data, error } = await db.from("vanguard_stream").insert({
-      user_id: userId,
-      source,
-      content,
-      metadata,
-    }).select("*").single();
-
-    if (error) throw error;
+    const data = await insertStreamRecord(db, { user_id: userId, source, content, metadata });
 
     return { ok: true, type: "stream", data };
 }, { auth: 'none' }));

@@ -2,6 +2,7 @@ import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
+import { insertStreamRecord } from "../../_shared/repos/streamRepo.ts";
 
 export async function handleLenieCommand(
   text: string,
@@ -53,15 +54,18 @@ export async function handleLenieCommand(
     if (finalStimulus) streamParts.push(`Bodziec: ${finalStimulus}`);
     if (contextNote) streamParts.push(`Kontekst: ${contextNote}`);
 
-    const { error: streamErr } = await supabase.from('vanguard_stream').insert({
-      user_id: vanguardUserId,
-      content: streamParts.join(' · '),
-      source: 'habit_log',
-      category: 'behavior',
-      classification: 'habit_log',
-      metadata: { habit_name: 'Lenie', is_positive: false, date: today },
-    });
-    if (streamErr) console.warn('[commands] /lenie stream mirror failed:', streamErr.message);
+    try {
+      await insertStreamRecord(supabase, {
+        user_id: vanguardUserId,
+        content: streamParts.join(' · '),
+        source: 'habit_log',
+        category: 'behavior',
+        classification: 'habit_log',
+        metadata: { habit_name: 'Lenie', is_positive: false, date: today },
+      });
+    } catch (streamErr) {
+      console.warn('[commands] /lenie stream mirror failed:', (streamErr as Error).message);
+    }
 
     // Invalidate world state cache
     fetchWorldState(supabase, vanguardUserId, today, undefined, true).catch((e) => {

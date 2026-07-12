@@ -3,7 +3,7 @@ import { getEmbedding } from "../../_shared/openai.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getReconciliationById } from "../../_shared/repos/reconciliationsRepo.ts";
-import { getStreamByTelegramMessageId } from "../../_shared/repos/streamRepo.ts";
+import { getStreamByTelegramMessageId, insertStreamRecord as insertStreamRow } from "../../_shared/repos/streamRepo.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import {
   handleTodoCommand,
@@ -161,26 +161,25 @@ export async function insertStreamRecord(
     }
   }
 
-  const { data: streamInserted, error: streamInsertError } = await supabase.from('vanguard_stream').insert({
-    user_id: vanguardUserId,
-    source: 'telegram',
-    content: cleanText,
-    embedding: streamEmbedding,
-    metadata: {
-      telegram_chat_id: chatId,
-      telegram_message_id: messageId,
-      mode,
-      ...(pendingReconciliation ? { reconciliation_id: pendingReconciliation.id, reconciliation_date: pendingReconciliation.date } : {}),
-      ...(isVoice && voiceDurationSec > 0 ? { voice_duration_seconds: voiceDurationSec, voice_wpm: voiceWpm } : {}),
-      ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
-    }
-  }).select('id').single();
-
-  if (streamInsertError) {
+  try {
+    const streamInserted = await insertStreamRow(supabase, {
+      user_id: vanguardUserId,
+      source: 'telegram',
+      content: cleanText,
+      embedding: streamEmbedding,
+      metadata: {
+        telegram_chat_id: chatId,
+        telegram_message_id: messageId,
+        mode,
+        ...(pendingReconciliation ? { reconciliation_id: pendingReconciliation.id, reconciliation_date: pendingReconciliation.date } : {}),
+        ...(isVoice && voiceDurationSec > 0 ? { voice_duration_seconds: voiceDurationSec, voice_wpm: voiceWpm } : {}),
+        ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
+      }
+    });
+    streamRecordId = streamInserted.id;
+  } catch (streamInsertError) {
     console.error("[telegram] stream insert failed:", streamInsertError);
     streamSaveFailed = true;
-  } else if (streamInserted?.id) {
-    streamRecordId = streamInserted.id;
   }
 
   if (emotionData) {
