@@ -3,15 +3,9 @@ import { getTodayWarsaw } from '../../../lib/date';
 import { Panel } from '../shell/Panel';
 import HexagonChart from './HexagonChart';
 import { useHexagonScores, formatSavedAt, DEFAULT_SCORES } from './hooks/useHexagonScores';
+import type { HexagonScores } from '../../../lib/hexagonScoresApi';
 
-export interface HexagonScores {
-  zdrowie: number;
-  finanse: number;
-  kariera: number;
-  relacje: number;
-  rozwoj: number;
-  duchowosc: number;
-}
+export type { HexagonScores };
 
 const SPHERES = [
   { key: 'zdrowie', label: 'Zdrowie & Ciało', color: 'accent-emerald-500' },
