@@ -1,6 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { handleReconciliation } from "../_handlers/reconciliation.ts";
 import { getReconciliationById } from "../../_shared/repos/reconciliationsRepo.ts";
+import { getStreamByTelegramMessageId } from "../../_shared/repos/streamRepo.ts";
 import type { TelegramRouterContext } from "./config.ts";
 
 type VoiceLikeAttachment = { file_id: string; duration?: number };
@@ -98,11 +99,7 @@ export async function tryResumeStuckReconciliationVoice(
 ): Promise<boolean> {
   const { supabase, telegramToken, deepseekApiKey, supabaseUrl, supabaseServiceRoleKey, vanguardUserId } = ctx;
 
-  const { data: existing } = await supabase
-    .from("vanguard_stream")
-    .select("id, content, metadata")
-    .eq("metadata->>telegram_message_id", messageId.toString())
-    .maybeSingle();
+  const existing = await getStreamByTelegramMessageId(supabase, messageId);
 
   if (!existing?.content) return false;
 

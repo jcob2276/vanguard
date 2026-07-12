@@ -67,6 +67,19 @@ export async function getStreamBySource(
   return data ?? [];
 }
 
+export async function getStreamByTelegramMessageId(
+  db: Client,
+  messageId: number | string,
+): Promise<StreamRow | null> {
+  const { data, error } = await db
+    .from("vanguard_stream")
+    .select("*")
+    .eq("metadata->>telegram_message_id", messageId.toString())
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function getStreamByClassification(
   db: Client,
   userId: string,

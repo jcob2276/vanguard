@@ -3,6 +3,7 @@ import { getEmbedding } from "../../_shared/openai.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getReconciliationById } from "../../_shared/repos/reconciliationsRepo.ts";
+import { getStreamByTelegramMessageId } from "../../_shared/repos/streamRepo.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import {
   handleTodoCommand,
@@ -77,15 +78,7 @@ export async function checkIdempotency(
 ): Promise<{ exists: boolean; shouldStop: boolean }> {
   const { supabase } = ctx;
   try {
-    const { data: existing, error: existErr } = await supabase
-      .from('vanguard_stream')
-      .select('id, content, metadata')
-      .eq('metadata->>telegram_message_id', messageId.toString())
-      .maybeSingle();
-
-    if (existErr) {
-      console.error('[telegram] Idempotency DB check returned error:', existErr);
-    }
+    const existing = await getStreamByTelegramMessageId(supabase, messageId);
 
     if (existing) {
       const reconId = (existing.metadata as { reconciliation_id?: string } | null)?.reconciliation_id;

@@ -1,5 +1,6 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { getStreamByTelegramMessageId } from "../../_shared/repos/streamRepo.ts";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -205,11 +206,7 @@ export async function handleSavedLink(
   // Idempotency anchor — write to vanguard_stream NOW so Telegram retries are blocked
   // by the existing idempotency guard in messages.ts (which checks telegram_message_id).
   if (messageId) {
-    const { data: existing } = await supabase
-      .from('vanguard_stream')
-      .select('id')
-      .eq('metadata->>telegram_message_id', messageId.toString())
-      .maybeSingle();
+    const existing = await getStreamByTelegramMessageId(supabase, messageId);
     if (existing) {
       console.log(`[savedLinks] Idempotency: message ${messageId} already processed — skipping retry`);
       return true;
