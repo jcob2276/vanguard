@@ -71,9 +71,11 @@ Odpowiedz TYLKO JSONem w formacie:
     .from('vanguard_entity_links')
     .insert({
       user_id: userId,
-      source_entity: `Kondensacja: ${firstDate} - ${lastDate}`,
-      target_entity: 'Jakub',
-      relation: 'HISTORYCZNY_WRAŻLIWY_PUNKT',
+      source_entity: 'Jakub',
+      source_type: 'person',
+      target_entity: `Kondensacja: ${firstDate} - ${lastDate}`,
+      target_type: 'memory',
+      relation: 'ma_wspomnienie_z',
       fact_text: beliefText,
       confidence_score: 0.9,
       evidence_count: rawDays.length,
