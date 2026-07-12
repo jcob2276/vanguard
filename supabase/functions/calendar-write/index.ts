@@ -8,7 +8,8 @@
  * @consumer Kalendarz Google użytkownika
  * @status active
  */
-import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient } from '../_shared/supabase.ts'
+import { serveJson } from '../_shared/http.ts'
 
 async function getAccessToken(userId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -40,25 +41,22 @@ async function getAccessToken(userId: string): Promise<string> {
   return access_token
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+Deno.serve(serveJson(async (req, ctx) => {
+  const body = await req.clone().json()
+  const { action, event, deleteScope } = body
+  // action: 'create' | 'update' | 'delete'
+  // event: { id?, summary, start, end, description? }
+  //   start/end: ISO datetime string e.g. "2026-07-03T10:00:00+02:00"
+  // deleteScope: 'this' (default) | 'all' — 'all' targets the recurring series'
+  //   base event id (caller resolves this) and also sweeps local sibling instances.
 
-  try {
-    const body = await req.json()
-    const { action, event, deleteScope } = body
-    // action: 'create' | 'update' | 'delete'
-    // event: { id?, summary, start, end, description? }
-    //   start/end: ISO datetime string e.g. "2026-07-03T10:00:00+02:00"
-    // deleteScope: 'this' (default) | 'all' — 'all' targets the recurring series'
-    //   base event id (caller resolves this) and also sweeps local sibling instances.
+  const userId = ctx.userId
+  if (!userId || !action) throw new Error('Missing userId or action')
 
-    const { userId } = await resolveUserScope(req, body.userId ?? null)
-    if (!userId || !action) throw new Error('Missing userId or action')
+  const access_token = await getAccessToken(userId)
+  const supabase = createServiceClient()
 
-    const access_token = await getAccessToken(userId)
-    const supabase = createServiceClient()
-
-    const gcalBase = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+  const gcalBase = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
     const headers = {
       Authorization: `Bearer ${access_token}`,
       'Content-Type': 'application/json',
@@ -91,7 +89,7 @@ Deno.serve(async (req) => {
           category: event.category ?? 'vanguard',
         }, { onConflict: 'event_id' })
       )
-      return new Response(JSON.stringify({ success: true, eventId: created.id }), { headers: corsHeaders })
+      return { success: true, eventId: created.id }
     }
 
     if (action === 'update') {
@@ -157,7 +155,7 @@ Deno.serve(async (req) => {
           category: event.category ?? 'vanguard',
         }, { onConflict: 'event_id' })
       )
-      return new Response(JSON.stringify({ success: true, eventId: returnedId }), { headers: corsHeaders })
+      return { success: true, eventId: returnedId }
     }
 
     if (action === 'delete') {
@@ -191,14 +189,8 @@ Deno.serve(async (req) => {
         )
       }
 
-      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+      return { success: true }
     }
 
     throw new Error(`Unknown action: ${action}`)
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    })
-  }
-})
+}))

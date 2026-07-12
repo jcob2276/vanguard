@@ -7,29 +7,25 @@
  * @calls api.telegram.org
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
-import { requireServiceRole } from "../_shared/auth.ts";
+import { serveJson } from "../_shared/http.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { callTelegramMethod } from "../_shared/telegram.ts";
 // Force upload of domain package for shared dependencies
 import type {} from "@vanguard/domain";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
-
+// This handler deliberately never throws to serveJson's top-level catch (which would
+// return 401/500) — it always resolves 200 so the pg_net outbox trigger doesn't retry
+// indefinitely on a domain-level failure. Errors are caught, logged to both
+// outbound_messages and audit_events, and swallowed here instead.
+Deno.serve(serveJson(async (req, ctx) => {
+  const supabase = ctx.supabase;
   let recordId: string | null = null;
   try {
-    const supabase = createServiceClient();
-    const payload = await req.json();
+    const payload = await req.clone().json();
     const { record } = payload;
 
     if (!record || !record.id || !record.payload) {
-      return new Response(JSON.stringify({ error: "Invalid payload structure" }), { status: 400 });
+      return { error: "Invalid payload structure" };
     }
 
     recordId = record.id;
@@ -46,7 +42,7 @@ Deno.serve(async (req) => {
 
     if (startError) {
       console.error(`[outbox-sender] failed to set processing status for ${recordId}:`, startError);
-      return new Response(JSON.stringify({ error: startError.message }), { status: 500 });
+      return { error: startError.message };
     }
 
     console.log(`[outbox-sender] sending outbox item: ${recordId}, method: ${record.payload.method}`);
@@ -54,7 +50,7 @@ Deno.serve(async (req) => {
     // 2. Call Telegram Bot API
     const method = record.payload.method || "sendMessage";
     const body = record.payload.body || {};
-    
+
     const responseData = await callTelegramMethod(token, method, body);
 
     if (!responseData.ok) {
@@ -71,21 +67,20 @@ Deno.serve(async (req) => {
       console.error(`[outbox-sender] failed to set sent status for ${recordId}:`, endError);
     }
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return { ok: true };
 
   } catch (err) {
     console.error("[outbox-sender] processing failed:", err);
-    
+
     if (recordId) {
       try {
-        const supabase = createServiceClient();
         const trace = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack}` : String(err);
         await supabase
           .from("outbound_messages")
-          .update({ 
-            status: "failed", 
-            error_log: trace, 
-            updated_at: new Date().toISOString() 
+          .update({
+            status: "failed",
+            error_log: trace,
+            updated_at: new Date().toISOString()
           })
           .eq("id", recordId);
       } catch (dbErr: unknown) {
@@ -99,6 +94,6 @@ Deno.serve(async (req) => {
       message: `Telegram outbox sender error for record: ${recordId}`,
     });
 
-    return new Response("Error processed", { status: 200 });
+    return "Error processed";
   }
-});
+}, { auth: 'service' }));
