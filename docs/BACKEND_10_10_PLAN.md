@@ -594,6 +594,52 @@ mechanicznie, nie na honor.
   wywołaniami na produkcji po deployu (`action=search` → prawdziwy wynik wektorowy,
   `action=task-breakdown` → sensowna lista podzadań), nie tylko smoke OPTIONS.
 
+### 2026-07-12: kolizja z równoległą sesją — 0 as-any i 0 molochów osiągnięte
+
+W trakcie dalszej pracy nad Fazą 7 odkryto **5 nowych commitów** na `main` (autor: Jakub,
+inna sesja — commity `7979235c`..`546baa00`), które w międzyczasie rozbiły PRAWIE WSZYSTKIE
+pozostałe molochy z mapy §5 (`metrics_strain.ts`, `analyze-food-quality`,
+`analyze-training-load`, `recap/weekly-recap.ts`, `vanguard-analyst`, `vanguard-capture`,
+`vanguard-eval-interview`, `vanguard-eval-runner`, `vanguard-nutrition-coach`,
+`vanguard-oracle` głębiej niż mój split, `vanguard-telegram/interceptors.ts`,
+`vanguard-wiki-compiler`) oraz sprowadziły `as any` do zera. Do tego ~27 plików
+niescommitowanych na wierzchu — potencjalnie aktywna edycja w locie.
+
+**Nie kontynuowano ślepo.** Zapytano usera jak rozegrać kolizję sesji (ryzyko: git race
+condition / nadpisanie pracy w locie). Odpowiedź: commituj ich pracę po weryfikacji, potem
+leć dalej. Weryfikacja (`npm run typecheck`) wykazała **39 realnych błędów** — nie był to
+stabilny checkpoint. Naprawiono wszystkie (root cause: `unknown ?? default` z
+`Record<string, unknown>` zwęża się do `{} | default`, nie `unknown | default` — znany quirk
+TS; każde miejsce naprawione precyzyjną koercją `Number()/String()/Array.isArray`, **zero
+nowych `as any`**), zweryfikowano 3× pełnym typecheckiem (39→6→0), commit `3abae5ac`.
+
+Deploy 24 funkcji dotkniętych zmianą. **Po drodze złapano i naprawiono własny bug**:
+`deploy-guard.mjs` (Faza 5) bezwarunkowo forsował `--no-verify-jwt` na KAŻDĄ nazwaną funkcję,
+nadpisując `config.toml`. Efekt uboczny: `analyze-food-quality` zeszło z `verify_jwt=true` na
+`false` na platformie. Zweryfikowano przed panikowaniem: funkcja ma `resolveUserScope()` w
+kodzie (auth i tak wymuszony) i `config.toml` **już wcześniej** deklarował `verify_jwt=false`
+dla niej — więc to nie była żywa dziura, tylko dryf platforma-vs-config sprzed tej sesji,
+przypadkiem naprawiony. Skrypt i tak poprawiony (commit `f7cd5a08`) — nie może być tak, że
+działa poprawnie tylko bo tym razem się upiekło.
+
+Weryfikacja końcowa: pełny `smoke:safe` (48 ok / 4 warn / 2 fail — wszystkie znane,
+nie-regresje), żywy test `action=search` (realny wynik wektorowy) i pełny czat Oracle z
+tabelą biometryczną (dowód że naprawiony `rag.ts` faktycznie działa, nie tylko kompiluje).
+
+**Stan liczników ratcheta na koniec tej rundy:**
+| Licznik | Wartość |
+|---|---|
+| `as any` w `supabase/functions/` | **0** ✅ |
+| pliki >300 linii (molochy) | **0** ✅ |
+| `rawProviderFetch` poza kernelem | 4 (udokumentowany wyjątek bootstrap) |
+| inline daty Warsaw | 9 (formatowanie do wyświetlenia, nie generatory) |
+| `rawJsonResponse` (serveJson coverage) | 147 — **jedyny cel z /goal jeszcze niedomknięty** |
+| `SB_SECRET_KEY` poza kernelem | 6 |
+
+Dwa z czterech celów z `/goal` ("0 as any", "0 molochów") są teraz faktem, nie aspiracją.
+Pozostają: pełne pokrycie `serveJson` (Faza 2, dziś 3-5/31 funkcji) i domknięcie ostatnich
+9 inline dat / 4 raw fetch (już tylko udokumentowane wyjątki, nie realny dług).
+
 ---
 
 ## Co zrobić, jeśli utkniesz
