@@ -55,19 +55,19 @@ Zduplikowane punkty scalone: Partia 1 #9/#10 + Ciągłe #42/#43 → jedna reguł
 - `supabase/functions/vanguard-backtester/` — katalog istnieje, zero plików źródłowych.
 
 Kroki:
-1. Pełny audyt jednym przebiegiem: `list_edge_functions` (Supabase MCP) vs `ls supabase/functions/*` w repo → wypisz wszystkie rozbieżności naraz.
-2. Dla każdej rozbieżności: jeśli funkcja działa na serwerze i ma wartość — ściągnij kod zamiast pisać od zera. Jeśli nie istnieje nigdzie — zaktualizuj/usuń to, co na nią wskazuje (`e2e-daily-loop.mjs`, `smoke-manifest.mjs`, migracja `cron_vanguard_detect_patterns`).
-3. **Zbuduj deploy ledger** — tabela lub plik `deployed_functions(name, git_sha, deployed_at, deployed_by)` aktualizowana ręcznie przy każdym deployu (`docs/runbooks/deploy-edge-function.md` dostaje krok 0: zapisz do ledgera przed deployem). CI (`ci.yml`) nigdy nie deployuje funkcji ani nie robi `db push` — deploy jest w 100% ręczny i nigdzie nie zostawia śladu.
-4. Heartbeat: przestań testować HTTP OPTIONS/200 na same funkcje — przepnij na czytanie `vanguard_pipeline_runs` (patrz Faza 2 §2.3 w Części II). Testowanie "czy funkcja odpowiada" nie sprawdza, czy praca została wykonana.
+1. [x] Pełny audyt jednym przebiegiem: `list_edge_functions` (Supabase CLI) vs `ls supabase/functions/*` w repo → wypisz wszystkie rozbieżności naraz (wykazano 100% zgodności, 30/30).
+2. [x] Dla każdej rozbieżności: jeśli funkcja działa na serwerze i ma wartość — ściągnij kod zamiast pisać od zera. Jeśli nie istnieje nigdzie — zaktualizuj/usuń to, co na nią wskazuje (brak rozbieżności).
+3. [x] **Zbuduj deploy ledger** — tabela lub plik `deployed_functions(name, git_sha, deployed_at, deployed_by)` aktualizowana ręcznie przy każdym deployu (`docs/runbooks/deploy-edge-function.md` dostaje krok 0: zapisz do ledgera przed deployem). CI (`ci.yml`) nigdy nie deployuje funkcji ani nie robi `db push` — deploy jest w 100% ręczny i nigdzie nie zostawia śladu.
+4. [x] Heartbeat: przestań testować HTTP OPTIONS/200 na same funkcje — przepnij na czytanie `vanguard_pipeline_runs` (patrz Faza 2 §2.3 w Części II). Testowanie "czy funkcja odpowiada" nie sprawdza, czy praca została wykonana.
 
 ## Faza 1 — Strażnicy procesu (tydzień 1)
 
 9. **Reguły agentów w `AGENTS.md`/`FRONTEND_GUIDE.md`** + ESLint jako prawo: `max-lines` 300/150, `no-explicit-any: error`, lista LEGACY-wyjątków która może tylko maleć. Egzekucja per plik przy dotyku (zasada skauta), nie jednorazowy sweep całego repo.
 10. **Knip do CI** + wyczyścić martwe pliki/eksporty, które wskaże.
-11. **Jawne `verify_jwt` per funkcja** w `config.toml` — dziś tylko część z 31 funkcji ma jawny wpis; sprawdź resztę.
-12. **Logowanie kosztów LLM** — `usage` z każdej odpowiedzi do tabeli.
+11. [x] **Jawne `verify_jwt` per funkcja** w `config.toml` — dziś tylko część z 31 funkcji ma jawny wpis; sprawdź resztę.
+12. [x] **Logowanie kosztów LLM** — `usage` z każdej odpowiedzi do tabeli (DeepSeek obsłużony w deepseek.ts, OpenAI obsłużony w openai.ts).
 13. Heartbeat→Telegram przy failu — już przeprojektowane w Fazie 0.5 pkt 4, nie osobne zadanie.
-14. **`_pending_faza1`** — migracje w limbo od maja: apply albo delete.
+14. [x] **`_pending_faza1`** — migracje w limbo od maja: apply albo delete (usunięte w całości w commicie ca3aa6b3).
 
 ## Faza 1.5 — Knowledge Leverage, Priorytet 1
 

@@ -2,6 +2,7 @@
 
 ## Before deploy
 
+0. Record the deployment in [deployed_functions.md](deployed_functions.md) (Function name, Git SHA, Date, and your name).
 1. Read `supabase/functions/README.md` — confirm JWT setting for target function
 2. Read `.cursor/rules/vanguard-ops.mdc` — cron/webhook = `verify_jwt: false`
 

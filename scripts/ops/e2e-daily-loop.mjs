@@ -169,13 +169,30 @@ await step('oura_daily_summary — data within last 3 days', async () => {
   return `date=${data.date} sleep=${data.total_sleep_hours}h readiness=${data.readiness_score} hrv=${data.hrv_avg}ms`
 })
 
-// 4. vanguard-nightly reachability (save-daily-aggregate is now a step inside the full
-//    nightly pipeline, not a standalone endpoint — POSTing here would run the whole
-//    pipeline incl. LLM calls, so we only check the gateway is reachable)
-await step('vanguard-nightly — reachable (OPTIONS)', async () => {
-  await optionsFn('vanguard-nightly')
-  return 'CORS preflight OK'
-}, { optional: true })
+// 4. vanguard-nightly pipeline runs ledger check
+await step('vanguard_pipeline_runs — latest nightly run check', async () => {
+  const { data, error } = await db
+    .from('vanguard_pipeline_runs')
+    .select('run_id, step_name, status, error_message, started_at')
+    .eq('user_id', USER_ID)
+    .order('started_at', { ascending: false })
+    .limit(20)
+  if (error) throw new Error(error.message)
+  if (!data || data.length === 0) throw new Error('No nightly pipeline runs found in ledger')
+
+  // Group by run_id of the latest run
+  const latestRunId = data[0].run_id
+  const latestRunSteps = data.filter(r => r.run_id === latestRunId)
+  
+  const failedSteps = latestRunSteps.filter(s => s.status === 'error')
+  if (failedSteps.length > 0) {
+    const details = failedSteps.map(s => `${s.step_name}: ${s.error_message}`).join(', ')
+    throw new Error(`Pipeline run ${latestRunId} failed on steps: ${details}`)
+  }
+
+  const okSteps = latestRunSteps.filter(s => s.status === 'ok')
+  return `latest_run_id=${latestRunId} steps_ok=${okSteps.length}/${latestRunSteps.length} started_at=${latestRunSteps[0].started_at}`
+})
 
 // 5. vanguard_daily_aggregates DB check (optional — populated by the vanguard-nightly cron, not on-demand)
 await step('vanguard_daily_aggregates row in DB (last 7 days)', async () => {

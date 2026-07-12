@@ -1,6 +1,4 @@
-/**
- * Shared OpenAI helpers.
- */
+import { createServiceClient } from "./supabase.ts";
 import { fetchWithRetry } from "./httpClient.ts";
 
 type OpenAIMessageContent =
@@ -23,6 +21,8 @@ export interface OpenAIChatParams {
   temperature?: number | null;
   timeoutMs?: number;
   responseFormat?: { type: 'json_object' };
+  userId?: string;
+  feature?: string;
 }
 
 export interface OpenAIChatResult {
@@ -57,6 +57,38 @@ export async function openaiChat(params: OpenAIChatParams): Promise<OpenAIChatRe
   const raw = await res.json();
   const content: string = (raw as { choices?: Array<{ message?: { content?: string } }> })
     ?.choices?.[0]?.message?.content || "";
+
+  try {
+    const usage = (raw as { usage?: Record<string, unknown> })?.usage;
+    if (usage) {
+      const promptTokens = Number(usage.prompt_tokens ?? 0);
+      const completionTokens = Number(usage.completion_tokens ?? 0);
+      const totalTokens = Number(usage.total_tokens ?? 0);
+      const selectedModel = params.model ?? "gpt-4o-mini";
+
+      let costEst = 0.0;
+      if (selectedModel.includes("gpt-4o-mini")) {
+        costEst = (promptTokens * 0.15 + completionTokens * 0.60) / 1000000.0;
+      } else if (selectedModel.includes("gpt-4o")) {
+        costEst = (promptTokens * 2.50 + completionTokens * 10.00) / 1000000.0;
+      } else {
+        costEst = (promptTokens * 0.15 + completionTokens * 0.60) / 1000000.0;
+      }
+
+      const supabaseClient = createServiceClient();
+      await supabaseClient.from("vanguard_llm_usage").insert({
+        user_id: params.userId || null,
+        model: selectedModel,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        cost_est: costEst,
+        feature: params.feature || null,
+      });
+    }
+  } catch (err) {
+    console.error("[openaiChat] Failed to log token usage:", err);
+  }
 
   return { content, raw };
 }
