@@ -151,8 +151,10 @@ export async function runStravaSync(req: Request): Promise<unknown> {
     let errorMsg = 'Unknown error';
     if (err instanceof Error) {
       errorMsg = err.message;
-    } else if (err && typeof err === 'object') {
-      errorMsg = (err as any).message || JSON.stringify(err);
+    } else if (err && typeof err === 'object' && 'message' in err) {
+      errorMsg = String((err as { message: unknown }).message);
+    } else if (err) {
+      errorMsg = JSON.stringify(err);
     } else {
       errorMsg = String(err);
     }

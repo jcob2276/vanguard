@@ -150,8 +150,7 @@ export function useMorningPlanData({ userId, planningDate, isPlanningTomorrow }:
     if (data.winData) {
       setTodayWinId(data.winData.id);
       const presetList: (TodoSlot | null)[] = [null, null, null, null, null];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tasks = (data.winData as any).daily_win_tasks || [];
+      const tasks = (data.winData as Record<string, unknown>).daily_win_tasks || [];
       for (const t of tasks) {
         const i = t.slot;
         if (i >= 1 && i <= 5 && t.todo_id) {

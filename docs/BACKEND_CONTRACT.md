@@ -143,7 +143,50 @@ moduł, obniż baseline. Nie dopisuj do rosnącego pliku bez podziału.
 
 ---
 
-## 6. Rytuał sesji backendowej (agent wchodzi do środowiska)
+## 6. Dodawanie do bazy danych i RLS
+
+1. **Migracje jako jedyna droga**: Wszystkie nowe tabele lub modyfikacje istniejących (ALTER/CREATE) wykonujemy wyłącznie przez pliki migracji w `supabase/migrations/YYYYMMDDHHMMSS_opis.sql`. Nigdy bezpośrednio przez Dashboard.
+2. **RLS od razu**: Każda nowa tabela musi otrzymać Row Level Security (RLS) oraz polityki bezpieczeństwa:
+   ```sql
+   ALTER TABLE nowa_tabela ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY "Users own their data" ON nowa_tabela FOR ALL USING (auth.uid() = user_id);
+   CREATE POLICY "Service role bypass" ON nowa_tabela FOR ALL TO service_role USING (true);
+   ```
+3. **Weryfikacja constraintów**: Przed zaimplementowaniem zapisu z poziomu kodu upewnij się, jakie ograniczenia (constraints) i enumy obowiązują w DB (np. `planning_status` to `pending | active | completed`, a nie `done`).
+
+---
+
+## 7. Zasady deployu i wyłączania kodu
+
+1. **Deploy Guard**: Zalecana ścieżka deployu to:
+   ```powershell
+   node scripts/ops/deploy-guard.mjs <function-name>
+   ```
+   Deploy sprawdza czyste drzewo Git i rejestruje wdrożenie.
+2. **Weryfikacja po deployu**: Zawsze uruchom `npm run smoke` (lub `npm run smoke:safe` przy leaf-funkcjach) i sprawdzaj logi produkcyjne przez 5 minut. Zero błędów 401/404.
+3. **Ustawienia `verify_jwt`**:
+   - Webhooki, webhook Telegrama i crony -> `verify_jwt = false` w `config.toml` (oraz dodaj do listy w `AGENTS.md`).
+   - Standardowe wywołania z frontend UI -> `verify_jwt = true`.
+4. **Wyłączanie kodu (nie kasowanie)**: Jeśli wyłączasz feature tymczasowo, skomentuj kod z opisem daty, autora i powodu:
+   ```typescript
+   // DISABLED — Sprint 0.7 (2026-05-17)
+   // Powód: LLM mutował source-of-truth bez guardrails.
+   // Re-enable w Sprint 1 z explicit temporal guards.
+   // await supabase.from('vanguard_knowledge').insert(...)
+   ```
+
+---
+
+## 8. Czego NIE robić
+
+- ❌ Dodawać nowych AI capabilities bez przejścia przez feature gate (`docs/PRODUCT_PRINCIPLES.md`).
+- ❌ Dawać LLM bezpośredniego zapisu do `vanguard_stream` / `friction_events` bez potwierdzenia człowieka (human gate).
+- ❌ Hardkodować `user_id` (zawsze używaj env var `VANGUARD_USER_ID` lub dynamicznego pobierania).
+- ❌ Zostawiać API keys, JWT tokenów i service role keys w kodzie.
+
+---
+
+## 9. Rytuał sesji backendowej (agent wchodzi do środowiska)
 
 1. Przeczytaj: `AGENTS.md` → ten plik → `supabase/functions/README.md` → `lessons.md`.
 2. Przed pisaniem: **grep czy to już istnieje** (kernel, `_shared/`, `packages/domain`, tabele przez `list_tables`). Duplikaty powstają z lenistwa w tym kroku.

@@ -141,7 +141,14 @@ for (const file of allFiles) {
   const relativePath = path.relative(root, file).replace(/\\/g, "/");
   const content = fs.readFileSync(file, "utf8");
   for (const [key, def] of Object.entries(patternDefinitions)) {
-    counts[key] += def.check(file, relativePath, content);
+    const c = def.check(file, relativePath, content);
+    if (c > 0 && key === "patternCount_asAny") {
+      console.log(`[asAny match] ${relativePath} has ${c}`);
+    }
+    if (c > 0 && key === "patternCount_functionsV1") {
+      console.log(`[functionsV1 match] ${relativePath} has ${c}`);
+    }
+    counts[key] += c;
   }
 }
 

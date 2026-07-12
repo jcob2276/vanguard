@@ -13,8 +13,18 @@
     "src/sw.ts",
     "src/lib/database.types.ts",
     "supabase/functions/_shared/database.types.ts",
-    "supabase/functions/_shared/repos/**"
+    "supabase/functions/_shared/repos/**",
+    "src/lib/foodSearchApi.ts"
   ],
+  "ignoreExports": {
+    "src/components/lifestyle/links/useLinksInboxData.ts": ["linksKeys"],
+    "src/components/projects/useProjectsData.ts": ["projectsKeys"],
+    "src/components/core/nutrition/hooks/useFoodEntryLists.ts": ["foodEntryListsKeys"],
+    "src/components/lifestyle/direction/hooks/useDirection.ts": ["directionKeys"],
+    "src/components/growth/hooks/useGrowthData.ts": ["GrowthWeekNote", "GrowthCheckpoint"],
+    "src/lib/systemApi.ts": ["AuditEvent", "DataCoverage", "PredictionCalibrationItem", "PredictionCalibrationSummary"],
+    "src/components/core/useNutritionData.ts": ["DailyNutritionRow"]
+  },
   "ignoreDependencies": [
     "npm"
   ]

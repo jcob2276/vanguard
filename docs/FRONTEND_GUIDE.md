@@ -1,10 +1,28 @@
 # Vanguard OS — Frontend Guide
 
-> Odpowiednik [`DEV_GUIDE.md`](DEV_GUIDE.md) dla `src/` (React SPA). DEV_GUIDE opisuje edge functions/DB — tu jest to samo dla frontendu.
+> Przewodnik deweloperski oraz zasady projektowe (UX/UI) dla katalogu `src/` (React SPA).
 >
-> **Dlaczego ten plik istnieje:** audyt frontendu (2026-07-09) znalazł 3 równoległe systemy fetch/cache, 4 style error handlingu, 22 ręcznie pisane modale, 4 systemy formatowania dat i odwróconą zależność `lib → components`. Żadna z tych rzeczy nie wynikała ze złego kodu — wynikała z braku jednego miejsca z odpowiedzią "jak to się robi w tym repo". To jest to miejsce.
+> **Dlaczego ten plik istnieje:** audyt frontendu znalazł konkurujące systemy fetch/cache, wiele stylów obsługi błędów, 22 ręcznie pisane modale i odwrócone zależności. Ten przewodnik stanowi jedno źródło prawdy (SSOT) regulujące frontend.
 >
-> Cztery reguły poniżej (sekcja 6) są **wymuszone przez ESLint jako error**, nie tylko opisane — nowy kod, który je łamie, nie przejdzie `npm run lint` / CI. Nie proś, egzekwuj.
+> Cztery reguły poniżej (sekcja 6) są **wymuszone przez ESLint jako error** i ich złamanie zablokuje commit.
+
+---
+
+## 0. Definicja 10/10 (mierzalna, nie uznaniowa)
+
+Frontend jest 10/10 wizualnie i technicznie, gdy spełnione są następujące kryteria:
+
+| # | Kryterium | Jak to jest mierzone / sprawdzane |
+|---|-----------|----------------------------------|
+| 1 | Zero ręcznych overlay (`fixed inset-0`) poza `ui/Modal.tsx`/`ui/ConfirmDialog.tsx` | `grep "fixed inset-0" src/components/` |
+| 2 | `index.css` ≤ 550 linii | `wc -l src/index.css` (osiągnięte, 419 linii) |
+| 3 | Zero hardkodów kolorów w JSX (`bg-[#hex]`, `text-[#hex]`) | Grep po kodzie JSX |
+| 4 | Każdy empty state używa `ui/EmptyState` | `grep -r "border-dashed" src/components/` |
+| 5 | Każdy spinner używa `ui/Spinner` | `grep -r "animate-spin"` poza `Spinner.tsx` i Lucide |
+| 6 | Każde potwierdzenie używa `ui/ConfirmDialog` | `grep "window\.alert\|window\.confirm"` (osiągnięte, 0 wystąpień) |
+| 7 | Shared components w `ui/` mają testy | Obecność plików `*.test.tsx` w `src/components/ui/` |
+| 8 | Touch targets ≥44px na mobile | Ręczna weryfikacja na urządzeniach |
+| 9 | Brak inline animacji w JSX | `grep -r "animation:" src/components/ | grep -v "\.css"` |
 
 ---
 
@@ -16,6 +34,9 @@ packages/domain/   czysta logika (date math, korelacje, fitness) — zero import
 src/lib/            domena + Supabase. Nie importuje z src/components (patrz reguła 6.4).
 src/hooks/          stan React nad src/lib (fetch orchestration, side effects, browser APIs).
 src/components/     UI. Nie woła supabase.from() bezpośrednio (patrz reguła 6.1).
+├── ui/             shared design primitives (przycisk, modal, spinner, badge, tabs, toast)
+├── shared/         cross-feature komponenty strukturalne (max 6-8 elementów)
+└── <feature>/      moduły domenowe (kod UI i specyficzny CSS)
 ```
 
 Import w złą stronę (`lib` → `components`, `packages/domain` → cokolwiek z Reacta) to sygnał, że coś jest źle zaklasyfikowane — przenieś plik, nie dodawaj wyjątku.
