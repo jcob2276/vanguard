@@ -86,11 +86,18 @@ for (const fn of functionsNoJwt) {
   }
 
   const content = readFileSync(indexPath, 'utf-8');
-  const hasAuth = 
+  // serveJson(handler, { auth: 'service' | 'user' }) enforces requireServiceRole/resolveUserScope
+  // internally (see _shared/http.ts) — only `auth: 'none'` skips it, so a bare serveJson(handler)
+  // call (defaults to 'user') still counts as authenticated. Conservatively scans the whole file
+  // for an explicit auth:'none' rather than parsing nested parens around the serveJson(...) call.
+  const hasExplicitNoneAuth = /auth:\s*['"]none['"]/.test(content);
+  const serveJsonAuthed = content.includes('serveJson(') && !hasExplicitNoneAuth;
+  const hasAuth =
     content.includes('requireServiceRole') ||
     content.includes('resolveUserScope') ||
     content.includes('verifyTelegramSecret') ||
-    content.includes('MCP_SERVER_SECRET');
+    content.includes('MCP_SERVER_SECRET') ||
+    serveJsonAuthed;
 
   if (!hasAuth) {
     console.error(`❌ Security Violation: Function '${fn}' has verify_jwt = false but lacks requireServiceRole, resolveUserScope, verifyTelegramSecret, or MCP_SERVER_SECRET check in its index.ts.`);

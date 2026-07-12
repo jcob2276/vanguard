@@ -8,7 +8,7 @@
  * @consumer Powiadomienia Telegram i cele w zakładce diety w aplikacji
  * @status active
  */
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { sendMessage } from "../_shared/telegram.ts";
@@ -32,49 +32,42 @@ function buildPushMessage(date: string, s: any, verdict: any): string {
   return L.join("\n");
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  try {
-    const body = await req.json().catch(() => ({}));
-    const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
-    const userId = scopedUserId || getVanguardUserId();
-    const notify = body.notify === true;
-    const supabase = createServiceClient();
-    const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
-    const today = body.date || getWarsawDateString(new Date());
+Deno.serve(serveJson(async (req, ctx) => {
+  const { supabase } = ctx;
+  const body = await req.clone().json().catch(() => ({}));
+  const userId = ctx.userId || getVanguardUserId();
+  const notify = body.notify === true;
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
+  const today = body.date || getWarsawDateString(new Date());
 
-    const data = await fetchNutritionData(supabase, userId, today);
-    const { signals, forecast30, forecast60, forecast90, daysToGoalEst, estMaintenance, targetKcal, proteinFloor, deficitPerDay, adaptiveCorrectionKcal, weightTrendPerWeek, underlogGap: underlogGap, avgTdeeOura, avgIntake } = computeNutritionSignals(data);
+  const data = await fetchNutritionData(supabase, userId, today);
+  const { signals, forecast30, forecast60, forecast90, daysToGoalEst, estMaintenance, targetKcal, proteinFloor, deficitPerDay, adaptiveCorrectionKcal, weightTrendPerWeek, underlogGap: underlogGap, avgTdeeOura, avgIntake } = computeNutritionSignals(data);
 
-    let verdict: Record<string, unknown> | null = null;
-    let verdictError: string | null = apiKey ? null : "no_deepseek_key";
-    if (apiKey) {
-      try {
-        const SYSTEM = `Jesteś trenerem żywieniowym maratończyka. Masz NAJDOKŁADNIEJSZE dane: spalanie Oura, makra, trend wagi, sen, trening.
+  let verdict: Record<string, unknown> | null = null;
+  let verdictError: string | null = apiKey ? null : "no_deepseek_key";
+  if (apiKey) {
+    try {
+      const SYSTEM = `Jesteś trenerem żywieniowym maratończyka. Masz NAJDOKŁADNIEJSZE dane: spalanie Oura, makra, trend wagi, sen, trening.
 Zasady: Prawdziwe maintenance > wzór. Deficyt ŁAGODNY. Białko to floor. Sen < 7h i niski błonnik to hamulce. forecast.* to projekcja CURRENT trendu. Konkretne polskie produkty. Mówisz po polsku, liczbami.`;
-        const USER = `DANE:\n${JSON.stringify(signals, null, 2)}\n\nZwróć JSON: {"summary":"...","trajectory":"on_track|behind|ahead","trajectory_note":"...","forecast_note":"...","today_focus":"...","flags":["..."],"protein_note":"...","food_suggestions":["..."]}`;
-        const res = await deepseekChat({ apiKey, model: "deepseek-v4-flash", temperature: 0.3, maxTokens: 2500, timeoutMs: 40000, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: USER }] });
-        verdict = parseJsonFromContent(res.content);
-        if (!verdict) verdictError = `parse_failed len=${res.content.length}`;
-      } catch (e) { verdictError = (e as Error).message; console.error("[nutrition-coach] deepseek failed:", verdictError); }
-    }
-
-    const { error: upErr } = await supabase.from("nutrition_targets").upsert({
-      user_id: userId, date: today, est_maintenance_kcal: estMaintenance, target_kcal: targetKcal,
-      protein_floor_g: proteinFloor, deficit_kcal: deficitPerDay, weight_trend_kg_per_week: weightTrendPerWeek,
-      underlog_gap_kcal: underlogGap, avg_tdee_oura: avgTdeeOura, avg_intake_logged: avgIntake,
-      forecast_30d_weight_kg: forecast30.weight, forecast_60d_weight_kg: forecast60.weight, forecast_90d_weight_kg: forecast90.weight,
-      forecast_30d_bf_pct: forecast30.bf, forecast_60d_bf_pct: forecast60.bf, forecast_90d_bf_pct: forecast90.bf,
-      days_to_goal_est: daysToGoalEst, adaptive_correction_kcal: adaptiveCorrectionKcal, inputs: signals, verdict,
-    }, { onConflict: "user_id,date" });
-    if (upErr) console.error("[nutrition-coach] upsert error:", upErr.message);
-
-    let notified = false;
-    if (notify) { const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? ""; const tgChat = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") ?? "0"); if (tgToken && tgChat) { try { const res = await sendMessage(tgToken, tgChat, buildPushMessage(today, signals, verdict)); notified = res.ok; } catch (e) { console.error("[nutrition-coach] telegram failed:", (e as Error).message); } } }
-
-    return new Response(JSON.stringify({ success: !upErr, date: today, signals, verdict, verdictError, notified, persistError: upErr?.message ?? null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e: any) {
-    console.error("[nutrition-coach] fatal:", e.message);
-    return new Response(JSON.stringify({ error: e.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const USER = `DANE:\n${JSON.stringify(signals, null, 2)}\n\nZwróć JSON: {"summary":"...","trajectory":"on_track|behind|ahead","trajectory_note":"...","forecast_note":"...","today_focus":"...","flags":["..."],"protein_note":"...","food_suggestions":["..."]}`;
+      const res = await deepseekChat({ apiKey, model: "deepseek-v4-flash", temperature: 0.3, maxTokens: 2500, timeoutMs: 40000, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: USER }] });
+      verdict = parseJsonFromContent(res.content);
+      if (!verdict) verdictError = `parse_failed len=${res.content.length}`;
+    } catch (e) { verdictError = (e as Error).message; console.error("[nutrition-coach] deepseek failed:", verdictError); }
   }
-});
+
+  const { error: upErr } = await supabase.from("nutrition_targets").upsert({
+    user_id: userId, date: today, est_maintenance_kcal: estMaintenance, target_kcal: targetKcal,
+    protein_floor_g: proteinFloor, deficit_kcal: deficitPerDay, weight_trend_kg_per_week: weightTrendPerWeek,
+    underlog_gap_kcal: underlogGap, avg_tdee_oura: avgTdeeOura, avg_intake_logged: avgIntake,
+    forecast_30d_weight_kg: forecast30.weight, forecast_60d_weight_kg: forecast60.weight, forecast_90d_weight_kg: forecast90.weight,
+    forecast_30d_bf_pct: forecast30.bf, forecast_60d_bf_pct: forecast60.bf, forecast_90d_bf_pct: forecast90.bf,
+    days_to_goal_est: daysToGoalEst, adaptive_correction_kcal: adaptiveCorrectionKcal, inputs: signals, verdict,
+  }, { onConflict: "user_id,date" });
+  if (upErr) console.error("[nutrition-coach] upsert error:", upErr.message);
+
+  let notified = false;
+  if (notify) { const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? ""; const tgChat = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") ?? "0"); if (tgToken && tgChat) { try { const res = await sendMessage(tgToken, tgChat, buildPushMessage(today, signals, verdict)); notified = res.ok; } catch (e) { console.error("[nutrition-coach] telegram failed:", (e as Error).message); } } }
+
+  return { success: !upErr, date: today, signals, verdict, verdictError, notified, persistError: upErr?.message ?? null };
+}));
