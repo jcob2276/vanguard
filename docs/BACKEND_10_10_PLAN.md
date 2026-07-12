@@ -799,6 +799,39 @@ Pozostało 8 nieprzepiętych: 6 świadomie odłożonych (wymagają refaktoru han
 webhook Telegrama) jeszcze nieocenione pod kątem migracji; wymagają osobnej, ostrożnej
 analizy zamiast tego samego szybkiego wzorca.
 
+### 2026-07-12 (ciąg dalszy 5): ocena wszystkich 31 funkcji zakończona — dwie ostatnie mają twardą architektoniczną blokadę
+
+`vanguard-oracle` i `vanguard-telegram` przeanalizowane w pełni (nie tylko pobieżnie):
+
+- **`vanguard-oracle`**: oprócz tego samego problemu co `auto-classify`/`capture`/`sync`
+  (`handleSearch`/`handleGoalCreate`/`handleTaskBreakdown` zwracają gotowe `Response`
+  w gałęzi `action=`), ma **twardą blokadę architektoniczną**: `handleStreamingResponse`
+  zwraca odpowiedź SSE/streaming, której `serveJson`'s model "handler zwraca zwykłą
+  wartość → `JSON.stringify` → jedna odpowiedź" fundamentalnie nie obsługuje. To nie jest
+  "wymaga refaktoru handlerów" — to wymaga rozszerzenia samego `serveJson` o tryb
+  streamingowy, osobne zadanie.
+- **`vanguard-telegram`**: webhook Telegrama, który MUSI zwracać dokładnie plain-text `"OK"`
+  (nie JSON) i zawsze status 200 niezależnie od wyniku — inaczej Telegram retry'uje webhook
+  w nieskończoność. `serveJson` zawsze robi `JSON.stringify(result)` z `Content-Type:
+  application/json` — zwrócenie stringa `"OK"` dałoby `"OK"` (w cudzysłowach, jako JSON), nie
+  surowy plain-text. Dodatkowo customowy `verifyTelegramSecret` zwraca trójstanowy wynik
+  (`true`/`false`/`"missing_config"` → 200/403/503), którego nie da się zmapować na binarne
+  tryby auth `serveJson`. Wymaga rozszerzenia kernela o tryb "raw text response", nie migracji.
+
+**Wszystkie 31 funkcji ocenione. Ostateczny stan tej sesji: 23/31 na `serveJson`
+(rawJsonResponse: 147 → 84, -43%), `as any` = 0, molochy = 0.** Pozostałe 8 nieprzepiętych
+dzieli się na dwie kategorie, obie wymagające pracy WIĘKSZEJ niż "przepnij na serveJson":
+1. **Refaktor handlerów najpierw** (6 funkcji: `vanguard-auto-classify`, `vanguard-capture`,
+   `sync`, `recap`, `vanguard-wiki-compiler`, `vanguard-nightly`) — ich pod-handlery zwracają
+   `Response` bezpośrednio zamiast danych; trzeba przepisać handlery, potem migrować router.
+2. **Rozszerzenie `serveJson` najpierw** (2 funkcje: `vanguard-oracle` — streaming,
+   `vanguard-telegram` — plain-text webhook ack + trójstanowy auth) — kernel potrzebuje
+   nowego trybu odpowiedzi, zanim te funkcje w ogóle mogą z niego skorzystać.
+
+Dalsze zejście licznika `rawJsonResponse` do faktycznego zera wymaga jednej z tych dwóch
+prac jako osobnego zadania — nie da się go domknąć tym samym mechanicznym przepinaniem,
+które doprowadziło z 147 do 84 w tej sesji.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
