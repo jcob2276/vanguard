@@ -1,4 +1,3 @@
-import { corsHeaders } from "../_shared/supabase.ts";
 import { deprecateSupersededLinks } from "../_shared/deprecateSupersededLinks.ts";
 import { chunkText, embed, sha256, extractTriadsWithOntology } from "./captureHelpers.ts";
 
@@ -9,7 +8,7 @@ export async function handleVaultIngest(
   category: string,
   openaiKey: string,
   deepseekKey: string
-): Promise<Response> {
+): Promise<unknown> {
   console.log(`[capture/vault-ingest] user=${userId} category=${category} chars=${text.length}`);
 
   const rawHash = await sha256(`${userId}:${category}:${text}`);
@@ -23,14 +22,14 @@ export async function handleVaultIngest(
   let rawEventId = existingRawEvent?.id ?? null;
   if (existingRawEvent) {
     console.log(`[capture/vault-ingest] duplicate raw_hash, skipping stream insert: ${rawEventId}`);
-    return new Response(JSON.stringify({
+    return {
       success: true,
       duplicate: true,
       raw_event_id: rawEventId,
       chunks: 0,
       triads: 0,
       message: "Ten vault log byl juz zaimportowany; pominieto duplikat.",
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    };
   }
 
   const { data: rawInserted, error: rawInsertError } = await db.from("vanguard_raw_events").insert({
@@ -136,10 +135,10 @@ export async function handleVaultIngest(
     }
   }
 
-  return new Response(JSON.stringify({
+  return {
     success: true,
     chunks: streamCount,
     triads: triadCount,
     message: `Wgrano ${streamCount} chunkow i ${triadCount} relacji do grafu.`,
-  }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  };
 }

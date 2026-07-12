@@ -1,4 +1,4 @@
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { isOuraDuplicate, detectFrozenSensor, mergeHRIntoSplits, pairOuraDuplicates, resolveHrFromOura } from "./stravaHelpers.ts";
 
@@ -113,7 +113,7 @@ async function fetchActivityDetail(accessToken: string, activityId: number): Pro
   }
 }
 
-export async function runStravaSync(req: Request): Promise<Response> {
+export async function runStravaSync(req: Request): Promise<unknown> {
   try {
     const url = new URL(req.url);
     const forceFrom = url.searchParams.get('from');
@@ -149,9 +149,8 @@ export async function runStravaSync(req: Request): Promise<Response> {
 
     if (activities.length === 0) {
       console.log('[sync-strava] No new activities');
-      return new Response(JSON.stringify({ ok: !rateLimited, synced: 0, rate_limited: rateLimited }), {
-        status: rateLimited ? 503 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (rateLimited) throw new Error('Strava rate limited');
+      return { ok: true, synced: 0, rate_limited: false };
     }
 
     const detailMap: Record<number, any> = {};
@@ -251,28 +250,22 @@ export async function runStravaSync(req: Request): Promise<Response> {
 
     if (error) {
       console.error('[sync-strava] Upsert error:', error);
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      throw error;
     }
 
     console.log(`[sync-strava] Synced ${rows.length} activities (${primaryActivities.length} primary + ${ouraActivities.length} Oura dups)`);
 
-    return new Response(JSON.stringify({
+    return {
       ok:              !rateLimited,
       synced:          rows.length,
       primary:         primaryActivities.length,
       oura_duplicates: ouraActivities.length,
       paired:          ouraPairs.size,
       rate_limited:    rateLimited,
-    }), {
-      status: rateLimited ? 503 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    };
 
   } catch (err) {
     console.error('[sync-strava] fatal:', err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    throw err;
   }
 }

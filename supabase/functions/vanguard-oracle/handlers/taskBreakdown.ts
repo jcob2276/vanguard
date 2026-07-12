@@ -1,4 +1,4 @@
-import { corsHeaders, resolveUserScope } from "../../_shared/supabase.ts";
+import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
 const TASK_BREAKDOWN_SYSTEM = `Jestes asystentem Jakuba. Dostajesz jedno zadanie i zwracasz liste 3-6 konkretnych podzadan potrzebnych do jego wykonania.
@@ -12,15 +12,12 @@ Zasady:
 
 Odpowiedz WYLACZNIE poprawnym JSON: { "subtasks": ["krok 1", "krok 2", ...] }`;
 
-export async function handleTaskBreakdown(req: Request, body: any): Promise<Response> {
+export async function handleTaskBreakdown(req: Request, body: any): Promise<unknown> {
   const { itemId, userId: requestedUserId, title, notes } = body;
   const { userId } = await resolveUserScope(req, requestedUserId ?? null);
 
   if (!userId || !title) {
-    return new Response(JSON.stringify({ error: "missing fields" }), {
-      status: 400,
-      headers: corsHeaders,
-    });
+    throw new Error("missing fields");
   }
 
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
@@ -45,7 +42,5 @@ export async function handleTaskBreakdown(req: Request, body: any): Promise<Resp
     ? (parsed.subtasks as string[]).filter((s) => typeof s === "string" && s.trim().length > 0).slice(0, 8)
     : [];
 
-  return new Response(JSON.stringify({ subtasks }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return { subtasks };
 }

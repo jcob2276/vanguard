@@ -1,7 +1,7 @@
-import { corsHeaders, resolveUserScope } from "../../_shared/supabase.ts";
+import { resolveUserScope } from "../../_shared/supabase.ts";
 import { getEmbedding } from "../../_shared/openai.ts";
 
-export async function handleSearch(req: Request, body: any, db: any): Promise<Response> {
+export async function handleSearch(req: Request, body: any, db: any): Promise<unknown> {
   const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
   const userId = scopeId || body.userId;
   if (!userId) throw new Error("userId required");
@@ -9,9 +9,7 @@ export async function handleSearch(req: Request, body: any, db: any): Promise<Re
   const query = String(body.query || "").trim();
   const safeQuery = query.replace(/[%_,]/g, '').slice(0, 200);
   if (!query) {
-    return new Response(JSON.stringify({ graph: [], todos: [], projects: [], notes: [] }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return { graph: [], todos: [], projects: [], notes: [] };
   }
 
   const openAiKey = Deno.env.get("OPENAI_API_KEY") || "";
@@ -77,15 +75,10 @@ export async function handleSearch(req: Request, body: any, db: any): Promise<Re
     .or(`title.ilike.%${safeQuery}%,content.ilike.%${safeQuery}%`)
     .limit(10);
 
-  return new Response(
-    JSON.stringify({
-      graph: Array.from(graphMap.values()),
-      todos: todos || [],
-      projects: projects || [],
-      notes: notes || [],
-    }),
-    {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    }
-  );
+  return {
+    graph: Array.from(graphMap.values()),
+    todos: todos || [],
+    projects: projects || [],
+    notes: notes || [],
+  };
 }

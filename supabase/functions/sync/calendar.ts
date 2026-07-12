@@ -1,6 +1,6 @@
 import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
 
-export async function runCalendarSync(req: Request): Promise<Response> {
+export async function runCalendarSync(req: Request): Promise<unknown> {
   try {
     const body = await req.json().catch(() => ({}))
     const { code, redirectUri } = body
@@ -38,7 +38,7 @@ export async function runCalendarSync(req: Request): Promise<Response> {
           })
         )
       }
-      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+      return { success: true }
     }
 
     // 2. FETCH TOKEN
@@ -50,7 +50,7 @@ export async function runCalendarSync(req: Request): Promise<Response> {
         .maybeSingle()
     )
 
-    if (!tokenData) return new Response(JSON.stringify({ error: 'No token' }), { status: 400, headers: corsHeaders })
+    if (!tokenData) throw new Error('No token')
 
     const refreshRes = await fetch('https://oauth2.googleapis.com/token', { signal: AbortSignal.timeout(15000),
       method: 'POST',

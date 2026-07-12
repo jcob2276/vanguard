@@ -109,7 +109,7 @@ async function buildReflectionPrompt(apiKey: string, params: {
   ];
 }
 
-export async function runDailyReconciliation(req: Request): Promise<Response> {
+export async function runDailyReconciliation(req: Request): Promise<unknown> {
   const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
   const TELEGRAM_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_CHAT_ID") || "0");
   const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") || "";
@@ -119,7 +119,7 @@ export async function runDailyReconciliation(req: Request): Promise<Response> {
   try {
     if (!TELEGRAM_CHAT_ID) {
       console.warn("[reconciliation] TELEGRAM_CHAT_ID not set, skipping");
-      return new Response(JSON.stringify({ skipped: true, reason: "missing_chat_id" }), { status: 200 });
+      return { skipped: true, reason: "missing_chat_id" };
     }
 
     const url = new URL(req.url);
@@ -141,7 +141,7 @@ export async function runDailyReconciliation(req: Request): Promise<Response> {
 
       if (existing) {
         console.log("[reconciliation] reflection already used today - skipping");
-        return new Response(JSON.stringify({ skipped: true, reason: "already_used_today", id: existing.id }), { status: 200 });
+        return { skipped: true, reason: "already_used_today", id: existing.id };
       }
     }
 
@@ -244,7 +244,7 @@ export async function runDailyReconciliation(req: Request): Promise<Response> {
     });
 
     console.log(`[reconciliation] reflection sent id=${row?.id} manual=${manual} voices=${voiceRows.length}`);
-    return new Response(JSON.stringify({
+    return {
       ok: true,
       mode: "reflection",
       id: row?.id,
@@ -252,13 +252,13 @@ export async function runDailyReconciliation(req: Request): Promise<Response> {
       voice_count_24h: voiceRows.length,
       stream_count_24h: streamRows.length,
       events_count: frictionRows.length,
-    }), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
   } catch (err) {
     await logCriticalError({
       area: "daily-reconciliation",
       error: err,
       message: "Daily reflection reconciliation failed",
     });
-    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    throw err;
   }
 }

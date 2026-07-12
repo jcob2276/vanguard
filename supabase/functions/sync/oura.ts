@@ -1,12 +1,11 @@
-import { safeExecute, createServiceClient, corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { safeExecute, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
 import { runEnhanced } from './enhanced.ts'
 import { runTimeseries } from './timeseries.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 
 const OURA_BASE_URL = 'https://api.ouraring.com/v2/usercollection'
 
-export async function runOuraSync(req: Request): Promise<Response> {
-  try {
+export async function runOuraSync(req: Request): Promise<unknown> {
     const supabase = createServiceClient()
 
     const body = await req.json().catch(() => ({}))
@@ -204,19 +203,10 @@ export async function runOuraSync(req: Request): Promise<Response> {
     console.log('[OURA] Running Timeseries...');
     await runTimeseries(subReq).catch(e => console.error('[OURA] Timeseries Error', e));
 
-    return new Response(JSON.stringify({
+    return {
       success: true,
       total_upserted: totalUpserted,
       batches: batches.length,
       ...(warnings.length ? { warnings } : {}),
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
+    }
 }

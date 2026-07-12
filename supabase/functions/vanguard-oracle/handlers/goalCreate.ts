@@ -1,7 +1,7 @@
-import { corsHeaders, resolveUserScope } from "../../_shared/supabase.ts";
+import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 
-export async function handleGoalCreate(req: Request, body: any): Promise<Response> {
+export async function handleGoalCreate(req: Request, body: any): Promise<unknown> {
   const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
   const userId = scopeId ?? body.userId;
   if (!userId) throw new Error("userId required");
@@ -66,8 +66,5 @@ WAŻNE: Checkpointy muszą być w kolejności rosnącej dat. Żaden checkpoint n
   const parsed = parseJsonFromContent(content);
   if (!parsed) throw new Error("Brak JSON w odpowiedzi AI: " + content.slice(0, 200));
 
-  return new Response(JSON.stringify(parsed), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: 200,
-  });
+  return parsed;
 }

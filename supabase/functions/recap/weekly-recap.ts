@@ -1,10 +1,10 @@
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { createServiceClient, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import { addDaysStr } from "./helpers.ts";
 import { gatherWeekFacts } from "./gatherWeekFacts.ts";
 import { factsToPrompt } from "./prompts.ts";
 
-export async function runWeeklyRecap(req: Request): Promise<Response> {
+export async function runWeeklyRecap(req: Request): Promise<unknown> {
   try {
     const body = await req.json().catch(() => ({}));
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
@@ -57,7 +57,7 @@ Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "questi
       const mergedRecap = { ...(existing?.ai_recap ?? {}), phase1 };
       await db.from("monthly_reviews").upsert({ user_id: userId, month_start: monthStart, ai_recap: mergedRecap }, { onConflict: "user_id,month_start" });
 
-      return new Response(JSON.stringify({ phase1 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { phase1 };
     }
 
     const weekStart: string = body.weekStart;
@@ -121,7 +121,7 @@ Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "questi
       const mergedRecap = { ...(existing?.ai_recap ?? {}), phase1 };
       await db.from("weekly_reviews").upsert({ user_id: userId, week_start: weekStart, ai_recap: mergedRecap }, { onConflict: "user_id,week_start" });
 
-      return new Response(JSON.stringify({ phase1 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return { phase1 };
     }
 
     // ── PHASE AFTER ─────────────────────────────────────────────────────────
@@ -167,9 +167,9 @@ Zwróć TYLKO JSON: {"narrative_check": "...", "deepening_questions": ["...", ".
     const mergedRecap = { ...(existingForMerge?.ai_recap ?? {}), phase2 };
     await db.from("weekly_reviews").upsert({ user_id: userId, week_start: weekStart, ai_recap: mergedRecap }, { onConflict: "user_id,week_start" });
 
-    return new Response(JSON.stringify({ phase2 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return { phase2 };
   } catch (err: any) {
     console.error("[vanguard-week-recap] error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    throw err;
   }
 }

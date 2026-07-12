@@ -1,5 +1,5 @@
 import { getEmbedding } from "../../_shared/openai.ts";
-import { safeExecute, corsHeaders } from "../../_shared/supabase.ts";
+import { safeExecute } from "../../_shared/supabase.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
@@ -7,23 +7,23 @@ import { CLASSIFY_SYSTEM, FRICTION_SYSTEM } from "../prompts.ts";
 import { normalizeClassification, normalizeFriction } from "./normalize.ts";
 import { handleClosureProposals } from "./closures.ts";
 
-export async function handleStreamRecord(record: any, supabase: any): Promise<Response> {
+export async function handleStreamRecord(record: any, supabase: any): Promise<unknown> {
   if (!record || !record.content || !record.user_id) {
-    return new Response(JSON.stringify({ message: 'No content to classify' }), { status: 200 });
+    return { message: 'No content to classify' };
   }
 
   // Skip system-generated entries (anchors, planning summaries, Oracle responses, etc.)
   // These are written by Vanguard itself and don't represent user behaviour to classify.
   if (record.source === 'system') {
     console.log(`[auto-classify] skipping system record: ${record.id}`);
-    return new Response(JSON.stringify({ message: 'system source, skipped' }), { status: 200 });
+    return { message: 'system source, skipped' };
   }
 
   // Idempotency gate: skip if already classified (webhook retry / double-trigger protection)
   // != null (not truthy) — importance_score: 0 is a valid score and must not look "unclassified"
   if (record.classification != null && record.importance_score != null) {
     console.log(`[auto-classify] already classified, skipping: ${record.id}`);
-    return new Response(JSON.stringify({ message: 'already classified' }), { status: 200 });
+    return { message: 'already classified' };
   }
 
   console.log(`[auto-classify] start for record: ${record.id}`);
@@ -74,13 +74,7 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<Re
     ]);
   } catch (err: any) {
     console.error(`[auto-classify] DeepSeek error:`, err);
-    return new Response(JSON.stringify({
-      error: `DeepSeek upstream error: ${err.message}`,
-      record_id: record.id,
-    }), {
-      status: 502,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    throw new Error(`DeepSeek upstream error (record_id=${record.id}): ${err.message}`);
   }
 
   // === Parse klasyfikacja ===
@@ -235,14 +229,12 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<Re
       .eq('id', record.id)
   );
 
-  return new Response(JSON.stringify({
+  return {
     success: true,
     classification,
     friction_detected: friction.is_relevant && (friction.event_kind === 'friction_event' || friction.event_kind === 'positive_micro_action' || friction.event_kind === 'recovery_event'),
     event_kind: friction.event_kind || null,
     friction_type: friction.friction_type || null,
     extraction_quality: extractionQuality,
-  }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  };
 }

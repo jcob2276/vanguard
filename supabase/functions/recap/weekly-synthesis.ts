@@ -1,11 +1,11 @@
 import { sendMessageParsed } from "../_shared/telegram.ts";
-import { createServiceClient, safeExecute, corsHeaders } from "../_shared/supabase.ts";
+import { createServiceClient, safeExecute } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
 
-export async function runWeeklySynthesis(req: Request): Promise<Response> {
+export async function runWeeklySynthesis(req: Request): Promise<unknown> {
   const VANGUARD_USER_ID = getVanguardUserId();
   const supabase = createServiceClient();
 
@@ -263,16 +263,10 @@ ${streamText || 'brak wpisów'}`
     }
 
     console.log(`[weekly-synthesis] done`);
-    return new Response(JSON.stringify({ success: true, week: `${weekStart} – ${weekEnd}` }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
+    return { success: true, week: `${weekStart} – ${weekEnd}` };
 
   } catch (err: any) {
     console.error('[weekly-synthesis] error:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    throw err;
   }
 }

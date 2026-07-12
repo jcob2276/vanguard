@@ -1,17 +1,14 @@
-import { resolveUserScope, corsHeaders } from "../../_shared/supabase.ts";
+import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { TODO_CLASSIFY_SYSTEM } from "../prompts.ts";
 
-export async function handleTodoClassify(req: Request, body: any, supabase: any): Promise<Response> {
+export async function handleTodoClassify(req: Request, body: any, supabase: any): Promise<unknown> {
   const { itemId, userId: requestedUserId, title, notes, due_date, priority } = body;
   const { userId } = await resolveUserScope(req, requestedUserId ?? null);
 
   if (!itemId || !userId || !title) {
-    return new Response(JSON.stringify({ error: "missing fields" }), {
-      status: 400,
-      headers: corsHeaders,
-    });
+    throw new Error("missing fields");
   }
 
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
@@ -63,7 +60,5 @@ export async function handleTodoClassify(req: Request, body: any, supabase: any)
     .eq("user_id", userId);
   if (updateErr) throw new Error(updateErr.message);
 
-  return new Response(JSON.stringify({ ok: true, ...patch }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return { ok: true, ...patch };
 }

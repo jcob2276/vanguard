@@ -1,17 +1,14 @@
-import { resolveUserScope, corsHeaders } from "../../_shared/supabase.ts";
+import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { TODO_EXTRACT_SYSTEM } from "../prompts.ts";
 
-export async function handleTodoExtract(req: Request, body: any): Promise<Response> {
+export async function handleTodoExtract(req: Request, body: any): Promise<unknown> {
   const { text, userId: requestedUserId } = body;
   const { userId } = await resolveUserScope(req, requestedUserId ?? null);
 
   if (!userId || !text || typeof text !== "string" || !text.trim()) {
-    return new Response(JSON.stringify({ error: "missing fields" }), {
-      status: 400,
-      headers: corsHeaders,
-    });
+    throw new Error("missing fields");
   }
 
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
@@ -42,7 +39,5 @@ export async function handleTodoExtract(req: Request, body: any): Promise<Respon
     .filter((t) => t.title.length > 0)
     .slice(0, 20);
 
-  return new Response(JSON.stringify({ tasks }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return { tasks };
 }
