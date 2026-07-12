@@ -1,19 +1,15 @@
 import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export default function CalendarHeader() {
   const {
     calData: {
       calView,
       setCalView,
-      setToastMessage,
-      fetchEvents,
     },
     isSyncing,
-    isAISchedulingRunning,
     onSyncCalendar,
-    runAIScheduling,
   } = useCalendar();
 
   return (
@@ -59,25 +55,6 @@ export default function CalendarHeader() {
         >
           <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
           <span>{isSyncing ? 'Synchronizuję...' : 'GCal'}</span>
-        </button>
-        <button
-          onClick={async () => {
-            try {
-              await runAIScheduling();
-              setToastMessage('Harmonogram AI zoptymalizowany! ✨');
-              await fetchEvents();
-            } catch {
-              setToastMessage('Błąd AI Scheduling');
-            }
-          }}
-          disabled={isAISchedulingRunning}
-          className="flex items-center gap-1.5 rounded-xl border border-border-custom/60 hover:bg-surface-solid px-3.5 py-2 text-[11.5px] font-bold text-text-secondary transition-colors cursor-pointer outline-none"
-        >
-          <Sparkles
-            size={14}
-            className={isAISchedulingRunning ? 'animate-pulse text-amber-400' : ''}
-          />
-          <span>AI</span>
         </button>
       </div>
     </div>

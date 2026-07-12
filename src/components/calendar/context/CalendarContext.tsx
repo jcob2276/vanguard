@@ -23,13 +23,11 @@ export interface CalendarContextType {
 
   // Sync / AI status
   isSyncing: boolean;
-  isAISchedulingRunning: boolean;
   isSyncingOura: boolean;
   isSyncingActivities: boolean;
 
   // Actions
   onSyncCalendar: () => void;
-  runAIScheduling: () => Promise<void>;
   syncOura: () => Promise<void>;
   syncActivities: () => Promise<void>;
 

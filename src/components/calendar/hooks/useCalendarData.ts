@@ -88,9 +88,6 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   const [budgetMinInputs, setBudgetMinInputs] = useState<Record<string, string>>({});
   const [budgetMaxInputs, setBudgetMaxInputs] = useState<Record<string, string>>({});
 
-  const [focusTimeDefense, setFocusTimeDefense] = useState(true);
-  const [decompressionBuffer, setDecompressionBuffer] = useState(true);
-
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -235,8 +232,6 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     showBudgetConfig, setShowBudgetConfig,
     budgetMinInputs, setBudgetMinInputs,
     budgetMaxInputs, setBudgetMaxInputs,
-    focusTimeDefense, setFocusTimeDefense,
-    decompressionBuffer, setDecompressionBuffer,
     showDeleteConfirm, setShowDeleteConfirm,
     toastMessage, setToastMessage,
     sidebarCollapsed, setSidebarCollapsed,
