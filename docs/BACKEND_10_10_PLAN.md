@@ -930,6 +930,53 @@ kernela żeby nie liczyć własnej implementacji, albo (b) osobnego refaktoru or
 `vanguard-nightly` — obie prace policzalne i jasno wyodrębnione, ale materialnie różne od
 mechanicznego przepinania wykonanego w tej sesji.
 
+### 2026-07-12 (ciąg dalszy 8, `/goal "lec po koli"`): (b) domknięte + realny bug znaleziony w `worldState.ts`
+
+Zamiast zostawić (b) jako opisane-ale-nietknięte, zrobione: sub-handlery `_shared/nightly/*.ts`
+przepisane z `(req: Request) => Promise<Response>` na `(supabase, ...args) => Promise<data>`,
+`vanguard-nightly/index.ts`'s `runLedgerStep` woła je bezpośrednio zamiast konstruować
+syntetyczny `Request` i sprawdzać `.ok`/`.status`. Potwierdzone: `save-daily-aggregate` NIGDY
+nie było osobno wdrożoną funkcją (brak wpisu w `config.toml`, `scripts/ops/e2e-daily-loop.mjs`
+ma już własny komentarz to dokumentujący). **`rawJsonResponse`: 47 → 4** — teoretyczne
+minimum (3 kernel + 1 leaf helper), potwierdzone żywym `?action=compute-correlations`.
+
+Następnie kontynuacja Fazy 4 (typed repos) — świadomie NIE mechaniczne przepisanie
+wszystkich ~78 bezpośrednich zapytań do `vanguard_stream`/`vanguard_daily_aggregates`/
+`daily_reconciliations` (większość to legalne, unikalne zapytania analityczne używane przez
+jednego callera — wymuszenie ich w repo byłoby przedwczesną abstrakcją, nie deduplikacją).
+Zamiast tego: znaleziono i skonsolidowano tylko GENUINE duplikaty (identyczny kształt
+zapytania w 2+ miejscach) — `getReconciliationById`/`getLatestSentReconciliation` (4 miejsca),
+`getStreamByTelegramMessageId` (3 miejsca), i adopcja JUŻ ISTNIEJĄCEGO `getAggregateByDate`
+w 7 kolejnych miejscach, które dokładnie pasowały do jego kształtu.
+
+**Ta konsolidacja ujawniła realny, długotrwały bug produkcyjny w `_shared/worldState.ts`**
+(`fetchWorldState` — najbardziej centralna funkcja w całym backendzie, zasila KAŻDĄ turę
+czatu Oracle i pipeline nocny). Cztery z pięciu sygnałów świeżości (`oura_daily_summary`,
+`daily_wins`, `daily_nutrition`, `vanguard_daily_aggregates`) liczyły `freshness_hours` z
+kolumny `.updated_at` — **która nie istnieje na żadnej z tych czterech tabel** (zweryfikowane
+`information_schema.columns`; oura/wins/nutrition mają `created_at`, aggregates nie ma
+żadnej kolumny czasowej). Ponieważ zapytania używały `select('*')` lub nietypowanego wyniku,
+brakująca kolumna nigdy nie była błędem zapytania — po prostu cicho dawała `undefined`, a
+`calculateFreshness(undefined)` zawsze zwracało **999 godzin**, co zawsze dawało **confidence
+0.2 ("stale data")** niezależnie od realnej świeżości danych. Prawdopodobnie tak było odkąd
+te tabele istnieją.
+
+Naprawiono: `created_at` tam gdzie realnie istnieje (oura/wins/nutrition), i proxy oparte na
+`date` (południe UTC danego dnia) dla `vanguard_daily_aggregates`, która nie ma żadnej
+kolumny czasowej. Zweryfikowano żywo — wyczyszczono cache `vanguard_world_state`,
+wymuszono świeże przeliczenie: `oura` pokazało realny `freshness_hours: 20.3, confidence: 1`
+(wcześniej `999/0.2`); `vanguard_daily_aggregates` dla dnia z realnymi danymi pokazało
+`freshness_hours: 0, confidence: 1, last_updated: "2026-07-11T12:00:00.000Z"` (wcześniej
+`999/0/null`). Cache dla przeszłych dat nigdy nie wygasa (`isHistorical` → zawsze "fresh") —
+trzeba było ręcznie skasować wiersz cache, żeby zobaczyć przeliczenie; przy okazji potwierdza
+to, że ten bug był niewidoczny nawet przy ręcznym sprawdzaniu przez `vanguard_world_state`,
+bo pierwszy cache po prostu utrwalał złe wartości na stałe dla danego dnia.
+
+**Stan na koniec tej rundy: `rawJsonResponse` = 4 (teoretyczne minimum, osiągnięte),
+`as any` = 0, molochy = 0 — wszystkie cztery liczniki z `/goal` na twardym zerze/minimum.**
+Faza 4 (typed repos) ma teraz 4 realne konsumowane wzorce zamiast 1, i przy okazji naprawiła
+najpoważniejszy znaleziony w tej sesji bug produkcyjny.
+
 ---
 
 ## Co zrobić, jeśli utkniesz
