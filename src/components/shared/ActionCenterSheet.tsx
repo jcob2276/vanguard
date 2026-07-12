@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { HelpCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -20,39 +21,45 @@ interface PendingClarification {
   confidence?: number | null;
 }
 
+const actionCenterKeys = {
+  all: ['action-center'] as const,
+  count: (userId: string) => [...actionCenterKeys.all, 'count', userId] as const,
+  data: (userId: string) => [...actionCenterKeys.all, 'data', userId] as const,
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function usePendingActionCount(session: Session) {
-  const [count, setCount] = useState(0);
+  const userId = session?.user?.id ?? '';
+  const queryClient = useQueryClient();
 
-  const reload = useCallback(async () => {
-    if (!session?.user?.id) {
-      setCount(0);
-      return;
-    }
-    const userId = session.user.id;
-    await syncFrictionProposals(userId);
-    const [clarRes, propRes] = await Promise.all([
-      supabase
-        .from('oracle_clarification_requests')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'pending'),
-      supabase
-        .from('system_proposals')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'pending'),
-    ]);
-    setCount((clarRes.count ?? 0) + (propRes.count ?? 0));
-  }, [session]);
+  const countQuery = useQuery({
+    queryKey: actionCenterKeys.count(userId),
+    queryFn: async () => {
+      if (!userId) return 0;
+      await syncFrictionProposals(userId);
+      const [clarRes, propRes] = await Promise.all([
+        supabase
+          .from('oracle_clarification_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'pending'),
+        supabase
+          .from('system_proposals')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'pending'),
+      ]);
+      return (clarRes.count ?? 0) + (propRes.count ?? 0);
+    },
+    enabled: !!userId,
+    refetchInterval: 60_000,
+  });
 
-  useEffect(() => {
-    void (async () => { await reload(); })();
-    const t = setInterval(() => void reload(), 60_000);
-    return () => clearInterval(t);
-  }, [reload]);
+  const reload = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: actionCenterKeys.count(userId) });
+  }, [queryClient, userId]);
 
-  return { count, reload };
+  return { count: countQuery.data ?? 0, reload };
 }
 
 export function ActionCenterSheet({
@@ -66,34 +73,38 @@ export function ActionCenterSheet({
   onClose: () => void;
   onUpdated?: () => void;
 }) {
-  const [clarifications, setClarifications] = useState<PendingClarification[]>([]);
-  const [proposals, setProposals] = useState<SystemProposal[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const userId = session.user.id;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    await syncFrictionProposals(session.user.id);
-    const [clarRes, props] = await Promise.all([
-      supabase
-        .from('oracle_clarification_requests')
-        .select('id, question, response_type, options, proposed_memory, confidence')
-        .eq('user_id', session.user.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false }),
-      fetchPendingProposals(session.user.id),
-    ]);
-    setClarifications((clarRes.data ?? []) as PendingClarification[]);
-    setProposals(props);
-    setLoading(false);
-  }, [session.user.id]);
+  const dataQuery = useQuery({
+    queryKey: actionCenterKeys.data(userId),
+    queryFn: async () => {
+      await syncFrictionProposals(userId);
+      const [clarRes, props] = await Promise.all([
+        supabase
+          .from('oracle_clarification_requests')
+          .select('id, question, response_type, options, proposed_memory, confidence')
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false }),
+        fetchPendingProposals(userId),
+      ]);
+      return {
+        clarifications: (clarRes.data ?? []) as PendingClarification[],
+        proposals: props,
+      };
+    },
+    enabled: open && !!userId,
+  });
 
-  useEffect(() => {
-    if (open) void (async () => { await load(); })();
-  }, [open, load]);
+  const clarifications = dataQuery.data?.clarifications ?? [];
+  const proposals = dataQuery.data?.proposals ?? [];
+  const loading = dataQuery.isLoading;
 
   const handleProposalResolved = async (id: string, status: 'confirmed' | 'dismissed') => {
     await resolveProposal(id, status);
-    await load();
+    void queryClient.invalidateQueries({ queryKey: actionCenterKeys.data(userId) });
+    void queryClient.invalidateQueries({ queryKey: actionCenterKeys.count(userId) });
     onUpdated?.();
   };
 
@@ -141,7 +152,8 @@ export function ActionCenterSheet({
                 confidence: item.confidence ?? undefined,
               }}
               onAnswered={() => {
-                void load();
+                void queryClient.invalidateQueries({ queryKey: actionCenterKeys.data(userId) });
+                void queryClient.invalidateQueries({ queryKey: actionCenterKeys.count(userId) });
                 onUpdated?.();
               }}
             />

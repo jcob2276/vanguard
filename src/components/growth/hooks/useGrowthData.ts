@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import {
   partitionSkillTree,
@@ -47,61 +48,45 @@ export interface GrowthCheckpoint {
   daysOverdue: number; // negative = upcoming, positive = overdue
 }
 
+export interface GrowthDataResult {
+  skills: LearningSkill[];
+  snapshots: LearningSkillSnapshot[];
+  focus: LearningWeekFocus | null;
+  pins: LearningWeekPin[];
+  unreadLinks: GrowthLinkRow[];
+  readLinks: GrowthLinkRow[];
+  openTodos: GrowthTodoRow[];
+  context: GrowthContextData;
+  rozwojNotesCount: number;
+  weekNotes: GrowthWeekNote[];
+  powerListStats: PowerListWeekStats;
+  prevWeekSummary: GrowthPrevWeekSummary | null;
+  weekFocusScore: number | null;
+  activeProjects: GrowthProjectSummary[];
+  upcomingCheckpoints: GrowthCheckpoint[];
+}
+
 export function useGrowthData(userId: string | undefined, weekStart: string) {
-  const [skills, setSkills] = useState<LearningSkill[]>([]);
-  const [snapshots, setSnapshots] = useState<LearningSkillSnapshot[]>([]);
-  const [focus, setFocus] = useState<LearningWeekFocus | null>(null);
-  const [pins, setPins] = useState<LearningWeekPin[]>([]);
-  const [unreadLinks, setUnreadLinks] = useState<GrowthLinkRow[]>([]);
-  const [readLinks, setReadLinks] = useState<GrowthLinkRow[]>([]);
-  const [openTodos, setOpenTodos] = useState<GrowthTodoRow[]>([]);
-  const [context, setContext] = useState<GrowthContextData>({
-    weekIntention: null,
-    weekCommitment: null,
-    weekGoals: { intention: null, commitment: null, cialo: null, duch: null, konto: null },
-    sprintGoal: null,
-    sprintLabel: null,
-    activeProjectName: null,
-    kpiName: null,
-    kpiValue: null,
-    kpiTarget: null,
-    kpiId: null,
-  });
-  const [powerListStats, setPowerListStats] = useState<PowerListWeekStats>({
-    daysLogged: 0,
-    daysWithWins: 0,
-    tasksDone: 0,
-    tasksSet: 0,
-  });
-  const [prevWeekSummary, setPrevWeekSummary] = useState<GrowthPrevWeekSummary | null>(null);
-  const [weekFocusScore, setWeekFocusScore] = useState<number | null>(null);
-  const [activeProjects, setActiveProjects] = useState<GrowthProjectSummary[]>([]);
-  const [weekNotes, setWeekNotes] = useState<GrowthWeekNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [rozwojNotesCount, setRozwojNotesCount] = useState(0);
-  const [upcomingCheckpoints, setUpcomingCheckpoints] = useState<GrowthCheckpoint[]>([]);
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => ['growth-data', userId, weekStart], [userId, weekStart]);
 
-  const ensureDefaultSkills = useCallback(async () => {
-    if (!userId) return;
-    const { data: existing } = await supabase
-      .from('learning_skills')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('active', true)
-      .limit(1);
-    if (existing && existing.length > 0) return;
+  const query = useQuery<GrowthDataResult | null>({
+    queryKey,
+    queryFn: async () => {
+      if (!userId) return null;
 
-    await insertDefaultSkillTree(supabase, userId);
-  }, [userId]);
-
-  const refresh = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      await ensureDefaultSkills();
+      // Ensure default skills exist
+      const { data: existing } = await supabase
+        .from('learning_skills')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('active', true)
+        .limit(1);
+      if (!existing || existing.length === 0) {
+        await insertDefaultSkillTree(supabase, userId);
+      }
 
       const { fromISO: weekFromISO } = warsawDayBoundsISO(weekStart);
-
       const weekEnd = getWeekEndExclusive(weekStart);
 
       const [
@@ -202,24 +187,20 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         fetchGrowthPrevWeekSummary(userId, weekStart),
       ]);
 
-      setSkills(
-        ((skillsRes.data as LearningSkill[]) ?? []).map((s) => ({
-          ...s,
-          parent_id: s.parent_id ?? null,
-        })),
-      );
-      setSnapshots(
-        (snapshotsRes.data ?? []).map((r) => ({
-          id: r.id,
-          snapshot_date: r.snapshot_date,
-          scores: (r.scores as Record<string, number>) ?? {},
-        })),
-      );
-      setFocus((focusRes.data as LearningWeekFocus | null) ?? null);
-      setPins((pinsRes.data as LearningWeekPin[]) ?? []);
-      setUnreadLinks((unreadRes.data as GrowthLinkRow[]) ?? []);
-      setReadLinks((readRes.data as GrowthLinkRow[]) ?? []);
-      setOpenTodos((todosRes.data as GrowthTodoRow[]) ?? []);
+      const skills = (((skillsRes.data as LearningSkill[]) ?? []).map((s) => ({
+        ...s,
+        parent_id: s.parent_id ?? null,
+      })));
+      const snapshots = ((snapshotsRes.data ?? []).map((r) => ({
+        id: r.id,
+        snapshot_date: r.snapshot_date,
+        scores: (r.scores as Record<string, number>) ?? {},
+      })));
+      const focus = (focusRes.data as LearningWeekFocus | null) ?? null;
+      const pins = (pinsRes.data as LearningWeekPin[]) ?? [];
+      const unreadLinks = (unreadRes.data as GrowthLinkRow[]) ?? [];
+      const readLinks = (readRes.data as GrowthLinkRow[]) ?? [];
+      const openTodos = (todosRes.data as GrowthTodoRow[]) ?? [];
 
       const activeProjectRows = projectsRes.data ?? [];
       const allKpis = (kpisRes.data ?? []) as {
@@ -230,7 +211,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
       }[];
       const latestKpiValues = await fetchLatestKpiValues(userId, allKpis.map((k) => k.id));
 
-      const projectSummaries: GrowthProjectSummary[] = activeProjectRows.map((p) => ({
+      const activeProjects: GrowthProjectSummary[] = activeProjectRows.map((p) => ({
         id: p.id,
         name: p.name,
         goal: p.goal ?? null,
@@ -245,7 +226,6 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
             target: k.target ?? null,
           })),
       }));
-      setActiveProjects(projectSummaries);
 
       // Build upcoming/overdue checkpoints
       const todayStr = weekStart; // use current date context
@@ -255,7 +235,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           cp.project_id != null && cp.due_date != null
       );
       const projNameMap = new Map(activeProjectRows.map((p) => [p.id, p.name]));
-      const checkpoints: GrowthCheckpoint[] = checkpointRows
+      const upcomingCheckpoints: GrowthCheckpoint[] = checkpointRows
         .filter((cp) => projNameMap.has(cp.project_id))
         .map((cp) => {
           const diffMs = new Date(cp.due_date).getTime() - new Date(todayStr).getTime();
@@ -271,7 +251,6 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           };
         })
         .sort((a, b) => b.daysOverdue - a.daysOverdue); // overdue first
-      setUpcomingCheckpoints(checkpoints);
 
       const activeProject = activeProjectRows[0] ?? null;
       const projectKpis = allKpis.filter((k) => k.project_id === activeProject?.id);
@@ -288,7 +267,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         konto: weekResolved.konto,
       };
 
-      setContext({
+      const context: GrowthContextData = {
         weekIntention: weekGoals.intention || weekGoals.commitment || null,
         weekCommitment: weekGoals.commitment,
         weekGoals,
@@ -299,34 +278,103 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         kpiValue: firstKpi ? latestKpiValues.get(firstKpi.id) ?? null : null,
         kpiTarget: firstKpi?.target ?? null,
         kpiId: firstKpi?.id ?? null,
-      });
-      setRozwojNotesCount((rozwojNotesRes.data ?? []).length);
-      setWeekNotes((rozwojNotesRes.data as GrowthWeekNote[]) ?? []);
-      setPowerListStats(computePowerListWeekStats(dailyWinsRes.data ?? []));
-      setPrevWeekSummary(prevWeekRes);
+      };
 
-      const loadedSkills = ((skillsRes.data as LearningSkill[]) ?? []).map((s) => ({
-        ...s,
-        parent_id: s.parent_id ?? null,
-      }));
-      const { parents } = partitionSkillTree(loadedSkills);
-      const snapRows = (snapshotsRes.data ?? []).map((r) => ({
-        snapshot_date: r.snapshot_date as string,
-        scores: (r.scores as Record<string, number>) ?? {},
-      }));
-      setWeekFocusScore(focusScoreForWeek(parents, snapRows, weekStart, focusRes.data));
-    } catch (err: unknown) {
-      console.warn('[useGrowthData] Failed to refresh growth data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, weekStart, ensureDefaultSkills]);
+      const weekNotes = (rozwojNotesRes.data as GrowthWeekNote[]) ?? [];
+      const notesCount = weekNotes.length;
+      const powerListStats = computePowerListWeekStats(dailyWinsRes.data ?? []);
+      const prevWeekSummary = prevWeekRes;
 
-  useEffect(() => {
-    void (async () => { await refresh(); })();
-  }, [refresh]);
+      const { parents } = partitionSkillTree(skills);
+      const snapRows = snapshots.map((r) => ({
+        snapshot_date: r.snapshot_date,
+        scores: r.scores,
+      }));
+      const weekFocusScore = focusScoreForWeek(parents, snapRows, weekStart, focus);
+
+      return {
+        skills,
+        snapshots,
+        focus,
+        pins,
+        unreadLinks,
+        readLinks,
+        openTodos,
+        context,
+        rozwojNotesCount: notesCount,
+        weekNotes,
+        powerListStats,
+        prevWeekSummary,
+        weekFocusScore,
+        activeProjects,
+        upcomingCheckpoints,
+      };
+    },
+    enabled: !!userId,
+  });
+
+  const skills = useMemo(() => query.data?.skills ?? [], [query.data?.skills]);
+  const snapshots = useMemo(() => query.data?.snapshots ?? [], [query.data?.snapshots]);
+  const focus = query.data?.focus ?? null;
+  const pins = useMemo(() => query.data?.pins ?? [], [query.data?.pins]);
+  const unreadLinks = useMemo(() => query.data?.unreadLinks ?? [], [query.data?.unreadLinks]);
+  const readLinks = useMemo(() => query.data?.readLinks ?? [], [query.data?.readLinks]);
+  const openTodos = useMemo(() => query.data?.openTodos ?? [], [query.data?.openTodos]);
+  const context = useMemo(() => query.data?.context ?? {
+    weekIntention: null,
+    weekCommitment: null,
+    weekGoals: { intention: null, commitment: null, cialo: null, duch: null, konto: null },
+    sprintGoal: null,
+    sprintLabel: null,
+    activeProjectName: null,
+    kpiName: null,
+    kpiValue: null,
+    kpiTarget: null,
+    kpiId: null,
+  }, [query.data?.context]);
+  const loading = query.isLoading;
+  const notesCount = query.data?.rozwojNotesCount ?? 0;
+  const powerListStats = useMemo(() => query.data?.powerListStats ?? {
+    daysLogged: 0,
+    daysWithWins: 0,
+    tasksDone: 0,
+    tasksSet: 0,
+  }, [query.data?.powerListStats]);
+  const prevWeekSummary = query.data?.prevWeekSummary ?? null;
+  const weekFocusScore = query.data?.weekFocusScore ?? null;
+  const activeProjects = useMemo(() => query.data?.activeProjects ?? [], [query.data?.activeProjects]);
+  const weekNotes = useMemo(() => query.data?.weekNotes ?? [], [query.data?.weekNotes]);
+  const upcomingCheckpoints = useMemo(() => query.data?.upcomingCheckpoints ?? [], [query.data?.upcomingCheckpoints]);
+
+  const refresh = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
 
   useGoalSpineInvalidation(refresh);
+
+  const setFocus = useCallback((updater: LearningWeekFocus | null | ((prev: LearningWeekFocus | null) => LearningWeekFocus | null)) => {
+    queryClient.setQueryData<GrowthDataResult | null>(queryKey, (old) => {
+      if (!old) return old;
+      const nextFocus = typeof updater === 'function' ? updater(old.focus) : updater;
+      return { ...old, focus: nextFocus };
+    });
+  }, [queryClient, queryKey]);
+
+  const setPins = useCallback((updater: LearningWeekPin[] | ((prev: LearningWeekPin[]) => LearningWeekPin[])) => {
+    queryClient.setQueryData<GrowthDataResult | null>(queryKey, (old) => {
+      if (!old) return old;
+      const nextPins = typeof updater === 'function' ? updater(old.pins) : updater;
+      return { ...old, pins: nextPins };
+    });
+  }, [queryClient, queryKey]);
+
+  const setSkills = useCallback((updater: LearningSkill[] | ((prev: LearningSkill[]) => LearningSkill[])) => {
+    queryClient.setQueryData<GrowthDataResult | null>(queryKey, (old) => {
+      if (!old) return old;
+      const nextSkills = typeof updater === 'function' ? updater(old.skills) : updater;
+      return { ...old, skills: nextSkills };
+    });
+  }, [queryClient, queryKey]);
 
   return {
     skills,
@@ -338,7 +386,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
     openTodos,
     context,
     loading,
-    rozwojNotesCount,
+    rozwojNotesCount: notesCount,
     powerListStats,
     prevWeekSummary,
     weekFocusScore,
@@ -351,3 +399,4 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
     upcomingCheckpoints,
   };
 }
+

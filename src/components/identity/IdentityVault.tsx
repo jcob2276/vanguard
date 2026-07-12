@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
@@ -60,6 +61,7 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const [vault, setVault] = useState<VaultState>({
     identity: '',   // JA
@@ -75,31 +77,28 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
     resolveUser();
   }, [sessionProp?.user?.id]);
 
-  const fetchVault = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const data = await fetchUserFundament(userId);
+  const vaultQuery = useQuery({
+    queryKey: ['user-fundament', userId],
+    queryFn: () => fetchUserFundament(userId!),
+    enabled: !!userId,
+  });
 
-      if (data) {
-        setVault({
-          vision: data.vision || '',
-          identity: data.identity || '',
-          knowledge: data.knowledge || '',
-          relationships: data.relationships || '',
-          philosophy: data.philosophy || '',
-          finances: data.finances || '',
-          work_edu: data.work_edu || ''
-        });
-      }
-    } catch (err: unknown) {
-      console.warn('[IdentityVault] Failed to fetch user identity vault:', err);
-    }
-  }, [userId]);
-
+  // Sync query result → editable vault state
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
-    if (!userId) return;
-    void (async () => { await fetchVault(); })();
-  }, [fetchVault, userId]);
+    const data = vaultQuery.data;
+    if (data) {
+      setVault({
+        vision: data.vision || '',
+        identity: data.identity || '',
+        knowledge: data.knowledge || '',
+        relationships: data.relationships || '',
+        philosophy: data.philosophy || '',
+        finances: data.finances || '',
+        work_edu: data.work_edu || ''
+      });
+    }
+  }, [vaultQuery.data]);
 
   const handleSave = async () => {
     let uid = userId;
@@ -132,7 +131,7 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
       await upsertUserFundament(uid, nonEmpty);
 
       setSaveStatus('success');
-      await fetchVault();
+      void queryClient.invalidateQueries({ queryKey: ['user-fundament', userId] });
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err: unknown) {
       console.error('Save error:', err);

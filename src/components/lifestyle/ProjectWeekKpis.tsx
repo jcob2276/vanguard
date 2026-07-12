@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Plus, TrendingUp } from 'lucide-react';
 import {
   addProjectKpi,
@@ -11,6 +12,12 @@ import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
 const PILLAR_OPTIONS = PILLARS.map((id) => ({ id, label: PILLAR_META[id].label }));
 
 type ProjectLite = { id: string; name: string };
+
+const projectWeekKpisKeys = {
+  all: ['project-week-kpis'] as const,
+  list: (userId: string, weekStart: string, projectIdsKey: string) =>
+    [...projectWeekKpisKeys.all, userId, weekStart, projectIdsKey] as const,
+};
 
 export default function ProjectWeekKpis({
   userId,
@@ -25,38 +32,32 @@ export default function ProjectWeekKpis({
   readOnly?: boolean;
   focusProjectIds?: string[];
 }) {
-  const [byProject, setByProject] = useState<Record<string, ProjectWeekKpi[]>>({});
-  const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
   const [addingFor, setAddingFor] = useState<string | null>(null);
   const [newKpi, setNewKpi] = useState({ name: '', unit: '', target: '', pillar: 'konto' as 'cialo' | 'duch' | 'konto' });
 
   const projectIds = projects.map((p) => p.id);
   const projectIdsKey = projectIds.slice().sort().join(',');
 
-  const reload = useCallback(async () => {
-    if (projectIds.length === 0) {
-      setByProject({});
-      setLoaded(true);
-      return;
-    }
-    try {
-      setByProject(await fetchProjectWeekKpis(userId, projectIds, weekStart));
-    } finally {
-      setLoaded(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, weekStart, projectIdsKey]);
+  const kpisQuery = useQuery({
+    queryKey: projectWeekKpisKeys.list(userId, weekStart, projectIdsKey),
+    queryFn: () => fetchProjectWeekKpis(userId, projectIds, weekStart),
+    enabled: projectIds.length > 0,
+  });
 
-  useEffect(() => {
-    void (async () => { await reload(); })();
-  }, [reload]);
+  const byProject = kpisQuery.data ?? {};
+  const loaded = kpisQuery.isSuccess;
+
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: projectWeekKpisKeys.all });
+  }, [queryClient]);
 
   async function saveTarget(kpiId: string, value: string) {
     const trimmed = value.trim();
     const target = trimmed === '' ? null : parseFloat(trimmed);
     if (trimmed !== '' && !Number.isFinite(target)) return;
     await setProjectKpiTarget(userId, kpiId, target);
-    void reload();
+    invalidate();
   }
 
   async function submitNewKpi(projectId: string) {
@@ -68,7 +69,7 @@ export default function ProjectWeekKpis({
     });
     setAddingFor(null);
     setNewKpi({ name: '', unit: '', target: '', pillar: 'konto' });
-    void reload();
+    invalidate();
   }
 
   if (!loaded || projects.length === 0) return null;

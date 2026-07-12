@@ -12,6 +12,7 @@ import { C } from '../desktopUtils';
 import GeneralHealthCharts from './generalView/GeneralHealthCharts';
 import GeneralFrictionPanels from './generalView/GeneralFrictionPanels';
 import GeneralMemexPanels from './generalView/GeneralMemexPanels';
+import GeneralRecommendationsPanel from './generalView/GeneralRecommendationsPanel';
 
 const FRICTION_COLOR: Record<string, string> = FRICTION_COLOR_TYPED;
 
@@ -29,6 +30,7 @@ export default function GeneralView({
     wiki,
     curiosity,
     friction,
+    recommendations,
     loading,
   } = useGeneralViewData({ userId, ouraProp });
 
@@ -150,6 +152,17 @@ export default function GeneralView({
         wiki={wiki}
         emeraldColor={C.emerald}
       />
+
+      {/* ── SEKCJA: ZALECENIA WYROCZNI ── */}
+      <div className="flex items-center gap-3 mt-2">
+        <div className="h-px flex-1 bg-border-custom" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+          Zalecenia Wyroczni
+        </span>
+        <div className="h-px flex-1 bg-border-custom" />
+      </div>
+
+      <GeneralRecommendationsPanel recommendations={recommendations} />
     </div>
   );
 }

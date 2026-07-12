@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw } from 'lucide-react';
 import {
   BEHAVIOR_CAPTURE_ENTRIES,
@@ -16,29 +17,26 @@ interface BehaviorCapturePanelProps {
 
 export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelProps) {
   const today = getTodayWarsaw();
-  const [loading, setLoading] = useState(true);
-  const [activeKeys, setActiveKeys] = useState<Set<BehaviorConfounderKey>>(new Set());
+  const queryClient = useQueryClient();
   const [savingKey, setSavingKey] = useState<BehaviorConfounderKey | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const rows = await fetchBehaviorLogsSince(userId, daysBefore(7));
-      const todayKeys = new Set<BehaviorConfounderKey>();
-      for (const row of rows) {
-        if (row.date !== today) continue;
-        const key = row.behavior_key as BehaviorConfounderKey;
-        if (BEHAVIOR_CONFOUNDERS.some((c) => c.key === key)) todayKeys.add(key);
-      }
-      setActiveKeys(todayKeys);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, today]);
+  const logsQuery = useQuery({
+    queryKey: ['behavior-logs', userId],
+    queryFn: () => fetchBehaviorLogsSince(userId, daysBefore(7)),
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    void (async () => { await load(); })();
-  }, [load]);
+  const activeKeys = (() => {
+    const keys = new Set<BehaviorConfounderKey>();
+    for (const row of logsQuery.data ?? []) {
+      if (row.date !== today) continue;
+      const key = row.behavior_key as BehaviorConfounderKey;
+      if (BEHAVIOR_CONFOUNDERS.some((c) => c.key === key)) keys.add(key);
+    }
+    return keys;
+  })();
+
+  const loading = logsQuery.isLoading;
 
   async function toggleConfounder(key: BehaviorConfounderKey) {
     if (savingKey) return;
@@ -46,12 +44,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
     setSavingKey(key);
     try {
       await setBehaviorConfounder(userId, key, next, today);
-      setActiveKeys((prev) => {
-        const copy = new Set(prev);
-        if (next) copy.add(key);
-        else copy.delete(key);
-        return copy;
-      });
+      void queryClient.invalidateQueries({ queryKey: ['behavior-logs', userId] });
     } finally {
       setSavingKey(null);
     }
@@ -70,7 +63,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
         </div>
         <button
           type="button"
-          onClick={() => void load()}
+          onClick={() => void logsQuery.refetch()}
           className="p-1.5 text-text-muted hover:text-text-primary rounded-lg cursor-pointer"
           title="Odśwież sygnały dnia"
         >

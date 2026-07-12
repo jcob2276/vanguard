@@ -145,17 +145,17 @@ Deno.serve(serveJson(async (req, ctx) => {
     });
 
     // 2.5 resolve past predictions
-    await runLedgerStep(supabase, userId, runId, 'resolve-past-predictions', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'resolve-past-predictions', true, async () => {
       await resolvePastPredictions(supabase, userId, todayStr);
     });
 
     // 2.7 resolve oracle recommendations
-    await runLedgerStep(supabase, userId, runId, 'resolve-oracle-recommendations', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'resolve-oracle-recommendations', true, async () => {
       await resolveOracleRecommendations(supabase, userId, todayStr);
     });
 
     // 2.9 rescore-workout-sessions (before daily strain calculation)
-    await runLedgerStep(supabase, userId, runId, 'rescore-workout-sessions', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'rescore-workout-sessions', true, async () => {
       await runRescoreWorkoutSessionsInternal(supabase, userId, 3);
     });
 
@@ -176,17 +176,17 @@ Deno.serve(serveJson(async (req, ctx) => {
     });
 
     // 4. vanguard-detect-patterns
-    await runLedgerStep(supabase, userId, runId, 'detect-patterns', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'detect-patterns', true, async () => {
       await runDetectPatterns(supabase, userId);
     });
 
     // 5. pattern-outcomes
-    await runLedgerStep(supabase, userId, runId, 'pattern-outcomes', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'pattern-outcomes', true, async () => {
       await runPatternOutcomes();
     });
 
     // 6. correlations
-    await runLedgerStep(supabase, userId, runId, 'compute-correlations', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'compute-correlations', true, async () => {
       await runComputeCorrelations(supabase, userId, body.include_weak === true);
     });
 
@@ -198,7 +198,7 @@ Deno.serve(serveJson(async (req, ctx) => {
     });
 
     // 7.5 generate tomorrow predictions
-    await runLedgerStep(supabase, userId, runId, 'generate-tomorrow-predictions', false, async () => {
+    await runLedgerStep(supabase, userId, runId, 'generate-tomorrow-predictions', true, async () => {
       await generateTomorrowPredictions(supabase, userId, todayStr);
     });
 

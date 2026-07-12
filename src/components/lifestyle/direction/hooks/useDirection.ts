@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables } from '../../../../lib/database.types';
-import { nextWeekStart } from '../../../../lib/goal/goalSpine';
 import { monthCarryToWeekPlan } from '../../../../lib/growth/monthCarry';
 import { getSprintInfo } from '../../../../lib/growth/sprintUtils';
 import { useHaptics } from '../../../../hooks/useHaptics';
@@ -19,7 +19,12 @@ type MonthRecap = Phase1Recap;
 type Phase2Recap = { narrative_check: string; deepening_questions?: string[]; block5_material?: { cialo: string; duch: string; konto: string } };
 type PillarScores = { cialo: number | null; duch: number | null; konto: number | null };
 
-export function useDirection(session: Session, onOpenActionCenter?: () => void) {
+export const directionKeys = {
+  all: ['direction'] as const,
+  data: (userId: string, weekStart: string) => [...directionKeys.all, userId, weekStart] as const,
+};
+
+export function useDirection(session: Session, _onOpenActionCenter?: () => void) {
   const haptics = useHaptics();
   const userId = session.user.id;
 
@@ -30,19 +35,29 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   const sprintInfo = useMemo(() => getSprintInfo(), []);
   const { reflKey, planKey, monthKey, sprintDraftKey } = directionDraftKeys(
     userId, { closingWeekStart, planTargetWeekStart, closingMonthStart }, sprintInfo);
+  const sprintClosingWeek = sprintInfo.weekInSprint === 12;
 
-  // ── Core state ──────────────────────────────────────────────────────────
-  const [loading, setLoading]           = useState(true);
-  const [history, setHistory]           = useState<DailyWinRow[]>([]);
+  // ── Main data fetch (react-query) ──────────────────────────────────────
+  const directionQuery = useQuery({
+    queryKey: directionKeys.data(userId, currentWeekStart),
+    queryFn: () => fetchDirectionData(userId, currentWeekStart, sprintClosingWeek),
+    enabled: !!userId,
+  });
+
+  const raw = directionQuery.data;
+  const loading = directionQuery.isLoading;
+
+  // ── Core state (synced from query) ─────────────────────────────────────
+  const [history, setHistory] = useState<DailyWinRow[]>([]);
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<any[]>([]);
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
-  const [weekDoneTasks, setWeekDoneTasks]   = useState<{ title: string; status: string }[]>([]);
-  const [weekOura, setWeekOura]             = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
-  const [weekRuns, setWeekRuns]             = useState<{ distance: number | null }[]>([]);
-  const [weekNutrition, setWeekNutrition]   = useState<{ calories: number | null }[]>([]);
+  const [weekDoneTasks, setWeekDoneTasks] = useState<{ title: string; status: string }[]>([]);
+  const [weekOura, setWeekOura] = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
+  const [weekRuns, setWeekRuns] = useState<{ distance: number | null }[]>([]);
+  const [weekNutrition, setWeekNutrition] = useState<{ calories: number | null }[]>([]);
   const [nutritionTarget, setNutritionTarget] = useState<number | null>(null);
-  const [activeProjects, setActiveProjects]   = useState<{ id: string; name: string }[]>([]);
+  const [activeProjects, setActiveProjects] = useState<{ id: string; name: string }[]>([]);
 
   // ── Reflection / plan drafts ────────────────────────────────────────────
   const [proudOf, setProudOf]             = usePersistentDraft(reflKey('proudOf'), '');
@@ -66,7 +81,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   const [phase2, setPhase2]               = useState<Phase2Recap | null>(null);
   const [phase2Loading, setPhase2Loading] = useState(false);
   const [savingReflection, setSavingReflection]   = useState(false);
-  const [reflectionPersisted, setReflectionPersisted] = useState(false);
+  const [_reflectionPersisted, setReflectionPersisted] = useState(false);
   const [completing, setCompleting]       = useState(false);
   const [ritualClosed, setRitualClosed]   = useState(false);
   const [forceWeeklyReview, setForceWeeklyReview] = useState(false);
@@ -83,7 +98,6 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   const [monthTheme, setMonthTheme]       = usePersistentDraft(monthKey('theme'), '');
 
   // ── Sprint state ────────────────────────────────────────────────────────
-  const sprintClosingWeek = sprintInfo.weekInSprint === 12;
   const [sprintReview, setSprintReview]   = useState<any>(null);
   const [sprintFacts, setSprintFacts]     = useState<any>(null);
   const [sprintCompleting, setSprintCompleting] = useState(false);
@@ -94,22 +108,16 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
   const [carryMonthTheme, setCarryMonthTheme]       = useState<string | null>(null);
   const [planCarriedFromMonth, setPlanCarriedFromMonth] = useState(false);
 
-  // ── Derived flags ───────────────────────────────────────────────────────
-  const planSaved = ritualClosed || !!currentReview?.review_completed_at;
-  const showPlanningMode = isSunday && !planSaved;
-  const sprintCloseDue  = sprintClosingWeek && !sprintReview?.completed_at;
-  const showSprintMode  = sprintCloseDue;
-  const monthlyDue      = Boolean(closingMonthStart && !monthReview?.completed_at);
-  const monthlyComplete = Boolean(monthReview?.completed_at);
-  const showMonthlyMode = monthlyDue && !showSprintMode;
-  const showWeeklyPlanning = (showPlanningMode && (!showMonthlyMode || monthlyComplete) && !showSprintMode) || forceWeeklyReview;
+  // ── Sync query result → local state (runs once per fresh data) ──────────
+  const syncedVersionRef = useRef(0);
+  useEffect(() => {
+    if (!raw) return;
+    const v = directionQuery.dataUpdatedAt;
+    if (v === syncedVersionRef.current) return;
+    syncedVersionRef.current = v;
 
-  // ── Fetch ───────────────────────────────────────────────────────────────
-  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!opts?.silent) setLoading(true);
-    try {
-      const raw = await fetchDirectionData(userId, currentWeekStart, sprintClosingWeek);
-
+    // Defer state updates to avoid synchronous setState in effect
+    queueMicrotask(() => {
       setHistory(raw.historyData ?? []);
       setAllCalEvents(raw.calData ?? []);
       setPrevWeekReview(raw.prevReviewData ?? null);
@@ -170,12 +178,20 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         if (planSource.week_goal_duch) setWeekGoalDuch(planSource.week_goal_duch);
         if (planSource.week_goal_konto) setWeekGoalKonto(planSource.week_goal_konto);
       }
-    } catch (err: unknown) {
-      console.warn('[useDirection] Failed to fetch direction data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, currentWeekStart, sprintClosingWeek]);
+    });
+  }, [raw, directionQuery.dataUpdatedAt, isSunday,
+    setPatternNote, setLeverageNote, setCorrectionNote, setMonthTheme,
+    setSprintReflection, setProudOf, setDoDifferently, setSabotage,
+    setObligation, setWeekHighlight, setWeekRegret, setNewBelief,
+    setDeepeningAnswers, setWeekIntention, setWeekCommitment,
+    setWeekGoalCialo, setWeekGoalDuch, setWeekGoalKonto]);
+
+  // ── Refetch helpers ─────────────────────────────────────────────────────
+  const fetchData = useCallback(async (_opts?: { silent?: boolean }) => {
+    await directionQuery.refetch();
+  }, [directionQuery]);
+
+  useWarsawDayChange(() => { void directionQuery.refetch(); });
 
   // ── Month carry ─────────────────────────────────────────────────────────
   const applyMonthCarry = useCallback(
@@ -195,19 +211,21 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
     [weekIntention, weekCommitment, weekGoalCialo, weekGoalDuch, weekGoalKonto, setWeekIntention, setWeekCommitment, setWeekGoalCialo, setWeekGoalDuch, setWeekGoalKonto],
   );
 
+  // ── Derived flags ───────────────────────────────────────────────────────
+  const planSaved = ritualClosed || !!currentReview?.review_completed_at;
+  const showPlanningMode = isSunday && !planSaved;
+  const sprintCloseDue  = sprintClosingWeek && !sprintReview?.completed_at;
+  const showSprintMode  = sprintCloseDue;
+  const monthlyDue      = Boolean(closingMonthStart && !monthReview?.completed_at);
+  const monthlyComplete = Boolean(monthReview?.completed_at);
+  const showMonthlyMode = monthlyDue && !showSprintMode;
+  const showWeeklyPlanning = (showPlanningMode && (!showMonthlyMode || monthlyComplete) && !showSprintMode) || forceWeeklyReview;
+
   useEffect(() => {
     if (!showWeeklyPlanning || planCarriedFromMonth) return;
     const review = monthReview ?? (carryMonthTheme ? { month_theme: carryMonthTheme } : null);
     void (async () => { applyMonthCarry(review, monthFacts); })();
   }, [showWeeklyPlanning, planCarriedFromMonth, monthReview, monthFacts, carryMonthTheme, applyMonthCarry]);
-
-  // ── Bootstrap & day-change refresh ─────────────────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => { if (userId) void fetchData(); }, 0);
-    return () => clearTimeout(t);
-  }, [userId, fetchData]);
-
-  useWarsawDayChange(() => { if (userId) void fetchData({ silent: true }); });
 
   // ── Actions (bound to current state) ────────────────────────────────────
   const actions = createDirectionActions({
@@ -232,6 +250,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         .catch(err => console.error('Layer 1 (before) failed:', err))
         .finally(() => setPhase1Loading(false));
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- actions is stable; effect should only trigger on condition changes
   }, [showWeeklyPlanning, loading, phase1, phase1Loading]);
 
   useEffect(() => {
@@ -243,6 +262,7 @@ export function useDirection(session: Session, onOpenActionCenter?: () => void) 
         .catch(err => console.error('Month recap failed:', err))
         .finally(() => setMonthRecapLoading(false));
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- actions is stable; effect should only trigger on condition changes
   }, [showMonthlyMode, loading, monthRecap, monthRecapLoading]);
 
   // ── Derived memos ───────────────────────────────────────────────────────

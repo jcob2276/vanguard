@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { getTodayWarsaw } from '../../../lib/date'
 import {
   fetchNutritionDayContext,
   isFoodLogClosed,
   setFoodLogClosed,
-  type NutritionDayContext,
 } from '../../../lib/health/nutritionContext'
 import NutritionTrainingBar from './NutritionTrainingBar'
 
@@ -18,25 +18,18 @@ export default function NutritionTrainingBarCard({
 }) {
   const userId = session.user.id
   const today = getTodayWarsaw()
-  const [ctx, setCtx] = useState<NutritionDayContext | null>(null)
-  const [loading, setLoading] = useState(true)
   const [logClosed, setLogClosed] = useState(() => isFoodLogClosed(userId, today))
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    try {
-      setCtx(await fetchNutritionDayContext(userId, today, session.access_token))
-    } finally {
-      setLoading(false)
-    }
-  }, [userId, today, session.access_token])
-
-  useEffect(() => { void (async () => { await refresh() })() }, [refresh, refreshSignal])
+  const ctxQuery = useQuery({
+    queryKey: ['nutrition-day-context', userId, today, refreshSignal],
+    queryFn: () => fetchNutritionDayContext(userId, today, session.access_token),
+    enabled: !!userId,
+  })
 
   return (
     <NutritionTrainingBar
-      ctx={ctx}
-      loading={loading}
+      ctx={ctxQuery.data ?? null}
+      loading={ctxQuery.isLoading}
       logClosed={logClosed}
       onToggleLogClosed={() => {
         const next = !logClosed

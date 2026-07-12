@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchUpcomingCheckpoints } from '../../../../lib/checkpoints';
 import { getTodayWarsaw, warsawDayBoundsISO } from '../../../../lib/date';
 import { getWeekStartWarsaw } from '../../../../lib/growth/growth';
@@ -61,18 +62,10 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
     [weekStartOverride]
   );
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<DirectionContextData | null>(null);
-
-  const reload = useCallback(async () => {
-    if (!userId) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
+  const { data, isLoading: loading, refetch } = useQuery<DirectionContextData | null>({
+    queryKey: ['direction-context', userId, weekStart],
+    queryFn: async () => {
+      if (!userId) return null;
       const weekEnd = getWeekEndExclusive(weekStart);
       const { fromISO: weekFromISO } = warsawDayBoundsISO(weekStart);
 
@@ -156,7 +149,7 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
 
       const powerListStats = computePowerListWeekStats(dailyWinsRes.data ?? []);
 
-      setData({
+      return {
         weekStart,
         weekGoals,
         weekGoalsMeta: {
@@ -179,20 +172,14 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
         weekCheckpointsDone: doneCpsRes.count ?? 0,
         weekCheckpointsDue: dueCpsRes.count ?? 0,
         skills,
-      });
-    } catch (e: unknown) {
-      console.error('[useDirectionContext]', e);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, weekStart]);
+      };
+    },
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    void (async () => {
-      await reload();
-    })();
-  }, [reload]);
+  const reload = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   useGoalSpineInvalidation(reload);
   const checkpoints = data?.checkpoints ?? EMPTY_CHECKPOINTS;
@@ -226,3 +213,4 @@ export function useDirectionContext(userId: string | undefined, weekStartOverrid
     [data, weekStart, checkpoints, loading, reload]
   );
 }
+

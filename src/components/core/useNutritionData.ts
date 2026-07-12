@@ -1,13 +1,22 @@
 import { notify } from '../../lib/notify';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { getTodayWarsaw, formatWarsawDate, shiftDateStr } from '../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import type { Database } from '../../lib/database.types';
 import { Session } from '@supabase/supabase-js';
 
 export type TodayEntry = Database['public']['Tables']['daily_food_entries']['Row'];
 export type DailyNutritionRow = Database['public']['Tables']['daily_nutrition']['Row'];
+
+const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+const MEAL_LABEL: Record<string, string> = {
+  breakfast: 'Śniadanie',
+  lunch: 'Obiad',
+  dinner: 'Kolacja',
+  snack: 'Przekąska',
+};
 
 export interface UseNutritionDataProps {
   session: Session;
@@ -19,115 +28,150 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
   const userId = session?.user?.id;
   const todayRaw = getTodayWarsaw();
   const haptics = useHaptics();
+  const queryClient = useQueryClient();
 
-  const [proteinGoal, setProteinGoal] = useState(150);
-  const [kcalTarget, setKcalTarget] = useState(1800);
-  const [weeklyBudget, setWeeklyBudget] = useState(12600);
-  const [rows, setRows] = useState<Pick<DailyNutritionRow, 'date' | 'protein' | 'calories' | 'food_quality_analysis' | 'insulin_load' | 'avg_food_quality'>[]>([]);
-  const [todayEntries, setTodayEntries] = useState<TodayEntry[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [forecast, setForecast] = useState<{
-    forecast_30d_weight_kg: number | null;
-    forecast_60d_weight_kg: number | null;
-    forecast_90d_weight_kg: number | null;
-    forecast_30d_bf_pct: number | null;
-    forecast_60d_bf_pct: number | null;
-    forecast_90d_bf_pct: number | null;
-    days_to_goal_est: number | null;
-    adaptive_correction_kcal: number | null;
-  } | null>(null);
-  const [forecastNote, setForecastNote] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined);
   const [activeChartTab, setActiveChartTab] = useState<'calories' | 'protein'>('calories');
 
-  const fetchRows = useCallback(async () => {
-    if (!userId) return;
-    try {
+  const query = useQuery({
+    queryKey: ['nutrition-data', userId, weeklyCalories],
+    queryFn: async () => {
+      if (!userId) return null;
       const since = shiftDateStr(todayRaw, -6);
-      const { data } = await supabase
-        .from('daily_nutrition')
-        .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
-        .eq('user_id', userId)
-        .gte('date', since)
-        .order('date', { ascending: true });
-      if (data) setRows(data);
-    } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch daily nutrition rows:', e); }
-  }, [userId, todayRaw]);
-
-  const fetchTodayEntries = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const { data } = await supabase
-        .from('daily_food_entries')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', todayRaw)
-        .order('logged_at', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true });
-      if (data) setTodayEntries(data);
-    } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch today\'s food entries:', e); }
-  }, [userId, todayRaw]);
-
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const { data: targetRow } = await supabase
+      const [targetRes, nutritionRes, entriesRes] = await Promise.all([
+        supabase
           .from('nutrition_targets')
           .select('target_kcal, protein_floor_g, verdict, forecast_30d_weight_kg, forecast_60d_weight_kg, forecast_90d_weight_kg, forecast_30d_bf_pct, forecast_60d_bf_pct, forecast_90d_bf_pct, days_to_goal_est, adaptive_correction_kcal')
           .eq('user_id', userId)
           .order('date', { ascending: false })
           .limit(1)
-          .maybeSingle();
-        if (targetRow?.target_kcal) {
-          setKcalTarget(targetRow.target_kcal);
-          setWeeklyBudget(targetRow.target_kcal * 7);
-        }
-        if (targetRow?.protein_floor_g) setProteinGoal(targetRow.protein_floor_g);
-        if (targetRow) {
-          setForecast({
-            forecast_30d_weight_kg: targetRow.forecast_30d_weight_kg,
-            forecast_60d_weight_kg: targetRow.forecast_60d_weight_kg,
-            forecast_90d_weight_kg: targetRow.forecast_90d_weight_kg,
-            forecast_30d_bf_pct: targetRow.forecast_30d_bf_pct,
-            forecast_60d_bf_pct: targetRow.forecast_60d_bf_pct,
-            forecast_90d_bf_pct: targetRow.forecast_90d_bf_pct,
-            days_to_goal_est: targetRow.days_to_goal_est,
-            adaptive_correction_kcal: targetRow.adaptive_correction_kcal,
-          });
-        }
-        const verdict = targetRow?.verdict;
-        const verdictObj = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
-          ? (verdict as Record<string, unknown>)
-          : undefined;
-        const suggestions = verdictObj?.food_suggestions;
-        if (Array.isArray(suggestions)) setAiSuggestions(suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3));
-        if (typeof verdictObj?.forecast_note === 'string') setForecastNote(verdictObj.forecast_note);
-      } catch (e: unknown) { console.warn('[NutritionData] Failed to fetch nutrition targets:', e); }
-    })();
-    void (async () => { await fetchRows(); })();
-    void (async () => { await fetchTodayEntries(); })();
-  }, [userId, fetchRows, fetchTodayEntries, refreshSignal]);
+          .maybeSingle(),
+        supabase
+          .from('daily_nutrition')
+          .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
+          .eq('user_id', userId)
+          .gte('date', since)
+          .order('date', { ascending: true }),
+        supabase
+          .from('daily_food_entries')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', todayRaw)
+          .order('logged_at', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: true }),
+      ]);
+
+      const targetRow = targetRes.data;
+      const rows = nutritionRes.data || [];
+      const todayEntries = entriesRes.data || [];
+
+      let proteinGoal = 150;
+      let kcalTarget = 1800;
+      let weeklyBudget = 12600;
+      let forecast = null;
+      let aiSuggestions: string[] = [];
+      let forecastNote: string | null = null;
+
+      if (targetRow?.target_kcal) {
+        kcalTarget = targetRow.target_kcal;
+        weeklyBudget = targetRow.target_kcal * 7;
+      }
+      if (targetRow?.protein_floor_g) {
+        proteinGoal = targetRow.protein_floor_g;
+      }
+      if (targetRow) {
+        forecast = {
+          forecast_30d_weight_kg: targetRow.forecast_30d_weight_kg,
+          forecast_60d_weight_kg: targetRow.forecast_60d_weight_kg,
+          forecast_90d_weight_kg: targetRow.forecast_90d_weight_kg,
+          forecast_30d_bf_pct: targetRow.forecast_30d_bf_pct,
+          forecast_60d_bf_pct: targetRow.forecast_60d_bf_pct,
+          forecast_90d_bf_pct: targetRow.forecast_90d_bf_pct,
+          days_to_goal_est: targetRow.days_to_goal_est,
+          adaptive_correction_kcal: targetRow.adaptive_correction_kcal,
+        };
+      }
+      const verdict = targetRow?.verdict;
+      const verdictObj = verdict && typeof verdict === 'object' && !Array.isArray(verdict)
+        ? (verdict as Record<string, unknown>)
+        : undefined;
+      const suggestions = verdictObj?.food_suggestions;
+      if (Array.isArray(suggestions)) {
+        aiSuggestions = suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3);
+      }
+      if (typeof verdictObj?.forecast_note === 'string') {
+        forecastNote = verdictObj.forecast_note;
+      }
+
+      return {
+        proteinGoal,
+        kcalTarget,
+        weeklyBudget,
+        rows,
+        todayEntries,
+        forecast,
+        aiSuggestions,
+        forecastNote,
+      };
+    },
+    enabled: !!userId,
+  });
+
+  useEffect(() => {
+    if (userId) {
+      void query.refetch();
+    }
+  }, [refreshSignal, userId, query]);
+
+  const proteinGoal = query.data?.proteinGoal ?? 150;
+  const kcalTarget = query.data?.kcalTarget ?? 1800;
+  const weeklyBudget = query.data?.weeklyBudget ?? 12600;
+  const rows = useMemo(() => query.data?.rows ?? [], [query.data?.rows]);
+  const todayEntries = useMemo(() => query.data?.todayEntries ?? [], [query.data?.todayEntries]);
+  const aiSuggestions = useMemo(() => query.data?.aiSuggestions ?? [], [query.data?.aiSuggestions]);
+  const forecast = query.data?.forecast ?? null;
+  const forecastNote = query.data?.forecastNote ?? null;
+  const loading = query.isLoading;
+
+  const fetchRows = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  const fetchTodayEntries = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
 
   const handleSaved = useCallback(() => {
-    void fetchRows();
-    void fetchTodayEntries();
-  }, [fetchRows, fetchTodayEntries]);
+    void query.refetch();
+  }, [query]);
 
-  const deleteEntry = useCallback(async (id: string) => {
-    if (!userId || deletingId) return;
-    haptics.light();
-    setDeletingId(id);
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!userId) throw new Error('User ID is required');
       const { error } = await supabase.rpc('remove_food_entry', { p_user_id: userId, p_entry_id: id });
       if (error) throw new Error(error.message);
-      await Promise.all([fetchRows(), fetchTodayEntries()]);
-    } catch (e: unknown) { notify('Nie udało się usunąć wpisu.', 'error'); console.warn('[NutritionData] Failed to delete food entry:', e); } finally {
+    },
+    onMutate: (id) => {
+      setDeletingId(id);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['nutrition-data', userId, weeklyCalories] });
+    },
+    onError: (e: unknown) => {
+      notify('Nie udało się usunąć wpisu.', 'error');
+      console.warn('[NutritionData] Failed to delete food entry:', e);
+    },
+    onSettled: () => {
       setDeletingId(null);
-    }
-  }, [userId, deletingId, fetchRows, fetchTodayEntries, haptics]);
+    },
+  });
+
+  const deleteEntry = useCallback(async (id: string) => {
+    haptics.light();
+    return deleteMutation.mutateAsync(id);
+  }, [deleteMutation, haptics]);
 
   const caloriesProgress = weeklyBudget > 0 ? Math.min((weeklyCalories / weeklyBudget) * 100, 100) : 0;
 
@@ -193,13 +237,6 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
   const todayAnalysisIsStale = !!todayAnalysisRow && todayAnalysisRow.key !== todayRaw;
 
   // Group today's entries by meal type
-  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-  const MEAL_LABEL: Record<string, string> = {
-    breakfast: 'Śniadanie',
-    lunch: 'Obiad',
-    dinner: 'Kolacja',
-    snack: 'Przekąska',
-  };
 
   const mealGroups = useMemo(() => {
     const map: Record<string, TodayEntry[]> = {};
@@ -263,5 +300,7 @@ export function useNutritionData({ session, weeklyCalories, refreshSignal }: Use
     todayAnalysisRow,
     mealGroups,
     mealGroupsWithEntries,
+    loading,
   };
 }
+

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { todoKeys } from '../../../lib/todo/todoApi';
 import { usePushNotifications } from '../../../hooks/usePushNotifications';
@@ -32,10 +32,20 @@ export function useTodoLifecycleEffects({
     return () => { supabase.removeChannel(channel); };
   }, [userId, queryClient]);
 
+  const { data: isSubscribed } = useQuery({
+    queryKey: ['todo-push-subscription', userId],
+    queryFn: async () => {
+      return push.isSubscribed();
+    },
+    enabled: !!userId,
+  });
+
   useEffect(() => {
-    push.isSubscribed().then(setPushSubscribed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (isSubscribed !== undefined) {
+      setPushSubscribed(isSubscribed);
+    }
+  }, [isSubscribed, setPushSubscribed]);
 
   useTodoKeyboard({ setExpandedId, setContextMenu });
 }
+

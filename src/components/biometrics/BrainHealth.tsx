@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -13,27 +13,19 @@ interface BrainHealthRow {
 
 export default function BrainHealth() {
   const userId = useUserId();
-  const [report, setReport] = useState<BrainHealthRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchReport = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const data = unwrapList(await supabase.rpc('get_brain_health_report', {
-        user_id_param: userId
-      }));
-      setReport(data);
-    } catch (err: unknown) {
-      console.warn('[BrainHealth] Failed to fetch brain health report:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const reportQuery = useQuery({
+    queryKey: ['brain-health', userId],
+    queryFn: async () => {
+      const res = await supabase.rpc('get_brain_health_report', { user_id_param: userId! });
+      return unwrapList(res) as BrainHealthRow[];
+    },
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    void (async () => { await fetchReport(); })();
-  }, [fetchReport]);
+  const report = reportQuery.data ?? [];
+  const loading = reportQuery.isLoading;
 
   if (!userId) return null;
 
@@ -43,8 +35,8 @@ export default function BrainHealth() {
         <h4 className="text-[10px] font-black text-text-primary uppercase tracking-widest flex items-center gap-2">
           <Brain size={14} className="text-primary" /> Vanguard Brain Health
         </h4>
-        <button 
-          onClick={fetchReport}
+        <button
+          onClick={() => void queryClient.invalidateQueries({ queryKey: ['brain-health', userId] })}
           className="text-[8px] font-black text-text-muted hover:text-text-primary uppercase tracking-widest transition-colors"
         >
           Odśwież
@@ -57,7 +49,7 @@ export default function BrainHealth() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          {report.map((row) => (
+          {report.map((row: BrainHealthRow) => (
             <div key={row.table_name} className="bg-surface border border-border-custom p-3.5 rounded-xl space-y-2">
               <div className="flex justify-between items-start">
                 <span className="text-[9px] font-black text-text-secondary uppercase tracking-tight">
@@ -71,7 +63,7 @@ export default function BrainHealth() {
                   <ShieldAlert size={11} className="text-red-500" />
                 )}
               </div>
-              
+
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-black text-text-primary italic font-display">{row.total_records}</span>
                 <span className="text-[8px] font-bold text-text-muted uppercase">rekordów</span>
@@ -85,7 +77,7 @@ export default function BrainHealth() {
                   </span>
                 </div>
                 <div className="w-full h-1 bg-text-primary/10 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full transition-all duration-1000 ${row.coverage_percent < 50 ? 'bg-red-500' : 'bg-primary'}`}
                     style={{ width: `${row.coverage_percent}%` }}
                   />

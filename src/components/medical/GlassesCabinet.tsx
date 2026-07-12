@@ -1,5 +1,6 @@
 import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { Plus } from 'lucide-react';
 import EmptyState from '../ui/EmptyState';
@@ -24,8 +25,7 @@ export type Prescription = {
 
 export default function GlassesCabinet() {
   const [user, setUser] = useState<User | null>(null);
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
@@ -34,27 +34,25 @@ export default function GlassesCabinet() {
     });
   }, []);
 
-  const loadPrescriptions = async () => {
-    if (!user) return;
-    try {
+  const prescriptionsQuery = useQuery({
+    queryKey: ['prescriptions', user?.id],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('endmyopia_prescriptions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .order('started_at', { ascending: false });
-
       if (error) throw error;
-      setPrescriptions((data || []) as Prescription[]);
-    } catch (error: unknown) {
-      console.warn('[GlassesCabinet] Failed to load prescriptions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data || []) as Prescription[];
+    },
+    enabled: !!user,
+  });
+
+  const prescriptions = prescriptionsQuery.data ?? [];
+  const loading = prescriptionsQuery.isLoading;
 
   const loadFromExcel = async () => {
     if (!user) return;
-    setLoading(true);
     try {
       const excelData = [
         { user_id: user.id, type: 'normalized', status: 'active', started_at: '2022-06-15', sphere_r: -2.75, cyl_r: null, axis_r: null, sphere_l: -4.25, cyl_l: -0.75, axis_l: 10, notes: 'PD 61mm' },
@@ -68,16 +66,12 @@ export default function GlassesCabinet() {
       const { error } = await supabase.from('endmyopia_prescriptions').insert(excelData);
       if (error) throw error;
       
-      await loadPrescriptions();
+      await prescriptionsQuery.refetch();
     } catch (error: unknown) {
       notify('Nie udało się zaimportować okularów.', 'error');
       console.warn('[GlassesCabinet] Failed to import from excel:', error);
     }
   };
-
-  useEffect(() => {
-    void (async () => { await loadPrescriptions(); })();
-  }, [user]);
 
   const activeNormalized = prescriptions.find((p) => p.status === 'active' && p.type === 'normalized');
   const activeDifferential = prescriptions.find((p) => p.status === 'active' && p.type === 'differential');
@@ -142,7 +136,7 @@ export default function GlassesCabinet() {
       )}
 
       {showAddForm && (
-        <AddPrescriptionModal onClose={() => setShowAddForm(false)} onSaved={loadPrescriptions} user={user} />
+        <AddPrescriptionModal onClose={() => setShowAddForm(false)} onSaved={() => void prescriptionsQuery.refetch()} user={user} />
       )}
     </div>
   );

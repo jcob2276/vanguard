@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useStore } from '../../../store/useStore';
 import { useDashboardData } from './useDashboardData';
@@ -164,24 +165,33 @@ export function useDashboardState(session: Session) {
   }, [openModal]);
 
   // View event tracking
+  const viewEventMutation = useMutation({
+    mutationFn: async (viewName: string) => {
+      if (!userId) return;
+      const { error } = await supabase.from('view_events').insert({ user_id: userId, view_name: viewName });
+      if (error) throw error;
+    }
+  });
+
   useEffect(() => {
-    if (!userId || !view) return;
-    supabase.from('view_events').insert({ user_id: userId, view_name: view })
-      .then(({ error }: { error: unknown }) => { if (error) console.error(error); });
-  }, [userId, view]);
+    if (userId && view) {
+      viewEventMutation.mutate(view);
+    }
+  }, [userId, view, viewEventMutation]);
 
   // Task review status
+  const { data: latestTaskReviewDate } = useQuery({
+    queryKey: ['latest-task-review-date', userId],
+    queryFn: () => fetchLatestTaskReviewDate(userId!),
+    enabled: !!userId,
+  });
+
   useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    fetchLatestTaskReviewDate(userId)
-      .then((date: string | null) => {
-        if (cancelled || !date) return;
-        setTaskReviewDoneThisWeek(getWeekStartWarsaw(date) === getWeekStartWarsaw(getTodayWarsaw()));
-      })
-      .catch((err: unknown) => console.error('Error fetching task review date:', err));
-    return () => { cancelled = true; };
-  }, [userId]);
+    if (latestTaskReviewDate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
+      setTaskReviewDoneThisWeek(getWeekStartWarsaw(latestTaskReviewDate) === getWeekStartWarsaw(getTodayWarsaw()));
+    }
+  }, [latestTaskReviewDate]);
 
   // Meal deep link
   useEffect(() => {

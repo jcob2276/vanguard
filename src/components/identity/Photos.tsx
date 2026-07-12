@@ -1,5 +1,6 @@
 import { getTodayWarsaw } from '../../lib/date';
-import { useCallback, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
@@ -11,43 +12,46 @@ import Spinner from '../ui/Spinner';
 
 export default function Photos() {
   const userId = useUserId();
-  const [loading, setLoading] = useState(true);
-  const [photos, setPhotos] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [photoDate, setPhotoDate] = useState(getTodayWarsaw());
-  
+
   // Selection logic for comparison
   const [baseId, setBaseId] = useState<string | null>(null);
   const [targetId, setTargetId] = useState<string | null>(null);
 
-  const fetchPhotos = useCallback(async () => {
-    if (!userId) return;
-    const { data } = await supabase
-      .from('progress_photos')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: true });
+  const photosQuery = useQuery({
+    queryKey: ['progress-photos', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('progress_photos')
+        .select('*')
+        .eq('user_id', userId!)
+        .order('date', { ascending: true });
+      return data ?? [];
+    },
+    enabled: !!userId,
+  });
 
-    if (data && data.length > 0) {
-      setPhotos(data);
-      // Domyślnie ustawiamy pierwsze i ostatnie
-      setBaseId(data[0].id);
-      setTargetId(data[data.length - 1].id);
-    }
-    setLoading(false);
-  }, [userId]);
+  const photos = photosQuery.data ?? [];
+  const loading = photosQuery.isLoading;
 
+  // Set default selection when photos load
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
-    void (async () => { await fetchPhotos(); })();
-  }, [fetchPhotos]);
+    if (photos.length > 0 && baseId === null) {
+      setBaseId(photos[0].id);
+      setTargetId(photos[photos.length - 1].id);
+    }
+  }, [photos, baseId]);
 
   if (!userId) return null;
 
   const basePhoto = photos.find(p => p.id === baseId);
   const targetPhoto = photos.find(p => p.id === targetId);
   
-  const daysDiff = (basePhoto && targetPhoto) 
-    ? Math.abs(differenceInDays(parseISO(targetPhoto.date), parseISO(basePhoto.date))) 
+  const daysDiff = (basePhoto && targetPhoto)
+    ? Math.abs(differenceInDays(parseISO(targetPhoto.date!), parseISO(basePhoto.date!))) 
     : 0;
 
   function handleSelect(id: string) {
@@ -100,7 +104,7 @@ export default function Photos() {
          date: occurredDate
       });
       if (insertErr) throw insertErr;
-      fetchPhotos();
+      void photosQuery.refetch();
     } catch (error: unknown) {
       notify('Błąd: ' + (error instanceof Error ? (error as Error).message : String(error)), 'error');
     } finally { setUploading(false); }
@@ -114,7 +118,7 @@ export default function Photos() {
     await supabase.storage.from('progress-photos').remove(paths);
     const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', userId!);
     if (delErr) { notify(delErr.message, 'error'); return; }
-    fetchPhotos();
+    void photosQuery.refetch();
   }
 
   if (loading) return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse">Wczytywanie Analizy Wizualnej...</div>;
@@ -182,7 +186,7 @@ export default function Photos() {
                 <>
                   <img src={basePhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 left-4 bg-surface/80 backdrop-blur-md px-3 py-1 rounded-full border border-border-custom shadow-sm">
-                    <p className="text-[9px] font-black text-text-secondary uppercase tracking-widest">Baza: {format(parseISO(basePhoto.date), 'dd.MM.yy')}</p>
+                    <p className="text-[9px] font-black text-text-secondary uppercase tracking-widest">Baza: {format(parseISO(basePhoto.date!), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
@@ -196,7 +200,7 @@ export default function Photos() {
                 <>
                   <img src={targetPhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 right-4 bg-primary/10 backdrop-blur-md px-3 py-1 rounded-full border border-primary/25">
-                    <p className="text-[9px] font-black text-primary uppercase tracking-widest">Cel: {format(parseISO(targetPhoto.date), 'dd.MM.yy')}</p>
+                    <p className="text-[9px] font-black text-primary uppercase tracking-widest">Cel: {format(parseISO(targetPhoto.date!), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
@@ -250,7 +254,7 @@ export default function Photos() {
                 </button>
                 <div className="flex justify-between items-center px-0.5">
                   <span className={`text-[9px] font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
-                    {format(parseISO(photo.date), 'dd.MM')}
+                    {format(parseISO(photo.date!), 'dd.MM')}
                   </span>
                   <button onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded-lg hover:bg-rose-500/5 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
                     <Trash2 size={11} />

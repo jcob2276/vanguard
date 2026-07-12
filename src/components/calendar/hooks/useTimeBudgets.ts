@@ -1,67 +1,77 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import type { Database } from '../../../lib/database.types';
 
 export type TimeBudget = Database['public']['Tables']['vanguard_time_budgets']['Row'];
 
 export function useTimeBudgets(userId: string) {
-  const [budgets, setBudgets] = useState<TimeBudget[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchBudgets = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
+  const query = useQuery<TimeBudget[]>({
+    queryKey: ['time-budgets', userId],
+    queryFn: async () => {
+      if (!userId) return [];
       const { data, error } = await supabase
         .from('vanguard_time_budgets')
         .select('*')
         .eq('user_id', userId);
 
       if (error) throw error;
-      setBudgets(data || []);
-    } catch (err: unknown) {
-      console.warn('[useTimeBudgets] Failed to fetch time budgets:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+      return data || [];
+    },
+    enabled: !!userId,
+  });
 
-  const saveBudget = useCallback(async (category: string, minHours: number | null, maxHours: number | null) => {
-    if (!userId) return;
-    try {
+  const budgets = query.data || [];
+  const loading = query.isLoading;
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      category,
+      minHours,
+      maxHours,
+    }: {
+      category: string;
+      minHours: number | null;
+      maxHours: number | null;
+    }) => {
+      if (!userId) throw new Error('User ID is required');
       const { data, error } = await supabase
         .from('vanguard_time_budgets')
-        .upsert({
-          user_id: userId,
-          category,
-          min_hours: minHours,
-          max_hours: maxHours,
-        }, {
-          onConflict: 'user_id,category'
-        })
+        .upsert(
+          {
+            user_id: userId,
+            category,
+            min_hours: minHours,
+            max_hours: maxHours,
+          },
+          {
+            onConflict: 'user_id,category',
+          }
+        )
         .select();
 
       if (error) throw error;
-      
-      setBudgets(prev => {
-        const index = prev.findIndex(b => b.category === category);
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index] = data[0];
-          return updated;
-        } else {
-          return [...prev, data[0]];
-        }
-      });
-    } catch (err: unknown) {
-      console.error('Error saving time budget:', err);
-      throw err;
-    }
-  }, [userId]);
+      if (!data || data.length === 0) throw new Error('Failed to upsert budget');
+      return data[0];
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['time-budgets', userId] });
+    },
+  });
 
-  useEffect(() => {
-    void (async () => { await fetchBudgets(); })();
-  }, [fetchBudgets]);
+  const saveBudget = useCallback(
+    async (category: string, minHours: number | null, maxHours: number | null) => {
+      return mutation.mutateAsync({ category, minHours, maxHours });
+    },
+    [mutation]
+  );
 
-  return { budgets, loading, saveBudget, refresh: fetchBudgets };
+  const refresh = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  return { budgets, loading, saveBudget, refresh };
 }
+

@@ -1,31 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp, Moon, Apple, Award, Zap } from 'lucide-react';
-import { notify } from '../../../lib/notify';
-import { fetchSystemHealthData, type AuditEvent, type DataCoverage } from '../../../lib/systemApi';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp, Moon, Apple, Award, Zap, Target, TrendingUp } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { fetchSystemHealthData } from '../../../lib/systemApi';
 
 export default function SystemHealth({ userId }: { userId: string }) {
-  const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [coverage, setCoverage] = useState<DataCoverage | null>(null);
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchSystemHealthData(userId);
-      setEvents(data.events);
-      setCoverage(data.coverage);
-    } catch (err: unknown) {
-      console.error('[Health Error]', err);
-      notify('Nie udało się pobrać danych diagnostycznych systemu', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const healthQuery = useQuery({
+    queryKey: ['system-health', userId],
+    queryFn: () => fetchSystemHealthData(userId),
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    void (async () => { await fetchLogs(); })();
-  }, [fetchLogs]);
+  const events = healthQuery.data?.events ?? [];
+  const coverage = healthQuery.data?.coverage ?? null;
+  const loading = healthQuery.isLoading;
 
   const getSeverityIcon = (sev: string) => {
     switch (sev) {
@@ -132,6 +122,88 @@ export default function SystemHealth({ userId }: { userId: string }) {
 
       <div className="h-px bg-border-custom/60" />
 
+      {/* Prediction Calibration */}
+      {healthQuery.data && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+              <Target className="text-indigo-500" size={18} />
+              Kalibracja Modelu (Prediction Accuracy)
+            </h2>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Średni błąd bezwzględny (MAE) prognoz parametrów dobowych (łącznie {healthQuery.data.calibrationSummary.total_resolved} prognoz).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
+              <span className="text-[18px] font-black text-indigo-500">
+                {healthQuery.data.calibrationSummary.sleep_mae !== null
+                  ? `±${healthQuery.data.calibrationSummary.sleep_mae} h`
+                  : 'brak'}
+              </span>
+              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) snu</span>
+            </div>
+
+            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
+              <span className="text-[18px] font-black text-indigo-500">
+                {healthQuery.data.calibrationSummary.readiness_mae !== null
+                  ? `±${healthQuery.data.calibrationSummary.readiness_mae} pkt`
+                  : 'brak'}
+              </span>
+              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
+            </div>
+
+            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
+              <span className="text-[18px] font-black text-indigo-500">
+                {healthQuery.data.calibrationSummary.execution_mae !== null
+                  ? `±${healthQuery.data.calibrationSummary.execution_mae}%`
+                  : 'brak'}
+              </span>
+              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) zadań</span>
+            </div>
+          </div>
+
+          {healthQuery.data.calibrationHistory.length > 0 && (
+            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                  <TrendingUp size={12} className="text-emerald-500" />
+                  Trend błędu predykcji
+                </span>
+                <span className="text-[9px] text-text-muted">Chronologicznie</span>
+              </div>
+              <div className="h-[200px] w-full text-[10px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={healthQuery.data.calibrationHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100 dark:stroke-white/[0.04]" />
+                    <XAxis dataKey="date" stroke="currentColor" className="text-text-muted" fontSize={9} tickLine={false} />
+                    <YAxis stroke="currentColor" className="text-text-muted" fontSize={9} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--color-bg-surface, #1e293b)',
+                        borderColor: 'var(--color-border-custom, #334155)',
+                        fontSize: '11px',
+                        borderRadius: '12px'
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Line type="monotone" name="Błąd Snu (h)" dataKey="sleep_error" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" name="Błąd Gotowości" dataKey="readiness_error" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" name="Błąd Wykonania (%)" dataKey="execution_error" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="h-px bg-border-custom/60" />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
@@ -141,7 +213,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
           <p className="text-[11px] text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
         </div>
         <button
-          onClick={fetchLogs}
+          onClick={() => void healthQuery.refetch()}
           disabled={loading}
           className="btn-press flex items-center gap-1.5 bg-surface border border-border-custom/80 px-3.5 py-2 rounded-xl text-[11px] font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
         >

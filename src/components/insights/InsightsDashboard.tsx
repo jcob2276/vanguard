@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 import { UserStatsOverviewCard } from './UserStatsOverviewCard';
 import { InsightCard } from './InsightCard';
@@ -17,27 +18,25 @@ import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
 import { useUserId } from '../../store/useStore';
 
+const insightCardsKeys = {
+  all: ['insight-cards'] as const,
+  list: (userId: string) => [...insightCardsKeys.all, userId] as const,
+};
+
 export function InsightsDashboard() {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(userId!);
-  const [cards, setCards] = useState<InsightCardData[]>([]);
-  const [cardsLoading, setCardsLoading] = useState(true);
   const [detailCard, setDetailCard] = useState<InsightCardData | null>(null);
 
-  const fetchCards = useCallback(async () => {
-    if (!userId) return;
-    setCardsLoading(true);
-    try {
-      const data = await fetchInsightCards(userId);
-      setCards(data);
-    } catch (err) {
-      console.error('[fetchCards]', err);
-    } finally {
-      setCardsLoading(false);
-    }
-  }, [userId]);
+  const cardsQuery = useQuery({
+    queryKey: insightCardsKeys.list(userId ?? ''),
+    queryFn: () => fetchInsightCards(userId!),
+    enabled: !!userId,
+  });
 
-  useEffect(() => { void (async () => { await fetchCards(); })(); }, [fetchCards]);
+  const cards = cardsQuery.data ?? [];
+  const cardsLoading = cardsQuery.isLoading;
 
   const activityTrend = useMemo(() => {
     if (!snapshot?.daily?.length) return null;
@@ -57,19 +56,24 @@ export function InsightsDashboard() {
     return { points, color: '#10B981' };
   }, [snapshot]);
 
+  const invalidate = useCallback(() => {
+    if (!userId) return;
+    void queryClient.invalidateQueries({ queryKey: insightCardsKeys.list(userId) });
+  }, [queryClient, userId]);
+
   const handlePin = useCallback(async (id: string) => {
     if (!userId) return;
     const card = cards.find(c => c.id === id);
     if (!card) return;
     try {
       await pinInsightCard(id, !card.isPinned);
-      fetchCards();
+      invalidate();
       notify('Zmieniono status przypięcia.', 'success');
     } catch (err) {
       console.error('[handlePin]', err);
       notify('Nie udało się zmienić przypięcia karty.', 'error');
     }
-  }, [cards, fetchCards, userId]);
+  }, [cards, invalidate, userId]);
 
   const handleSort = useCallback(async (id: string) => {
     if (!userId) return;
@@ -78,24 +82,26 @@ export function InsightsDashboard() {
     const newOrder = card.sortOrder > 0 ? card.sortOrder - 1 : 0;
     try {
       await sortInsightCard(id, newOrder);
-      fetchCards();
+      invalidate();
     } catch (err) {
       console.error('[handleSort]', err);
       notify('Nie udało się zmienić kolejności karty.', 'error');
     }
-  }, [cards, fetchCards, userId]);
+  }, [cards, invalidate, userId]);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteInsightCard(id);
-      setCards(prev => prev.filter(c => c.id !== id));
+      queryClient.setQueryData<InsightCardData[]>(insightCardsKeys.list(userId ?? ''), (prev) =>
+        (prev ?? []).filter(c => c.id !== id)
+      );
       if (detailCard?.id === id) setDetailCard(null);
       notify('Karta została usunięta.', 'success');
     } catch (err) {
       console.error('[handleDelete]', err);
       notify('Nie udało się usunąć karty.', 'error');
     }
-  }, [detailCard]);
+  }, [detailCard, queryClient, userId]);
 
   if (!userId) return null;
 

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { notify, confirmDialog } from '../../../lib/notify';
 import { convertLinkToKeepNote, convertLinkToTodoItem } from '../../../lib/behavior/captureBridge';
@@ -16,16 +17,21 @@ import {
   type TriageSuggestion,
 } from '../../../lib/linksApi';
 
+export const linksKeys = {
+  all: ['links-inbox'] as const,
+  list: (userId: string) => [...linksKeys.all, userId] as const,
+};
+
 export function useLinksInboxData(session: Session, haptic: (pattern: number | number[]) => void) {
-  const [links, setLinks] = useState<SavedLink[]>([]);
-  const [loading, setLoading] = useState(true);
+  const userId = session.user.id;
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
-  const [notesDrafts, setNotesDrafts] = usePersistentDraft<Record<string, string>>(`vanguard_link_notes_drafts_${session.user.id}`, {});
+  const [notesDrafts, setNotesDrafts] = usePersistentDraft<Record<string, string>>(`vanguard_link_notes_drafts_${userId}`, {});
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
-  const [addUrl, setAddUrl] = usePersistentDraft(`vanguard_link_add_url_draft_${session.user.id}`, '');
+  const [addUrl, setAddUrl] = usePersistentDraft(`vanguard_link_add_url_draft_${userId}`, '');
   const [showAddForm, setShowAddForm] = useState(() => Boolean(addUrl.trim()));
   const [addLoading, setAddLoading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -37,21 +43,19 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
   const [triageSuggestions, setTriageSuggestions] = useState<TriageSuggestion[]>([]);
   const [showTriagePanel, setShowTriagePanel] = useState(false);
 
-  const fetchLinks = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetchLinks(supabase, session.user.id);
-      setLinks(data);
-    } catch (err: unknown) {
-      console.error('[LinksInbox] fetchLinks failed:', err);
-      notify('Nie udało się załadować linków.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [session.user.id]);
+  const linksQuery = useQuery({
+    queryKey: linksKeys.list(userId),
+    queryFn: () => apiFetchLinks(supabase, userId),
+  });
+
+  const links = linksQuery.data ?? [];
+  const loading = linksQuery.isLoading;
+
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: linksKeys.list(userId) });
+  }, [queryClient, userId]);
 
   const saveSharedLink = useCallback(async (actualUrl: string) => {
-    setLoading(true);
     setSharingStatus('Zapisywanie udostępnionego linku...');
     try {
       await apiSaveSharedLink(actualUrl);
@@ -62,9 +66,9 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
       notify(`Błąd zapisu linku: ${(err as Error).message}`, 'error');
       setSharingStatus(null);
     } finally {
-      fetchLinks();
+      invalidate();
     }
-  }, [fetchLinks]);
+  }, [invalidate]);
 
   const handleAddLink = async () => {
     const raw = addUrl.trim();
@@ -75,7 +79,7 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
       await apiAddNewLink(urlMatch[0]);
       setAddUrl('');
       setShowAddForm(false);
-      await fetchLinks();
+      invalidate();
     } catch (err: unknown) {
       notify(`Błąd: ${(err as Error).message}`, 'error');
     } finally {
@@ -83,29 +87,31 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate side effect on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlCandidate = params.get('share_url') || params.get('share_text') || '';
     const match = urlCandidate.match(/https?:\/\/[^\s]+/);
     if (match) {
       window.history.replaceState({}, document.title, '/');
-      void (async () => { await saveSharedLink(match[0]); })();
-    } else {
-      void (async () => { await fetchLinks(); })();
+      void saveSharedLink(match[0]);
     }
-  }, [fetchLinks, saveSharedLink]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
 
   const toggleReadStatus = async (id: string, current: 'unread' | 'read') => {
     haptic(current === 'unread' ? [8, 20, 8] : [5]);
     const next = current === 'unread' ? 'read' : 'unread';
     setBouncingIds(prev => new Set([...prev, id]));
     setTimeout(() => setBouncingIds(prev => { const n = new Set(prev); n.delete(id); return n; }), 400);
-    setLinks(prev => prev.map(l => l.id === id ? { ...l, status: next } : l));
+    // Optimistic update
+    queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+      (prev ?? []).map(l => l.id === id ? { ...l, status: next } : l)
+    );
     try {
       await apiUpdateLinkTriage(supabase, id, { status: next });
     } catch (err) {
       console.error('[LinksInbox] toggleReadStatus failed:', err);
-      fetchLinks();
+      invalidate();
     }
   };
 
@@ -116,7 +122,9 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     if (!link || draft === (link.notes ?? '')) return;
     try {
       await apiUpdateLinkNotes(supabase, id, draft);
-      setLinks(prev => prev.map(l => l.id === id ? { ...l, notes: draft } : l));
+      queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+        (prev ?? []).map(l => l.id === id ? { ...l, notes: draft } : l)
+      );
       setSavedNoteId(id);
       setTimeout(() => setSavedNoteId(null), 1800);
     } catch (err) {
@@ -131,7 +139,9 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     haptic([12, 50, 18]);
     setDeletingIds(prev => new Set([...prev, id]));
     setTimeout(async () => {
-      setLinks(prev => prev.filter(l => l.id !== id));
+      queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+        (prev ?? []).filter(l => l.id !== id)
+      );
       setDeletingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
       try {
         await apiDeleteLink(supabase, id);
@@ -144,7 +154,9 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
   const updateLinkCategory = async (id: string, newCategory: string) => {
     try {
       await apiUpdateLinkTriage(supabase, id, { category: newCategory });
-      setLinks(prev => prev.map(l => l.id === id ? { ...l, category: newCategory } : l));
+      queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+        (prev ?? []).map(l => l.id === id ? { ...l, category: newCategory } : l)
+      );
     } catch (err: unknown) {
       console.error('[Action Error]', err);
       notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
@@ -154,8 +166,10 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
   const handleLinkToTodo = async (link: SavedLink) => {
     setConvertingLinkId(link.id);
     try {
-      await convertLinkToTodoItem(session.user.id, link);
-      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
+      await convertLinkToTodoItem(userId, link);
+      queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+        (prev ?? []).map(l => l.id === link.id ? { ...l, status: 'read' as const } : l)
+      );
       notify('Dodano do zadań', 'success');
     } catch (err: unknown) {
       notify((err as Error).message || 'Nie udało się dodać do zadań', 'error');
@@ -167,8 +181,10 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
   const handleLinkToNote = async (link: SavedLink) => {
     setConvertingLinkId(link.id);
     try {
-      await convertLinkToKeepNote(session.user.id, link);
-      setLinks(prev => prev.map(l => l.id === link.id ? { ...l, status: 'read' as const } : l));
+      await convertLinkToKeepNote(userId, link);
+      queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+        (prev ?? []).map(l => l.id === link.id ? { ...l, status: 'read' as const } : l)
+      );
       notify('Zapisano w notatkach', 'success');
     } catch (err: unknown) {
       notify((err as Error).message || 'Nie udało się zapisać notatki', 'error');
@@ -181,7 +197,7 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     setTriageLoading(true);
     setShowTriagePanel(true);
     try {
-      const suggestions = await apiFetchTriageSuggestions(session.user.id);
+      const suggestions = await apiFetchTriageSuggestions(userId);
       setTriageSuggestions(suggestions);
     } catch (err: unknown) {
       console.error('[Triage Error]', err);
@@ -199,15 +215,21 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
 
       if (action === 'archive') {
         await apiUpdateLinkTriage(supabase, id, { status: 'read' });
-        setLinks(prev => prev.filter(l => l.id !== id));
+        queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+          (prev ?? []).filter(l => l.id !== id)
+        );
         notify('Oznaczono jako przeczytany', 'success');
       } else if (action === 'todo') {
-        await convertLinkToTodoItem(session.user.id, link);
-        setLinks(prev => prev.filter(l => l.id !== id));
+        await convertLinkToTodoItem(userId, link);
+        queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+          (prev ?? []).filter(l => l.id !== id)
+        );
         notify('Dodano do zadań', 'success');
       } else {
         await apiUpdateLinkTriage(supabase, id, { category, takeaways });
-        setLinks(prev => prev.map(l => l.id === id ? { ...l, category, takeaways } : l));
+        queryClient.setQueryData<SavedLink[]>(linksKeys.list(userId), (prev) =>
+          (prev ?? []).map(l => l.id === id ? { ...l, category, takeaways } : l)
+        );
         notify('Zaktualizowano dane linku', 'success');
       }
       setTriageSuggestions(prev => prev.filter(s => s.id !== id));
@@ -216,7 +238,7 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
     }
   };
 
-  const filteredLinks = links.filter(link => {
+  const filteredLinks = useMemo(() => links.filter(link => {
     const matchesStatus = statusFilter === 'all' || link.status === statusFilter;
     const matchesCategory = !categoryFilter || link.category === categoryFilter;
     const q = search.toLowerCase().trim();
@@ -226,61 +248,34 @@ export function useLinksInboxData(session: Session, haptic: (pattern: number | n
       (link.domain || '').toLowerCase().includes(q) ||
       (link.category || '').toLowerCase().includes(q);
     return matchesStatus && matchesCategory && matchesSearch;
-  });
+  }), [links, statusFilter, categoryFilter, search]);
 
-  const unreadCount = links.filter(l => l.status === 'unread').length;
+  const unreadCount = useMemo(() => links.filter(l => l.status === 'unread').length, [links]);
 
   return {
-    // Data
     links,
     loading,
     filteredLinks,
     unreadCount,
-    // Filters
-    statusFilter,
-    setStatusFilter,
-    categoryFilter,
-    setCategoryFilter,
-    search,
-    setSearch,
-    viewMode,
-    setViewMode,
-    // Expanded state
-    expandedLinkId,
-    setExpandedLinkId,
-    // Sharing
+    statusFilter, setStatusFilter,
+    categoryFilter, setCategoryFilter,
+    search, setSearch,
+    viewMode, setViewMode,
+    expandedLinkId, setExpandedLinkId,
     sharingStatus,
-    // Add form
-    addUrl,
-    setAddUrl,
-    showAddForm,
-    setShowAddForm,
-    addLoading,
-    handleAddLink,
-    // Notes
-    notesDrafts,
-    setNotesDrafts,
-    savedNoteId,
-    saveNotes,
-    // Delete
-    deletingIds,
-    deleteLink,
-    // Bounce animation
+    addUrl, setAddUrl,
+    showAddForm, setShowAddForm,
+    addLoading, handleAddLink,
+    notesDrafts, setNotesDrafts,
+    savedNoteId, saveNotes,
+    deletingIds, deleteLink,
     bouncingIds,
-    // Read toggle
     toggleReadStatus,
-    // Convert
     convertingLinkId,
-    handleLinkToTodo,
-    handleLinkToNote,
+    handleLinkToTodo, handleLinkToNote,
     updateLinkCategory,
-    // Triage
-    triageLoading,
-    triageSuggestions,
-    setTriageSuggestions,
-    showTriagePanel,
-    setShowTriagePanel,
-    handleAiTriage,
-    applyTriageSuggestion,
+    triageLoading, triageSuggestions, setTriageSuggestions,
+    showTriagePanel, setShowTriagePanel,
+    handleAiTriage, applyTriageSuggestion,
   };
 }

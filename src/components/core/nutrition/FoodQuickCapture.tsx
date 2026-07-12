@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { notify } from '../../../lib/notify'
@@ -69,82 +70,71 @@ export default function FoodQuickCapture({
   const [removed, setRemoved] = useState<Set<number>>(new Set())
   const [yesterdayEntries, setYesterdayEntries] = useState<any[]>([])
 
-  const refreshContext = useCallback(async () => {
-    const ctx = await fetchNutritionDayContext(userId, logDate, session.access_token)
-    setTotals({
-      calories: ctx.calories,
-      protein: ctx.protein,
-      targetKcal: ctx.targetKcal,
-      targetProtein: ctx.targetProtein,
-      avgFoodQuality: ctx.avgFoodQuality,
-      foodQualityAnalysis: ctx.foodQualityAnalysis,
-    })
-  }, [userId, logDate, session.access_token])
+  const queryClient = useQueryClient()
+
+  const contextQuery = useQuery({
+    queryKey: ['nutrition-context', userId, logDate, refreshSignal],
+    queryFn: () => fetchNutritionDayContext(userId, logDate, session.access_token),
+    enabled: !!userId,
+  })
+
+  // Sync query result → local totals state
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
+  useEffect(() => {
+    const ctx = contextQuery.data
+    if (ctx) {
+      setTotals({
+        calories: ctx.calories,
+        protein: ctx.protein,
+        targetKcal: ctx.targetKcal,
+        targetProtein: ctx.targetProtein,
+        avgFoodQuality: ctx.avgFoodQuality,
+        foodQualityAnalysis: ctx.foodQualityAnalysis,
+      })
+    }
+  }, [contextQuery.data])
 
   const bumpQualityRefresh = useCallback(() => {
     setQualityPending(true)
-    window.setTimeout(() => { void refreshContext().then(() => setQualityPending(false)) }, 8000)
-  }, [refreshContext])
+    window.setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: ['nutrition-context', userId, logDate] }).then(() => setQualityPending(false))
+    }, 8000)
+  }, [queryClient, userId, logDate])
 
-  const loadYesterdayEntries = useCallback(async () => {
-    const todayStr = getTodayWarsaw()
+  const yesterdayQuery = useQuery({
+    queryKey: ['yesterday-entries', userId, mealType],
+    queryFn: async () => {
+      const todayStr = getTodayWarsaw()
+      await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token ?? '',
+      })
+      const { data: dateData } = await supabase
+        .from('daily_food_entries')
+        .select('date')
+        .eq('user_id', userId)
+        .eq('meal_type', mealType)
+        .lt('date', todayStr)
+        .order('date', { ascending: false })
+        .limit(1)
+      if (!dateData || dateData.length === 0) return []
+      const targetDate = dateData[0].date
+      const { data } = await supabase
+        .from('daily_food_entries')
+        .select('id, name, brand, calories, protein, carbs, fat, fiber, sugar, amount, date')
+        .eq('user_id', userId)
+        .eq('date', targetDate)
+        .eq('meal_type', mealType)
+        .order('logged_at', { ascending: true })
+      return data ?? []
+    },
+    enabled: !!userId,
+  })
 
-    // Ensure supabase client has the current session
-    await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token ?? '',
-    })
-
-    // 1. Get the most recent date before today that has entries for this meal_type
-    const { data: dateData, error: dateError } = await supabase
-      .from('daily_food_entries')
-      .select('date')
-      .eq('user_id', userId)
-      .eq('meal_type', mealType)
-      .lt('date', todayStr)
-      .order('date', { ascending: false })
-      .limit(1)
-
-    if (dateError) {
-      console.error('[loadYesterdayEntries] dateError:', dateError)
-      setYesterdayEntries([])
-      return
-    }
-    if (!dateData || dateData.length === 0) {
-      console.log('[loadYesterdayEntries] no previous entries for meal_type:', mealType)
-      setYesterdayEntries([])
-      return
-    }
-
-    const targetDate = dateData[0].date
-    console.log('[loadYesterdayEntries] targetDate:', targetDate, 'mealType:', mealType)
-
-    // 2. Fetch all entries for that target date and meal_type
-    const { data, error } = await supabase
-      .from('daily_food_entries')
-      .select('id, name, brand, calories, protein, carbs, fat, fiber, sugar, amount, date')
-      .eq('user_id', userId)
-      .eq('date', targetDate)
-      .eq('meal_type', mealType)
-      .order('logged_at', { ascending: true })
-
-    if (error) {
-      console.error('[loadYesterdayEntries] fetchError:', error)
-      setYesterdayEntries([])
-    } else {
-      console.log('[loadYesterdayEntries] found entries:', data?.length)
-      setYesterdayEntries(data ?? [])
-    }
-  }, [userId, mealType, session.access_token, session.refresh_token])
-
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
   useEffect(() => {
-    void (async () => { await refreshContext() })()
-    void (async () => { await loadYesterdayEntries() })()
-  }, [refreshContext, loadYesterdayEntries, refreshSignal])
-
-  useEffect(() => {
-    void (async () => { await refreshContext() })()
-  }, [logDate, refreshContext])
+    if (yesterdayQuery.data) setYesterdayEntries(yesterdayQuery.data)
+  }, [yesterdayQuery.data])
 
   useEffect(() => {
     try {
@@ -169,7 +159,7 @@ export default function FoodQuickCapture({
       if (!needsReview(items)) {
         await saveParsedFoodItems(userId, items, { date: logDate, mealType })
         setText('')
-        await refreshContext()
+        await contextQuery.refetch()
         bumpQualityRefresh()
         onSaved?.()
         notify(`Zapisano ${items.length} pozycji`, 'success')
@@ -191,7 +181,7 @@ export default function FoodQuickCapture({
       setText('')
       setPreview(null)
       setRemoved(new Set())
-      await refreshContext()
+      await contextQuery.refetch()
       bumpQualityRefresh()
       onSaved?.()
       notify(`Zapisano ${activePreview.length} pozycji`, 'success')
@@ -207,7 +197,7 @@ export default function FoodQuickCapture({
     setSaving(true)
     try {
       await quickAddFavorite(userId, fav, logDate, mealType)
-      await refreshContext()
+      await contextQuery.refetch()
       bumpQualityRefresh()
       onSaved?.()
       notify(fav.name, 'success')
@@ -228,7 +218,7 @@ export default function FoodQuickCapture({
         p_date: logDate,
       })
       if (error) throw error
-      await refreshContext()
+      await contextQuery.refetch()
       bumpQualityRefresh()
       onSaved?.()
       notify(`Dodano: ${entry.name}`, 'success')

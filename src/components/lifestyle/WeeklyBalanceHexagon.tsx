@@ -1,5 +1,6 @@
 import { notify } from '../../lib/notify';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import {
   LIFE_SPHERES,
@@ -47,21 +48,17 @@ function polygonPoints(values: number[], scale: number) {
  * budget bars use, so the two views can never drift apart.
  */
 export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
   const [weekStart, setWeekStart] = useState(() => getWeekStartWarsaw(getTodayWarsaw()));
-  const [budgets, setBudgets] = useState<Record<LifeSphereId, BudgetBounds>>(emptyBudgetMap());
-  const [actuals, setActuals] = useState<SphereHours | null>(null);
-  const [tasks, setTasks] = useState<TodoItemRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingSphere, setEditingSphere] = useState<LifeSphereId | null>(null);
   const [draftHours, setDraftHours] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
+  const dataQuery = useQuery({
+    queryKey: ['weekly-balance-hexagon', userId, weekStart],
+    queryFn: async () => {
       const [budgetRows, actualHours, items] = await Promise.all([
         fetchSphereBudgets(userId),
         fetchWeeklySphereActuals(userId, weekStart),
@@ -71,15 +68,19 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       budgetRows.forEach((b) => {
         if (b.category in map) map[b.category as LifeSphereId] = { min: b.min_hours, max: b.max_hours };
       });
-      setBudgets(map);
-      setActuals(actualHours);
-      setTasks(items.filter((t) => t.status === 'open' && t.is_important));
-    } catch (err: unknown) { console.warn('[WeeklyBalanceHexagon] Failed to load budgets and actuals:', err); } finally {
-      setLoading(false);
-    }
-  }, [userId, weekStart]);
+      return { budgets: map, actuals: actualHours, tasks: items.filter((t) => t.status === 'open' && t.is_important) };
+    },
+    enabled: !!userId,
+  });
 
-  useEffect(() => { void (async () => { await load(); })(); }, [load]);
+  const budgets = dataQuery.data?.budgets ?? emptyBudgetMap();
+  const actuals = dataQuery.data?.actuals ?? null;
+  const tasks = dataQuery.data?.tasks ?? [];
+  const loading = dataQuery.isLoading;
+
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['weekly-balance-hexagon', userId, weekStart] });
+  }, [queryClient, userId, weekStart]);
 
   const targetFor = (sphere: LifeSphereId) => budgets[sphere]?.max ?? budgets[sphere]?.min ?? 0;
 
@@ -109,7 +110,13 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
       const hours = draftHours.trim() === '' ? null : Number(draftHours);
       const currentMin = budgets[editingSphere]?.min ?? null;
       await saveSphereBudget(userId, editingSphere, currentMin, hours);
-      setBudgets((prev) => ({ ...prev, [editingSphere]: { min: currentMin, max: hours } }));
+      queryClient.setQueryData(
+        ['weekly-balance-hexagon', userId, weekStart],
+        (old: { budgets: Record<LifeSphereId, BudgetBounds>; actuals: SphereHours | null; tasks: TodoItemRow[] } | undefined) => {
+          if (!old) return old;
+          return { ...old, budgets: { ...old.budgets, [editingSphere]: { min: currentMin, max: hours } } };
+        }
+      );
       setEditingSphere(null);
     } catch (err: unknown) { notify('Nie udało się zapisać budżetu.', 'error'); console.warn('[WeeklyBalanceHexagon] Failed to save sphere budget:', err); } finally {
       setSaving(false);
@@ -120,7 +127,13 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
     if (!selectedTaskId || assigning) return;
     setAssigning(true);
     const taskId = selectedTaskId;
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, category: sphere } : t)));
+    queryClient.setQueryData(
+      ['weekly-balance-hexagon', userId, weekStart],
+      (old: { budgets: Record<LifeSphereId, BudgetBounds>; actuals: SphereHours | null; tasks: TodoItemRow[] } | undefined) => {
+        if (!old) return old;
+        return { ...old, tasks: old.tasks.map((t) => (t.id === taskId ? { ...t, category: sphere } : t)) };
+      }
+    );
     try {
       await updateTodoItem(taskId, { category: sphere });
     } catch (err: unknown) { notify('Nie udało się przypisać zadania do obszaru.', 'error'); console.warn('[WeeklyBalanceHexagon] Failed to update todo category:', err); } finally {

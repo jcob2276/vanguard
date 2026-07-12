@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useStore, useUserId } from '../../../store/useStore';
 import type { Tables, TablesInsert } from '../../../lib/database.types';
@@ -39,8 +39,6 @@ export function useStatsData() {
     from: shiftDateStr(getTodayWarsaw(), -7),
     to: getTodayWarsaw()
   });
-  const [isExporting, setIsExporting] = useState(false);
-  const [isExportingOura, setIsExportingOura] = useState(false);
   const [includeNutrition, setIncludeNutrition] = useState(true);
   const [includeJournal, setIncludeJournal] = useState(true);
   const [includeOura, setIncludeOura] = useState(true);
@@ -48,48 +46,63 @@ export function useStatsData() {
   const [includeWorkouts, setIncludeWorkouts] = useState(true);
   const [includeBody, setIncludeBody] = useState(true);
   const [includeActivityWatch, setIncludeActivityWatch] = useState(true);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeDate, setAnalyzeDate] = useState(() => getTodayWarsaw());
   const [analyzePeriod, setAnalyzePeriod] = useState(1);
   const [analyzeResult, setAnalyzeResult] = useState<FoodAnalysisResult | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [editForm, setEditForm] = useState<EditFormState>({ date: '', workout_day: '', logs: [] });
-
-  const [isAnalyzingTraining, setIsAnalyzingTraining] = useState(false);
   const [trainingAnalysis, setTrainingAnalysis] = useState<TrainingAnalysisResult | null>(null);
 
-  async function saveMetrics(e: React.FormEvent) {
-    e.preventDefault();
-    const today = getTodayWarsaw();
-    const existingToday = bodyData.find((row) => row.date === today) ?? null;
-    const payload = mergeBodyMetricSavePayload(today, userId!, existingToday, newMetric);
-    if (!payload) {
-      notify('Podaj przynajmniej jeden pomiar.', 'error');
-      return;
-    }
-    const { error } = await supabase
-      .from('body_metrics')
-      .upsert(payload as TablesInsert<'body_metrics'>, { onConflict: 'user_id,date' });
-    if (error) notify(error.message, 'error');
-    else {
+  const saveMetricsMutation = useMutation({
+    mutationFn: async () => {
+      const today = getTodayWarsaw();
+      const existingToday = bodyData.find((row) => row.date === today) ?? null;
+      const payload = mergeBodyMetricSavePayload(today, userId!, existingToday, newMetric);
+      if (!payload) {
+        throw new Error('Podaj przynajmniej jeden pomiar.');
+      }
+      const { error } = await supabase
+        .from('body_metrics')
+        .upsert(payload as TablesInsert<'body_metrics'>, { onConflict: 'user_id,date' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
       notify('Zapisano!', 'success');
       setNewMetric({ weight: '', waist: '', neck: '', chest: '', belly: '', hips: '', thigh: '', biceps_l: '', calf: '' });
       refetchStats();
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error');
     }
-  }
+  });
 
-  async function deleteSession(id: string) {
+  const saveMetrics = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMetricsMutation.mutate();
+  };
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetchStats();
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error');
+    }
+  });
+
+  const deleteSession = async (id: string) => {
     if (!(await confirmDialog('Usunąć trening?'))) return;
-    const { error } = await supabase.from('workout_sessions').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    refetchStats();
-  }
+    deleteSessionMutation.mutate(id);
+  };
 
-  async function analyzeFood() {
-    setIsAnalyzing(true);
-    setAnalyzeResult(null);
-    try {
+  const analyzeFoodMutation = useMutation({
+    mutationFn: async () => {
+      setAnalyzeResult(null);
       const res = await analyzeFoodQuality({
         supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
@@ -97,22 +110,28 @@ export function useStatsData() {
         analyzeDate,
         analyzePeriod
       });
-      if (res.success) {
-        setAnalyzeResult(res);
-      } else {
-        notify('Błąd analizy: ' + (res.error || 'Nieznany błąd'), 'error');
+      if (!res.success) {
+        throw new Error(res.error || 'Nieznany błąd');
       }
-    } catch (err: unknown) {
-      notify('Błąd połączenia: ' + (err instanceof Error ? (err as Error).message : String(err)), 'error');
-    } finally {
-      setIsAnalyzing(false);
+      return res;
+    },
+    onSuccess: (res) => {
+      setAnalyzeResult(res);
+    },
+    onError: (err: Error) => {
+      notify('Błąd analizy: ' + err.message, 'error');
     }
-  }
+  });
 
-  async function analyzeTrainingLoad() {
-    setIsAnalyzingTraining(true);
-    setTrainingAnalysis(null);
-    try {
+  const analyzeFood = () => {
+    analyzeFoodMutation.mutate();
+  };
+
+  const isAnalyzing = analyzeFoodMutation.isPending;
+
+  const analyzeTrainingLoadMutation = useMutation({
+    mutationFn: async () => {
+      setTrainingAnalysis(null);
       const res = await requestTrainingLoad({
         supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
@@ -120,16 +139,26 @@ export function useStatsData() {
         from: dateRange.from,
         to: dateRange.to
       });
-      if (res.success) setTrainingAnalysis(res);
-      else throw new Error(res.error || 'Nieznany błąd');
-    } catch (err: unknown) {
-      notify('Błąd analizy treningu: ' + (err instanceof Error ? (err as Error).message : String(err)), 'error');
-    } finally {
-      setIsAnalyzingTraining(false);
+      if (!res.success) {
+        throw new Error(res.error || 'Nieznany błąd');
+      }
+      return res;
+    },
+    onSuccess: (res) => {
+      setTrainingAnalysis(res);
+    },
+    onError: (err: Error) => {
+      notify('Błąd analizy treningu: ' + err.message, 'error');
     }
-  }
+  });
 
-  async function startEditing(session: WorkoutSessionRow) {
+  const analyzeTrainingLoad = () => {
+    analyzeTrainingLoadMutation.mutate();
+  };
+
+  const isAnalyzingTraining = analyzeTrainingLoadMutation.isPending;
+
+  const startEditing = async (session: WorkoutSessionRow) => {
     if (!session) return;
     setEditingSession(session.id);
     setEditForm({
@@ -137,29 +166,23 @@ export function useStatsData() {
       workout_day: session.workout_day ?? '',
       logs: (session.exercise_logs || []).map((log) => ({ ...log }))
     });
-  }
+  };
 
-  async function updateSession() {
-    if (!editingSession) return;
-    try {
-      // 1. Update session date
+  const updateSessionMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingSession) return;
       const { error: sessionError } = await supabase
         .from('workout_sessions')
         .update({ date: editForm.date!, workout_day: editForm.workout_day })
         .eq('id', editingSession);
       if (sessionError) throw sessionError;
 
-      // 2. Update all logs
       for (const log of editForm.logs) {
         const weight = log.weight === '' || log.weight == null ? null : Number(log.weight);
         const reps = log.reps === '' || log.reps == null ? null : Number.parseInt(String(log.reps), 10);
         if ((weight != null && Number.isNaN(weight)) || (reps != null && Number.isNaN(reps))) {
           throw new Error('Nieprawidłowa wartość w serii.');
         }
-        // reps is NOT NULL in the DB — sending null would throw a constraint
-        // error, so reject explicitly here rather than silently keeping the
-        // old value (the previous `reps ?? undefined` made a cleared field
-        // look saved while quietly leaving the row untouched).
         if (reps == null) {
           throw new Error('Liczba powtórzeń jest wymagana — nie może być puste.');
         }
@@ -169,25 +192,42 @@ export function useStatsData() {
         }).eq('id', log.id);
         if (logError) throw logError;
       }
-
+    },
+    onSuccess: () => {
       notify('Trening zaktualizowany!', 'success');
       setEditingSession(null);
       refetchStats();
-    } catch (err: unknown) {
-      notify('Błąd podczas aktualizacji', 'error');
+    },
+    onError: (err: Error) => {
+      notify('Błąd podczas aktualizacji: ' + (err.message || String(err)), 'error');
     }
-  }
+  });
 
-  async function deleteLog(id: string) {
+  const updateSession = () => {
+    updateSessionMutation.mutate();
+  };
+
+  const deleteLogMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('exercise_logs').delete().eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: (id) => {
+      setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
+    },
+    onError: (err: Error) => {
+      notify('Błąd podczas usuwania serii: ' + (err.message || String(err)), 'error');
+    }
+  });
+
+  const deleteLog = async (id: string) => {
     if (!(await confirmDialog('Usunąć tę serię?'))) return;
-    const { error } = await supabase.from('exercise_logs').delete().eq('id', id);
-    if (error) { notify(error.message, 'error'); return; }
-    setEditForm({ ...editForm, logs: editForm.logs.filter(l => l.id !== id) });
-  }
+    deleteLogMutation.mutate(id);
+  };
 
-  async function exportData() {
-    setIsExporting(true);
-    try {
+  const exportDataMutation = useMutation({
+    mutationFn: async () => {
       await exportStatsMarkdown({
         supabase,
         session: { user: { id: userId! }, access_token: '' },
@@ -201,25 +241,34 @@ export function useStatsData() {
         includeBody,
         includeActivityWatch,
       });
-    } catch (err: unknown) {
+    },
+    onError: (err: Error) => {
       console.error('Export markdown error:', err);
-      notify('Błąd podczas generowania raportu: ' + (err instanceof Error ? err.message : String(err)), 'error');
-    } finally {
-      setIsExporting(false);
+      notify('Błąd podczas generowania raportu: ' + (err.message || String(err)), 'error');
     }
-  }
+  });
 
-  async function exportOuraCSV() {
-    setIsExportingOura(true);
-    try {
+  const exportData = () => {
+    exportDataMutation.mutate();
+  };
+
+  const isExporting = exportDataMutation.isPending;
+
+  const exportOuraCSVMutation = useMutation({
+    mutationFn: async () => {
       await exportOuraCsv({ supabase, session: { user: { id: userId! } }, dateRange });
-    } catch (err: unknown) {
+    },
+    onError: (err: Error) => {
       console.error('Export Oura CSV error:', err);
-      notify('Błąd podczas generowania CSV Oura: ' + (err instanceof Error ? err.message : String(err)), 'error');
-    } finally {
-      setIsExportingOura(false);
+      notify('Błąd podczas generowania CSV Oura: ' + (err.message || String(err)), 'error');
     }
-  }
+  });
+
+  const exportOuraCSV = () => {
+    exportOuraCSVMutation.mutate();
+  };
+
+  const isExportingOura = exportOuraCSVMutation.isPending;
 
   return {
     userId,

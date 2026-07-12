@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { CalendarDays, Target, AlertCircle, ChevronRight } from 'lucide-react';
 import { MagazineBar } from '../shared/MagazineBar';
@@ -33,7 +34,6 @@ export default function WeekHub({
   const isSunday = new Date(`${today}T12:00:00Z`).getUTCDay() === 0;
   const direction = useDirectionContext(userId, weekStart);
   const { guidance } = useSpineGuidance(userId);
-  const [proposals, setProposals] = useState<SystemProposal[]>([]);
 
   const weekReflectionPending = guidance?.steps.some(
     (s) => s.id === 'week_reflection' && s.status !== 'done',
@@ -67,14 +67,16 @@ export default function WeekHub({
     return mergeMagazineView(ctx, loadOracleScheduleOverride());
   }, [direction]);
 
-  const reloadProposals = useCallback(async () => {
-    await syncFrictionProposals(userId);
-    setProposals(await fetchPendingProposals(userId));
-  }, [userId]);
+  const proposalsQuery = useQuery({
+    queryKey: ['system-proposals', userId],
+    queryFn: async () => {
+      await syncFrictionProposals(userId);
+      return fetchPendingProposals(userId);
+    },
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    void (async () => { await reloadProposals(); })();
-  }, [reloadProposals]);
+  const proposals = proposalsQuery.data ?? [];
 
   const openMust = direction.openMustPins ?? [];
 
@@ -127,7 +129,7 @@ export default function WeekHub({
               proposal={p}
               onResolved={async (id, status) => {
                 await resolveProposal(id, status);
-                await reloadProposals();
+                void proposalsQuery.refetch();
               }}
             />
           ))}

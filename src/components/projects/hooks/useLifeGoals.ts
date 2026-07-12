@@ -1,30 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchLongTermGoals } from '../../../lib/goal/goalSpine';
 import { useGoalSpineInvalidation } from '../../../hooks/useGoalSpineInvalidation';
 import type { LifeGoalDisplayRow } from '../../../lib/projects/lifeGoals';
 
 export function useLifeGoals(userId: string) {
-  const [displayRows, setDisplayRows] = useState<LifeGoalDisplayRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery<LifeGoalDisplayRow[]>({
+    queryKey: ['life-goals', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      try {
+        const longTerm = await fetchLongTermGoals(userId);
+        return longTerm.projects;
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!userId,
+  });
+
+  const displayRows = query.data || [];
+  const loading = query.isLoading;
 
   const refresh = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const longTerm = await fetchLongTermGoals(userId);
-      setDisplayRows(longTerm.projects);
-    } catch {
-      setDisplayRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    void (async () => { await refresh(); })();
-  }, [refresh]);
+    await query.refetch();
+  }, [query]);
 
   useGoalSpineInvalidation(refresh);
 
   return { displayRows, loading, refresh };
 }
+
