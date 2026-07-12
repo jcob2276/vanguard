@@ -9,9 +9,10 @@
  * @status active
  */
 import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
-import { sendMessage } from "../_shared/telegram.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
 import { requireServiceRole } from "../_shared/auth.ts"
+import { checkProactiveAlert } from "./proactiveAlert.ts"
+import { detectSpirals } from "./detectSpirals.ts"
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -32,149 +33,58 @@ Deno.serve(async (req) => {
     if (syncPropErr) console.warn('[analyst] sync_friction_proposals:', syncPropErr.message)
 
     const now = new Date()
-    const cut72h = new Date(now.getTime() - 72  * 60 * 60 * 1000).toISOString()
-    const cut14d = new Date(now.getTime() - 14  * 24 * 60 * 60 * 1000).toISOString()
-    const cut21d = new Date(now.getTime() - 21  * 24 * 60 * 60 * 1000).toISOString()
+    const cut72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString()
+    const cut14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    const cut21d = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString()
 
-    // 1. CURRENT CONTEXT — ostatnie 72h (primary)
+    // Data fetch
     const [stream72h, frictionRecent, biometrics, pendingHypotheses, behavioralPatterns] = await Promise.all([
-      supabase
-        .from('vanguard_stream')
-        .select('content, category, created_at')
-        .eq('user_id', user_id)
-        .gte('created_at', cut72h)
-        .order('created_at', { ascending: false })
-        .limit(30),
-
-      supabase
-        .from('friction_events')
-        .select('friction_type, deviation, immediate_cost, later_cost, declared_intention, actual_behavior, occurred_at, confidence, confidence_source')
-        .eq('user_id', user_id)
-        .in('event_kind', ['friction_event', 'positive_micro_action'])
-        .gte('occurred_at', cut14d)
-        .order('occurred_at', { ascending: false }),
-
-      supabase
-        .from('vanguard_daily_aggregates')
-        .select('date, final_state, execution_score, sleep_hours, hrv_avg, readiness_score, dopamine_load_index')
-        .eq('user_id', user_id)
-        .order('date', { ascending: false })
-        .limit(14),
-
-      supabase
-        .from('vanguard_curiosity_queue')
-        .select('id, hypothesis, provocation, created_at')
-        .eq('user_id', user_id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(3),
-
-      supabase
-        .from('vanguard_behavioral_patterns')
-        .select('pattern_type, title, evidence_text, status, confidence, occurrence_count')
-        .eq('user_id', user_id)
-        .neq('status', 'archived')
-        .neq('status', 'user_rejected')
-        .order('confidence', { ascending: false })
+      supabase.from('vanguard_stream').select('content, category, created_at').eq('user_id', user_id).gte('created_at', cut72h).order('created_at', { ascending: false }).limit(30),
+      supabase.from('friction_events').select('friction_type, deviation, immediate_cost, later_cost, declared_intention, actual_behavior, occurred_at, confidence, confidence_source').eq('user_id', user_id).in('event_kind', ['friction_event', 'positive_micro_action']).gte('occurred_at', cut14d).order('occurred_at', { ascending: false }),
+      supabase.from('vanguard_daily_aggregates').select('date, final_state, execution_score, sleep_hours, hrv_avg, readiness_score, dopamine_load_index').eq('user_id', user_id).order('date', { ascending: false }).limit(14),
+      supabase.from('vanguard_curiosity_queue').select('id, hypothesis, provocation, created_at').eq('user_id', user_id).eq('status', 'pending').order('created_at', { ascending: false }).limit(3),
+      supabase.from('vanguard_behavioral_patterns').select('pattern_type, title, evidence_text, status, confidence, occurrence_count').eq('user_id', user_id).neq('status', 'archived').neq('status', 'user_rejected').order('confidence', { ascending: false }),
     ])
-    if (stream72h.error) console.error('[analyst] stream72h query error:', stream72h.error);
-    if (frictionRecent.error) console.error('[analyst] frictionRecent query error:', frictionRecent.error);
-    if (biometrics.error) console.error('[analyst] biometrics query error:', biometrics.error);
-    if (pendingHypotheses.error) console.error('[analyst] pendingHypotheses query error:', pendingHypotheses.error);
-    if (behavioralPatterns.error) console.error('[analyst] behavioralPatterns query error:', behavioralPatterns.error);
+    if (stream72h.error) console.error('[analyst] stream72h error:', stream72h.error);
+    if (frictionRecent.error) console.error('[analyst] frictionRecent error:', frictionRecent.error);
+    if (biometrics.error) console.error('[analyst] biometrics error:', biometrics.error);
+    if (pendingHypotheses.error) console.error('[analyst] pendingHypotheses error:', pendingHypotheses.error);
+    if (behavioralPatterns.error) console.error('[analyst] behavioralPatterns error:', behavioralPatterns.error);
 
-    const { data: streamPattern, error: streamPatternErr } = await supabase
-      .from('vanguard_stream')
-      .select('content, category, created_at')
-      .eq('user_id', user_id)
-      .gte('created_at', cut21d)
-      .lt('created_at', cut72h)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    if (streamPatternErr) console.error('[analyst] streamPattern query error:', streamPatternErr);
+    const { data: streamPattern } = await supabase.from('vanguard_stream').select('content, category, created_at').eq('user_id', user_id).gte('created_at', cut21d).lt('created_at', cut72h).order('created_at', { ascending: false }).limit(20)
 
-    // 3. Graf — TYLKO current/declared z ostatnich 21 dni
-    const { data: graph, error: graphErr } = await supabase
-      .from('vanguard_entity_links')
-      .select('source_entity, relation, target_entity, evidence_count, temporal_status')
-      .eq('user_id', user_id)
-      .in('temporal_status', ['current', 'declared'])
-      .gte('valid_from', cut21d)
-      .order('evidence_count', { ascending: false })
-      .limit(20)
-    if (graphErr) console.error('[analyst] graph query error:', graphErr);
+    const { data: graph } = await supabase.from('vanguard_entity_links').select('source_entity, relation, target_entity, evidence_count, temporal_status').eq('user_id', user_id).in('temporal_status', ['current', 'declared']).gte('valid_from', cut21d).order('evidence_count', { ascending: false }).limit(20)
 
-    // 3b. ZALEŻNOŚCI BIOMETRYCZNE — obciążenie (Oura). Korelacje same liczą się w
-    // vanguard-nightly?action=compute-correlations (_shared/nightly/correlations.ts), nie tutaj —
-    // ta funkcja wcześniej odpytywała public.oura_correlations, tabelę która nigdy nie istniała
-    // (relikt sprzed drop'u vanguard_correlations, patrz ARCHITECTURE.md deprecated tables);
-    // zapytanie zawsze cicho failowało (błąd łapany, corr zawsze null) — usunięte.
     const [hrZones7d, ouraRecent] = await Promise.all([
-      supabase.from('oura_hr_zones_daily')
-        .select('day, z3_tempo_min, z4_prog_min, z5_max_min, hr_max')
-        .eq('user_id', user_id).order('day', { ascending: false }).limit(7),
-      supabase.from('oura_enhanced')
-        .select('date, readiness_score, sleep_score, stress_high_minutes, resilience_level, sleep_average_hrv')
-        .eq('user_id', user_id).order('date', { ascending: false }).limit(7),
+      supabase.from('oura_hr_zones_daily').select('day, z3_tempo_min, z4_prog_min, z5_max_min, hr_max').eq('user_id', user_id).order('day', { ascending: false }).limit(7),
+      supabase.from('oura_enhanced').select('date, readiness_score, sleep_score, stress_high_minutes, resilience_level, sleep_average_hrv').eq('user_id', user_id).order('date', { ascending: false }).limit(7),
     ])
-    if (hrZones7d.error) console.error('[analyst] hrZones query error:', hrZones7d.error);
-    if (ouraRecent.error) console.error('[analyst] ouraRecent query error:', ouraRecent.error);
+    if (hrZones7d.error) console.error('[analyst] hrZones error:', hrZones7d.error);
+    if (ouraRecent.error) console.error('[analyst] ouraRecent error:', ouraRecent.error);
 
-    const corrText = 'Brak danych korelacyjnych.'
+    // Build context texts
+    const loadText = (hrZones7d.data || []).map((z: any) => `${z.day}: Z3 ${z.z3_tempo_min || 0}min, Z4 ${z.z4_prog_min || 0}min, Z5 ${z.z5_max_min || 0}min, max ${z.hr_max || '—'}`).join('\n')
+    const recoveryText = (ouraRecent.data || []).map((o: any) => `${o.date}: readiness ${o.readiness_score ?? '—'}, sen-score ${o.sleep_score ?? '—'}, stres ${o.stress_high_minutes != null ? Math.round(o.stress_high_minutes) + 'min' : '—'}, resilience ${o.resilience_level || '—'}`).join('\n')
 
-    const loadText = (hrZones7d.data || [])
-      .map((z: any) => `${z.day}: Z3 ${z.z3_tempo_min || 0}min, Z4 ${z.z4_prog_min || 0}min, Z5 ${z.z5_max_min || 0}min, max ${z.hr_max || '—'}`)
-      .join('\n')
-
-    const recoveryText = (ouraRecent.data || [])
-      .map((o: any) => `${o.date}: readiness ${o.readiness_score ?? '—'}, sen-score ${o.sleep_score ?? '—'}, stres ${o.stress_high_minutes != null ? Math.round(o.stress_high_minutes) + 'min' : '—'}, resilience ${o.resilience_level || '—'}`)
-      .join('\n')
-
-    // --- BUDOWANIE KONTEKSTU ---
     const frictionList = (frictionRecent.data || [])
     const frictionText = frictionList.length > 0
-      ? frictionList.map(f =>
-          `[${f.occurred_at}] ${f.friction_type} | deviation: ${f.deviation || '—'} | koszt: ${f.immediate_cost || '—'} | intencja: ${f.declared_intention || '—'} [${f.confidence_source}, conf=${f.confidence}]`
-        ).join('\n')
+      ? frictionList.map(f => `[${f.occurred_at}] ${f.friction_type} | deviation: ${f.deviation || '—'} | koszt: ${f.immediate_cost || '—'} | intencja: ${f.declared_intention || '—'} [${f.confidence_source}, conf=${f.confidence}]`).join('\n')
       : 'Brak friction events z ostatnich 14 dni.'
 
-    // Policz powtórzenia per typ (kandydaci na wzorzec)
     const frictionCounts: Record<string, number> = {}
-    for (const f of frictionList) {
-      if (f.friction_type) frictionCounts[f.friction_type] = (frictionCounts[f.friction_type] || 0) + 1
-    }
-    const repeatedTypes = Object.entries(frictionCounts)
-      .filter(([, count]) => count >= 2)
-      .map(([type, count]) => `${type}: ${count}x`)
-      .join(', ')
+    for (const f of frictionList) { if (f.friction_type) frictionCounts[f.friction_type] = (frictionCounts[f.friction_type] || 0) + 1 }
+    const repeatedTypes = Object.entries(frictionCounts).filter(([, count]) => count >= 2).map(([type, count]) => `${type}: ${count}x`).join(', ')
 
-    const stream72hText = (stream72h.data || [])
-      .map(s => `[${s.created_at}][${s.category}] ${s.content?.substring(0, 120)}`)
-      .join('\n')
+    const stream72hText = (stream72h.data || []).map(s => `[${s.created_at}][${s.category}] ${s.content?.substring(0, 120)}`).join('\n')
+    const streamPatternText = (streamPattern || []).map(s => `[${s.created_at}][${s.category}] ${s.content?.substring(0, 80)}`).join('\n')
+    const graphText = (graph || []).map(g => `${g.source_entity} --(${g.relation})--> ${g.target_entity} [evidence=${g.evidence_count}]`).join('\n')
+    const biometricsText = (biometrics.data || []).map(b => `${b.date}: ${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours}h, HRV=${b.hrv_avg}`).join('\n')
+    const behavioralPatternsText = (behavioralPatterns.data || []).map(p => `- [${p.status}] ${p.title || p.pattern_type}: ${p.evidence_text} (confidence: ${p.confidence}, count: ${p.occurrence_count})`).join('\n')
 
-    const streamPatternText = (streamPattern || [])
-      .map(s => `[${s.created_at}][${s.category}] ${s.content?.substring(0, 80)}`)
-      .join('\n')
-
-    const graphText = (graph || [])
-      .map(g => `${g.source_entity} --(${g.relation})--> ${g.target_entity} [evidence=${g.evidence_count}]`)
-      .join('\n')
-
-    const biometricsText = (biometrics.data || [])
-      .map(b => `${b.date}: ${b.final_state}, exec=${b.execution_score?.toFixed(2)}, sen=${b.sleep_hours}h, HRV=${b.hrv_avg}`)
-      .join('\n')
-
-    const behavioralPatternsText = (behavioralPatterns.data || [])
-      .map(p => `- [${p.status}] ${p.title || p.pattern_type}: ${p.evidence_text} (confidence: ${p.confidence}, count: ${p.occurrence_count})`)
-      .join('\n')
-
-    // Detect Trajectories and Spirals (downward spirals / upward momentum)
     const spiral = detectSpirals(biometrics.data || [], frictionRecent.data || [])
-    const spiralText = spiral
-      ? `🚨 ${spiral.reason}`
-      : 'Stan trajektorii stabilny — brak wyraźnych spiral/trendów gwałtownych w danych.'
+    const spiralText = spiral ? `🚨 ${spiral.reason}` : 'Stan trajektorii stabilny — brak wyraźnych spiral/trendów gwałtownych w danych.'
 
-    // 4. DEEPSEEK REASONER — analiza friction patterns
+    // LLM analysis
     const { content: rawContentParsed } = await deepseekChat({
       apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
       model: 'deepseek-reasoner',
@@ -182,383 +92,99 @@ Deno.serve(async (req) => {
         {
           role: 'system',
           content: `Jesteś Vanguard OS Analyst — silnikiem wykrywania wzorców behawioralnych.
-
 ZASADY:
-1. CURRENT-FIRST: Analiza opiera się na danych z ostatnich 72h jako głównym źródle.
-2. Dane z zakresu 3-21 dni to wyłącznie kontekst wzorca — nie aktualna prawda.
-3. EVIDENCE-FIRST: Każda hipoteza MUSI mieć odniesienie do konkretnych wpisów (data + typ).
+1. CURRENT-FIRST: Analiza opiera się na danych z ostatnich 72h.
+2. Dane 3-21 dni to wyłącznie kontekst wzorca.
+3. EVIDENCE-FIRST: Każda hipoteza MUSI mieć odniesienie do konkretnych wpisów.
 4. Bez evidence → piszesz "Hipoteza słaba — za mało danych."
-5. Nie psychoanalizujesz. Nie generujesz "głębokich prawd". Szukasz powtórzeń.
-6. Jeden mikrotest na kolejną okazję — konkretne zachowanie, nie ogólna rada.
-7. BIOMETRIA: Masz zmierzone zależności (auto-liczone korelacje) + obciążenie treningowe (strefy HR) + regenerację. Jeśli dane pokazują koszt regeneracyjny (spadek readiness/HRV lub wzrost stresu po obciążeniu) — uwzględnij to w mikroteście (np. lżejszy wieczór po dniu w Z4/Z5). NIGDY nie wymyślaj korelacji, której nie ma na liście istotnych — jeśli "za mało danych", to tak napisz.
+5. Nie psychoanalizujesz. Szukasz powtórzeń.
+6. Jeden mikrotest na kolejną okazję.
 
-4 SOCZEWKI ANALIZY (zastosuj przy każdej analizie; opisz co znalazłeś lub "brak sygnału"):
-A. HIDDEN_CONTEXTS — Co jest tutaj, o czym Jakub nie wspomniał wprost? Szukaj niewidocznych ograniczeń czasowych, ukrytych stresów biometrycznych, zależności między zdarzeniami które nie są oczywiste.
-B. ENERGY_TIDES — Kiedy Jakub był najostrzejszy vs najsłabszy? Mapuj energię na godziny/dni (execution_score + HRV + kroki). Czy wzorzec tarć koreluje z niską energią?
-C. MICRO_CONSISTENCY — Co jest konsekwentne mimo tarć? Które dobre nawyki przetrwały złe dni? To są "anchors" — wzmocnij je w mikroteście.
-D. INTERACTIVE_CURIOSITY — Co w danych jest nieoczekiwane lub sprzeczne z wzorcem? Jedno konkretne pytanie do zbadania (nie retoryczne — "Dlaczego w środy friction_count 2x wyższy?" nie "Czy Jakub ma wzorzec?").
-
-ZAKAZ:
-- "holistyczna analiza"
-- "nieoczywiste powiązania psychologiczne"
-- tez bez daty i źródła
-- interpretacji motywów bez danych
+4 SOCZEWKI ANALIZY:
+A. HIDDEN_CONTEXTS — niewidoczne ograniczenia czasowe, ukryte stresy biometryczne.
+B. ENERGY_TIDES — kiedy najostrzejszy vs najsłabszy? Mapuj energię na godziny/dni.
+C. MICRO_CONSISTENCY — co przetrwało złe dni? To "anchors".
+D. INTERACTIVE_CURIOSITY — co jest nieoczekiwane? Jedno konkretne pytanie.
 
 ZADANIE:
-1. EWALUACJA PENDING HYPOTHESES: Oceń każdą pending hipotezę na podstawie stream72h. Status: validated_true | validated_false | ignored.
-2. FRICTION PATTERN DETECTION: Które friction_types powtarzają się? Jakie mają wspólne deviation/cost?
-3. REPEATED_PATTERN_CANDIDATES: Jeśli dany friction_type wystąpił ≥2x w 14 dniach — opisz kandydata na wzorzec.
-4. JEDEN MIKROTEST: Na podstawie najczęstszego friction_type zaproponuj jeden konkretny mikrotest na najbliższą 24-48h.
+1. EWALUACJA PENDING HYPOTHESES: Oceń każdą pending hipotezę. Status: validated_true|validated_false|ignored.
+2. FRICTION PATTERN DETECTION: Które friction_types powtarzają się?
+3. REPEATED_PATTERN_CANDIDATES: friction_type ≥2x w 14 dniach — opisz kandydata.
+4. JEDEN MIKROTEST: na najczęstszy friction_type.
 
 FORMAT JSON:
 {
-  "evaluations": [
-    {"id": "...", "status": "validated_true|validated_false|ignored", "reason": "konkretny wpis/data potwierdzający"}
-  ],
-  "friction_summary": {
-    "dominant_type": "...",
-    "evidence_count": 0,
-    "common_deviation": "...",
-    "common_cost": "..."
-  },
-  "pattern_candidates": [
-    {
-      "friction_type": "...",
-      "evidence_count": 0,
-      "first_seen": "...",
-      "last_seen": "...",
-      "common_context": "...",
-      "hypothesis_confidence": 0.0,
-      "evidence_refs": ["data1: ...", "data2: ..."]
-    }
-  ],
-  "micro_test": {
-    "trigger": "...",
-    "test": "Konkretne jedno zachowanie do przetestowania",
-    "based_on": "friction_type X, N evidences"
-  },
-  "provocation": "Jedno zdanie — obserwacja oparta na powtarzającym się wzorcu (NIE psychologia, tylko fakt z danych)"
-}
-`
+  "evaluations": [{"id": "...", "status": "validated_true|validated_false|ignored", "reason": "..."}],
+  "friction_summary": {"dominant_type": "...", "evidence_count": 0, "common_deviation": "...", "common_cost": "..."},
+  "pattern_candidates": [{"friction_type": "...", "evidence_count": 0, "first_seen": "...", "last_seen": "...", "common_context": "...", "hypothesis_confidence": 0.0, "evidence_refs": ["..."]}],
+  "micro_test": {"trigger": "...", "test": "...", "based_on": "..."},
+  "provocation": "Jedno zdanie — obserwacja oparta na powtarzającym się wzorcu"
+}`
         },
         {
           role: 'user',
-          content: `EXISTING BEHAVIORAL PATTERNS (Etap 1):
-${behavioralPatternsText || 'Brak.'}
+          content: `EXISTING BEHAVIORAL PATTERNS (Etap 1):\n${behavioralPatternsText || 'Brak.'}
 
-PENDING HYPOTHESES (do ewaluacji):
-${JSON.stringify(pendingHypotheses.data || [])}
+PENDING HYPOTHESES (do ewaluacji):\n${JSON.stringify(pendingHypotheses.data || [])}
 
-STREAM — OSTATNIE 72H (primary):
-${stream72hText || 'Brak wpisów.'}
+STREAM — OSTATNIE 72H (primary):\n${stream72hText || 'Brak wpisów.'}
 
-STREAM — 3-21 DNI (pattern context only):
-${streamPatternText || 'Brak.'}
+STREAM — 3-21 DNI (pattern context only):\n${streamPatternText || 'Brak.'}
 
-WYKRYTE TRAJEKTORIE/SPIRALE (Z danych):
-${spiralText}
+WYKRYTE TRAJEKTORIE/SPIRALE:\n${spiralText}
 
-FRICTION EVENTS — ostatnie 14 dni:
-${frictionText}
+FRICTION EVENTS — ostatnie 14 dni:\n${frictionText}
 
 POWTÓRZENIA (friction_type ≥2x): ${repeatedTypes || 'Brak'}
 
-BIOMETRIA — ostatnie 14 dni:
-${biometricsText || 'Brak.'}
+BIOMETRIA — ostatnie 14 dni:\n${biometricsText || 'Brak.'}
 
-GRAF (current/declared <21d):
-${graphText || 'Brak aktywnych krawędzi.'}
+GRAF (current/declared <21d):\n${graphText || 'Brak aktywnych krawędzi.'}
 
-ZALEŻNOCI BIOMETRYCZNE (auto-liczone korelacje):
-${corrText}
+OBCIĄŻENIE TRENINGOWE — strefy HR, ostatnie 7 dni:\n${loadText || 'Brak danych.'}
 
-OBCIĄŻENIE TRENINGOWE — strefy HR, ostatnie 7 dni:
-${loadText || 'Brak danych o strefach tętna.'}
-
-REGENERACJA — ostatnie 7 dni:
-${recoveryText || 'Brak danych Oura.'}`
+REGENERACJA — ostatnie 7 dni:\n${recoveryText || 'Brak danych Oura.'}`
         }
       ],
       temperature: null,
       maxTokens: null,
     });
 
-    let rawContent = rawContentParsed || "{}";
-
-    rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-    if (rawContent.includes('```json')) {
-      rawContent = rawContent.split('```json')[1].split('```')[0].trim()
-    } else if (rawContent.includes('```')) {
-      rawContent = rawContent.split('```')[1].split('```')[0].trim()
-    }
+    let rawContent = (rawContentParsed || "{}").replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+    if (rawContent.includes('```json')) rawContent = rawContent.split('```json')[1].split('```')[0].trim()
+    else if (rawContent.includes('```')) rawContent = rawContent.split('```')[1].split('```')[0].trim()
 
     let result: any
-    try {
-      result = JSON.parse(rawContent)
-    } catch (e) {
-      console.error("[analyst] JSON parse failed:", e, "raw:", rawContent.substring(0, 300))
-      throw new Error("Analyst returned invalid JSON.")
-    }
+    try { result = JSON.parse(rawContent) }
+    catch (e) { console.error("[analyst] JSON parse failed:", e, "raw:", rawContent.substring(0, 300)); throw new Error("Analyst returned invalid JSON.") }
 
-    // 5. Aktualizacja pending hypotheses
+    // Update pending hypotheses
     if (result.evaluations?.length > 0) {
       for (const ev of result.evaluations) {
-        if (ev.status !== 'ignored') {
-          await supabase
-            .from('vanguard_curiosity_queue')
-            .update({ status: ev.status, updated_at: new Date().toISOString() })
-            .eq('id', ev.id)
-        }
+        if (ev.status !== 'ignored') await supabase.from('vanguard_curiosity_queue').update({ status: ev.status, updated_at: new Date().toISOString() }).eq('id', ev.id)
       }
     }
 
-    // 6. Zapis pattern candidates do curiosity_queue (z evidence)
+    // Save pattern candidates
     const hypotheses = result.pattern_candidates || []
     for (const h of hypotheses) {
-      if ((h.hypothesis_confidence || 0) < 0.3) continue // zbyt słabe — pomiń
+      if ((h.hypothesis_confidence || 0) < 0.3) continue
       const { error: qErr } = await supabase.from('vanguard_curiosity_queue').insert({
-        user_id,
-        hypothesis: `[FRICTION PATTERN] ${h.friction_type} x${h.evidence_count}: ${h.common_context}`,
+        user_id, hypothesis: `[FRICTION PATTERN] ${h.friction_type} x${h.evidence_count}: ${h.common_context}`,
         provocation: result.provocation || result.micro_test?.test || '',
-        confidence_score: h.hypothesis_confidence,
-        category: 'friction_pattern',
-        status: 'pending'
+        confidence_score: h.hypothesis_confidence, category: 'friction_pattern', status: 'pending'
       })
-      if (qErr) console.warn('[analyst] curiosity_queue insert failed (non-fatal):', qErr.message)
+      if (qErr) console.warn('[analyst] curiosity_queue insert failed:', qErr.message)
     }
 
-    // pattern_candidate → repeated_pattern_candidates: disabled until Sprint 1 QA gate (BACKLOG).
-
-    // =========================================================================
-    // Zmiana 3 — Proaktywny Analyst push na Telegram
-    // Jeśli biometria spełnia warunki alarmu → szuka kontekstu w grafie
-    // i wysyła Telegram push.
-    // Throttle: max 1 push na 48h (check na source='analyst_alert' w stream).
-    // =========================================================================
-    if (biometrics.error) {
-      console.error('[analyst] skipping proactive alert — biometrics query failed:', biometrics.error.message);
-    } else {
-      await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [], spiral)
-    }
+    // Proactive alert
+    if (!biometrics.error) await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [], spiral)
 
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
-    return new Response(JSON.stringify({ success: true, result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    })
+    return new Response(JSON.stringify({ success: true, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
 
   } catch (err: any) {
     console.error("[analyst] error:", err)
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    })
+    return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
 })
-
-// ---------------------------------------------------------------------------
-// checkProactiveAlert — Zmiana 3
-// Detects sustained biometric decline and sends a contextualized Telegram alert.
-// ---------------------------------------------------------------------------
-async function checkProactiveAlert(
-  supabase: ReturnType<typeof import("../_shared/supabase.ts").createServiceClient>,
-  userId: string,
-  biometrics: any[],
-  graphLinks: any[],
-  spiral: any
-): Promise<void> {
-  try {
-    const telegramToken = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
-    const chatId = parseInt(Deno.env.get('TELEGRAM_CHAT_ID') ?? '0')
-    if (!telegramToken || !chatId) return
-
-    // Throttle: skip if an analyst alert was already sent in last 48h
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-    const { data: recentAlert } = await supabase
-      .from('vanguard_stream')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('source', 'analyst_alert')
-      .gte('created_at', fortyEightHoursAgo)
-      .limit(1)
-      .maybeSingle()
-
-    if (recentAlert) return // already alerted recently
-
-    if (!biometrics || biometrics.length < 3) return // need at least 3 days of data
-
-    // Sort by date descending — most recent first
-    const sorted = [...biometrics].sort((a, b) => b.date.localeCompare(a.date))
-    const recent3 = sorted.slice(0, 3)
-
-    // Compute rolling baseline HRV from last 14 days
-    const validHrvs = biometrics.map(b => b.hrv_avg).filter(v => v != null && v > 0)
-    if (validHrvs.length < 5) return // not enough data for baseline
-
-    const baselineHrv = validHrvs.reduce((a: number, b: number) => a + b, 0) / validHrvs.length
-    const recent3Hrv = recent3.map(b => b.hrv_avg).filter(v => v != null && v > 0)
-    const recent3Readiness = recent3.map(b => b.readiness_score).filter(v => v != null && v > 0)
-
-    let alertReason: string | null = null
-    let alertEmoji = '⚠️'
-
-    // Condition D: Downward spiral detected (highest priority warning)
-    if (spiral && spiral.type === 'downward_spiral') {
-      alertReason = spiral.reason
-      alertEmoji = '⚠️🚨'
-    }
-
-    // Condition E: Upward momentum detected (highest priority info)
-    if (!alertReason && spiral && spiral.type === 'upward_momentum') {
-      alertReason = spiral.reason
-      alertEmoji = '✅🔥'
-    }
-
-    // Condition A: HRV below 85% of baseline for 3+ consecutive days
-    if (!alertReason && recent3Hrv.length >= 3 && recent3Hrv.every(h => h < baselineHrv * 0.85)) {
-      const avgRecent = Math.round(recent3Hrv.reduce((a: number, b: number) => a + b, 0) / recent3Hrv.length)
-      alertReason = `HRV poniżej baseline przez 3+ dni: avg ${avgRecent} vs baseline ${Math.round(baselineHrv)} (${Math.round((avgRecent/baselineHrv)*100)}% normy)`
-      alertEmoji = '📉'
-    }
-
-    // Condition B: Readiness < 60 for 3+ consecutive days
-    if (!alertReason && recent3Readiness.length >= 3 && recent3Readiness.every(r => r < 60)) {
-      const avgReadiness = Math.round(recent3Readiness.reduce((a: number, b: number) => a + b, 0) / recent3Readiness.length)
-      alertReason = `Readiness poniżej 60 przez 3+ dni: avg ${avgReadiness}`
-      alertEmoji = '🔴'
-    }
-
-    // Condition C: Today's strain > 15 AND readiness < 65 (overreach risk)
-    const today = sorted[0]
-    if (!alertReason && today?.execution_score != null && today?.readiness_score != null) {
-      // execution_score proxy for strain — flag high load + low readiness
-      if (today.execution_score > 0.8 && today.readiness_score < 65) {
-        alertReason = `Wysokie obciążenie przy niskiej regeneracji: readiness ${today.readiness_score}, execution ${(today.execution_score * 100).toFixed(0)}%`
-        alertEmoji = '⚡'
-      }
-    }
-
-    if (!alertReason) return // no alert conditions met
-
-    // Find historical context from the graph — past states when similar pattern occurred
-    const graphContext: string[] = []
-    if (Array.isArray(graphLinks) && graphLinks.length > 0) {
-      const relevantLinks = graphLinks
-        .filter((g: any) =>
-          g.relation === 'doswiadcza' ||
-          g.relation === 'wywoluje' ||
-          (g.source_entity === 'Jakub' && ['Zmęczenie', 'Przeziębienie', 'Choroba', 'Kontuzja', 'Wypalenie'].some(
-            word => (g.target_entity || '').includes(word)
-          ))
-        )
-        .slice(0, 3)
-        .map((g: any) => `• ${g.source_entity} → ${g.relation} → ${g.target_entity}`)
-      
-      graphContext.push(...relevantLinks)
-    }
-
-    // Build the alert message
-    const graphSection = graphContext.length > 0
-      ? `\n\n📊 *Z grafu — podobne wzorce w historii:*\n${graphContext.join('\n')}`
-      : ''
-
-    const recentSummary = recent3.map(b =>
-      `${b.date}: readiness ${b.readiness_score ?? '—'}, HRV ${b.hrv_avg ?? '—'}, sen ${b.sleep_hours ?? '—'}h`
-    ).join('\n')
-
-    const alertMsg = `${alertEmoji} *Alert regeneracji*\n\n${alertReason}\n\n*Ostatnie 3 dni:*\n${recentSummary}${graphSection}\n\n_Vanguard Analyst — ${new Date().toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}_`
-
-    await sendMessage(telegramToken, chatId, alertMsg, { parseMode: 'Markdown' })
-
-    // Record the alert in stream for throttle tracking
-    await supabase.from('vanguard_stream').insert({
-      user_id: userId,
-      source: 'analyst_alert',
-      content: `[ALERT]: ${alertReason}`,
-      metadata: {
-        alert_reason: alertReason,
-        baseline_hrv: Math.round(baselineHrv),
-        recent_hrv: recent3Hrv,
-        recent_readiness: recent3Readiness,
-        alert_type: alertEmoji === '📉' ? 'hrv_decline' : alertEmoji === '🔴' ? 'readiness_low' : alertEmoji === '⚠️🚨' ? 'downward_spiral' : alertEmoji === '✅🔥' ? 'upward_momentum' : 'overreach_risk',
-      },
-    }).throwOnError()
-
-    console.log(`[analyst] proactive alert sent: ${alertReason.substring(0, 80)}`)
-  } catch (alertErr) {
-    // Non-fatal — alert failure should not break the main analyst flow
-    console.error('[analyst] checkProactiveAlert error (non-fatal):', alertErr)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// detectSpirals — Mierzy i wykrywa trajektorie (spirale w dół i momentum w górę)
-// ---------------------------------------------------------------------------
-function detectSpirals(biometrics: any[], frictionEvents: any[]) {
-  if (!biometrics || biometrics.length < 4) return null;
-
-  // Sort chronologically (oldest first)
-  const chronological = [...biometrics].sort((a, b) => a.date.localeCompare(b.date));
-  
-  // Ostatnie 4 dni do badania trajektorii
-  const last4 = chronological.slice(-4);
-  
-  // 1. Sprawdzenie spirali spadkowej (readiness maleje lub jest stale niski + słabe wykonanie lub dużo tarć)
-  let readinessDeclining = true;
-  let executionLow = true;
-  
-  for (let i = 1; i < last4.length; i++) {
-    const prev = last4[i-1];
-    const curr = last4[i];
-    
-    if (curr.readiness_score != null && prev.readiness_score != null) {
-      // Jeśli choć raz wzrosło, to nie jest to czysta spirala spadkowa (chyba że cały czas jest < 60)
-      if (curr.readiness_score > prev.readiness_score && curr.readiness_score >= 60) {
-        readinessDeclining = false;
-      }
-    } else {
-      readinessDeclining = false;
-    }
-    
-    if (curr.execution_score != null && curr.execution_score > 0.55) {
-      executionLow = false;
-    }
-  }
-
-  // Policz friction events w ciągu ostatnich 3 dni
-  const threeDaysAgoStr = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const recentFrictions = frictionEvents.filter(f => {
-    const dateStr = typeof f.occurred_at === 'string' ? f.occurred_at.split('T')[0] : '';
-    return dateStr >= threeDaysAgoStr;
-  });
-
-  if (readinessDeclining && (executionLow || recentFrictions.length >= 2)) {
-    return {
-      type: 'downward_spiral',
-      reason: `Wykryto spiralę spadkową: spadek regeneracji przez 4 dni z rzędu (${last4.map(b => b.readiness_score ?? '—').join(' -> ')}) w połączeniu z niskim wykonaniem lub ${recentFrictions.length} tarciami behawioralnymi.`
-    };
-  }
-
-  // 2. Sprawdzenie momentum (upward spiral — świetna regeneracja + wysokie wykonanie + brak tarć)
-  let readinessHigh = true;
-  let executionHigh = true;
-
-  for (let i = 0; i < last4.length; i++) {
-    const curr = last4[i];
-    if (curr.readiness_score == null || curr.readiness_score < 72) {
-      readinessHigh = false;
-    }
-    if (curr.execution_score == null || curr.execution_score < 0.75) {
-      executionHigh = false;
-    }
-  }
-
-  if (readinessHigh && executionHigh && recentFrictions.length === 0) {
-    return {
-      type: 'upward_momentum',
-      reason: `Wykryto silną trajektorię wzrostową (momentum): wysoka regeneracja (${last4.map(b => b.readiness_score).join(', ')}) oraz świetna realizacja celów (${last4.map(b => Math.round(b.execution_score * 100) + '%').join(', ')}) bez żadnych tarć w ostatnich 3 dniach.`
-    };
-  }
-
-  return null;
-}

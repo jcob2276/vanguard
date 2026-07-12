@@ -1,28 +1,13 @@
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts';
 import { getWarsawDateString } from '../_shared/time.ts';
 import {
-  epley,
-  avg,
-  fmtPace,
-  fmt,
-  ACTIVITY_KW,
-  SAUNA_KW,
-  PATTERN_RULES,
-  LEG_PATTERN_KEYS,
-  EXERCISE_LIBRARY,
-  classifyRun,
-  fmtGcZones,
-  weekOf,
-  isoDow,
-  DOW_PL,
-  dayDiff,
-  exercisePatterns,
-  classifyFatigue,
-  loadHint,
+  epley, avg, fmtPace, fmt, ACTIVITY_KW, SAUNA_KW, classifyRun, fmtGcZones,
+  weekOf, isoDow, DOW_PL, dayDiff, exercisePatterns, PATTERN_RULES, LEG_PATTERN_KEYS,
 } from '../_shared/trainingHelpers.ts';
+import { buildCoachBrain } from './coachBrain.ts';
+import { buildSystemPrompt, buildUserMsg } from './prompts.ts';
 
 export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey: string) {
-  // ── Date windows (28 dni = 4 pełne tygodnie) ─────────────────────────────
   const now = new Date();
   const warsaw = getWarsawDateString;
   const today = warsaw(now);
@@ -42,30 +27,11 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
 
   // ── Parallel data fetch ───────────────────────────────────────────────────
   const [strainR, workoutsR, stravaR, ouraR, planR] = await Promise.all([
-    supabase
-      .from('daily_strain')
-      .select('date,strain_score,cardio_load,strength_load')
-      .eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
-    supabase
-      .from('workout_sessions')
-      .select('id,date,workout_day,session_notes,msp_passed,duration_minutes,exercise_logs(exercise_name,set_number,weight,reps,rir,rpe,muscle_tags,is_pws_or_msp)')
-      .eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
-    supabase
-      .from('strava_activities_clean')
-      .select('start_date,name,sport_type,distance,moving_time,hr_avg,hr_max,perceived_exertion,has_pr,workout_type,gc_hr_zones,gc_weather,gc_laps,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at')
-      .eq('user_id', userId).eq('is_oura', false)
-      .gte('start_date', w4Start + 'T00:00:00').lte('start_date', today + 'T23:59:59').order('start_date'),
-    supabase
-      .from('oura_daily_summary')
-      .select('date,hrv_avg,rhr_avg,readiness_score,total_sleep_hours')
-      .eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
-    supabase
-      .from('training_plan_workouts')
-      .select('planned_date,workout_type,workout_name,target_distance_km,target_duration_min,target_pace_min_km,target_hr_max,goal')
-      .eq('user_id', userId)
-      .gte('planned_date', w0Start)
-      .lte('planned_date', addWarsawDays(today, 7))
-      .order('planned_date'),
+    supabase.from('daily_strain').select('date,strain_score,cardio_load,strength_load').eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
+    supabase.from('workout_sessions').select('id,date,workout_day,session_notes,msp_passed,duration_minutes,exercise_logs(exercise_name,set_number,weight,reps,rir,rpe,muscle_tags,is_pws_or_msp)').eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
+    supabase.from('strava_activities_clean').select('start_date,name,sport_type,distance,moving_time,hr_avg,hr_max,perceived_exertion,has_pr,workout_type,gc_hr_zones,gc_weather,gc_laps,gc_training_effect_aerobic,gc_training_effect_anaerobic,gc_vo2max,gc_enriched_at').eq('user_id', userId).eq('is_oura', false).gte('start_date', w4Start + 'T00:00:00').lte('start_date', today + 'T23:59:59').order('start_date'),
+    supabase.from('oura_daily_summary').select('date,hrv_avg,rhr_avg,readiness_score,total_sleep_hours').eq('user_id', userId).gte('date', w4Start).lte('date', today).order('date'),
+    supabase.from('training_plan_workouts').select('planned_date,workout_type,workout_name,target_distance_km,target_duration_min,target_pace_min_km,target_hr_max,goal').eq('user_id', userId).gte('planned_date', w0Start).lte('planned_date', addWarsawDays(today, 7)).order('planned_date'),
   ]);
 
   const queryErrors: string[] = [];
@@ -81,7 +47,7 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
   const ouraAll = ouraR.data || [];
   const planContext = planR.data || [];
 
-  // ── Per-week slices (w0=this week, w1=prev, w2, w3=oldest) ───────────────
+  // ── Per-week slices ───────────────────────────────────────────────────────
   const byWeek = (arr: any[], key = 'date'): any[][] => {
     const r: any[][] = [[], [], [], []];
     for (const x of arr) {
@@ -104,13 +70,13 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
   const strainByWeek = byWeek(strainAll);
   const ouraByWeek = byWeek(ouraAll);
 
-  // ── HRmax estimation (from 28-day data) ───────────────────────────────────
+  // ── HRmax ─────────────────────────────────────────────────────────────────
   const allHrMax = stravaAll.map((a: any) => Number(a.hr_max)).filter((v: number) => v > 100);
   const hrMax = allHrMax.length ? Math.max(...allHrMax) : null;
   const z2Ceiling = hrMax ? Math.round(hrMax * 0.76) : null;
   const thresholdHr = hrMax ? Math.round(hrMax * 0.88) : null;
 
-  // ── Weekly summaries (all 4 weeks) ────────────────────────────────────────
+  // ── Weekly summaries ──────────────────────────────────────────────────────
   const wkSummary = (wIdx: number) => {
     const runs = stravaByWeek[wIdx].filter((a: any) => /run/i.test(a.sport_type || ''));
     const allLogs = workoutsByWeek[wIdx].flatMap((w: any) => w.exercise_logs || []);
@@ -120,9 +86,7 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     const recovAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.readiness_score)).filter(Boolean));
     const hrvAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.hrv_avg)).filter(Boolean));
     const sleepAvg = avg(ouraByWeek[wIdx].map((r: any) => Number(r.total_sleep_hours)).filter(Boolean));
-    const saunaCount = workoutsByWeek[wIdx].filter((w: any) =>
-      (w.exercise_logs || []).some((l: any) => SAUNA_KW.test(l.exercise_name || ''))
-    ).length;
+    const saunaCount = workoutsByWeek[wIdx].filter((w: any) => (w.exercise_logs || []).some((l: any) => SAUNA_KW.test(l.exercise_name || ''))).length;
     const hasLongRun = runs.some((a: any) => classifyRun(a) === 'Długi bieg');
     const maxRunKm = runs.length ? Math.max(...runs.map((a: any) => (a.distance || 0) / 1000)) : 0;
     return { sets, km: +km.toFixed(1), strainAvg, recovAvg, hrvAvg, sleepAvg, saunaCount, hasLongRun, maxRunKm: +maxRunKm.toFixed(1), runCount: runs.length };
@@ -137,19 +101,12 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
   const expectedStrainToDate = baseStrain != null ? +(baseStrain * weekProgress).toFixed(1) : null;
 
   // ── ACWR + Monotony ──────────────────────────────────────────────────────
-  const acuteStrains = strainAll
-    .filter((r: any) => r.date >= w0Start && r.strain_score != null)
-    .map((r: any) => Number(r.strain_score));
-  const chronicStrains = strainAll
-    .filter((r: any) => r.strain_score != null)
-    .map((r: any) => Number(r.strain_score));
+  const acuteStrains = strainAll.filter((r: any) => r.date >= w0Start && r.strain_score != null).map((r: any) => Number(r.strain_score));
+  const chronicStrains = strainAll.filter((r: any) => r.strain_score != null).map((r: any) => Number(r.strain_score));
   const acuteLoad = avg(acuteStrains);
   const chronicLoad = chronicStrains.length >= 14 ? avg(chronicStrains) : null;
-  const acwr = acuteLoad != null && chronicLoad != null && chronicLoad > 0
-    ? +(acuteLoad / chronicLoad).toFixed(2)
-    : null;
+  const acwr = acuteLoad != null && chronicLoad != null && chronicLoad > 0 ? +(acuteLoad / chronicLoad).toFixed(2) : null;
   const acwrBand = (r: number) => r < 0.8 ? 'undertrained' : r <= 1.3 ? 'optimal' : r <= 1.5 ? 'elevated' : 'spike_risk';
-
   let monotony: number | null = null;
   if (acuteStrains.length >= 4) {
     const wm = avg(acuteStrains)!;
@@ -157,13 +114,7 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     const wSD = Math.sqrt(wSS / (acuteStrains.length - 1));
     if (wSD > 0) monotony = +(wm / wSD).toFixed(2);
   }
-
-  const acwrLabel: Record<string, string> = {
-    undertrained: 'undertrained (<0.8) — wolumen poniżej bazy chronicznej',
-    optimal: 'sweet spot ✓ (0.8–1.3)',
-    elevated: 'podwyższony (1.3–1.5) — obserwuj oznaki przeciążenia',
-    spike_risk: '⚠️ SPIKE (>1.5) — wyraźne ryzyko kontuzji',
-  };
+  const acwrLabel: Record<string, string> = { undertrained: 'undertrained (<0.8)', optimal: 'sweet spot ✓ (0.8–1.3)', elevated: 'podwyższony (1.3–1.5)', spike_risk: '⚠️ SPIKE (>1.5)' };
 
   // ── e1RM progression ─────────────────────────────────────────────────────
   const e1RMBase: Record<string, number[]> = {};
@@ -191,11 +142,8 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
   // ── Last session per exercise ────────────────────────────────────────────
   const allWorkoutsSorted = [...workoutsAll].sort((a: any, b: any) => b.date.localeCompare(a.date));
   const lastSessionByEx: Record<string, { date: string; sets: any[]; e1rm: number | null }> = {};
-
   for (const w of allWorkoutsSorted) {
-    const logs = (w.exercise_logs || []).filter((l: any) =>
-      !ACTIVITY_KW.test(l.exercise_name || '') && l.exercise_name?.trim()
-    );
+    const logs = (w.exercise_logs || []).filter((l: any) => !ACTIVITY_KW.test(l.exercise_name || '') && l.exercise_name?.trim());
     for (const l of logs) {
       if (!lastSessionByEx[l.exercise_name]) {
         const allSetsThisSession = logs.filter((x: any) => x.exercise_name === l.exercise_name);
@@ -207,20 +155,15 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
       }
     }
   }
-
   const allTimeE1rm: Record<string, number> = {};
   for (const w of allWorkoutsSorted) {
     for (const l of (w.exercise_logs || []).filter((l: any) => Number(l.weight) > 0 && Number(l.reps) > 0)) {
       const e = epley(Number(l.weight), Number(l.reps));
-      if (e && (!allTimeE1rm[l.exercise_name] || e > allTimeE1rm[l.exercise_name])) {
-        allTimeE1rm[l.exercise_name] = e;
-      }
+      if (e && (!allTimeE1rm[l.exercise_name] || e > allTimeE1rm[l.exercise_name])) allTimeE1rm[l.exercise_name] = e;
     }
   }
-
   const exerciseHistoryLines = Object.entries(lastSessionByEx)
-    .sort(([, a], [, b]) => b.date.localeCompare(a.date))
-    .slice(0, 20)
+    .sort(([, a], [, b]) => b.date.localeCompare(a.date)).slice(0, 20)
     .map(([name, info]) => {
       const setBySn = [...info.sets].sort((a, b) => a.set_number - b.set_number);
       const setsStr = setBySn.map((s: any) => {
@@ -234,15 +177,14 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
       return `  ${name} [${info.date}]: ${setsStr}${e1rm ? ` → e1RM ~${e1rm.toFixed(0)}kg` : ''}`;
     }).join('\n');
 
-  // ── Plan compliance (ten tydzień) ─────────────────────────────────────────
+  // ── Plan compliance ──────────────────────────────────────────────────────
   const complianceLines: string[] = [];
   for (const p of planContext.filter((p: any) => p.planned_date <= today)) {
     const date = p.planned_date;
     const hasRun = stravaByWeek[0].some((a: any) => warsaw(new Date(a.start_date)) === date && /run/i.test(a.sport_type || ''));
     const hasWorkout = workoutsByWeek[0].some((w: any) => w.date === date);
     const done = hasRun || hasWorkout;
-    const wtype = p.workout_type;
-    const typeLabel = wtype === 1 ? 'Wyścig' : wtype === 2 ? 'Długi bieg' : 'Trening/bieg';
+    const typeLabel = p.workout_type === 1 ? 'Wyścig' : p.workout_type === 2 ? 'Długi bieg' : 'Trening/bieg';
     complianceLines.push(`  ${date} [${typeLabel}] ${p.workout_name}: ${done ? '✓ WYKONANE' : '✗ BRAK'}`);
   }
 
@@ -260,15 +202,9 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     const o = ouraByWeek[0].find((r: any) => r.date === date);
     const ws = workoutsByWeek[0].filter((w: any) => w.date === date);
     const runs = stravaByWeek[0].filter((a: any) => warsaw(new Date(a.start_date)) === date && /run/i.test(a.sport_type || ''));
-
     const parts: string[] = [`[${date}]`];
-
-    if (o?.readiness_score != null || o?.hrv_avg != null)
-      parts.push(`  readiness ${o?.readiness_score ?? '—'} | HRV ${fmt(Number(o?.hrv_avg), 0, 'ms')} | sen ${fmt(Number(o?.total_sleep_hours), 1, 'h')}`);
-
-    if (s?.strain_score != null)
-      parts.push(`  strain ${fmt(Number(s.strain_score))}`);
-
+    if (o?.readiness_score != null || o?.hrv_avg != null) parts.push(`  readiness ${o?.readiness_score ?? '—'} | HRV ${fmt(Number(o?.hrv_avg), 0, 'ms')} | sen ${fmt(Number(o?.total_sleep_hours), 1, 'h')}`);
+    if (s?.strain_score != null) parts.push(`  strain ${fmt(Number(s.strain_score))}`);
     for (const w of ws) {
       const realLogs = (w.exercise_logs || []).filter((l: any) => !ACTIVITY_KW.test(l.exercise_name || ''));
       const saunaMin = (w.exercise_logs || []).filter((l: any) => SAUNA_KW.test(l.exercise_name || '')).reduce((sum: number, l: any) => sum + (Number(l.reps) || 0), 0);
@@ -283,7 +219,6 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
       if (exStr) parts.push(exStr);
       if (saunaMin > 0) parts.push(`  sauna ${saunaMin}min`);
     }
-
     for (const r of runs) {
       const type = classifyRun(r);
       const dist = r.distance ? `${(r.distance / 1000).toFixed(1)}km` : '—';
@@ -292,7 +227,6 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
       const rpe = r.perceived_exertion ? `RPE${r.perceived_exertion}` : '';
       const pr = r.has_pr ? '🏆PR' : '';
       parts.push(`  ${type}: "${r.name}" ${dist} ${pace}${hr ? ` ${hr}` : ''}${rpe ? ` ${rpe}` : ''}${pr ? ` ${pr}` : ''}`);
-
       if (r.gc_enriched_at) {
         const gcLine: string[] = [];
         if (r.gc_training_effect_aerobic != null) gcLine.push(`TE aerob ${r.gc_training_effect_aerobic}`);
@@ -300,20 +234,14 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
         if (r.gc_vo2max != null) gcLine.push(`VO2max ${r.gc_vo2max}`);
         if (r.gc_weather?.temp_c != null) gcLine.push(`${r.gc_weather.temp_c}°C${r.gc_weather.condition ? ` ${r.gc_weather.condition}` : ''}`);
         if (gcLine.length) parts.push(`    [GC] ${gcLine.join(' | ')}`);
-
         const zonesStr = fmtGcZones(r.gc_hr_zones);
         if (zonesStr) parts.push(`    [GC] strefy HR: ${zonesStr}`);
-
         if (Array.isArray(r.gc_laps) && r.gc_laps.length) {
-          const lapStr = r.gc_laps
-            .filter((l: any) => l.distance >= 900)
-            .map((l: any) => `Km${l.lap}:${fmtPace(l.duration, l.distance)}${l.avg_hr ? ` HR${Math.round(l.avg_hr)}` : ''}`)
-            .join(' ');
+          const lapStr = r.gc_laps.filter((l: any) => l.distance >= 900).map((l: any) => `Km${l.lap}:${fmtPace(l.duration, l.distance)}${l.avg_hr ? ` HR${Math.round(l.avg_hr)}` : ''}`).join(' ');
           if (lapStr) parts.push(`    [GC] km-splity: ${lapStr}`);
         }
       }
     }
-
     dayLines.push(parts.join('\n'));
   }
 
@@ -331,301 +259,30 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     workoutsByWeek[0].flatMap((w: any) => w.exercise_logs || []).flatMap((l: any) => Array.isArray(l.muscle_tags) ? l.muscle_tags : []).filter(Boolean)
   )];
 
-  // ── CoachBrain: deterministic hybrid-strength signals before LLM ─────────
-  const patternStats: Record<string, {
-    label: string;
-    sets28: number;
-    setsW0: number;
-    lastDate: string | null;
-    daysSince: number | null;
-    avgRir: number | null;
-    fatigue: 'low' | 'medium' | 'high';
-  }> = Object.fromEntries(PATTERN_RULES.map(r => [r.key, {
-    label: r.label, sets28: 0, setsW0: 0, lastDate: null, daysSince: null, avgRir: null, fatigue: 'low' as const,
-  }]));
-  const rirByPattern: Record<string, number[]> = Object.fromEntries(PATTERN_RULES.map(r => [r.key, []]));
-
-  for (const w of workoutsAll) {
-    const week = weekOf(w.date, now, warsaw);
-    for (const l of (w.exercise_logs || [])) {
-      if (ACTIVITY_KW.test(l.exercise_name || '')) continue;
-      const patterns = exercisePatterns(l.exercise_name || '', Array.isArray(l.muscle_tags) ? l.muscle_tags : []);
-      const rir = l.rir != null ? Number(l.rir) : (l.rpe != null ? Number(l.rpe) : null);
-      for (const p of patterns) {
-        const s = patternStats[p];
-        if (!s) continue;
-        s.sets28++;
-        if (week === 0) s.setsW0++;
-        if (!s.lastDate || w.date > s.lastDate) s.lastDate = w.date;
-        if (rir != null && Number.isFinite(rir)) rirByPattern[p].push(rir);
-      }
-    }
-  }
-
-  for (const [key, s] of Object.entries(patternStats)) {
-    s.daysSince = dayDiff(s.lastDate, today);
-    s.avgRir = avg(rirByPattern[key]) != null ? +(avg(rirByPattern[key])!).toFixed(1) : null;
-    s.fatigue = classifyFatigue([key], s.avgRir, s.setsW0);
-  }
-
-  const pushSets = patternStats.push?.sets28 ?? 0;
-  const pullSets = patternStats.pull?.sets28 ?? 0;
-  const pushPullRatio = pullSets > 0 ? +(pushSets / pullSets).toFixed(2) : null;
-  const strengthGapDays = allWorkoutsSorted[0]?.date ? dayDiff(allWorkoutsSorted[0].date, today) : null;
-  const recentHardRuns = stravaByWeek[0].filter((r: any) =>
-    /run/i.test(r.sport_type || '') && thresholdHr != null && Number(r.hr_avg) > thresholdHr
-  ).length;
-  const threeDaysFromNow = (() => { const d = new Date(today + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 3); return d.toISOString().split('T')[0] })();
-  const hasUpcomingRunPlan = planContext.some((p: any) => p.planned_date > today && p.planned_date <= threeDaysFromNow);
-  const highReadiness = w0.recovAvg != null && w0.recovAvg >= 75;
-  const lowStrain = w0.strainAvg != null && w0.strainAvg < (baseStrain ?? 12) * 0.85;
-  const strengthWindow = highReadiness && lowStrain && (strengthGapDays == null || strengthGapDays >= 4);
-
-  const gapRules = [
-    { key: 'calf', maxDays: 7, reason: 'łydka/Achilles musi amortyzować kilometraż biegowy' },
-    { key: 'plyo', maxDays: 10, reason: 'moc reaktywna i ekonomia biegu — bez tego siła nie przekłada się na bieganie' },
-    { key: 'single_leg', maxDays: 10, reason: 'stabilizacja miednicy i kolana pod bieganie' },
-    { key: 'tibialis', maxDays: 14, reason: 'stopa/piszczelowy jako ubezpieczenie łydki i piszczeli' },
-    { key: 'hinge', maxDays: 10, reason: 'posterior chain dla siły biodra i ekonomii biegu' },
-    { key: 'core', maxDays: 10, reason: 'core/antyrotacja dla kontroli miednicy' },
-    { key: 'pull', maxDays: 10, reason: 'plecy równoważą pressing i postawę' },
-  ];
-  const strengthGaps = gapRules
-    .map(g => ({ ...g, daysSince: patternStats[g.key]?.daysSince, sets28: patternStats[g.key]?.sets28 ?? 0 }))
-    .filter(g => g.daysSince == null || g.daysSince > g.maxDays || g.sets28 === 0)
-    .sort((a, b) => (PATTERN_RULES.find(r => r.key === b.key)?.priority ?? 0) - (PATTERN_RULES.find(r => r.key === a.key)?.priority ?? 0));
-
-  const coachDecisions: string[] = [];
-  if (strengthWindow) coachDecisions.push('Okno na pełną sesję siłową: readiness wysokie, strain niski, przerwa od siłowni wystarczająca.');
-  else if (w0.recovAvg != null && w0.recovAvg < 65) coachDecisions.push('Nie dokładaj ciężkich nóg: readiness niskie, lepiej upper/prehab/RIR 3-4.');
-  if (strengthGaps.length) coachDecisions.push(`Priorytet siłowy: ${strengthGaps.slice(0, 3).map(g => patternStats[g.key]?.label).join(', ')}.`);
-  if (pushPullRatio != null && pushPullRatio > 1.4) coachDecisions.push(`Push/pull ${pushPullRatio}: za dużo pressingu względem pleców, dołóż pull.`);
-  if (recentHardRuns >= 2) coachDecisions.push(`Dwa mocne biegi w W0: nie dokładaj ego-liftingu nóg; wybierz kontrolowany RIR 2-3 i prehab.`);
-  if (hasUpcomingRunPlan) coachDecisions.push('W planie jest bieg w kolejnych 72h: ciężkie nogi tylko jeśli nie kolidują z akcentem biegowym.');
-
-  const orderedPatternKeys = [
-    ...strengthGaps.map(g => g.key),
-    ...(pushPullRatio != null && pushPullRatio > 1.4 ? ['pull'] : []),
-    'hinge', 'calf', 'single_leg', 'pull', 'push', 'core', 'plyo',
-  ].filter((v, i, arr) => arr.indexOf(v) === i);
-
-  const lowInterference = recentHardRuns >= 2 || hasUpcomingRunPlan || (w0.recovAvg != null && w0.recovAvg < 70);
-  const sessionBlueprint = orderedPatternKeys
-    .flatMap(key => {
-      const choices = EXERCISE_LIBRARY[key] || [];
-      const first = choices[0];
-      if (!first) return [];
-      const legPattern = LEG_PATTERN_KEYS.has(key);
-      const adjustedSetsReps = lowInterference && legPattern
-        ? first.setsReps.replace(/^4×/, '3×').replace(/^3×5$/, '2×5').replace(/^3×6-8$/, '2×6')
-        : first.setsReps;
-      return [{
-        pattern: key,
-        exercise: first.name,
-        sets_reps: adjustedSetsReps,
-        load: loadHint(first.name, lowInterference && legPattern ? null : first.intensity, allTimeE1rm, first.fallbackLoad),
-        target_rir: lowInterference && legPattern ? 'RIR 3' : key === 'calf' ? 'RIR 1-2' : 'RIR 2',
-        goal: first.goal,
-        interference_cost: LEG_PATTERN_KEYS.has(key) ? (lowInterference ? 'medium' : 'high') : 'low',
-      }];
-    })
-    .slice(0, 7);
-
-  const hasCalf = sessionBlueprint.some(x => x.pattern === 'calf');
-  const hasSingleLeg = sessionBlueprint.some(x => x.pattern === 'single_leg');
-  const hasPull = sessionBlueprint.some(x => x.pattern === 'pull');
-  const hasHeavyLeg = sessionBlueprint.some(x => x.interference_cost === 'high');
-  const criticScores = {
-    hypertrophy_score: Math.min(10, 4 + sessionBlueprint.length + (hasPull ? 1 : 0)),
-    strength_score: Math.min(10, 3 + (sessionBlueprint.some(x => ['hinge', 'squat', 'push', 'pull'].includes(x.pattern)) ? 3 : 0) + (strengthWindow ? 2 : 0)),
-    running_support_score: Math.min(10, 3 + (hasCalf ? 2 : 0) + (hasSingleLeg ? 2 : 0) + (sessionBlueprint.some(x => x.pattern === 'core') ? 1 : 0)),
-    running_support_percentage: Math.min(10, 3 + (hasCalf ? 2 : 0) + (hasSingleLeg ? 2 : 0) + (sessionBlueprint.some(x => x.pattern === 'core') ? 1 : 0)) * 10,
-    injury_prevention_score: Math.min(10, 2 + (hasCalf ? 2 : 0) + (hasSingleLeg ? 2 : 0) + (sessionBlueprint.some(x => x.pattern === 'tibialis') ? 2 : 0)),
-    interference_risk: hasHeavyLeg && (recentHardRuns >= 2 || hasUpcomingRunPlan) ? 'high' : hasHeavyLeg ? 'medium' : 'low',
-    critique: [] as string[],
-  };
-  if (!hasCalf) criticScores.critique.push('Brakuje łydki/Achillesa w blueprintcie.');
-  if (!hasSingleLeg) criticScores.critique.push('Brakuje single-leg stabilizacji.');
-  if (criticScores.interference_risk === 'high') criticScores.critique.push('Za wysoki koszt nóg względem biegania w oknie 72h.');
-
-  const coachSignals = {
-    role: 'reverse_engineered_hybrid_strength_coach',
-    strength_gap_days: strengthGapDays,
-    strength_window: strengthWindow,
-    high_readiness: highReadiness,
-    low_strain: lowStrain,
-    recent_hard_runs: recentHardRuns,
-    upcoming_run_plan_72h: hasUpcomingRunPlan,
-    push_pull_ratio: pushPullRatio,
-    pattern_stats: patternStats,
-    priority_gaps: strengthGaps.slice(0, 6),
-    deterministic_decisions: coachDecisions,
-    session_blueprint: sessionBlueprint,
-    critic_scores: criticScores,
-    session_bias: strengthWindow
-      ? 'full_strength_with_posterior_chain_calf_single_leg'
-      : recentHardRuns >= 2 || hasUpcomingRunPlan
-        ? 'upper_prehab_calf_low_interference'
-        : 'controlled_strength_rir_2_3',
-  };
+  // ── CoachBrain ────────────────────────────────────────────────────────────
+  const coachSignals = buildCoachBrain({
+    workoutsAll, stravaByWeek, w0, baseStrain, today, todayDow,
+    z2Ceiling, thresholdHr, allTimeE1rm,
+  });
 
   // ── Build prompt ──────────────────────────────────────────────────────────
-  const fmtWeek = (w: typeof w0, label: string) =>
-    `${label}: ${w.km}km bieganie (${w.runCount} biegów${w.hasLongRun ? ', w tym DŁUGI' : ', BEZ długiego'}, maks ${w.maxRunKm}km) | ${w.sets} serii siłowych | strain śr ${fmt(w.strainAvg)} | readiness śr ${fmt(w.recovAvg, 0)} | HRV śr ${fmt(w.hrvAvg, 0, 'ms')} | sen ${fmt(w.sleepAvg, 1, 'h')} | sauna ${w.saunaCount}x`;
-
-  const systemPrompt = `Jesteś elitarnym trenerem hybrydowym klasy premium (poziom opieki 10 000 USD/miesiąc): łączysz hipertrofię, siłę, sylwetkę, odporność tkanek, prewencję kontuzji i wydolność bez psucia pracy trenera biegowego.
-
-KONTEKST WSPÓŁPRACY:
-- Sportowiec MA bardzo dobrego trenera biegowego. Ten trener prowadzi plan biegowy: kilometraż tygodniowy, jednostki, tempo, long runy i periodyzację biegową.
-- Nie jesteś od przepisywania planu biegowego ani od pouczania "biegaj więcej/mniej" jako głównej rekomendacji.
-- Masz prawo komentować bieganie, ale z wyczuciem: jako kontekst dla siłowni, regeneracji, ryzyka, interferencji i priorytetów tygodnia. Możesz powiedzieć "priorytetem dla trenera biegowego jest long run / Z2 / dystrybucja intensywności", ale nie przejmujesz steru.
-- Twoja główna wartość: co zrobić na siłowni, jak progresować, jakie ćwiczenia dobrać, jak budować sylwetkę i siłę bez zabijania biegania.
-
-TWOJE PRIORYTETY — w tej kolejności:
-1. SIŁOWNIA I SYLWETKA — progresja, dobór ćwiczeń, objętość, intensywność, słabe ogniwa, hipertrofia i siła.
-2. PREWENCJA KONTUZJI — łydki, stopy, piszczelowy, pośladek średni, hamstringi, single-leg, core, mobilność i tkanki pod bieganie.
-3. CONCURRENT TRAINING BALANCE — jak siłownia ma wspierać bieganie, a nie interferować: nogi vs akcenty biegowe, RIR/RPE, dobór dnia, zmęczenie CNS.
-4. HOLISTYKA — sen, readiness, strain, HRV, żywienie, sauna i stres jako ograniczenia lub okna na mocniejszy bodziec.
-5. BIEGANIE — tylko jako kontekst i druga opinia; formułuj uwagi z szacunkiem do istniejącego trenera biegowego.
-
-STYL ANALIZY:
-- Brzmisz jak realny trener prowadzący ambitnego podopiecznego, nie jak aplikacja fitness. Konkret, hierarchia, decyzje.
-- Najpierw mów, co to oznacza dla siłowni: czy dokładamy, cofamy, zmieniamy ćwiczenia, przesuwamy akcent, trzymamy RIR.
-- Konkretne liczby zawsze. Nie "za mało pracy", ale "0 serii siłowych vs norma 19; przy readiness 82 można wejść w sesję posterior chain bez dokładania intensywnego biegania".
-- Diagnozy, nie opisy. Szukaj PRZYCZYNY, nie tylko objawu.
-- Rekomendacje biegowe formułuj miękko i koordynacyjnie: "do omówienia z trenerem biegowym", "priorytet biegowy wygląda na...", "nie dokładałbym samowolnie".
-- Specyficzne sesje siłowe w rekomendacjach: ćwiczenie, serie, powtórzenia, ciężar/RPE/RIR, cel adaptacyjny.
-- Jeśli tydzień wyglądał jak celowy deload (niski strain + wysoki recovery + plan mówi coś innego) — powiedz to wprost
-- Flagi ryzyka kontuzji: brak ekscentrycznego treningu łydek przy rosnącym km-rażu, brak single-leg work, brak nóg przez >2 tyg, HR na biegach >88% HRmax regularnie
-- Rozdzielaj cztery rzeczy: (1) wolumen km, (2) strukturę maratońską, (3) dystrybucję intensywności, (4) ciągłość siłowni. Nie wolno mieszać ich w jeden werdykt.
-- Jeśli km w W0 >= norma z W-1..W-3, nie pisz "za mało biegania" ani "wolumen biegowy za mały". Możesz napisać: "km jest OK, ale bodziec/struktura nie są maratońskie".
-- Jeśli ACWR/strain jest niski, nazywaj to "niski bodziec fizjologiczny" albo "niski koszt", nie automatycznie "za mało km".
-- Recovery/readiness wysokie przy niskim strain opisuj jako "wysoka gotowość / niski koszt ostatnich dni", nie jako pewną "nadregenerację".
-- Nie używaj katastroficznych tez typu "ryzyko przetrenowania układu nerwowego" przy niskim ACWR i niskim/umiarkowanym km. Trafniejszy język: "zła dystrybucja intensywności" albo "ryzyko przeciążenia przy braku bazy".
-- W rekomendacjach priorytet 1 i 2 domyślnie mają dotyczyć siłowni/progresji/prewencji/integracji hybrydowej. Rekomendacja czysto biegowa tylko jeśli jest krytyczna i sformułowana jako temat do uzgodnienia z trenerem biegowym.
-
-KONTEKST DNIA TYGODNIA — BARDZO WAŻNE:
-- Dzisiaj jest ${todayDowLabel} (${todayDow}/7 tygodnia). W0 to bieżące okno/tydzień w toku, NIE zamknięty tydzień.
-- W poniedziałek i wtorek nie wolno pisać, że "ten tydzień jest słaby/zerowy/nie zbliżył do maratonu" tylko dlatego, że W0 ma mało km/serii. To jest za wcześnie.
-- Porównuj W0 do normy pro-rata do dzisiaj: bieganie oczekiwane do teraz ~${expectedRunKmToDate}km z normy ${baseRunKm.toFixed(1)}km/tydz; siłownia ~${expectedSetsToDate} serii z normy ${Math.round(baseSets)} serii/tydz${expectedStrainToDate != null ? `; strain orientacyjnie ~${expectedStrainToDate} z normy ${baseStrain?.toFixed(1)}` : ''}.
-- Krytykuj opóźnienie tygodnia tylko gdy jest realna zaległość względem planu zaplanowanego DO DZISIAJ albo gdy jest czwartek/piątek/weekend i nadal brakuje kluczowych bodźców.
-- Jeśli jest wcześnie w tygodniu i plan ma sesje później, formułuj to jako "tydzień jeszcze otwarty; do wykonania X/Y", nie jako regres.
-
-W polu "strength_prescription" zawsze podajesz KONKRETNĄ następną sesję siłową:
-- Minimalne 5-7 ćwiczeń (nie ogólniki — konkretne ćwiczenia: wyciskanie płaskie, martwy ciąg, podciąganie, dipy, itp.)
-- Każde ćwiczenie: dokładne obciążenie obliczone z e1RM (np. jeśli e1RM=97kg, seria 5 = ~86% = 83kg; seria 8 = ~80% = 77.5kg)
-- Logika periodyzacji: czy intensywność/objętość po ostatniej sesji
-- Jeśli brak danych e1RM dla ćwiczenia — napisz "RPE 7-8" zamiast kg
-- Pole strength_prescription.exercises ma bazować na COACHBRAIN.session_blueprint. Możesz dopracować nazwy i kolejność, ale nie ignoruj priorytetów ani critic_scores.
-- If critic_scores.interference_risk is high, do not give heavy hinge/squat as the main stimulus; use low-interference variant, RIR 3, more prehab/upper.
-
-Mówisz po polsku. Jesteś bezpośredni. Nie motywujesz — analizujesz.`;
-
   const dataQualityNote = queryErrors.length
-    ? `\n⚠️ DATA_QUALITY: zapytania do [${queryErrors.join(', ')}] nie powiodły się — traktuj odpowiadające im sekcje jako NIEZNANE, nie jako "brak aktywności". Nie rekomenduj "zacznij od zera" na tej podstawie.\n`
+    ? `\n⚠️ DATA_QUALITY: zapytania do [${queryErrors.join(', ')}] nie powiodły się — traktuj jako NIEZNANE.\n`
     : '';
 
-  const userMsg = `${dataQualityNote}PROFIL SPORTOWCA (szacunki z ostatnich 28 dni):
-HRmax (maks HR widziany w danych): ${hrMax ?? '— (brak danych HR)'}
-Z2 ceiling (76% HRmax): ${z2Ceiling ?? '—'} BPM | Próg tlenowy (~88% HRmax): ${thresholdHr ?? '—'} BPM
-
-KALENDARZ ANALIZY:
-Dzisiaj: ${today} (${todayDowLabel}, dzień ${todayDow}/7). W0 jest w toku, nie jest zamkniętym tygodniem.
-Norma tygodniowa z W-1..W-3: bieganie ${baseRunKm.toFixed(1)}km/tydz, siłownia ${Math.round(baseSets)} serii/tydz${baseStrain != null ? `, strain ${baseStrain.toFixed(1)}` : ''}.
-Oczekiwane pro-rata do dzisiaj: bieganie ~${expectedRunKmToDate}km, siłownia ~${expectedSetsToDate} serii${expectedStrainToDate != null ? `, strain ~${expectedStrainToDate}` : ''}.
-Status tygodnia: ${earlyWeek ? 'WCZESNY TYDZIEŃ — nie oceniaj W0 jak pełnego tygodnia' : midWeek ? 'ŚRODEK TYGODNIA — oceniaj względem planu do dzisiaj i braków na resztę tygodnia' : 'KOŃCÓWKA TYGODNIA — można mocniej oceniać braki W0'}.
-
-KONTRAKT TRENINGOWY:
-Plan biegowy prowadzi osobny, dobry trener. Twoim głównym obszarem jest siłownia, sylwetka, progresja, prewencja i integracja z bieganiem. Komentarze biegowe są mile widziane, ale jako druga opinia i kontekst, nie jako przejmowanie planu.
-
-WSKAŹNIKI OBCIĄŻENIA (ACWR/Monotonia):
-${acwr != null ? `ACWR (7d acute / 28d chronic): ${acwr.toFixed(2)} → ${acwrLabel[acwrBand(acwr)]}` : 'ACWR: za mało danych (min. 14 dni historii strain)'}
-${monotony != null ? `Monotonia treningowa (Foster): ${monotony.toFixed(2)} → ${monotony >= 2.0 ? '⚠️ wysoka — zbyt podobny bodziec każdego dnia, ryzyko przetrenowania' : 'OK (<2.0)'}` : 'Monotonia: za mało danych (min. 4 aktywne dni w tygodniu)'}
-Chronic baseline strain: ${chronicLoad != null ? fmt(chronicLoad) : '—'}/21 | Acute (7d): ${acuteLoad != null ? fmt(acuteLoad) : '—'}/21
-
-TREND 4-TYGODNIOWY (od najstarszego do najnowszego):
-${fmtWeek(w3, 'W-3 (3 tygodnie temu)')}
-${fmtWeek(w2, 'W-2 (2 tygodnie temu)')}
-${fmtWeek(w1, 'W-1 (poprzedni tydzień)')}
-${fmtWeek(w0, 'W0 (TEN TYDZIEŃ)')}
-
-TEN TYDZIEŃ — DZIEŃ PO DNIU:
-${dayLines.length ? dayLines.join('\n\n') : '(brak danych)'}
-
-PARTIE MIĘŚNIOWE TRENOWANE W TYM TYGODNIU: ${weekMuscleTags.length ? weekMuscleTags.join(', ') : '— (brak tagów)'}
-
-PROGRESJA SIŁOWA (e1RM ten tydzień vs 3-tygodniowy maks):
-${progressionLines.length ? progressionLines.join('\n') : '(zbyt mało danych do porównania)'}
-
-PLAN MARATOŃSKI — BIEŻĄCY TYDZIEŃ:
-${planText}
-
-COMPLIANCE PLANU (ten tydzień):
-${complianceLines.length ? complianceLines.join('\n') : '(brak planu lub brak danych)'}
-
-HISTORIA ĆWICZEŃ SIŁOWYCH (ostatnia sesja + e1RM):
-${exerciseHistoryLines || '(brak danych)'}
-
-COACHBRAIN — DETERMINISTYCZNE SYGNAŁY TRENERA HYBRYDOWEGO:
-Traktuj te sygnały jako szkielet decyzji. Nie wymyślaj sprzecznej narracji, tylko dobierz język i sesję.
-${JSON.stringify(coachSignals, null, 2)}
-
----
-Odpowiedz WYŁĄCZNIE surowym obiektem JSON (bez markdown, bez żadnego tekstu poza JSON):
-{
-  "load_status": "elevated|optimal|undertrained",
-  "volume_status": "low|ok|high",
-  "structure_status": "missing_long_run|ok|chaotic|unknown",
-  "intensity_status": "too_hard|ok|too_easy|unknown",
-  "strength_continuity": "gap|ok|overloaded|unknown",
-  "coach_decision_summary": "1 zdanie — najważniejsza deterministyczna decyzja CoachBrain: pełna siłownia / upper+prehab / deload / pull priority itd.",
-  "load_summary": "1 konkretne zdanie — rozdziel km od bodźca: np. 'Km 14.2 vs norma 10.9 jest OK, ale ACWR 0.68 i brak długiego biegu = niski bodziec maratoński'",
-  "recovery_status": "deficit|ok|surplus",
-  "recovery_summary": "1 zdanie — stan gotowości; jeśli recovery wysokie przy niskim strain, pisz 'wysoka gotowość / niski koszt', nie 'nadregeneracja'",
-  "training_trajectory": "1-2 zdania — osobno oceń trend siłowni i wpływ biegania na siłownię; trend km komentuj tylko jako kontekst pracy trenera biegowego",
-  "marathon_readiness": "1 zdanie — druga opinia hybrydowa o bieganiu z szacunkiem do trenera biegowego; np. 'biegowo temat dla trenera, z perspektywy siłowni priorytetem jest łydka/single-leg pod tę strukturę'",
-  "injury_risk": {
-    "level": "low|moderate|high",
-    "flags": ["konkretny sygnał ryzyka z liczbami jeśli jest", "..."],
-    "prevention": "1-2 zdania — co zrobić żeby zapobiec lub co wdrożyć od razu"
-  },
-  "strength_note": "1 zdanie — najważniejsza decyzja siłowa tygodnia: progresja, deload, akcent, ograniczenie albo zmiana ćwiczeń",
-  "missing_muscles": ["partie lub wzorce ruchowe których brakuje dla sylwetki, siły i odporności biegacza — max 4, [] jeśli OK"],
-  "sauna_note": "1 zdanie — sauna vs norma i dlaczego to ważne w kontekście tego tygodnia",
-  "key_insights": [
-    "insight 1 — najważniejszy wniosek o siłowni/sylwetce/hybrydzie, zdanie z liczbami",
-    "insight 2 — drugi najważniejszy",
-    "insight 3 — trzeci"
-  ],
-  "strength_prescription": {
-    "focus": "co ćwiczymy i dlaczego — priorytet siłowy/sylwetkowy z uwzględnieniem biegania, np. 'Posterior chain + łydka + góra: budujemy tył bez zajechania nóg przed akcentem biegowym'",
-    "critic": "1 zdanie — ocena blueprintu: hipertrofia/siła/prewencja/interferencja; wskaż największy tradeoff",
-    "exercises": [
-      {
-        "name": "nazwa ćwiczenia po polsku",
-        "sets_reps": "np. '4×5' lub '3×8-10'",
-        "load": "np. '92.5kg' lub 'BW+20kg' — na podstawie e1RM z historii, obliczone konkretnie",
-        "note": "np. 'e1RM ~97kg, poprzednia sesja 90kg×5 RIR2 — czas na 92.5kg'"
-      }
-    ]
-  },
-  "recommendations": [
-    { "priority": 1, "action": "konkretna akcja siłowa max 10 słów", "reason": "1 zdanie z liczbami — dlaczego to najlepszy ruch dla siły/sylwetki/hybrydy" },
-    { "priority": 2, "action": "...", "reason": "..." },
-    { "priority": 3, "action": "...", "reason": "..." }
-  ]
-}`;
+  const systemPrompt = buildSystemPrompt();
+  const userMsg = buildUserMsg({
+    dataQualityNote, hrMax, z2Ceiling, thresholdHr, today, todayDowLabel, todayDow,
+    baseRunKm, baseSets, baseStrain, expectedRunKmToDate, expectedSetsToDate, expectedStrainToDate,
+    earlyWeek, midWeek, acwr, acwrLabel, acwrBand, monotony, acuteLoad, chronicLoad,
+    w0, w1, w2, w3, dayLines, weekMuscleTags, progressionLines, planText,
+    complianceLines, exerciseHistoryLines, coachSignals,
+  });
 
   const result = await deepseekChat({
-    apiKey,
-    model: 'deepseek-chat',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMsg },
-    ],
-    maxTokens: 4000,
-    temperature: 0.2,
-    timeoutMs: 90000,
+    apiKey, model: 'deepseek-chat',
+    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }],
+    maxTokens: 4000, temperature: 0.2, timeoutMs: 90000,
   });
 
   const parsed: any = parseJsonFromContent(result.content);
@@ -640,31 +297,19 @@ Odpowiedz WYŁĄCZNIE surowym obiektem JSON (bez markdown, bez żadnego tekstu p
     base_hrv: avg([w1.hrvAvg, w2.hrvAvg, w3.hrvAvg].filter(Boolean) as number[]) != null ? Math.round(avg([w1.hrvAvg, w2.hrvAvg, w3.hrvAvg].filter(Boolean) as number[])!) : null,
     week_sleep: w0.sleepAvg != null ? +w0.sleepAvg.toFixed(1) : null,
     base_sleep: avg([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg].filter(Boolean) as number[]) != null ? +(avg([w1.sleepAvg, w2.sleepAvg, w3.sleepAvg].filter(Boolean) as number[])!.toFixed(1)) : null,
-    week_sets: w0.sets,
-    base_sets_pw: Math.round(avg([w1.sets, w2.sets, w3.sets]) ?? 0),
-    week_run_km: w0.km,
-    base_run_km_pw: +(avg([w1.km, w2.km, w3.km])?.toFixed(1) ?? '0'),
-    week_sauna: w0.saunaCount,
-    base_sauna_pw: +(avg([w1.saunaCount, w2.saunaCount, w3.saunaCount])?.toFixed(1) ?? '0'),
-    muscle_tags: weekMuscleTags,
-    hr_max: hrMax,
-    z2_ceiling: z2Ceiling,
-    today,
-    day_of_week: todayDow,
-    day_of_week_label: todayDowLabel,
-    week_progress: +weekProgress.toFixed(2),
-    early_week: earlyWeek,
-    expected_run_km_to_date: expectedRunKmToDate,
-    expected_sets_to_date: expectedSetsToDate,
-    expected_strain_to_date: expectedStrainToDate,
-    coach_signals: coachSignals,
+    week_sets: w0.sets, base_sets_pw: Math.round(avg([w1.sets, w2.sets, w3.sets]) ?? 0),
+    week_run_km: w0.km, base_run_km_pw: +(avg([w1.km, w2.km, w3.km])?.toFixed(1) ?? '0'),
+    week_sauna: w0.saunaCount, base_sauna_pw: +(avg([w1.saunaCount, w2.saunaCount, w3.saunaCount])?.toFixed(1) ?? '0'),
+    muscle_tags: weekMuscleTags, hr_max: hrMax, z2_ceiling: z2Ceiling,
+    today, day_of_week: todayDow, day_of_week_label: todayDowLabel,
+    week_progress: +weekProgress.toFixed(2), early_week: earlyWeek,
+    expected_run_km_to_date: expectedRunKmToDate, expected_sets_to_date: expectedSetsToDate,
+    expected_strain_to_date: expectedStrainToDate, coach_signals: coachSignals,
     km_trend: [w3.km, w2.km, w1.km, w0.km],
     sets_trend: [w3.sets, w2.sets, w1.sets, w0.sets],
     strain_trend: [w3.strainAvg, w2.strainAvg, w1.strainAvg, w0.strainAvg],
-    acwr,
-    acwr_band: acwr != null ? acwrBand(acwr) : null,
-    monotony,
-    acute_load: acuteLoad != null ? +acuteLoad.toFixed(1) : null,
+    acwr, acwr_band: acwr != null ? acwrBand(acwr) : null,
+    monotony, acute_load: acuteLoad != null ? +acuteLoad.toFixed(1) : null,
     chronic_load: chronicLoad != null ? +chronicLoad.toFixed(1) : null,
   };
 

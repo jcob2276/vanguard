@@ -1,49 +1,8 @@
-import { getEmbedding } from "../../_shared/openai.ts";
-import {
-  fetchOracleStreamSlices,
-  formatOracleStreamBlock,
-} from "../../_shared/streamContext.ts";
 import { getPlanQualitySignal } from "../../_shared/planQuality.ts";
-import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getRecentStrongBehavioralPatterns } from "../../_shared/vanguardPatterns.ts";
 import { fetchMedicalContext, formatMedicalContextBlock } from "../../_shared/medicalContext.ts";
-
-function avg(items: any[] = [], key: string) {
-  const values = items.map((item) => Number(item?.[key])).filter(Number.isFinite);
-  return values.length
-    ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
-    : null;
-}
-
-
-
-function truncateToBudget(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  return text.substring(0, maxChars) + "\n\n[WARNING: Zawartość skrócona ze względu na limit budżetu tokenów.]";
-}
-
-function buildGraphSeeds(query = '', intent = 'open_reflection', mentionedEntities: string[] = []) {
-  const q = query.toLowerCase();
-  const seeds = new Set<string>((mentionedEntities || []).filter(Boolean));
-  const selfReference = /\b(ja|mnie|mi|moje|moja|moj|u mnie|o mnie|mój)\b/.test(q);
-  const broadSelfIntent = ['identity', 'person', 'recent_pattern', 'biometric', 'open_reflection'].includes(intent);
-
-  if (selfReference || broadSelfIntent) {
-    seeds.add('Jakub');
-  }
-
-  return Array.from(seeds);
-}
-
-function classifyIntentSafe(query = '') {
-  const q = query.toLowerCase();
-  if (/wiek|urodzin|studi|kim jestem|fundament|identity|tozsamosc|tożsamość/.test(q)) return 'identity';
-  if (/jul|toman|tomań|ekiert|klaud|pawel|paweł|osob|relac|dziewczyn|babci|rodzin/.test(q)) return 'person';
-  // Biometric before recent_pattern — "dlaczego znowu źle śpię" must not lose sleep context.
-  if (/sen|hrv|oura|execution|biometr|tetno|tętno|recovery|krok|kalor|jedz|jem|białk|bialk|śpi|spi|zmęcz|zmecz/.test(q)) return 'biometric';
-  if (/ostatnio|7 dni|trend|history|wzorzec|schemat|powtarza|powtarzaln|dlaczego znowu|co się dzieje z/.test(q)) return 'recent_pattern';
-  return 'open_reflection';
-}
+import { avg, classifyIntentSafe } from "./ragHelpers.ts";
+import { runRagPipeline } from "./ragPipeline.ts";
 
 export async function retrieveRagContext(
   supabase: any,
@@ -197,7 +156,6 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
 
   const medicalContext = await fetchMedicalContext(supabase, user_id, todayDate);
   const medicalContextText = formatMedicalContextBlock(medicalContext);
-
   // DYNAMIC CONTEXT (RAG) - DETERMINISTIC 3-STEP PIPELINE
   let semanticContext = "";
   let graphContext = "";
@@ -208,164 +166,12 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
   const intent = classifyIntentSafe(current_query || '');
 
   if (current_query) {
-    try {
-      console.log(`[oracle] Starting 3-step retrieval pipeline for query: "${current_query.substring(0, 60)}..."`);
-      
-      // Step 1: Facts Layer (Fakty)
-      const { data: mentioned } = await supabase.rpc('find_mentioned_entities', {
-        query_text: current_query.substring(0, 1000),
-        user_id_param: user_id
-      });
-      const entitiesInQuery = (mentioned as any[])?.map(m => m.entity_name) || [];
-      const graphSeeds = buildGraphSeeds(current_query, intent, entitiesInQuery);
-      const graphLayer = intent === 'biometric' ? null : 'intelligence';
-
-      // Pull from Graph
-      const entityGraphData = graphSeeds.length > 0
-        ? (await supabase.rpc('get_vanguard_graph_context', {
-            start_entities: graphSeeds,
-            max_depth: 2,
-            user_id_param: user_id,
-            p_layer: graphLayer,
-            p_include_historical: intent === 'identity',
-            p_min_confidence: 0.7
-          })).data || []
-        : [];
-
-      // Pull Semantically via Embedding
-      const embedding = await getEmbedding(current_query.substring(0, 1000), Deno.env.get('OPENAI_API_KEY') ?? '').catch(() => null);
-      const semanticGraphRes = embedding
-        ? (await supabase.rpc('search_entity_links', {
-            query_embedding: embedding,
-            match_user_id: user_id,
-            match_count: 15
-          })).data || []
-        : [];
-
-      // Pull via Full-Text Search
-      const fulltextGraphRes = (await supabase.rpc('search_entity_links_fulltext', {
-        query_text: current_query.substring(0, 500),
-        match_user_id: user_id,
-        match_count: 15
-      })).data || [];
-
-      // Combine all active facts
-      const factsPool = [...entityGraphData, ...semanticGraphRes, ...fulltextGraphRes];
-      const factsMap = new Map<string, any>();
-      for (const f of factsPool) {
-        if (f.epistemic_status === 'hypothesis') continue;
-        const key = f.fact_text || `${f.source_entity}|${f.relation}|${f.target_entity}`;
-        if (!factsMap.has(key)) {
-          factsMap.set(key, f);
-        }
-      }
-
-      const uniqueFacts = Array.from(factsMap.values());
-      console.log(`[RAG LOG] Step 1 (Facts): Retrieved ${uniqueFacts.length} unique facts.`);
-
-      let factsText = "";
-      if (uniqueFacts.length > 0) {
-        factsText = "[WARSTWA FAKTÓW (Zweryfikowana wiedza)]:\n" + uniqueFacts.map((f: any) => {
-          if (f.fact_text) return `- ${f.fact_text}`;
-          return `- ${f.source_entity} ${f.relation} ${f.target_entity}`;
-        }).join('\n');
-      } else {
-        factsText = "[WARSTWA FAKTÓW]: Brak pasujących zweryfikowanych faktów w bazie wiedzy.";
-      }
-      graphContext = truncateToBudget(factsText, 4000);
-
-      // Populate matchesRes & graphRes for auditing logs compatibility
-      matchesRes = { data: semanticGraphRes };
-      graphRes = { data: entityGraphData };
-
-      // Step 2: Hypotheses Layer (Hipotezy)
-      const { data: hypothesisRes } = await supabase
-        .from('claims')
-        .select('fact_text, weight, evidence_count, learned_at')
-        .eq('user_id', user_id)
-        .eq('epistemic_status', 'hypothesis')
-        .eq('status', 'active')
-        .order('learned_at', { ascending: false })
-        .limit(10);
-
-      console.log(`[RAG LOG] Step 2 (Hypotheses): Retrieved ${hypothesisRes?.length || 0} recent hypotheses.`);
-
-      let hypothesesText = "";
-      if (hypothesisRes && hypothesisRes.length > 0) {
-        hypothesesText = "[WARSTWA HIPOTEZ (Niepotwierdzone przypuszczenia LLM-a do weryfikacji)]:\n" +
-          "UWAGA: Poniższe punkty to NIE SĄ fakty. Traktuj je jako niepotwierdzone robocze domysły, które wymagają walidacji.\n" +
-          hypothesisRes.map((h: any) => `- ${h.fact_text} (obserwacji: ${h.evidence_count || 1})`).join('\n');
-      } else {
-        hypothesesText = "[WARSTWA HIPOTEZ]: Brak aktywnych hipotez w bazie wiedzy.";
-      }
-      const finalHypothesesText = truncateToBudget(hypothesesText, 2500);
-      graphContext += "\n\n" + finalHypothesesText;
-
-      const proposalsList = proposalsRes?.data || [];
-      let proposalsText = "";
-      if (proposalsList.length > 0) {
-        proposalsText = "[AKTYWNE PROPOZYCJE SYSTEMOWE (Czekające na decyzję użytkownika w Action Center)]:\n" +
-          proposalsList.map((p: any) => `- [${p.category}] ${p.title}: ${p.description}`).join('\n');
-      }
-      if (proposalsText) {
-        graphContext += "\n\n" + proposalsText;
-      }
-
-      // Step 3: Narrative & Stream Layer (Narracja / Stream)
-      const isPatternQuery = !!current_query.toLowerCase().match(/ostatnio|7 dni|trend|wzorc|wzorzec/);
-      const streamSlices = await fetchOracleStreamSlices(supabase, user_id, {
-        includePatternWindow: true,
-        patternLimit: isPatternQuery ? 15 : 5,
-      });
-
-      let narrativeText = "[WARSTWA NARRACJI (Ostatnia aktywność i strumień)]:\n";
-      narrativeText += formatOracleStreamBlock(streamSlices.current, streamSlices.recent);
-
-      // Fetch recent friction events (ostatnie 72h)
-      try {
-        const { data: frictionRecent } = await supabase
-          .from('friction_events')
-          .select('friction_type, deviation, immediate_cost, declared_intention, occurred_at, confidence_source, confidence')
-          .eq('user_id', user_id)
-          .gte('occurred_at', cutoff72h)
-          .order('occurred_at', { ascending: false });
-
-        if (frictionRecent && frictionRecent.length > 0) {
-          narrativeText += "\n\n[FRICTION EVENTS (ostatnie 72h) — atomy tarcia]:\n" +
-            frictionRecent.map((f: any) =>
-              `[${f.occurred_at}] ${f.friction_type} | odchylenie: ${f.deviation || '—'} | intencja: ${f.declared_intention || '—'} | koszt: ${f.immediate_cost || '—'} [${f.confidence_source}, conf=${f.confidence}]`
-            ).join('\n');
-        }
-      } catch (fe) {
-        console.warn('[oracle] friction fetch error (non-fatal):', fe);
-      }
-
-      semanticContext = truncateToBudget(narrativeText, 4000);
-      console.log(`[RAG LOG] Step 3 (Narrative): Processed stream slices.`);
-
-      // Assemble retrievedSources for debugging & audit logs
-      retrievedSources = uniqueFacts.slice(0, 10).map((f: any) => ({
-        table: 'claims',
-        type: 'fact',
-        snippet: f.fact_text || `${f.source_entity} --${f.relation}--> ${f.target_entity}`
-      }));
-      if (hypothesisRes) {
-        retrievedSources.push(...hypothesisRes.map((h: any) => ({
-          table: 'claims',
-          type: 'hypothesis',
-          snippet: h.fact_text
-        })));
-      }
-
-    } catch (err) {
-      await logCriticalError({
-        area: 'oracle',
-        error: err,
-        message: 'RAG retrieval failed – continuing with degraded context',
-        metadata: { nonFatal: true },
-      });
-      semanticContext += "\n\n[SYSTEM: RAG niedostępny — odpowiedź bez pamięci semantycznej/grafu.]";
-    }
+    const ragResult = await runRagPipeline(supabase, user_id, current_query, intent, cutoff72h, proposalsRes);
+    semanticContext = ragResult.semanticContext;
+    graphContext = ragResult.graphContext;
+    retrievedSources = ragResult.retrievedSources;
+    matchesRes = ragResult.matchesRes;
+    graphRes = ragResult.graphRes;
   }
 
   // WIKI CONTEXT

@@ -27,20 +27,9 @@ export function buildSystemPrompt(params: {
     responsePrefs,
     todayPlan,
     recentPlanQuality,
-    lastEveningReflection,
-    ironRulesContext,
-    behavioralPatternsContext,
-    intent,
-    clarificationsContext,
-    healthSummaryText,
-    strainText,
-    medicalContextText,
-    semanticContext,
-    graphContext,
-    wikiContext,
-    localTimeString,
-    safeUserConf,
-    safeStateVector,
+    lastEveningReflection, ironRulesContext, behavioralPatternsContext, intent,
+    clarificationsContext, healthSummaryText, strainText, medicalContextText,
+    semanticContext, graphContext, wikiContext, localTimeString, safeUserConf, safeStateVector,
   } = params;
 
   return `Jesteś Vanguard OS — osobistym kompanem i systemem Jakuba. Analizujesz jego zachowanie, biometrię, intencje, zadania i mikrotarcia.
