@@ -8,7 +8,8 @@
  * @consumer Zapis posiłków w aplikacji frontendowej i Telegramie
  * @status active
  */
-import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
+import { createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
+import { serveJson } from '../_shared/http.ts'
 import {
   parseMealText,
   finalizeParsedItems,
@@ -100,82 +101,66 @@ async function loadUserContext(
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+Deno.serve(serveJson(async (req) => {
+  const body = await req.clone().json().catch(() => ({}))
+  const text: string = (body.text || '').trim()
+  const clientTime: string | undefined = body.clientTime
+  if (!text) throw new Error('Missing text')
 
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
+  if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
+  let userId: string | undefined
   try {
-    const body = await req.json().catch(() => ({}))
-    const text: string = (body.text || '').trim()
-    const clientTime: string | undefined = body.clientTime
-    if (!text) {
-      return new Response(JSON.stringify({ error: 'Missing text' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
-    if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-    let userId: string | undefined
-    try {
-      const scope = await resolveUserScope(req, body.userId ?? null)
-      userId = scope.userId ?? body.userId
-    } catch {
-      userId = body.userId
-    }
-
-    const db = createServiceClient()
-    let ctx: UserParseContext
-    let corrections: FoodCorrection[] = []
-
-    if (userId) {
-      let timeOfDay: 'morning' | 'afternoon' | 'evening' | undefined
-      const h = clientTime ? (new Date(clientTime).getUTCHours() + 2) : (new Date().getUTCHours() + 2)
-      if (h >= 5 && h < 12) timeOfDay = 'morning'
-      else if (h >= 12 && h < 17) timeOfDay = 'afternoon'
-      else timeOfDay = 'evening'
-
-      const loaded = await loadUserContext(userId, db, timeOfDay)
-      ctx = loaded.ctx
-      corrections = loaded.corrections
-    } else {
-      ctx = {
-        profileLine: 'Profil domyślny dorosłego użytkownika',
-        targetKcal: null,
-        targetProtein: null,
-        favoritesBlock: '',
-        correctionsBlock: '',
-        historyBlock: '',
-        portionsBlock: '',
-      }
-    }
-
-    let items = await parseMealText(apiKey, text, ctx)
-
-    items = await finalizeParsedItems(items, {
-      originalText: text,
-      corrections,
-      supabaseUrl,
-      serviceKey,
-      userId,
-      db,
-      apiKey,
-      parseContext: ctx,
-    })
-
-    console.log(`[parse-food-nl] "${text.slice(0, 60)}" → ${items.length} items (user=${userId ?? 'anon'})`)
-
-    return new Response(JSON.stringify({ items }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    console.error('[parse-food-nl] error:', err)
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    const scope = await resolveUserScope(req, body.userId ?? null)
+    userId = scope.userId ?? body.userId
+  } catch {
+    userId = body.userId
   }
-})
+
+  const db = createServiceClient()
+  let ctx: UserParseContext
+  let corrections: FoodCorrection[] = []
+
+  if (userId) {
+    let timeOfDay: 'morning' | 'afternoon' | 'evening' | undefined
+    const h = clientTime ? (new Date(clientTime).getUTCHours() + 2) : (new Date().getUTCHours() + 2)
+    if (h >= 5 && h < 12) timeOfDay = 'morning'
+    else if (h >= 12 && h < 17) timeOfDay = 'afternoon'
+    else timeOfDay = 'evening'
+
+    const loaded = await loadUserContext(userId, db, timeOfDay)
+    ctx = loaded.ctx
+    corrections = loaded.corrections
+  } else {
+    ctx = {
+      profileLine: 'Profil domyślny dorosłego użytkownika',
+      targetKcal: null,
+      targetProtein: null,
+      favoritesBlock: '',
+      correctionsBlock: '',
+      historyBlock: '',
+      portionsBlock: '',
+    }
+  }
+
+  let items = await parseMealText(apiKey, text, ctx)
+
+  items = await finalizeParsedItems(items, {
+    originalText: text,
+    corrections,
+    supabaseUrl,
+    serviceKey,
+    userId,
+    db,
+    apiKey,
+    parseContext: ctx,
+  })
+
+  console.log(`[parse-food-nl] "${text.slice(0, 60)}" → ${items.length} items (user=${userId ?? 'anon'})`)
+
+  return { items }
+}, { auth: 'none' }))

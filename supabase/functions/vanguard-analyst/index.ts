@@ -8,22 +8,15 @@
  * @consumer Action Center w aplikacji frontendowej (propozycje system_proposals)
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts"
+import { serveJson } from "../_shared/http.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
-import { requireServiceRole } from "../_shared/auth.ts"
 import { checkProactiveAlert } from "./proactiveAlert.ts"
 import { detectSpirals } from "./detectSpirals.ts"
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+Deno.serve(serveJson(async (_req, ctx) => {
+  const supabase = ctx.supabase
 
-  const authError = requireServiceRole(req)
-  if (authError) return authError
-
-  try {
-    const supabase = createServiceClient()
-
-    const { data: users } = await supabase.from('user_settings').select('user_id')
+  const { data: users } = await supabase.from('user_settings').select('user_id')
     const user_id = users?.[0]?.user_id
     if (!user_id) throw new Error("User not found")
 
@@ -181,10 +174,5 @@ REGENERACJA — ostatnie 7 dni:\n${recoveryText || 'Brak danych Oura.'}`
     if (!biometrics.error) await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [], spiral)
 
     console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
-    return new Response(JSON.stringify({ success: true, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
-
-  } catch (err: any) {
-    console.error("[analyst] error:", err)
-    return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
-  }
-})
+    return { success: true, result }
+}, { auth: 'service' }))
