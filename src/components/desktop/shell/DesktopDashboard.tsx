@@ -1,7 +1,7 @@
 import { notify } from '../../../lib/notify';
 import { getTodayWarsaw } from '../../../lib/date';
 import { mergeLatestBodyMetrics } from '../../../lib/health/bodyMetrics';
-import { NETWORK_TIMEOUT_MS } from '../../../lib/constants';
+import { syncOura, syncCalendar, syncStrava, computeDailyStrain } from '../../../lib/syncApi';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import SmartAlerts from '../hero/SmartAlerts';
 import DesktopHero from '../hero/DesktopHero';
@@ -100,32 +100,22 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const tick = theme === 'dark' ? '#9ca3af' : '#6b7280';
 
   const syncAll = useCallback(async () => {
-    if (syncing) return;
+    if (syncing || !userId) return;
     setSyncing(true);
-    const base = import.meta.env.VITE_SUPABASE_URL;
-    const call = async (fn: string, b: Record<string, any> = {}) => {
-      const r = await fetch(`${base}/functions/v1/${fn}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify(b),
-        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-      });
-      if (!r.ok) throw new Error(fn);
-    };
     try {
       const phase1 = await Promise.allSettled([
-        call('sync', { service: 'oura', userId }),
-        call('sync', { service: 'calendar', userId })
+        syncOura(userId),
+        syncCalendar(userId),
       ]);
       phase1.forEach((r, i) => {
         if (r.status === 'rejected') console.error(`[sync] phase1[${i}] failed:`, r.reason);
       });
-      await call('sync', { service: 'strava' }).catch(e => console.error('[sync] strava failed:', e));
-      await call('vanguard-nightly?action=compute-daily-strain', { userId, days: 2 }).catch(e => console.error('[sync] strain failed:', e));
+      await syncStrava().catch(e => console.error('[sync] strava failed:', e));
+      await computeDailyStrain(userId, 2).catch(e => console.error('[sync] strain failed:', e));
       refresh();
     } catch (e: unknown) { notify('Synchronizacja nie powiodła się.', 'error'); console.warn('[DesktopDashboard] Synchronization failed:', e); }
     finally { setSyncing(false); }
-  }, [syncing, accessToken, userId, refresh]);
+  }, [syncing, userId, refresh]);
 
   const openWorkout = useCallback(async () => {
     if (!userId) { setShowWorkout(true); return; }

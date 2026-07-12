@@ -87,9 +87,9 @@ Pełny opis w Części II §2.1–§2.3:
 ## Faza 3 — Model pojemności + struktura frontendu
 
 Kolejność krytyczna — dokończ react-query przed routerem i offline queue:
-1. Część II §7.1 — dokończyć migrację z ręcznych `useEffect+useState` na react-query.
-2. Router zamiast ręcznej nawigacji (stan w URL, deep-linki).
-3. Trio Oura → jedna funkcja + desktop sync storm.
+1. [x] (częściowo) Część II §7.1 — 10 z ~31 ręcznych `useEffect+useState` hooków zmigrowanych na react-query 2026-07-12 (nudge, medical context, correlations, hexagon, lifescoreboard, dreams, KPI sparkline, daily snapshot, stats overview + usunięcie martwego `useGrowthWeekRecap`). Zostały głównie "god hooki" (`useWorkoutLogger`, `usePowerListEffects`, `useNutritionData` — 5 konsumentów) i debounced search (`useFoodEntrySearch`) — świadomie odłożone, wymagają dedykowanej sesji.
+2. [x] Router — **już zrobiony** wcześniej (`react-router-dom` v7, `App.tsx` ma pełne trasy `/dzis`, `/todo`, `/kalendarz` itd., `useDashboardState.ts` czyta `useLocation`/`useNavigate`). Ten punkt backlogu był nieaktualny.
+3. [x] Trio Oura → jedna funkcja (2026-07-12): `DesktopDashboard.syncAll` i `useDailyStrainRefresh.refresh` miały dwie niezależne, ręczne implementacje `fetch` do edge function `sync` (token, timeout, error handling) — skonsolidowane do `lib/syncApi.ts` (`syncOura`/`syncStrava`/`syncCalendar`/`computeDailyStrain`). "Sync storm" per-day guard w `DailyStrainCard.tsx` już istniał (komentarz "Tama 3").
 4. Offline write queue (react-query persist + mutation queue).
 5. Skróty PWA (`/?todo=new`, share_target).
 6. Miniatury client-side przy uploadzie.
