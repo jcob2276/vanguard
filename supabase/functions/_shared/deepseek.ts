@@ -1,4 +1,5 @@
 import { createServiceClient } from "./supabase.ts";
+import { fetchWithRetry } from "./httpClient.ts";
 
 export interface DeepSeekMessage {
   role: "system" | "user" | "assistant" | "tool";
@@ -45,12 +46,10 @@ export interface DeepSeekChatResult {
 export async function deepseekChat(
   params: DeepSeekChatParams,
 ): Promise<DeepSeekChatResult> {
-  const controller = new AbortController();
   const timeoutMs = params.timeoutMs ?? 45000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+  {
+    const res = await fetchWithRetry("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${params.apiKey}`,
@@ -64,8 +63,7 @@ export async function deepseekChat(
         ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
         ...(params.tools ? { tools: params.tools } : {}),
       }),
-      signal: controller.signal,
-    });
+    }, { timeoutMs, retries: 1, logTag: "deepseek.chat" });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
@@ -112,19 +110,15 @@ export async function deepseekChat(
     }
 
     return { content, reasoning_content, tool_calls, raw };
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 
 export async function deepseekStream(
   params: DeepSeekChatParams,
 ): Promise<Response> {
-  const controller = new AbortController();
   const timeoutMs = params.timeoutMs ?? 45000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
+  const res = await fetchWithRetry("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${params.apiKey}`,
@@ -137,16 +131,13 @@ export async function deepseekStream(
       ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
       ...(params.temperature === null ? {} : { temperature: params.temperature ?? 0.2 }),
     }),
-    signal: controller.signal,
-  });
+  }, { timeoutMs, retries: 1, logTag: "deepseek.stream" });
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     throw new Error(`DeepSeek error (${res.status}): ${errText.slice(0, 200)}`);
   }
 
-  // Clear timeout to prevent aborting after initial headers arrive
-  clearTimeout(timeoutId);
   return res;
 }
 

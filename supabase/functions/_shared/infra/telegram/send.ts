@@ -10,6 +10,7 @@
 
 import { createServiceClient } from "../../supabase.ts";
 import { transcribeBlob } from "../../openai.ts";
+import { fetchWithRetry } from "../../httpClient.ts";
 
 export interface SendMessageOptions {
   parseMode?: string;
@@ -51,12 +52,11 @@ export async function callTelegramMethod(
   method: string,
   body: Record<string, unknown>,
 ): Promise<{ ok: boolean; description?: string; result?: unknown }> {
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+  const res = await fetchWithRetry(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000),
-  });
+  }, { timeoutMs: 15000, retries: 1, logTag: `telegram.${method}` });
   const text = await res.text();
   let data: { ok: boolean; description?: string; result?: unknown };
   try {
@@ -123,11 +123,11 @@ export async function sendMessage(
   if (options.replyMarkup) body.reply_markup = options.replyMarkup;
 
   if (options.direct) {
-    return fetch(`https://api.telegram.org/bot${token}/sendMessage`, { signal: AbortSignal.timeout(15000),
+    return fetchWithRetry(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }, { timeoutMs: 15000, retries: 1, logTag: "telegram.sendMessage" });
   }
 
   // Queue to outbox
@@ -145,11 +145,11 @@ export async function sendChatAction(
   options: { direct?: boolean } = {},
 ): Promise<void> {
   if (options.direct) {
-    await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, { signal: AbortSignal.timeout(15000),
+    await fetchWithRetry(`https://api.telegram.org/bot${token}/sendChatAction`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, action }),
-    }).catch((err) => {
+    }, { timeoutMs: 15000, retries: 1, logTag: "telegram.sendChatAction" }).catch((err) => {
       console.warn("[telegram] sendChatAction failed:", err);
     });
     return;
@@ -163,8 +163,9 @@ export async function answerCallbackQuery(
   callbackQueryId: string,
   options: { text?: string; showAlert?: boolean; direct?: boolean } = {},
 ): Promise<void> {
-  // Always send answerCallbackQuery directly because Telegram has a strict <10s response window.
-  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, { signal: AbortSignal.timeout(15000),
+  // Always send answerCallbackQuery directly because Telegram has a strict <10s response window
+  // (no retry here — a retry could push the response past that window).
+  await fetchWithRetry(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -172,7 +173,7 @@ export async function answerCallbackQuery(
       text: options.text ?? "",
       show_alert: options.showAlert,
     }),
-  }).catch((err) => {
+  }, { timeoutMs: 8000, logTag: "telegram.answerCallbackQuery" }).catch((err) => {
     console.warn("[telegram] answerCallbackQuery failed:", err);
   });
 }
@@ -185,7 +186,7 @@ async function editMessageReplyMarkup(
   options: { direct?: boolean } = {},
 ): Promise<void> {
   if (options.direct) {
-    await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, { signal: AbortSignal.timeout(15000),
+    await fetchWithRetry(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -193,7 +194,7 @@ async function editMessageReplyMarkup(
         message_id: messageId,
         reply_markup: replyMarkup,
       }),
-    }).catch((err) => {
+    }, { timeoutMs: 15000, retries: 1, logTag: "telegram.editMessageReplyMarkup" }).catch((err) => {
       console.warn("[telegram] editMessageReplyMarkup failed:", err);
     });
     return;
@@ -229,12 +230,11 @@ export async function editMessageText(
   body.reply_markup = { inline_keyboard: inlineKeyboard ?? [] };
 
   if (options.direct) {
-    await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+    await fetchWithRetry(`https://api.telegram.org/bot${token}/editMessageText`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
-    });
+    }, { timeoutMs: 10000, retries: 1, logTag: "telegram.editMessageText" });
     return;
   }
 
@@ -246,8 +246,10 @@ export async function getTelegramFilePath(
   token: string,
   fileId: string,
 ): Promise<string> {
-  const fileRes = await fetch(
+  const fileRes = await fetchWithRetry(
     `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
+    {},
+    { timeoutMs: 15000, retries: 1, logTag: "telegram.getFile" },
   );
   const fileData = await fileRes.json();
   if (!fileData.ok) {

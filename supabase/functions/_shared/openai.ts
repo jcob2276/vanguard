@@ -1,6 +1,7 @@
 /**
  * Shared OpenAI helpers.
  */
+import { fetchWithRetry } from "./httpClient.ts";
 
 type OpenAIMessageContent =
   | string
@@ -31,40 +32,33 @@ export interface OpenAIChatResult {
 
 /** Centralized OpenAI chat-completions call (text or vision) — mirrors deepseekChat's shape. */
 export async function openaiChat(params: OpenAIChatParams): Promise<OpenAIChatResult> {
-  const controller = new AbortController();
   const timeoutMs = params.timeoutMs ?? 45000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${params.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: params.model ?? "gpt-4o-mini",
-        messages: params.messages,
-        ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
-        ...(params.temperature === null ? {} : { temperature: params.temperature ?? 0.2 }),
-        ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
-      }),
-      signal: controller.signal,
-    });
+  const res = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: params.model ?? "gpt-4o-mini",
+      messages: params.messages,
+      ...(params.maxTokens === null ? {} : { max_tokens: params.maxTokens ?? 500 }),
+      ...(params.temperature === null ? {} : { temperature: params.temperature ?? 0.2 }),
+      ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
+    }),
+  }, { timeoutMs, retries: 1, logTag: "openai.chat" });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`OpenAI error (${res.status}): ${errText.slice(0, 200)}`);
-    }
-
-    const raw = await res.json();
-    const content: string = (raw as { choices?: Array<{ message?: { content?: string } }> })
-      ?.choices?.[0]?.message?.content || "";
-
-    return { content, raw };
-  } finally {
-    clearTimeout(timeoutId);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`OpenAI error (${res.status}): ${errText.slice(0, 200)}`);
   }
+
+  const raw = await res.json();
+  const content: string = (raw as { choices?: Array<{ message?: { content?: string } }> })
+    ?.choices?.[0]?.message?.content || "";
+
+  return { content, raw };
 }
 
 /** Centralized Whisper transcription — takes a raw audio Blob (already fetched/uploaded).
@@ -76,31 +70,24 @@ export async function transcribeBlob(
   apiKey: string,
   opts?: { filename?: string; language?: string; timeoutMs?: number },
 ): Promise<string> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 30000);
-  try {
-    const formData = new FormData();
-    formData.append("file", audioBlob, opts?.filename ?? "audio.ogg");
-    formData.append("model", "whisper-1");
-    formData.append("language", opts?.language ?? "pl");
+  const formData = new FormData();
+  formData.append("file", audioBlob, opts?.filename ?? "audio.ogg");
+  formData.append("model", "whisper-1");
+  formData.append("language", opts?.language ?? "pl");
 
-    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: formData,
-      signal: controller.signal,
-    });
+  const res = await fetchWithRetry("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: formData,
+  }, { timeoutMs: opts?.timeoutMs ?? 30000, retries: 1, logTag: "openai.transcribe" });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "unknown");
-      throw new Error(`Whisper HTTP error (${res.status}): ${errText.slice(0, 200)}`);
-    }
-    const data = await res.json();
-    if (data.error) throw new Error(`Whisper Error: ${data.error.message}`);
-    return data.text || "";
-  } finally {
-    clearTimeout(timeoutId);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "unknown");
+    throw new Error(`Whisper HTTP error (${res.status}): ${errText.slice(0, 200)}`);
   }
+  const data = await res.json();
+  if (data.error) throw new Error(`Whisper Error: ${data.error.message}`);
+  return data.text || "";
 }
 
 export async function getEmbedding(text: string | string[], apiKey: string): Promise<number[] | number[][] | null> {
@@ -109,7 +96,7 @@ export async function getEmbedding(text: string | string[], apiKey: string): Pro
     return null;
   }
   try {
-    const res = await fetch("https://api.openai.com/v1/embeddings", { signal: AbortSignal.timeout(15000),
+    const res = await fetchWithRetry("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -119,7 +106,7 @@ export async function getEmbedding(text: string | string[], apiKey: string): Pro
         model: "text-embedding-3-small",
         input: Array.isArray(text) ? text : text.replace(/\n/g, " ").slice(0, 8000),
       }),
-    });
+    }, { timeoutMs: 15000, retries: 1, logTag: "openai.embedding" });
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error(`[OpenAI] Embedding HTTP error (${res.status}): ${errText.slice(0, 200)}`);
