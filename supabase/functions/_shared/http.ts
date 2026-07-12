@@ -12,6 +12,13 @@
  *   Deno.serve(serveJson(async (req, ctx) => {
  *     return { data: 'hello' };  // auto-wrapped in JSON Response
  *   }));
+ *
+ * If the handler returns a `Response` instance instead of a plain value, it is passed
+ * through unchanged (CORS headers merged in additively, without overwriting any the handler
+ * already set) instead of being JSON-wrapped. This lets webhook/streaming/action-router
+ * handlers that must control their own response (exact plain-text body, SSE stream, custom
+ * status per branch) still get serveJson's OPTIONS/auth/error-logging boilerplate without
+ * forcing every code path through the JSON envelope.
  */
 import { corsHeadersFor, createServiceClient, resolveUserScope } from './supabase.ts';
 import { requireServiceRole } from './auth.ts';
@@ -25,11 +32,19 @@ interface JsonCtx {
 
 type Handler = (req: Request, ctx: JsonCtx) => Promise<unknown>;
 
+function mergeCorsHeaders(res: Response, cors: Record<string, string>): Response {
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(cors)) {
+    if (!headers.has(k)) headers.set(k, v);
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 /**
  * Wraps a handler with standard HTTP concerns.
  *
- * @param handler  Async function receiving (req, ctx) and returning any JSON-serializable value.
- *                 The return value is automatically wrapped in a 200 JSON Response.
+ * @param handler  Async function receiving (req, ctx) and returning any JSON-serializable value,
+ *                 or a `Response` instance to take full control of the response (see module doc).
  *                 Throw to return an error (logged to audit_events automatically).
  * @param opts.auth  'user' (default) — resolve user token; 'service' — require service-role;
  *                   'none' — skip auth entirely.
@@ -67,6 +82,10 @@ export function serveJson(
 
       const supabase = createServiceClient();
       const result = await handler(req, { userId, isServiceRole, supabase });
+
+      if (result instanceof Response) {
+        return mergeCorsHeaders(result, cors);
+      }
 
       return new Response(JSON.stringify(result), {
         headers: { ...cors, 'Content-Type': 'application/json' },

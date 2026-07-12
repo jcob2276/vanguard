@@ -8,7 +8,8 @@
  * @consumer Zaktualizowany stan świata i korelacje w aplikacji i Wyroczni
  * @status active
  */
-import { corsHeaders, createServiceClient, resolveUserScope } from '../_shared/supabase.ts';
+import { corsHeaders, resolveUserScope } from '../_shared/supabase.ts';
+import { serveJson } from '../_shared/http.ts';
 import { getWarsawDateString } from '../_shared/time.ts';
 import { requireServiceRole } from '../_shared/auth.ts';
 import { runSaveDailyAggregate } from '../_shared/nightly/aggregate.ts';
@@ -71,13 +72,9 @@ async function runLedgerStep(
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
+Deno.serve(serveJson(async (req, ctx) => {
   try {
-    const supabase = createServiceClient();
+    const supabase = ctx.supabase;
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -255,4 +252,4 @@ Deno.serve(async (req) => {
     console.error('[vanguard-nightly] Pipeline fatal error:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-});
+}, { auth: 'none' }));

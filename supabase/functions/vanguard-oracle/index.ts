@@ -12,7 +12,8 @@ import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
 import type { DeepSeekMessage } from "../_shared/deepseek.ts";
 import { z } from "npm:zod";
 import { runOracleReadonlyQuery } from "../_shared/oracleSql.ts";
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../_shared/promptSanitize.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../_shared/time.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
@@ -37,16 +38,12 @@ import { handleStreamingResponse } from "./oracle/streamHandler.ts";
 
 const MAX_SQL_TOOL_ITERATIONS = 3;
 
-Deno.serve(async (req) => {
+Deno.serve(serveJson(async (req, ctx) => {
   const t0 = Date.now();
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
   try {
-    const body = await req.json().catch(() => ({}));
-    const db = createServiceClient();
-    
+    const body = await req.clone().json().catch(() => ({}));
+    const db = ctx.supabase;
+
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || body.action;
 
@@ -69,7 +66,7 @@ Deno.serve(async (req) => {
       });
     }
     const user_id = userId;
-    const supabase = createServiceClient();
+    const supabase = db;
 
     const now = override_date ? new Date(`${override_date}T12:00:00Z`) : new Date();
     const localTimeString = override_date ? `${override_date} 12:00:00 (BACKTEST)` : now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
@@ -245,4 +242,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500
     });
   }
-});
+}, { auth: 'none' }));

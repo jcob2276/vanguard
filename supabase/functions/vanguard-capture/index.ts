@@ -9,17 +9,14 @@
  * @status active
  */
 import { transcribeBlob } from "../_shared/openai.ts";
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { fetchUrlMetadata, generateLinkAnalysis } from "../vanguard-telegram/_handlers/savedLinks.ts";
 import { handleVaultIngest } from "./vaultIngest.ts";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+Deno.serve(serveJson(async (req, ctx) => {
   try {
-    const db = createServiceClient();
+    const db = ctx.supabase;
     const openAiKey = Deno.env.get("OPENAI_API_KEY") || "";
     const deepseekApiKey = Deno.env.get("DEEPSEEK_API_KEY") || "";
 
@@ -128,4 +125,4 @@ Deno.serve(async (req) => {
       status: 400,
     });
   }
-});
+}, { auth: 'none' }));

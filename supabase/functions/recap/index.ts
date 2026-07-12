@@ -9,15 +9,12 @@
  * @status active
  */
 import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { runDailyReconciliation } from "./daily.ts";
 import { runWeeklySynthesis } from "./weekly-synthesis.ts";
 import { runWeeklyRecap } from "./weekly-recap.ts";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+Deno.serve(serveJson(async (req) => {
   try {
     const url = new URL(req.url);
     let type = url.searchParams.get("type") || url.searchParams.get("action");
@@ -67,4 +64,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { auth: 'none' }));

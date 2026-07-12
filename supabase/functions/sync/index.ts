@@ -9,15 +9,12 @@
  * @status active
  */
 import { corsHeaders, resolveUserScope } from '../_shared/supabase.ts'
+import { serveJson } from '../_shared/http.ts'
 import { runOuraSync } from './oura.ts'
 import { runStravaSync } from './strava.ts'
 import { runCalendarSync } from './calendar.ts'
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
+Deno.serve(serveJson(async (req) => {
   try {
     const url = new URL(req.url)
     const body = (req.method === 'POST' || req.method === 'PUT')
@@ -54,4 +51,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
-})
+}, { auth: 'none' }))

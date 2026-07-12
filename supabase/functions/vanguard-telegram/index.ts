@@ -12,7 +12,8 @@ import { createTelegramContext } from "./_router/config.ts";
 import { handleCallbackQuery } from "./_router/callbacks.ts";
 import { handleIncomingMessage } from "./_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
-import { corsHeaders, resolveUserScope, createServiceClient } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 
 function verifyTelegramSecret(req: Request): boolean | "missing_config" {
   const expected = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
@@ -21,11 +22,7 @@ function verifyTelegramSecret(req: Request): boolean | "missing_config" {
   return header === expected;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+Deno.serve(serveJson(async (req, jsonCtx) => {
   try {
     const rawBody = await req.text();
     if (!rawBody?.trim()) {
@@ -158,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     if (payload.callback_query) {
-      const supabase = createServiceClient();
+      const supabase = jsonCtx.supabase;
       const { error } = await supabase
         .from("vanguard_telegram_inbox")
         .insert({ payload });
@@ -187,7 +184,7 @@ Deno.serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
-    const supabase = createServiceClient();
+    const supabase = jsonCtx.supabase;
     const { error } = await supabase
       .from("vanguard_telegram_inbox")
       .insert({ payload });
@@ -203,4 +200,4 @@ Deno.serve(async (req) => {
     });
     return new Response("OK", { status: 200 });
   }
-});
+}, { auth: 'none' }));

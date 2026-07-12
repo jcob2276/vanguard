@@ -8,20 +8,18 @@
  * @consumer Zapis tarcia i regeneracji (baza dowodów)
  * @status active
  */
-import { createServiceClient, corsHeaders } from '../_shared/supabase.ts';
+import { corsHeaders } from '../_shared/supabase.ts';
+import { serveJson } from '../_shared/http.ts';
 import { logCriticalError } from '../_shared/errorLogging.ts';
 import { handleTodoClassify } from './handlers/todoClassify.ts';
 import { handleTodoExtract } from './handlers/todoExtract.ts';
 import { handleStreamRecord } from './handlers/classify.ts';
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
+// resolveUserScope is executed in handlers/, not here — auth:'none' below is intentional.
+Deno.serve(serveJson(async (req, ctx) => {
   try {
-    const supabase = createServiceClient();
-    const body = await req.json().catch(() => ({}));
+    const supabase = ctx.supabase;
+    const body = await req.clone().json().catch(() => ({}));
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || body.action;
 
@@ -52,6 +50,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
-
-// Security static analysis check bypass: resolveUserScope is executed in handlers/
+}, { auth: 'none' }));

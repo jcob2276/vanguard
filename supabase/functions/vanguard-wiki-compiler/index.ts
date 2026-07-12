@@ -8,13 +8,12 @@
  * @consumer Sekcja Wiki / Baza wiedzy w aplikacji frontendowej
  * @status active
  */
-import { createServiceClient, corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { corsHeaders, resolveUserScope } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { compileForUser } from "./compiler.ts";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  const supabase = createServiceClient();
+Deno.serve(serveJson(async (req, ctx) => {
+  const supabase = ctx.supabase;
   try {
     const body = await req.json().catch(() => ({}));
     const requestedUserId = body.userId ? String(body.userId) : null;
@@ -72,4 +71,4 @@ Deno.serve(async (req) => {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { auth: 'none' }));
