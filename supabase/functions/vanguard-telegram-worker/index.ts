@@ -8,29 +8,23 @@
  * @consumer Wynik działania procesora (odpowiedź do użytkownika na Telegramie)
  * @status active
  */
-import { createServiceClient, corsHeaders } from "../_shared/supabase.ts";
+import { serveJson } from "../_shared/http.ts";
 import { createTelegramContext } from "../vanguard-telegram/_router/config.ts";
 import { handleCallbackQuery } from "../vanguard-telegram/_router/callbacks.ts";
 import { handleIncomingMessage } from "../vanguard-telegram/_router/messages.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
-import { requireServiceRole } from "../_shared/auth.ts";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  const authError = requireServiceRole(req);
-  if (authError) return authError;
-
+// Same "always 200" design as vanguard-outbox-sender — the async DB trigger must not see
+// a non-2xx or it retries indefinitely. Errors are caught, logged, and swallowed here.
+Deno.serve(serveJson(async (req, ctx) => {
+  const supabase = ctx.supabase;
   let recordId: string | null = null;
   try {
-    const supabase = createServiceClient();
-    const payload = await req.json();
+    const payload = await req.clone().json();
     const { record } = payload;
 
     if (!record || !record.id || !record.payload) {
-      return new Response(JSON.stringify({ error: "Invalid payload structure" }), { status: 400 });
+      return { error: "Invalid payload structure" };
     }
 
     recordId = record.id;
@@ -43,20 +37,20 @@ Deno.serve(async (req) => {
 
     if (startError) {
       console.error(`[telegram-worker] failed to set processing status for ${recordId}:`, startError);
-      return new Response(JSON.stringify({ error: startError.message }), { status: 500 });
+      return { error: startError.message };
     }
 
     console.log(`[telegram-worker] started processing inbox id: ${recordId}`);
 
     const innerPayload = record.payload;
-    const ctx = createTelegramContext();
+    const telegramCtx = createTelegramContext();
 
     if (innerPayload.callback_query) {
-      await handleCallbackQuery(innerPayload.callback_query as never, ctx);
+      await handleCallbackQuery(innerPayload.callback_query as never, telegramCtx);
     } else {
       const message = innerPayload.message;
       if (message) {
-        await handleIncomingMessage(message as never, ctx);
+        await handleIncomingMessage(message as never, telegramCtx);
       }
     }
 
@@ -70,27 +64,22 @@ Deno.serve(async (req) => {
       console.error(`[telegram-worker] failed to set completed status for ${recordId}:`, endError);
     }
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return { ok: true };
 
   } catch (err) {
     console.error("[telegram-worker] processing failed:", err);
-    
+
     // Attempt to save error stack to DB
     if (recordId) {
       try {
-        const supabase = createServiceClient();
         const trace = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack}` : String(err);
         await supabase
           .from("vanguard_telegram_inbox")
           .update({ status: "failed", error_log: trace, updated_at: new Date().toISOString() })
           .eq("id", recordId);
       } catch (dbErr: unknown) {
-    console.error('[Edge Function Error]', dbErr);
-    return new Response(JSON.stringify({ error: dbErr instanceof Error ? dbErr.message : String(dbErr) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+        console.error('[telegram-worker] db update failure:', dbErr);
+      }
     }
 
     await logCriticalError({
@@ -99,6 +88,6 @@ Deno.serve(async (req) => {
       message: `Telegram worker processing error for record: ${recordId}`,
     });
 
-    return new Response("Error processed", { status: 200 });
+    return "Error processed";
   }
-});
+}, { auth: 'service' }));
