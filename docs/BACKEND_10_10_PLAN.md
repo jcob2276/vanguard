@@ -32,8 +32,11 @@ per-funkcja), 33 orphany przetriażowane (13 false-positive/frontend, 4 VIEW, 1 
 **Faza 7 nie ma statusu "zamknięta"** — to stały tryb pracy (ratchet), nie zadanie z DoD.
 
 Otwarte na przyszłość (świadomie zostawione, nie zgubione):
-- `vanguard_recipes` / `vanguard-executor` — 0 wierszy, 0 wywołań, brak dokumentacji;
-  decyzja: usunąć czy dobudować, wymaga rozmowy o intencji produktowej.
+- `vanguard_recipes` / `vanguard-executor` — decyzja podjęta 2026-07-12: **usunięto**
+  (kod, config.toml, smoke-manifest, deploy-no-jwt.ps1, FUNCTIONS.md, BACKLOG.md).
+  Tabela `vanguard_recipes` nigdy nie istniała w DB, więc zero migracji do zrobienia.
+  Jeśli "if X then notify" znów będzie potrzebne — budować od zera z jasnym intencją
+  produktową, nie odgrzebywać tego kodu.
 - 30 pozostałych orphanów z `npm run contracts:check` po naprawie tabeli danych — realnie
   przetriażowane co do klasy (false-positive/VIEW/trigger/nieznane), ale nie każdy pojedynczo
   potwierdzony wierszem w bazie — kolejna sesja może przejść resztę tą samą metodą.

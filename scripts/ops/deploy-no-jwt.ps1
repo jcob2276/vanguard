@@ -25,7 +25,6 @@ $all = @(
   "vanguard-push-reminder",
   "vanguard-capture",
   "vanguard-keep-triage",
-  "vanguard-executor",
   "vanguard-metabolism",
   "vanguard-backtester"
 )

@@ -121,7 +121,7 @@ Reszta Partii 4/5 z oryginalnego audytu:
 - Panel zdrowia systemu z `audit_events` — bundle z §5.2 (licznik pokrycia metryk).
 - Sprzątanie repo (`.mimocode`, `screeny/`, `PRPs/`, `examples/`, skrypty jednorazowe).
 
-**Budżet/kolejka powiadomień:** co najmniej 8 funkcji (`vanguard-analyst`, `vanguard-auto-classify`, `vanguard-nutrition-coach`, `vanguard-daily-reconciliation`, `vanguard-push-reminder`, `vanguard-weekly-synthesis`, `vanguard-librarian`, `vanguard-executor`, `vanguard-eval-interview`) woła Telegram API bezpośrednio, bez wspólnej bramki. Tabela `outbound_messages(priority, dedupe_key, send_after)` + jeden worker wysyłający — każda funkcja proponuje, nie wysyła bezpośrednio.
+**Budżet/kolejka powiadomień:** co najmniej 8 funkcji (`vanguard-analyst`, `vanguard-auto-classify`, `vanguard-nutrition-coach`, `vanguard-daily-reconciliation`, `vanguard-push-reminder`, `vanguard-weekly-synthesis`, `vanguard-librarian`, `vanguard-eval-interview`) woła Telegram API bezpośrednio, bez wspólnej bramki. Tabela `outbound_messages(priority, dedupe_key, send_after)` + jeden worker wysyłający — każda funkcja proponuje, nie wysyła bezpośrednio.
 
 ## Ciągłe / bez końca (zasada skauta — nie osobna sesja per punkt)
 

@@ -113,20 +113,12 @@ verify_jwt = false
 import_map = "./functions/import_map.json"
 verify_jwt = false
 
-[functions.vanguard-executor]
-enabled = true
-verify_jwt = false
-import_map = "./functions/import_map.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/vanguard-executor/index.ts"
-
 [functions.sync]
 import_map = "./functions/import_map.json"
 verify_jwt = false
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/vanguard-executor/*.html" ]
+# static_files = [ "./functions/sync/*.html" ]
 
 [functions.vanguard-backtester]
 import_map = "./functions/import_map.json"
