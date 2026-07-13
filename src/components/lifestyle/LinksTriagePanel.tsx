@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import type { SavedLink, TriageSuggestion } from '../../lib/linksApi';
 import Modal from '../ui/Modal';
 
@@ -35,7 +36,7 @@ export function LinksTriagePanel({
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {triageLoading && (
             <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
-              <Loader2 className="animate-spin mb-2" size={24} />
+              <Spinner size="md" className="mb-2" />
               <p className="text-[12px] font-bold">Analizowanie nieprzeczytanych linków...</p>
             </div>
           )}

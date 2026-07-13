@@ -6,7 +6,6 @@ import {
   LayoutList,
   Link2,
   ListTodo,
-  Loader2,
   Plus,
   Search,
   StickyNote,
@@ -160,7 +159,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
               />
               {d.addLoading
-                ? <Loader2 size={15} className="shrink-0 text-primary animate-spin" />
+                ? <Spinner size="sm" className="shrink-0" />
                 : <button
                     onClick={d.handleAddLink}
                     disabled={!d.addUrl.trim()}

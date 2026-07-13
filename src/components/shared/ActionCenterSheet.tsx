@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { HelpCircle, X } from 'lucide-react';
+import Modal from '../ui/Modal';
 import { supabase } from '../../lib/supabase';
 import { ClarificationRequestCard } from '../ai/ClarificationRequestCard';
 import { SystemProposalCard } from './SystemProposalCard';
@@ -109,56 +110,56 @@ export function ActionCenterSheet({
 
   const empty = !loading && clarifications.length === 0 && proposals.length === 0;
 
-  if (!open) return null;
-
   return (
-    // NOTE: custom overlay — ActionCenterSheet is a bottom-anchored slide-up sheet (items-end). ui/Modal
-    // renders a centered dialog and cannot produce this bottom-sheet layout with a full-width rounded-top panel.
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
-      <div
-        className="w-full max-w-lg rounded-t-[24px] border border-border-custom bg-surface-solid p-5 pb-8 max-h-[80vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-text-muted">
-            <HelpCircle size={14} /> Oczekujące
-          </p>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-text-muted hover:bg-surface/80">
-            <X size={16} />
-          </button>
-        </div>
-
-        {loading && <p className="text-center text-[12px] text-text-muted py-6">Ładuję…</p>}
-
-        {empty && (
-          <p className="text-center text-[12px] text-text-tertiary py-8">Brak propozycji ani pytań.</p>
-        )}
-
-        <div className="space-y-4">
-          {proposals.map((p) => (
-            <SystemProposalCard key={p.id} proposal={p} onResolved={handleProposalResolved} />
-          ))}
-
-          {clarifications.map((item) => (
-            <ClarificationRequestCard
-              key={item.id}
-              request={{
-                id: item.id,
-                question: item.question,
-                response_type: item.response_type as 'confirm' | 'single_choice' | 'multi_choice' | 'short_text',
-                options: item.options ?? [],
-                proposed_memory: item.proposed_memory ?? undefined,
-                confidence: item.confidence ?? undefined,
-              }}
-              onAnswered={() => {
-                void queryClient.invalidateQueries({ queryKey: actionCenterKeys.data(userId) });
-                void queryClient.invalidateQueries({ queryKey: actionCenterKeys.count(userId) });
-                onUpdated?.();
-              }}
-            />
-          ))}
-        </div>
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      showCloseButton={false}
+      padding="p-5 pb-8"
+      overflowY={true}
+      size="lg"
+      overlayClassName="p-0 items-end justify-center sm:p-4"
+      className="bg-surface-solid border border-border-custom rounded-t-[24px] sm:rounded-b-[24px] max-h-[80vh]"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-text-muted">
+          <HelpCircle size={14} /> Oczekujące
+        </p>
+        <button type="button" onClick={onClose} className="rounded-full p-2 text-text-muted hover:bg-surface/80">
+          <X size={16} />
+        </button>
       </div>
-    </div>
+
+      {loading && <p className="text-center text-[12px] text-text-muted py-6">Ładuję…</p>}
+
+      {empty && (
+        <p className="text-center text-[12px] text-text-tertiary py-8">Brak propozycji ani pytań.</p>
+      )}
+
+      <div className="space-y-4">
+        {proposals.map((p) => (
+          <SystemProposalCard key={p.id} proposal={p} onResolved={handleProposalResolved} />
+        ))}
+
+        {clarifications.map((item) => (
+          <ClarificationRequestCard
+            key={item.id}
+            request={{
+              id: item.id,
+              question: item.question,
+              response_type: item.response_type as 'confirm' | 'single_choice' | 'multi_choice' | 'short_text',
+              options: item.options ?? [],
+              proposed_memory: item.proposed_memory ?? undefined,
+              confidence: item.confidence ?? undefined,
+            }}
+            onAnswered={() => {
+              void queryClient.invalidateQueries({ queryKey: actionCenterKeys.data(userId) });
+              void queryClient.invalidateQueries({ queryKey: actionCenterKeys.count(userId) });
+              onUpdated?.();
+            }}
+          />
+        ))}
+      </div>
+    </Modal>
   );
 }

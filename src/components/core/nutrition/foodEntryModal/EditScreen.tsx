@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import Spinner from '../../../ui/Spinner';
 import type { RecentEntry } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
@@ -92,7 +92,7 @@ export default function EditScreen({
       <div className="flex gap-2">
         <button onClick={deleteEntry} disabled={editDeleting || editSaving}
           className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12px] font-black uppercase tracking-wider text-rose-500 disabled:opacity-50 active:scale-95 transition-all cursor-pointer">
-          {editDeleting ? <Loader2 size={14} className="animate-spin" /> : 'Usuń'}
+          {editDeleting ? <Spinner size="sm" className="h-3.5 w-3.5 !border-white/30 !border-t-white" /> : 'Usuń'}
         </button>
         <button onClick={saveEntryEdit} disabled={editSaving || editDeleting}
           className="flex-1 rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer">

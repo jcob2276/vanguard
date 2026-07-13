@@ -7,9 +7,14 @@ export interface ModalProps {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
+  padding?: string;
+  overflowY?: boolean;
+  className?: string;
+  overlayClassName?: string;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const sizeClasses = {
@@ -18,6 +23,7 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
   full: 'max-w-full m-4',
 };
 
@@ -30,6 +36,11 @@ export default function Modal({
   size = 'md',
   showCloseButton = true,
   closeOnBackdropClick = true,
+  padding = 'p-5',
+  overflowY = true,
+  className = '',
+  overlayClassName = '',
+  containerRef,
 }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -61,22 +72,28 @@ export default function Modal({
     }
   };
 
+  const verticalAlignClass = overlayClassName.includes('items-') ? '' : 'items-end sm:items-center';
+  const justifyClass = overlayClassName.includes('justify-') ? '' : 'justify-center';
+  const flexDirClass = overlayClassName.includes('flex-col') ? 'flex-col' : '';
+  const backdropPadding = overlayClassName.includes('p-0') ? '' : 'p-4';
+
   return (
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fadeIn"
+      className={`fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm animate-fadeIn ${backdropPadding} ${verticalAlignClass} ${justifyClass} ${flexDirClass} ${overlayClassName}`}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`w-full ${sizeClasses[size]} rounded-[28px] border border-border-custom bg-surface shadow-xl p-5 space-y-4 animate-scaleUp max-h-[90vh] overflow-y-auto`}
+        ref={containerRef}
+        className={`w-full ${sizeClasses[size]} ios-surface rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[90vh] overflow-y-auto' : ''} ${className}`}
       >
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               {subtitle && (
-                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1 leading-none">
+                <p className="pixel-label mb-1 leading-none">
                   {subtitle}
                 </p>
               )}

@@ -1,4 +1,5 @@
-import { Search, Loader2, ScanLine, Plus, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Search, ScanLine, Plus, RotateCcw, Sparkles, X } from 'lucide-react';
+import Spinner from '../../../ui/Spinner';
 import FoodRow from '../FoodRow';
 import BarcodeScanner from '../BarcodeScanner';
 import { scale, dayLabel, type Favorite, type RecentEntry, type FoodBase } from '../hooks/useFoodEntryData';
@@ -68,7 +69,7 @@ export default function BrowseScreen({
           </button>
         )}
         {searching ? (
-          <Loader2 size={15} className="shrink-0 text-primary animate-spin mx-1.5" />
+          <Spinner size="sm" className="shrink-0 mx-1.5" />
         ) : (
           <button onClick={() => { setError(null); setScannerOpen(true); }}
             className="shrink-0 rounded-full p-2 text-text-muted hover:text-primary hover:bg-primary/10 transition-all cursor-pointer" title="Skanuj kod">
@@ -140,7 +141,7 @@ export default function BrowseScreen({
           </div>
 
           {loadingList ? (
-            <div className="flex justify-center py-6"><Loader2 size={16} className="text-text-muted animate-spin" /></div>
+            <div className="flex justify-center py-6"><Spinner size="sm" className="mx-auto" /></div>
           ) : activeTab === 'favorites' ? (
             favorites.length === 0
               ? <p className="text-[12px] text-text-muted py-4 text-center">Brak częstych — zacznij od wyszukania produktu</p>

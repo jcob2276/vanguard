@@ -9,6 +9,7 @@ import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, t
 import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
 import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
+import Modal from '../ui/Modal';
 
 import { WeeklyReviewContext, WeeklyReviewContextType, type WeeklyAiRecap } from './weekly/context/WeeklyReviewContext';
 import WeeklyReviewInboxTriage from './weekly/WeeklyReviewInboxTriage';
@@ -184,12 +185,12 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+        <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-[12px] font-bold text-text-muted">Wczytywanie Tygodniowego Przeglądu...</span>
         </div>
-      </div>
+      </Modal>
     );
   }
 
@@ -240,48 +241,50 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
 
   return (
     <WeeklyReviewContext.Provider value={contextValue}>
-      {/* NOTE: custom overlay — WeeklyReviewModal is a 6-step wizard with a sticky header (step indicator),
-          a scrollable body, and a sticky footer (navigation buttons). ui/Modal has no sticky-header/footer
-          layout support, so a raw fixed overlay is intentional here. */}
-      <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-
-        <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[640px] overflow-hidden">
-          <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
-            <div>
-              <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] font-semibold text-text-muted">Niedziela, {today}</span>
-                {step < 6 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 5</span>}
-              </div>
+      <Modal
+        isOpen={true}
+        onClose={onClose}
+        showCloseButton={false}
+        padding="p-0"
+        overflowY={false}
+        size="lg"
+        overlayClassName="z-[60] p-0 flex-col justify-end sm:justify-center sm:p-4"
+        className="rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[640px] overflow-hidden"
+      >
+        <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] font-semibold text-text-muted">Niedziela, {today}</span>
+              {step < 6 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 5</span>}
             </div>
-            <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
-              <X size={18} />
-            </button>
           </div>
-
-          {step < 6 && (
-            <div className="grid grid-cols-5 h-1 bg-border-custom/20 shrink-0">
-              <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-              <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-              <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-              <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-              <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto p-5">
-            {step === 1 && <WeeklyReviewInboxTriage />}
-            {step === 2 && <WeeklyReviewSectionAudit />}
-            {step === 3 && <WeeklyReviewStreamReview />}
-            {step === 4 && <WeeklyReviewPredictions />}
-            {step === 5 && <WeeklyReviewSynthesis />}
-            {step === 6 && <WeeklyReviewSuccess />}
-          </div>
-
-          <WeeklyReviewFooter onClose={onClose} />
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
+            <X size={18} />
+          </button>
         </div>
-      </div>
+
+        {step < 6 && (
+          <div className="grid grid-cols-5 h-1 bg-border-custom/20 shrink-0">
+            <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-5">
+          {step === 1 && <WeeklyReviewInboxTriage />}
+          {step === 2 && <WeeklyReviewSectionAudit />}
+          {step === 3 && <WeeklyReviewStreamReview />}
+          {step === 4 && <WeeklyReviewPredictions />}
+          {step === 5 && <WeeklyReviewSynthesis />}
+          {step === 6 && <WeeklyReviewSuccess />}
+        </div>
+
+        <WeeklyReviewFooter onClose={onClose} />
+      </Modal>
     </WeeklyReviewContext.Provider>
   );
 }

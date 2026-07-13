@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
-import { Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { RotateCcw, Sparkles } from 'lucide-react'
+import Spinner from '../../ui/Spinner'
 import { notify } from '../../../lib/notify'
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../lib/date'
 import { supabase } from '../../../lib/supabase'
@@ -22,15 +23,12 @@ import {
 const getYesterdayLabel = (targetDate: string, mealType: string) => {
   const yesterday = getYesterdayWarsaw()
   const mealName = mealType === 'breakfast' ? 'śniadanie' : mealType === 'lunch' ? 'obiad' : mealType === 'dinner' ? 'kolację' : 'przekąskę'
-  if (targetDate === yesterday) {
-    return `Wczoraj na ${mealName}`
-  }
-  // Format targetDate (YYYY-MM-DD) to DD.MM
   const parts = targetDate.split('-')
-  if (parts.length === 3) {
-    return `Ostatnio na ${mealName} (${parts[2]}.${parts[1]})`
-  }
-  return `Ostatnio na ${mealName}`
+  return targetDate === yesterday
+    ? `Wczoraj na ${mealName}`
+    : parts.length === 3
+      ? `Ostatnio na ${mealName} (${parts[2]}.${parts[1]})`
+      : `Ostatnio na ${mealName}`
 }
 
 interface YesterdayFoodEntry {
@@ -332,7 +330,7 @@ export default function FoodQuickCapture({
           className="shrink-0 rounded-xl bg-primary px-3 py-2.5 text-white disabled:opacity-40"
           title="Parsuj i zapisz"
         >
-          {parsing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {parsing ? <Spinner size="sm" className="h-4 w-4 !border-white/30 !border-t-white" /> : <Sparkles size={16} />}
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Pin, SortAsc, Trash2, X, Loader2 } from 'lucide-react';
+import { Pin, SortAsc, Trash2, X } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
 import type { InsightCardData } from '../../lib/insightsApi';
@@ -108,7 +109,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: '#F43F5E', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
               >
-                {deleting ? <Loader2 size={20} color="white" className="animate-spin" /> : <Trash2 size={20} color="white" />}
+                {deleting ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
               </button>
             )}
             <button

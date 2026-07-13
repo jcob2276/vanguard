@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import Spinner from '../ui/Spinner';
+import Modal from '../ui/Modal';
 import type { Session } from '@supabase/supabase-js';
 import { useMorningPlanData } from './morningPlan/useMorningPlanData';
 import { useMorningPlanActions } from './morningPlan/useMorningPlanActions';
@@ -56,24 +57,25 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
 
   if (data.loading) {
     return (
-      // NOTE: custom overlay — MorningPlanModal is a multi-step week-planning wizard with a sticky week
-      // selector header and a scrollable body. ui/Modal has no sticky-header/footer layout support, so
-      // a raw fixed overlay is intentional here.
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+        <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-[12px] font-bold text-text-muted">Wczytywanie rytuału planowania...</span>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   return (
-    // NOTE: custom overlay — see loading block comment above.
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      showCloseButton={false}
+      padding="p-0"
+      overflowY={false}
+      size="lg"
+      overlayClassName="z-[60]"
+    >
       {/* Sheet / Dialog */}
       <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[750px] overflow-hidden">
 
@@ -162,6 +164,6 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
           onSubmit={actions.handleSubmitPlan}
         />
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -6,6 +6,7 @@ import { notify } from "../../lib/notify";
 import { updateDailyWin } from "../../lib/goal/goalSpine.mutations";
 import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
+import Modal from '../ui/Modal';
 import type { Tables } from '../../lib/database.types';
 
 function taskField(win: Tables<'daily_wins'>, key: string): string | null {
@@ -40,24 +41,12 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
     (async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("daily_wins")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("date", today)
-          .maybeSingle();
-
+        const { data, error } = await supabase.from("daily_wins").select("*").eq("user_id", userId).eq("date", today).maybeSingle();
         if (error) throw error;
         
         if (data) {
           setTodayWin(data);
-          setCompletedTasks([
-            !!data.done_1,
-            !!data.done_2,
-            !!data.done_3,
-            !!data.done_4,
-            !!data.done_5,
-          ]);
+          setCompletedTasks([!!data.done_1, !!data.done_2, !!data.done_3, !!data.done_4, !!data.done_5]);
           setReflectionText(data.day_note || "");
           setActualAccomplishmentText(data.journal_entry || "");
           setMoodScore(data.mood_score || 3);
@@ -65,17 +54,8 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
         }
 
         const [reconRes, workoutsRes] = await Promise.all([
-          supabase
-            .from("daily_reconciliations")
-            .select("day_score")
-            .eq("user_id", userId)
-            .eq("date", today)
-            .maybeSingle(),
-          supabase
-            .from("workout_sessions")
-            .select("session_rpe")
-            .eq("user_id", userId)
-            .eq("date", today)
+          supabase.from("daily_reconciliations").select("day_score").eq("user_id", userId).eq("date", today).maybeSingle(),
+          supabase.from("workout_sessions").select("session_rpe").eq("user_id", userId).eq("date", today)
         ]);
         
         if (reconRes.data && reconRes.data.day_score !== null) {
@@ -85,9 +65,7 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
         // Prefill RPE from today's workouts if available
         if (workoutsRes.data && workoutsRes.data.length > 0) {
           const maxRpe = Math.max(...workoutsRes.data.map((w) => w.session_rpe || 0));
-          if (maxRpe > 0) {
-            setRpeScore(maxRpe);
-          }
+          if (maxRpe > 0) setRpeScore(maxRpe);
         }
       } catch (err: unknown) {
         console.error('[Action Error]', err);
@@ -169,22 +147,19 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
 
   if (loading) {
     return (
-      // NOTE: custom overlay — DailyShutdownModal is a multi-step wizard with a sticky header, sticky footer
-      // and a scrollable body. ui/Modal has no sticky-header/footer layout support, so we use a raw overlay.
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="rounded-2xl bg-background border border-border-custom/50 p-6 flex flex-col items-center gap-3">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+        <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-[12px] font-bold text-text-muted">Wczytywanie rytuału wieczornego...</span>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   if (!todayWin) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-        <div className="relative w-full max-w-sm rounded-2xl bg-background border border-border-custom/60 shadow-2xl p-6 text-center space-y-4">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="sm" overlayClassName="z-[60]">
+        <div className="text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">!</div>
           <h2 className="text-[15px] font-black text-text-primary">Brak planu na dziś</h2>
           <p className="text-[12px] text-text-muted">Rytuał poranny nie został ukończony na dzisiejszy dzień, więc nie możemy go dzisiaj rozliczyć.</p>
@@ -192,15 +167,21 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
             Zamknij
           </button>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center items-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-
-      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[680px] overflow-hidden">
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      showCloseButton={false}
+      padding="p-0"
+      overflowY={false}
+      size="lg"
+      overlayClassName="z-[60]"
+    >
+      <div className="relative w-full flex flex-col max-h-[85vh] sm:max-h-[680px] overflow-hidden">
         
         {/* Header */}
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
@@ -408,6 +389,6 @@ export default function DailyShutdownModal({ session, onClose, onSaved, onPlanTo
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

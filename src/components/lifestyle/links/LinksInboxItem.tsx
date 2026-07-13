@@ -1,13 +1,12 @@
-﻿import React from 'react';
 import {
   Check,
   ExternalLink,
   Trash2,
   PenLine,
-  Loader2,
   ListTodo,
   StickyNote
 } from 'lucide-react';
+import Spinner from '../../ui/Spinner';
 import type { SavedLink } from '../../../lib/linksApi';
 import type { useLinksInboxData } from './useLinksInboxData';
 
@@ -211,7 +210,7 @@ export function LinksInboxItem({
                 onClick={() => d.handleLinkToTodo(link)}
                 className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-all disabled:opacity-50"
               >
-                {d.convertingLinkId === link.id ? <Loader2 size={12} className="animate-spin" /> : <ListTodo size={12} />}
+                {d.convertingLinkId === link.id ? <Spinner size="sm" className="h-3 w-3" /> : <ListTodo size={12} />}
                 Zrób zadanie
               </button>
               <button

@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import Spinner from '../../ui/Spinner';
 
 export interface FoodRowProps {
   name: string;
@@ -20,7 +20,7 @@ export default function FoodRow({ name, subtitle, calories, loading, onTap, onQu
       <span className="text-[11.5px] font-black text-primary shrink-0 tabular-nums">{calories ?? '?'} kcal</span>
       <button onClick={onQuickAdd} disabled={loading}
         className="shrink-0 rounded-full bg-primary p-2 text-white shadow-sm active:scale-90 transition-all cursor-pointer disabled:opacity-50">
-        {loading ? <Loader2 size={13} className="animate-spin" /> : quickAddIcon}
+        {loading ? <Spinner size="sm" className="h-3 w-3 !border-white/30 !border-t-white" /> : quickAddIcon}
       </button>
     </div>
   );

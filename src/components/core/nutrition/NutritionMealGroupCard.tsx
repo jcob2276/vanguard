@@ -1,4 +1,5 @@
-import { Plus, Loader2, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
+import Spinner from '../../ui/Spinner';
 import type { useNutritionData, TodayEntry } from '../useNutritionData';
 
 type NutritionData = ReturnType<typeof useNutritionData>;
@@ -99,7 +100,7 @@ export default function NutritionMealGroupCard({
                 disabled={!!deletingId}
                 className="shrink-0 rounded-full p-1 text-text-muted/50 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer disabled:opacity-40"
               >
-                {deletingId === e.id ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                {deletingId === e.id ? <Spinner size="sm" className="h-3 w-3" /> : <X size={12} />}
               </button>
             </div>
           ))}

@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { Loader2, Sparkles, Trash2, Check } from 'lucide-react';
+import { Sparkles, Trash2, Check } from 'lucide-react';
+import Spinner from '../../../ui/Spinner';
 import { confidenceLabel } from '../../../../lib/health/foodLogging';
 import type { ParsedFoodItem } from '../../../../lib/health/foodLogging';
 
@@ -69,7 +70,7 @@ export default function NLScreen({
         disabled={!nlText.trim() || nlParsing}
         className="w-full rounded-2xl border border-primary/30 bg-primary/[0.08] py-2.5 text-[12px] font-black uppercase tracking-wider text-primary disabled:opacity-40 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
       >
-        {nlParsing ? <><Loader2 size={14} className="animate-spin" />Parsowanie...</> : <><Sparkles size={14} />Parsuj</>}
+        {nlParsing ? <><Spinner size="sm" className="h-3.5 w-3.5" />Parsowanie...</> : <><Sparkles size={14} />Parsuj</>}
       </button>
 
       {error && <p className="text-[11px] text-rose-500">{error}</p>}

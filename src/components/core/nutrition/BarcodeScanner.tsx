@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Keyboard } from 'lucide-react';
+import { Keyboard } from 'lucide-react';
+import Spinner from '../../ui/Spinner';
 
 declare global {
   interface Window {
@@ -53,7 +54,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
         <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
           <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
           <div className="absolute inset-8 border-2 border-primary/70 rounded-xl pointer-events-none" />
-          {loading && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Loader2 size={24} className="text-white animate-spin" /></div>}
+          {loading && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Spinner size="md" className="!border-white/30 !border-t-white" /></div>}
         </div>
       ) : (
         <p className="text-[11px] text-text-muted text-center py-2">{cameraError || 'Skaner kamery niedostępny — wpisz kod ręcznie'}</p>

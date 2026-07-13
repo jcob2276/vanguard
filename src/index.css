@@ -174,6 +174,29 @@
     transform: translateY(0) scale(0.98);
   }
 
+  /* ── Surface card — Notes' two-layer soft shadow + hover-lift, promoted for app-wide reuse (notes.css .keep-card) ── */
+  .surface-card {
+    background-color: var(--surface);
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .surface-card:hover {
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  .surface-card:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .dark .surface-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+  .dark .surface-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  }
+
   /* ── Active Nav Pill Glow ── */
   .nav-pill-active {
     background-color: rgba(59, 130, 246, 0.1);
@@ -187,7 +210,7 @@
 
   /* ── Glass panel — iOS frosted surface ── */
   .glass-panel {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     border: 1px solid var(--border);
@@ -217,11 +240,49 @@
 
   /* ── iOS surface — sheet / modal surface ── */
   .ios-surface {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
     backdrop-filter: blur(32px) saturate(160%);
     -webkit-backdrop-filter: blur(32px) saturate(160%);
     border: 0.5px solid var(--border);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* ── iOS nav bar — sticky top bar (back/title/done), promoted from notes.css .keep-ios-nav ── */
+  .ios-nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px 10px;
+    flex-shrink: 0;
+    border-bottom: 0.5px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    overflow: hidden;
+  }
+
+  /* ── iOS modal backdrop — heavier blur variant for sheets, promoted from notes.css .keep-modal-backdrop ── */
+  .ios-modal-backdrop {
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* ── iOS full-screen sheet modifier — opt-in for .ios-surface consumers that are bottom sheets, not centered
+     modals, promoted from notes.css's @media (max-width: 640px) .keep-modal-content rule ── */
+  @media (max-width: 640px) {
+    .ios-surface.ios-sheet-fullscreen {
+      top: 0 !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 0 !important;
+      max-height: 100dvh !important;
+    }
+    .ios-sheet-fullscreen .ios-nav-bar {
+      padding-top: max(env(safe-area-inset-top), 14px);
+      border-radius: 0;
+    }
   }
 
   /* ── Buttons ── */
@@ -385,12 +446,23 @@
   animation: ios-modal-slide-up 0.38s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
 }
 
+/* ── Spring scale-up entrance (used by modals) ── */
+@keyframes scale-up-spring {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.animate-scaleUp,
+.animate-scale-up {
+  animation: scale-up-spring 0.34s var(--spring) forwards;
+}
+
 /* ── Generic fade-up entrance (used by modals/cards via `animate-fadeIn`) ── */
 @keyframes fade-in-up {
   from { transform: translateY(10px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
-.animate-fadeIn {
+.animate-fadeIn,
+.animate-fade-in {
   animation: fade-in-up 0.28s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
 }
 /* Fast Capture Button & Menu Styles */

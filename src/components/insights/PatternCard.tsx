@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle2, XCircle, Eye, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { updatePatternStatus } from '../../lib/insightsApi';
 import { notify } from '../../lib/notify';
 
@@ -112,7 +113,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-[700] transition-all active:scale-95"
             style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
           >
-            {loading === 'confirmed' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+            {loading === 'confirmed' ? <Spinner size="sm" className="h-3 w-3" /> : <CheckCircle2 size={11} />}
             To ma sens
           </button>
           <button
@@ -121,7 +122,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-[700] transition-all active:scale-95"
             style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.2)' }}
           >
-            {loading === 'observe' ? <Loader2 size={11} className="animate-spin" /> : <Eye size={11} />}
+            {loading === 'observe' ? <Spinner size="sm" className="h-3 w-3" /> : <Eye size={11} />}
             Obserwuj
           </button>
           <button
@@ -130,7 +131,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-[700] transition-all active:scale-95"
             style={{ background: 'rgba(107,114,128,0.08)', color: '#6B7280', border: '1px solid rgba(107,114,128,0.2)' }}
           >
-            {loading === 'rejected' ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={11} />}
+            {loading === 'rejected' ? <Spinner size="sm" className="h-3 w-3" /> : <XCircle size={11} />}
             To nie moje
           </button>
         </div>

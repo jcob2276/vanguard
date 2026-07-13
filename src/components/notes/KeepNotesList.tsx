@@ -1,4 +1,5 @@
-import { AlertCircle, CheckSquare, Loader2, Pin, X } from 'lucide-react';
+import { AlertCircle, CheckSquare, Pin, X } from 'lucide-react';
+import Skeleton from '../ui/Skeleton';
 import MasonryGrid from './MasonryGrid';
 import NoteCard from './NoteCard';
 import NoteQuickCapture from './NoteQuickCapture';
@@ -48,9 +49,10 @@ export default function KeepNotesList({
       )}
 
       {loading ? (
-        <div className="keep-loading">
-          <Loader2 size={28} className="animate-spin keep-loader-icon" />
-          <p>Wczytuję notatki…</p>
+        <div className="space-y-3 p-4">
+          <Skeleton variant="card" lines={2} />
+          <Skeleton variant="card" lines={3} />
+          <Skeleton variant="card" lines={2} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="keep-empty">

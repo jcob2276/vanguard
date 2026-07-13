@@ -19,7 +19,7 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
   glass: {
     className: `${BASE} bg-bg-secondary`,
     style: {
-      borderRadius: 20,
+      borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-card)',
     },
   },
@@ -27,14 +27,14 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
     className: `${BASE}`,
     style: {
       background: '#0A0A0A',
-      borderRadius: 24,
+      borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-float)',
     },
   },
   canvas: {
     className: `${BASE} bg-bg-secondary`,
     style: {
-      borderRadius: 20,
+      borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-card)',
       backgroundImage: DOT_GRID_SVG,
       backgroundSize: '20px 20px',
@@ -43,14 +43,14 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
   receipt: {
     className: `${BASE} bg-bg-secondary`,
     style: {
-      borderRadius: 24,
+      borderRadius: 'var(--radius-lg)',
       border: '1px solid rgba(153,161,175,0.2)',
     },
   },
   outline: {
     className: `${BASE} bg-transparent`,
     style: {
-      borderRadius: 24,
+      borderRadius: 'var(--radius-lg)',
       border: '1px solid rgba(153,161,175,0.3)',
     },
   },
@@ -60,7 +60,7 @@ export function Card({ variant = 'glass', children, className = '', style, onCli
   const v = VARIANTS[variant];
   return (
     <div
-      className={`${v.className} ${onClick ? 'cursor-pointer active:scale-[0.985]' : ''} ${className}`}
+      className={`${v.className} ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''} ${className}`}
       style={{ padding: padding ?? '1rem', ...v.style, ...style }}
       onClick={onClick}
     >

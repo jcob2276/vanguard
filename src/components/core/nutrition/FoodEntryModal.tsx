@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import type { Session } from '@supabase/supabase-js';
 import {
   useFoodEntryData,
@@ -7,6 +6,7 @@ import {
 } from './hooks/useFoodEntryData';
 import FoodEntryHeader from './foodEntryModal/FoodEntryHeader';
 import FoodEntryContent from './foodEntryModal/FoodEntryContent';
+import Modal from '../../ui/Modal';
 
 export interface FoodEntryModalProps {
   session: Session;
@@ -80,90 +80,86 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     : screen === 'portion' ? 'Ile zjadłeś?'
     : savedFlash ? '✓ Dodano!' : 'Dodaj posiłek';
 
-  return createPortal(
-    // NOTE: custom overlay — FoodEntryModal is a bottom-sheet that listens to window.visualViewport 'resize'
-    // events to adjust its margin-bottom dynamically and prevent iOS/Android virtual keyboards from
-    // covering the input area. ui/Modal has no visual-viewport keyboard detection, so a raw overlay is used.
-    <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      showCloseButton={false}
+      padding="p-0"
+      overflowY={false}
+      size="sm"
+      overlayClassName="z-[200]"
+      containerRef={sheetRef}
+      className="max-h-[94dvh] flex flex-col"
     >
-      <div
-        ref={sheetRef}
-        className="w-full max-w-sm rounded-t-[28px] border border-border-custom bg-surface shadow-2xl overflow-hidden animate-fadeIn max-h-[94dvh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <FoodEntryHeader
+        headerTitle={headerTitle}
+        screen={screen}
+        savedFlash={savedFlash}
+        mealType={mealType}
+        setMealType={setMealType}
+        onClose={onClose}
+        todayTotals={todayTotals}
+        targets={targets}
+      />
 
-        <FoodEntryHeader
-          headerTitle={headerTitle}
-          screen={screen}
-          savedFlash={savedFlash}
-          mealType={mealType}
-          setMealType={setMealType}
-          onClose={onClose}
-          todayTotals={todayTotals}
-          targets={targets}
-        />
-
-        <FoodEntryContent
-          screen={screen}
-          editingEntry={editingEntry}
-          setEditingEntry={setEditingEntry}
-          editGrams={editGrams}
-          setEditGrams={setEditGrams}
-          editMealType={editMealType}
-          setEditMealType={setEditMealType}
-          editPreview={editPreview}
-          editSaving={editSaving}
-          editDeleting={editDeleting}
-          saveEntryEdit={saveEntryEdit}
-          deleteEntry={deleteEntry}
-          setNlMode={setNlMode}
-          setError={setError}
-          mealType={mealType}
-          setMealType={setMealType}
-          nlText={nlText}
-          setNlText={setNlText}
-          parseNL={parseNL}
-          nlParsing={nlParsing}
-          error={error}
-          nlItems={nlItems}
-          nlRemovedIdx={nlRemovedIdx}
-          setNlRemovedIdx={setNlRemovedIdx}
-          nlSaving={nlSaving}
-          saveNLItems={saveNLItems}
-          selected={selected}
-          setSelected={setSelected}
-          grams={grams}
-          setGrams={setGrams}
-          preview={preview}
-          saving={saving}
-          savedFlash={savedFlash}
-          save={save}
-          searchInputRef={searchInputRef}
-          query={query}
-          setQuery={setQuery}
-          searching={searching}
-          searchResults={searchResults}
-          scannerOpen={scannerOpen}
-          setScannerOpen={setScannerOpen}
-          scanLookingUp={scanLookingUp}
-          lookupBarcode={lookupBarcode}
-          quickAddingId={quickAddingId}
-          quickAddSearchResult={quickAddSearchResult}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          loadingList={loadingList}
-          favorites={favorites}
-          quickAddFavorite={quickAddFavorite}
-          recent={recent}
-          openEditEntry={openEditEntry}
-          quickRepeatEntry={quickRepeatEntry}
-          todayStr={todayStr}
-          yesterdayStr={yesterdayStr}
-        />
-      </div>
-    </div>,
-    document.body
+      <FoodEntryContent
+        screen={screen}
+        editingEntry={editingEntry}
+        setEditingEntry={setEditingEntry}
+        editGrams={editGrams}
+        setEditGrams={setEditGrams}
+        editMealType={editMealType}
+        setEditMealType={setEditMealType}
+        editPreview={editPreview}
+        editSaving={editSaving}
+        editDeleting={editDeleting}
+        saveEntryEdit={saveEntryEdit}
+        deleteEntry={deleteEntry}
+        setNlMode={setNlMode}
+        setError={setError}
+        mealType={mealType}
+        setMealType={setMealType}
+        nlText={nlText}
+        setNlText={setNlText}
+        parseNL={parseNL}
+        nlParsing={nlParsing}
+        error={error}
+        nlItems={nlItems}
+        nlRemovedIdx={nlRemovedIdx}
+        setNlRemovedIdx={setNlRemovedIdx}
+        nlSaving={nlSaving}
+        saveNLItems={saveNLItems}
+        selected={selected}
+        setSelected={setSelected}
+        grams={grams}
+        setGrams={setGrams}
+        preview={preview}
+        saving={saving}
+        savedFlash={savedFlash}
+        save={save}
+        searchInputRef={searchInputRef}
+        query={query}
+        setQuery={setQuery}
+        searching={searching}
+        searchResults={searchResults}
+        scannerOpen={scannerOpen}
+        setScannerOpen={setScannerOpen}
+        scanLookingUp={scanLookingUp}
+        lookupBarcode={lookupBarcode}
+        quickAddingId={quickAddingId}
+        quickAddSearchResult={quickAddSearchResult}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        loadingList={loadingList}
+        favorites={favorites}
+        quickAddFavorite={quickAddFavorite}
+        recent={recent}
+        openEditEntry={openEditEntry}
+        quickRepeatEntry={quickRepeatEntry}
+        todayStr={todayStr}
+        yesterdayStr={yesterdayStr}
+      />
+    </Modal>
   );
 }

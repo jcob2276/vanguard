@@ -1,6 +1,6 @@
 {
-  "src/components/core/DailyShutdownModal.tsx": 414,
-  "src/components/core/nutrition/FoodQuickCapture.tsx": 424,
+  "src/components/core/DailyShutdownModal.tsx": 400,
+  "src/components/core/nutrition/FoodQuickCapture.tsx": 422,
   "src/components/desktop/fitness/fitnessScoreUtils.ts": 323,
   "src/components/medical/EndMyopiaCalculator.tsx": 413,
   "src/components/notes/EditNoteModal.tsx": 425,

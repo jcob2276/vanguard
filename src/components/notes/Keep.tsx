@@ -1,4 +1,5 @@
-import { BookOpen, Calendar, CheckSquare, ListTodo, Loader2, Plus } from 'lucide-react';
+import { BookOpen, Calendar, CheckSquare, ListTodo, Plus } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import EditNoteModal from './EditNoteModal';
 import KeepHeader from './KeepHeader';
 import KeepSidebar from './KeepSidebar';
@@ -94,7 +95,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
         title="Nowa notatka"
         type="button"
       >
-        {busy ? <Loader2 size={22} className="animate-spin" /> : <Plus size={24} strokeWidth={2} />}
+        {busy ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Plus size={24} strokeWidth={2} />}
       </button>
 
       {/* Page-level Edit Modal */}
