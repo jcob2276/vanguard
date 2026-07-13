@@ -1,5 +1,6 @@
 import { Clock, Star } from 'lucide-react';
 import type { ScheduleViewData } from '../../types/schedule';
+import { Card } from '../ui/Card';
 
 function MagazineHeroCard({
   hero,
@@ -80,15 +81,12 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
       )}
 
       {view.quoteBlocks.map((block) => (
-        <blockquote
-          key={block.title}
-          className="rounded-xl border border-border-custom bg-surface/50 px-4 py-3"
-        >
+        <Card as="blockquote" key={block.title} variant="outline" padding="0.75rem 1rem">
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1">
             <Star size={10} /> {block.title}
           </p>
           <p className="mt-1.5 text-[12px] text-text-secondary leading-relaxed">{block.content}</p>
-        </blockquote>
+        </Card>
       ))}
 
       {view.timeline.length > 0 && (
@@ -99,10 +97,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
               <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted mb-2">{day.dayLabel}</p>
               <ul className="space-y-2">
                 {day.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start gap-3 rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5"
-                  >
+                  <Card as="li" key={item.id} variant="outline" padding="0.625rem 0.75rem" className="flex items-start gap-3">
                     <span
                       className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
                       style={{ background: item.color ?? (item.kind === 'todo' ? '#5B6CFF' : '#10B981') }}
@@ -116,7 +111,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
                     {item.dueAt && (
                       <span className="text-[10px] font-mono text-text-muted shrink-0">{item.dueAt.slice(5)}</span>
                     )}
-                  </li>
+                  </Card>
                 ))}
               </ul>
             </div>
