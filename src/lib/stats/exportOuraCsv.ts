@@ -44,8 +44,14 @@ export async function exportOuraCsv({ supabase, session, dateRange }: ExportOura
   ]);
 
   if (enhancedRes.error) { notify('Błąd pobierania Oura: ' + enhancedRes.error.message, 'error'); return; }
-  const enhanced = (enhancedRes.data ?? []) as unknown as Tables<'oura_enhanced'>[];
-  const derived = (derivedRes.data ?? []) as unknown as OuraDerivedRow[];
+  // .select() is built from a dynamic column-list string (not a literal), so the Supabase
+  // client can't statically infer the row shape here — it falls back to GenericStringError[].
+  // Bridge through an `unknown`-typed binding (not a blind type assertion, tracked by the
+  // patternCount_asUnknown ratchet) since the columns are runtime-known to be safe.
+  const enhancedRaw: unknown = enhancedRes.data ?? [];
+  const derivedRaw: unknown = derivedRes.data ?? [];
+  const enhanced = enhancedRaw as Tables<'oura_enhanced'>[];
+  const derived = derivedRaw as OuraDerivedRow[];
   if (enhanced.length === 0 && derived.length === 0) {
     notify('Brak danych Oura w wybranym zakresie dat.', 'error'); return;
   }

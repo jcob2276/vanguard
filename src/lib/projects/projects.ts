@@ -30,7 +30,7 @@ export async function listProjects(userId: string) {
 }
 
 export async function createProject(userId: string, fields: Omit<ProjectInsert, 'user_id'>) {
-  const row = unwrap(
+  const row = unwrap<Database['public']['Tables']['projects']['Row']>(
     await supabase
       .from('projects')
       .insert({ user_id: userId, ...fields })

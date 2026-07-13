@@ -92,9 +92,35 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
   } catch (err: unknown) {
     if (isOfflineError(err)) {
       const id = crypto.randomUUID(); // optimistic ID
-      const fullPayload = { id, ...payload, status: 'open' };
+      const fullPayload: TodoItemRow = {
+        id,
+        user_id: userId,
+        section_id: fields.section_id || null,
+        project_id: null,
+        title: fields.title.trim(),
+        notes: fields.notes?.trim() || null,
+        priority: fields.priority || 'normal',
+        tags,
+        due_date: fields.due_date || null,
+        recurrence: fields.recurrence || null,
+        duration_minutes: fields.duration_minutes ?? null,
+        scheduled_time: fields.scheduled_time ?? null,
+        reminder_at: fields.reminder_at ?? null,
+        is_important: fields.is_important ?? false,
+        parent_task_id: fields.parent_task_id ?? null,
+        status: 'open',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        category: null,
+        completed_at: null,
+        is_milestone: false,
+        reminder_sent: false,
+        sort_order: 999,
+        ai_bucket: null,
+        ai_classified_at: null,
+      };
       await queueOfflineWrite('table:insert:todo_items', { payload: fullPayload }, 'Dodanie zadania');
-      return fullPayload as unknown as TodoItemRow;
+      return fullPayload;
     }
     throw err;
   }

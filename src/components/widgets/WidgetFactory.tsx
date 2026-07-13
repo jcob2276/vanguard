@@ -9,15 +9,15 @@ export function WidgetFactory({
   data,
 }: {
   type: WidgetType | string;
-  data: Record<string, unknown>;
+  data: unknown;
 }) {
   switch (type) {
     case 'trend':
-      return <TrendChart data={data as unknown as TrendChartData} />;
+      return <TrendChart data={data as TrendChartData} />;
     case 'bar':
-      return <BarChartWidget data={data as unknown as BarChartData} />;
+      return <BarChartWidget data={data as BarChartData} />;
     case 'timeline':
-      return <TimelineWidget data={data as unknown as TimelineWidgetData} />;
+      return <TimelineWidget data={data as TimelineWidgetData} />;
     default:
       return null;
   }
