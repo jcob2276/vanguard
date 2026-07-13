@@ -1,4 +1,5 @@
 import type { SprintPanelProps } from './SprintPanel';
+import { Card } from '../../ui/Card';
 
 interface BodyMetric {
   label: string;
@@ -94,16 +95,16 @@ export default function SprintMetricsGrid({
         <p className="text-[8px] font-black uppercase tracking-[0.25em] text-indigo-400 mb-3">Cele kierunkowe</p>
         <div className="space-y-2">
           {goals?.goal_konto && (
-            <div className="rounded-[10px] bg-amber-500/[0.06] border border-amber-500/15 px-3 py-2.5 hover:scale-[1.03] hover:shadow-md hover:border-amber-500/30 transition-all duration-150 cursor-default">
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-amber-500/[0.06] !border-amber-500/15 hover:scale-[1.03] hover:shadow-md hover:!border-amber-500/30 cursor-default">
               <p className="text-[7px] font-black uppercase tracking-wider text-amber-400 mb-1">Konto</p>
               <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_konto}</p>
-            </div>
+            </Card>
           )}
           {goals?.goal_duch && (
-            <div className="rounded-[10px] bg-indigo-500/[0.06] border border-indigo-500/15 px-3 py-2.5 hover:scale-[1.03] hover:shadow-md hover:border-indigo-500/30 transition-all duration-150 cursor-default">
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-indigo-500/[0.06] !border-indigo-500/15 hover:scale-[1.03] hover:shadow-md hover:!border-indigo-500/30 cursor-default">
               <p className="text-[7px] font-black uppercase tracking-wider text-indigo-400 mb-1">Duch</p>
               <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_duch}</p>
-            </div>
+            </Card>
           )}
           {!goals?.goal_konto && !goals?.goal_duch && (
             <p className="text-[10px] text-text-muted italic">Brak celów kierunkowych</p>
