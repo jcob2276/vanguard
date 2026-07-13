@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Brain,
   Calendar,
@@ -59,14 +59,11 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function fetchIdentity() {
-    const { data: auth } = await supabase.auth.getSession();
-    if (!auth.session) return;
-
+  const fetchIdentity = useCallback(async () => {
     const { data } = await supabase
       .from('vanguard_identity')
       .select('*')
-      .eq('user_id', auth.session.user.id)
+      .eq('user_id', session.user.id)
       .maybeSingle();
 
     if (data) {
@@ -78,21 +75,18 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       });
     }
     setLoading(false);
-  }
+  }, [session.user.id]);
 
   useEffect(() => {
     const t = setTimeout(() => {
       fetchIdentity();
     }, 0);
     return () => clearTimeout(t);
-  }, []);
+  }, [fetchIdentity]);
 
   async function saveIdentity() {
     setSaving(true);
     try {
-      const { data: auth } = await supabase.auth.getSession();
-      if (!auth.session) throw new Error('Brak aktywnej sesji.');
-
       let baselineJson = null;
       if (identity.behavioral_baseline.trim()) {
         try {
@@ -103,7 +97,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       }
 
       const { error } = await supabase.from('vanguard_identity').upsert({
-        user_id: auth.session.user.id,
+        user_id: session.user.id,
         long_term_mission: identity.long_term_mission,
         pillars: identity.pillars,
         avoidance_triggers: identity.avoidance_triggers,

@@ -4,6 +4,7 @@ import RichEditor from './RichEditor';
 import { COLORS, getColor, Note } from './keepUtils';
 import { supabase } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
+import { useUserId } from '../../store/useStore';
 
 export default function EditNoteModal({
   note,
@@ -37,7 +38,7 @@ export default function EditNoteModal({
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<{ type: string; text: string } | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const c = getColor(color);
+  const c = getColor(color), userId = useUserId();
 
   useEffect(() => {
     void (async () => {
@@ -151,10 +152,9 @@ export default function EditNoteModal({
         setAiLoading(null);
         return;
       }
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Brak zalogowanego użytkownika');
+      if (!userId) throw new Error('Brak zalogowanego użytkownika');
       const inserts = tasks.map((t: string) => ({
-        user_id: user.id,
+        user_id: userId,
         title: t.trim(),
         status: 'open',
       }));

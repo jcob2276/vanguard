@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { createPrescription } from '../../lib/health/medicalApi';
 import { notify } from '../../lib/notify';
 import { getTodayWarsaw } from '../../lib/date';
@@ -8,10 +7,10 @@ import Modal from '../ui/Modal';
 interface AddPrescriptionModalProps {
   onClose: () => void;
   onSaved: () => void;
-  user: User | null;
+  userId: string | null | undefined;
 }
 
-export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPrescriptionModalProps) {
+export default function AddPrescriptionModal({ onClose, onSaved, userId }: AddPrescriptionModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     type: 'normalized',
@@ -24,11 +23,11 @@ export default function AddPrescriptionModal({ onClose, onSaved, user }: AddPres
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!userId) return;
     setIsSubmitting(true);
 
     try {
-      await createPrescription(user.id, {
+      await createPrescription(userId, {
         type: formData.type,
         status: formData.status,
         sphere_l: formData.sphere_l ? parseFloat(formData.sphere_l) : null,

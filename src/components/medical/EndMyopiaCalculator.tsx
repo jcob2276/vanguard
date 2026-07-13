@@ -7,11 +7,13 @@ import VisionJournal from './VisionJournal';
 import GlassesCabinet from './GlassesCabinet';
 import StabilityRing from './StabilityRing';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useUserId } from '../../store/useStore';
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 
 export default function EndMyopiaCalculator() {
   const haptics = useHaptics();
+  const userId = useUserId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const pipVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -116,10 +118,9 @@ export default function EndMyopiaCalculator() {
     setIsSaving(true);
     setSaveError(false);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Brak zalogowanego użytkownika');
+      if (!userId) throw new Error('Brak zalogowanego użytkownika');
       const { error } = await supabase.from('endmyopia_measurements').insert({
-        user_id: user.id,
+        user_id: userId,
         eye_measured: selectedEye,
         blur_distance_cm: parseFloat(capturedDistance.toFixed(2)),
         diopters: parseFloat(capturedDiopters.toFixed(2)),

@@ -1,10 +1,10 @@
 import { notify } from '../../lib/notify';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { Plus } from 'lucide-react';
 import EmptyState from '../ui/EmptyState';
-import type { User } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
 import PrescriptionCard from './PrescriptionCard';
 import AddPrescriptionModal from './AddPrescriptionModal';
 
@@ -24,47 +24,41 @@ export type Prescription = {
 };
 
 export default function GlassesCabinet() {
-  const [user, setUser] = useState<User | null>(null);
+  const userId = useUserId();
   const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-  }, []);
-
   const prescriptionsQuery = useQuery({
-    queryKey: ['prescriptions', user?.id],
+    queryKey: ['prescriptions', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('endmyopia_prescriptions')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', userId!)
         .order('started_at', { ascending: false });
       if (error) throw error;
       return (data || []) as Prescription[];
     },
-    enabled: !!user,
+    enabled: !!userId,
   });
 
   const prescriptions = prescriptionsQuery.data ?? [];
   const loading = prescriptionsQuery.isLoading;
 
   const loadFromExcel = async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       const excelData = [
-        { user_id: user.id, type: 'normalized', status: 'active', started_at: '2022-06-15', sphere_r: -2.75, cyl_r: null, axis_r: null, sphere_l: -4.25, cyl_l: -0.75, axis_l: 10, notes: 'PD 61mm' },
-        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2020-10-24', ended_at: '2022-06-15', sphere_r: -3.25, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
-        { user_id: user.id, type: 'normalized', status: 'past', started_at: '2019-07-24', ended_at: '2020-10-24', sphere_r: -3.50, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
-        { user_id: user.id, type: 'differential', status: 'active', started_at: '2024-12-25', notes: 'mg być idealne', sphere_r: -1.50, cyl_r: null, axis_r: null, sphere_l: -3.00, cyl_l: -0.75, axis_l: 10 },
-        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za mocne', sphere_r: -1.75, cyl_r: null, axis_r: null, sphere_l: -3.25, cyl_l: -0.75, axis_l: 10 },
-        { user_id: user.id, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za słabe', sphere_r: -1.25, cyl_r: null, axis_r: null, sphere_l: -2.75, cyl_l: -0.75, axis_l: 10 }
+        { user_id: userId, type: 'normalized', status: 'active', started_at: '2022-06-15', sphere_r: -2.75, cyl_r: null, axis_r: null, sphere_l: -4.25, cyl_l: -0.75, axis_l: 10, notes: 'PD 61mm' },
+        { user_id: userId, type: 'normalized', status: 'past', started_at: '2020-10-24', ended_at: '2022-06-15', sphere_r: -3.25, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
+        { user_id: userId, type: 'normalized', status: 'past', started_at: '2019-07-24', ended_at: '2020-10-24', sphere_r: -3.50, cyl_r: null, axis_r: null, sphere_l: -4.50, cyl_l: -0.75, axis_l: 10, notes: 'Stare - normalizacja' },
+        { user_id: userId, type: 'differential', status: 'active', started_at: '2024-12-25', notes: 'mg być idealne', sphere_r: -1.50, cyl_r: null, axis_r: null, sphere_l: -3.00, cyl_l: -0.75, axis_l: 10 },
+        { user_id: userId, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za mocne', sphere_r: -1.75, cyl_r: null, axis_r: null, sphere_l: -3.25, cyl_l: -0.75, axis_l: 10 },
+        { user_id: userId, type: 'differential', status: 'past', started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za słabe', sphere_r: -1.25, cyl_r: null, axis_r: null, sphere_l: -2.75, cyl_l: -0.75, axis_l: 10 }
       ];
-      
+
       const { error } = await supabase.from('endmyopia_prescriptions').insert(excelData);
       if (error) throw error;
-      
+
       await prescriptionsQuery.refetch();
     } catch (error: unknown) {
       notify('Nie udało się zaimportować okularów.', 'error');
@@ -135,7 +129,7 @@ export default function GlassesCabinet() {
       )}
 
       {showAddForm && (
-        <AddPrescriptionModal onClose={() => setShowAddForm(false)} onSaved={() => void prescriptionsQuery.refetch()} user={user} />
+        <AddPrescriptionModal onClose={() => setShowAddForm(false)} onSaved={() => void prescriptionsQuery.refetch()} userId={userId} />
       )}
     </div>
   );
